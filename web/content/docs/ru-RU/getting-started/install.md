@@ -11,9 +11,10 @@ description: Скачать и разместить бинарник RenoP
 
 Используйте страницу [Загрузки](/download) на сайте:
 
-- **Стабильная** — assets GitHub Release для каждой ОС/архитектуры
-- **Preview** — CI-артефакт `dist-artifacts` из workflow `build.yml` через [nightly.link](https://nightly.link), с
-  извлечением пакета платформы в браузере
+- **Стабильная** — официальный источник `https://mvnc.pkg.one/update/renop/stable/` (zip по платформам)
+- **Preview** — официальный источник `https://mvnc.pkg.one/update/renop/nightly/` (zip по платформам)
+
+Метаданные публикуются CI в `info.json`. Changelog по-прежнему берётся с GitHub.
 
 Поддерживаемые платформы соответствуют матрице сборки проекта (Windows, Linux, FreeBSD, NetBSD, OpenBSD; amd64/arm64 и
 дополнительные Linux-архитектуры).

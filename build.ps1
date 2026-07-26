@@ -229,18 +229,27 @@ try {
         Copy-Item -LiteralPath (Join-Path $repositoryRoot 'README.md') -Destination $stage
         Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archivePath -CompressionLevel Optimal -Force
         $hash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $size = (Get-Item -LiteralPath $archivePath).Length
         $manifestTargets.Add([ordered]@{
             os = $goos
             arch = $goarch
             file = Split-Path -Leaf $archivePath
             sha256 = $hash
+            size = $size
         })
         Remove-Item -LiteralPath $stage -Recurse -Force
     }
 
     if (-not $noBundle) {
+        $commitFull = $null
+        try {
+            $commitFull = (& git rev-parse HEAD 2>$null).Trim()
+        } catch {
+            $commitFull = ''
+        }
         $manifest = [ordered]@{
             version = $displayVersion
+            commit = $commitFull
             development = ($developmentValue -eq 'true')
             targets = $manifestTargets
         }

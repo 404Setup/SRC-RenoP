@@ -11,9 +11,10 @@ description: Download and place the RenoP binary
 
 Use the website [Download](/download) page:
 
-- **Stable** — GitHub release assets for each OS/arch
-- **Preview** — CI artifact `dist-artifacts` from workflow `build.yml`, via [nightly.link](https://nightly.link), with
-  platform package extraction in the browser
+- **Stable** — official host `https://mvnc.pkg.one/update/renop/stable/` (per-platform zips)
+- **Preview** — official host `https://mvnc.pkg.one/update/renop/nightly/` (per-platform zips)
+
+Metadata is published as `info.json` by CI (`publish-update.ps1`). Changelogs are still fetched from GitHub.
 
 Supported platforms follow the project build matrix (Windows, Linux, FreeBSD, NetBSD, OpenBSD; amd64/arm64 and
 additional Linux arches).

@@ -10,9 +10,7 @@ category: API
 
 `GET /status` 公开；`check` / `install` / `upload` / `restart` 需要 **manager**。
 
-相同状态也出现在 `GET /api/status/instance` 的 `update_state` 上。
-
-典型流程：
+状态也出现在 `GET /api/status/instance` 的 `update_state`。
 
 ```text
 idle → available → downloading → ready_to_restart
@@ -21,7 +19,7 @@ idle → available → downloading → ready_to_restart
 
 ## `GET /api/updater/status`
 
-响应：`application/x-protobuf`，`UpdateState`（见 `proto/api/v1/api.proto`）。
+响应：`application/x-protobuf`，`UpdateState`（`proto/api/v1/api.proto`）。
 
 | 字段                   | 含义                                                            |
 |------------------------|-----------------------------------------------------------------|
@@ -39,9 +37,18 @@ idle → available → downloading → ready_to_restart
 
 ## `POST /api/updater/check`
 
-| 查询      | 默认      | 含义                   |
-|-----------|-----------|------------------------|
-| `channel` | `release` | `release` 或 `nightly` |
+| 查询      | 默认                   | 含义                   |
+|-----------|------------------------|------------------------|
+| `channel` | 设置项 `updater.channel` | `release` 或 `nightly` |
+
+省略 / 非法 → `updater.channel`（默认 `release`）。
+
+| 通道        | `info.json`                                           |
+|-------------|-------------------------------------------------------|
+| `nightly`   | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release`   | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
+
+包路径：`…/{nightly\|stable}/{version}/{file}`。
 
 ```json
 {
@@ -59,28 +66,26 @@ idle → available → downloading → ready_to_restart
 }
 ```
 
-检查失败 → 500，`{ "error": "…" }`。
+失败 → 500，`{ "error": "…" }`。
 
 ## `POST /api/updater/install`
 
-使用当前 `download_url` 异步下载并解压。为空则回退到 nightly 默认 URL。
+按当前 `download_url` 异步下载并解压。
 
 | 状态 | 原因                                               |
 |------|----------------------------------------------------|
 | 507  | 磁盘不足                                           |
 | 409  | 安装已在进行（`Installation already in progress`） |
 
-立即成功响应：
-
 ```json
 {"status": "started"}
 ```
 
-轮询 `/status` 获取进度。完成状态：`ready_to_restart`。
+轮询 `/status`。完成：`ready_to_restart`。
 
 ## `POST /api/updater/upload`
 
-离线更新：multipart zip。表单字段 `file` 或 `package`；必须为 `.zip`。
+离线更新：multipart zip（`file` 或 `package`），须为 `.zip`。
 
 ```json
 {
@@ -89,30 +94,24 @@ idle → available → downloading → ready_to_restart
 }
 ```
 
-该单请求 multipart 路径仍是小包与非 UI 客户端的默认方式。
+### 多分片上传（可选）
 
-### 多分片离线上传 — 可选
+大 zip 可用分块上传（manager）。小于 **8 MiB** → 单请求 `POST /api/updater/upload`。
 
-来自 Dashboard 离线更新对话框的大 zip 可通过共享会话 API 并发分块上传 （仅 manager）。小于 **8 MiB** 的包仍走单请求
-`POST /api/updater/upload`。init/complete 为 **`application/x-protobuf`**
-（`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`）；分片为原始字节。
+init/complete：`application/x-protobuf`（`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`）。分片为原始字节。
 
-分片大小由总大小动态决定（见 [storage.md](./storage.md) 多分片节）； 使用 init 响应中的 `chunk_size` / `chunk_count`。
+分片大小见 [storage.md](./storage.md)。使用 init 的 `chunk_size` / `chunk_count`。
 
-1. `POST /api/upload/chunked/`，`purpose=updater`、`filename`（须以 `.zip` 结尾）、`size`
-2. 对各分片并行 `PUT /api/upload/chunked/:id/:index`（可重试；已接受分片可再 PUT）
-3. `POST /api/upload/chunked/:id/complete` — 解压二进制并设为 `ready_to_restart`
-
-complete 的 protobuf 字段：`status=ready_to_restart`，`message=…`。
+1. `POST /api/upload/chunked/` — `purpose=updater`、`filename`（`.zip`）、`size`
+2. `PUT /api/upload/chunked/:id/:index`（可并行、可重试）
+3. `POST /api/upload/chunked/:id/complete` → `ready_to_restart`
 
 ## `POST /api/updater/restart`
 
-用已准备的更新替换二进制并重启。
+应用已准备的二进制并重启。
 
 未就绪 → 400（`No update ready to install`）。
 
 ```json
 {"status": "restarting"}
 ```
-
-之后连接会断开，属预期行为。

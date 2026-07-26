@@ -8,9 +8,10 @@ lightningcss**.
 - Home, pricing (all free, on purpose), docs, download
 - i18n + light/dark theme (styles slimmed from `frontend/renop-html`)
 - Markdown docs with **auto categories** (folder-based) and **auto TOC** (headings)
-- Downloads:
-    - **Stable** — GitHub release assets (direct `browser_download_url`), history with 10 per page
-    - **Preview** — `nightly.link` multi-arch zip, client-side extract of the selected OS/arch package
+- Downloads from the **official update host** (`mvnc.pkg.one`):
+    - **Stable** — `update/renop/stable/info.json` + per-platform zips
+    - **Preview** — `update/renop/nightly/info.json` + per-platform zips
+    - Changelog text still comes from the GitHub API
 
 ## Develop
 
@@ -56,12 +57,15 @@ description: Optional blurb on the index
 
 Category defaults to the folder under the locale root. Build emits a multi-locale `docs-index.json`.
 
-## Preview / nightly downloads
+## Official packages
 
-CI workflow [`.github/workflows/build.yml`](../.github/workflows/build.yml) uploads artifact **`dist-artifacts`**
-(contents of `dist/`).  
-nightly.link URL used by the site:
+CI workflow [`.github/workflows/build.yml`](../.github/workflows/build.yml) builds platform zips, then
+[`.github/scripts/publish-update.ps1`](../.github/scripts/publish-update.ps1) publishes them to:
 
 ```text
-https://nightly.link/404Setup/SRC-RenoP/workflows/build/main/dist-artifacts.zip
+https://mvnc.pkg.one/update/renop/nightly/info.json
+https://mvnc.pkg.one/update/renop/stable/info.json
+https://mvnc.pkg.one/update/renop/{channel}/{version}/renop-…-{os}-{arch}.zip
 ```
+
+Requires repository secret `RENOP_PUBLISH_TOKEN` (Bearer token with write access to the `update` repo on that host).

@@ -13,25 +13,22 @@ import {clear, el} from '../lib/dom.js';
 import {
     detectPlatform,
     fetchPreviewInfo,
-    fetchStableReleases,
-    findAssetForPlatform,
+    fetchStableRelease,
+    findTargetForPlatform,
     formatDate,
     getArchOptionsForOs,
-    NIGHTLY_ZIP_URL,
     normalizePlatform,
+    packageDownloadUrl,
     PLATFORMS,
     triggerBrowserDownload,
-} from '../lib/github.js';
-import {downloadAndExtractNightly} from '../lib/zip-extract.js';
+} from '../lib/official.js';
 import {makeCustomSelect} from '../components/custom-select.js';
 
-const PAGE_SIZE = 10;
 const STORAGE_OS = 'renop_web_os';
 const STORAGE_ARCH = 'renop_web_arch';
 
 /**
  * Load saved OS/arch from localStorage, falling back to auto-detection.
- * Always returns a supported (os, arch) pair for the build matrix.
  * @returns {{ os: string, arch: string }}
  */
 function loadSavedPlatform() {
@@ -42,7 +39,6 @@ function loadSavedPlatform() {
 }
 
 /**
- * Persist OS and/or arch selection to localStorage.
  * @param {string} [os]
  * @param {string} [arch]
  * @returns {void}
@@ -55,18 +51,17 @@ function savePlatform(os, arch) {
 /**
  * @param {string} os
  * @param {string} arch
- * @returns {boolean} True when both OS and arch are set.
+ * @returns {boolean}
  */
 function platformSelected(os, arch) {
     return Boolean(os && arch);
 }
 
 /**
- * Label + custom select field for the download toolbar.
- * @param {string} label - Field label text.
- * @param {Array<{value:string,label:string}|string>} options - Select options.
- * @param {string} value - Current value.
- * @param {(value: string) => void} onChange - Selection callback.
+ * @param {string} label
+ * @param {Array<{value:string,label:string}|string>} options
+ * @param {string} value
+ * @param {(value: string) => void} onChange
  * @returns {{ field: HTMLElement, select: ReturnType<typeof makeCustomSelect> }}
  */
 function createCustomField(label, options, value, onChange) {
@@ -79,15 +74,14 @@ function createCustomField(label, options, value, onChange) {
 }
 
 /**
- * Build a release/download card with changelog and primary download action.
  * @param {object} opts
- * @param {string} opts.title - Release title/tag.
- * @param {string} [opts.badge] - Badge label (stable/preview).
- * @param {string} [opts.badgeClass] - Extra class on the badge.
- * @param {string} [opts.date] - Formatted publish date.
- * @param {string} [opts.body] - Changelog text (plain).
- * @param {() => void} opts.onDownload - Download button handler.
- * @param {string} opts.statusId - Element id for the status message span.
+ * @param {string} opts.title
+ * @param {string} [opts.badge]
+ * @param {string} [opts.badgeClass]
+ * @param {string} [opts.date]
+ * @param {string} [opts.body]
+ * @param {() => void} opts.onDownload
+ * @param {string} opts.statusId
  * @returns {HTMLElement}
  */
 function releaseCard({
@@ -132,10 +126,9 @@ function releaseCard({
 }
 
 /**
- * Update a release card status line by element id.
- * @param {string} id - Status span id.
- * @param {string} [message] - Status text (empty clears).
- * @param {'error'|'ok'|null|undefined} [kind] - Visual tone.
+ * @param {string} id
+ * @param {string} [message]
+ * @param {'error'|'ok'|null|undefined} [kind]
  * @returns {void}
  */
 function setStatus(id, message, kind) {
@@ -147,17 +140,15 @@ function setStatus(id, message, kind) {
 }
 
 /**
- * Render the download page: stable/preview channels, platform selectors, release list.
- * @param {{ root: HTMLElement }} ctx - Route context.
- * @returns {Promise<() => void>} Cleanup that invalidates in-flight list fetches and destroys selects.
+ * Render the download page: stable/preview channels from the official update host.
+ * @param {{ root: HTMLElement }} ctx
+ * @returns {Promise<() => void>}
  */
 export async function renderDownload({root}) {
     root.innerHTML = '';
     document.title = `RenoP — ${t('download.title')}`;
 
     let channel = 'stable';
-    let page = 1;
-    let stableReleases = [];
     /** Monotonic id so an older in-flight fetch cannot overwrite a newer tab switch. */
     let listRequestId = 0;
     const platform = loadSavedPlatform();
@@ -221,12 +212,8 @@ export async function renderDownload({root}) {
     );
     root.appendChild(list);
 
-    const pagination = el('div', {class: 'download-pagination', style: {display: 'none'}});
-    root.appendChild(pagination);
-
     /**
-     * Show or hide the “platform required” warning based on current OS/arch.
-     * @returns {boolean} True when a full platform is selected.
+     * @returns {boolean}
      */
     function ensurePlatform() {
         const ok = platformSelected(os, arch);
@@ -235,7 +222,6 @@ export async function renderDownload({root}) {
     }
 
     /**
-     * Mark the stable or preview channel tab as active.
      * @param {'stable'|'preview'|string} nextChannel
      * @returns {void}
      */
@@ -251,118 +237,30 @@ export async function renderDownload({root}) {
             const next = btn.getAttribute('data-channel');
             if (!next || next === channel) return;
             setActiveTab(next);
-            page = 1;
             void refreshList();
         });
     });
 
     /**
-     * Start a stable release asset download for the selected platform.
-     * @param {{ id: number, assets: Array<{ name: string, url: string }> }} release
-     * @returns {Promise<void>}
+     * @param {'stable'|'nightly'} channelKey
+     * @param {{ version?: string, tag?: string, targets: Array }} release
+     * @param {string} statusId
+     * @returns {void}
      */
-    async function downloadStable(release) {
+    function downloadPackage(channelKey, release, statusId) {
         if (!ensurePlatform()) return;
-        const statusId = `status-stable-${release.id}`;
-        const asset = findAssetForPlatform(release.assets, os, arch);
-        if (!asset) {
+        const version = release.version || release.tag || '';
+        const target = findTargetForPlatform(release.targets, os, arch);
+        if (!target?.file || !version) {
             setStatus(statusId, t('download.noAsset'), 'error');
             return;
         }
-        triggerBrowserDownload(asset.url, asset.name);
+        const url = packageDownloadUrl(channelKey, version, target.file);
+        triggerBrowserDownload(url, target.file);
         setStatus(statusId, t('download.ready'), 'ok');
     }
 
     /**
-     * Download the nightly multi-arch zip, extract the platform package, or fall back to full zip URL.
-     * @param {{ downloadUrl?: string }} preview - Preview metadata from `fetchPreviewInfo`.
-     * @returns {Promise<void>}
-     */
-    async function downloadPreview(preview) {
-        if (!ensurePlatform()) return;
-        const statusId = 'status-preview';
-        setStatus(statusId, t('download.extracting'), null);
-        try {
-            const {blob, filename} = await downloadAndExtractNightly(
-                preview.downloadUrl || NIGHTLY_ZIP_URL,
-                os,
-                arch,
-            );
-            triggerBrowserDownload(blob, filename);
-            setStatus(statusId, t('download.ready'), 'ok');
-        } catch (err) {
-            console.warn('[download] nightly extract failed', err);
-            setStatus(statusId, t('download.extractFail'), 'error');
-            triggerBrowserDownload(NIGHTLY_ZIP_URL);
-        }
-    }
-
-    /**
-     * Render the current page of stable releases and pagination controls.
-     * @returns {void}
-     */
-    function renderStablePage() {
-        clear(list);
-        if (!stableReleases.length) {
-            list.appendChild(el('p', {class: 'download-loading'}, t('download.noReleases')));
-            pagination.style.display = 'none';
-            return;
-        }
-
-        const totalPages = Math.max(1, Math.ceil(stableReleases.length / PAGE_SIZE));
-        if (page > totalPages) page = totalPages;
-        const start = (page - 1) * PAGE_SIZE;
-        const slice = stableReleases.slice(start, start + PAGE_SIZE);
-
-        for (const rel of slice) {
-            list.appendChild(
-                releaseCard({
-                    title: rel.tag || rel.name,
-                    badge: t('download.stableBadge'),
-                    date: formatDate(rel.publishedAt, getCurrentLang()),
-                    body: rel.body,
-                    statusId: `status-stable-${rel.id}`,
-                    onDownload: () => downloadStable(rel),
-                }),
-            );
-        }
-
-        if (totalPages > 1) {
-            pagination.style.display = 'flex';
-            clear(pagination);
-            const prev = el('button', {
-                type: 'button',
-                class: 'pill-btn pill-btn--soft pill-btn--sm',
-                disabled: page <= 1,
-                onClick: () => {
-                    page -= 1;
-                    renderStablePage();
-                    list.scrollIntoView({behavior: 'smooth', block: 'start'});
-                },
-            }, t('download.prev'));
-            const next = el('button', {
-                type: 'button',
-                class: 'pill-btn pill-btn--soft pill-btn--sm',
-                disabled: page >= totalPages,
-                onClick: () => {
-                    page += 1;
-                    renderStablePage();
-                    list.scrollIntoView({behavior: 'smooth', block: 'start'});
-                },
-            }, t('download.next'));
-            pagination.append(
-                prev,
-                el('span', {class: 'download-page-info'}, t('download.page', {page, total: totalPages})),
-                next,
-            );
-        } else {
-            pagination.style.display = 'none';
-        }
-    }
-
-    /**
-     * Fetch and render the active channel list (stable releases or single preview card).
-     * Ignores responses that are superseded by a newer request id.
      * @returns {Promise<void>}
      */
     async function refreshList() {
@@ -371,19 +269,26 @@ export async function renderDownload({root}) {
 
         clear(list);
         list.appendChild(el('p', {class: 'download-loading'}, t('download.loading')));
-        pagination.style.display = 'none';
 
         try {
             if (requestedChannel === 'stable') {
-                if (!stableReleases.length) {
-                    const releases = await fetchStableReleases();
-                    if (requestId !== listRequestId) return;
-                    stableReleases = releases;
-                } else if (requestId !== listRequestId) {
-                    return;
-                }
-                if (channel !== 'stable' || requestId !== listRequestId) return;
-                renderStablePage();
+                const release = await fetchStableRelease();
+                if (requestId !== listRequestId || channel !== 'stable') return;
+                clear(list);
+                list.appendChild(
+                    releaseCard({
+                        title: release.tag || release.name,
+                        badge: t('download.stableBadge'),
+                        date: formatDate(release.publishedAt, getCurrentLang()),
+                        body: release.body,
+                        statusId: 'status-stable',
+                        onDownload: () => downloadPackage('stable', {
+                            version: release.id || release.tag,
+                            tag: release.tag,
+                            targets: release.targets,
+                        }, 'status-stable'),
+                    }),
+                );
             } else {
                 const preview = await fetchPreviewInfo();
                 if (requestId !== listRequestId || channel !== 'preview') return;
@@ -396,7 +301,11 @@ export async function renderDownload({root}) {
                         date: formatDate(preview.publishedAt, getCurrentLang()),
                         body: preview.body,
                         statusId: 'status-preview',
-                        onDownload: () => downloadPreview(preview),
+                        onDownload: () => downloadPackage('nightly', {
+                            version: preview.version,
+                            tag: preview.tag,
+                            targets: preview.targets,
+                        }, 'status-preview'),
                     }),
                 );
             }

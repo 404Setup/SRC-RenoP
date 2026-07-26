@@ -17,6 +17,7 @@ jobs:
       version: ${{ steps.metadata.outputs.version }}
       development: ${{ steps.metadata.outputs.development }}
       tag: ${{ steps.metadata.outputs.tag }}
+      commit: ${{ steps.metadata.outputs.commit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -27,6 +28,7 @@ jobs:
         shell: pwsh
         run: |
           $message = (git log -1 --format=%s).Trim()
+          $commit = (git rev-parse HEAD).Trim()
           $skip = $message.StartsWith('[skip ci]', [StringComparison]::OrdinalIgnoreCase) -or
               $message.StartsWith('[ci skip]', [StringComparison]::OrdinalIgnoreCase) -or
               $message.StartsWith('[web]', [StringComparison]::OrdinalIgnoreCase)
@@ -48,8 +50,9 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "development=$development" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
+          "commit=$commit" >> $env:GITHUB_OUTPUT
           Write-Host "Commit: $message"
-          Write-Host "Version: $version (development=$development, skip=$skip)"
+          Write-Host "Version: $version sha=$commit (development=$development, skip=$skip)"
 
   build:
     name: Build all platforms
@@ -96,24 +99,51 @@ jobs:
           name: dist-artifacts
           path: dist/
 
-  release:
-    name: Publish GitHub release
+  publish:
+    name: Publish to official update host
     needs: [metadata, build]
-    if: needs.metadata.outputs.release == 'true' && needs.metadata.outputs.skip != 'true'
+    if: needs.metadata.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: '*'
           path: dist
           merge-multiple: true
+      - name: Publish packages
+        shell: pwsh
+        env:
+          RENOP_PUBLISH_TOKEN: ${{ secrets.RENOP_PUBLISH_TOKEN }}
+          IS_RELEASE: ${{ needs.metadata.outputs.release }}
+          VERSION: ${{ needs.metadata.outputs.version }}
+          COMMIT: ${{ needs.metadata.outputs.commit }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RENOP_PUBLISH_TOKEN)) {
+              throw 'Repository secret RENOP_PUBLISH_TOKEN is not set'
+          }
+          $channel = if ($env:IS_RELEASE -eq 'true') { 'stable' } else { 'nightly' }
+          pwsh -NoProfile -File ./.github/scripts/publish-update.ps1 `
+              -Channel $channel `
+              -DistDir ./dist `
+              -Version $env:VERSION `
+              -Commit $env:COMMIT
+
+  release:
+    name: Publish GitHub release notes
+    needs: [metadata, build, publish]
+    if: needs.metadata.outputs.release == 'true' && needs.metadata.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    steps:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.metadata.outputs.tag }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ needs.metadata.outputs.commit }}
           generate_release_notes: true
-          files: |
-            dist/*.zip
-            dist/manifest.json
+          body: |
+            Official packages are hosted at the RenoP update source:
+
+            https://mvnc.pkg.one/update/renop/stable/info.json

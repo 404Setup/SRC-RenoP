@@ -22,6 +22,8 @@ import (
 	"github.com/panjf2000/ants/v2"
 
 	"renop/auth"
+	"renop/config"
+	"renop/core"
 	"renop/utils/protohttp"
 	"renop/version"
 )
@@ -33,13 +35,47 @@ var (
 	autoCheckWorkerOnce sync.Once
 )
 
-func StartAutoCheckTicker() {
+// resolveConfiguredUpdater returns the channel and mode from live config.
+func resolveConfiguredUpdater(state *core.AppState) (Channel, UpdateMode) {
+	if state == nil || state.Inner == nil || state.Inner.Config == nil {
+		return ChannelRelease, ModeManual
+	}
+	cfgVal := state.Inner.Config.Load()
+	if cfgVal == nil {
+		return ChannelRelease, ModeManual
+	}
+	cfg, ok := cfgVal.(*config.Config)
+	if !ok || cfg == nil {
+		return ChannelRelease, ModeManual
+	}
+	return ParseChannel(cfg.Updater.Channel), ParseUpdateMode(cfg.Updater.Mode)
+}
+
+func resolveCheckChannel(query string, state *core.AppState) Channel {
+	q := strings.TrimSpace(query)
+	if q != "" {
+		switch Channel(strings.ToLower(q)) {
+		case ChannelNightly:
+			return ChannelNightly
+		case ChannelRelease:
+			return ChannelRelease
+		}
+	}
+	ch, _ := resolveConfiguredUpdater(state)
+	return ch
+}
+
+func StartAutoCheckTicker(state *core.AppState) {
 	autoCheckWorkerOnce.Do(func() {
 		go func() {
-			ticker := time.NewTicker(6 * time.Hour)
+			ticker := time.NewTicker(autoCheckInterval)
 			defer ticker.Stop()
+			time.Sleep(30 * time.Second)
+			ch, mode := resolveConfiguredUpdater(state)
+			TriggerAutoCheck(ch, mode)
 			for range ticker.C {
-				TriggerAutoCheck(ChannelRelease, ModeManual)
+				ch, mode := resolveConfiguredUpdater(state)
+				TriggerAutoCheck(ch, mode)
 			}
 		}()
 	})
@@ -77,28 +113,29 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 			s.IsRelease = res.IsRelease
 		})
 
-		if mode == ModeAutoInstall {
-			reqSpace := res.EstimatedDiskSpace
-			if reqSpace <= 0 {
-				reqSpace = 100 * 1024 * 1024
-			}
-			if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
-				return
-			}
-			targetPath, err := DownloadAndExtract(ctx, res.DownloadUrl)
-			if err != nil {
-				return
-			}
-			if applyErr := ApplyUpdateAndRestart(targetPath); applyErr != nil {
-				_ = os.Remove(targetPath)
-			}
+		if mode != ModeAutoInstall {
+			return
+		}
+		reqSpace := res.EstimatedDiskSpace
+		if reqSpace <= 0 {
+			reqSpace = 100 * 1024 * 1024
+		}
+		if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
+			return
+		}
+		targetPath, err := DownloadAndExtract(ctx, res.DownloadUrl)
+		if err != nil {
+			return
+		}
+		if applyErr := ApplyUpdateAndRestart(targetPath); applyErr != nil {
+			_ = os.Remove(targetPath)
 		}
 	})
 }
 
-func SetupUpdaterRoutes(router fiber.Router) {
+func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 	CleanOldExecutables()
-	StartAutoCheckTicker()
+	StartAutoCheckTicker(state)
 
 	api := router.Group("/updater")
 
@@ -112,7 +149,7 @@ func SetupUpdaterRoutes(router fiber.Router) {
 			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 		}
 
-		channel := Channel(c.Query("channel", string(ChannelRelease)))
+		channel := resolveCheckChannel(c.Query("channel"), state)
 		res, err := CheckUpdate(c.Context(), channel)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -167,7 +204,11 @@ func SetupUpdaterRoutes(router fiber.Router) {
 			st := GetUpdateState()
 			downloadUrl := st.DownloadUrl
 			if downloadUrl == "" {
-				downloadUrl = "https://nightly.link/404Setup/SRC-RenoP/workflows/build/main/renop-nightly.zip"
+				updateStateFields(func(s *UpdateState) {
+					s.Status = "error"
+					s.ErrorMessage = "No download URL for the current platform"
+				})
+				return
 			}
 
 			updateStateFields(func(s *UpdateState) {

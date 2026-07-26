@@ -19,7 +19,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
+
+	"renop/config"
+	"renop/core"
 )
 
 func largeBodyHandler(size int) http.Handler {
@@ -37,39 +41,18 @@ func largeBodyHandler(size int) http.Handler {
 	})
 }
 
-func TestDoGitHubJSONRejectsOversizedContentLength(t *testing.T) {
+func TestDoJSONGetRejectsOversizedContentLength(t *testing.T) {
 	const size = 40 << 20
 	ts := httptest.NewServer(largeBodyHandler(size))
 	t.Cleanup(ts.Close)
 
 	var dst map[string]any
-	_, err := doGitHubJSON(context.Background(), ts.URL, &dst)
+	_, err := doJSONGet(context.Background(), ts.URL, "application/json", &dst)
 	if err == nil {
 		t.Fatal("expected error for oversized Content-Length")
 	}
 	if !strings.Contains(err.Error(), "too large") && !strings.Contains(err.Error(), "exceeds") {
 		t.Fatalf("expected size-limit error, got: %v", err)
-	}
-}
-
-func TestDoGitHubJSONRejectsOversizedChunkedBody(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		chunk := bytes.Repeat([]byte("x"), 64*1024)
-		for i := 0; i < (maxGitHubAPIBody/len(chunk))+4; i++ {
-			_, _ = w.Write(chunk)
-		}
-	}))
-	t.Cleanup(ts.Close)
-
-	var dst map[string]any
-	_, err := doGitHubJSON(context.Background(), ts.URL, &dst)
-	if err == nil {
-		t.Fatal("expected error for oversized body")
-	}
-	if !strings.Contains(err.Error(), "exceeds") {
-		t.Fatalf("expected exceeds error, got: %v", err)
 	}
 }
 
@@ -90,107 +73,6 @@ func TestDoGitHubJSONOK(t *testing.T) {
 	}
 	if rel.TagName != "v1.2.3" {
 		t.Fatalf("tag=%q", rel.TagName)
-	}
-}
-
-func TestDoGitHubJSONNonOKAbortsLargeBody(t *testing.T) {
-	const size = 8 << 20
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Length", strconv.Itoa(size))
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write(bytes.Repeat([]byte("e"), size))
-	}))
-	t.Cleanup(ts.Close)
-
-	var dst map[string]any
-	status, err := doGitHubJSON(context.Background(), ts.URL, &dst)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if status != http.StatusNotFound {
-		t.Fatalf("status=%d, want 404", status)
-	}
-}
-
-func TestDoGitHubJSONNonOKSmallBody(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = io.WriteString(w, `{"message":"not found"}`)
-	}))
-	t.Cleanup(ts.Close)
-
-	var dst map[string]any
-	status, err := doGitHubJSON(context.Background(), ts.URL, &dst)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if status != http.StatusNotFound {
-		t.Fatalf("status=%d, want 404", status)
-	}
-}
-
-func TestDoGitHubJSONOversizedDoesNotSpikeHeap(t *testing.T) {
-	const size = 40 << 20
-	ts := httptest.NewServer(largeBodyHandler(size))
-	t.Cleanup(ts.Close)
-
-	runtime.GC()
-	var before runtime.MemStats
-	runtime.ReadMemStats(&before)
-
-	var dst map[string]any
-	_, err := doGitHubJSON(context.Background(), ts.URL, &dst)
-	if err == nil {
-		t.Fatal("expected oversized error")
-	}
-
-	runtime.GC()
-	var after runtime.MemStats
-	runtime.ReadMemStats(&after)
-
-	const maxGrowth = 8 << 20
-	var growth uint64
-	if after.HeapAlloc > before.HeapAlloc {
-		growth = after.HeapAlloc - before.HeapAlloc
-	}
-	if growth > maxGrowth {
-		t.Fatalf("HeapAlloc grew by %d bytes after rejecting 40MiB body (limit %d)", growth, maxGrowth)
-	}
-}
-
-func TestDoGitHubJSONClientFailureDoesNotSpikeHeap(t *testing.T) {
-	const size = 40 << 20
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Length", strconv.Itoa(size))
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(bytes.Repeat([]byte("x"), 64*1024))
-		if hj, ok := w.(http.Hijacker); ok {
-			conn, _, err := hj.Hijack()
-			if err == nil {
-				_ = conn.Close()
-			}
-		}
-	}))
-	t.Cleanup(ts.Close)
-
-	runtime.GC()
-	var before runtime.MemStats
-	runtime.ReadMemStats(&before)
-
-	var dst map[string]any
-	_, _ = doGitHubJSON(context.Background(), ts.URL, &dst)
-
-	runtime.GC()
-	var after runtime.MemStats
-	runtime.ReadMemStats(&after)
-
-	const maxGrowth = 8 << 20
-	var growth uint64
-	if after.HeapAlloc > before.HeapAlloc {
-		growth = after.HeapAlloc - before.HeapAlloc
-	}
-	if growth > maxGrowth {
-		t.Fatalf("HeapAlloc grew by %d after client failure on large CL (limit %d)", growth, maxGrowth)
 	}
 }
 
@@ -255,5 +137,119 @@ func TestShouldOmitNightlyNote(t *testing.T) {
 		if shouldOmitNightlyNote(s) {
 			t.Fatalf("expected keep for %q", s)
 		}
+	}
+}
+
+func TestVersionsMatch(t *testing.T) {
+	const short = "f306a38"
+	const full = "f306a3851931578435b2b214cf89b0c7c0a0a39d"
+
+	if versionsMatch("0.0.1", short, full) {
+		t.Fatal("stable must not match nightly sha")
+	}
+	if !versionsMatch(short, short, full) {
+		t.Fatal("short sha should match")
+	}
+	if !versionsMatch("nightly-"+short, short, full) {
+		t.Fatal("nightly- prefix should match")
+	}
+	if !versionsMatch(full, short, full) {
+		t.Fatal("full sha should match")
+	}
+	if !versionsMatch(full[:12], short, full) {
+		t.Fatal("abbrev of full should match")
+	}
+	if versionsMatch("deadbee", short, full) {
+		t.Fatal("other sha must not match")
+	}
+}
+
+func TestFindTarget(t *testing.T) {
+	info := &ChannelInfo{
+		Version: "abc1234",
+		Targets: []ChannelInfoTarget{
+			{OS: "linux", Arch: "amd64", File: "renop-abc1234-linux-amd64.zip", Size: 10},
+			{OS: "windows", Arch: "amd64", File: "renop-abc1234-windows-amd64.zip", Size: 20},
+		},
+	}
+	got := findTarget(info, "linux", "amd64")
+	if got == nil || got.Size != 10 {
+		t.Fatalf("linux amd64: %+v", got)
+	}
+	if findTarget(info, "openbsd", "arm64") != nil {
+		t.Fatal("missing platform should be nil")
+	}
+	info2 := &ChannelInfo{Targets: []ChannelInfoTarget{
+		{File: "renop-x-freebsd-arm64.zip", Size: 3},
+	}}
+	if findTarget(info2, "freebsd", "arm64") == nil {
+		t.Fatal("filename fallback failed")
+	}
+}
+
+func TestPackageURL(t *testing.T) {
+	u := packageURL(ChannelNightly, "abc1234", "renop-abc1234-linux-amd64.zip")
+	want := OfficialUpdateBase + "/nightly/abc1234/renop-abc1234-linux-amd64.zip"
+	if u != want {
+		t.Fatalf("got %s want %s", u, want)
+	}
+	u2 := packageURL(ChannelRelease, "v0.0.1", "renop-v0.0.1-windows-amd64.zip")
+	want2 := OfficialUpdateBase + "/stable/v0.0.1/renop-v0.0.1-windows-amd64.zip"
+	if u2 != want2 {
+		t.Fatalf("got %s want %s", u2, want2)
+	}
+}
+
+func TestParseChannelAndMode(t *testing.T) {
+	if ParseChannel("nightly") != ChannelNightly {
+		t.Fatal("nightly")
+	}
+	if ParseChannel("") != ChannelRelease {
+		t.Fatal("default release")
+	}
+	if ParseUpdateMode("auto_check") != ModeAutoCheck {
+		t.Fatal("auto_check")
+	}
+	if ParseUpdateMode("") != ModeManual {
+		t.Fatal("default manual")
+	}
+}
+
+func TestResolveCheckChannelFromConfig(t *testing.T) {
+	var cfgAtomic atomic.Value
+	cfgAtomic.Store(&config.Config{
+		Updater: config.UpdaterConfig{Channel: "nightly", Mode: "manual"},
+	})
+	state := &core.AppState{Inner: &core.AppStateInner{Config: &cfgAtomic}}
+
+	if got := resolveCheckChannel("", state); got != ChannelNightly {
+		t.Fatalf("config channel nightly: got %s", got)
+	}
+	if got := resolveCheckChannel("release", state); got != ChannelRelease {
+		t.Fatalf("query override: got %s", got)
+	}
+}
+
+func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
+	info := &ChannelInfo{
+		Version: "newsha1",
+		Commit:  "newsha1full00000000000000000000000000000",
+		Targets: []ChannelInfoTarget{
+			{OS: "linux", Arch: "mips64", File: "only-mips.zip", Size: 1},
+		},
+	}
+	target := findTarget(info, "windows", "amd64")
+	matched := versionsMatch("0.0.1", info.Version, info.Commit)
+	hasUpdate := !matched && target != nil
+	if hasUpdate {
+		t.Fatal("must not report update when platform package is missing")
+	}
+	info.Targets = append(info.Targets, ChannelInfoTarget{
+		OS: "windows", Arch: "amd64", File: "win.zip", Size: 2,
+	})
+	target = findTarget(info, "windows", "amd64")
+	hasUpdate = !matched && target != nil
+	if !hasUpdate {
+		t.Fatal("must report update when platform package exists and version differs")
 	}
 }

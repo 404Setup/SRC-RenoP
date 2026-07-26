@@ -8,11 +8,9 @@ category: API
 
 プレフィックス: `/api/updater`
 
-`GET /status` は公開。`check` / `install` / `upload` / `restart` には **manager** が必要です。
+`GET /status` は公開。`check` / `install` / `upload` / `restart` には **manager** が必要。
 
-同じ状態は `GET /api/status/instance` の `update_state` にもあります。
-
-典型的な流れ:
+状態は `GET /api/status/instance` の `update_state` にもある。
 
 ```text
 idle → available → downloading → ready_to_restart
@@ -21,7 +19,7 @@ idle → available → downloading → ready_to_restart
 
 ## `GET /api/updater/status`
 
-レスポンス: `application/x-protobuf`、`UpdateState`（`proto/api/v1/api.proto` 参照）。
+レスポンス: `application/x-protobuf`、`UpdateState`（`proto/api/v1/api.proto`）。
 
 | フィールド             | 意味                                                            |
 |------------------------|-----------------------------------------------------------------|
@@ -39,9 +37,18 @@ idle → available → downloading → ready_to_restart
 
 ## `POST /api/updater/check`
 
-| クエリ    | デフォルト | 意味                       |
-|-----------|------------|----------------------------|
-| `channel` | `release`  | `release` または `nightly` |
+| クエリ    | デフォルト               | 意味                       |
+|-----------|--------------------------|----------------------------|
+| `channel` | 設定 `updater.channel`   | `release` または `nightly` |
+
+省略 / 不正 → `updater.channel`（既定 `release`）。
+
+| チャネル    | `info.json`                                           |
+|-------------|-------------------------------------------------------|
+| `nightly`   | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release`   | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
+
+パッケージ: `…/{nightly\|stable}/{version}/{file}`。
 
 ```json
 {
@@ -59,28 +66,26 @@ idle → available → downloading → ready_to_restart
 }
 ```
 
-チェック失敗 → 500、`{ "error": "…" }`。
+失敗 → 500、`{ "error": "…" }`。
 
 ## `POST /api/updater/install`
 
-現在の `download_url` を使って非同期でダウンロードと展開。空の場合は nightly の既定 URL にフォールバック。
+現在の `download_url` で非同期ダウンロード / 展開。
 
 | ステータス | 理由                                                           |
 |------------|----------------------------------------------------------------|
 | 507        | ディスク不足                                                   |
-| 409        | インストールが既に実行中（`Installation already in progress`） |
-
-即時の成功レスポンス:
+| 409        | インストール実行中（`Installation already in progress`）       |
 
 ```json
 {"status": "started"}
 ```
 
-進捗は `/status` をポーリング。完了状態: `ready_to_restart`。
+`/status` をポーリング。完了: `ready_to_restart`。
 
 ## `POST /api/updater/upload`
 
-オフライン更新: multipart zip。フォームフィールド `file` または `package`。`.zip` 必須。
+オフライン更新: multipart zip（`file` または `package`）。`.zip` 必須。
 
 ```json
 {
@@ -89,32 +94,24 @@ idle → available → downloading → ready_to_restart
 }
 ```
 
-この単一リクエストの multipart 経路は、小さなパッケージと非 UI クライアントの既定のままです。
+### マルチパートアップロード（任意）
 
-### マルチパート オフライン アップロード — 任意
+大きな zip はチャンクアップロード可（manager）。**8 MiB** 未満 → 単一 `POST /api/updater/upload`。
 
-Dashboard のオフライン更新ダイアログからの大きな zip は、共有セッション API による並行分割アップロードを使う場合があります
-（manager のみ）。 **8 MiB** 未満のパッケージは引き続き単一リクエストの
-`POST /api/updater/upload` を使います。init/complete は **`application/x-protobuf`**
-（`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`）。パートは生のオクテットです。
+init/complete: **`application/x-protobuf`**（`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`）。パートは生バイト。
 
-パートサイズは総サイズから動的に決まります（[storage.md](./storage.md) のマルチパート節参照）。 init レスポンスの
-`chunk_size` / `chunk_count` を使ってください。
+パートサイズは [storage.md](./storage.md) 参照。init の `chunk_size` / `chunk_count` を使う。
 
-1. `POST /api/upload/chunked/` に `purpose=updater`、`filename`（`.zip` で終わること）、`size`
-2. 各パートを並列 `PUT /api/upload/chunked/:id/:index`（再試行安全。受理済みパートの再 PUT 可）
-3. `POST /api/upload/chunked/:id/complete` — バイナリを展開し `ready_to_restart` に設定
-
-complete の protobuf フィールド: `status=ready_to_restart`、`message=…`。
+1. `POST /api/upload/chunked/` — `purpose=updater`、`filename`（`.zip`）、`size`
+2. `PUT /api/upload/chunked/:id/:index`（並列・再試行可）
+3. `POST /api/upload/chunked/:id/complete` → `ready_to_restart`
 
 ## `POST /api/updater/restart`
 
-準備済み更新でバイナリを置換して再起動。
+準備済みバイナリを適用して再起動。
 
-準備ができていない → 400（`No update ready to install`）。
+未準備 → 400（`No update ready to install`）。
 
 ```json
 {"status": "restarting"}
 ```
-
-その後接続は切断されます。想定どおりの動作です。
