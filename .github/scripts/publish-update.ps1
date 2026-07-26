@@ -243,4 +243,3 @@ $infoBytes = [System.Text.Encoding]::UTF8.GetBytes($infoJson)
 Invoke-MvncRequest -Method PUT -Uri $infoUrl -BodyBytes $infoBytes -ContentType 'application/json' -OkStatus @(200, 201, 204) | Out-Null
 
 Write-Host "Published $Channel $Version ($($targets.Count) targets) to $BaseUrl/$channelRoot/"
-}
