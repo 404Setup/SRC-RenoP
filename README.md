@@ -106,7 +106,9 @@ go generate ./frontend
 Run the test suite with `go test ./...` (after the frontend dist has been generated).
 
 ## Price and Contribution
-RenoP is completely free for all users, whether individuals, teams, or businesses and non-profit organizations of any size.
+
+RenoP is completely free for all users, whether individuals, teams, or businesses and non-profit organizations of any
+size.
 
 RenoP guarantees no hidden data collection, no ads, no annoying pop-ups, no messy subscription tiers...
 
@@ -118,10 +120,12 @@ RenoP only has this one free community edition. If you'd like to contribute to R
 - Giving us motivation to solve issues (give us a Star)
 
 If you want to maintain your own fork, you need to consider the following:
+
 - Whether you can maintain it long-term
 - Whether you can maintain a reasonable level of stability
 
-Please be responsible for your own code, and also responsible for the community. Don't create a fork based solely on impulse or a fleeting interest.
+Please be responsible for your own code, and also responsible for the community. Don't create a fork based solely on
+impulse or a fleeting interest.
 
 A better choice is to open an Issue or submit a PR — we do our best to listen to everyone's voice.
 
