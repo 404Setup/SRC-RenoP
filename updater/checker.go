@@ -104,6 +104,37 @@ func clipString(s string, max int) string {
 	return strings.Clone(s[:max])
 }
 
+func commitSubject(message string) string {
+	msg := strings.TrimSpace(message)
+	if before, _, ok := strings.Cut(msg, "\n"); ok {
+		return strings.TrimSpace(before)
+	}
+	return msg
+}
+
+func isWebOnlyCommit(subject string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(subject)), "[web]")
+}
+
+func shouldOmitNightlyNote(subject string) bool {
+	lower := strings.ToLower(strings.TrimSpace(subject))
+	if lower == "" {
+		return true
+	}
+	if isWebOnlyCommit(lower) {
+		return true
+	}
+	if strings.HasPrefix(lower, "[skip") || strings.HasPrefix(lower, "[ci skip]") || strings.HasPrefix(lower, "skip:") ||
+		strings.Contains(lower, "[skip ci]") || strings.Contains(lower, "[ci skip]") {
+		return true
+	}
+	if strings.HasPrefix(lower, "[release]") || strings.HasPrefix(lower, "[releases]") ||
+		strings.HasPrefix(lower, "release:") || strings.HasPrefix(lower, "releases:") {
+		return true
+	}
+	return false
+}
+
 func checkRelease(ctx context.Context) (*CheckResult, error) {
 	checkCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
@@ -177,7 +208,19 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 		return nil, errors.New("GitHub returned no commits")
 	}
 
-	latestCommit := commits[0]
+	var latestCommit *GithubCommitResponse
+	for i := range commits {
+		subject := commitSubject(commits[i].Commit.Message)
+		if isWebOnlyCommit(subject) {
+			continue
+		}
+		latestCommit = &commits[i]
+		break
+	}
+	if latestCommit == nil {
+		return nil, errors.New("GitHub returned no product commits (all [web]?)")
+	}
+
 	commitSha := latestCommit.Sha
 	shortSha := commitSha
 	if len(shortSha) > 7 {
@@ -212,23 +255,11 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 			}
 		}
 
-		msg := strings.TrimSpace(c.Commit.Message)
-		firstLine := msg
-		if before, _, ok := strings.Cut(msg, "\n"); ok {
-			firstLine = strings.TrimSpace(before)
-		}
-
-		lower := strings.ToLower(firstLine)
-		if strings.HasPrefix(lower, "[skip") || strings.HasPrefix(lower, "[ci skip]") || strings.HasPrefix(lower, "skip:") || strings.Contains(lower, "[skip ci]") || strings.Contains(lower, "[ci skip]") {
+		firstLine := commitSubject(c.Commit.Message)
+		if shouldOmitNightlyNote(firstLine) {
 			continue
 		}
-		if strings.HasPrefix(lower, "[release]") || strings.HasPrefix(lower, "[releases]") || strings.HasPrefix(lower, "release:") || strings.HasPrefix(lower, "releases:") {
-			continue
-		}
-
-		if firstLine != "" {
-			notes = append(notes, firstLine)
-		}
+		notes = append(notes, firstLine)
 	}
 	releaseNotes := strings.Join(notes, "\n")
 	const maxNotes = 32 << 10

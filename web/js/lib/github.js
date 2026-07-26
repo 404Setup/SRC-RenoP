@@ -137,8 +137,27 @@ export async function fetchContributors({perPage = 100, maxPages = 10} = {}) {
 }
 
 /**
- * Build nightly/preview release metadata from recent `main` commits and the nightly.zip URL.
- * Skips CI-skip / release-only commit subjects when assembling changelog lines.
+ * First line of a commit subject (trimmed).
+ * @param {string} [message]
+ * @returns {string}
+ */
+export function commitSubject(message) {
+    return (message || '').trim().split('\n')[0].trim();
+}
+
+/**
+ * Website-only commits (`[web] ...`) do not produce product nightlies.
+ * @param {string} subject - Commit subject (first line).
+ * @returns {boolean}
+ */
+export function isWebOnlyCommit(subject) {
+    return commitSubject(subject).toLowerCase().startsWith('[web]');
+}
+
+/**
+ * Build nightly/preview release metadata from the latest product commit on `main`.
+ * Skips `[web]` commits (official site only; no binary build) when choosing the nightly.
+ * Body is that single commit's subject — not a dump of every recent message.
  * @returns {Promise<{
  *   tag: string,
  *   name: string,
@@ -147,7 +166,7 @@ export async function fetchContributors({perPage = 100, maxPages = 10} = {}) {
  *   commitSha: string,
  *   downloadUrl: string
  * }>}
- * @throws {Error} When commits cannot be loaded or `main` has no commits.
+ * @throws {Error} When commits cannot be loaded or no product commit is found.
  */
 export async function fetchPreviewInfo() {
     const res = await fetch(
@@ -158,37 +177,27 @@ export async function fetchPreviewInfo() {
     const commits = await res.json();
     if (!commits?.length) throw new Error('No commits on main');
 
-    const latest = commits[0];
+    let latest = null;
+    for (const c of commits) {
+        const subject = commitSubject(c.commit?.message);
+        if (isWebOnlyCommit(subject)) continue;
+        latest = c;
+        break;
+    }
+    if (!latest) throw new Error('No product commits on main (all [web]?)');
+
     const sha = latest.sha;
     const shortSha = sha.slice(0, 7);
     const publishedAt =
         latest.commit?.committer?.date ||
         latest.commit?.author?.date ||
         '';
-
-    const notes = [];
-    for (const c of commits) {
-        const msg = (c.commit?.message || '').trim();
-        const firstLine = msg.split('\n')[0].trim();
-        const lower = firstLine.toLowerCase();
-        if (
-            lower.startsWith('[skip') ||
-            lower.startsWith('[ci skip]') ||
-            lower.includes('[skip ci]') ||
-            lower.includes('[ci skip]') ||
-            lower.startsWith('[release]') ||
-            lower.startsWith('release:')
-        ) {
-            continue;
-        }
-        if (firstLine) notes.push(firstLine);
-        if (notes.length >= 30) break;
-    }
+    const body = commitSubject(latest.commit?.message);
 
     return {
         tag: `nightly-${shortSha}`,
         name: `nightly-${shortSha}`,
-        body: notes.join('\n'),
+        body,
         publishedAt,
         commitSha: sha,
         downloadUrl: NIGHTLY_ZIP_URL,
