@@ -1,0 +1,25 @@
+name: Setup protoc
+description: Install the Protocol Buffers compiler (protoc) from official GitHub releases
+inputs:
+  version:
+    description: protoc version without a leading "v" (e.g. 35.1)
+    required: false
+    default: "35.1"
+  install-prefix:
+    description: Directory to extract protoc into
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Install protoc
+      shell: bash
+      env:
+        PROTOC_VERSION: ${{ inputs.version }}
+        PROTOC_INSTALL_PREFIX: ${{ inputs.install-prefix }}
+      run: |
+        set -euo pipefail
+        if [[ -z "${PROTOC_INSTALL_PREFIX}" ]]; then
+          unset PROTOC_INSTALL_PREFIX
+        fi
+        bash "${{ github.workspace }}/.github/scripts/install-protoc.sh"
