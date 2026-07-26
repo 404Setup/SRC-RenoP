@@ -31,6 +31,7 @@ run/
 *.zip
 *.txt
 *.bin
+*.log
 
 **/node_modules/
 
