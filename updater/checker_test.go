@@ -206,3 +206,54 @@ func TestClipStringDoesNotRetainFullBacking(t *testing.T) {
 		t.Fatal("clip content mismatch")
 	}
 }
+
+func TestCommitSubject(t *testing.T) {
+	if got := commitSubject("fix\n\nbody"); got != "fix" {
+		t.Fatalf("got %q", got)
+	}
+	if got := commitSubject("  single  "); got != "single" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestIsWebOnlyCommit(t *testing.T) {
+	cases := []struct {
+		subject string
+		want    bool
+	}{
+		{"[web] update homepage", true},
+		{"[Web] docs", true},
+		{"[WEB] i18n", true},
+		{"fix: not web", false},
+		{"prefix [web] middle", false},
+		{"", false},
+	}
+	for _, tc := range cases {
+		if got := isWebOnlyCommit(tc.subject); got != tc.want {
+			t.Fatalf("isWebOnlyCommit(%q)=%v want %v", tc.subject, got, tc.want)
+		}
+	}
+}
+
+func TestShouldOmitNightlyNote(t *testing.T) {
+	omit := []string{
+		"[web] site only",
+		"[skip ci] no build",
+		"[ci skip] no build",
+		"feat: [skip ci] mid",
+		"[release] v1.0.0",
+		"release: 1.0.0",
+		"",
+	}
+	for _, s := range omit {
+		if !shouldOmitNightlyNote(s) {
+			t.Fatalf("expected omit for %q", s)
+		}
+	}
+	keep := []string{"fix: real change", "chore: bump deps"}
+	for _, s := range keep {
+		if shouldOmitNightlyNote(s) {
+			t.Fatalf("expected keep for %q", s)
+		}
+	}
+}

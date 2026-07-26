@@ -28,7 +28,8 @@ jobs:
         run: |
           $message = (git log -1 --format=%s).Trim()
           $skip = $message.StartsWith('[skip ci]', [StringComparison]::OrdinalIgnoreCase) -or
-              $message.StartsWith('[ci skip]', [StringComparison]::OrdinalIgnoreCase)
+              $message.StartsWith('[ci skip]', [StringComparison]::OrdinalIgnoreCase) -or
+              $message.StartsWith('[web]', [StringComparison]::OrdinalIgnoreCase)
           $release = $false
           $version = ''
           if (-not $skip -and $message.StartsWith('[release]', [StringComparison]::OrdinalIgnoreCase)) {
