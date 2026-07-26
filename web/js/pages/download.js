@@ -8,20 +8,22 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import { t, getCurrentLang } from '../i18n.js';
-import { el, clear } from '../lib/dom.js';
+import {getCurrentLang, t} from '../i18n.js';
+import {clear, el} from '../lib/dom.js';
 import {
-    PLATFORMS,
     detectPlatform,
-    fetchStableReleases,
     fetchPreviewInfo,
+    fetchStableReleases,
     findAssetForPlatform,
     formatDate,
-    triggerBrowserDownload,
+    getArchOptionsForOs,
     NIGHTLY_ZIP_URL,
+    normalizePlatform,
+    PLATFORMS,
+    triggerBrowserDownload,
 } from '../lib/github.js';
-import { downloadAndExtractNightly } from '../lib/zip-extract.js';
-import { makeCustomSelect } from '../components/custom-select.js';
+import {downloadAndExtractNightly} from '../lib/zip-extract.js';
+import {makeCustomSelect} from '../components/custom-select.js';
 
 const PAGE_SIZE = 10;
 const STORAGE_OS = 'renop_web_os';
@@ -29,14 +31,14 @@ const STORAGE_ARCH = 'renop_web_arch';
 
 /**
  * Load saved OS/arch from localStorage, falling back to auto-detection.
+ * Always returns a supported (os, arch) pair for the build matrix.
  * @returns {{ os: string, arch: string }}
  */
 function loadSavedPlatform() {
     const detected = detectPlatform();
-    return {
-        os: localStorage.getItem(STORAGE_OS) || detected.os,
-        arch: localStorage.getItem(STORAGE_ARCH) || detected.arch,
-    };
+    const os = localStorage.getItem(STORAGE_OS) || detected.os;
+    const arch = localStorage.getItem(STORAGE_ARCH) || detected.arch;
+    return normalizePlatform(os, arch);
 }
 
 /**
@@ -68,12 +70,12 @@ function platformSelected(os, arch) {
  * @returns {{ field: HTMLElement, select: ReturnType<typeof makeCustomSelect> }}
  */
 function createCustomField(label, options, value, onChange) {
-    const field = el('div', { class: 'download-field' },
+    const field = el('div', {class: 'download-field'},
         el('label', {}, label),
     );
     const select = makeCustomSelect(options, value, onChange);
     field.appendChild(select.wrap);
-    return { field, select };
+    return {field, select};
 }
 
 /**
@@ -89,22 +91,22 @@ function createCustomField(label, options, value, onChange) {
  * @returns {HTMLElement}
  */
 function releaseCard({
-    title,
-    badge,
-    badgeClass,
-    date,
-    body,
-    onDownload,
-    statusId,
-}) {
-    const card = el('article', { class: 'card release-card' });
-    const header = el('div', { class: 'release-header' },
+                         title,
+                         badge,
+                         badgeClass,
+                         date,
+                         body,
+                         onDownload,
+                         statusId,
+                     }) {
+    const card = el('article', {class: 'card release-card'});
+    const header = el('div', {class: 'release-header'},
         el('div', {},
-            el('h3', { class: 'release-title' },
+            el('h3', {class: 'release-title'},
                 title,
-                badge ? el('span', { class: `release-badge${badgeClass ? ` ${badgeClass}` : ''}` }, badge) : null,
+                badge ? el('span', {class: `release-badge${badgeClass ? ` ${badgeClass}` : ''}`}, badge) : null,
             ),
-            el('p', { class: 'release-meta' },
+            el('p', {class: 'release-meta'},
                 `${t('download.releasedAt')}: ${date || '—'}`,
             ),
         ),
@@ -117,13 +119,13 @@ function releaseCard({
     }, body || '');
     card.appendChild(changelog);
 
-    const actions = el('div', { class: 'release-actions' },
+    const actions = el('div', {class: 'release-actions'},
         el('button', {
             type: 'button',
             class: 'pill-btn pill-btn--primary',
             onClick: onDownload,
         }, t('download.downloadBtn')),
-        el('span', { class: 'release-status', id: statusId }, ''),
+        el('span', {class: 'release-status', id: statusId}, ''),
     );
     card.appendChild(actions);
     return card;
@@ -149,7 +151,7 @@ function setStatus(id, message, kind) {
  * @param {{ root: HTMLElement }} ctx - Route context.
  * @returns {Promise<() => void>} Cleanup that invalidates in-flight list fetches and destroys selects.
  */
-export async function renderDownload({ root }) {
+export async function renderDownload({root}) {
     root.innerHTML = '';
     document.title = `RenoP — ${t('download.title')}`;
 
@@ -163,14 +165,14 @@ export async function renderDownload({ root }) {
     let arch = platform.arch;
 
     root.appendChild(
-        el('header', { class: 'page-hero' },
+        el('header', {class: 'page-hero'},
             el('h1', {}, t('download.title')),
             el('p', {}, t('download.lead')),
         ),
     );
 
-    const tabs = el('div', { class: 'tabs-container' },
-        el('div', { class: 'tabs' },
+    const tabs = el('div', {class: 'tabs-container'},
+        el('div', {class: 'tabs'},
             el('button', {
                 type: 'button',
                 class: 'tab active',
@@ -187,16 +189,22 @@ export async function renderDownload({ root }) {
 
     const osField = createCustomField(t('download.os'), PLATFORMS.os, os, (v) => {
         os = v;
+        arch = archField.select.setOptions(getArchOptionsForOs(os), arch);
         savePlatform(os, arch);
         ensurePlatform();
     });
-    const archField = createCustomField(t('download.arch'), PLATFORMS.arch, arch, (v) => {
-        arch = v;
-        savePlatform(os, arch);
-        ensurePlatform();
-    });
+    const archField = createCustomField(
+        t('download.arch'),
+        getArchOptionsForOs(os),
+        arch,
+        (v) => {
+            arch = v;
+            savePlatform(os, arch);
+            ensurePlatform();
+        },
+    );
 
-    const toolbar = el('div', { class: 'download-toolbar' },
+    const toolbar = el('div', {class: 'download-toolbar'},
         osField.field,
         archField.field,
     );
@@ -204,16 +212,16 @@ export async function renderDownload({ root }) {
 
     const platformWarn = el('p', {
         class: 'platform-required',
-        style: { display: 'none' },
+        style: {display: 'none'},
     }, t('download.platformRequired'));
     root.appendChild(platformWarn);
 
-    const list = el('div', { class: 'download-list' },
-        el('p', { class: 'download-loading' }, t('download.loading')),
+    const list = el('div', {class: 'download-list'},
+        el('p', {class: 'download-loading'}, t('download.loading')),
     );
     root.appendChild(list);
 
-    const pagination = el('div', { class: 'download-pagination', style: { display: 'none' } });
+    const pagination = el('div', {class: 'download-pagination', style: {display: 'none'}});
     root.appendChild(pagination);
 
     /**
@@ -275,7 +283,7 @@ export async function renderDownload({ root }) {
         const statusId = 'status-preview';
         setStatus(statusId, t('download.extracting'), null);
         try {
-            const { blob, filename } = await downloadAndExtractNightly(
+            const {blob, filename} = await downloadAndExtractNightly(
                 preview.downloadUrl || NIGHTLY_ZIP_URL,
                 os,
                 arch,
@@ -296,7 +304,7 @@ export async function renderDownload({ root }) {
     function renderStablePage() {
         clear(list);
         if (!stableReleases.length) {
-            list.appendChild(el('p', { class: 'download-loading' }, t('download.noReleases')));
+            list.appendChild(el('p', {class: 'download-loading'}, t('download.noReleases')));
             pagination.style.display = 'none';
             return;
         }
@@ -329,7 +337,7 @@ export async function renderDownload({ root }) {
                 onClick: () => {
                     page -= 1;
                     renderStablePage();
-                    list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    list.scrollIntoView({behavior: 'smooth', block: 'start'});
                 },
             }, t('download.prev'));
             const next = el('button', {
@@ -339,12 +347,12 @@ export async function renderDownload({ root }) {
                 onClick: () => {
                     page += 1;
                     renderStablePage();
-                    list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    list.scrollIntoView({behavior: 'smooth', block: 'start'});
                 },
             }, t('download.next'));
             pagination.append(
                 prev,
-                el('span', { class: 'download-page-info' }, t('download.page', { page, total: totalPages })),
+                el('span', {class: 'download-page-info'}, t('download.page', {page, total: totalPages})),
                 next,
             );
         } else {
@@ -362,7 +370,7 @@ export async function renderDownload({ root }) {
         const requestedChannel = channel;
 
         clear(list);
-        list.appendChild(el('p', { class: 'download-loading' }, t('download.loading')));
+        list.appendChild(el('p', {class: 'download-loading'}, t('download.loading')));
         pagination.style.display = 'none';
 
         try {
@@ -396,7 +404,7 @@ export async function renderDownload({ root }) {
             if (requestId !== listRequestId) return;
             console.error(err);
             clear(list);
-            list.appendChild(el('p', { class: 'download-error' }, t('download.loadError')));
+            list.appendChild(el('p', {class: 'download-error'}, t('download.loadError')));
         }
     }
 

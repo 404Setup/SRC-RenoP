@@ -67,6 +67,7 @@ function checkSvg() {
  *   wrap: HTMLElement,
  *   getValue: () => string,
  *   setValue: (v: string) => void,
+ *   setOptions: (options: Array<{value:string,label:string}|string>, preferredValue?: string) => string,
  *   destroy: () => void
  * }} Controller: mount `wrap`, call `destroy` on teardown.
  */
@@ -77,16 +78,26 @@ export function makeCustomSelect(options, current, onChange) {
         class: 'custom-select-btn',
     });
 
-    const normalized = options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-            return { value: opt.value, label: opt.label ?? opt.value };
-        }
-        return { value: opt, label: opt };
-    });
+    /**
+     * Normalize raw option list to `{ value, label }` objects.
+     * @param {Array<{value:string,label:string}|string>} opts
+     * @returns {Array<{value: string, label: string}>}
+     */
+    function normalizeOptions(opts) {
+        return (opts || []).map((opt) => {
+            if (typeof opt === 'object' && opt !== null) {
+                return { value: opt.value, label: opt.label ?? opt.value };
+            }
+            return { value: opt, label: opt };
+        });
+    }
+
+    let normalized = normalizeOptions(options);
 
     let currentVal = current;
     let selectedOpt =
         normalized.find((o) => o.value === currentVal || o.label === currentVal) || normalized[0];
+    if (selectedOpt) currentVal = selectedOpt.value;
 
     const textSpan = el('span', { class: 'custom-select-label' }, selectedOpt ? selectedOpt.label : '');
     const arrow = el('span', { class: 'custom-select-arrow-wrap' });
@@ -126,6 +137,17 @@ export function makeCustomSelect(options, current, onChange) {
             });
             dropdown.appendChild(item);
         });
+    }
+
+    /**
+     * Apply a resolved option to the button label and internal selection state.
+     * @param {{value: string, label: string}|undefined} opt
+     * @returns {void}
+     */
+    function applySelection(opt) {
+        selectedOpt = opt;
+        currentVal = opt ? opt.value : '';
+        textSpan.textContent = opt ? opt.label : '';
     }
 
     /**
@@ -214,10 +236,29 @@ export function makeCustomSelect(options, current, onChange) {
         setValue: (v) => {
             const opt = normalized.find((o) => o.value === v);
             if (!opt) return;
-            selectedOpt = opt;
-            currentVal = opt.value;
-            textSpan.textContent = opt.label;
+            applySelection(opt);
             renderItems();
+        },
+        /**
+         * Replace the option list. Keeps the current value when still valid;
+         * otherwise prefers `preferredValue`, then the first option.
+         * Does not fire `onChange` (caller can react to the returned value).
+         * @param {Array<{value:string,label:string}|string>} nextOptions
+         * @param {string} [preferredValue]
+         * @returns {string} The value after applying the new options.
+         */
+        setOptions: (nextOptions, preferredValue) => {
+            normalized = normalizeOptions(nextOptions);
+            const keep =
+                normalized.find((o) => o.value === currentVal) ||
+                (preferredValue
+                    ? normalized.find((o) => o.value === preferredValue)
+                    : undefined) ||
+                normalized[0];
+            applySelection(keep);
+            closeDropdown();
+            renderItems();
+            return currentVal;
         },
         /**
          * Remove listeners and detach the body-level dropdown.
