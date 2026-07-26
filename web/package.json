@@ -11,6 +11,9 @@
     "dev": "node ./build.mjs --watch",
     "preview": "node ./preview.mjs"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "workerd", "sharp"]
+  },
   "devDependencies": {
     "lightningcss": "^1.33.0",
     "rolldown": "^1.2.0"

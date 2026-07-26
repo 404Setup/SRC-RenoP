@@ -67,6 +67,12 @@ jobs:
           check-latest: true
           cache: true
           cache-dependency-path: go.sum
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install protoc-gen-go
+        run: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
       - name: Build and package
         shell: pwsh
         env:
