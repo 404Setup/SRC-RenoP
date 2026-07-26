@@ -10,9 +10,7 @@ category: API
 
 `GET /status` публичен; `check` / `install` / `upload` / `restart` требуют **manager**.
 
-То же состояние есть в `GET /api/status/instance` как `update_state`.
-
-Типичный поток:
+То же состояние в `GET /api/status/instance` как `update_state`.
 
 ```text
 idle → available → downloading → ready_to_restart
@@ -21,7 +19,7 @@ idle → available → downloading → ready_to_restart
 
 ## `GET /api/updater/status`
 
-Ответ: `application/x-protobuf`, `UpdateState` (см. `proto/api/v1/api.proto`).
+Ответ: `application/x-protobuf`, `UpdateState` (`proto/api/v1/api.proto`).
 
 | Поле                   | Смысл                                                           |
 |------------------------|-----------------------------------------------------------------|
@@ -39,9 +37,18 @@ idle → available → downloading → ready_to_restart
 
 ## `POST /api/updater/check`
 
-| Query     | По умолчанию | Смысл                   |
-|-----------|--------------|-------------------------|
-| `channel` | `release`    | `release` или `nightly` |
+| Query     | По умолчанию               | Смысл                   |
+|-----------|----------------------------|-------------------------|
+| `channel` | настройка `updater.channel`| `release` или `nightly` |
+
+Пусто / неверно → `updater.channel` (по умолчанию `release`).
+
+| Канал       | `info.json`                                           |
+|-------------|-------------------------------------------------------|
+| `nightly`   | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release`   | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
+
+Пакеты: `…/{nightly\|stable}/{version}/{file}`.
 
 ```json
 {
@@ -59,28 +66,26 @@ idle → available → downloading → ready_to_restart
 }
 ```
 
-Сбой проверки → 500, `{ "error": "…" }`.
+Ошибка → 500, `{ "error": "…" }`.
 
 ## `POST /api/updater/install`
 
-Асинхронная загрузка и распаковка по текущему `download_url`. Если пусто — fallback на nightly URL по умолчанию.
+Асинхронная загрузка/распаковка по текущему `download_url`.
 
 | Статус | Причина                                                 |
 |--------|---------------------------------------------------------|
 | 507    | Недостаточно диска                                      |
 | 409    | Установка уже идёт (`Installation already in progress`) |
 
-Немедленный успешный ответ:
-
 ```json
 {"status": "started"}
 ```
 
-Прогресс — опрос `/status`. Финальное состояние: `ready_to_restart`.
+Опрос `/status`. Готово: `ready_to_restart`.
 
 ## `POST /api/updater/upload`
 
-Офлайн-обновление: multipart zip. Поле формы `file` или `package`; должно быть `.zip`.
+Офлайн-обновление: multipart zip (`file` или `package`). Только `.zip`.
 
 ```json
 {
@@ -89,32 +94,24 @@ idle → available → downloading → ready_to_restart
 }
 ```
 
-Этот однозапросный multipart-путь остаётся по умолчанию для небольших пакетов и не-UI клиентов.
+### Многочастная загрузка (опционально)
 
-### Многочастная офлайн-загрузка — опционально
+Большие zip — chunked upload (manager). Меньше **8 MiB** → один `POST /api/updater/upload`.
 
-Большие zip из диалога офлайн-обновления Dashboard могут использовать параллельную chunked-загрузку через общий session
-API (только manager). Пакеты меньше **8 MiB** по-прежнему идут через
-`POST /api/updater/upload`. Init/complete — **`application/x-protobuf`**
-(`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`); части — сырые октеты.
+Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Части — сырые байты.
 
-Размер части выбирается динамически от общего размера (см. multi-part в [storage.md](./storage.md)); используйте
-`chunk_size` / `chunk_count` из ответа init.
+Размер части: [storage.md](./storage.md). Берите `chunk_size` / `chunk_count` из init.
 
-1. `POST /api/upload/chunked/` с `purpose=updater`, `filename` (должен оканчиваться на `.zip`), `size`
-2. Параллельные `PUT /api/upload/chunked/:id/:index` для каждой части (идемпотентно; повтор PUT принятой части OK)
-3. `POST /api/upload/chunked/:id/complete` — извлекает бинарник и ставит `ready_to_restart`
-
-Поля complete protobuf: `status=ready_to_restart`, `message=…`.
+1. `POST /api/upload/chunked/` — `purpose=updater`, `filename` (`.zip`), `size`
+2. `PUT /api/upload/chunked/:id/:index` (параллельно, идемпотентно)
+3. `POST /api/upload/chunked/:id/complete` → `ready_to_restart`
 
 ## `POST /api/updater/restart`
 
-Заменить бинарник подготовленным обновлением и перезапустить.
+Применить подготовленный бинарник и перезапустить.
 
 Не готов → 400 (`No update ready to install`).
 
 ```json
 {"status": "restarting"}
 ```
-
-Соединение после этого обрывается — это ожидаемо.

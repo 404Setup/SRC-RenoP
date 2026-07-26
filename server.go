@@ -77,7 +77,7 @@ func main() {
 	api.SetupApiRoutes(apiGroup, state)
 	upload.SetupChunkedUploadRoutes(apiGroup, state)
 	settings.SetupSettingsRoutes(apiGroup.Group("/settings"), state)
-	updater.SetupUpdaterRoutes(apiGroup)
+	updater.SetupUpdaterRoutes(apiGroup, state)
 
 	storage.HTMLFallback = frontend.ServeIndex
 	frontend.SetupFrontendRoutes(app, state)

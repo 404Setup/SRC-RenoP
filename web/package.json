@@ -19,7 +19,6 @@
     "rolldown": "^1.2.0"
   },
   "dependencies": {
-    "jszip": "^3.10.1",
     "marked": "^15.0.12"
   }
 }

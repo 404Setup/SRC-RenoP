@@ -10,7 +10,7 @@
 
 import { t } from '../i18n.js';
 import { el, clear } from '../lib/dom.js';
-import { fetchContributors, GITHUB_REPO } from '../lib/github.js';
+import {fetchContributors, GITHUB_REPO} from '../lib/official.js';
 
 /**
  * Render the contributors page: load GitHub contributors and show a card grid.

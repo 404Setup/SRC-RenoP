@@ -11,9 +11,10 @@ description: Télécharger et placer le binaire RenoP
 
 Utilisez la page [Téléchargement](/download) du site :
 
-- **Stable** — assets GitHub Release pour chaque OS/architecture
-- **Preview** — artefact CI `dist-artifacts` du workflow `build.yml`, via [nightly.link](https://nightly.link), avec
-  extraction du paquet plateforme dans le navigateur
+- **Stable** — source officielle `https://mvnc.pkg.one/update/renop/stable/` (zip par plateforme)
+- **Preview** — source officielle `https://mvnc.pkg.one/update/renop/nightly/` (zip par plateforme)
+
+Les métadonnées sont publiées dans `info.json` par la CI. Le changelog reste chargé depuis GitHub.
 
 Les plateformes prises en charge suivent la matrice de build du projet (Windows, Linux, FreeBSD, NetBSD, OpenBSD ;
 amd64/arm64 et architectures Linux supplémentaires).

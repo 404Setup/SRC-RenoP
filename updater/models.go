@@ -10,13 +10,18 @@
 
 package updater
 
-import "sync/atomic"
+import (
+	"strings"
+	"sync/atomic"
+)
 
 type UpdateMode string
 
 const (
 	ModeManual      UpdateMode = "manual"
+	ModeAutoCheck   UpdateMode = "auto_check"
 	ModeAutoInstall UpdateMode = "auto_install"
+	ModeSafeInstall UpdateMode = "safe_install"
 )
 
 type Channel string
@@ -25,6 +30,40 @@ const (
 	ChannelRelease Channel = "release"
 	ChannelNightly Channel = "nightly"
 )
+
+const OfficialUpdateBase = "https://mvnc.pkg.one/update/renop"
+
+// ParseChannel normalizes a channel string. Unknown values fall back to release.
+func ParseChannel(s string) Channel {
+	switch Channel(strings.ToLower(strings.TrimSpace(s))) {
+	case ChannelNightly:
+		return ChannelNightly
+	default:
+		return ChannelRelease
+	}
+}
+
+// ParseUpdateMode normalizes an update mode string. Unknown values fall back to manual.
+func ParseUpdateMode(s string) UpdateMode {
+	switch UpdateMode(strings.ToLower(strings.TrimSpace(s))) {
+	case ModeAutoCheck:
+		return ModeAutoCheck
+	case ModeAutoInstall:
+		return ModeAutoInstall
+	case ModeSafeInstall:
+		return ModeSafeInstall
+	default:
+		return ModeManual
+	}
+}
+
+// OfficialChannelPath is the path segment under OfficialUpdateBase for a channel.
+func OfficialChannelPath(ch Channel) string {
+	if ch == ChannelNightly {
+		return "nightly"
+	}
+	return "stable"
+}
 
 type UpdateState struct {
 	Status             string `json:"status"` // idle, checking, available, downloading, ready_to_restart, error
@@ -54,20 +93,31 @@ type CheckResult struct {
 	IsRelease          bool   `json:"is_release"`
 }
 
-type GithubReleaseAsset struct {
-	Name               string `json:"name"`
-	Size               int64  `json:"size"`
-	BrowserDownloadUrl string `json:"browser_download_url"`
+// ChannelInfo is the hosted update/renop/{channel}/info.json document.
+type ChannelInfo struct {
+	Version     string              `json:"version"`
+	Commit      string              `json:"commit"`
+	Channel     string              `json:"channel"`
+	Development bool                `json:"development"`
+	PublishedAt string              `json:"published_at"`
+	Targets     []ChannelInfoTarget `json:"targets"`
+}
+
+type ChannelInfoTarget struct {
+	OS     string `json:"os"`
+	Arch   string `json:"arch"`
+	File   string `json:"file"`
+	SHA256 string `json:"sha256"`
+	Size   int64  `json:"size"`
 }
 
 type GithubReleaseResponse struct {
-	TagName         string               `json:"tag_name"`
-	Name            string               `json:"name"`
-	PublishedAt     string               `json:"published_at"`
-	CreatedAt       string               `json:"created_at"`
-	Body            string               `json:"body"`
-	TargetCommitish string               `json:"target_commitish"`
-	Assets          []GithubReleaseAsset `json:"assets"`
+	TagName         string `json:"tag_name"`
+	Name            string `json:"name"`
+	PublishedAt     string `json:"published_at"`
+	CreatedAt       string `json:"created_at"`
+	Body            string `json:"body"`
+	TargetCommitish string `json:"target_commitish"`
 }
 
 type GithubCommitPerson struct {
@@ -83,11 +133,6 @@ type GithubCommitDetail struct {
 type GithubCommitResponse struct {
 	Sha    string             `json:"sha"`
 	Commit GithubCommitDetail `json:"commit"`
-}
-
-type GithubReleaseItem struct {
-	TagName         string `json:"tag_name"`
-	TargetCommitish string `json:"target_commitish"`
 }
 
 var currentStatePtr atomic.Pointer[UpdateState]

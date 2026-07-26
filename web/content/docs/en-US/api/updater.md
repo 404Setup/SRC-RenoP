@@ -10,9 +10,7 @@ Prefix: `/api/updater`
 
 `GET /status` is public; `check` / `install` / `upload` / `restart` need **manager**.
 
-The same state is also on `GET /api/status/instance` as `update_state`.
-
-Typical flow:
+Same state on `GET /api/status/instance` as `update_state`.
 
 ```text
 idle → available → downloading → ready_to_restart
@@ -21,7 +19,7 @@ idle → available → downloading → ready_to_restart
 
 ## `GET /api/updater/status`
 
-Response: `application/x-protobuf`, `UpdateState` (see `proto/api/v1/api.proto`).
+Response: `application/x-protobuf`, `UpdateState` (`proto/api/v1/api.proto`).
 
 | Field                  | Meaning                                                         |
 |------------------------|-----------------------------------------------------------------|
@@ -39,9 +37,18 @@ Response: `application/x-protobuf`, `UpdateState` (see `proto/api/v1/api.proto`)
 
 ## `POST /api/updater/check`
 
-| Query     | Default   | Meaning                |
-|-----------|-----------|------------------------|
-| `channel` | `release` | `release` or `nightly` |
+| Query     | Default                    | Meaning                |
+|-----------|----------------------------|------------------------|
+| `channel` | `updater.channel` setting  | `release` or `nightly` |
+
+Omit / invalid → `updater.channel` (default `release`).
+
+| Channel   | `info.json`                                                      |
+|-----------|------------------------------------------------------------------|
+| `nightly` | `https://mvnc.pkg.one/update/renop/nightly/info.json`            |
+| `release` | `https://mvnc.pkg.one/update/renop/stable/info.json`             |
+
+Packages: `…/{nightly\|stable}/{version}/{file}`.
 
 ```json
 {
@@ -59,28 +66,26 @@ Response: `application/x-protobuf`, `UpdateState` (see `proto/api/v1/api.proto`)
 }
 ```
 
-Check failure → 500, `{ "error": "…" }`.
+Failure → 500, `{ "error": "…" }`.
 
 ## `POST /api/updater/install`
 
-Async download and extract using the current `download_url`. If empty, falls back to the nightly default URL.
+Async download/extract using current `download_url`.
 
 | Status | Reason                                                       |
 |--------|--------------------------------------------------------------|
 | 507    | Insufficient disk                                            |
 | 409    | Install already running (`Installation already in progress`) |
 
-Immediate success response:
-
 ```json
 {"status": "started"}
 ```
 
-Poll `/status` for progress. Finished state: `ready_to_restart`.
+Poll `/status`. Done: `ready_to_restart`.
 
 ## `POST /api/updater/upload`
 
-Offline update: multipart zip. Form field `file` or `package`; must be `.zip`.
+Offline update: multipart zip (`file` or `package`). Must be `.zip`.
 
 ```json
 {
@@ -89,32 +94,24 @@ Offline update: multipart zip. Form field `file` or `package`; must be `.zip`.
 }
 ```
 
-This single-request multipart path remains the default for small packages and non-UI clients.
+### Multi-part upload (optional)
 
-### Multi-part offline upload — optional
+Large zips may use chunked upload (manager). Under **8 MiB** → single `POST /api/updater/upload`.
 
-Large zip packages from the Dashboard offline-update dialog may use concurrent chunked upload via the shared session API
-(manager only). Packages under **8 MiB** still use the single-request
-`POST /api/updater/upload` path. Init/complete are **`application/x-protobuf`**
-(`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`); parts are raw octets.
+Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Parts: raw bytes.
 
-Part size is chosen dynamically from total size (see [storage.md](./storage.md) multi-part section); use the
-`chunk_size` / `chunk_count` from the init response.
+Part size: see [storage.md](./storage.md). Use `chunk_size` / `chunk_count` from init.
 
-1. `POST /api/upload/chunked/` with `purpose=updater`, `filename` (must end with `.zip`), `size`
-2. Parallel `PUT /api/upload/chunked/:id/:index` for each part (retry-safe; re-PUT of accepted parts is OK)
-3. `POST /api/upload/chunked/:id/complete` — extracts the binary and sets `ready_to_restart`
-
-Complete protobuf fields: `status=ready_to_restart`, `message=…`.
+1. `POST /api/upload/chunked/` — `purpose=updater`, `filename` (`.zip`), `size`
+2. `PUT /api/upload/chunked/:id/:index` (parallel, retry-safe)
+3. `POST /api/upload/chunked/:id/complete` → `ready_to_restart`
 
 ## `POST /api/updater/restart`
 
-Replace the binary with the prepared update and restart.
+Apply prepared binary and restart.
 
 Not ready → 400 (`No update ready to install`).
 
 ```json
 {"status": "restarting"}
 ```
-
-The connection drops afterward; that is expected.

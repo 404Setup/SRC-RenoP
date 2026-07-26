@@ -11,9 +11,10 @@ description: RenoP バイナリの入手と配置
 
 Web サイトの [ダウンロード](/download) ページを利用します。
 
-- **安定版** — OS / アーキテクチャごとの GitHub リリース資産
-- **プレビュー** — ワークフロー `build.yml` の CI 成果物 `dist-artifacts`（[nightly.link](https://nightly.link)
-  経由）。ブラウザ内で対象プラットフォームのパッケージを展開
+- **安定版** — 公式ソース `https://mvnc.pkg.one/update/renop/stable/`（OS/アーキ別 zip）
+- **プレビュー** — 公式ソース `https://mvnc.pkg.one/update/renop/nightly/`（OS/アーキ別 zip）
+
+メタデータは CI が各チャネルの `info.json` に公開します。変更履歴は引き続き GitHub から取得します。
 
 サポート対象はプロジェクトのビルドマトリクスに従います（Windows、Linux、FreeBSD、NetBSD、OpenBSD。amd64 / arm64 および追加の
 Linux アーキテクチャ）。

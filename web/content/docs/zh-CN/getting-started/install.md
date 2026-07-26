@@ -11,9 +11,10 @@ description: 下载并放置 RenoP 可执行文件
 
 请使用网站 [下载](/download) 页面：
 
-- **正式版** — GitHub Release 中各 OS/架构的资产
-- **预览版** — CI 工作流 `build.yml` 上传的 `dist-artifacts` 产物，经 [nightly.link](https://nightly.link)
-  获取，并在浏览器中拆出对应平台包
+- **正式版** — 官方源 `https://mvnc.pkg.one/update/renop/stable/`（按平台分 zip）
+- **预览版** — 官方源 `https://mvnc.pkg.one/update/renop/nightly/`（按平台分 zip）
+
+元数据由 CI 写入各通道的 `info.json`。更新说明仍从 GitHub 获取。
 
 支持的平台与项目构建矩阵一致（Windows、Linux、FreeBSD、NetBSD、OpenBSD；amd64/arm64 及额外 Linux 架构）。
 

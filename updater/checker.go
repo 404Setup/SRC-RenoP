@@ -26,7 +26,7 @@ import (
 	"renop/version"
 )
 
-const maxGitHubAPIBody = 1 << 20
+const maxRemoteJSONBody = 1 << 20
 
 var checkHTTPClient = &http.Client{
 	Timeout: 15 * time.Second,
@@ -54,13 +54,15 @@ func CheckUpdate(ctx context.Context, channel Channel) (*CheckResult, error) {
 	return checkRelease(ctx)
 }
 
-func doGitHubJSON(ctx context.Context, url string, dst any) (statusCode int, err error) {
+func doJSONGet(ctx context.Context, url string, accept string, dst any) (statusCode int, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return 0, err
 	}
 	req.Header.Set("User-Agent", "RenoP-Updater")
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	if accept != "" {
+		req.Header.Set("Accept", accept)
+	}
 
 	req.Close = true
 	var capConn utils.ConnCapture
@@ -78,16 +80,16 @@ func doGitHubJSON(ctx context.Context, url string, dst any) (statusCode int, err
 		return statusCode, fmt.Errorf("status %d", statusCode)
 	}
 
-	if resp.ContentLength > maxGitHubAPIBody {
+	if resp.ContentLength > maxRemoteJSONBody {
 		utils.AbortHTTPResponse(resp, capConn.Conn())
 		return statusCode, fmt.Errorf("response too large: Content-Length=%d", resp.ContentLength)
 	}
 
-	data, err := utils.ReadAllLimited(resp.Body, maxGitHubAPIBody)
+	data, err := utils.ReadAllLimited(resp.Body, maxRemoteJSONBody)
 	utils.AbortHTTPResponse(resp, capConn.Conn())
 	if err != nil {
 		if errors.Is(err, utils.ErrResponseTooLarge) {
-			return statusCode, fmt.Errorf("response exceeds %d bytes", maxGitHubAPIBody)
+			return statusCode, fmt.Errorf("response exceeds %d bytes", maxRemoteJSONBody)
 		}
 		return statusCode, err
 	}
@@ -95,6 +97,10 @@ func doGitHubJSON(ctx context.Context, url string, dst any) (statusCode int, err
 		return statusCode, err
 	}
 	return statusCode, nil
+}
+
+func doGitHubJSON(ctx context.Context, url string, dst any) (statusCode int, err error) {
+	return doJSONGet(ctx, url, "application/vnd.github.v3+json", dst)
 }
 
 func clipString(s string, max int) string {
@@ -135,164 +141,279 @@ func shouldOmitNightlyNote(subject string) bool {
 	return false
 }
 
+func normalizeVersionID(v string) string {
+	curr := strings.TrimSpace(v)
+	curr = strings.TrimPrefix(curr, "v")
+	curr = strings.TrimPrefix(curr, "nightly-")
+	return strings.TrimSpace(curr)
+}
+
+// versionsMatch reports whether the running binary identity matches a remote version/commit.
+func versionsMatch(curr, remoteVersion, remoteCommit string) bool {
+	curr = normalizeVersionID(curr)
+	if curr == "" {
+		return false
+	}
+	rv := normalizeVersionID(remoteVersion)
+	rc := strings.TrimSpace(remoteCommit)
+	if rv != "" && (curr == rv || curr == "nightly-"+rv) {
+		return true
+	}
+	if rc != "" {
+		if curr == rc {
+			return true
+		}
+		if len(curr) >= 7 && len(curr) < len(rc) && strings.HasPrefix(rc, curr) {
+			return true
+		}
+		if len(rc) >= 7 && len(rc) < len(curr) && strings.HasPrefix(curr, rc) {
+			return true
+		}
+	}
+	return false
+}
+
+func infoJSONURL(ch Channel) string {
+	return OfficialUpdateBase + "/" + OfficialChannelPath(ch) + "/info.json"
+}
+
+func packageURL(ch Channel, version, file string) string {
+	version = strings.Trim(version, "/")
+	file = strings.Trim(file, "/")
+	return OfficialUpdateBase + "/" + OfficialChannelPath(ch) + "/" + version + "/" + file
+}
+
+func fetchChannelInfo(ctx context.Context, ch Channel) (*ChannelInfo, error) {
+	var info ChannelInfo
+	status, err := doJSONGet(ctx, infoJSONURL(ch), "application/json", &info)
+	if err != nil {
+		if status == http.StatusNotFound {
+			return nil, fmt.Errorf("official %s channel has no info.json yet", OfficialChannelPath(ch))
+		}
+		if status != 0 && status != http.StatusOK {
+			return nil, fmt.Errorf("official update host returned %d", status)
+		}
+		return nil, fmt.Errorf("official update check failed: %w", err)
+	}
+	if strings.TrimSpace(info.Version) == "" {
+		return nil, errors.New("official info.json missing version")
+	}
+	return &info, nil
+}
+
+func findTarget(info *ChannelInfo, goos, goarch string) *ChannelInfoTarget {
+	if info == nil {
+		return nil
+	}
+	goos = strings.ToLower(goos)
+	goarch = strings.ToLower(goarch)
+	for i := range info.Targets {
+		t := &info.Targets[i]
+		if strings.EqualFold(t.OS, goos) && strings.EqualFold(t.Arch, goarch) {
+			return t
+		}
+	}
+	marker := goos + "-" + goarch
+	for i := range info.Targets {
+		t := &info.Targets[i]
+		name := strings.ToLower(t.File)
+		if strings.Contains(name, marker) {
+			return t
+		}
+	}
+	return nil
+}
+
 func checkRelease(ctx context.Context) (*CheckResult, error) {
 	checkCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
-	var rel GithubReleaseResponse
-	if status, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/releases/latest", &rel); err != nil {
-		if status != 0 && status != http.StatusOK {
-			return nil, fmt.Errorf("GitHub release check failed: %d", status)
-		}
-		return nil, fmt.Errorf("GitHub release check failed: %w", err)
+	info, err := fetchChannelInfo(checkCtx, ChannelRelease)
+	if err != nil {
+		return nil, err
 	}
 
-	latest := strings.TrimPrefix(rel.TagName, "v")
-	curr := strings.TrimPrefix(version.Version, "v")
-	hasUpdate := latest != curr && latest != ""
+	target := findTarget(info, runtime.GOOS, runtime.GOARCH)
+	matched := versionsMatch(version.Version, info.Version, info.Commit)
+	hasUpdate := !matched && target != nil
 
-	targetAsset := ""
-	var assetSize int64
-	osName := runtime.GOOS
-	archName := runtime.GOARCH
+	downloadURL := ""
+	var size int64
+	if target != nil {
+		downloadURL = packageURL(ChannelRelease, info.Version, target.File)
+		size = target.Size
+	}
 
-	for i := range rel.Assets {
-		asset := &rel.Assets[i]
-		nameLower := strings.ToLower(asset.Name)
-		if strings.Contains(nameLower, osName) && strings.Contains(nameLower, archName) {
-			targetAsset = asset.BrowserDownloadUrl
-			assetSize = asset.Size
+	relNotes := ""
+	relDate := info.PublishedAt
+	commitSha := info.Commit
+	var rel GithubReleaseResponse
+	tagCandidates := []string{info.Version, "v" + strings.TrimPrefix(info.Version, "v")}
+	for _, tag := range tagCandidates {
+		url := "https://api.github.com/repos/404Setup/SRC-RenoP/releases/tags/" + tag
+		if _, err := doGitHubJSON(checkCtx, url, &rel); err == nil {
+			relNotes = rel.Body
+			if relNotes == "" {
+				relNotes = rel.Name
+			}
+			if rel.PublishedAt != "" {
+				relDate = rel.PublishedAt
+			} else if rel.CreatedAt != "" {
+				relDate = rel.CreatedAt
+			}
+			if rel.TargetCommitish != "" {
+				commitSha = rel.TargetCommitish
+			}
 			break
 		}
 	}
-
-	relDate := rel.PublishedAt
-	if relDate == "" {
-		relDate = rel.CreatedAt
-	}
-
-	relNotes := rel.Body
 	if relNotes == "" {
-		relNotes = rel.Name
+		if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/releases/latest", &rel); err == nil {
+			if normalizeVersionID(rel.TagName) == normalizeVersionID(info.Version) {
+				relNotes = rel.Body
+				if relNotes == "" {
+					relNotes = rel.Name
+				}
+			}
+		}
 	}
 	const maxNotes = 32 << 10
 	relNotes = clipString(relNotes, maxNotes)
 
+	latestVersion := info.Version
+	if !strings.HasPrefix(latestVersion, "v") && looksLikeSemver(latestVersion) {
+		latestVersion = "v" + latestVersion
+	}
+
 	return &CheckResult{
 		HasUpdate:          hasUpdate,
 		CurrentVersion:     version.Version,
-		LatestVersion:      rel.TagName,
-		DownloadUrl:        targetAsset,
+		LatestVersion:      latestVersion,
+		DownloadUrl:        downloadURL,
 		Channel:            string(ChannelRelease),
-		Size:               assetSize,
-		EstimatedDiskSpace: assetSize * 3,
+		Size:               size,
+		EstimatedDiskSpace: size * 3,
 		ReleaseDate:        relDate,
 		ReleaseNotes:       relNotes,
-		CommitSha:          rel.TargetCommitish,
+		CommitSha:          commitSha,
 		IsRelease:          true,
 	}, nil
+}
+
+func looksLikeSemver(s string) bool {
+	s = strings.TrimPrefix(s, "v")
+	if s == "" {
+		return false
+	}
+	parts := strings.Split(s, ".")
+	if len(parts) < 2 {
+		return false
+	}
+	for _, p := range parts {
+		if p == "" {
+			return false
+		}
+		for i := 0; i < len(p); i++ {
+			c := p[i]
+			if c < '0' || c > '9' {
+				if i > 0 {
+					break
+				}
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func checkNightly(ctx context.Context) (*CheckResult, error) {
 	checkCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
+	info, err := fetchChannelInfo(checkCtx, ChannelNightly)
+	if err != nil {
+		return nil, err
+	}
+
+	target := findTarget(info, runtime.GOOS, runtime.GOARCH)
+	matched := versionsMatch(version.Version, info.Version, info.Commit)
+	hasUpdate := !matched && target != nil
+
+	downloadURL := ""
+	var size int64
+	if target != nil {
+		downloadURL = packageURL(ChannelNightly, info.Version, target.File)
+		size = target.Size
+	}
+
+	commitSha := strings.TrimSpace(info.Commit)
+	shortSha := info.Version
+	if commitSha != "" {
+		if len(commitSha) > 7 {
+			shortSha = commitSha[:7]
+		} else {
+			shortSha = commitSha
+		}
+	} else if shortSha == "" {
+		shortSha = info.Version
+	}
+
 	var commits []GithubCommitResponse
-	if status, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=100", &commits); err != nil {
-		if status != 0 && status != http.StatusOK {
-			return nil, fmt.Errorf("GitHub commit check failed: %d", status)
-		}
-		return nil, fmt.Errorf("GitHub commit check failed: %w", err)
-	}
-	if len(commits) == 0 {
-		return nil, errors.New("GitHub returned no commits")
-	}
-
-	var latestCommit *GithubCommitResponse
-	for i := range commits {
-		subject := commitSubject(commits[i].Commit.Message)
-		if isWebOnlyCommit(subject) {
-			continue
-		}
-		latestCommit = &commits[i]
-		break
-	}
-	if latestCommit == nil {
-		return nil, errors.New("GitHub returned no product commits (all [web]?)")
-	}
-
-	commitSha := latestCommit.Sha
-	shortSha := commitSha
-	if len(shortSha) > 7 {
-		shortSha = shortSha[:7]
-	}
-
-	commitDate := latestCommit.Commit.Committer.Date
-	if commitDate == "" {
-		commitDate = latestCommit.Commit.Author.Date
-	}
-
-	curr := strings.TrimPrefix(version.Version, "v")
-	curr = strings.TrimPrefix(curr, "nightly-")
-	curr = strings.TrimSpace(curr)
-
-	hasUpdate := true
-	if curr == shortSha || curr == commitSha || curr == "nightly-"+shortSha {
-		hasUpdate = false
-	}
-
-	var notes []string
-	for _, c := range commits {
-		sha := c.Sha
-		short := sha
-		if len(short) > 7 {
-			short = short[:7]
-		}
-
-		if curr != "" && curr != "dev" {
-			if curr == sha || curr == short || strings.HasPrefix(sha, curr) || strings.HasPrefix(curr, short) {
+	releaseNotes := ""
+	commitDate := info.PublishedAt
+	if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=100", &commits); err == nil && len(commits) > 0 {
+		curr := normalizeVersionID(version.Version)
+		var notes []string
+		for _, c := range commits {
+			sha := c.Sha
+			short := sha
+			if len(short) > 7 {
+				short = short[:7]
+			}
+			if curr != "" && curr != "dev" {
+				if curr == sha || curr == short || strings.HasPrefix(sha, curr) || (len(curr) >= 7 && strings.HasPrefix(curr, short)) {
+					break
+				}
+			}
+			if commitSha != "" && (sha == commitSha || strings.HasPrefix(sha, shortSha) || short == shortSha) {
+				firstLine := commitSubject(c.Commit.Message)
+				if !shouldOmitNightlyNote(firstLine) {
+					notes = append(notes, firstLine)
+				}
+				if c.Commit.Committer.Date != "" {
+					commitDate = c.Commit.Committer.Date
+				} else if c.Commit.Author.Date != "" {
+					commitDate = c.Commit.Author.Date
+				}
 				break
 			}
+			firstLine := commitSubject(c.Commit.Message)
+			if shouldOmitNightlyNote(firstLine) {
+				continue
+			}
+			notes = append(notes, firstLine)
 		}
-
-		firstLine := commitSubject(c.Commit.Message)
-		if shouldOmitNightlyNote(firstLine) {
-			continue
-		}
-		notes = append(notes, firstLine)
+		releaseNotes = strings.Join(notes, "\n")
 	}
-	releaseNotes := strings.Join(notes, "\n")
 	const maxNotes = 32 << 10
 	releaseNotes = clipString(releaseNotes, maxNotes)
 
-	isRelease := false
-	var releases []GithubReleaseItem
-	if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/releases?per_page=5", &releases); err == nil {
-		for i := range releases {
-			r := &releases[i]
-			if r.TargetCommitish == commitSha || strings.HasPrefix(commitSha, strings.TrimPrefix(r.TagName, "v")) {
-				isRelease = true
-				break
-			}
-		}
+	latestVersion := info.Version
+	if !strings.HasPrefix(latestVersion, "nightly-") {
+		latestVersion = "nightly-" + normalizeVersionID(latestVersion)
 	}
-
-	downloadUrl := "https://nightly.link/404Setup/SRC-RenoP/workflows/build/main/renop-nightly.zip"
-	var size int64
-
-	latestVersion := "nightly-" + shortSha
 
 	return &CheckResult{
 		HasUpdate:          hasUpdate,
 		CurrentVersion:     version.Version,
 		LatestVersion:      latestVersion,
-		DownloadUrl:        downloadUrl,
+		DownloadUrl:        downloadURL,
 		Channel:            string(ChannelNightly),
 		Size:               size,
 		EstimatedDiskSpace: size * 3,
 		ReleaseDate:        commitDate,
 		ReleaseNotes:       releaseNotes,
 		CommitSha:          commitSha,
-		IsRelease:          isRelease,
+		IsRelease:          false,
 	}, nil
 }
