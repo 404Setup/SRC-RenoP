@@ -35,8 +35,58 @@ export const PLATFORMS = {
 };
 
 /**
+ * Supported GOOS → GOARCH list. Keep in sync with `build.ps1` `$allTargets`.
+ * Used by the download page to hide arches that are never built for an OS
+ * (e.g. Windows has no mips64le packages).
+ * @type {Record<string, string[]>}
+ */
+export const PLATFORM_MATRIX = {
+    windows: ['amd64', 'arm64'],
+    linux: ['amd64', 'arm64', 'mips64', 'mips64le', 'riscv64'],
+    freebsd: ['amd64', 'arm64'],
+    netbsd: ['amd64', 'arm64'],
+    openbsd: ['amd64', 'arm64'],
+};
+
+/**
+ * Architecture options available for a given OS (labels from `PLATFORMS.arch`).
+ * @param {string} os - OS id (`windows`, `linux`, …).
+ * @returns {Array<{value: string, label: string}>}
+ */
+export function getArchOptionsForOs(os) {
+    const allowed = PLATFORM_MATRIX[os];
+    if (!allowed?.length) return [];
+    const allow = new Set(allowed);
+    return PLATFORMS.arch.filter((a) => allow.has(a.value));
+}
+
+/**
+ * Whether `(os, arch)` is a published build target.
+ * @param {string} os
+ * @param {string} arch
+ * @returns {boolean}
+ */
+export function isPlatformSupported(os, arch) {
+    return Boolean(os && arch && PLATFORM_MATRIX[os]?.includes(arch));
+}
+
+/**
+ * Clamp OS/arch to a supported pair (invalid OS → linux; invalid arch → first for that OS).
+ * @param {string} os
+ * @param {string} arch
+ * @returns {{ os: string, arch: string }}
+ */
+export function normalizePlatform(os, arch) {
+    const validOs = PLATFORMS.os.some((o) => o.value === os) ? os : 'linux';
+    const arches = PLATFORM_MATRIX[validOs] || PLATFORM_MATRIX.linux;
+    const validArch = arches.includes(arch) ? arch : (arches[0] || 'amd64');
+    return {os: validOs, arch: validArch};
+}
+
+/**
  * Infer OS and architecture from the browser user agent / platform APIs.
  * macOS is mapped to `linux` (no native mac builds in the asset matrix).
+ * Result is always a supported (os, arch) pair from `PLATFORM_MATRIX`.
  * @returns {{ os: string, arch: string }}
  */
 export function detectPlatform() {
@@ -56,7 +106,7 @@ export function detectPlatform() {
     if (/arm/i.test(uaArch) || /aarch64/i.test(ua)) arch = 'arm64';
     else if (/x86_64|x64|amd64/i.test(uaArch) || /x86_64|Win64|WOW64/i.test(ua)) arch = 'amd64';
 
-    return {os, arch};
+    return normalizePlatform(os, arch);
 }
 
 /**
