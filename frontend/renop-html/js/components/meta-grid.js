@@ -39,12 +39,12 @@ export function createMetaGrid(items = []) {
     items.forEach(item => {
         if (!item) return;
         const row = el('div');
-        const strong = el('strong', {class: 'badge-muted'}, item.label + (item.colon !== false ? '：' : ''));
+        const strong = el('strong', {class: 'modal-meta-label'}, item.label + (item.colon !== false ? '：' : ''));
         row.appendChild(strong);
         if (item.isCode) {
             row.appendChild(el('code', {class: 'code-badge'}, item.value));
         } else {
-            row.appendChild(el('span', {}, item.value));
+            row.appendChild(el('span', {class: 'modal-meta-value'}, item.value));
         }
         grid.appendChild(row);
     });

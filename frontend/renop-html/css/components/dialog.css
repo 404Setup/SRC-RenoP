@@ -290,6 +290,27 @@
     font-size: 0.875rem;
 }
 
+.modal-meta-grid > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.4rem;
+    min-width: 0;
+}
+
+.modal-meta-label {
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.modal-meta-value {
+    color: var(--text-color);
+    word-break: break-word;
+}
+
 .modal-notes-container {
     display: flex;
     flex-direction: column;
