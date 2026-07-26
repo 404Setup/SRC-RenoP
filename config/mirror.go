@@ -1,0 +1,253 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package config
+
+import (
+	"encoding/base64"
+	"slices"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/3JoB/unsafeConvert"
+	"github.com/bytedance/sonic"
+	"go.yaml.in/yaml/v3"
+)
+
+type Mirror struct {
+	Authorization  *MirrorCredentials `json:"authorization" yaml:"authorization"`
+	Name           string             `json:"name" yaml:"name"`
+	Url            string             `json:"url" yaml:"url"`
+	EnabledDate    string             `json:"enabled_date" yaml:"enabled_date"`
+	AllowArtifacts []string           `json:"allow_artifacts,omitempty" yaml:"allow_artifacts,omitempty"`
+	DenyArtifacts  []string           `json:"deny_artifacts,omitempty" yaml:"deny_artifacts,omitempty"`
+	CacheTtlSecs   uint64             `json:"cache_ttl_secs" yaml:"cache_ttl_secs"`
+	TimeoutSecs    uint64             `json:"timeout_secs" yaml:"timeout_secs"`
+	Persist        bool               `json:"persist" yaml:"persist"`
+	NegativeCache  bool               `json:"negative_cache" yaml:"negative_cache"`
+}
+
+// parseMavenGroupArtifact extracts groupId and artifactId from a Maven repository path.
+// Layouts handled:
+//   - group/artifact/version/file
+//   - group/artifact/maven-metadata.xml
+//   - group/artifact/version/maven-metadata.xml
+func parseMavenGroupArtifact(path string) (group, artifactId string) {
+	clean := strings.Trim(path, "/")
+	if clean == "" {
+		return "", ""
+	}
+	parts := strings.Split(clean, "/")
+	file := parts[len(parts)-1]
+	rest := parts[:len(parts)-1]
+	if len(rest) == 0 {
+		return "", ""
+	}
+
+	isMeta := file == "maven-metadata.xml" || strings.HasPrefix(file, "maven-metadata.xml.")
+	if isMeta {
+		if len(rest) >= 2 && looksLikeMavenVersion(rest[len(rest)-1]) {
+			artifactId = rest[len(rest)-2]
+			group = strings.Join(rest[:len(rest)-2], ".")
+			return group, artifactId
+		}
+		artifactId = rest[len(rest)-1]
+		if len(rest) > 1 {
+			group = strings.Join(rest[:len(rest)-1], ".")
+		}
+		return group, artifactId
+	}
+
+	if len(rest) >= 2 {
+		artifactId = rest[len(rest)-2]
+		group = strings.Join(rest[:len(rest)-2], ".")
+		return group, artifactId
+	}
+	return rest[0], ""
+}
+
+func looksLikeMavenVersion(s string) bool {
+	if s == "" {
+		return false
+	}
+	if strings.Contains(s, ".") || strings.Contains(strings.ToUpper(s), "SNAPSHOT") {
+		return true
+	}
+	return s[0] >= '0' && s[0] <= '9'
+}
+
+func (m *Mirror) IsArtifactAllowed(path string) (bool, string) {
+	if m == nil {
+		return true, ""
+	}
+	hasAllow := len(m.AllowArtifacts) > 0
+	hasDeny := len(m.DenyArtifacts) > 0
+
+	if !hasAllow && !hasDeny {
+		return true, ""
+	}
+	if hasAllow && hasDeny {
+		return false, "Both allow and deny rules enabled on mirror"
+	}
+
+	clean := strings.Trim(path, "/")
+	group, artifactId := parseMavenGroupArtifact(path)
+
+	ga := group
+	if artifactId != "" {
+		ga = group + ":" + artifactId
+	}
+
+	match := func(pattern string) bool {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			return false
+		}
+		if pattern == group || pattern == ga {
+			return true
+		}
+		if group != "" && strings.HasPrefix(group, pattern+".") {
+			return true
+		}
+		return false
+	}
+
+	if hasAllow {
+		if slices.ContainsFunc(m.AllowArtifacts, match) {
+			return true, ""
+		}
+		return false, "Artifact blocked: Not in mirror allow list (" + clean + ")"
+	}
+
+	if hasDeny {
+		if slices.ContainsFunc(m.DenyArtifacts, match) {
+			return false, "Artifact blocked: In mirror deny list (" + clean + ")"
+		}
+		return true, ""
+	}
+
+	return true, ""
+}
+
+func (m *Mirror) setDefaults() {
+	if !m.Persist && m.CacheTtlSecs == 0 && m.TimeoutSecs == 0 && !m.NegativeCache {
+		m.Persist = DefaultTrue()
+		m.NegativeCache = DefaultTrue()
+	}
+	if m.CacheTtlSecs == 0 {
+		m.CacheTtlSecs = DefaultCacheTtl()
+	}
+	if m.TimeoutSecs == 0 {
+		m.TimeoutSecs = DefaultMirrorTimeout()
+	}
+	if m.EnabledDate == "" {
+		m.EnabledDate = time.Now().Format("2006-01-02")
+	}
+}
+
+func (m *Mirror) UnmarshalJSON(data []byte) error {
+	m.setDefaults()
+	type alias Mirror
+	aux := (*alias)(m)
+	return sonic.ConfigFastest.Unmarshal(data, aux)
+}
+
+func (m *Mirror) UnmarshalYAML(value *yaml.Node) error {
+	m.setDefaults()
+	type alias Mirror
+	aux := (*alias)(m)
+	return value.Decode(aux)
+}
+
+type MirrorCredentials struct {
+	Method   string `json:"method" yaml:"method"`
+	Login    string `json:"login" yaml:"login"`
+	Password string `json:"password" yaml:"password"`
+
+	cachedHeader string    `json:"-" yaml:"-"`
+	once         sync.Once `json:"-" yaml:"-"`
+}
+
+func (m *MirrorCredentials) setDefaults() {
+	if m.Method == "" {
+		m.Method = DefaultAuthMethod()
+	}
+}
+
+func (m *MirrorCredentials) UnmarshalJSON(data []byte) error {
+	m.setDefaults()
+	type alias MirrorCredentials
+	aux := (*alias)(m)
+	return sonic.ConfigFastest.Unmarshal(data, aux)
+}
+
+func (m *MirrorCredentials) UnmarshalYAML(value *yaml.Node) error {
+	m.setDefaults()
+	type alias MirrorCredentials
+	aux := (*alias)(m)
+	return value.Decode(aux)
+}
+
+func (m *MirrorCredentials) GetAuthHeader() string {
+	m.once.Do(func() {
+		method := strings.ToLower(m.Method)
+		if method == "basic" || method == "username/password" {
+			credentials := m.Login + ":" + m.Password
+			encoded := base64.StdEncoding.EncodeToString(unsafeConvert.BytePointer(credentials))
+			m.cachedHeader = "Basic " + encoded
+		} else if method == "bearer" || method == "token" {
+			token := m.Password
+			if token == "" {
+				token = m.Login
+			}
+			m.cachedHeader = "Bearer " + token
+		}
+	})
+	return m.cachedHeader
+}
+
+func (m *MirrorCredentials) DeepCopy() *MirrorCredentials {
+	if m == nil {
+		return nil
+	}
+	return &MirrorCredentials{
+		Method:       strings.Clone(m.Method),
+		Login:        strings.Clone(m.Login),
+		Password:     strings.Clone(m.Password),
+		cachedHeader: strings.Clone(m.cachedHeader),
+	}
+}
+
+func (m *Mirror) DeepCopy() Mirror {
+	cloned := Mirror{
+		Name:          strings.Clone(m.Name),
+		Url:           strings.Clone(m.Url),
+		Persist:       m.Persist,
+		CacheTtlSecs:  m.CacheTtlSecs,
+		NegativeCache: m.NegativeCache,
+		TimeoutSecs:   m.TimeoutSecs,
+		Authorization: m.Authorization.DeepCopy(),
+		EnabledDate:   strings.Clone(m.EnabledDate),
+	}
+	if m.AllowArtifacts != nil {
+		cloned.AllowArtifacts = make([]string, len(m.AllowArtifacts))
+		for i, s := range m.AllowArtifacts {
+			cloned.AllowArtifacts[i] = strings.Clone(s)
+		}
+	}
+	if m.DenyArtifacts != nil {
+		cloned.DenyArtifacts = make([]string, len(m.DenyArtifacts))
+		for i, s := range m.DenyArtifacts {
+			cloned.DenyArtifacts[i] = strings.Clone(s)
+		}
+	}
+	return cloned
+}

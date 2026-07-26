@@ -1,0 +1,683 @@
+<!--
+  ~ Copyright (c) 2026 404Setup. All rights reserved.
+  ~
+  ~ This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+  ~
+  ~ If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+  ~
+  ~ This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+  -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>{{RENOP.TITLE}}</title>
+    <meta name="description" content="{{RENOP.DESCRIPTION}}">
+    <meta name="renop-background-url" content="{{RENOP.BACKGROUND_URL}}">
+    <link rel="icon" type="image/svg+xml" href="/svg/logo.svg">
+    <link rel="preload" href="/css/style.css?v={{RENOP.HASH}}" as="style">
+    <link rel="stylesheet" href="/css/style.css?v={{RENOP.HASH}}">
+    <link rel="modulepreload" href="/js/main.js?v={{RENOP.HASH}}">
+</head>
+<body>
+<div id="backend-offline">
+    <h2 data-i18n="offline.title">Backend not started</h2>
+    <button id="reload-btn" data-i18n="offline.retryBtn">Retry</button>
+</div>
+<div class="top-nav">
+    <div class="top-nav-left">
+        <h1 class="nav-title"><a href="/" title="{{RENOP.TITLE}}">{{RENOP.TITLE}}</a></h1>
+    </div>
+    <div class="top-nav-right">
+        <div id="auth-container" class="nav-controls-group">
+            <button id="lang-btn" class="lang-btn" type="button" title="Select Language" data-i18n-title="language.selectTitle" data-i18n-aria-label="language.selectTitle" aria-label="Select language">
+                <svg class="lang-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                <span id="current-lang-name" class="current-lang-name">English</span>
+                <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            <button id="theme-toggle" class="theme-btn" type="button" title="Toggle Theme" data-i18n-title="nav.toggleTheme" data-i18n-aria-label="nav.toggleTheme" aria-label="Toggle theme">
+                <svg class="theme-icon sun-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="theme-icon moon-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            <div class="divider" id="nav-divider" aria-hidden="true"></div>
+            <button id="login-btn" type="button" class="nav-sign-in-btn" data-i18n="nav.signIn">Sign in</button>
+            <div id="user-info" class="nav-user-info" style="display: none;">
+                <span id="welcome-text" class="user-text">
+                    <span class="user-avatar-dot" id="user-avatar-dot" aria-hidden="true"></span>
+                    <span id="username-display" class="user-name"></span>
+                </span>
+                <div class="divider" aria-hidden="true"></div>
+                <button id="logout-btn" class="icon-btn" type="button" title="Logout" data-i18n-title="nav.logout" data-i18n-aria-label="nav.logout" aria-label="Log out">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="app">
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-logo-wrap">
+                <img class="header-logo" src="{{RENOP.ORGANIZATION_LOGO}}" alt="Organization Logo" id="header-logo">
+            </div>
+            <div class="header-text">
+                <p class="description">{{RENOP.DESCRIPTION}}</p>
+                <div class="header-url" title="Instance URL">
+                    <svg class="header-url-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                    <span id="instance-url"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="tabs-container">
+        <nav id="tabs" class="tabs">
+            <a href="#" data-tab="overview" class="tab active" data-i18n="tabs.overview">Overview</a>
+            <a href="#" data-tab="profile" class="tab user-only" style="display: none;" data-i18n="tabs.profile">Profile</a>
+            <a href="#" data-tab="dashboard" class="tab manager-only" style="display: none;" data-i18n="tabs.dashboard">Dashboard</a>
+            <a href="#" data-tab="users" class="tab manager-only" style="display: none;" data-i18n="tabs.users">Users</a>
+            <a href="#" data-tab="repositories" class="tab manager-only" style="display: none;" data-i18n="tabs.repositories">Repositories</a>
+            <a href="#" data-tab="settings" class="tab manager-only" style="display: none;" data-i18n="tabs.settings">Settings</a>
+        </nav>
+    </div>
+
+    <main>
+        <div id="tab-content-overview" class="tab-content active">
+            <div class="layout-two-col">
+                <div class="col-left">
+                    <div class="browser-header">
+                        <nav id="breadcrumb" class="breadcrumb-nav" aria-label="Directory path">
+                            <span class="index-of">
+                                <svg class="index-of-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span class="index-of-label" data-i18n="browser.indexOf">Index of</span>
+                            </span>
+                            <div id="breadcrumb-links" class="breadcrumb-trail"></div>
+                            <a href=".." class="up-dir" id="up-dir-btn" title="Up a directory" aria-label="Up a directory" data-i18n-title="browser.upDirectory" data-i18n-aria-label="browser.upDirectory">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <line x1="12" y1="19" x2="12" y2="5"/>
+                                    <polyline points="5 12 12 5 19 12"/>
+                                </svg>
+                            </a>
+                        </nav>
+                        <div class="browser-adjustments">
+                            <button id="adjustments-btn" type="button" class="adjustments-trigger-btn" title="Adjustments" data-i18n-title="browser.adjustments" aria-haspopup="true" aria-expanded="false" aria-controls="adjustments-menu">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <line x1="4" y1="21" x2="4" y2="14"/>
+                                    <line x1="4" y1="10" x2="4" y2="3"/>
+                                    <line x1="12" y1="21" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12" y2="3"/>
+                                    <line x1="20" y1="21" x2="20" y2="16"/>
+                                    <line x1="20" y1="12" x2="20" y2="3"/>
+                                    <line x1="1" y1="14" x2="7" y2="14"/>
+                                    <line x1="9" y1="8" x2="15" y2="8"/>
+                                    <line x1="17" y1="16" x2="23" y2="16"/>
+                                </svg>
+                                <span class="adjustments-trigger-label" data-i18n="browser.view">View</span>
+                            </button>
+                            <div id="adjustments-menu" class="adjustments-panel" aria-hidden="true">
+                                <div class="adjustments-panel-header">
+                                    <div class="adjustments-panel-icon">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                                    </div>
+                                    <span class="adjustments-panel-title" data-i18n="browser.fileBrowser">File Browser</span>
+                                </div>
+                                <div class="adjustments-panel-body">
+                                    <div class="adjustments-row">
+                                        <div class="adjustments-row-text">
+                                            <span class="adjustments-row-label" data-i18n="browser.sortNewest">Sort newest first</span>
+                                            <span class="adjustments-row-desc" data-i18n="browser.sortNewestDesc">Display files from newest to oldest</span>
+                                        </div>
+                                        <label class="adj-toggle">
+                                            <input type="checkbox" id="sort-order-checkbox">
+                                            <span class="adj-toggle-track"><span class="adj-toggle-thumb"></span></span>
+                                        </label>
+                                    </div>
+                                    <div class="adjustments-row">
+                                        <div class="adjustments-row-text">
+                                            <span class="adjustments-row-label" data-i18n="browser.showUtilityFiles">Show utility files</span>
+                                            <span class="adjustments-row-desc" data-i18n="browser.showUtilityFilesDesc">Display checksums and metadata files</span>
+                                        </div>
+                                        <label class="adj-toggle">
+                                            <input type="checkbox" id="utility-files-checkbox">
+                                            <span class="adj-toggle-track"><span class="adj-toggle-thumb"></span></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="file-list-container" class="file-list-container">
+                        <div class="file-list-viewport">
+                            <ul id="file-list" class="file-list"></ul>
+                            <div id="empty-state" class="file-list-state" hidden data-i18n="browser.emptyState">Directory is empty</div>
+                            <div id="error-state" class="file-list-state file-list-state--error" hidden data-i18n="browser.errorState">Directory not found</div>
+                        </div>
+                    </div>
+
+                    <div id="upload-zone-container" class="upload-panel" hidden>
+                        <div id="upload-zone" class="upload-dropzone" role="button" tabindex="0"
+                             aria-label="Upload files by dropping or clicking to browse" data-i18n-aria-label="browser.uploadZoneAria">
+                            <div class="upload-dropzone-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+                            <div class="upload-dropzone-text">
+                                <p class="upload-dropzone-title" data-i18n="browser.uploadTitle">Drop files to upload</p>
+                                <p class="upload-dropzone-hint"><span data-i18n="browser.uploadHintOr">or</span> <span class="upload-dropzone-browse" data-i18n="browser.uploadHintBrowse">browse</span> <span data-i18n="browser.uploadHintFromDevice">from your device</span></p>
+                            </div>
+                            <input type="file" id="file-upload-input" multiple hidden>
+                        </div>
+
+                        <div id="upload-controls" class="upload-controls" aria-hidden="true" hidden>
+                            <div class="upload-controls-inner">
+                                <div class="upload-controls-card">
+                                    <div class="upload-files-header">
+                                        <div class="upload-files-header-left">
+                                            <span class="upload-files-title" data-i18n="browser.selectedFiles">Selected files</span>
+                                            <span id="upload-file-count" class="upload-file-count"></span>
+                                            <span id="upload-total-size" class="upload-total-size"></span>
+                                        </div>
+                                        <button type="button" id="upload-clear-btn" class="upload-clear-btn" data-i18n="browser.clearAll">Clear all</button>
+                                    </div>
+                                    <div id="upload-batch-progress-container" class="upload-batch-progress-container" style="display: none;">
+                                        <div class="upload-batch-progress-info">
+                                            <span id="upload-batch-progress-text" class="upload-batch-progress-text"></span>
+                                            <span id="upload-batch-progress-percent" class="upload-batch-progress-percent"></span>
+                                        </div>
+                                        <div class="upload-batch-progress-bar">
+                                            <div id="upload-batch-progress-fill" class="upload-batch-progress-fill"></div>
+                                        </div>
+                                    </div>
+                                    <div id="upload-file-list" class="upload-file-list"></div>
+
+                                    <div class="upload-options">
+                                        <label class="upload-option">
+                                            <span class="switch"><input type="checkbox" id="checksum-checkbox"><span
+                                                    class="slider"></span></span>
+                                            <span class="upload-option-text">
+                                                <span class="upload-option-label" data-i18n="browser.genChecksums">Generate checksums</span>
+                                                <span class="upload-option-desc" data-i18n="browser.genChecksumsDesc">Create MD5, SHA-1, SHA-256 and SHA-512 sidecars</span>
+                                            </span>
+                                        </label>
+                                        <label class="upload-option">
+                                            <span class="switch"><input type="checkbox" id="pom-checkbox"><span
+                                                    class="slider"></span></span>
+                                            <span class="upload-option-text">
+                                                <span class="upload-option-label" data-i18n="browser.genPom">Generate stub POM</span>
+                                                <span class="upload-option-desc" data-i18n="browser.genPomDesc">Write a minimal Maven POM for the uploaded artifact</span>
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    <div id="pom-form" class="pom-form">
+                                        <div class="pom-form-inner">
+                                            <div class="pom-form-card">
+                                                <div class="pom-form-grid">
+                                                    <div class="form-group">
+                                                        <label for="pom-group-id" data-i18n="browser.pomGroup">Group</label>
+                                                        <input type="text" id="pom-group-id" placeholder="com.example" data-i18n-placeholder="browser.pomGroupPlaceholder" autocomplete="off">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="pom-artifact-id" data-i18n="browser.pomArtifact">Artifact</label>
+                                                        <input type="text" id="pom-artifact-id" placeholder="my-app" data-i18n-placeholder="browser.pomArtifactPlaceholder" autocomplete="off">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="pom-version" data-i18n="browser.pomVersion">Version</label>
+                                                        <input type="text" id="pom-version" placeholder="1.0.0" data-i18n-placeholder="browser.pomVersionPlaceholder" autocomplete="off">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="upload-footer">
+                                        <div class="upload-destination-field">
+                                            <label for="upload-destination" data-i18n="browser.uploadDest">Destination</label>
+                                            <input type="text" id="upload-destination" placeholder="repository/path/to/upload" data-i18n-placeholder="browser.uploadDestPlaceholder" autocomplete="off">
+                                        </div>
+                                        <button id="upload-btn" type="button" class="pill-btn pill-btn--primary upload-submit-btn">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                                                 aria-hidden="true">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="17 8 12 3 7 8"/>
+                                                <line x1="12" y1="3" x2="12" y2="15"/>
+                                            </svg>
+                                            <span class="upload-btn-label" data-i18n="browser.uploadFilesBtn">Upload files</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-right">
+                    <div class="details-card">
+                        <div class="details-card-header">
+                            <div class="details-card-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            </div>
+                            <div class="details-card-meta">
+                                <h3 id="details-card-title" class="details-card-title" data-i18n="details.title">Repository details</h3>
+                                <p class="details-card-subtitle" data-i18n="details.subtitle">Copy configuration snippets for your build tool</p>
+                            </div>
+                            <button class="copy-btn" title="Copy snippet" data-i18n-title="details.copySnippet" id="copy-snippet-btn"><img src="/svg/copy.svg"
+                                                                                                     alt="Copy"
+                                                                                                     class="icon-svg">
+                            </button>
+                        </div>
+                        <div class="snippet-tabs">
+                            <button class="snippet-tab active" data-snippet="maven">Maven</button>
+                            <button class="snippet-tab" data-snippet="gradle-kotlin">Gradle Kotlin</button>
+                            <button class="snippet-tab" data-snippet="gradle-groovy">Gradle Groovy</button>
+                            <button class="snippet-tab" data-snippet="sbt">SBT</button>
+                        </div>
+                        <div class="snippet-content">
+                            <pre><code id="snippet-code"></code></pre>
+                        </div>
+                    </div>
+                    <div class="details-card repo-stats-card" id="repo-stats-card" style="display: none;">
+                        <div class="details-card-header">
+                            <div class="details-card-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            </div>
+                            <div class="details-card-meta">
+                                <h3 class="details-card-title" data-i18n="details.statsTitle">Repository Storage & Mirrors</h3>
+                                <p class="details-card-subtitle" data-i18n="details.statsSubtitle">Local storage usage and configured mirrors</p>
+                            </div>
+                        </div>
+                        <div class="repo-stats-content" id="repo-stats-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-content-dashboard" class="tab-content" style="display: none;">
+            <div class="dashboard-hero">
+                <div class="dashboard-hero-text">
+                    <h2 class="dashboard-title" data-i18n="dashboard.title">Instance Status</h2>
+                    <p class="dashboard-subtitle" data-i18n="dashboard.subtitle">Real-time metrics for your Renop instance</p>
+                </div>
+                <div class="dashboard-status-dot" id="dashboard-status-indicator" title="Instance healthy" data-i18n-title="dashboard.healthy"></div>
+            </div>
+            <div class="dashboard-cards">
+                <div class="dashboard-card dashboard-card--version">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.version">Version</div>
+                        <div class="dashboard-card-value" style="display:flex; flex-direction:column; align-items:flex-start; gap:0.25rem;">
+                            <a href="https://github.com/404Setup/SRC-RenoP" target="_blank" id="dashboard-version">...</a>
+                            <button id="btn-dashboard-update" class="pill-btn pill-btn--soft pill-btn--sm manager-only" type="button" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;" data-i18n="dashboard.checkUpdate">Check for Updates</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-card dashboard-card--uptime">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.uptime">Uptime</div>
+                        <div class="dashboard-card-value" id="dashboard-uptime">...</div>
+                    </div>
+                </div>
+                <div class="dashboard-card dashboard-card--memory">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.memory">Memory Usage</div>
+                        <div class="dashboard-card-value" id="dashboard-memory">...</div>
+                    </div>
+                </div>
+                <div class="dashboard-card dashboard-card--disk">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.disk">Disk Usage</div>
+                        <div class="dashboard-card-value" id="dashboard-disk">...</div>
+                    </div>
+                </div>
+                <div class="dashboard-card dashboard-card--threads">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.threads">Threads</div>
+                        <div class="dashboard-card-value" id="dashboard-threads">...</div>
+                    </div>
+                </div>
+                <div class="dashboard-card dashboard-card--cores">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.cores">Cores (Log / Phy)</div>
+                        <div class="dashboard-card-value" id="dashboard-cores">...</div>
+                    </div>
+                </div>
+                <div class="dashboard-card dashboard-card--os">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.os">OS / Arch</div>
+                        <div class="dashboard-card-value" id="dashboard-os-arch">...</div>
+                    </div>
+                </div>
+                <div class="dashboard-card dashboard-card--failures">
+                    <div class="dashboard-card-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-card-title" data-i18n="dashboard.failures">Failures</div>
+                        <div class="dashboard-card-value" id="dashboard-failures">...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-section" id="snapshots-chart-container" style="display: none;">
+                <div class="dashboard-section-header">
+                    <h3 class="dashboard-section-title" data-i18n="dashboard.chartTitle">Memory Over Time</h3>
+                    <span class="dashboard-section-badge" data-i18n="dashboard.liveBadge">Live</span>
+                </div>
+                <div class="dashboard-chart-card">
+                    <div id="snapshots-chart" class="snapshots-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-content-profile" class="tab-content" style="display: none;">
+            <div class="profile-hero">
+                <div class="profile-avatar-ring">
+                    <div class="profile-avatar-inner" id="profile-avatar-initials">?</div>
+                </div>
+                <div class="profile-hero-text">
+                    <h2 class="profile-hero-name" id="profile-display-name" data-i18n="profile.title">My Profile</h2>
+                    <p class="profile-hero-sub" data-i18n="profile.subtitle">Manage your account settings and access credentials</p>
+                </div>
+            </div>
+
+            <div class="profile-cards-grid">
+                <div class="profile-section-card">
+                    <div class="profile-section-card-header">
+                        <div class="profile-section-icon profile-section-icon--password" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                        <div class="profile-section-meta">
+                            <h3 class="profile-section-title" data-i18n="profile.changePasswordTitle">Change Password</h3>
+                            <p class="profile-section-desc" data-i18n="profile.changePasswordDesc">Update your account password below.</p>
+                        </div>
+                    </div>
+                    <form id="profile-password-form" action="javascript:void(0);" class="profile-section-body">
+                        <input type="text" id="profile-username-hidden" name="username" autocomplete="username" style="display: none;" readonly>
+                        <div class="form-group profile-form-group">
+                            <label for="profile-new-password" data-i18n="profile.newPasswordLabel">New Password</label>
+                            <input type="password" id="profile-new-password" autocomplete="new-password" placeholder="Enter new password" data-i18n-placeholder="profile.newPasswordPlaceholder"
+                                   class="profile-input">
+                        </div>
+                        <button type="submit" id="btn-update-password" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.updatePasswordBtn">Update Password</button>
+                    </form>
+                </div>
+
+                <div class="profile-section-card">
+                    <div class="profile-section-card-header">
+                        <div class="profile-section-icon profile-section-icon--token" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                        </div>
+                        <div class="profile-section-meta">
+                            <h3 class="profile-section-title" data-i18n="profile.uploadTokenTitle">Upload Token</h3>
+                            <p class="profile-section-desc" data-i18n="profile.uploadTokenDesc">Use this token for API or Maven uploads. Regenerating invalidates the old one.</p>
+                        </div>
+                    </div>
+                    <div class="profile-section-body">
+                        <button id="btn-generate-upload-token" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.genTokenBtn">Generate New Token</button>
+                        <div id="profile-token-result" style="display: none;" class="profile-token-reveal">
+                            <div class="profile-token-label" data-i18n="profile.newTokenLabel">Your new upload token</div>
+                            <div class="profile-token-value-wrapper">
+                                <code id="profile-upload-token-value" class="profile-token-code"></code>
+                            </div>
+                            <p class="profile-token-warning" data-i18n="profile.tokenWarning">Copy this token now — it will not be shown again.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section-card">
+                    <div class="profile-section-card-header">
+                        <div class="profile-section-icon profile-section-icon--sessions" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 8h.01"/><path d="M9 8h6"/></svg>
+                        </div>
+                        <div class="profile-section-meta">
+                            <h3 class="profile-section-title" data-i18n="profile.sessionsTitle">Active Sessions</h3>
+                            <p class="profile-section-desc" data-i18n="profile.sessionsDesc">Review browser logins, devices, IPs, and revoke sessions you no longer trust.</p>
+                        </div>
+                    </div>
+                    <div class="profile-section-body">
+                        <button type="button" id="btn-profile-sessions" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.sessionsBtn">Manage Sessions</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-content-users" class="tab-content" style="display: none;">
+            <div class="settings-header">
+                <div>                    <h2 data-i18n="users.title">User Management</h2>
+                    <p data-i18n="users.subtitle">Create and manage API access tokens and user permissions.</p>
+                </div>
+            </div>
+
+            <div class="users-stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon--total">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label" data-i18n="users.statTotal">Total Users</div>
+                        <div class="stat-value" id="stat-total-users">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon--admin">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label" data-i18n="users.statAdmins">Administrators</div>
+                        <div class="stat-value" id="stat-admin-users">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon stat-icon--active">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label" data-i18n="users.statTokens">API Tokens</div>
+                        <div class="stat-value" id="stat-key-users">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="users-toolbar">
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="users-search-input" placeholder="Search users by name or permission..." data-i18n-placeholder="users.searchPlaceholder" autocomplete="off">
+                </div>
+                <div class="users-toolbar-actions" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <button id="btn-show-create-token" type="button" class="settings-save-btn" title="Create a new user" data-i18n-title="users.createUserBtnTitle">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span data-i18n="users.createUserBtn">Create User</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-container users-table-container" style="padding: 0;">
+                <table id="tokens-table">
+                    <thead>
+                    <tr>
+                        <th data-i18n="users.thUser">User</th>
+                        <th data-i18n="users.thPermissions">Permissions</th>
+                        <th data-i18n="users.thTokenPrefix">Token Prefix</th>
+                        <th data-i18n="users.thCreatedAt">Created At</th>
+                        <th style="text-align: right;" data-i18n="users.thActions">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tokens-table-body">
+                    </tbody>
+                </table>
+                <div id="users-pagination" class="table-pagination"></div>
+            </div>
+        </div>
+
+        <div id="tab-content-repositories" class="tab-content" style="display: none;">
+            <div class="settings-header repos-header">
+                <div class="repos-header-text">
+                    <h2 data-i18n="repos.title">Repositories</h2>
+                    <p data-i18n="repos.subtitle">Manage Maven repositories.</p>
+                </div>
+                <button id="btn-add-repository" type="button" class="settings-save-btn" title="Add a new Maven repository" data-i18n-title="repos.addRepoTitle">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    <span data-i18n="repos.addRepoBtn">Add Repository</span>
+                </button>
+            </div>
+            <div id="repositories-container" class="cfg-page-content"></div>
+        </div>
+
+        <div id="tab-content-settings" class="tab-content" style="display: none;">
+            <div class="settings-header">
+                <div>
+                    <h2 data-i18n="settings.title">Settings</h2>
+                    <p data-i18n="settings.subtitle">Modify configuration shared between all instances.</p>
+                    <p><strong style="font-size: 0.85rem;" data-i18n="settings.remember">Remember:</strong> <span style="font-size: 0.85rem;" data-i18n="settings.propagationNotice">Configuration propagation can take up to 10 seconds on all your instances.</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="settings-toolbar">
+                <div class="tabs-container settings-subtabs-container">
+                    <nav id="settings-tabs" class="tabs"></nav>
+                </div>
+                <button id="settings-save-btn" class="settings-save-btn" disabled title="Save changes and reload configuration" data-i18n-title="settings.saveBtnTitle">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    <span data-i18n="settings.saveBtn">Update and reload</span>
+                </button>
+            </div>
+
+            <div id="settings-form-container" class="cfg-page-content"></div>
+        </div>
+    </main>
+    <footer>
+        <div id="footer-links">
+            <a href="{{RENOP.ORGANIZATION_WEBSITE}}" target="_blank" data-i18n="footer.organization">Organization</a>
+            <span class="separator" id="privacy-policy-separator" style="display: none;">·</span>
+            <a href="#" id="privacy-policy-link" style="display: none;" data-i18n="footer.privacyPolicy">Privacy Policy</a>
+            <span id="icp-container" style="display: none;">
+                <span class="separator">·</span>
+                <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" id="icp-text">{{RENOP.ICP_LICENSE}}</a>
+            </span>
+        </div>
+        <div id="footer-copyright"></div>
+    </footer>
+</div>
+
+<div id="privacy-policy-modal" class="modal" style="display: none;">
+    <div class="modal-backdrop" id="privacy-policy-backdrop"></div>
+    <div class="modal-content" style="max-width: 600px;">
+        <button id="btn-close-privacy-policy" class="close-btn" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <div class="modal-header">
+            <h3 class="modal-title" data-i18n="privacy.title">Privacy Policy</h3>
+        </div>
+        <div class="modal-body">
+            <div id="privacy-policy-content" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="login-modal" class="modal" style="display: none;">
+    <div class="modal-backdrop" id="login-backdrop"></div>
+    <div class="modal-content" style="max-width: 420px;">
+        <button class="close-btn" id="close-login-modal" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <div class="modal-header">
+            <h2 class="modal-title" data-i18n="nav.signIn">Sign in</h2>
+        </div>
+        <div class="modal-body">
+            <form id="login-form" action="javascript:void(0);">
+                <div class="form-group">
+                    <label for="username" data-i18n="login.usernameLabel">Username / Token Name</label>
+                    <input type="text" id="username" autocomplete="username" required placeholder="Enter username or token name" data-i18n-placeholder="login.usernamePlaceholder">
+                </div>
+                <div class="form-group">
+                    <label for="password" data-i18n="login.passwordLabel">Password / Secret</label>
+                    <input type="password" id="password" autocomplete="current-password" required placeholder="Enter password or secret" data-i18n-placeholder="login.passwordPlaceholder">
+                </div>
+                <div id="login-error" style="display: none; color: #ef4444; margin-bottom: 12px; font-size: 0.85rem; font-weight: 500;"></div>
+                <button type="submit" class="submit-btn" style="margin-top: 0.5rem;" data-i18n="login.submitBtn">Login</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<div id="language-modal" class="modal" style="display: none;">
+    <div class="modal-backdrop" id="language-backdrop"></div>
+    <div class="modal-content language-modal-content" style="max-width: 580px;">
+        <button id="btn-close-language-modal" class="close-btn" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <div class="modal-header">
+            <h3 class="modal-title" data-i18n="language.modalTitle">Select Language</h3>
+            <p class="modal-subtitle" data-i18n="language.modalSubtitle" style="margin-top: 4px; font-size: 0.875rem; opacity: 0.75;">Choose your preferred interface language</p>
+        </div>
+        <div class="modal-body">
+            <div class="language-grid" id="language-grid"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/js/main.js?v={{RENOP.HASH}}"></script>
+</body>
+</html>

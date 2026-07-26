@@ -1,0 +1,109 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+}
+
+input::placeholder,
+textarea::placeholder,
+.cfg-label-hint,
+.form-hint,
+.input-hint,
+.field-hint,
+.hint,
+.profile-token-warning,
+.settings-header p,
+.roles-grid label,
+.role-chip,
+.roles-group-title,
+.roles-group-subtitle,
+.form-group label {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+.tab-content:not(.active) {
+    content-visibility: auto;
+}
+
+a, button,
+.tab, .tabs .tab,
+.action-btn, .primary-btn, .btn-danger,
+.settings-save-btn, .pill-btn,
+.rounded-btn, .control-btn,
+.table-action-btn, .cfg-index-action-btn,
+.snippet-tab, .dashboard-card {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+a *, button *,
+.tab *, .tabs .tab *,
+.action-btn *, .primary-btn *, .btn-danger *,
+.settings-save-btn *, .pill-btn *,
+.rounded-btn *, .control-btn *,
+.table-action-btn *, .cfg-index-action-btn *,
+.snippet-tab *, .dashboard-card * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+
+img, svg {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+.user-text,
+#username-display,
+#logout-btn,
+#logout-btn *,
+#user-info,
+#user-info * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    outline: none !important;
+}
+
+a {
+    -webkit-user-drag: none;
+    user-drag: none;
+    -moz-user-select: none;
+}
+
+a.selectable,
+p, span, .user-name, .file-name, code, pre {
+    -webkit-user-select: text;
+    user-select: text;
+}

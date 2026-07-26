@@ -1,0 +1,419 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+import {initTheme} from './theme.js';
+import {cachedIsLoggedIn, cachedIsManager, initializeSession, setSwitchTabHandler} from './auth.js';
+import {initI18n, t} from './i18n.js';
+import {RenopDialog} from './components.js';
+import {el} from './cfg-ui.js';
+import {
+    closeModalWithAnim,
+    enableDragToScroll,
+    registerTabContainer,
+    smoothScrollToTop,
+    updateModalInertState,
+    updateTabIndicator,
+} from './app-ui.js';
+import {fetchInstanceStatus, startDashboardRefresh, stopDashboardRefresh} from './dashboard.js';
+import {initSettings} from './settings.js';
+import {initRepositories} from './repositories.js';
+import {fetchTokens} from './users.js';
+import {populateRoles} from './users/modal.js';
+import {setupProfile} from './profile.js';
+import {loadDirectory} from './browser.js';
+
+export {
+    closeModalWithAnim,
+    enableDragToScroll,
+    registerTabContainer,
+    smoothScrollToTop,
+    updateModalInertState,
+    updateTabIndicator,
+};
+
+initI18n();
+
+window.addEventListener('languageChanged', async () => {
+    updateCopyrightFooter();
+
+    const currentTab = localStorage.getItem('selectedTab') || 'overview';
+    await switchTab(currentTab);
+
+    if (currentTab === 'dashboard') {
+        fetchInstanceStatus();
+    }
+
+    const createTokenModal = document.getElementById('create-token-modal');
+    if (createTokenModal && createTokenModal.style.display !== 'none' && createTokenModal.style.display !== '' && createTokenModal.dataset.isClosing !== 'true') {
+        populateRoles();
+    }
+});
+
+(function () {
+    const originalFetch = window.fetch;
+    window.fetch = async function (...args) {
+        try {
+            return await originalFetch.apply(this, args);
+        } catch (error) {
+            if (error instanceof TypeError) {
+                const offlineEl = document.getElementById('backend-offline');
+                if (offlineEl) offlineEl.style.display = 'flex';
+            }
+            throw error;
+        }
+    };
+})();
+
+(function () {
+    const bgUrlMeta = document.querySelector('meta[name="renop-background-url"]');
+    const bgUrl = bgUrlMeta ? bgUrlMeta.getAttribute("content") : "";
+    if (bgUrl && bgUrl !== "{{RENOP.BACKGROUND_URL}}") {
+        const img = new Image();
+        img.onload = function () {
+            document.body.style.backgroundImage = 'url("' + bgUrl.replace(/"/g, '\\"') + '")';
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center';
+            document.body.style.backgroundAttachment = 'fixed';
+        };
+        img.onerror = function () {
+            console.error('Failed to load background image, falling back to default.');
+        };
+        img.src = bgUrl;
+    }
+
+    const storedHash = localStorage.getItem('renop_assets_hash');
+    fetch('/api/status/hash')
+        .then(res => res.json())
+        .then(data => {
+            const currentHash = data;
+            if (currentHash && storedHash && storedHash !== currentHash) {
+                const updateMsg = el('p', {
+                    style: {
+                        margin: '0',
+                        lineHeight: '1.6',
+                        fontSize: '0.95rem',
+                        color: 'var(--text-color)',
+                        textAlign: 'center'
+                    }
+                }, t('main.updateAvailableDesc'));
+
+                RenopDialog.show({
+                    id: 'asset-update-modal',
+                    maxWidth: '440px',
+                    closable: false,
+                    centered: true,
+                    title: t('main.updateAvailable'),
+                    headerStyle: {paddingRight: '0', textAlign: 'center'},
+                    titleStyle: {justifyContent: 'center', textAlign: 'center', width: '100%'},
+                    body: updateMsg,
+                    bodyStyle: {marginBottom: '1.25rem', textAlign: 'center'},
+                    footerStyle: {justifyContent: 'center', marginTop: '1.25rem'},
+                    footer: [
+                        {
+                            text: t('main.forceUpdate'),
+                            className: 'pill-btn pill-btn--primary',
+                            style: {padding: '0.65rem 2.25rem', fontSize: '0.95rem', minWidth: '150px'},
+                            onClick: async () => {
+                                if ('caches' in window) {
+                                    try {
+                                        const cacheNames = await caches.keys();
+                                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                                    } catch (e) {
+                                    }
+                                }
+                                if ('serviceWorker' in navigator) {
+                                    try {
+                                        const registrations = await navigator.serviceWorker.getRegistrations();
+                                        for (let r of registrations) {
+                                            await r.unregister();
+                                        }
+                                    } catch (e) {
+                                    }
+                                }
+                                sessionStorage.clear();
+                                localStorage.setItem('renop_assets_hash', currentHash);
+
+                                try {
+                                    await fetch(window.location.href, {cache: 'reload'});
+                                } catch (e) {
+                                }
+
+                                const url = new URL(window.location.href);
+                                url.searchParams.set('_v', currentHash);
+                                url.searchParams.set('_t', Date.now().toString());
+                                window.location.href = url.toString();
+                            }
+                        }
+                    ]
+                });
+            } else if (!storedHash && currentHash) {
+                localStorage.setItem('renop_assets_hash', currentHash);
+            }
+        })
+        .catch(e => console.error('Failed to check assets hash', e));
+})();
+
+const tabs = document.querySelectorAll('#tabs .tab');
+const instanceUrlSpan = document.getElementById('instance-url');
+const tabContents = document.querySelectorAll('.tab-content');
+
+/**
+ * Activate a main app tab: update tab UI, show matching content, and run tab-specific init.
+ * @param {string} tabId - Tab id (e.g. 'overview', 'dashboard', 'settings').
+ * @returns {Promise<void>}
+ */
+export async function switchTab(tabId) {
+    let activeTabElement = null;
+    tabs.forEach(tab => {
+        if (tab.dataset.tab === tabId) {
+            tab.classList.add('active');
+            activeTabElement = tab;
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+
+    if (activeTabElement && activeTabElement.parentElement) {
+        const container = activeTabElement.parentElement;
+        const tabLeft = activeTabElement.offsetLeft;
+        const tabWidth = activeTabElement.offsetWidth;
+        const containerWidth = container.clientWidth;
+        const scrollLeft = container.scrollLeft;
+
+        if (tabLeft < scrollLeft) {
+            container.scrollTo({left: tabLeft, behavior: 'smooth'});
+        } else if (tabLeft + tabWidth > scrollLeft + containerWidth) {
+            container.scrollTo({left: tabLeft + tabWidth - containerWidth, behavior: 'smooth'});
+        }
+    }
+
+    updateTabIndicator(document.querySelector('#tabs'));
+
+    if (window.scrollY > 0) {
+        smoothScrollToTop();
+    }
+
+    tabContents.forEach(content => {
+        if (content.id === `tab-content-${tabId}`) {
+            content.style.display = 'block';
+            content.classList.add('active');
+        } else {
+            content.style.display = 'none';
+            content.classList.remove('active');
+        }
+    });
+
+    localStorage.setItem('selectedTab', tabId);
+
+    if (tabId === 'dashboard') {
+        startDashboardRefresh();
+    } else {
+        stopDashboardRefresh();
+    }
+
+    if (tabId === 'settings') {
+        initSettings();
+    } else if (typeof window.jsonEditorInstance !== 'undefined' && window.jsonEditorInstance) {
+        window.jsonEditorInstance.destroy();
+        window.jsonEditorInstance = null;
+    }
+
+    if (tabId === 'repositories') {
+        initRepositories();
+    }
+    if (tabId === 'users') {
+        fetchTokens();
+    }
+    if (tabId === 'profile') {
+        setupProfile();
+    }
+    if (tabId === 'overview') {
+        loadDirectory(window.location.pathname);
+    }
+}
+
+setSwitchTabHandler(switchTab);
+
+tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (tab.classList.contains('active')) return;
+        switchTab(tab.dataset.tab);
+    });
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(m => {
+            if (m.style.display !== 'none' && m.style.display !== '') {
+                const closeBtn = m.querySelector('.close-btn') || m.querySelector('#btn-cancel-create-token') || m.querySelector('#btn-close-privacy-policy');
+                if (closeBtn) {
+                    closeBtn.click();
+                } else {
+                    closeModalWithAnim(m);
+                }
+            }
+        });
+        if (document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
+    } else if (e.key === 'Tab') {
+        const openModal = Array.from(document.querySelectorAll('.modal')).find(m => m.style.display !== 'none' && m.style.display !== '');
+        if (openModal) {
+            const focusableElements = openModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            const focusable = Array.from(focusableElements).filter(el => !el.disabled && el.style.display !== 'none' && el.offsetWidth > 0);
+
+            if (focusable.length === 0) {
+                e.preventDefault();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            } else if (!openModal.contains(document.activeElement)) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    }
+});
+
+/**
+ * Refresh the footer copyright line with the current year range and translated notices.
+ * @returns {void}
+ */
+export function updateCopyrightFooter() {
+    const copyrightDiv = document.getElementById('footer-copyright');
+    if (copyrightDiv) {
+        const currentYear = new Date().getFullYear();
+        const yearDisplay = currentYear > 2026 ? `2026 - ${currentYear}` : '2026';
+        copyrightDiv.innerHTML = '';
+        copyrightDiv.append(
+            document.createTextNode(`${yearDisplay} `),
+            el('a', {href: 'https://github.com/404Setup/SRC-RenoP', target: '_blank'}, 'RenoP'),
+            document.createTextNode(`. ${t('footer.allRights')} ${t('footer.licenseNotice')}`)
+        );
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    initTheme();
+
+    document.querySelectorAll('.tabs-container').forEach(enableDragToScroll);
+    document.querySelectorAll('.snippet-tabs').forEach(enableDragToScroll);
+    document.querySelectorAll('.snippet-content').forEach(enableDragToScroll);
+    document.querySelectorAll('#tab-content-users .border-container').forEach(enableDragToScroll);
+    document.querySelectorAll('#breadcrumb-links, .breadcrumb-trail').forEach(enableDragToScroll);
+
+    if (instanceUrlSpan) {
+        instanceUrlSpan.textContent = window.location.origin + '/';
+    }
+
+    const modalIds = [
+        'create-token-modal', 'user-result-modal', 'login-modal', 'privacy-policy-modal', 'repo-mirrors-modal',
+        'language-modal', 'renop-confirm-container', 'renop-prompt-container'
+    ];
+    const _checkModals = () => {
+        updateModalInertState();
+    };
+    const modalObserver = new MutationObserver(_checkModals);
+    modalObserver.observe(document.body, {attributes: true, subtree: true, attributeFilter: ['style']});
+    modalObserver.observe(document.body, {childList: true, subtree: false});
+
+    updateModalInertState();
+
+    try {
+        updateCopyrightFooter();
+
+        await initializeSession();
+
+        const mainTabs = document.querySelector('#tabs');
+        if (mainTabs) {
+            registerTabContainer(mainTabs);
+        }
+
+        let savedTab = localStorage.getItem('selectedTab') || 'overview';
+        const tabEl = document.querySelector(`.tabs .tab[data-tab="${savedTab}"]`);
+        if (!cachedIsLoggedIn || (tabEl && tabEl.classList.contains('manager-only') && !cachedIsManager)) {
+            savedTab = 'overview';
+        }
+        switchTab(savedTab);
+
+        const reloadBtn = document.getElementById('reload-btn');
+        if (reloadBtn) {
+            reloadBtn.addEventListener('click', () => window.location.reload());
+        }
+
+        const headerLogo = document.getElementById('header-logo');
+        if (headerLogo) {
+            headerLogo.addEventListener('error', function () {
+                this.style.display = 'none';
+            });
+        }
+
+        const privacyLink = document.getElementById('privacy-policy-link');
+        const privacySeparator = document.getElementById('privacy-policy-separator');
+        const privacyModal = document.getElementById('privacy-policy-modal');
+        const privacyContent = document.getElementById('privacy-policy-content');
+        const privacyBackdrop = document.getElementById('privacy-policy-backdrop');
+        const btnClosePrivacy = document.getElementById('btn-close-privacy-policy');
+
+        if (privacyLink && privacySeparator) {
+            fetch('/api/privacy-policy', {method: 'HEAD'})
+                .then(res => {
+                    if (res.ok) {
+                        privacyLink.style.display = 'inline';
+                        privacySeparator.style.display = 'inline';
+                    }
+                })
+                .catch(err => console.error('Failed to check privacy policy', err));
+
+            let policyCached = false;
+            privacyLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                privacyModal.style.display = 'flex';
+                updateModalInertState();
+                if (!policyCached) {
+                    privacyContent.textContent = t('privacy.loading');
+                    fetch('/api/privacy-policy')
+                        .then(res => res.text())
+                        .then(text => {
+                            privacyContent.textContent = text;
+                            policyCached = true;
+                        })
+                        .catch(err => privacyContent.textContent = t('privacy.failedLoad'));
+                }
+            });
+
+            const closeModal = () => {
+                closeModalWithAnim(privacyModal);
+            };
+            if (btnClosePrivacy) btnClosePrivacy.addEventListener('click', closeModal);
+            if (privacyBackdrop) privacyBackdrop.addEventListener('click', closeModal);
+        }
+
+        const icpText = document.getElementById('icp-text');
+        const icpContainer = document.getElementById('icp-container');
+        if (icpText && icpContainer) {
+            const text = icpText.textContent.trim();
+            if (text && text !== '{{RENOP.ICP_LICENSE}}') {
+                icpContainer.style.display = 'inline';
+            }
+        }
+    } catch (e) {
+    }
+});

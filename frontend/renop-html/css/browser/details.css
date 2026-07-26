@@ -1,0 +1,560 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.details-card {
+    background-color: var(--card-bg);
+    border-radius: 0.875rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+    position: relative;
+    animation: snippetFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes snippetFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.details-card:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.details-card-header {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.25rem;
+    background-color: var(--card-bg);
+    position: relative;
+    border-bottom: 1px solid transparent;
+}
+
+.details-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 0.6rem;
+    flex-shrink: 0;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 16%, transparent);
+}
+
+.details-card-icon svg {
+    width: 15px;
+    height: 15px;
+}
+
+.details-card-meta {
+    min-width: 0;
+    flex: 1;
+}
+
+.details-card-title,
+.details-card-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1.35;
+}
+
+.details-card-subtitle {
+    margin: 0.15rem 0 0 0;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    opacity: 0.6;
+    line-height: 1.4;
+}
+
+.copy-btn {
+    background: color-mix(in srgb, var(--text-color) 5%, transparent);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+    position: relative;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.copy-btn:hover {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+    border-color: var(--link-hover-color);
+    transform: scale(1.05);
+}
+
+.copy-btn:active {
+    transform: scale(0.92);
+}
+
+.copy-btn .icon-svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s;
+}
+
+.copy-btn.copied {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgb(16, 185, 129) !important;
+    transform: scale(1.08);
+}
+
+.copy-toast {
+    position: absolute;
+    right: 115%;
+    top: 50%;
+    transform: translateY(-50%) scale(0.8);
+    background-color: #10b981;
+    color: white;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    animation: toastPopLeft 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+    toastFadeOut 0.25s ease-out 1.5s forwards;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+@keyframes toastPopLeft {
+    from {
+        opacity: 0;
+        transform: translateY(-50%) translateX(8px) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0) scale(1);
+    }
+}
+
+.snippet-tabs {
+    display: flex;
+    gap: 0.35rem;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.6rem 1.2rem;
+    overflow-x: auto;
+    justify-content: flex-start;
+    position: relative;
+    scrollbar-width: none;
+}
+
+.snippet-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.snippet-tab {
+    background: none;
+    border: none;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+    color: var(--text-color);
+    opacity: 0.65;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+    z-index: 2;
+}
+
+.snippet-tab:hover {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--text-color) 4%, transparent);
+}
+
+.snippet-tab.active {
+    opacity: 1;
+    color: var(--link-hover-color);
+}
+
+.snippet-tab-indicator {
+    position: absolute;
+    bottom: 0.6rem;
+    height: calc(100% - 1.2rem);
+    background-color: color-mix(in srgb, var(--link-hover-color) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 15%, transparent);
+    border-radius: 6px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.snippet-content {
+    box-sizing: border-box;
+    background-color: var(--snippet-bg);
+    padding: 1.2rem 1.5rem;
+    overflow: hidden;
+    border-top: 1px solid var(--border-color);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.snippet-content::before {
+    content: '';
+    display: block;
+    height: 6px;
+    width: 32px;
+    border-radius: 3px;
+    background: radial-gradient(circle, #ff5f56 2px, transparent 2px),
+    radial-gradient(circle, #ffbd2e 2px, transparent 2px),
+    radial-gradient(circle, #27c93f 2px, transparent 2px);
+    background-size: 8px 6px;
+    background-repeat: no-repeat;
+    background-position: 0px center, 10px center, 20px center;
+    margin-bottom: 0.2rem;
+    opacity: 0.6;
+}
+
+.snippet-content pre {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--text-color);
+    line-height: 1.6;
+    overflow-x: auto;
+}
+
+.snippet-content code {
+    white-space: pre;
+    display: block;
+    transition: opacity 0.12s ease-out, transform 0.12s ease-out;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.snippet-content code.code-changing {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+.repo-stats-card {
+    margin-top: 0;
+    overflow: hidden;
+    will-change: height, opacity, margin-top;
+    animation: none;
+}
+
+.repo-stats-card.is-visible {
+    margin-top: 1.5rem;
+}
+
+.repo-stats-content {
+    box-sizing: border-box;
+    padding: 1.15rem 1.35rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    background-color: var(--snippet-bg);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.repo-stats-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.repo-stats-block--with-mirrors {
+    padding-bottom: 0.9rem;
+    margin-bottom: 0.15rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.repo-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.repo-stat-row--strong .repo-stat-label {
+    font-weight: 600;
+}
+
+.repo-stat-row--nested {
+    padding-left: 0.65rem;
+    font-size: 0.82rem;
+    opacity: 0.78;
+}
+
+.repo-stat-label {
+    color: var(--text-color);
+    min-width: 0;
+}
+
+.repo-stat-value {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.repo-mirrors-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 0.35rem;
+}
+
+.repo-mirrors-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.repo-mirrors-title {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.repo-mirrors-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 18%, transparent);
+}
+
+.repo-mirrors-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+renop-mirror-card,
+.mirror-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
+    border-radius: 0.7rem;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--link-hover-color) 5%, var(--card-bg)) 0%, var(--card-bg) 55%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.mirror-card:hover {
+    border-color: color-mix(in srgb, var(--link-hover-color) 28%, var(--border-color));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.mirror-card--detailed {
+    padding: 0.95rem 1rem;
+    gap: 0.65rem;
+}
+
+.mirror-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.mirror-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.55rem;
+    flex-shrink: 0;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+}
+
+.mirror-card-icon svg {
+    width: 15px;
+    height: 15px;
+}
+
+.mirror-card-title-wrap {
+    min-width: 0;
+    flex: 1;
+}
+
+.mirror-card-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--text-color);
+}
+
+.mirror-card-url {
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    opacity: 0.65;
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
+}
+
+.mirror-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.mirror-card-meta--secondary {
+    padding-top: 0.15rem;
+    border-top: 1px dashed color-mix(in srgb, var(--border-color) 80%, transparent);
+}
+
+renop-meta-chip,
+.mirror-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    background: color-mix(in srgb, var(--text-color) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-color) 85%, transparent);
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.mirror-chip-label {
+    opacity: 0.55;
+    font-weight: 500;
+}
+
+.mirror-chip-value {
+    font-weight: 600;
+}
+
+.mirror-chip--yes {
+    background: color-mix(in srgb, #10b981 12%, transparent);
+    border-color: color-mix(in srgb, #10b981 28%, transparent);
+    color: #059669;
+}
+
+html.dark .mirror-chip--yes {
+    color: #34d399;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not(.light) .mirror-chip--yes {
+        color: #34d399;
+    }
+}
+
+.mirror-chip--no {
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    opacity: 0.9;
+}
+
+.mirrors-expand-btn {
+    align-self: stretch;
+    width: 100%;
+    justify-content: center;
+}
+
+.mirrors-modal-content {
+    max-width: 640px;
+    width: min(100% - 2rem, 640px);
+    margin: 1rem auto;
+    align-self: center;
+    justify-self: center;
+}
+
+.mirrors-modal-subtitle {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.6;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.mirrors-modal-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0;
+    max-height: min(60vh, 480px);
+    overflow-y: auto;
+    /* Keep left/right padding symmetric so cards sit centered (not right-biased) */
+    padding: 1.25rem 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.mirrors-modal-body renop-mirror-card,
+.mirrors-modal-body .mirror-card {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
+    margin-inline: 0;
+}
+
+.details-card,
+.snippet-tabs,
+.snippet-content,
+.snippet-content pre {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+
+.details-card::-webkit-scrollbar,
+.snippet-tabs::-webkit-scrollbar,
+.snippet-content::-webkit-scrollbar,
+.snippet-content pre::-webkit-scrollbar {
+    display: none !important;
+}

@@ -1,0 +1,167 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.table-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--card-bg);
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.82rem;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.pagination-size-custom-select {
+    width: auto !important;
+    max-width: 140px !important;
+    display: inline-block !important;
+}
+
+.pagination-size-custom-select .custom-select-btn {
+    padding: 0.25rem 0.65rem !important;
+    font-size: 0.82rem !important;
+    height: 2rem !important;
+    border-radius: 0.45rem !important;
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border-color) !important;
+    min-width: 105px !important;
+}
+
+.pagination-size-custom-select .custom-select-btn:hover {
+    border-color: color-mix(in srgb, var(--link-hover-color) 40%, var(--border-color)) !important;
+    background-color: var(--item-hover-bg) !important;
+}
+
+.pagination-size-custom-select .custom-select-btn.is-open {
+    border-color: var(--link-hover-color) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 20%, transparent) !important;
+}
+
+.pagination-size-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 0.28rem 1.8rem 0.28rem 0.65rem;
+    font-size: 0.82rem;
+    font-family: inherit;
+    font-weight: 500;
+    border-radius: 0.45rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 0.75rem;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.pagination-size-select:hover {
+    border-color: color-mix(in srgb, var(--link-hover-color) 40%, var(--border-color));
+    background-color: var(--item-hover-bg);
+}
+
+.pagination-size-select:focus {
+    border-color: var(--link-hover-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 20%, transparent);
+}
+
+.pagination-size-select option {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    padding: 0.4rem 0.65rem;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border-radius: 0.4rem;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled):not(.is-active) {
+    background: var(--item-hover-bg);
+    border-color: color-mix(in srgb, var(--link-hover-color) 40%, var(--border-color));
+}
+
+.pagination-btn.is-active {
+    background: var(--link-hover-color, #3b82f6);
+    color: #ffffff;
+    border-color: var(--link-hover-color, #3b82f6);
+    font-weight: 600;
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--link-hover-color) 30%, transparent);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.is-page-enter-next {
+    animation: userPageEnterNext 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.is-page-enter-prev {
+    animation: userPageEnterPrev 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes userPageEnterNext {
+    0% {
+        opacity: 0;
+        transform: translateX(18px) scale(0.995);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes userPageEnterPrev {
+    0% {
+        opacity: 0;
+        transform: translateX(-18px) scale(0.995);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}

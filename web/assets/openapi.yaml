@@ -1,0 +1,2255 @@
+openapi: 3.0.3
+info:
+  title: RenoP HTTP API
+  version: "1.0"
+  description: |
+    Management and helper APIs for RenoP, a self-hosted Maven repository server.
+
+    Default listen address: `0.0.0.0:3000`.
+
+    - Management routes live under `/api`.
+    - Artifact storage uses Maven layout at `/{repo}/{path}` (not under `/api`).
+
+    Some endpoints use `application/x-protobuf` (see `proto/api/v1/api.proto`).
+    Those are marked with content type `application/x-protobuf`; schemas below
+    describe the logical fields (snake_case) for documentation and client stubs.
+    Wire format is protobuf, not JSON.
+
+    Error bodies are often plain text (`Unauthorized`, `Forbidden`, `Not found`).
+    Prefer status codes over body shape.
+
+  license:
+    name: MPL-2.0
+    url: https://mozilla.org/MPL/2.0/
+
+servers:
+  - url: http://localhost:3000
+    description: Local default
+
+tags:
+  - name: auth
+    description: Login, session, profile
+  - name: tokens
+    description: Account management (manager)
+  - name: maven
+    description: Browse, versions, badge, POM helpers
+  - name: status
+    description: Health and runtime metrics
+  - name: settings
+    description: Config domains, repositories, index rebuild
+  - name: updater
+    description: Online and offline updates
+  - name: storage
+    description: Maven repository file paths
+  - name: javadoc
+    description: Javadoc jar preview
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: renop_session
+      description: HttpOnly session cookie set by POST /api/auth/login.
+    sessionHeader:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        `Session <session-id>` — same id as the cookie value.
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Username + password, or username + upload token.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Either `name:secret` or a bare upload token (looked up by token index).
+        May also pass `?token=` on GET/HEAD only.
+
+  parameters:
+    RepoName:
+      name: repo_name
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Maven repository name (e.g. releases, snapshots, private).
+    MavenPath:
+      name: path
+      in: path
+      required: true
+      schema:
+        type: string
+      description: |
+        Maven layout path under the repository (group/artifact/…).
+        In the real server this is a Fiber catch-all `*`.
+    TokenName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Account name (case-insensitive; stored lowercased).
+    SessionPublicId:
+      name: session_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Session public_id (not the raw session cookie value).
+    DomainName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [frontend, server, storage, updater, index]
+    VersionFilter:
+      name: filter
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Version substring filter.
+    VersionSorted:
+      name: sorted
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: true
+    Channel:
+      name: channel
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [release, nightly]
+        default: release
+
+  responses:
+    PlainUnauthorized:
+      description: Not authenticated or invalid credentials.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Unauthorized
+    PlainForbidden:
+      description: Authenticated but not allowed, or account expired.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Forbidden
+    PlainNotFound:
+      description: Resource not found (also used for some permission denials).
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Not found
+    PlainBadRequest:
+      description: Invalid parameters or body.
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Bad Request
+    PlainConflict:
+      description: Conflict (name exists, install already running, …).
+      content:
+        text/plain:
+          schema:
+            type: string
+    JsonError:
+      description: Error object.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorBody"
+
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        error:
+          type: string
+
+    StatusOk:
+      type: object
+      description: Protobuf message StatusOk (application/x-protobuf) for some mutating auth/session endpoints; also used as JSON `{status: success}` elsewhere.
+      properties:
+        status:
+          type: string
+          example: success
+
+    # --- Auth / tokens ---
+    LoginRequest:
+      type: object
+      description: Protobuf message LoginRequest (wire format application/x-protobuf).
+      required: [name, secret]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        secret:
+          type: string
+          minLength: 1
+          maxLength: 72
+
+    AccessTokenIdentifier:
+      type: object
+      properties:
+        type:
+          type: string
+          example: PERSISTENT
+        value:
+          type: integer
+          format: int32
+
+    AccessTokenDto:
+      type: object
+      properties:
+        identifier:
+          $ref: "#/components/schemas/AccessTokenIdentifier"
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        description:
+          type: string
+        expires_at:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unix milliseconds; null if none.
+        tokens:
+          type: array
+          items:
+            type: string
+          description: Upload tokens (plaintext when present).
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["manager", "canview:*", "canupdate:*"]
+
+    AccessTokenPermission:
+      type: object
+      properties:
+        identifier:
+          type: string
+        shortcut:
+          type: string
+
+    RoutePermission:
+      type: object
+      properties:
+        identifier:
+          type: string
+          example: route:read
+        shortcut:
+          type: string
+          example: r
+
+    Route:
+      type: object
+      properties:
+        path:
+          type: string
+        permission:
+          $ref: "#/components/schemas/RoutePermission"
+
+    SessionDetails:
+      type: object
+      description: Protobuf message SessionDetails.
+      properties:
+        access_token:
+          $ref: "#/components/schemas/AccessTokenDto"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessTokenPermission"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Route"
+        session_token:
+          type: string
+          description: Present when the request used a Session authorization header.
+
+    AccessTokenList:
+      type: object
+      description: Protobuf message AccessTokenList.
+      properties:
+        tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessTokenDto"
+
+    UpdatePasswordRequest:
+      type: object
+      required: [new_password]
+      properties:
+        new_password:
+          type: string
+          minLength: 6
+          maxLength: 72
+
+    UploadTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          format: uuid
+
+    SessionDto:
+      type: object
+      description: |
+        Protobuf message SessionDto (application/x-protobuf). Browser login session only;
+        Basic/Bearer credentials are not listed. The session secret is never returned.
+      properties:
+        public_id:
+          type: string
+          description: Opaque public id used for revoke APIs (not the cookie secret).
+        username:
+          type: string
+        ip:
+          type: string
+          description: Last seen client IP for this session.
+        user_agent:
+          type: string
+          description: User-Agent / device string captured at login (and kept on the session).
+        created_at:
+          type: integer
+          format: int64
+          description: Unix milliseconds
+        last_active:
+          type: integer
+          format: int64
+          description: Unix milliseconds — last activity (idle timeout base)
+        expires_at:
+          type: integer
+          format: int64
+          description: Unix milliseconds — last_active + idle timeout (typically 7 days)
+        current:
+          type: boolean
+          description: True when this session is the one making the request.
+
+    SessionList:
+      type: object
+      description: Protobuf message SessionList (application/x-protobuf).
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionDto"
+
+    CreateAccessTokenRequest:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
+        secret:
+          type: string
+          nullable: true
+          description: Omit on create to generate a UUID password; omit on update to keep current password.
+        new_name:
+          type: string
+          nullable: true
+        is_create:
+          type: boolean
+          description: If true and name exists, returns 409.
+
+    CreateAccessTokenResponse:
+      type: object
+      properties:
+        access_token:
+          $ref: "#/components/schemas/AccessTokenDto"
+        secret:
+          type: string
+          description: Only set when generated or supplied on this request.
+
+    # --- Maven ---
+    FileDetails:
+      type: object
+      description: Protobuf message FileDetails (also returned as JSON from latest/details).
+      properties:
+        type:
+          type: string
+          enum: [FILE, DIRECTORY]
+        name:
+          type: string
+        content_length:
+          type: integer
+          format: int64
+          nullable: true
+        content_type:
+          type: string
+          nullable: true
+        last_modified_time:
+          type: string
+          nullable: true
+          description: RFC3339Nano
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileDetails"
+
+    RepoMirrorInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        persist:
+          type: boolean
+        enabled_date:
+          type: string
+        cache_ttl:
+          type: integer
+          format: int64
+        negative_cache:
+          type: boolean
+
+    RepoDetailsResponse:
+      type: object
+      description: Protobuf message RepoDetailsResponse.
+      properties:
+        name:
+          type: string
+        visibility:
+          type: string
+          enum: [PUBLIC, HIDDEN, PRIVATE]
+        total_size:
+          type: integer
+          format: int64
+        artifact_size:
+          type: integer
+          format: int64
+        metadata_size:
+          type: integer
+          format: int64
+        total_files:
+          type: integer
+          format: int64
+        artifact_count:
+          type: integer
+          format: int64
+        metadata_count:
+          type: integer
+          format: int64
+        mirrors:
+          type: array
+          items:
+            $ref: "#/components/schemas/RepoMirrorInfo"
+
+    VersionsResponse:
+      type: object
+      properties:
+        is_snapshot:
+          type: boolean
+        versions:
+          type: array
+          items:
+            type: string
+
+    LatestVersionResponse:
+      type: object
+      properties:
+        is_snapshot:
+          type: boolean
+        version:
+          type: string
+
+    PomDetails:
+      type: object
+      properties:
+        group_id:
+          type: string
+        artifact_id:
+          type: string
+        version:
+          type: string
+
+    # --- Status ---
+    UpdateState:
+      type: object
+      description: Also embedded as protobuf field on InstanceStatus.
+      properties:
+        status:
+          type: string
+          enum: [idle, available, downloading, ready_to_restart, error]
+        latest_version:
+          type: string
+        download_url:
+          type: string
+        progress:
+          type: integer
+        error_message:
+          type: string
+        size:
+          type: integer
+          format: int64
+        estimated_disk_space:
+          type: integer
+          format: int64
+        release_date:
+          type: string
+        release_notes:
+          type: string
+        commit_sha:
+          type: string
+        is_release:
+          type: boolean
+
+    InstanceStatus:
+      type: object
+      description: Protobuf message InstanceStatus.
+      properties:
+        version:
+          type: string
+        development:
+          type: boolean
+        uptime:
+          type: integer
+          format: int64
+          description: Milliseconds since process start
+        used_memory:
+          type: integer
+          format: int64
+          description: Roughly MiB
+        total_memory:
+          type: integer
+          format: int64
+        renop_used_disk:
+          type: integer
+          format: int64
+        disk_used:
+          type: integer
+          format: int64
+        disk_total:
+          type: integer
+          format: int64
+        used_threads:
+          type: integer
+          format: int64
+        available_threads:
+          type: integer
+          format: int64
+        total_threads:
+          type: integer
+          format: int64
+        architecture:
+          type: string
+        os:
+          type: string
+        logical_cores:
+          type: integer
+        physical_cores:
+          type: integer
+        failures_count:
+          type: integer
+          format: int64
+        update_state:
+          $ref: "#/components/schemas/UpdateState"
+
+    StatusSnapshot:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+        used_memory:
+          type: integer
+          format: int64
+        used_threads:
+          type: integer
+          format: int64
+        open_files:
+          type: integer
+          format: int64
+
+    StatusSnapshotList:
+      type: object
+      description: Protobuf message StatusSnapshotList.
+      properties:
+        snapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusSnapshot"
+
+    # --- Settings ---
+    RebuildIndexRequest:
+      type: object
+      description: Protobuf message RebuildIndexRequest (application/x-protobuf).
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [full, diff]
+
+    FrontendConfig:
+      type: object
+      description: Protobuf message FrontendConfig (application/x-protobuf).
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        organization_website:
+          type: string
+        organization_logo:
+          type: string
+        background_url:
+          type: string
+          description: Must be public WebP, ≤ 5 MiB, when set via PUT.
+        icp_license:
+          type: string
+
+    ServerConfig:
+      type: object
+      description: Protobuf message ServerConfig (application/x-protobuf).
+      properties:
+        host:
+          type: string
+          example: "0.0.0.0"
+        port:
+          type: integer
+          format: int32
+          example: 3000
+        ssl_enabled:
+          type: boolean
+        ssl_cert_path:
+          type: string
+        ssl_key_path:
+          type: string
+        domain:
+          type: string
+        enable_compression:
+          type: boolean
+        file_cache_size_mb:
+          type: integer
+          format: int32
+        max_active_requests:
+          type: integer
+          format: int32
+        trusted_proxies:
+          type: array
+          items:
+            type: string
+        cdn_ip_header:
+          type: string
+
+    StorageConfig:
+      type: object
+      description: Protobuf message StorageConfig (application/x-protobuf).
+      properties:
+        storage_path:
+          type: string
+        enable_javadoc_preview:
+          type: boolean
+        javadoc_extract_path:
+          type: string
+        max_javadoc_size_mb:
+          type: integer
+          format: int64
+          minimum: 1
+
+    UpdaterConfig:
+      type: object
+      description: Protobuf message UpdaterConfig (application/x-protobuf).
+      properties:
+        channel:
+          type: string
+          enum: [release, nightly]
+        mode:
+          type: string
+          enum: [manual, auto_check, auto_install, safe_install]
+
+    SettingsDomainsResponse:
+      type: object
+      description: Protobuf message SettingsDomainsResponse (application/x-protobuf).
+      properties:
+        domains:
+          type: array
+          items:
+            type: string
+          example: [frontend, server, storage, updater, index]
+
+    IndexDomainSettings:
+      type: object
+      description: Empty protobuf message for the index domain (no config fields).
+
+    ChunkedUploadInitRequest:
+      type: object
+      description: Protobuf message ChunkedUploadInitRequest (wire format application/x-protobuf).
+      required: [size]
+      properties:
+        purpose:
+          type: string
+          enum: [storage, updater]
+          default: storage
+        filename:
+          type: string
+        size:
+          type: integer
+          format: int64
+        path:
+          type: string
+          description: Destination for purpose=storage (repo/…/file)
+        generate_checksums:
+          type: boolean
+          default: false
+        chunk_size:
+          type: integer
+          format: int64
+          description: Preferred part size in bytes (server may clamp; default 4 MiB)
+
+    ChunkedUploadInitResponse:
+      type: object
+      description: Protobuf message ChunkedUploadInitResponse (application/x-protobuf).
+      properties:
+        upload_id:
+          type: string
+        chunk_size:
+          type: integer
+          format: int64
+        chunk_count:
+          type: integer
+          format: int32
+        purpose:
+          type: string
+
+    ChunkedUploadCompleteResponse:
+      type: object
+      description: Protobuf message ChunkedUploadCompleteResponse (application/x-protobuf).
+      properties:
+        status:
+          type: string
+          description: created (storage) or ready_to_restart (updater)
+        message:
+          type: string
+        path:
+          type: string
+          description: Relative storage path when purpose=storage
+
+    MirrorCredentials:
+      type: object
+      properties:
+        method:
+          type: string
+          description: e.g. basic, bearer
+        login:
+          type: string
+        password:
+          type: string
+
+    Mirror:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        persist:
+          type: boolean
+        cache_ttl_secs:
+          type: integer
+          format: int64
+        negative_cache:
+          type: boolean
+        timeout_secs:
+          type: integer
+          format: int64
+        authorization:
+          $ref: "#/components/schemas/MirrorCredentials"
+        enabled_date:
+          type: string
+        allow_artifacts:
+          type: array
+          items:
+            type: string
+        deny_artifacts:
+          type: array
+          items:
+            type: string
+
+    S3Config:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        endpoint:
+          type: string
+        bucket:
+          type: string
+        region:
+          type: string
+        access_key_id:
+          type: string
+        secret_access_key:
+          type: string
+        force_path_style:
+          type: boolean
+        redirect_downloads:
+          type: boolean
+
+    Repository:
+      type: object
+      properties:
+        name:
+          type: string
+        visibility:
+          type: string
+          enum: [PUBLIC, HIDDEN, PRIVATE]
+        allow_redeployment:
+          type: boolean
+        mirrors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mirror"
+        s3:
+          $ref: "#/components/schemas/S3Config"
+
+    MavenRepositoriesResponse:
+      type: object
+      description: Protobuf message MavenRepositoriesResponse.
+      properties:
+        repositories:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Repository"
+
+    # --- Updater ---
+    CheckResult:
+      type: object
+      properties:
+        has_update:
+          type: boolean
+        current_version:
+          type: string
+        latest_version:
+          type: string
+        download_url:
+          type: string
+        channel:
+          type: string
+        size:
+          type: integer
+          format: int64
+        estimated_disk_space:
+          type: integer
+          format: int64
+        release_date:
+          type: string
+        release_notes:
+          type: string
+        commit_sha:
+          type: string
+        is_release:
+          type: boolean
+
+    InstallStarted:
+      type: object
+      properties:
+        status:
+          type: string
+          example: started
+
+    OfflineInstallResult:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ready_to_restart
+        message:
+          type: string
+
+    Restarting:
+      type: object
+      properties:
+        status:
+          type: string
+          example: restarting
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+  # ========== Auth ==========
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Login
+      operationId: postAuthLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Session created; Set-Cookie renop_session.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: renop_session=…; HttpOnly; SameSite=Lax; Max-Age≈7d
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Current session user
+      operationId: getAuthMe
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      responses:
+        "200":
+          description: SessionDetails
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Logout
+      operationId: postAuthLogout
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      responses:
+        "204":
+          description: Session invalidated (also when none existed).
+
+  /api/auth/profile/password:
+    put:
+      tags: [auth]
+      summary: Change own password
+      operationId: putAuthProfilePassword
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePasswordRequest"
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/token:
+    post:
+      tags: [auth]
+      summary: Regenerate own upload token
+      operationId: postAuthProfileToken
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      responses:
+        "200":
+          description: New upload token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadTokenResponse"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/sessions:
+    get:
+      tags: [auth]
+      summary: List own browser sessions
+      description: |
+        Returns browser login sessions for the authenticated user only.
+        Basic and Bearer authentication do not create sessions and are not listed.
+        Session secrets (cookie values) are never included; use `public_id` to revoke.
+      operationId: getAuthProfileSessions
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: SessionList protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionList"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/sessions/revoke-others:
+    post:
+      tags: [auth]
+      summary: Revoke all other own sessions
+      description: |
+        Revokes every browser session for the current user except the session making this request.
+        If the caller is not using session auth (Basic/Bearer), all of their browser sessions are revoked.
+      operationId: postAuthProfileSessionsRevokeOthers
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: StatusOk protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/sessions/{session_id}:
+    delete:
+      tags: [auth]
+      summary: Revoke one of own sessions
+      description: |
+        Revoke a browser session owned by the current user by `public_id`.
+        Missing id is a no-op. Revoking the current session clears the cookie.
+      operationId: deleteAuthProfileSession
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SessionPublicId"
+      responses:
+        "200":
+          description: StatusOk protobuf (missing id is no-op).
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  # ========== Tokens ==========
+  /api/tokens:
+    get:
+      tags: [tokens]
+      summary: List accounts
+      operationId: getTokens
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: AccessTokenList (manager)
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/AccessTokenList"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/tokens/{name}:
+    get:
+      tags: [tokens]
+      summary: Get one account
+      operationId: getToken
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TokenName"
+      responses:
+        "200":
+          description: Account as JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessTokenDto"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+    put:
+      tags: [tokens]
+      summary: Create or update account
+      operationId: putToken
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TokenName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccessTokenRequest"
+      responses:
+        "200":
+          description: Created or updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAccessTokenResponse"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+        "409":
+          $ref: "#/components/responses/PlainConflict"
+    delete:
+      tags: [tokens]
+      summary: Delete account
+      operationId: deleteToken
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TokenName"
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/tokens/{name}/sessions:
+    get:
+      tags: [tokens]
+      summary: List browser sessions for a user (manager)
+      description: |
+        Manager-only. Lists browser login sessions for the named account.
+        Basic/Bearer are not sessions. Session secrets are never returned.
+        When the manager is viewing their own account, `current` marks their request session.
+      operationId: getTokenUserSessions
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TokenName"
+      responses:
+        "200":
+          description: SessionList protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionList"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/tokens/{name}/sessions/revoke-all:
+    post:
+      tags: [tokens]
+      summary: Revoke browser sessions for a user (manager)
+      description: |
+        Manager-only. Revokes all browser sessions for the named account.
+        If the manager targets their own account, the session making this request is kept so they are not locked out mid-request.
+      operationId: postTokenUserSessionsRevokeAll
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TokenName"
+      responses:
+        "200":
+          description: StatusOk protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/tokens/{name}/sessions/{session_id}:
+    delete:
+      tags: [tokens]
+      summary: Revoke one browser session for a user (manager)
+      description: Manager-only. Revoke by `public_id`. Missing id is a no-op.
+      operationId: deleteTokenUserSession
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TokenName"
+        - $ref: "#/components/parameters/SessionPublicId"
+      responses:
+        "200":
+          description: StatusOk protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/tokens/{name}/token:
+    post:
+      tags: [tokens]
+      summary: Re-issue upload token for a user
+      operationId: postTokenUploadToken
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TokenName"
+      responses:
+        "200":
+          description: New upload token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadTokenResponse"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  # ========== Status ==========
+  /api/status/health:
+    get:
+      tags: [status]
+      summary: Health probe
+      operationId: getStatusHealth
+      security: []
+      responses:
+        "200":
+          description: Always UP when process is serving
+          content:
+            application/json:
+              schema:
+                type: string
+                example: UP
+
+  /api/status/hash:
+    get:
+      tags: [status]
+      summary: Frontend asset content hash
+      operationId: getStatusHash
+      security: []
+      responses:
+        "200":
+          description: JSON string hash
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /api/status/instance:
+    get:
+      tags: [status]
+      summary: Instance runtime status
+      operationId: getStatusInstance
+      security: []
+      responses:
+        "200":
+          description: InstanceStatus
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/InstanceStatus"
+
+  /api/status/snapshots:
+    get:
+      tags: [status]
+      summary: Historical metric samples
+      operationId: getStatusSnapshots
+      security: []
+      responses:
+        "200":
+          description: StatusSnapshotList (empty list if none)
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusSnapshotList"
+
+  # ========== Maven helpers ==========
+  /api/maven/details:
+    get:
+      tags: [maven]
+      summary: List visible repositories (virtual root)
+      operationId: getMavenDetailsRoot
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: FileDetails directory named repositories
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+
+  /api/maven/details/{repo_name}:
+    get:
+      tags: [maven]
+      summary: Repository root details
+      operationId: getMavenDetailsRepo
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      responses:
+        "200":
+          description: FileDetails
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/maven/details/{repo_name}/{path}:
+    get:
+      tags: [maven]
+      summary: Path details under a repository
+      operationId: getMavenDetailsPath
+      description: |
+        Server route is `/api/maven/details/:repo_name/*` (catch-all path).
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+      responses:
+        "200":
+          description: FileDetails
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/maven/repo-details/{repo_name}:
+    get:
+      tags: [maven]
+      summary: Repository stats and mirrors
+      operationId: getMavenRepoDetails
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      responses:
+        "200":
+          description: RepoDetailsResponse
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/RepoDetailsResponse"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/maven/versions/{repo_name}/{path}:
+    get:
+      tags: [maven]
+      summary: List versions for a coordinate
+      operationId: getMavenVersions
+      description: |
+        Path should be groupId/artifactId with maven-metadata.xml.
+        Server route: `/api/maven/versions/:repo_name/*`.
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+        - $ref: "#/components/parameters/VersionFilter"
+        - $ref: "#/components/parameters/VersionSorted"
+      responses:
+        "200":
+          description: Version list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionsResponse"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/maven/latest/version/{repo_name}/{path}:
+    get:
+      tags: [maven]
+      summary: Latest version string
+      operationId: getMavenLatestVersion
+      description: Server route `/api/maven/latest/version/:repo_name/*`.
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+        - $ref: "#/components/parameters/VersionFilter"
+        - $ref: "#/components/parameters/VersionSorted"
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [raw]
+          description: If raw, response is a plain version string (still JSON-encoded string in some clients — server returns raw text body).
+      responses:
+        "200":
+          description: Latest version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatestVersionResponse"
+            text/plain:
+              schema:
+                type: string
+                description: When type=raw
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/maven/latest/details/{repo_name}/{path}:
+    get:
+      tags: [maven]
+      summary: FileDetails for latest artifact
+      operationId: getMavenLatestDetails
+      description: Server route `/api/maven/latest/details/:repo_name/*`. JSON (not protobuf).
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+        - name: extension
+          in: query
+          schema:
+            type: string
+            default: jar
+        - name: classifier
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/VersionFilter"
+      responses:
+        "200":
+          description: FileDetails JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileDetails"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/maven/latest/file/{repo_name}/{path}:
+    get:
+      tags: [maven]
+      summary: Download latest matching artifact
+      operationId: getMavenLatestFile
+      description: Server route `/api/maven/latest/file/:repo_name/*`. Streams or redirects via storage layer.
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+        - name: extension
+          in: query
+          schema:
+            type: string
+            default: jar
+        - name: classifier
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/VersionFilter"
+      responses:
+        "200":
+          description: File body
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "302":
+          description: Redirect to artifact URL when applicable
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/badge/latest/{repo_name}/{path}:
+    get:
+      tags: [maven]
+      summary: Latest-version SVG badge
+      operationId: getBadgeLatest
+      description: Server route `/api/badge/latest/:repo_name/*`.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: Left label (default repository name)
+        - name: color
+          in: query
+          schema:
+            type: string
+          description: Right color (alphanumeric or #hex)
+        - name: prefix
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/VersionFilter"
+      responses:
+        "200":
+          description: SVG badge
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+
+  /api/maven/generate/pom/{repo_name}/{path}:
+    post:
+      tags: [maven]
+      summary: Generate and write a POM
+      operationId: postMavenGeneratePom
+      description: Server route `/api/maven/generate/pom/:repo_name/*`. Requires write permission.
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PomDetails"
+      responses:
+        "200":
+          description: POM written (body may be empty or short status)
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "507":
+          description: Insufficient disk
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+
+  /api/privacy-policy:
+    get:
+      tags: [maven]
+      summary: Privacy policy text file
+      operationId: getPrivacyPolicy
+      security: []
+      responses:
+        "200":
+          description: Contents of privacy-policy.txt
+          content:
+            text/plain:
+              schema:
+                type: string
+        "404":
+          description: File not present
+    head:
+      tags: [maven]
+      summary: Privacy policy existence
+      operationId: headPrivacyPolicy
+      security: []
+      responses:
+        "200":
+          description: File present
+        "404":
+          description: File not present
+
+  # ========== Settings ==========
+  /api/settings/index/rebuild:
+    post:
+      tags: [settings]
+      summary: Rebuild artifact index
+      operationId: postSettingsIndexRebuild
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/RebuildIndexRequest"
+      responses:
+        "200":
+          description: Rebuild started / completed (empty string body)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ""
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/settings/domains:
+    get:
+      tags: [settings]
+      summary: List config domain names
+      operationId: getSettingsDomains
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: SettingsDomainsResponse
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SettingsDomainsResponse"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/settings/domain/{name}:
+    get:
+      tags: [settings]
+      summary: Get one config domain
+      operationId: getSettingsDomain
+      description: |
+        Response is protobuf; message type depends on `:name`:
+        `FrontendConfig`, `ServerConfig`, `StorageConfig`, `UpdaterConfig`, or empty `IndexDomainSettings`.
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DomainName"
+      responses:
+        "200":
+          description: Domain protobuf body (shape depends on name)
+          content:
+            application/x-protobuf:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/FrontendConfig"
+                  - $ref: "#/components/schemas/ServerConfig"
+                  - $ref: "#/components/schemas/StorageConfig"
+                  - $ref: "#/components/schemas/UpdaterConfig"
+                  - $ref: "#/components/schemas/IndexDomainSettings"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+    put:
+      tags: [settings]
+      summary: Replace one config domain (full body)
+      operationId: putSettingsDomain
+      description: |
+        Full replace of the domain. Request body is protobuf matching the domain type.
+        Omitted proto3 fields become zero values (send the complete domain config).
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DomainName"
+      requestBody:
+        required: true
+        content:
+          application/x-protobuf:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/FrontendConfig"
+                - $ref: "#/components/schemas/ServerConfig"
+                - $ref: "#/components/schemas/StorageConfig"
+                - $ref: "#/components/schemas/UpdaterConfig"
+      responses:
+        "200":
+          description: Saved (empty string body)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ""
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/settings/maven/repositories:
+    get:
+      tags: [settings]
+      summary: List Maven repository configs
+      operationId: getSettingsMavenRepositories
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: MavenRepositoriesResponse
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/MavenRepositoriesResponse"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/settings/maven/repositories/{name}:
+    put:
+      tags: [settings]
+      summary: Create or replace a repository (full body)
+      operationId: putSettingsMavenRepository
+      description: |
+        Full replace of the repository config. Body is protobuf `Repository`.
+        Path `:name` wins over body `name`.
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository name (overrides body name). Reserved: css, js, svg, api, javadocs, assets."
+      requestBody:
+        required: true
+        content:
+          application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/Repository"
+      responses:
+        "200":
+          description: Saved (empty string body)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ""
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+    delete:
+      tags: [settings]
+      summary: Remove repository from config
+      operationId: deleteSettingsMavenRepository
+      description: Does not delete files on disk.
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed (empty string body)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ""
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  # ========== Updater ==========
+  /api/updater/status:
+    get:
+      tags: [updater]
+      summary: Current update state
+      operationId: getUpdaterStatus
+      security: []
+      responses:
+        "200":
+          description: UpdateState (protobuf)
+          content:
+            application/x-protobuf:
+              schema:
+                type: string
+                format: binary
+                description: Protobuf-encoded renop.api.v1.UpdateState
+
+  /api/updater/check:
+    post:
+      tags: [updater]
+      summary: Check for updates
+      operationId: postUpdaterCheck
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Channel"
+      responses:
+        "200":
+          description: Check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "500":
+          $ref: "#/components/responses/JsonError"
+
+  /api/updater/install:
+    post:
+      tags: [updater]
+      summary: Download and extract update (async)
+      operationId: postUpdaterInstall
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Install started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstallStarted"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "409":
+          $ref: "#/components/responses/PlainConflict"
+        "507":
+          $ref: "#/components/responses/JsonError"
+
+  /api/updater/upload:
+    post:
+      tags: [updater]
+      summary: Offline update via zip upload
+      operationId: postUpdaterUpload
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                package:
+                  type: string
+                  format: binary
+              description: Use form field file or package; must be .zip
+      responses:
+        "200":
+          description: Package installed; ready to restart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfflineInstallResult"
+        "400":
+          $ref: "#/components/responses/JsonError"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "409":
+          $ref: "#/components/responses/PlainConflict"
+        "507":
+          $ref: "#/components/responses/JsonError"
+
+  /api/upload/chunked/:
+    post:
+      tags: [storage, updater]
+      summary: Start multi-part (chunked) upload session
+      description: |
+        Optional concurrent upload path used by the web UI for large files.
+        Request and response bodies are `application/x-protobuf`
+        (`ChunkedUploadInitRequest` / `ChunkedUploadInitResponse` in `proto/api/v1/api.proto`).
+        Original single-request PUT (repo paths) and POST /api/updater/upload are unchanged.
+        Failed parts may be retried by the client; a successful part is idempotent on re-PUT.
+      operationId: postChunkedUploadInit
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/ChunkedUploadInitRequest"
+      responses:
+        "200":
+          description: Session created
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadInitResponse"
+        "400":
+          $ref: "#/components/responses/JsonError"
+        "403":
+          $ref: "#/components/responses/JsonError"
+        "409":
+          $ref: "#/components/responses/JsonError"
+        "507":
+          $ref: "#/components/responses/JsonError"
+
+  /api/upload/chunked/{upload_id}/{index}:
+    put:
+      tags: [storage, updater]
+      summary: Upload one chunk (raw body)
+      description: |
+        Raw part body (`application/octet-stream`). Parts may be sent in parallel.
+        Re-PUT of an already accepted index is a no-op success (retry-safe).
+      operationId: putChunkedUploadPart
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: index
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "204":
+          description: Chunk accepted (or already present)
+        "400":
+          $ref: "#/components/responses/JsonError"
+        "404":
+          $ref: "#/components/responses/JsonError"
+
+  /api/upload/chunked/{upload_id}/complete:
+    post:
+      tags: [storage, updater]
+      summary: Complete multi-part upload
+      description: |
+        Assembles parts and commits the artifact or offline update package.
+        Response is `application/x-protobuf` (`ChunkedUploadCompleteResponse`).
+      operationId: postChunkedUploadComplete
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updater package installed (purpose=updater)
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
+        "201":
+          description: Artifact stored (purpose=storage)
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/ChunkedUploadCompleteResponse"
+        "400":
+          $ref: "#/components/responses/JsonError"
+        "409":
+          $ref: "#/components/responses/JsonError"
+        "507":
+          $ref: "#/components/responses/JsonError"
+
+  /api/upload/chunked/{upload_id}:
+    delete:
+      tags: [storage, updater]
+      summary: Abort multi-part upload
+      operationId: deleteChunkedUpload
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Session discarded
+
+  /api/updater/restart:
+    post:
+      tags: [updater]
+      summary: Apply prepared binary and restart
+      operationId: postUpdaterRestart
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Restarting (connection will drop)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Restarting"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  # ========== Storage (Maven layout) ==========
+  /{repo_name}/{path}:
+    parameters:
+      - $ref: "#/components/parameters/RepoName"
+      - $ref: "#/components/parameters/MavenPath"
+    get:
+      tags: [storage]
+      summary: Download artifact or browse path
+      operationId: getStoragePath
+      description: |
+        Server route `/:repo_name/*`. With Accept text/html, missing repos may
+        serve the management SPA. Prefer Accept */* for machine clients.
+      security:
+        - {}
+        - basicAuth: []
+        - bearerAuth: []
+        - sessionCookie: []
+      responses:
+        "200":
+          description: File body
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/html:
+              schema:
+                type: string
+                description: SPA fallback for browsers
+        "304":
+          description: Not modified
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+    head:
+      tags: [storage]
+      summary: Artifact metadata
+      operationId: headStoragePath
+      security:
+        - {}
+        - basicAuth: []
+        - bearerAuth: []
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Headers only
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+    put:
+      tags: [storage]
+      summary: Upload / overwrite artifact
+      operationId: putStoragePath
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Created
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "507":
+          description: Insufficient disk
+    post:
+      tags: [storage]
+      summary: Upload / overwrite artifact (POST)
+      operationId: postStoragePath
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Created
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+    delete:
+      tags: [storage]
+      summary: Delete path
+      operationId: deleteStoragePath
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+        - sessionCookie: []
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  # ========== Javadoc ==========
+  /javadoc/{repo_name}/{path}:
+    get:
+      tags: [javadoc]
+      summary: Javadoc jar preview
+      operationId: getJavadoc
+      description: |
+        Server route `/javadoc/:repo_name/*`. Append `/raw/...` for files inside
+        the extracted jar. Requires read permission. Size limited by
+        max_javadoc_size_mb.
+      security:
+        - {}
+        - basicAuth: []
+        - bearerAuth: []
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - $ref: "#/components/parameters/MavenPath"
+      responses:
+        "200":
+          description: HTML or jar internal resource
+          content:
+            text/html:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"

@@ -1,0 +1,22 @@
+{
+  "name": "renop-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "description": "RenoP official website (static, no backend)",
+  "scripts": {
+    "build": "node ./build.mjs",
+    "build:bundle": "rolldown -c rolldown.config.mjs",
+    "dev": "node ./build.mjs --watch",
+    "preview": "node ./preview.mjs"
+  },
+  "devDependencies": {
+    "lightningcss": "^1.33.0",
+    "rolldown": "^1.2.0"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "marked": "^15.0.12"
+  }
+}

@@ -1,0 +1,13185 @@
+/*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-mixed-operators, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, default-case, jsdoc/require-param*/
+import $protobuf from "protobufjs/minimal.js";
+
+// Common aliases
+const $Reader = $protobuf.Reader, $Writer = $protobuf.Writer, $util = $protobuf.util;
+const $Object = $util.global.Object, $undefined = $util.global.undefined, $Error = $util.global.Error, $TypeError = $util.global.TypeError, $String = $util.global.String, $Number = $util.global.Number, $Array = $util.global.Array, $parseInt = $util.global.parseInt, $BigInt = $util.global.BigInt, $Boolean = $util.global.Boolean;
+
+// Exported root namespace
+const $root = $protobuf.roots["default"] || ($protobuf.roots["default"] = {});
+
+export const renop = $root.renop = (() => {
+
+    /**
+     * Namespace renop.
+     * @exports renop
+     * @namespace
+     */
+    const renop = {};
+
+    renop.api = (function() {
+
+        /**
+         * Namespace api.
+         * @memberof renop
+         * @namespace
+         */
+        const api = {};
+
+        api.v1 = (function() {
+
+            /**
+             * Namespace v1.
+             * @memberof renop.api
+             * @namespace
+             */
+            const v1 = {};
+
+            v1.AccessTokenIdentifier = (function() {
+
+                /**
+                 * Properties of an AccessTokenIdentifier.
+                 * @typedef {Object} renop.api.v1.AccessTokenIdentifier.$Properties
+                 * @property {string|null} [type] AccessTokenIdentifier type
+                 * @property {number|null} [value] AccessTokenIdentifier value
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an AccessTokenIdentifier.
+                 * @memberof renop.api.v1
+                 * @interface IAccessTokenIdentifier
+                 * @augments renop.api.v1.AccessTokenIdentifier.$Properties
+                 * @deprecated Use renop.api.v1.AccessTokenIdentifier.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an AccessTokenIdentifier.
+                 * @typedef {renop.api.v1.AccessTokenIdentifier.$Properties} renop.api.v1.AccessTokenIdentifier.$Shape
+                 */
+
+                /**
+                 * Constructs a new AccessTokenIdentifier.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an AccessTokenIdentifier.
+                 * @constructor
+                 * @param {renop.api.v1.AccessTokenIdentifier.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const AccessTokenIdentifier = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * AccessTokenIdentifier type.
+                 * @member {string} type
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @instance
+                 */
+                AccessTokenIdentifier.prototype.type = "";
+
+                /**
+                 * AccessTokenIdentifier value.
+                 * @member {number} value
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @instance
+                 */
+                AccessTokenIdentifier.prototype.value = 0;
+
+                /**
+                 * Creates a new AccessTokenIdentifier instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {renop.api.v1.AccessTokenIdentifier.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.AccessTokenIdentifier} AccessTokenIdentifier instance
+                 * @type {{
+                 *   (properties: renop.api.v1.AccessTokenIdentifier.$Shape): renop.api.v1.AccessTokenIdentifier & renop.api.v1.AccessTokenIdentifier.$Shape;
+                 *   (properties?: renop.api.v1.AccessTokenIdentifier.$Properties): renop.api.v1.AccessTokenIdentifier;
+                 * }}
+                 */
+                AccessTokenIdentifier.create = function(properties) {
+                    return new AccessTokenIdentifier(properties);
+                };
+
+                /**
+                 * Encodes the specified AccessTokenIdentifier message. Does not implicitly {@link renop.api.v1.AccessTokenIdentifier.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {renop.api.v1.AccessTokenIdentifier.$Properties} message AccessTokenIdentifier message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenIdentifier.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type") && message.type !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.type);
+                    if (message.value != null && $Object.hasOwnProperty.call(message, "value") && message.value !== 0)
+                        writer.uint32(/* id 2, wireType 0 =*/16).int32(message.value);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AccessTokenIdentifier message, length delimited. Does not implicitly {@link renop.api.v1.AccessTokenIdentifier.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {renop.api.v1.AccessTokenIdentifier.$Properties} message AccessTokenIdentifier message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenIdentifier.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an AccessTokenIdentifier message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.AccessTokenIdentifier & renop.api.v1.AccessTokenIdentifier.$Shape} AccessTokenIdentifier
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenIdentifier.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenIdentifier(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.type = value;
+                                else
+                                    delete message.type;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.value = value;
+                                else
+                                    delete message.value;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an AccessTokenIdentifier message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.AccessTokenIdentifier & renop.api.v1.AccessTokenIdentifier.$Shape} AccessTokenIdentifier
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenIdentifier.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AccessTokenIdentifier message.
+                 * @function verify
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AccessTokenIdentifier.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
+                        if (!$util.isString(message.type))
+                            return "type: string expected";
+                    if (message.value != null && $Object.hasOwnProperty.call(message, "value"))
+                        if (!$util.isInteger(message.value))
+                            return "value: integer expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an AccessTokenIdentifier message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.AccessTokenIdentifier} AccessTokenIdentifier
+                 */
+                AccessTokenIdentifier.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.AccessTokenIdentifier)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.AccessTokenIdentifier: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.AccessTokenIdentifier();
+                    if (object.type != null)
+                        if (typeof object.type !== "string" || object.type.length)
+                            message.type = $String(object.type);
+                    if (object.value != null)
+                        if ($Number(object.value) !== 0)
+                            message.value = object.value | 0;
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AccessTokenIdentifier message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {renop.api.v1.AccessTokenIdentifier} message AccessTokenIdentifier
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AccessTokenIdentifier.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.type = "";
+                        object.value = 0;
+                    }
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
+                        object.type = message.type;
+                    if (message.value != null && $Object.hasOwnProperty.call(message, "value"))
+                        object.value = message.value;
+                    return object;
+                };
+
+                /**
+                 * Converts this AccessTokenIdentifier to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AccessTokenIdentifier.prototype.toJSON = function() {
+                    return AccessTokenIdentifier.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for AccessTokenIdentifier
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.AccessTokenIdentifier
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                AccessTokenIdentifier.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.AccessTokenIdentifier";
+                };
+
+                return AccessTokenIdentifier;
+            })();
+
+            v1.AccessTokenDto = (function() {
+
+                /**
+                 * Properties of an AccessTokenDto.
+                 * @typedef {Object} renop.api.v1.AccessTokenDto.$Properties
+                 * @property {renop.api.v1.AccessTokenIdentifier.$Properties|null} [identifier] AccessTokenDto identifier
+                 * @property {string|null} [name] AccessTokenDto name
+                 * @property {string|null} [created_at] AccessTokenDto created_at
+                 * @property {string|null} [description] AccessTokenDto description
+                 * @property {number|Long|null} [expires_at] AccessTokenDto expires_at
+                 * @property {Array.<string>|null} [tokens] AccessTokenDto tokens
+                 * @property {Array.<string>|null} [permissions] AccessTokenDto permissions
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an AccessTokenDto.
+                 * @memberof renop.api.v1
+                 * @interface IAccessTokenDto
+                 * @augments renop.api.v1.AccessTokenDto.$Properties
+                 * @deprecated Use renop.api.v1.AccessTokenDto.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an AccessTokenDto.
+                 * @typedef {renop.api.v1.AccessTokenDto.$Properties} renop.api.v1.AccessTokenDto.$Shape
+                 */
+
+                /**
+                 * Constructs a new AccessTokenDto.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an AccessTokenDto.
+                 * @constructor
+                 * @param {renop.api.v1.AccessTokenDto.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const AccessTokenDto = function (properties) {
+                    this.tokens = [];
+                    this.permissions = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * AccessTokenDto identifier.
+                 * @member {renop.api.v1.AccessTokenIdentifier.$Properties|null|undefined} identifier
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 */
+                AccessTokenDto.prototype.identifier = null;
+
+                /**
+                 * AccessTokenDto name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 */
+                AccessTokenDto.prototype.name = "";
+
+                /**
+                 * AccessTokenDto created_at.
+                 * @member {string} created_at
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 */
+                AccessTokenDto.prototype.created_at = "";
+
+                /**
+                 * AccessTokenDto description.
+                 * @member {string} description
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 */
+                AccessTokenDto.prototype.description = "";
+
+                /**
+                 * AccessTokenDto expires_at.
+                 * @member {number|Long|null|undefined} expires_at
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 */
+                AccessTokenDto.prototype.expires_at = null;
+
+                /**
+                 * AccessTokenDto tokens.
+                 * @member {Array.<string>} tokens
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 */
+                AccessTokenDto.prototype.tokens = $util.emptyArray;
+
+                /**
+                 * AccessTokenDto permissions.
+                 * @member {Array.<string>} permissions
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 */
+                AccessTokenDto.prototype.permissions = $util.emptyArray;
+
+                // OneOf field names bound to virtual getters and setters
+                let $oneOfFields;
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(AccessTokenDto.prototype, "_expires_at", {
+                    get: $util.oneOfGetter($oneOfFields = ["expires_at"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                /**
+                 * Creates a new AccessTokenDto instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {renop.api.v1.AccessTokenDto.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.AccessTokenDto} AccessTokenDto instance
+                 * @type {{
+                 *   (properties: renop.api.v1.AccessTokenDto.$Shape): renop.api.v1.AccessTokenDto & renop.api.v1.AccessTokenDto.$Shape;
+                 *   (properties?: renop.api.v1.AccessTokenDto.$Properties): renop.api.v1.AccessTokenDto;
+                 * }}
+                 */
+                AccessTokenDto.create = function(properties) {
+                    return new AccessTokenDto(properties);
+                };
+
+                /**
+                 * Encodes the specified AccessTokenDto message. Does not implicitly {@link renop.api.v1.AccessTokenDto.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {renop.api.v1.AccessTokenDto.$Properties} message AccessTokenDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenDto.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier"))
+                        $root.renop.api.v1.AccessTokenIdentifier.encode(message.identifier, writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at") && message.created_at !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.created_at);
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description") && message.description !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.description);
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at"))
+                        writer.uint32(/* id 5, wireType 0 =*/40).int64(message.expires_at);
+                    if (message.tokens != null && message.tokens.length)
+                        for (let i = 0; i < message.tokens.length; ++i)
+                            writer.uint32(/* id 6, wireType 2 =*/50).string(message.tokens[i]);
+                    if (message.permissions != null && message.permissions.length)
+                        for (let i = 0; i < message.permissions.length; ++i)
+                            writer.uint32(/* id 7, wireType 2 =*/58).string(message.permissions[i]);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AccessTokenDto message, length delimited. Does not implicitly {@link renop.api.v1.AccessTokenDto.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {renop.api.v1.AccessTokenDto.$Properties} message AccessTokenDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenDto.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an AccessTokenDto message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.AccessTokenDto & renop.api.v1.AccessTokenDto.$Shape} AccessTokenDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenDto.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenDto(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                message.identifier = $root.renop.api.v1.AccessTokenIdentifier.decode(reader, reader.uint32(), $undefined, _depth + 1, message.identifier);
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.created_at = value;
+                                else
+                                    delete message.created_at;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.description = value;
+                                else
+                                    delete message.description;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                message.expires_at = reader.int64();
+                                message._expires_at = "expires_at";
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.tokens && message.tokens.length))
+                                    message.tokens = [];
+                                message.tokens.push(reader.stringVerify());
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.permissions && message.permissions.length))
+                                    message.permissions = [];
+                                message.permissions.push(reader.stringVerify());
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an AccessTokenDto message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.AccessTokenDto & renop.api.v1.AccessTokenDto.$Shape} AccessTokenDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenDto.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AccessTokenDto message.
+                 * @function verify
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AccessTokenDto.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    let properties = {};
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier")) {
+                        let error = $root.renop.api.v1.AccessTokenIdentifier.verify(message.identifier, _depth + 1);
+                        if (error)
+                            return "identifier." + error;
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (!$util.isString(message.created_at))
+                            return "created_at: string expected";
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description"))
+                        if (!$util.isString(message.description))
+                            return "description: string expected";
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at")) {
+                        properties._expires_at = 1;
+                        if (!$util.isInteger(message.expires_at) && !(message.expires_at && $util.isInteger(message.expires_at.low) && $util.isInteger(message.expires_at.high)))
+                            return "expires_at: integer|Long expected";
+                    }
+                    if (message.tokens != null && $Object.hasOwnProperty.call(message, "tokens")) {
+                        if (!$Array.isArray(message.tokens))
+                            return "tokens: array expected";
+                        for (let i = 0; i < message.tokens.length; ++i)
+                            if (!$util.isString(message.tokens[i]))
+                                return "tokens: string[] expected";
+                    }
+                    if (message.permissions != null && $Object.hasOwnProperty.call(message, "permissions")) {
+                        if (!$Array.isArray(message.permissions))
+                            return "permissions: array expected";
+                        for (let i = 0; i < message.permissions.length; ++i)
+                            if (!$util.isString(message.permissions[i]))
+                                return "permissions: string[] expected";
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates an AccessTokenDto message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.AccessTokenDto} AccessTokenDto
+                 */
+                AccessTokenDto.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.AccessTokenDto)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.AccessTokenDto: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.AccessTokenDto();
+                    if (object.identifier != null) {
+                        if (!$util.isObject(object.identifier))
+                            throw $TypeError(".renop.api.v1.AccessTokenDto.identifier: object expected");
+                        message.identifier = $root.renop.api.v1.AccessTokenIdentifier.fromObject(object.identifier, _depth + 1);
+                    }
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.created_at != null)
+                        if (typeof object.created_at !== "string" || object.created_at.length)
+                            message.created_at = $String(object.created_at);
+                    if (object.description != null)
+                        if (typeof object.description !== "string" || object.description.length)
+                            message.description = $String(object.description);
+                    if (object.expires_at != null)
+                        if ($util.Long)
+                            message.expires_at = $util.Long.fromValue(object.expires_at, false);
+                        else if (typeof object.expires_at === "string")
+                            message.expires_at = $parseInt(object.expires_at, 10);
+                        else if (typeof object.expires_at === "number")
+                            message.expires_at = object.expires_at;
+                        else if (typeof object.expires_at === "object")
+                            message.expires_at = new $util.LongBits(object.expires_at.low >>> 0, object.expires_at.high >>> 0).toNumber();
+                    if (object.tokens) {
+                        if (!$Array.isArray(object.tokens))
+                            throw $TypeError(".renop.api.v1.AccessTokenDto.tokens: array expected");
+                        message.tokens = $Array(object.tokens.length);
+                        for (let i = 0; i < object.tokens.length; ++i)
+                            message.tokens[i] = $String(object.tokens[i]);
+                    }
+                    if (object.permissions) {
+                        if (!$Array.isArray(object.permissions))
+                            throw $TypeError(".renop.api.v1.AccessTokenDto.permissions: array expected");
+                        message.permissions = $Array(object.permissions.length);
+                        for (let i = 0; i < object.permissions.length; ++i)
+                            message.permissions[i] = $String(object.permissions[i]);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AccessTokenDto message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {renop.api.v1.AccessTokenDto} message AccessTokenDto
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AccessTokenDto.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults) {
+                        object.tokens = [];
+                        object.permissions = [];
+                    }
+                    if (options.defaults) {
+                        object.identifier = null;
+                        object.name = "";
+                        object.created_at = "";
+                        object.description = "";
+                    }
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier"))
+                        object.identifier = $root.renop.api.v1.AccessTokenIdentifier.toObject(message.identifier, options, _depth + 1);
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        object.created_at = message.created_at;
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description"))
+                        object.description = message.description;
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.expires_at = typeof message.expires_at === "number" ? $BigInt(message.expires_at) : $util.Long.fromBits(message.expires_at.low >>> 0, message.expires_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.expires_at === "number")
+                            object.expires_at = options.longs === $String ? $String(message.expires_at) : message.expires_at;
+                        else
+                            object.expires_at = options.longs === $String ? $util.Long.prototype.toString.call(message.expires_at) : options.longs === $Number ? new $util.LongBits(message.expires_at.low >>> 0, message.expires_at.high >>> 0).toNumber() : message.expires_at;
+                    if (message.tokens && message.tokens.length) {
+                        object.tokens = $Array(message.tokens.length);
+                        for (let j = 0; j < message.tokens.length; ++j)
+                            object.tokens[j] = message.tokens[j];
+                    }
+                    if (message.permissions && message.permissions.length) {
+                        object.permissions = $Array(message.permissions.length);
+                        for (let j = 0; j < message.permissions.length; ++j)
+                            object.permissions[j] = message.permissions[j];
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this AccessTokenDto to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AccessTokenDto.prototype.toJSON = function() {
+                    return AccessTokenDto.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for AccessTokenDto
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.AccessTokenDto
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                AccessTokenDto.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.AccessTokenDto";
+                };
+
+                return AccessTokenDto;
+            })();
+
+            v1.AccessTokenPermission = (function() {
+
+                /**
+                 * Properties of an AccessTokenPermission.
+                 * @typedef {Object} renop.api.v1.AccessTokenPermission.$Properties
+                 * @property {string|null} [identifier] AccessTokenPermission identifier
+                 * @property {string|null} [shortcut] AccessTokenPermission shortcut
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an AccessTokenPermission.
+                 * @memberof renop.api.v1
+                 * @interface IAccessTokenPermission
+                 * @augments renop.api.v1.AccessTokenPermission.$Properties
+                 * @deprecated Use renop.api.v1.AccessTokenPermission.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an AccessTokenPermission.
+                 * @typedef {renop.api.v1.AccessTokenPermission.$Properties} renop.api.v1.AccessTokenPermission.$Shape
+                 */
+
+                /**
+                 * Constructs a new AccessTokenPermission.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an AccessTokenPermission.
+                 * @constructor
+                 * @param {renop.api.v1.AccessTokenPermission.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const AccessTokenPermission = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * AccessTokenPermission identifier.
+                 * @member {string} identifier
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @instance
+                 */
+                AccessTokenPermission.prototype.identifier = "";
+
+                /**
+                 * AccessTokenPermission shortcut.
+                 * @member {string} shortcut
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @instance
+                 */
+                AccessTokenPermission.prototype.shortcut = "";
+
+                /**
+                 * Creates a new AccessTokenPermission instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {renop.api.v1.AccessTokenPermission.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.AccessTokenPermission} AccessTokenPermission instance
+                 * @type {{
+                 *   (properties: renop.api.v1.AccessTokenPermission.$Shape): renop.api.v1.AccessTokenPermission & renop.api.v1.AccessTokenPermission.$Shape;
+                 *   (properties?: renop.api.v1.AccessTokenPermission.$Properties): renop.api.v1.AccessTokenPermission;
+                 * }}
+                 */
+                AccessTokenPermission.create = function(properties) {
+                    return new AccessTokenPermission(properties);
+                };
+
+                /**
+                 * Encodes the specified AccessTokenPermission message. Does not implicitly {@link renop.api.v1.AccessTokenPermission.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {renop.api.v1.AccessTokenPermission.$Properties} message AccessTokenPermission message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenPermission.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier") && message.identifier !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.identifier);
+                    if (message.shortcut != null && $Object.hasOwnProperty.call(message, "shortcut") && message.shortcut !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.shortcut);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AccessTokenPermission message, length delimited. Does not implicitly {@link renop.api.v1.AccessTokenPermission.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {renop.api.v1.AccessTokenPermission.$Properties} message AccessTokenPermission message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenPermission.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an AccessTokenPermission message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.AccessTokenPermission & renop.api.v1.AccessTokenPermission.$Shape} AccessTokenPermission
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenPermission.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenPermission(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.identifier = value;
+                                else
+                                    delete message.identifier;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.shortcut = value;
+                                else
+                                    delete message.shortcut;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an AccessTokenPermission message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.AccessTokenPermission & renop.api.v1.AccessTokenPermission.$Shape} AccessTokenPermission
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenPermission.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AccessTokenPermission message.
+                 * @function verify
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AccessTokenPermission.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier"))
+                        if (!$util.isString(message.identifier))
+                            return "identifier: string expected";
+                    if (message.shortcut != null && $Object.hasOwnProperty.call(message, "shortcut"))
+                        if (!$util.isString(message.shortcut))
+                            return "shortcut: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an AccessTokenPermission message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.AccessTokenPermission} AccessTokenPermission
+                 */
+                AccessTokenPermission.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.AccessTokenPermission)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.AccessTokenPermission: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.AccessTokenPermission();
+                    if (object.identifier != null)
+                        if (typeof object.identifier !== "string" || object.identifier.length)
+                            message.identifier = $String(object.identifier);
+                    if (object.shortcut != null)
+                        if (typeof object.shortcut !== "string" || object.shortcut.length)
+                            message.shortcut = $String(object.shortcut);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AccessTokenPermission message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {renop.api.v1.AccessTokenPermission} message AccessTokenPermission
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AccessTokenPermission.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.identifier = "";
+                        object.shortcut = "";
+                    }
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier"))
+                        object.identifier = message.identifier;
+                    if (message.shortcut != null && $Object.hasOwnProperty.call(message, "shortcut"))
+                        object.shortcut = message.shortcut;
+                    return object;
+                };
+
+                /**
+                 * Converts this AccessTokenPermission to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AccessTokenPermission.prototype.toJSON = function() {
+                    return AccessTokenPermission.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for AccessTokenPermission
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.AccessTokenPermission
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                AccessTokenPermission.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.AccessTokenPermission";
+                };
+
+                return AccessTokenPermission;
+            })();
+
+            v1.RoutePermission = (function() {
+
+                /**
+                 * Properties of a RoutePermission.
+                 * @typedef {Object} renop.api.v1.RoutePermission.$Properties
+                 * @property {string|null} [identifier] RoutePermission identifier
+                 * @property {string|null} [shortcut] RoutePermission shortcut
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a RoutePermission.
+                 * @memberof renop.api.v1
+                 * @interface IRoutePermission
+                 * @augments renop.api.v1.RoutePermission.$Properties
+                 * @deprecated Use renop.api.v1.RoutePermission.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a RoutePermission.
+                 * @typedef {renop.api.v1.RoutePermission.$Properties} renop.api.v1.RoutePermission.$Shape
+                 */
+
+                /**
+                 * Constructs a new RoutePermission.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a RoutePermission.
+                 * @constructor
+                 * @param {renop.api.v1.RoutePermission.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const RoutePermission = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * RoutePermission identifier.
+                 * @member {string} identifier
+                 * @memberof renop.api.v1.RoutePermission
+                 * @instance
+                 */
+                RoutePermission.prototype.identifier = "";
+
+                /**
+                 * RoutePermission shortcut.
+                 * @member {string} shortcut
+                 * @memberof renop.api.v1.RoutePermission
+                 * @instance
+                 */
+                RoutePermission.prototype.shortcut = "";
+
+                /**
+                 * Creates a new RoutePermission instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {renop.api.v1.RoutePermission.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.RoutePermission} RoutePermission instance
+                 * @type {{
+                 *   (properties: renop.api.v1.RoutePermission.$Shape): renop.api.v1.RoutePermission & renop.api.v1.RoutePermission.$Shape;
+                 *   (properties?: renop.api.v1.RoutePermission.$Properties): renop.api.v1.RoutePermission;
+                 * }}
+                 */
+                RoutePermission.create = function(properties) {
+                    return new RoutePermission(properties);
+                };
+
+                /**
+                 * Encodes the specified RoutePermission message. Does not implicitly {@link renop.api.v1.RoutePermission.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {renop.api.v1.RoutePermission.$Properties} message RoutePermission message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RoutePermission.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier") && message.identifier !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.identifier);
+                    if (message.shortcut != null && $Object.hasOwnProperty.call(message, "shortcut") && message.shortcut !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.shortcut);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified RoutePermission message, length delimited. Does not implicitly {@link renop.api.v1.RoutePermission.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {renop.api.v1.RoutePermission.$Properties} message RoutePermission message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RoutePermission.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a RoutePermission message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.RoutePermission & renop.api.v1.RoutePermission.$Shape} RoutePermission
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RoutePermission.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RoutePermission(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.identifier = value;
+                                else
+                                    delete message.identifier;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.shortcut = value;
+                                else
+                                    delete message.shortcut;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a RoutePermission message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.RoutePermission & renop.api.v1.RoutePermission.$Shape} RoutePermission
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RoutePermission.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a RoutePermission message.
+                 * @function verify
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                RoutePermission.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier"))
+                        if (!$util.isString(message.identifier))
+                            return "identifier: string expected";
+                    if (message.shortcut != null && $Object.hasOwnProperty.call(message, "shortcut"))
+                        if (!$util.isString(message.shortcut))
+                            return "shortcut: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a RoutePermission message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.RoutePermission} RoutePermission
+                 */
+                RoutePermission.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.RoutePermission)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.RoutePermission: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.RoutePermission();
+                    if (object.identifier != null)
+                        if (typeof object.identifier !== "string" || object.identifier.length)
+                            message.identifier = $String(object.identifier);
+                    if (object.shortcut != null)
+                        if (typeof object.shortcut !== "string" || object.shortcut.length)
+                            message.shortcut = $String(object.shortcut);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a RoutePermission message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {renop.api.v1.RoutePermission} message RoutePermission
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                RoutePermission.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.identifier = "";
+                        object.shortcut = "";
+                    }
+                    if (message.identifier != null && $Object.hasOwnProperty.call(message, "identifier"))
+                        object.identifier = message.identifier;
+                    if (message.shortcut != null && $Object.hasOwnProperty.call(message, "shortcut"))
+                        object.shortcut = message.shortcut;
+                    return object;
+                };
+
+                /**
+                 * Converts this RoutePermission to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.RoutePermission
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                RoutePermission.prototype.toJSON = function() {
+                    return RoutePermission.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for RoutePermission
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.RoutePermission
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                RoutePermission.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.RoutePermission";
+                };
+
+                return RoutePermission;
+            })();
+
+            v1.Route = (function() {
+
+                /**
+                 * Properties of a Route.
+                 * @typedef {Object} renop.api.v1.Route.$Properties
+                 * @property {string|null} [path] Route path
+                 * @property {renop.api.v1.RoutePermission.$Properties|null} [permission] Route permission
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a Route.
+                 * @memberof renop.api.v1
+                 * @interface IRoute
+                 * @augments renop.api.v1.Route.$Properties
+                 * @deprecated Use renop.api.v1.Route.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a Route.
+                 * @typedef {renop.api.v1.Route.$Properties} renop.api.v1.Route.$Shape
+                 */
+
+                /**
+                 * Constructs a new Route.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a Route.
+                 * @constructor
+                 * @param {renop.api.v1.Route.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const Route = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * Route path.
+                 * @member {string} path
+                 * @memberof renop.api.v1.Route
+                 * @instance
+                 */
+                Route.prototype.path = "";
+
+                /**
+                 * Route permission.
+                 * @member {renop.api.v1.RoutePermission.$Properties|null|undefined} permission
+                 * @memberof renop.api.v1.Route
+                 * @instance
+                 */
+                Route.prototype.permission = null;
+
+                /**
+                 * Creates a new Route instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {renop.api.v1.Route.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.Route} Route instance
+                 * @type {{
+                 *   (properties: renop.api.v1.Route.$Shape): renop.api.v1.Route & renop.api.v1.Route.$Shape;
+                 *   (properties?: renop.api.v1.Route.$Properties): renop.api.v1.Route;
+                 * }}
+                 */
+                Route.create = function(properties) {
+                    return new Route(properties);
+                };
+
+                /**
+                 * Encodes the specified Route message. Does not implicitly {@link renop.api.v1.Route.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {renop.api.v1.Route.$Properties} message Route message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Route.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path") && message.path !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.path);
+                    if (message.permission != null && $Object.hasOwnProperty.call(message, "permission"))
+                        $root.renop.api.v1.RoutePermission.encode(message.permission, writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified Route message, length delimited. Does not implicitly {@link renop.api.v1.Route.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {renop.api.v1.Route.$Properties} message Route message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Route.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a Route message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.Route & renop.api.v1.Route.$Shape} Route
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Route.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.Route(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.path = value;
+                                else
+                                    delete message.path;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                message.permission = $root.renop.api.v1.RoutePermission.decode(reader, reader.uint32(), $undefined, _depth + 1, message.permission);
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a Route message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.Route & renop.api.v1.Route.$Shape} Route
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Route.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a Route message.
+                 * @function verify
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                Route.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        if (!$util.isString(message.path))
+                            return "path: string expected";
+                    if (message.permission != null && $Object.hasOwnProperty.call(message, "permission")) {
+                        let error = $root.renop.api.v1.RoutePermission.verify(message.permission, _depth + 1);
+                        if (error)
+                            return "permission." + error;
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a Route message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.Route} Route
+                 */
+                Route.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.Route)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.Route: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.Route();
+                    if (object.path != null)
+                        if (typeof object.path !== "string" || object.path.length)
+                            message.path = $String(object.path);
+                    if (object.permission != null) {
+                        if (!$util.isObject(object.permission))
+                            throw $TypeError(".renop.api.v1.Route.permission: object expected");
+                        message.permission = $root.renop.api.v1.RoutePermission.fromObject(object.permission, _depth + 1);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a Route message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {renop.api.v1.Route} message Route
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                Route.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.path = "";
+                        object.permission = null;
+                    }
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        object.path = message.path;
+                    if (message.permission != null && $Object.hasOwnProperty.call(message, "permission"))
+                        object.permission = $root.renop.api.v1.RoutePermission.toObject(message.permission, options, _depth + 1);
+                    return object;
+                };
+
+                /**
+                 * Converts this Route to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.Route
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                Route.prototype.toJSON = function() {
+                    return Route.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for Route
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.Route
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                Route.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.Route";
+                };
+
+                return Route;
+            })();
+
+            v1.SessionDetails = (function() {
+
+                /**
+                 * Properties of a SessionDetails.
+                 * @typedef {Object} renop.api.v1.SessionDetails.$Properties
+                 * @property {renop.api.v1.AccessTokenDto.$Properties|null} [access_token] SessionDetails access_token
+                 * @property {Array.<renop.api.v1.AccessTokenPermission.$Properties>|null} [permissions] SessionDetails permissions
+                 * @property {Array.<renop.api.v1.Route.$Properties>|null} [routes] SessionDetails routes
+                 * @property {string|null} [session_token] SessionDetails session_token
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a SessionDetails.
+                 * @memberof renop.api.v1
+                 * @interface ISessionDetails
+                 * @augments renop.api.v1.SessionDetails.$Properties
+                 * @deprecated Use renop.api.v1.SessionDetails.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a SessionDetails.
+                 * @typedef {renop.api.v1.SessionDetails.$Properties} renop.api.v1.SessionDetails.$Shape
+                 */
+
+                /**
+                 * Constructs a new SessionDetails.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a SessionDetails.
+                 * @constructor
+                 * @param {renop.api.v1.SessionDetails.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const SessionDetails = function (properties) {
+                    this.permissions = [];
+                    this.routes = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * SessionDetails access_token.
+                 * @member {renop.api.v1.AccessTokenDto.$Properties|null|undefined} access_token
+                 * @memberof renop.api.v1.SessionDetails
+                 * @instance
+                 */
+                SessionDetails.prototype.access_token = null;
+
+                /**
+                 * SessionDetails permissions.
+                 * @member {Array.<renop.api.v1.AccessTokenPermission.$Properties>} permissions
+                 * @memberof renop.api.v1.SessionDetails
+                 * @instance
+                 */
+                SessionDetails.prototype.permissions = $util.emptyArray;
+
+                /**
+                 * SessionDetails routes.
+                 * @member {Array.<renop.api.v1.Route.$Properties>} routes
+                 * @memberof renop.api.v1.SessionDetails
+                 * @instance
+                 */
+                SessionDetails.prototype.routes = $util.emptyArray;
+
+                /**
+                 * SessionDetails session_token.
+                 * @member {string} session_token
+                 * @memberof renop.api.v1.SessionDetails
+                 * @instance
+                 */
+                SessionDetails.prototype.session_token = "";
+
+                /**
+                 * Creates a new SessionDetails instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {renop.api.v1.SessionDetails.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.SessionDetails} SessionDetails instance
+                 * @type {{
+                 *   (properties: renop.api.v1.SessionDetails.$Shape): renop.api.v1.SessionDetails & renop.api.v1.SessionDetails.$Shape;
+                 *   (properties?: renop.api.v1.SessionDetails.$Properties): renop.api.v1.SessionDetails;
+                 * }}
+                 */
+                SessionDetails.create = function(properties) {
+                    return new SessionDetails(properties);
+                };
+
+                /**
+                 * Encodes the specified SessionDetails message. Does not implicitly {@link renop.api.v1.SessionDetails.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {renop.api.v1.SessionDetails.$Properties} message SessionDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SessionDetails.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.access_token != null && $Object.hasOwnProperty.call(message, "access_token"))
+                        $root.renop.api.v1.AccessTokenDto.encode(message.access_token, writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.permissions != null && message.permissions.length)
+                        for (let i = 0; i < message.permissions.length; ++i)
+                            $root.renop.api.v1.AccessTokenPermission.encode(message.permissions[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim();
+                    if (message.routes != null && message.routes.length)
+                        for (let i = 0; i < message.routes.length; ++i)
+                            $root.renop.api.v1.Route.encode(message.routes[i], writer.uint32(/* id 3, wireType 2 =*/26).fork(), _depth + 1).ldelim();
+                    if (message.session_token != null && $Object.hasOwnProperty.call(message, "session_token") && message.session_token !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.session_token);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified SessionDetails message, length delimited. Does not implicitly {@link renop.api.v1.SessionDetails.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {renop.api.v1.SessionDetails.$Properties} message SessionDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SessionDetails.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a SessionDetails message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.SessionDetails & renop.api.v1.SessionDetails.$Shape} SessionDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SessionDetails.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SessionDetails(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                message.access_token = $root.renop.api.v1.AccessTokenDto.decode(reader, reader.uint32(), $undefined, _depth + 1, message.access_token);
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.permissions && message.permissions.length))
+                                    message.permissions = [];
+                                message.permissions.push($root.renop.api.v1.AccessTokenPermission.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.routes && message.routes.length))
+                                    message.routes = [];
+                                message.routes.push($root.renop.api.v1.Route.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.session_token = value;
+                                else
+                                    delete message.session_token;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a SessionDetails message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.SessionDetails & renop.api.v1.SessionDetails.$Shape} SessionDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SessionDetails.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a SessionDetails message.
+                 * @function verify
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                SessionDetails.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.access_token != null && $Object.hasOwnProperty.call(message, "access_token")) {
+                        let error = $root.renop.api.v1.AccessTokenDto.verify(message.access_token, _depth + 1);
+                        if (error)
+                            return "access_token." + error;
+                    }
+                    if (message.permissions != null && $Object.hasOwnProperty.call(message, "permissions")) {
+                        if (!$Array.isArray(message.permissions))
+                            return "permissions: array expected";
+                        for (let i = 0; i < message.permissions.length; ++i) {
+                            let error = $root.renop.api.v1.AccessTokenPermission.verify(message.permissions[i], _depth + 1);
+                            if (error)
+                                return "permissions." + error;
+                        }
+                    }
+                    if (message.routes != null && $Object.hasOwnProperty.call(message, "routes")) {
+                        if (!$Array.isArray(message.routes))
+                            return "routes: array expected";
+                        for (let i = 0; i < message.routes.length; ++i) {
+                            let error = $root.renop.api.v1.Route.verify(message.routes[i], _depth + 1);
+                            if (error)
+                                return "routes." + error;
+                        }
+                    }
+                    if (message.session_token != null && $Object.hasOwnProperty.call(message, "session_token"))
+                        if (!$util.isString(message.session_token))
+                            return "session_token: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a SessionDetails message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.SessionDetails} SessionDetails
+                 */
+                SessionDetails.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.SessionDetails)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.SessionDetails: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.SessionDetails();
+                    if (object.access_token != null) {
+                        if (!$util.isObject(object.access_token))
+                            throw $TypeError(".renop.api.v1.SessionDetails.access_token: object expected");
+                        message.access_token = $root.renop.api.v1.AccessTokenDto.fromObject(object.access_token, _depth + 1);
+                    }
+                    if (object.permissions) {
+                        if (!$Array.isArray(object.permissions))
+                            throw $TypeError(".renop.api.v1.SessionDetails.permissions: array expected");
+                        message.permissions = $Array(object.permissions.length);
+                        for (let i = 0; i < object.permissions.length; ++i) {
+                            if (!$util.isObject(object.permissions[i]))
+                                throw $TypeError(".renop.api.v1.SessionDetails.permissions: object expected");
+                            message.permissions[i] = $root.renop.api.v1.AccessTokenPermission.fromObject(object.permissions[i], _depth + 1);
+                        }
+                    }
+                    if (object.routes) {
+                        if (!$Array.isArray(object.routes))
+                            throw $TypeError(".renop.api.v1.SessionDetails.routes: array expected");
+                        message.routes = $Array(object.routes.length);
+                        for (let i = 0; i < object.routes.length; ++i) {
+                            if (!$util.isObject(object.routes[i]))
+                                throw $TypeError(".renop.api.v1.SessionDetails.routes: object expected");
+                            message.routes[i] = $root.renop.api.v1.Route.fromObject(object.routes[i], _depth + 1);
+                        }
+                    }
+                    if (object.session_token != null)
+                        if (typeof object.session_token !== "string" || object.session_token.length)
+                            message.session_token = $String(object.session_token);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a SessionDetails message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {renop.api.v1.SessionDetails} message SessionDetails
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                SessionDetails.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults) {
+                        object.permissions = [];
+                        object.routes = [];
+                    }
+                    if (options.defaults) {
+                        object.access_token = null;
+                        object.session_token = "";
+                    }
+                    if (message.access_token != null && $Object.hasOwnProperty.call(message, "access_token"))
+                        object.access_token = $root.renop.api.v1.AccessTokenDto.toObject(message.access_token, options, _depth + 1);
+                    if (message.permissions && message.permissions.length) {
+                        object.permissions = $Array(message.permissions.length);
+                        for (let j = 0; j < message.permissions.length; ++j)
+                            object.permissions[j] = $root.renop.api.v1.AccessTokenPermission.toObject(message.permissions[j], options, _depth + 1);
+                    }
+                    if (message.routes && message.routes.length) {
+                        object.routes = $Array(message.routes.length);
+                        for (let j = 0; j < message.routes.length; ++j)
+                            object.routes[j] = $root.renop.api.v1.Route.toObject(message.routes[j], options, _depth + 1);
+                    }
+                    if (message.session_token != null && $Object.hasOwnProperty.call(message, "session_token"))
+                        object.session_token = message.session_token;
+                    return object;
+                };
+
+                /**
+                 * Converts this SessionDetails to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.SessionDetails
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                SessionDetails.prototype.toJSON = function() {
+                    return SessionDetails.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for SessionDetails
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.SessionDetails
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                SessionDetails.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.SessionDetails";
+                };
+
+                return SessionDetails;
+            })();
+
+            v1.LoginRequest = (function() {
+
+                /**
+                 * Properties of a LoginRequest.
+                 * @typedef {Object} renop.api.v1.LoginRequest.$Properties
+                 * @property {string|null} [name] LoginRequest name
+                 * @property {string|null} [secret] LoginRequest secret
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a LoginRequest.
+                 * @memberof renop.api.v1
+                 * @interface ILoginRequest
+                 * @augments renop.api.v1.LoginRequest.$Properties
+                 * @deprecated Use renop.api.v1.LoginRequest.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a LoginRequest.
+                 * @typedef {renop.api.v1.LoginRequest.$Properties} renop.api.v1.LoginRequest.$Shape
+                 */
+
+                /**
+                 * Constructs a new LoginRequest.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a LoginRequest.
+                 * @constructor
+                 * @param {renop.api.v1.LoginRequest.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const LoginRequest = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * LoginRequest name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.LoginRequest
+                 * @instance
+                 */
+                LoginRequest.prototype.name = "";
+
+                /**
+                 * LoginRequest secret.
+                 * @member {string} secret
+                 * @memberof renop.api.v1.LoginRequest
+                 * @instance
+                 */
+                LoginRequest.prototype.secret = "";
+
+                /**
+                 * Creates a new LoginRequest instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {renop.api.v1.LoginRequest.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.LoginRequest} LoginRequest instance
+                 * @type {{
+                 *   (properties: renop.api.v1.LoginRequest.$Shape): renop.api.v1.LoginRequest & renop.api.v1.LoginRequest.$Shape;
+                 *   (properties?: renop.api.v1.LoginRequest.$Properties): renop.api.v1.LoginRequest;
+                 * }}
+                 */
+                LoginRequest.create = function(properties) {
+                    return new LoginRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified LoginRequest message. Does not implicitly {@link renop.api.v1.LoginRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {renop.api.v1.LoginRequest.$Properties} message LoginRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                LoginRequest.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret") && message.secret !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.secret);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified LoginRequest message, length delimited. Does not implicitly {@link renop.api.v1.LoginRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {renop.api.v1.LoginRequest.$Properties} message LoginRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                LoginRequest.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a LoginRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.LoginRequest & renop.api.v1.LoginRequest.$Shape} LoginRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                LoginRequest.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.LoginRequest(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.secret = value;
+                                else
+                                    delete message.secret;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a LoginRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.LoginRequest & renop.api.v1.LoginRequest.$Shape} LoginRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                LoginRequest.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a LoginRequest message.
+                 * @function verify
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                LoginRequest.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret"))
+                        if (!$util.isString(message.secret))
+                            return "secret: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a LoginRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.LoginRequest} LoginRequest
+                 */
+                LoginRequest.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.LoginRequest)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.LoginRequest: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.LoginRequest();
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.secret != null)
+                        if (typeof object.secret !== "string" || object.secret.length)
+                            message.secret = $String(object.secret);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a LoginRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {renop.api.v1.LoginRequest} message LoginRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                LoginRequest.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.name = "";
+                        object.secret = "";
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret"))
+                        object.secret = message.secret;
+                    return object;
+                };
+
+                /**
+                 * Converts this LoginRequest to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.LoginRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                LoginRequest.prototype.toJSON = function() {
+                    return LoginRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for LoginRequest
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.LoginRequest
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                LoginRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.LoginRequest";
+                };
+
+                return LoginRequest;
+            })();
+
+            v1.SessionDto = (function() {
+
+                /**
+                 * Properties of a SessionDto.
+                 * @typedef {Object} renop.api.v1.SessionDto.$Properties
+                 * @property {string|null} [public_id] SessionDto public_id
+                 * @property {string|null} [username] SessionDto username
+                 * @property {string|null} [ip] SessionDto ip
+                 * @property {string|null} [user_agent] SessionDto user_agent
+                 * @property {number|Long|null} [created_at] SessionDto created_at
+                 * @property {number|Long|null} [last_active] SessionDto last_active
+                 * @property {number|Long|null} [expires_at] SessionDto expires_at
+                 * @property {boolean|null} [current] SessionDto current
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a SessionDto.
+                 * @memberof renop.api.v1
+                 * @interface ISessionDto
+                 * @augments renop.api.v1.SessionDto.$Properties
+                 * @deprecated Use renop.api.v1.SessionDto.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a SessionDto.
+                 * @typedef {renop.api.v1.SessionDto.$Properties} renop.api.v1.SessionDto.$Shape
+                 */
+
+                /**
+                 * Constructs a new SessionDto.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a SessionDto.
+                 * @constructor
+                 * @param {renop.api.v1.SessionDto.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const SessionDto = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * SessionDto public_id.
+                 * @member {string} public_id
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.public_id = "";
+
+                /**
+                 * SessionDto username.
+                 * @member {string} username
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.username = "";
+
+                /**
+                 * SessionDto ip.
+                 * @member {string} ip
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.ip = "";
+
+                /**
+                 * SessionDto user_agent.
+                 * @member {string} user_agent
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.user_agent = "";
+
+                /**
+                 * SessionDto created_at.
+                 * @member {number|Long} created_at
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * SessionDto last_active.
+                 * @member {number|Long} last_active
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.last_active = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * SessionDto expires_at.
+                 * @member {number|Long} expires_at
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.expires_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * SessionDto current.
+                 * @member {boolean} current
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.current = false;
+
+                /**
+                 * Creates a new SessionDto instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {renop.api.v1.SessionDto.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.SessionDto} SessionDto instance
+                 * @type {{
+                 *   (properties: renop.api.v1.SessionDto.$Shape): renop.api.v1.SessionDto & renop.api.v1.SessionDto.$Shape;
+                 *   (properties?: renop.api.v1.SessionDto.$Properties): renop.api.v1.SessionDto;
+                 * }}
+                 */
+                SessionDto.create = function(properties) {
+                    return new SessionDto(properties);
+                };
+
+                /**
+                 * Encodes the specified SessionDto message. Does not implicitly {@link renop.api.v1.SessionDto.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {renop.api.v1.SessionDto.$Properties} message SessionDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SessionDto.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.public_id != null && $Object.hasOwnProperty.call(message, "public_id") && message.public_id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.public_id);
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username") && message.username !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.username);
+                    if (message.ip != null && $Object.hasOwnProperty.call(message, "ip") && message.ip !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.ip);
+                    if (message.user_agent != null && $Object.hasOwnProperty.call(message, "user_agent") && message.user_agent !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.user_agent);
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at") && (typeof message.created_at === "object" ? message.created_at.low || message.created_at.high : message.created_at !== 0))
+                        writer.uint32(/* id 5, wireType 0 =*/40).int64(message.created_at);
+                    if (message.last_active != null && $Object.hasOwnProperty.call(message, "last_active") && (typeof message.last_active === "object" ? message.last_active.low || message.last_active.high : message.last_active !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).int64(message.last_active);
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at") && (typeof message.expires_at === "object" ? message.expires_at.low || message.expires_at.high : message.expires_at !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).int64(message.expires_at);
+                    if (message.current != null && $Object.hasOwnProperty.call(message, "current") && message.current !== false)
+                        writer.uint32(/* id 8, wireType 0 =*/64).bool(message.current);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified SessionDto message, length delimited. Does not implicitly {@link renop.api.v1.SessionDto.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {renop.api.v1.SessionDto.$Properties} message SessionDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SessionDto.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a SessionDto message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.SessionDto & renop.api.v1.SessionDto.$Shape} SessionDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SessionDto.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SessionDto(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.public_id = value;
+                                else
+                                    delete message.public_id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.username = value;
+                                else
+                                    delete message.username;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.ip = value;
+                                else
+                                    delete message.ip;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.user_agent = value;
+                                else
+                                    delete message.user_agent;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.created_at = value;
+                                else
+                                    delete message.created_at;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.last_active = value;
+                                else
+                                    delete message.last_active;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.expires_at = value;
+                                else
+                                    delete message.expires_at;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.current = value;
+                                else
+                                    delete message.current;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a SessionDto message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.SessionDto & renop.api.v1.SessionDto.$Shape} SessionDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SessionDto.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a SessionDto message.
+                 * @function verify
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                SessionDto.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.public_id != null && $Object.hasOwnProperty.call(message, "public_id"))
+                        if (!$util.isString(message.public_id))
+                            return "public_id: string expected";
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        if (!$util.isString(message.username))
+                            return "username: string expected";
+                    if (message.ip != null && $Object.hasOwnProperty.call(message, "ip"))
+                        if (!$util.isString(message.ip))
+                            return "ip: string expected";
+                    if (message.user_agent != null && $Object.hasOwnProperty.call(message, "user_agent"))
+                        if (!$util.isString(message.user_agent))
+                            return "user_agent: string expected";
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (!$util.isInteger(message.created_at) && !(message.created_at && $util.isInteger(message.created_at.low) && $util.isInteger(message.created_at.high)))
+                            return "created_at: integer|Long expected";
+                    if (message.last_active != null && $Object.hasOwnProperty.call(message, "last_active"))
+                        if (!$util.isInteger(message.last_active) && !(message.last_active && $util.isInteger(message.last_active.low) && $util.isInteger(message.last_active.high)))
+                            return "last_active: integer|Long expected";
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at"))
+                        if (!$util.isInteger(message.expires_at) && !(message.expires_at && $util.isInteger(message.expires_at.low) && $util.isInteger(message.expires_at.high)))
+                            return "expires_at: integer|Long expected";
+                    if (message.current != null && $Object.hasOwnProperty.call(message, "current"))
+                        if (typeof message.current !== "boolean")
+                            return "current: boolean expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a SessionDto message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.SessionDto} SessionDto
+                 */
+                SessionDto.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.SessionDto)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.SessionDto: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.SessionDto();
+                    if (object.public_id != null)
+                        if (typeof object.public_id !== "string" || object.public_id.length)
+                            message.public_id = $String(object.public_id);
+                    if (object.username != null)
+                        if (typeof object.username !== "string" || object.username.length)
+                            message.username = $String(object.username);
+                    if (object.ip != null)
+                        if (typeof object.ip !== "string" || object.ip.length)
+                            message.ip = $String(object.ip);
+                    if (object.user_agent != null)
+                        if (typeof object.user_agent !== "string" || object.user_agent.length)
+                            message.user_agent = $String(object.user_agent);
+                    if (object.created_at != null)
+                        if (typeof object.created_at === "object" ? object.created_at.low || object.created_at.high : $Number(object.created_at) !== 0)
+                            if ($util.Long)
+                                message.created_at = $util.Long.fromValue(object.created_at, false);
+                            else if (typeof object.created_at === "string")
+                                message.created_at = $parseInt(object.created_at, 10);
+                            else if (typeof object.created_at === "number")
+                                message.created_at = object.created_at;
+                            else if (typeof object.created_at === "object")
+                                message.created_at = new $util.LongBits(object.created_at.low >>> 0, object.created_at.high >>> 0).toNumber();
+                    if (object.last_active != null)
+                        if (typeof object.last_active === "object" ? object.last_active.low || object.last_active.high : $Number(object.last_active) !== 0)
+                            if ($util.Long)
+                                message.last_active = $util.Long.fromValue(object.last_active, false);
+                            else if (typeof object.last_active === "string")
+                                message.last_active = $parseInt(object.last_active, 10);
+                            else if (typeof object.last_active === "number")
+                                message.last_active = object.last_active;
+                            else if (typeof object.last_active === "object")
+                                message.last_active = new $util.LongBits(object.last_active.low >>> 0, object.last_active.high >>> 0).toNumber();
+                    if (object.expires_at != null)
+                        if (typeof object.expires_at === "object" ? object.expires_at.low || object.expires_at.high : $Number(object.expires_at) !== 0)
+                            if ($util.Long)
+                                message.expires_at = $util.Long.fromValue(object.expires_at, false);
+                            else if (typeof object.expires_at === "string")
+                                message.expires_at = $parseInt(object.expires_at, 10);
+                            else if (typeof object.expires_at === "number")
+                                message.expires_at = object.expires_at;
+                            else if (typeof object.expires_at === "object")
+                                message.expires_at = new $util.LongBits(object.expires_at.low >>> 0, object.expires_at.high >>> 0).toNumber();
+                    if (object.current != null)
+                        if (object.current)
+                            message.current = $Boolean(object.current);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a SessionDto message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {renop.api.v1.SessionDto} message SessionDto
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                SessionDto.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.public_id = "";
+                        object.username = "";
+                        object.ip = "";
+                        object.user_agent = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.created_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.created_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.last_active = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.last_active = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.expires_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.expires_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.current = false;
+                    }
+                    if (message.public_id != null && $Object.hasOwnProperty.call(message, "public_id"))
+                        object.public_id = message.public_id;
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        object.username = message.username;
+                    if (message.ip != null && $Object.hasOwnProperty.call(message, "ip"))
+                        object.ip = message.ip;
+                    if (message.user_agent != null && $Object.hasOwnProperty.call(message, "user_agent"))
+                        object.user_agent = message.user_agent;
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.created_at = typeof message.created_at === "number" ? $BigInt(message.created_at) : $util.Long.fromBits(message.created_at.low >>> 0, message.created_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.created_at === "number")
+                            object.created_at = options.longs === $String ? $String(message.created_at) : message.created_at;
+                        else
+                            object.created_at = options.longs === $String ? $util.Long.prototype.toString.call(message.created_at) : options.longs === $Number ? new $util.LongBits(message.created_at.low >>> 0, message.created_at.high >>> 0).toNumber() : message.created_at;
+                    if (message.last_active != null && $Object.hasOwnProperty.call(message, "last_active"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.last_active = typeof message.last_active === "number" ? $BigInt(message.last_active) : $util.Long.fromBits(message.last_active.low >>> 0, message.last_active.high >>> 0, false).toBigInt();
+                        else if (typeof message.last_active === "number")
+                            object.last_active = options.longs === $String ? $String(message.last_active) : message.last_active;
+                        else
+                            object.last_active = options.longs === $String ? $util.Long.prototype.toString.call(message.last_active) : options.longs === $Number ? new $util.LongBits(message.last_active.low >>> 0, message.last_active.high >>> 0).toNumber() : message.last_active;
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.expires_at = typeof message.expires_at === "number" ? $BigInt(message.expires_at) : $util.Long.fromBits(message.expires_at.low >>> 0, message.expires_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.expires_at === "number")
+                            object.expires_at = options.longs === $String ? $String(message.expires_at) : message.expires_at;
+                        else
+                            object.expires_at = options.longs === $String ? $util.Long.prototype.toString.call(message.expires_at) : options.longs === $Number ? new $util.LongBits(message.expires_at.low >>> 0, message.expires_at.high >>> 0).toNumber() : message.expires_at;
+                    if (message.current != null && $Object.hasOwnProperty.call(message, "current"))
+                        object.current = message.current;
+                    return object;
+                };
+
+                /**
+                 * Converts this SessionDto to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                SessionDto.prototype.toJSON = function() {
+                    return SessionDto.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for SessionDto
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.SessionDto
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                SessionDto.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.SessionDto";
+                };
+
+                return SessionDto;
+            })();
+
+            v1.SessionList = (function() {
+
+                /**
+                 * Properties of a SessionList.
+                 * @typedef {Object} renop.api.v1.SessionList.$Properties
+                 * @property {Array.<renop.api.v1.SessionDto.$Properties>|null} [sessions] SessionList sessions
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a SessionList.
+                 * @memberof renop.api.v1
+                 * @interface ISessionList
+                 * @augments renop.api.v1.SessionList.$Properties
+                 * @deprecated Use renop.api.v1.SessionList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a SessionList.
+                 * @typedef {renop.api.v1.SessionList.$Properties} renop.api.v1.SessionList.$Shape
+                 */
+
+                /**
+                 * Constructs a new SessionList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a SessionList.
+                 * @constructor
+                 * @param {renop.api.v1.SessionList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const SessionList = function (properties) {
+                    this.sessions = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * SessionList sessions.
+                 * @member {Array.<renop.api.v1.SessionDto.$Properties>} sessions
+                 * @memberof renop.api.v1.SessionList
+                 * @instance
+                 */
+                SessionList.prototype.sessions = $util.emptyArray;
+
+                /**
+                 * Creates a new SessionList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {renop.api.v1.SessionList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.SessionList} SessionList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.SessionList.$Shape): renop.api.v1.SessionList & renop.api.v1.SessionList.$Shape;
+                 *   (properties?: renop.api.v1.SessionList.$Properties): renop.api.v1.SessionList;
+                 * }}
+                 */
+                SessionList.create = function(properties) {
+                    return new SessionList(properties);
+                };
+
+                /**
+                 * Encodes the specified SessionList message. Does not implicitly {@link renop.api.v1.SessionList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {renop.api.v1.SessionList.$Properties} message SessionList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SessionList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.sessions != null && message.sessions.length)
+                        for (let i = 0; i < message.sessions.length; ++i)
+                            $root.renop.api.v1.SessionDto.encode(message.sessions[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified SessionList message, length delimited. Does not implicitly {@link renop.api.v1.SessionList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {renop.api.v1.SessionList.$Properties} message SessionList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SessionList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a SessionList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.SessionList & renop.api.v1.SessionList.$Shape} SessionList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SessionList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SessionList();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.sessions && message.sessions.length))
+                                    message.sessions = [];
+                                message.sessions.push($root.renop.api.v1.SessionDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a SessionList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.SessionList & renop.api.v1.SessionList.$Shape} SessionList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SessionList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a SessionList message.
+                 * @function verify
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                SessionList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.sessions != null && $Object.hasOwnProperty.call(message, "sessions")) {
+                        if (!$Array.isArray(message.sessions))
+                            return "sessions: array expected";
+                        for (let i = 0; i < message.sessions.length; ++i) {
+                            let error = $root.renop.api.v1.SessionDto.verify(message.sessions[i], _depth + 1);
+                            if (error)
+                                return "sessions." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a SessionList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.SessionList} SessionList
+                 */
+                SessionList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.SessionList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.SessionList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.SessionList();
+                    if (object.sessions) {
+                        if (!$Array.isArray(object.sessions))
+                            throw $TypeError(".renop.api.v1.SessionList.sessions: array expected");
+                        message.sessions = $Array(object.sessions.length);
+                        for (let i = 0; i < object.sessions.length; ++i) {
+                            if (!$util.isObject(object.sessions[i]))
+                                throw $TypeError(".renop.api.v1.SessionList.sessions: object expected");
+                            message.sessions[i] = $root.renop.api.v1.SessionDto.fromObject(object.sessions[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a SessionList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {renop.api.v1.SessionList} message SessionList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                SessionList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.sessions = [];
+                    if (message.sessions && message.sessions.length) {
+                        object.sessions = $Array(message.sessions.length);
+                        for (let j = 0; j < message.sessions.length; ++j)
+                            object.sessions[j] = $root.renop.api.v1.SessionDto.toObject(message.sessions[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this SessionList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.SessionList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                SessionList.prototype.toJSON = function() {
+                    return SessionList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for SessionList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.SessionList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                SessionList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.SessionList";
+                };
+
+                return SessionList;
+            })();
+
+            v1.StatusOk = (function() {
+
+                /**
+                 * Properties of a StatusOk.
+                 * @typedef {Object} renop.api.v1.StatusOk.$Properties
+                 * @property {string|null} [status] StatusOk status
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a StatusOk.
+                 * @memberof renop.api.v1
+                 * @interface IStatusOk
+                 * @augments renop.api.v1.StatusOk.$Properties
+                 * @deprecated Use renop.api.v1.StatusOk.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a StatusOk.
+                 * @typedef {renop.api.v1.StatusOk.$Properties} renop.api.v1.StatusOk.$Shape
+                 */
+
+                /**
+                 * Constructs a new StatusOk.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a StatusOk.
+                 * @constructor
+                 * @param {renop.api.v1.StatusOk.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const StatusOk = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * StatusOk status.
+                 * @member {string} status
+                 * @memberof renop.api.v1.StatusOk
+                 * @instance
+                 */
+                StatusOk.prototype.status = "";
+
+                /**
+                 * Creates a new StatusOk instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {renop.api.v1.StatusOk.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.StatusOk} StatusOk instance
+                 * @type {{
+                 *   (properties: renop.api.v1.StatusOk.$Shape): renop.api.v1.StatusOk & renop.api.v1.StatusOk.$Shape;
+                 *   (properties?: renop.api.v1.StatusOk.$Properties): renop.api.v1.StatusOk;
+                 * }}
+                 */
+                StatusOk.create = function(properties) {
+                    return new StatusOk(properties);
+                };
+
+                /**
+                 * Encodes the specified StatusOk message. Does not implicitly {@link renop.api.v1.StatusOk.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {renop.api.v1.StatusOk.$Properties} message StatusOk message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StatusOk.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status") && message.status !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.status);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified StatusOk message, length delimited. Does not implicitly {@link renop.api.v1.StatusOk.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {renop.api.v1.StatusOk.$Properties} message StatusOk message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StatusOk.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a StatusOk message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.StatusOk & renop.api.v1.StatusOk.$Shape} StatusOk
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StatusOk.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StatusOk(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.status = value;
+                                else
+                                    delete message.status;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a StatusOk message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.StatusOk & renop.api.v1.StatusOk.$Shape} StatusOk
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StatusOk.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a StatusOk message.
+                 * @function verify
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                StatusOk.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        if (!$util.isString(message.status))
+                            return "status: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a StatusOk message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.StatusOk} StatusOk
+                 */
+                StatusOk.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.StatusOk)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.StatusOk: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.StatusOk();
+                    if (object.status != null)
+                        if (typeof object.status !== "string" || object.status.length)
+                            message.status = $String(object.status);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a StatusOk message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {renop.api.v1.StatusOk} message StatusOk
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                StatusOk.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults)
+                        object.status = "";
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        object.status = message.status;
+                    return object;
+                };
+
+                /**
+                 * Converts this StatusOk to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.StatusOk
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                StatusOk.prototype.toJSON = function() {
+                    return StatusOk.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for StatusOk
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.StatusOk
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                StatusOk.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.StatusOk";
+                };
+
+                return StatusOk;
+            })();
+
+            v1.AccessTokenList = (function() {
+
+                /**
+                 * Properties of an AccessTokenList.
+                 * @typedef {Object} renop.api.v1.AccessTokenList.$Properties
+                 * @property {Array.<renop.api.v1.AccessTokenDto.$Properties>|null} [tokens] AccessTokenList tokens
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an AccessTokenList.
+                 * @memberof renop.api.v1
+                 * @interface IAccessTokenList
+                 * @augments renop.api.v1.AccessTokenList.$Properties
+                 * @deprecated Use renop.api.v1.AccessTokenList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an AccessTokenList.
+                 * @typedef {renop.api.v1.AccessTokenList.$Properties} renop.api.v1.AccessTokenList.$Shape
+                 */
+
+                /**
+                 * Constructs a new AccessTokenList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an AccessTokenList.
+                 * @constructor
+                 * @param {renop.api.v1.AccessTokenList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const AccessTokenList = function (properties) {
+                    this.tokens = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * AccessTokenList tokens.
+                 * @member {Array.<renop.api.v1.AccessTokenDto.$Properties>} tokens
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @instance
+                 */
+                AccessTokenList.prototype.tokens = $util.emptyArray;
+
+                /**
+                 * Creates a new AccessTokenList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {renop.api.v1.AccessTokenList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.AccessTokenList} AccessTokenList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.AccessTokenList.$Shape): renop.api.v1.AccessTokenList & renop.api.v1.AccessTokenList.$Shape;
+                 *   (properties?: renop.api.v1.AccessTokenList.$Properties): renop.api.v1.AccessTokenList;
+                 * }}
+                 */
+                AccessTokenList.create = function(properties) {
+                    return new AccessTokenList(properties);
+                };
+
+                /**
+                 * Encodes the specified AccessTokenList message. Does not implicitly {@link renop.api.v1.AccessTokenList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {renop.api.v1.AccessTokenList.$Properties} message AccessTokenList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.tokens != null && message.tokens.length)
+                        for (let i = 0; i < message.tokens.length; ++i)
+                            $root.renop.api.v1.AccessTokenDto.encode(message.tokens[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AccessTokenList message, length delimited. Does not implicitly {@link renop.api.v1.AccessTokenList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {renop.api.v1.AccessTokenList.$Properties} message AccessTokenList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AccessTokenList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an AccessTokenList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.AccessTokenList & renop.api.v1.AccessTokenList.$Shape} AccessTokenList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenList();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.tokens && message.tokens.length))
+                                    message.tokens = [];
+                                message.tokens.push($root.renop.api.v1.AccessTokenDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an AccessTokenList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.AccessTokenList & renop.api.v1.AccessTokenList.$Shape} AccessTokenList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AccessTokenList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AccessTokenList message.
+                 * @function verify
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AccessTokenList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.tokens != null && $Object.hasOwnProperty.call(message, "tokens")) {
+                        if (!$Array.isArray(message.tokens))
+                            return "tokens: array expected";
+                        for (let i = 0; i < message.tokens.length; ++i) {
+                            let error = $root.renop.api.v1.AccessTokenDto.verify(message.tokens[i], _depth + 1);
+                            if (error)
+                                return "tokens." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates an AccessTokenList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.AccessTokenList} AccessTokenList
+                 */
+                AccessTokenList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.AccessTokenList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.AccessTokenList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.AccessTokenList();
+                    if (object.tokens) {
+                        if (!$Array.isArray(object.tokens))
+                            throw $TypeError(".renop.api.v1.AccessTokenList.tokens: array expected");
+                        message.tokens = $Array(object.tokens.length);
+                        for (let i = 0; i < object.tokens.length; ++i) {
+                            if (!$util.isObject(object.tokens[i]))
+                                throw $TypeError(".renop.api.v1.AccessTokenList.tokens: object expected");
+                            message.tokens[i] = $root.renop.api.v1.AccessTokenDto.fromObject(object.tokens[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AccessTokenList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {renop.api.v1.AccessTokenList} message AccessTokenList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AccessTokenList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.tokens = [];
+                    if (message.tokens && message.tokens.length) {
+                        object.tokens = $Array(message.tokens.length);
+                        for (let j = 0; j < message.tokens.length; ++j)
+                            object.tokens[j] = $root.renop.api.v1.AccessTokenDto.toObject(message.tokens[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this AccessTokenList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AccessTokenList.prototype.toJSON = function() {
+                    return AccessTokenList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for AccessTokenList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.AccessTokenList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                AccessTokenList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.AccessTokenList";
+                };
+
+                return AccessTokenList;
+            })();
+
+            v1.UpdateState = (function() {
+
+                /**
+                 * Properties of an UpdateState.
+                 * @typedef {Object} renop.api.v1.UpdateState.$Properties
+                 * @property {string|null} [status] UpdateState status
+                 * @property {string|null} [latest_version] UpdateState latest_version
+                 * @property {string|null} [download_url] UpdateState download_url
+                 * @property {number|null} [progress] UpdateState progress
+                 * @property {string|null} [error_message] UpdateState error_message
+                 * @property {number|Long|null} [size] UpdateState size
+                 * @property {number|Long|null} [estimated_disk_space] UpdateState estimated_disk_space
+                 * @property {string|null} [release_date] UpdateState release_date
+                 * @property {string|null} [release_notes] UpdateState release_notes
+                 * @property {string|null} [commit_sha] UpdateState commit_sha
+                 * @property {boolean|null} [is_release] UpdateState is_release
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an UpdateState.
+                 * @memberof renop.api.v1
+                 * @interface IUpdateState
+                 * @augments renop.api.v1.UpdateState.$Properties
+                 * @deprecated Use renop.api.v1.UpdateState.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an UpdateState.
+                 * @typedef {renop.api.v1.UpdateState.$Properties} renop.api.v1.UpdateState.$Shape
+                 */
+
+                /**
+                 * Constructs a new UpdateState.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an UpdateState.
+                 * @constructor
+                 * @param {renop.api.v1.UpdateState.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const UpdateState = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * UpdateState status.
+                 * @member {string} status
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.status = "";
+
+                /**
+                 * UpdateState latest_version.
+                 * @member {string} latest_version
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.latest_version = "";
+
+                /**
+                 * UpdateState download_url.
+                 * @member {string} download_url
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.download_url = "";
+
+                /**
+                 * UpdateState progress.
+                 * @member {number} progress
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.progress = 0;
+
+                /**
+                 * UpdateState error_message.
+                 * @member {string} error_message
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.error_message = "";
+
+                /**
+                 * UpdateState size.
+                 * @member {number|Long} size
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * UpdateState estimated_disk_space.
+                 * @member {number|Long} estimated_disk_space
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.estimated_disk_space = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * UpdateState release_date.
+                 * @member {string} release_date
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.release_date = "";
+
+                /**
+                 * UpdateState release_notes.
+                 * @member {string} release_notes
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.release_notes = "";
+
+                /**
+                 * UpdateState commit_sha.
+                 * @member {string} commit_sha
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.commit_sha = "";
+
+                /**
+                 * UpdateState is_release.
+                 * @member {boolean} is_release
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 */
+                UpdateState.prototype.is_release = false;
+
+                /**
+                 * Creates a new UpdateState instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {renop.api.v1.UpdateState.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.UpdateState} UpdateState instance
+                 * @type {{
+                 *   (properties: renop.api.v1.UpdateState.$Shape): renop.api.v1.UpdateState & renop.api.v1.UpdateState.$Shape;
+                 *   (properties?: renop.api.v1.UpdateState.$Properties): renop.api.v1.UpdateState;
+                 * }}
+                 */
+                UpdateState.create = function(properties) {
+                    return new UpdateState(properties);
+                };
+
+                /**
+                 * Encodes the specified UpdateState message. Does not implicitly {@link renop.api.v1.UpdateState.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {renop.api.v1.UpdateState.$Properties} message UpdateState message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UpdateState.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status") && message.status !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.status);
+                    if (message.latest_version != null && $Object.hasOwnProperty.call(message, "latest_version") && message.latest_version !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.latest_version);
+                    if (message.download_url != null && $Object.hasOwnProperty.call(message, "download_url") && message.download_url !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.download_url);
+                    if (message.progress != null && $Object.hasOwnProperty.call(message, "progress") && message.progress !== 0)
+                        writer.uint32(/* id 4, wireType 0 =*/32).int32(message.progress);
+                    if (message.error_message != null && $Object.hasOwnProperty.call(message, "error_message") && message.error_message !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.error_message);
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size") && (typeof message.size === "object" ? message.size.low || message.size.high : message.size !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).int64(message.size);
+                    if (message.estimated_disk_space != null && $Object.hasOwnProperty.call(message, "estimated_disk_space") && (typeof message.estimated_disk_space === "object" ? message.estimated_disk_space.low || message.estimated_disk_space.high : message.estimated_disk_space !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).int64(message.estimated_disk_space);
+                    if (message.release_date != null && $Object.hasOwnProperty.call(message, "release_date") && message.release_date !== "")
+                        writer.uint32(/* id 8, wireType 2 =*/66).string(message.release_date);
+                    if (message.release_notes != null && $Object.hasOwnProperty.call(message, "release_notes") && message.release_notes !== "")
+                        writer.uint32(/* id 9, wireType 2 =*/74).string(message.release_notes);
+                    if (message.commit_sha != null && $Object.hasOwnProperty.call(message, "commit_sha") && message.commit_sha !== "")
+                        writer.uint32(/* id 10, wireType 2 =*/82).string(message.commit_sha);
+                    if (message.is_release != null && $Object.hasOwnProperty.call(message, "is_release") && message.is_release !== false)
+                        writer.uint32(/* id 11, wireType 0 =*/88).bool(message.is_release);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified UpdateState message, length delimited. Does not implicitly {@link renop.api.v1.UpdateState.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {renop.api.v1.UpdateState.$Properties} message UpdateState message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UpdateState.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an UpdateState message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.UpdateState & renop.api.v1.UpdateState.$Shape} UpdateState
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UpdateState.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UpdateState(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.status = value;
+                                else
+                                    delete message.status;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.latest_version = value;
+                                else
+                                    delete message.latest_version;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.download_url = value;
+                                else
+                                    delete message.download_url;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.progress = value;
+                                else
+                                    delete message.progress;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.error_message = value;
+                                else
+                                    delete message.error_message;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.size = value;
+                                else
+                                    delete message.size;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.estimated_disk_space = value;
+                                else
+                                    delete message.estimated_disk_space;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.release_date = value;
+                                else
+                                    delete message.release_date;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.release_notes = value;
+                                else
+                                    delete message.release_notes;
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.commit_sha = value;
+                                else
+                                    delete message.commit_sha;
+                                continue;
+                            }
+                        case 11: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.is_release = value;
+                                else
+                                    delete message.is_release;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an UpdateState message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.UpdateState & renop.api.v1.UpdateState.$Shape} UpdateState
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UpdateState.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an UpdateState message.
+                 * @function verify
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                UpdateState.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        if (!$util.isString(message.status))
+                            return "status: string expected";
+                    if (message.latest_version != null && $Object.hasOwnProperty.call(message, "latest_version"))
+                        if (!$util.isString(message.latest_version))
+                            return "latest_version: string expected";
+                    if (message.download_url != null && $Object.hasOwnProperty.call(message, "download_url"))
+                        if (!$util.isString(message.download_url))
+                            return "download_url: string expected";
+                    if (message.progress != null && $Object.hasOwnProperty.call(message, "progress"))
+                        if (!$util.isInteger(message.progress))
+                            return "progress: integer expected";
+                    if (message.error_message != null && $Object.hasOwnProperty.call(message, "error_message"))
+                        if (!$util.isString(message.error_message))
+                            return "error_message: string expected";
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size"))
+                        if (!$util.isInteger(message.size) && !(message.size && $util.isInteger(message.size.low) && $util.isInteger(message.size.high)))
+                            return "size: integer|Long expected";
+                    if (message.estimated_disk_space != null && $Object.hasOwnProperty.call(message, "estimated_disk_space"))
+                        if (!$util.isInteger(message.estimated_disk_space) && !(message.estimated_disk_space && $util.isInteger(message.estimated_disk_space.low) && $util.isInteger(message.estimated_disk_space.high)))
+                            return "estimated_disk_space: integer|Long expected";
+                    if (message.release_date != null && $Object.hasOwnProperty.call(message, "release_date"))
+                        if (!$util.isString(message.release_date))
+                            return "release_date: string expected";
+                    if (message.release_notes != null && $Object.hasOwnProperty.call(message, "release_notes"))
+                        if (!$util.isString(message.release_notes))
+                            return "release_notes: string expected";
+                    if (message.commit_sha != null && $Object.hasOwnProperty.call(message, "commit_sha"))
+                        if (!$util.isString(message.commit_sha))
+                            return "commit_sha: string expected";
+                    if (message.is_release != null && $Object.hasOwnProperty.call(message, "is_release"))
+                        if (typeof message.is_release !== "boolean")
+                            return "is_release: boolean expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an UpdateState message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.UpdateState} UpdateState
+                 */
+                UpdateState.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.UpdateState)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.UpdateState: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.UpdateState();
+                    if (object.status != null)
+                        if (typeof object.status !== "string" || object.status.length)
+                            message.status = $String(object.status);
+                    if (object.latest_version != null)
+                        if (typeof object.latest_version !== "string" || object.latest_version.length)
+                            message.latest_version = $String(object.latest_version);
+                    if (object.download_url != null)
+                        if (typeof object.download_url !== "string" || object.download_url.length)
+                            message.download_url = $String(object.download_url);
+                    if (object.progress != null)
+                        if ($Number(object.progress) !== 0)
+                            message.progress = object.progress | 0;
+                    if (object.error_message != null)
+                        if (typeof object.error_message !== "string" || object.error_message.length)
+                            message.error_message = $String(object.error_message);
+                    if (object.size != null)
+                        if (typeof object.size === "object" ? object.size.low || object.size.high : $Number(object.size) !== 0)
+                            if ($util.Long)
+                                message.size = $util.Long.fromValue(object.size, false);
+                            else if (typeof object.size === "string")
+                                message.size = $parseInt(object.size, 10);
+                            else if (typeof object.size === "number")
+                                message.size = object.size;
+                            else if (typeof object.size === "object")
+                                message.size = new $util.LongBits(object.size.low >>> 0, object.size.high >>> 0).toNumber();
+                    if (object.estimated_disk_space != null)
+                        if (typeof object.estimated_disk_space === "object" ? object.estimated_disk_space.low || object.estimated_disk_space.high : $Number(object.estimated_disk_space) !== 0)
+                            if ($util.Long)
+                                message.estimated_disk_space = $util.Long.fromValue(object.estimated_disk_space, false);
+                            else if (typeof object.estimated_disk_space === "string")
+                                message.estimated_disk_space = $parseInt(object.estimated_disk_space, 10);
+                            else if (typeof object.estimated_disk_space === "number")
+                                message.estimated_disk_space = object.estimated_disk_space;
+                            else if (typeof object.estimated_disk_space === "object")
+                                message.estimated_disk_space = new $util.LongBits(object.estimated_disk_space.low >>> 0, object.estimated_disk_space.high >>> 0).toNumber();
+                    if (object.release_date != null)
+                        if (typeof object.release_date !== "string" || object.release_date.length)
+                            message.release_date = $String(object.release_date);
+                    if (object.release_notes != null)
+                        if (typeof object.release_notes !== "string" || object.release_notes.length)
+                            message.release_notes = $String(object.release_notes);
+                    if (object.commit_sha != null)
+                        if (typeof object.commit_sha !== "string" || object.commit_sha.length)
+                            message.commit_sha = $String(object.commit_sha);
+                    if (object.is_release != null)
+                        if (object.is_release)
+                            message.is_release = $Boolean(object.is_release);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an UpdateState message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {renop.api.v1.UpdateState} message UpdateState
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                UpdateState.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.status = "";
+                        object.latest_version = "";
+                        object.download_url = "";
+                        object.progress = 0;
+                        object.error_message = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.estimated_disk_space = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.estimated_disk_space = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.release_date = "";
+                        object.release_notes = "";
+                        object.commit_sha = "";
+                        object.is_release = false;
+                    }
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        object.status = message.status;
+                    if (message.latest_version != null && $Object.hasOwnProperty.call(message, "latest_version"))
+                        object.latest_version = message.latest_version;
+                    if (message.download_url != null && $Object.hasOwnProperty.call(message, "download_url"))
+                        object.download_url = message.download_url;
+                    if (message.progress != null && $Object.hasOwnProperty.call(message, "progress"))
+                        object.progress = message.progress;
+                    if (message.error_message != null && $Object.hasOwnProperty.call(message, "error_message"))
+                        object.error_message = message.error_message;
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.size = typeof message.size === "number" ? $BigInt(message.size) : $util.Long.fromBits(message.size.low >>> 0, message.size.high >>> 0, false).toBigInt();
+                        else if (typeof message.size === "number")
+                            object.size = options.longs === $String ? $String(message.size) : message.size;
+                        else
+                            object.size = options.longs === $String ? $util.Long.prototype.toString.call(message.size) : options.longs === $Number ? new $util.LongBits(message.size.low >>> 0, message.size.high >>> 0).toNumber() : message.size;
+                    if (message.estimated_disk_space != null && $Object.hasOwnProperty.call(message, "estimated_disk_space"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.estimated_disk_space = typeof message.estimated_disk_space === "number" ? $BigInt(message.estimated_disk_space) : $util.Long.fromBits(message.estimated_disk_space.low >>> 0, message.estimated_disk_space.high >>> 0, false).toBigInt();
+                        else if (typeof message.estimated_disk_space === "number")
+                            object.estimated_disk_space = options.longs === $String ? $String(message.estimated_disk_space) : message.estimated_disk_space;
+                        else
+                            object.estimated_disk_space = options.longs === $String ? $util.Long.prototype.toString.call(message.estimated_disk_space) : options.longs === $Number ? new $util.LongBits(message.estimated_disk_space.low >>> 0, message.estimated_disk_space.high >>> 0).toNumber() : message.estimated_disk_space;
+                    if (message.release_date != null && $Object.hasOwnProperty.call(message, "release_date"))
+                        object.release_date = message.release_date;
+                    if (message.release_notes != null && $Object.hasOwnProperty.call(message, "release_notes"))
+                        object.release_notes = message.release_notes;
+                    if (message.commit_sha != null && $Object.hasOwnProperty.call(message, "commit_sha"))
+                        object.commit_sha = message.commit_sha;
+                    if (message.is_release != null && $Object.hasOwnProperty.call(message, "is_release"))
+                        object.is_release = message.is_release;
+                    return object;
+                };
+
+                /**
+                 * Converts this UpdateState to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.UpdateState
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                UpdateState.prototype.toJSON = function() {
+                    return UpdateState.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for UpdateState
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.UpdateState
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                UpdateState.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.UpdateState";
+                };
+
+                return UpdateState;
+            })();
+
+            v1.InstanceStatus = (function() {
+
+                /**
+                 * Properties of an InstanceStatus.
+                 * @typedef {Object} renop.api.v1.InstanceStatus.$Properties
+                 * @property {string|null} [version] InstanceStatus version
+                 * @property {boolean|null} [development] InstanceStatus development
+                 * @property {number|Long|null} [uptime] InstanceStatus uptime
+                 * @property {number|Long|null} [used_memory] InstanceStatus used_memory
+                 * @property {number|Long|null} [total_memory] InstanceStatus total_memory
+                 * @property {number|Long|null} [renop_used_disk] InstanceStatus renop_used_disk
+                 * @property {number|Long|null} [disk_used] InstanceStatus disk_used
+                 * @property {number|Long|null} [disk_total] InstanceStatus disk_total
+                 * @property {number|Long|null} [used_threads] InstanceStatus used_threads
+                 * @property {number|Long|null} [available_threads] InstanceStatus available_threads
+                 * @property {number|Long|null} [total_threads] InstanceStatus total_threads
+                 * @property {string|null} [architecture] InstanceStatus architecture
+                 * @property {string|null} [os] InstanceStatus os
+                 * @property {number|null} [logical_cores] InstanceStatus logical_cores
+                 * @property {number|null} [physical_cores] InstanceStatus physical_cores
+                 * @property {number|Long|null} [failures_count] InstanceStatus failures_count
+                 * @property {renop.api.v1.UpdateState.$Properties|null} [update_state] InstanceStatus update_state
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an InstanceStatus.
+                 * @memberof renop.api.v1
+                 * @interface IInstanceStatus
+                 * @augments renop.api.v1.InstanceStatus.$Properties
+                 * @deprecated Use renop.api.v1.InstanceStatus.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an InstanceStatus.
+                 * @typedef {renop.api.v1.InstanceStatus.$Properties} renop.api.v1.InstanceStatus.$Shape
+                 */
+
+                /**
+                 * Constructs a new InstanceStatus.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an InstanceStatus.
+                 * @constructor
+                 * @param {renop.api.v1.InstanceStatus.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const InstanceStatus = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * InstanceStatus version.
+                 * @member {string} version
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.version = "";
+
+                /**
+                 * InstanceStatus development.
+                 * @member {boolean} development
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.development = false;
+
+                /**
+                 * InstanceStatus uptime.
+                 * @member {number|Long} uptime
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.uptime = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * InstanceStatus used_memory.
+                 * @member {number|Long} used_memory
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.used_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus total_memory.
+                 * @member {number|Long} total_memory
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.total_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus renop_used_disk.
+                 * @member {number|Long} renop_used_disk
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.renop_used_disk = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus disk_used.
+                 * @member {number|Long} disk_used
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.disk_used = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus disk_total.
+                 * @member {number|Long} disk_total
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.disk_total = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus used_threads.
+                 * @member {number|Long} used_threads
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.used_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus available_threads.
+                 * @member {number|Long} available_threads
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.available_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus total_threads.
+                 * @member {number|Long} total_threads
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.total_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus architecture.
+                 * @member {string} architecture
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.architecture = "";
+
+                /**
+                 * InstanceStatus os.
+                 * @member {string} os
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.os = "";
+
+                /**
+                 * InstanceStatus logical_cores.
+                 * @member {number} logical_cores
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.logical_cores = 0;
+
+                /**
+                 * InstanceStatus physical_cores.
+                 * @member {number} physical_cores
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.physical_cores = 0;
+
+                /**
+                 * InstanceStatus failures_count.
+                 * @member {number|Long} failures_count
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.failures_count = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * InstanceStatus update_state.
+                 * @member {renop.api.v1.UpdateState.$Properties|null|undefined} update_state
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.update_state = null;
+
+                /**
+                 * Creates a new InstanceStatus instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {renop.api.v1.InstanceStatus.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.InstanceStatus} InstanceStatus instance
+                 * @type {{
+                 *   (properties: renop.api.v1.InstanceStatus.$Shape): renop.api.v1.InstanceStatus & renop.api.v1.InstanceStatus.$Shape;
+                 *   (properties?: renop.api.v1.InstanceStatus.$Properties): renop.api.v1.InstanceStatus;
+                 * }}
+                 */
+                InstanceStatus.create = function(properties) {
+                    return new InstanceStatus(properties);
+                };
+
+                /**
+                 * Encodes the specified InstanceStatus message. Does not implicitly {@link renop.api.v1.InstanceStatus.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {renop.api.v1.InstanceStatus.$Properties} message InstanceStatus message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                InstanceStatus.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version") && message.version !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.version);
+                    if (message.development != null && $Object.hasOwnProperty.call(message, "development") && message.development !== false)
+                        writer.uint32(/* id 2, wireType 0 =*/16).bool(message.development);
+                    if (message.uptime != null && $Object.hasOwnProperty.call(message, "uptime") && (typeof message.uptime === "object" ? message.uptime.low || message.uptime.high : message.uptime !== 0))
+                        writer.uint32(/* id 3, wireType 0 =*/24).int64(message.uptime);
+                    if (message.used_memory != null && $Object.hasOwnProperty.call(message, "used_memory") && (typeof message.used_memory === "object" ? message.used_memory.low || message.used_memory.high : message.used_memory !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).uint64(message.used_memory);
+                    if (message.total_memory != null && $Object.hasOwnProperty.call(message, "total_memory") && (typeof message.total_memory === "object" ? message.total_memory.low || message.total_memory.high : message.total_memory !== 0))
+                        writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.total_memory);
+                    if (message.renop_used_disk != null && $Object.hasOwnProperty.call(message, "renop_used_disk") && (typeof message.renop_used_disk === "object" ? message.renop_used_disk.low || message.renop_used_disk.high : message.renop_used_disk !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).uint64(message.renop_used_disk);
+                    if (message.disk_used != null && $Object.hasOwnProperty.call(message, "disk_used") && (typeof message.disk_used === "object" ? message.disk_used.low || message.disk_used.high : message.disk_used !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).uint64(message.disk_used);
+                    if (message.disk_total != null && $Object.hasOwnProperty.call(message, "disk_total") && (typeof message.disk_total === "object" ? message.disk_total.low || message.disk_total.high : message.disk_total !== 0))
+                        writer.uint32(/* id 8, wireType 0 =*/64).uint64(message.disk_total);
+                    if (message.used_threads != null && $Object.hasOwnProperty.call(message, "used_threads") && (typeof message.used_threads === "object" ? message.used_threads.low || message.used_threads.high : message.used_threads !== 0))
+                        writer.uint32(/* id 9, wireType 0 =*/72).uint64(message.used_threads);
+                    if (message.available_threads != null && $Object.hasOwnProperty.call(message, "available_threads") && (typeof message.available_threads === "object" ? message.available_threads.low || message.available_threads.high : message.available_threads !== 0))
+                        writer.uint32(/* id 10, wireType 0 =*/80).uint64(message.available_threads);
+                    if (message.total_threads != null && $Object.hasOwnProperty.call(message, "total_threads") && (typeof message.total_threads === "object" ? message.total_threads.low || message.total_threads.high : message.total_threads !== 0))
+                        writer.uint32(/* id 11, wireType 0 =*/88).uint64(message.total_threads);
+                    if (message.architecture != null && $Object.hasOwnProperty.call(message, "architecture") && message.architecture !== "")
+                        writer.uint32(/* id 12, wireType 2 =*/98).string(message.architecture);
+                    if (message.os != null && $Object.hasOwnProperty.call(message, "os") && message.os !== "")
+                        writer.uint32(/* id 13, wireType 2 =*/106).string(message.os);
+                    if (message.logical_cores != null && $Object.hasOwnProperty.call(message, "logical_cores") && message.logical_cores !== 0)
+                        writer.uint32(/* id 14, wireType 0 =*/112).int32(message.logical_cores);
+                    if (message.physical_cores != null && $Object.hasOwnProperty.call(message, "physical_cores") && message.physical_cores !== 0)
+                        writer.uint32(/* id 15, wireType 0 =*/120).int32(message.physical_cores);
+                    if (message.failures_count != null && $Object.hasOwnProperty.call(message, "failures_count") && (typeof message.failures_count === "object" ? message.failures_count.low || message.failures_count.high : message.failures_count !== 0))
+                        writer.uint32(/* id 16, wireType 0 =*/128).uint64(message.failures_count);
+                    if (message.update_state != null && $Object.hasOwnProperty.call(message, "update_state"))
+                        $root.renop.api.v1.UpdateState.encode(message.update_state, writer.uint32(/* id 17, wireType 2 =*/138).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified InstanceStatus message, length delimited. Does not implicitly {@link renop.api.v1.InstanceStatus.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {renop.api.v1.InstanceStatus.$Properties} message InstanceStatus message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                InstanceStatus.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an InstanceStatus message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.InstanceStatus & renop.api.v1.InstanceStatus.$Shape} InstanceStatus
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                InstanceStatus.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.InstanceStatus(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.version = value;
+                                else
+                                    delete message.version;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.development = value;
+                                else
+                                    delete message.development;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.uptime = value;
+                                else
+                                    delete message.uptime;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.used_memory = value;
+                                else
+                                    delete message.used_memory;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.total_memory = value;
+                                else
+                                    delete message.total_memory;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.renop_used_disk = value;
+                                else
+                                    delete message.renop_used_disk;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.disk_used = value;
+                                else
+                                    delete message.disk_used;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.disk_total = value;
+                                else
+                                    delete message.disk_total;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.used_threads = value;
+                                else
+                                    delete message.used_threads;
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.available_threads = value;
+                                else
+                                    delete message.available_threads;
+                                continue;
+                            }
+                        case 11: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.total_threads = value;
+                                else
+                                    delete message.total_threads;
+                                continue;
+                            }
+                        case 12: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.architecture = value;
+                                else
+                                    delete message.architecture;
+                                continue;
+                            }
+                        case 13: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.os = value;
+                                else
+                                    delete message.os;
+                                continue;
+                            }
+                        case 14: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.logical_cores = value;
+                                else
+                                    delete message.logical_cores;
+                                continue;
+                            }
+                        case 15: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.physical_cores = value;
+                                else
+                                    delete message.physical_cores;
+                                continue;
+                            }
+                        case 16: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.failures_count = value;
+                                else
+                                    delete message.failures_count;
+                                continue;
+                            }
+                        case 17: {
+                                if (wireType !== 2)
+                                    break;
+                                message.update_state = $root.renop.api.v1.UpdateState.decode(reader, reader.uint32(), $undefined, _depth + 1, message.update_state);
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an InstanceStatus message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.InstanceStatus & renop.api.v1.InstanceStatus.$Shape} InstanceStatus
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                InstanceStatus.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an InstanceStatus message.
+                 * @function verify
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                InstanceStatus.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
+                        if (!$util.isString(message.version))
+                            return "version: string expected";
+                    if (message.development != null && $Object.hasOwnProperty.call(message, "development"))
+                        if (typeof message.development !== "boolean")
+                            return "development: boolean expected";
+                    if (message.uptime != null && $Object.hasOwnProperty.call(message, "uptime"))
+                        if (!$util.isInteger(message.uptime) && !(message.uptime && $util.isInteger(message.uptime.low) && $util.isInteger(message.uptime.high)))
+                            return "uptime: integer|Long expected";
+                    if (message.used_memory != null && $Object.hasOwnProperty.call(message, "used_memory"))
+                        if (!$util.isInteger(message.used_memory) && !(message.used_memory && $util.isInteger(message.used_memory.low) && $util.isInteger(message.used_memory.high)))
+                            return "used_memory: integer|Long expected";
+                    if (message.total_memory != null && $Object.hasOwnProperty.call(message, "total_memory"))
+                        if (!$util.isInteger(message.total_memory) && !(message.total_memory && $util.isInteger(message.total_memory.low) && $util.isInteger(message.total_memory.high)))
+                            return "total_memory: integer|Long expected";
+                    if (message.renop_used_disk != null && $Object.hasOwnProperty.call(message, "renop_used_disk"))
+                        if (!$util.isInteger(message.renop_used_disk) && !(message.renop_used_disk && $util.isInteger(message.renop_used_disk.low) && $util.isInteger(message.renop_used_disk.high)))
+                            return "renop_used_disk: integer|Long expected";
+                    if (message.disk_used != null && $Object.hasOwnProperty.call(message, "disk_used"))
+                        if (!$util.isInteger(message.disk_used) && !(message.disk_used && $util.isInteger(message.disk_used.low) && $util.isInteger(message.disk_used.high)))
+                            return "disk_used: integer|Long expected";
+                    if (message.disk_total != null && $Object.hasOwnProperty.call(message, "disk_total"))
+                        if (!$util.isInteger(message.disk_total) && !(message.disk_total && $util.isInteger(message.disk_total.low) && $util.isInteger(message.disk_total.high)))
+                            return "disk_total: integer|Long expected";
+                    if (message.used_threads != null && $Object.hasOwnProperty.call(message, "used_threads"))
+                        if (!$util.isInteger(message.used_threads) && !(message.used_threads && $util.isInteger(message.used_threads.low) && $util.isInteger(message.used_threads.high)))
+                            return "used_threads: integer|Long expected";
+                    if (message.available_threads != null && $Object.hasOwnProperty.call(message, "available_threads"))
+                        if (!$util.isInteger(message.available_threads) && !(message.available_threads && $util.isInteger(message.available_threads.low) && $util.isInteger(message.available_threads.high)))
+                            return "available_threads: integer|Long expected";
+                    if (message.total_threads != null && $Object.hasOwnProperty.call(message, "total_threads"))
+                        if (!$util.isInteger(message.total_threads) && !(message.total_threads && $util.isInteger(message.total_threads.low) && $util.isInteger(message.total_threads.high)))
+                            return "total_threads: integer|Long expected";
+                    if (message.architecture != null && $Object.hasOwnProperty.call(message, "architecture"))
+                        if (!$util.isString(message.architecture))
+                            return "architecture: string expected";
+                    if (message.os != null && $Object.hasOwnProperty.call(message, "os"))
+                        if (!$util.isString(message.os))
+                            return "os: string expected";
+                    if (message.logical_cores != null && $Object.hasOwnProperty.call(message, "logical_cores"))
+                        if (!$util.isInteger(message.logical_cores))
+                            return "logical_cores: integer expected";
+                    if (message.physical_cores != null && $Object.hasOwnProperty.call(message, "physical_cores"))
+                        if (!$util.isInteger(message.physical_cores))
+                            return "physical_cores: integer expected";
+                    if (message.failures_count != null && $Object.hasOwnProperty.call(message, "failures_count"))
+                        if (!$util.isInteger(message.failures_count) && !(message.failures_count && $util.isInteger(message.failures_count.low) && $util.isInteger(message.failures_count.high)))
+                            return "failures_count: integer|Long expected";
+                    if (message.update_state != null && $Object.hasOwnProperty.call(message, "update_state")) {
+                        let error = $root.renop.api.v1.UpdateState.verify(message.update_state, _depth + 1);
+                        if (error)
+                            return "update_state." + error;
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates an InstanceStatus message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.InstanceStatus} InstanceStatus
+                 */
+                InstanceStatus.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.InstanceStatus)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.InstanceStatus: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.InstanceStatus();
+                    if (object.version != null)
+                        if (typeof object.version !== "string" || object.version.length)
+                            message.version = $String(object.version);
+                    if (object.development != null)
+                        if (object.development)
+                            message.development = $Boolean(object.development);
+                    if (object.uptime != null)
+                        if (typeof object.uptime === "object" ? object.uptime.low || object.uptime.high : $Number(object.uptime) !== 0)
+                            if ($util.Long)
+                                message.uptime = $util.Long.fromValue(object.uptime, false);
+                            else if (typeof object.uptime === "string")
+                                message.uptime = $parseInt(object.uptime, 10);
+                            else if (typeof object.uptime === "number")
+                                message.uptime = object.uptime;
+                            else if (typeof object.uptime === "object")
+                                message.uptime = new $util.LongBits(object.uptime.low >>> 0, object.uptime.high >>> 0).toNumber();
+                    if (object.used_memory != null)
+                        if (typeof object.used_memory === "object" ? object.used_memory.low || object.used_memory.high : $Number(object.used_memory) !== 0)
+                            if ($util.Long)
+                                message.used_memory = $util.Long.fromValue(object.used_memory, true);
+                            else if (typeof object.used_memory === "string")
+                                message.used_memory = $parseInt(object.used_memory, 10);
+                            else if (typeof object.used_memory === "number")
+                                message.used_memory = object.used_memory;
+                            else if (typeof object.used_memory === "object")
+                                message.used_memory = new $util.LongBits(object.used_memory.low >>> 0, object.used_memory.high >>> 0).toNumber(true);
+                    if (object.total_memory != null)
+                        if (typeof object.total_memory === "object" ? object.total_memory.low || object.total_memory.high : $Number(object.total_memory) !== 0)
+                            if ($util.Long)
+                                message.total_memory = $util.Long.fromValue(object.total_memory, true);
+                            else if (typeof object.total_memory === "string")
+                                message.total_memory = $parseInt(object.total_memory, 10);
+                            else if (typeof object.total_memory === "number")
+                                message.total_memory = object.total_memory;
+                            else if (typeof object.total_memory === "object")
+                                message.total_memory = new $util.LongBits(object.total_memory.low >>> 0, object.total_memory.high >>> 0).toNumber(true);
+                    if (object.renop_used_disk != null)
+                        if (typeof object.renop_used_disk === "object" ? object.renop_used_disk.low || object.renop_used_disk.high : $Number(object.renop_used_disk) !== 0)
+                            if ($util.Long)
+                                message.renop_used_disk = $util.Long.fromValue(object.renop_used_disk, true);
+                            else if (typeof object.renop_used_disk === "string")
+                                message.renop_used_disk = $parseInt(object.renop_used_disk, 10);
+                            else if (typeof object.renop_used_disk === "number")
+                                message.renop_used_disk = object.renop_used_disk;
+                            else if (typeof object.renop_used_disk === "object")
+                                message.renop_used_disk = new $util.LongBits(object.renop_used_disk.low >>> 0, object.renop_used_disk.high >>> 0).toNumber(true);
+                    if (object.disk_used != null)
+                        if (typeof object.disk_used === "object" ? object.disk_used.low || object.disk_used.high : $Number(object.disk_used) !== 0)
+                            if ($util.Long)
+                                message.disk_used = $util.Long.fromValue(object.disk_used, true);
+                            else if (typeof object.disk_used === "string")
+                                message.disk_used = $parseInt(object.disk_used, 10);
+                            else if (typeof object.disk_used === "number")
+                                message.disk_used = object.disk_used;
+                            else if (typeof object.disk_used === "object")
+                                message.disk_used = new $util.LongBits(object.disk_used.low >>> 0, object.disk_used.high >>> 0).toNumber(true);
+                    if (object.disk_total != null)
+                        if (typeof object.disk_total === "object" ? object.disk_total.low || object.disk_total.high : $Number(object.disk_total) !== 0)
+                            if ($util.Long)
+                                message.disk_total = $util.Long.fromValue(object.disk_total, true);
+                            else if (typeof object.disk_total === "string")
+                                message.disk_total = $parseInt(object.disk_total, 10);
+                            else if (typeof object.disk_total === "number")
+                                message.disk_total = object.disk_total;
+                            else if (typeof object.disk_total === "object")
+                                message.disk_total = new $util.LongBits(object.disk_total.low >>> 0, object.disk_total.high >>> 0).toNumber(true);
+                    if (object.used_threads != null)
+                        if (typeof object.used_threads === "object" ? object.used_threads.low || object.used_threads.high : $Number(object.used_threads) !== 0)
+                            if ($util.Long)
+                                message.used_threads = $util.Long.fromValue(object.used_threads, true);
+                            else if (typeof object.used_threads === "string")
+                                message.used_threads = $parseInt(object.used_threads, 10);
+                            else if (typeof object.used_threads === "number")
+                                message.used_threads = object.used_threads;
+                            else if (typeof object.used_threads === "object")
+                                message.used_threads = new $util.LongBits(object.used_threads.low >>> 0, object.used_threads.high >>> 0).toNumber(true);
+                    if (object.available_threads != null)
+                        if (typeof object.available_threads === "object" ? object.available_threads.low || object.available_threads.high : $Number(object.available_threads) !== 0)
+                            if ($util.Long)
+                                message.available_threads = $util.Long.fromValue(object.available_threads, true);
+                            else if (typeof object.available_threads === "string")
+                                message.available_threads = $parseInt(object.available_threads, 10);
+                            else if (typeof object.available_threads === "number")
+                                message.available_threads = object.available_threads;
+                            else if (typeof object.available_threads === "object")
+                                message.available_threads = new $util.LongBits(object.available_threads.low >>> 0, object.available_threads.high >>> 0).toNumber(true);
+                    if (object.total_threads != null)
+                        if (typeof object.total_threads === "object" ? object.total_threads.low || object.total_threads.high : $Number(object.total_threads) !== 0)
+                            if ($util.Long)
+                                message.total_threads = $util.Long.fromValue(object.total_threads, true);
+                            else if (typeof object.total_threads === "string")
+                                message.total_threads = $parseInt(object.total_threads, 10);
+                            else if (typeof object.total_threads === "number")
+                                message.total_threads = object.total_threads;
+                            else if (typeof object.total_threads === "object")
+                                message.total_threads = new $util.LongBits(object.total_threads.low >>> 0, object.total_threads.high >>> 0).toNumber(true);
+                    if (object.architecture != null)
+                        if (typeof object.architecture !== "string" || object.architecture.length)
+                            message.architecture = $String(object.architecture);
+                    if (object.os != null)
+                        if (typeof object.os !== "string" || object.os.length)
+                            message.os = $String(object.os);
+                    if (object.logical_cores != null)
+                        if ($Number(object.logical_cores) !== 0)
+                            message.logical_cores = object.logical_cores | 0;
+                    if (object.physical_cores != null)
+                        if ($Number(object.physical_cores) !== 0)
+                            message.physical_cores = object.physical_cores | 0;
+                    if (object.failures_count != null)
+                        if (typeof object.failures_count === "object" ? object.failures_count.low || object.failures_count.high : $Number(object.failures_count) !== 0)
+                            if ($util.Long)
+                                message.failures_count = $util.Long.fromValue(object.failures_count, true);
+                            else if (typeof object.failures_count === "string")
+                                message.failures_count = $parseInt(object.failures_count, 10);
+                            else if (typeof object.failures_count === "number")
+                                message.failures_count = object.failures_count;
+                            else if (typeof object.failures_count === "object")
+                                message.failures_count = new $util.LongBits(object.failures_count.low >>> 0, object.failures_count.high >>> 0).toNumber(true);
+                    if (object.update_state != null) {
+                        if (!$util.isObject(object.update_state))
+                            throw $TypeError(".renop.api.v1.InstanceStatus.update_state: object expected");
+                        message.update_state = $root.renop.api.v1.UpdateState.fromObject(object.update_state, _depth + 1);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an InstanceStatus message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {renop.api.v1.InstanceStatus} message InstanceStatus
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                InstanceStatus.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.version = "";
+                        object.development = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.uptime = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.uptime = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.used_memory = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.used_memory = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.total_memory = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.total_memory = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.renop_used_disk = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.renop_used_disk = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.disk_used = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.disk_used = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.disk_total = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.disk_total = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.used_threads = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.used_threads = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.available_threads = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.available_threads = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.total_threads = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.total_threads = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.architecture = "";
+                        object.os = "";
+                        object.logical_cores = 0;
+                        object.physical_cores = 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.failures_count = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.failures_count = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.update_state = null;
+                    }
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
+                        object.version = message.version;
+                    if (message.development != null && $Object.hasOwnProperty.call(message, "development"))
+                        object.development = message.development;
+                    if (message.uptime != null && $Object.hasOwnProperty.call(message, "uptime"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.uptime = typeof message.uptime === "number" ? $BigInt(message.uptime) : $util.Long.fromBits(message.uptime.low >>> 0, message.uptime.high >>> 0, false).toBigInt();
+                        else if (typeof message.uptime === "number")
+                            object.uptime = options.longs === $String ? $String(message.uptime) : message.uptime;
+                        else
+                            object.uptime = options.longs === $String ? $util.Long.prototype.toString.call(message.uptime) : options.longs === $Number ? new $util.LongBits(message.uptime.low >>> 0, message.uptime.high >>> 0).toNumber() : message.uptime;
+                    if (message.used_memory != null && $Object.hasOwnProperty.call(message, "used_memory"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.used_memory = typeof message.used_memory === "number" ? $BigInt(message.used_memory) : $util.Long.fromBits(message.used_memory.low >>> 0, message.used_memory.high >>> 0, true).toBigInt();
+                        else if (typeof message.used_memory === "number")
+                            object.used_memory = options.longs === $String ? $String(message.used_memory) : message.used_memory;
+                        else
+                            object.used_memory = options.longs === $String ? $util.Long.prototype.toString.call(message.used_memory) : options.longs === $Number ? new $util.LongBits(message.used_memory.low >>> 0, message.used_memory.high >>> 0).toNumber(true) : message.used_memory;
+                    if (message.total_memory != null && $Object.hasOwnProperty.call(message, "total_memory"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.total_memory = typeof message.total_memory === "number" ? $BigInt(message.total_memory) : $util.Long.fromBits(message.total_memory.low >>> 0, message.total_memory.high >>> 0, true).toBigInt();
+                        else if (typeof message.total_memory === "number")
+                            object.total_memory = options.longs === $String ? $String(message.total_memory) : message.total_memory;
+                        else
+                            object.total_memory = options.longs === $String ? $util.Long.prototype.toString.call(message.total_memory) : options.longs === $Number ? new $util.LongBits(message.total_memory.low >>> 0, message.total_memory.high >>> 0).toNumber(true) : message.total_memory;
+                    if (message.renop_used_disk != null && $Object.hasOwnProperty.call(message, "renop_used_disk"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.renop_used_disk = typeof message.renop_used_disk === "number" ? $BigInt(message.renop_used_disk) : $util.Long.fromBits(message.renop_used_disk.low >>> 0, message.renop_used_disk.high >>> 0, true).toBigInt();
+                        else if (typeof message.renop_used_disk === "number")
+                            object.renop_used_disk = options.longs === $String ? $String(message.renop_used_disk) : message.renop_used_disk;
+                        else
+                            object.renop_used_disk = options.longs === $String ? $util.Long.prototype.toString.call(message.renop_used_disk) : options.longs === $Number ? new $util.LongBits(message.renop_used_disk.low >>> 0, message.renop_used_disk.high >>> 0).toNumber(true) : message.renop_used_disk;
+                    if (message.disk_used != null && $Object.hasOwnProperty.call(message, "disk_used"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.disk_used = typeof message.disk_used === "number" ? $BigInt(message.disk_used) : $util.Long.fromBits(message.disk_used.low >>> 0, message.disk_used.high >>> 0, true).toBigInt();
+                        else if (typeof message.disk_used === "number")
+                            object.disk_used = options.longs === $String ? $String(message.disk_used) : message.disk_used;
+                        else
+                            object.disk_used = options.longs === $String ? $util.Long.prototype.toString.call(message.disk_used) : options.longs === $Number ? new $util.LongBits(message.disk_used.low >>> 0, message.disk_used.high >>> 0).toNumber(true) : message.disk_used;
+                    if (message.disk_total != null && $Object.hasOwnProperty.call(message, "disk_total"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.disk_total = typeof message.disk_total === "number" ? $BigInt(message.disk_total) : $util.Long.fromBits(message.disk_total.low >>> 0, message.disk_total.high >>> 0, true).toBigInt();
+                        else if (typeof message.disk_total === "number")
+                            object.disk_total = options.longs === $String ? $String(message.disk_total) : message.disk_total;
+                        else
+                            object.disk_total = options.longs === $String ? $util.Long.prototype.toString.call(message.disk_total) : options.longs === $Number ? new $util.LongBits(message.disk_total.low >>> 0, message.disk_total.high >>> 0).toNumber(true) : message.disk_total;
+                    if (message.used_threads != null && $Object.hasOwnProperty.call(message, "used_threads"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.used_threads = typeof message.used_threads === "number" ? $BigInt(message.used_threads) : $util.Long.fromBits(message.used_threads.low >>> 0, message.used_threads.high >>> 0, true).toBigInt();
+                        else if (typeof message.used_threads === "number")
+                            object.used_threads = options.longs === $String ? $String(message.used_threads) : message.used_threads;
+                        else
+                            object.used_threads = options.longs === $String ? $util.Long.prototype.toString.call(message.used_threads) : options.longs === $Number ? new $util.LongBits(message.used_threads.low >>> 0, message.used_threads.high >>> 0).toNumber(true) : message.used_threads;
+                    if (message.available_threads != null && $Object.hasOwnProperty.call(message, "available_threads"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.available_threads = typeof message.available_threads === "number" ? $BigInt(message.available_threads) : $util.Long.fromBits(message.available_threads.low >>> 0, message.available_threads.high >>> 0, true).toBigInt();
+                        else if (typeof message.available_threads === "number")
+                            object.available_threads = options.longs === $String ? $String(message.available_threads) : message.available_threads;
+                        else
+                            object.available_threads = options.longs === $String ? $util.Long.prototype.toString.call(message.available_threads) : options.longs === $Number ? new $util.LongBits(message.available_threads.low >>> 0, message.available_threads.high >>> 0).toNumber(true) : message.available_threads;
+                    if (message.total_threads != null && $Object.hasOwnProperty.call(message, "total_threads"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.total_threads = typeof message.total_threads === "number" ? $BigInt(message.total_threads) : $util.Long.fromBits(message.total_threads.low >>> 0, message.total_threads.high >>> 0, true).toBigInt();
+                        else if (typeof message.total_threads === "number")
+                            object.total_threads = options.longs === $String ? $String(message.total_threads) : message.total_threads;
+                        else
+                            object.total_threads = options.longs === $String ? $util.Long.prototype.toString.call(message.total_threads) : options.longs === $Number ? new $util.LongBits(message.total_threads.low >>> 0, message.total_threads.high >>> 0).toNumber(true) : message.total_threads;
+                    if (message.architecture != null && $Object.hasOwnProperty.call(message, "architecture"))
+                        object.architecture = message.architecture;
+                    if (message.os != null && $Object.hasOwnProperty.call(message, "os"))
+                        object.os = message.os;
+                    if (message.logical_cores != null && $Object.hasOwnProperty.call(message, "logical_cores"))
+                        object.logical_cores = message.logical_cores;
+                    if (message.physical_cores != null && $Object.hasOwnProperty.call(message, "physical_cores"))
+                        object.physical_cores = message.physical_cores;
+                    if (message.failures_count != null && $Object.hasOwnProperty.call(message, "failures_count"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.failures_count = typeof message.failures_count === "number" ? $BigInt(message.failures_count) : $util.Long.fromBits(message.failures_count.low >>> 0, message.failures_count.high >>> 0, true).toBigInt();
+                        else if (typeof message.failures_count === "number")
+                            object.failures_count = options.longs === $String ? $String(message.failures_count) : message.failures_count;
+                        else
+                            object.failures_count = options.longs === $String ? $util.Long.prototype.toString.call(message.failures_count) : options.longs === $Number ? new $util.LongBits(message.failures_count.low >>> 0, message.failures_count.high >>> 0).toNumber(true) : message.failures_count;
+                    if (message.update_state != null && $Object.hasOwnProperty.call(message, "update_state"))
+                        object.update_state = $root.renop.api.v1.UpdateState.toObject(message.update_state, options, _depth + 1);
+                    return object;
+                };
+
+                /**
+                 * Converts this InstanceStatus to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                InstanceStatus.prototype.toJSON = function() {
+                    return InstanceStatus.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for InstanceStatus
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                InstanceStatus.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.InstanceStatus";
+                };
+
+                return InstanceStatus;
+            })();
+
+            v1.StatusSnapshot = (function() {
+
+                /**
+                 * Properties of a StatusSnapshot.
+                 * @typedef {Object} renop.api.v1.StatusSnapshot.$Properties
+                 * @property {number|Long|null} [timestamp] StatusSnapshot timestamp
+                 * @property {number|Long|null} [used_memory] StatusSnapshot used_memory
+                 * @property {number|Long|null} [used_threads] StatusSnapshot used_threads
+                 * @property {number|Long|null} [open_files] StatusSnapshot open_files
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a StatusSnapshot.
+                 * @memberof renop.api.v1
+                 * @interface IStatusSnapshot
+                 * @augments renop.api.v1.StatusSnapshot.$Properties
+                 * @deprecated Use renop.api.v1.StatusSnapshot.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a StatusSnapshot.
+                 * @typedef {renop.api.v1.StatusSnapshot.$Properties} renop.api.v1.StatusSnapshot.$Shape
+                 */
+
+                /**
+                 * Constructs a new StatusSnapshot.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a StatusSnapshot.
+                 * @constructor
+                 * @param {renop.api.v1.StatusSnapshot.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const StatusSnapshot = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * StatusSnapshot timestamp.
+                 * @member {number|Long} timestamp
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @instance
+                 */
+                StatusSnapshot.prototype.timestamp = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * StatusSnapshot used_memory.
+                 * @member {number|Long} used_memory
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @instance
+                 */
+                StatusSnapshot.prototype.used_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * StatusSnapshot used_threads.
+                 * @member {number|Long} used_threads
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @instance
+                 */
+                StatusSnapshot.prototype.used_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * StatusSnapshot open_files.
+                 * @member {number|Long} open_files
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @instance
+                 */
+                StatusSnapshot.prototype.open_files = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * Creates a new StatusSnapshot instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshot.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.StatusSnapshot} StatusSnapshot instance
+                 * @type {{
+                 *   (properties: renop.api.v1.StatusSnapshot.$Shape): renop.api.v1.StatusSnapshot & renop.api.v1.StatusSnapshot.$Shape;
+                 *   (properties?: renop.api.v1.StatusSnapshot.$Properties): renop.api.v1.StatusSnapshot;
+                 * }}
+                 */
+                StatusSnapshot.create = function(properties) {
+                    return new StatusSnapshot(properties);
+                };
+
+                /**
+                 * Encodes the specified StatusSnapshot message. Does not implicitly {@link renop.api.v1.StatusSnapshot.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshot.$Properties} message StatusSnapshot message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StatusSnapshot.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.timestamp != null && $Object.hasOwnProperty.call(message, "timestamp") && (typeof message.timestamp === "object" ? message.timestamp.low || message.timestamp.high : message.timestamp !== 0))
+                        writer.uint32(/* id 1, wireType 0 =*/8).int64(message.timestamp);
+                    if (message.used_memory != null && $Object.hasOwnProperty.call(message, "used_memory") && (typeof message.used_memory === "object" ? message.used_memory.low || message.used_memory.high : message.used_memory !== 0))
+                        writer.uint32(/* id 2, wireType 0 =*/16).uint64(message.used_memory);
+                    if (message.used_threads != null && $Object.hasOwnProperty.call(message, "used_threads") && (typeof message.used_threads === "object" ? message.used_threads.low || message.used_threads.high : message.used_threads !== 0))
+                        writer.uint32(/* id 3, wireType 0 =*/24).uint64(message.used_threads);
+                    if (message.open_files != null && $Object.hasOwnProperty.call(message, "open_files") && (typeof message.open_files === "object" ? message.open_files.low || message.open_files.high : message.open_files !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).uint64(message.open_files);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified StatusSnapshot message, length delimited. Does not implicitly {@link renop.api.v1.StatusSnapshot.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshot.$Properties} message StatusSnapshot message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StatusSnapshot.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a StatusSnapshot message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.StatusSnapshot & renop.api.v1.StatusSnapshot.$Shape} StatusSnapshot
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StatusSnapshot.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StatusSnapshot(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.timestamp = value;
+                                else
+                                    delete message.timestamp;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.used_memory = value;
+                                else
+                                    delete message.used_memory;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.used_threads = value;
+                                else
+                                    delete message.used_threads;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.open_files = value;
+                                else
+                                    delete message.open_files;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a StatusSnapshot message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.StatusSnapshot & renop.api.v1.StatusSnapshot.$Shape} StatusSnapshot
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StatusSnapshot.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a StatusSnapshot message.
+                 * @function verify
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                StatusSnapshot.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.timestamp != null && $Object.hasOwnProperty.call(message, "timestamp"))
+                        if (!$util.isInteger(message.timestamp) && !(message.timestamp && $util.isInteger(message.timestamp.low) && $util.isInteger(message.timestamp.high)))
+                            return "timestamp: integer|Long expected";
+                    if (message.used_memory != null && $Object.hasOwnProperty.call(message, "used_memory"))
+                        if (!$util.isInteger(message.used_memory) && !(message.used_memory && $util.isInteger(message.used_memory.low) && $util.isInteger(message.used_memory.high)))
+                            return "used_memory: integer|Long expected";
+                    if (message.used_threads != null && $Object.hasOwnProperty.call(message, "used_threads"))
+                        if (!$util.isInteger(message.used_threads) && !(message.used_threads && $util.isInteger(message.used_threads.low) && $util.isInteger(message.used_threads.high)))
+                            return "used_threads: integer|Long expected";
+                    if (message.open_files != null && $Object.hasOwnProperty.call(message, "open_files"))
+                        if (!$util.isInteger(message.open_files) && !(message.open_files && $util.isInteger(message.open_files.low) && $util.isInteger(message.open_files.high)))
+                            return "open_files: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a StatusSnapshot message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.StatusSnapshot} StatusSnapshot
+                 */
+                StatusSnapshot.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.StatusSnapshot)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.StatusSnapshot: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.StatusSnapshot();
+                    if (object.timestamp != null)
+                        if (typeof object.timestamp === "object" ? object.timestamp.low || object.timestamp.high : $Number(object.timestamp) !== 0)
+                            if ($util.Long)
+                                message.timestamp = $util.Long.fromValue(object.timestamp, false);
+                            else if (typeof object.timestamp === "string")
+                                message.timestamp = $parseInt(object.timestamp, 10);
+                            else if (typeof object.timestamp === "number")
+                                message.timestamp = object.timestamp;
+                            else if (typeof object.timestamp === "object")
+                                message.timestamp = new $util.LongBits(object.timestamp.low >>> 0, object.timestamp.high >>> 0).toNumber();
+                    if (object.used_memory != null)
+                        if (typeof object.used_memory === "object" ? object.used_memory.low || object.used_memory.high : $Number(object.used_memory) !== 0)
+                            if ($util.Long)
+                                message.used_memory = $util.Long.fromValue(object.used_memory, true);
+                            else if (typeof object.used_memory === "string")
+                                message.used_memory = $parseInt(object.used_memory, 10);
+                            else if (typeof object.used_memory === "number")
+                                message.used_memory = object.used_memory;
+                            else if (typeof object.used_memory === "object")
+                                message.used_memory = new $util.LongBits(object.used_memory.low >>> 0, object.used_memory.high >>> 0).toNumber(true);
+                    if (object.used_threads != null)
+                        if (typeof object.used_threads === "object" ? object.used_threads.low || object.used_threads.high : $Number(object.used_threads) !== 0)
+                            if ($util.Long)
+                                message.used_threads = $util.Long.fromValue(object.used_threads, true);
+                            else if (typeof object.used_threads === "string")
+                                message.used_threads = $parseInt(object.used_threads, 10);
+                            else if (typeof object.used_threads === "number")
+                                message.used_threads = object.used_threads;
+                            else if (typeof object.used_threads === "object")
+                                message.used_threads = new $util.LongBits(object.used_threads.low >>> 0, object.used_threads.high >>> 0).toNumber(true);
+                    if (object.open_files != null)
+                        if (typeof object.open_files === "object" ? object.open_files.low || object.open_files.high : $Number(object.open_files) !== 0)
+                            if ($util.Long)
+                                message.open_files = $util.Long.fromValue(object.open_files, true);
+                            else if (typeof object.open_files === "string")
+                                message.open_files = $parseInt(object.open_files, 10);
+                            else if (typeof object.open_files === "number")
+                                message.open_files = object.open_files;
+                            else if (typeof object.open_files === "object")
+                                message.open_files = new $util.LongBits(object.open_files.low >>> 0, object.open_files.high >>> 0).toNumber(true);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a StatusSnapshot message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshot} message StatusSnapshot
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                StatusSnapshot.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.timestamp = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.timestamp = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.used_memory = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.used_memory = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.used_threads = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.used_threads = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.open_files = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.open_files = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.timestamp != null && $Object.hasOwnProperty.call(message, "timestamp"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.timestamp = typeof message.timestamp === "number" ? $BigInt(message.timestamp) : $util.Long.fromBits(message.timestamp.low >>> 0, message.timestamp.high >>> 0, false).toBigInt();
+                        else if (typeof message.timestamp === "number")
+                            object.timestamp = options.longs === $String ? $String(message.timestamp) : message.timestamp;
+                        else
+                            object.timestamp = options.longs === $String ? $util.Long.prototype.toString.call(message.timestamp) : options.longs === $Number ? new $util.LongBits(message.timestamp.low >>> 0, message.timestamp.high >>> 0).toNumber() : message.timestamp;
+                    if (message.used_memory != null && $Object.hasOwnProperty.call(message, "used_memory"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.used_memory = typeof message.used_memory === "number" ? $BigInt(message.used_memory) : $util.Long.fromBits(message.used_memory.low >>> 0, message.used_memory.high >>> 0, true).toBigInt();
+                        else if (typeof message.used_memory === "number")
+                            object.used_memory = options.longs === $String ? $String(message.used_memory) : message.used_memory;
+                        else
+                            object.used_memory = options.longs === $String ? $util.Long.prototype.toString.call(message.used_memory) : options.longs === $Number ? new $util.LongBits(message.used_memory.low >>> 0, message.used_memory.high >>> 0).toNumber(true) : message.used_memory;
+                    if (message.used_threads != null && $Object.hasOwnProperty.call(message, "used_threads"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.used_threads = typeof message.used_threads === "number" ? $BigInt(message.used_threads) : $util.Long.fromBits(message.used_threads.low >>> 0, message.used_threads.high >>> 0, true).toBigInt();
+                        else if (typeof message.used_threads === "number")
+                            object.used_threads = options.longs === $String ? $String(message.used_threads) : message.used_threads;
+                        else
+                            object.used_threads = options.longs === $String ? $util.Long.prototype.toString.call(message.used_threads) : options.longs === $Number ? new $util.LongBits(message.used_threads.low >>> 0, message.used_threads.high >>> 0).toNumber(true) : message.used_threads;
+                    if (message.open_files != null && $Object.hasOwnProperty.call(message, "open_files"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.open_files = typeof message.open_files === "number" ? $BigInt(message.open_files) : $util.Long.fromBits(message.open_files.low >>> 0, message.open_files.high >>> 0, true).toBigInt();
+                        else if (typeof message.open_files === "number")
+                            object.open_files = options.longs === $String ? $String(message.open_files) : message.open_files;
+                        else
+                            object.open_files = options.longs === $String ? $util.Long.prototype.toString.call(message.open_files) : options.longs === $Number ? new $util.LongBits(message.open_files.low >>> 0, message.open_files.high >>> 0).toNumber(true) : message.open_files;
+                    return object;
+                };
+
+                /**
+                 * Converts this StatusSnapshot to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                StatusSnapshot.prototype.toJSON = function() {
+                    return StatusSnapshot.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for StatusSnapshot
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                StatusSnapshot.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.StatusSnapshot";
+                };
+
+                return StatusSnapshot;
+            })();
+
+            v1.StatusSnapshotList = (function() {
+
+                /**
+                 * Properties of a StatusSnapshotList.
+                 * @typedef {Object} renop.api.v1.StatusSnapshotList.$Properties
+                 * @property {Array.<renop.api.v1.StatusSnapshot.$Properties>|null} [snapshots] StatusSnapshotList snapshots
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a StatusSnapshotList.
+                 * @memberof renop.api.v1
+                 * @interface IStatusSnapshotList
+                 * @augments renop.api.v1.StatusSnapshotList.$Properties
+                 * @deprecated Use renop.api.v1.StatusSnapshotList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a StatusSnapshotList.
+                 * @typedef {renop.api.v1.StatusSnapshotList.$Properties} renop.api.v1.StatusSnapshotList.$Shape
+                 */
+
+                /**
+                 * Constructs a new StatusSnapshotList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a StatusSnapshotList.
+                 * @constructor
+                 * @param {renop.api.v1.StatusSnapshotList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const StatusSnapshotList = function (properties) {
+                    this.snapshots = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * StatusSnapshotList snapshots.
+                 * @member {Array.<renop.api.v1.StatusSnapshot.$Properties>} snapshots
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @instance
+                 */
+                StatusSnapshotList.prototype.snapshots = $util.emptyArray;
+
+                /**
+                 * Creates a new StatusSnapshotList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshotList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.StatusSnapshotList} StatusSnapshotList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.StatusSnapshotList.$Shape): renop.api.v1.StatusSnapshotList & renop.api.v1.StatusSnapshotList.$Shape;
+                 *   (properties?: renop.api.v1.StatusSnapshotList.$Properties): renop.api.v1.StatusSnapshotList;
+                 * }}
+                 */
+                StatusSnapshotList.create = function(properties) {
+                    return new StatusSnapshotList(properties);
+                };
+
+                /**
+                 * Encodes the specified StatusSnapshotList message. Does not implicitly {@link renop.api.v1.StatusSnapshotList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshotList.$Properties} message StatusSnapshotList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StatusSnapshotList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.snapshots != null && message.snapshots.length)
+                        for (let i = 0; i < message.snapshots.length; ++i)
+                            $root.renop.api.v1.StatusSnapshot.encode(message.snapshots[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified StatusSnapshotList message, length delimited. Does not implicitly {@link renop.api.v1.StatusSnapshotList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshotList.$Properties} message StatusSnapshotList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StatusSnapshotList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a StatusSnapshotList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.StatusSnapshotList & renop.api.v1.StatusSnapshotList.$Shape} StatusSnapshotList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StatusSnapshotList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StatusSnapshotList();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.snapshots && message.snapshots.length))
+                                    message.snapshots = [];
+                                message.snapshots.push($root.renop.api.v1.StatusSnapshot.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a StatusSnapshotList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.StatusSnapshotList & renop.api.v1.StatusSnapshotList.$Shape} StatusSnapshotList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StatusSnapshotList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a StatusSnapshotList message.
+                 * @function verify
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                StatusSnapshotList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.snapshots != null && $Object.hasOwnProperty.call(message, "snapshots")) {
+                        if (!$Array.isArray(message.snapshots))
+                            return "snapshots: array expected";
+                        for (let i = 0; i < message.snapshots.length; ++i) {
+                            let error = $root.renop.api.v1.StatusSnapshot.verify(message.snapshots[i], _depth + 1);
+                            if (error)
+                                return "snapshots." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a StatusSnapshotList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.StatusSnapshotList} StatusSnapshotList
+                 */
+                StatusSnapshotList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.StatusSnapshotList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.StatusSnapshotList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.StatusSnapshotList();
+                    if (object.snapshots) {
+                        if (!$Array.isArray(object.snapshots))
+                            throw $TypeError(".renop.api.v1.StatusSnapshotList.snapshots: array expected");
+                        message.snapshots = $Array(object.snapshots.length);
+                        for (let i = 0; i < object.snapshots.length; ++i) {
+                            if (!$util.isObject(object.snapshots[i]))
+                                throw $TypeError(".renop.api.v1.StatusSnapshotList.snapshots: object expected");
+                            message.snapshots[i] = $root.renop.api.v1.StatusSnapshot.fromObject(object.snapshots[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a StatusSnapshotList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {renop.api.v1.StatusSnapshotList} message StatusSnapshotList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                StatusSnapshotList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.snapshots = [];
+                    if (message.snapshots && message.snapshots.length) {
+                        object.snapshots = $Array(message.snapshots.length);
+                        for (let j = 0; j < message.snapshots.length; ++j)
+                            object.snapshots[j] = $root.renop.api.v1.StatusSnapshot.toObject(message.snapshots[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this StatusSnapshotList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                StatusSnapshotList.prototype.toJSON = function() {
+                    return StatusSnapshotList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for StatusSnapshotList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.StatusSnapshotList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                StatusSnapshotList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.StatusSnapshotList";
+                };
+
+                return StatusSnapshotList;
+            })();
+
+            v1.MirrorCredentials = (function() {
+
+                /**
+                 * Properties of a MirrorCredentials.
+                 * @typedef {Object} renop.api.v1.MirrorCredentials.$Properties
+                 * @property {string|null} [method] MirrorCredentials method
+                 * @property {string|null} [login] MirrorCredentials login
+                 * @property {string|null} [password] MirrorCredentials password
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a MirrorCredentials.
+                 * @memberof renop.api.v1
+                 * @interface IMirrorCredentials
+                 * @augments renop.api.v1.MirrorCredentials.$Properties
+                 * @deprecated Use renop.api.v1.MirrorCredentials.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a MirrorCredentials.
+                 * @typedef {renop.api.v1.MirrorCredentials.$Properties} renop.api.v1.MirrorCredentials.$Shape
+                 */
+
+                /**
+                 * Constructs a new MirrorCredentials.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a MirrorCredentials.
+                 * @constructor
+                 * @param {renop.api.v1.MirrorCredentials.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const MirrorCredentials = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * MirrorCredentials method.
+                 * @member {string} method
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @instance
+                 */
+                MirrorCredentials.prototype.method = "";
+
+                /**
+                 * MirrorCredentials login.
+                 * @member {string} login
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @instance
+                 */
+                MirrorCredentials.prototype.login = "";
+
+                /**
+                 * MirrorCredentials password.
+                 * @member {string} password
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @instance
+                 */
+                MirrorCredentials.prototype.password = "";
+
+                /**
+                 * Creates a new MirrorCredentials instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {renop.api.v1.MirrorCredentials.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.MirrorCredentials} MirrorCredentials instance
+                 * @type {{
+                 *   (properties: renop.api.v1.MirrorCredentials.$Shape): renop.api.v1.MirrorCredentials & renop.api.v1.MirrorCredentials.$Shape;
+                 *   (properties?: renop.api.v1.MirrorCredentials.$Properties): renop.api.v1.MirrorCredentials;
+                 * }}
+                 */
+                MirrorCredentials.create = function(properties) {
+                    return new MirrorCredentials(properties);
+                };
+
+                /**
+                 * Encodes the specified MirrorCredentials message. Does not implicitly {@link renop.api.v1.MirrorCredentials.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {renop.api.v1.MirrorCredentials.$Properties} message MirrorCredentials message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MirrorCredentials.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.method != null && $Object.hasOwnProperty.call(message, "method") && message.method !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.method);
+                    if (message.login != null && $Object.hasOwnProperty.call(message, "login") && message.login !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.login);
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password") && message.password !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.password);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified MirrorCredentials message, length delimited. Does not implicitly {@link renop.api.v1.MirrorCredentials.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {renop.api.v1.MirrorCredentials.$Properties} message MirrorCredentials message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MirrorCredentials.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a MirrorCredentials message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.MirrorCredentials & renop.api.v1.MirrorCredentials.$Shape} MirrorCredentials
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MirrorCredentials.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MirrorCredentials(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.method = value;
+                                else
+                                    delete message.method;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.login = value;
+                                else
+                                    delete message.login;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.password = value;
+                                else
+                                    delete message.password;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a MirrorCredentials message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.MirrorCredentials & renop.api.v1.MirrorCredentials.$Shape} MirrorCredentials
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MirrorCredentials.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a MirrorCredentials message.
+                 * @function verify
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                MirrorCredentials.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.method != null && $Object.hasOwnProperty.call(message, "method"))
+                        if (!$util.isString(message.method))
+                            return "method: string expected";
+                    if (message.login != null && $Object.hasOwnProperty.call(message, "login"))
+                        if (!$util.isString(message.login))
+                            return "login: string expected";
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password"))
+                        if (!$util.isString(message.password))
+                            return "password: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a MirrorCredentials message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.MirrorCredentials} MirrorCredentials
+                 */
+                MirrorCredentials.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.MirrorCredentials)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.MirrorCredentials: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.MirrorCredentials();
+                    if (object.method != null)
+                        if (typeof object.method !== "string" || object.method.length)
+                            message.method = $String(object.method);
+                    if (object.login != null)
+                        if (typeof object.login !== "string" || object.login.length)
+                            message.login = $String(object.login);
+                    if (object.password != null)
+                        if (typeof object.password !== "string" || object.password.length)
+                            message.password = $String(object.password);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a MirrorCredentials message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {renop.api.v1.MirrorCredentials} message MirrorCredentials
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                MirrorCredentials.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.method = "";
+                        object.login = "";
+                        object.password = "";
+                    }
+                    if (message.method != null && $Object.hasOwnProperty.call(message, "method"))
+                        object.method = message.method;
+                    if (message.login != null && $Object.hasOwnProperty.call(message, "login"))
+                        object.login = message.login;
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password"))
+                        object.password = message.password;
+                    return object;
+                };
+
+                /**
+                 * Converts this MirrorCredentials to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                MirrorCredentials.prototype.toJSON = function() {
+                    return MirrorCredentials.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for MirrorCredentials
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.MirrorCredentials
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                MirrorCredentials.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.MirrorCredentials";
+                };
+
+                return MirrorCredentials;
+            })();
+
+            v1.Mirror = (function() {
+
+                /**
+                 * Properties of a Mirror.
+                 * @typedef {Object} renop.api.v1.Mirror.$Properties
+                 * @property {string|null} [name] Mirror name
+                 * @property {string|null} [url] Mirror url
+                 * @property {boolean|null} [persist] Mirror persist
+                 * @property {number|Long|null} [cache_ttl_secs] Mirror cache_ttl_secs
+                 * @property {boolean|null} [negative_cache] Mirror negative_cache
+                 * @property {number|Long|null} [timeout_secs] Mirror timeout_secs
+                 * @property {renop.api.v1.MirrorCredentials.$Properties|null} [authorization] Mirror authorization
+                 * @property {string|null} [enabled_date] Mirror enabled_date
+                 * @property {Array.<string>|null} [allow_artifacts] Mirror allow_artifacts
+                 * @property {Array.<string>|null} [deny_artifacts] Mirror deny_artifacts
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a Mirror.
+                 * @memberof renop.api.v1
+                 * @interface IMirror
+                 * @augments renop.api.v1.Mirror.$Properties
+                 * @deprecated Use renop.api.v1.Mirror.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a Mirror.
+                 * @typedef {renop.api.v1.Mirror.$Properties} renop.api.v1.Mirror.$Shape
+                 */
+
+                /**
+                 * Constructs a new Mirror.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a Mirror.
+                 * @constructor
+                 * @param {renop.api.v1.Mirror.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const Mirror = function (properties) {
+                    this.allow_artifacts = [];
+                    this.deny_artifacts = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * Mirror name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.name = "";
+
+                /**
+                 * Mirror url.
+                 * @member {string} url
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.url = "";
+
+                /**
+                 * Mirror persist.
+                 * @member {boolean} persist
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.persist = false;
+
+                /**
+                 * Mirror cache_ttl_secs.
+                 * @member {number|Long} cache_ttl_secs
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.cache_ttl_secs = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * Mirror negative_cache.
+                 * @member {boolean} negative_cache
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.negative_cache = false;
+
+                /**
+                 * Mirror timeout_secs.
+                 * @member {number|Long} timeout_secs
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.timeout_secs = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * Mirror authorization.
+                 * @member {renop.api.v1.MirrorCredentials.$Properties|null|undefined} authorization
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.authorization = null;
+
+                /**
+                 * Mirror enabled_date.
+                 * @member {string} enabled_date
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.enabled_date = "";
+
+                /**
+                 * Mirror allow_artifacts.
+                 * @member {Array.<string>} allow_artifacts
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.allow_artifacts = $util.emptyArray;
+
+                /**
+                 * Mirror deny_artifacts.
+                 * @member {Array.<string>} deny_artifacts
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.deny_artifacts = $util.emptyArray;
+
+                /**
+                 * Creates a new Mirror instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {renop.api.v1.Mirror.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.Mirror} Mirror instance
+                 * @type {{
+                 *   (properties: renop.api.v1.Mirror.$Shape): renop.api.v1.Mirror & renop.api.v1.Mirror.$Shape;
+                 *   (properties?: renop.api.v1.Mirror.$Properties): renop.api.v1.Mirror;
+                 * }}
+                 */
+                Mirror.create = function(properties) {
+                    return new Mirror(properties);
+                };
+
+                /**
+                 * Encodes the specified Mirror message. Does not implicitly {@link renop.api.v1.Mirror.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {renop.api.v1.Mirror.$Properties} message Mirror message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Mirror.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url") && message.url !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.url);
+                    if (message.persist != null && $Object.hasOwnProperty.call(message, "persist") && message.persist !== false)
+                        writer.uint32(/* id 3, wireType 0 =*/24).bool(message.persist);
+                    if (message.cache_ttl_secs != null && $Object.hasOwnProperty.call(message, "cache_ttl_secs") && (typeof message.cache_ttl_secs === "object" ? message.cache_ttl_secs.low || message.cache_ttl_secs.high : message.cache_ttl_secs !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).uint64(message.cache_ttl_secs);
+                    if (message.negative_cache != null && $Object.hasOwnProperty.call(message, "negative_cache") && message.negative_cache !== false)
+                        writer.uint32(/* id 5, wireType 0 =*/40).bool(message.negative_cache);
+                    if (message.timeout_secs != null && $Object.hasOwnProperty.call(message, "timeout_secs") && (typeof message.timeout_secs === "object" ? message.timeout_secs.low || message.timeout_secs.high : message.timeout_secs !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).uint64(message.timeout_secs);
+                    if (message.authorization != null && $Object.hasOwnProperty.call(message, "authorization"))
+                        $root.renop.api.v1.MirrorCredentials.encode(message.authorization, writer.uint32(/* id 7, wireType 2 =*/58).fork(), _depth + 1).ldelim();
+                    if (message.enabled_date != null && $Object.hasOwnProperty.call(message, "enabled_date") && message.enabled_date !== "")
+                        writer.uint32(/* id 8, wireType 2 =*/66).string(message.enabled_date);
+                    if (message.allow_artifacts != null && message.allow_artifacts.length)
+                        for (let i = 0; i < message.allow_artifacts.length; ++i)
+                            writer.uint32(/* id 9, wireType 2 =*/74).string(message.allow_artifacts[i]);
+                    if (message.deny_artifacts != null && message.deny_artifacts.length)
+                        for (let i = 0; i < message.deny_artifacts.length; ++i)
+                            writer.uint32(/* id 10, wireType 2 =*/82).string(message.deny_artifacts[i]);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified Mirror message, length delimited. Does not implicitly {@link renop.api.v1.Mirror.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {renop.api.v1.Mirror.$Properties} message Mirror message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Mirror.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a Mirror message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.Mirror & renop.api.v1.Mirror.$Shape} Mirror
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Mirror.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.Mirror(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.url = value;
+                                else
+                                    delete message.url;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.persist = value;
+                                else
+                                    delete message.persist;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.cache_ttl_secs = value;
+                                else
+                                    delete message.cache_ttl_secs;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.negative_cache = value;
+                                else
+                                    delete message.negative_cache;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.timeout_secs = value;
+                                else
+                                    delete message.timeout_secs;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 2)
+                                    break;
+                                message.authorization = $root.renop.api.v1.MirrorCredentials.decode(reader, reader.uint32(), $undefined, _depth + 1, message.authorization);
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.enabled_date = value;
+                                else
+                                    delete message.enabled_date;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.allow_artifacts && message.allow_artifacts.length))
+                                    message.allow_artifacts = [];
+                                message.allow_artifacts.push(reader.stringVerify());
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.deny_artifacts && message.deny_artifacts.length))
+                                    message.deny_artifacts = [];
+                                message.deny_artifacts.push(reader.stringVerify());
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a Mirror message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.Mirror & renop.api.v1.Mirror.$Shape} Mirror
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Mirror.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a Mirror message.
+                 * @function verify
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                Mirror.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        if (!$util.isString(message.url))
+                            return "url: string expected";
+                    if (message.persist != null && $Object.hasOwnProperty.call(message, "persist"))
+                        if (typeof message.persist !== "boolean")
+                            return "persist: boolean expected";
+                    if (message.cache_ttl_secs != null && $Object.hasOwnProperty.call(message, "cache_ttl_secs"))
+                        if (!$util.isInteger(message.cache_ttl_secs) && !(message.cache_ttl_secs && $util.isInteger(message.cache_ttl_secs.low) && $util.isInteger(message.cache_ttl_secs.high)))
+                            return "cache_ttl_secs: integer|Long expected";
+                    if (message.negative_cache != null && $Object.hasOwnProperty.call(message, "negative_cache"))
+                        if (typeof message.negative_cache !== "boolean")
+                            return "negative_cache: boolean expected";
+                    if (message.timeout_secs != null && $Object.hasOwnProperty.call(message, "timeout_secs"))
+                        if (!$util.isInteger(message.timeout_secs) && !(message.timeout_secs && $util.isInteger(message.timeout_secs.low) && $util.isInteger(message.timeout_secs.high)))
+                            return "timeout_secs: integer|Long expected";
+                    if (message.authorization != null && $Object.hasOwnProperty.call(message, "authorization")) {
+                        let error = $root.renop.api.v1.MirrorCredentials.verify(message.authorization, _depth + 1);
+                        if (error)
+                            return "authorization." + error;
+                    }
+                    if (message.enabled_date != null && $Object.hasOwnProperty.call(message, "enabled_date"))
+                        if (!$util.isString(message.enabled_date))
+                            return "enabled_date: string expected";
+                    if (message.allow_artifacts != null && $Object.hasOwnProperty.call(message, "allow_artifacts")) {
+                        if (!$Array.isArray(message.allow_artifacts))
+                            return "allow_artifacts: array expected";
+                        for (let i = 0; i < message.allow_artifacts.length; ++i)
+                            if (!$util.isString(message.allow_artifacts[i]))
+                                return "allow_artifacts: string[] expected";
+                    }
+                    if (message.deny_artifacts != null && $Object.hasOwnProperty.call(message, "deny_artifacts")) {
+                        if (!$Array.isArray(message.deny_artifacts))
+                            return "deny_artifacts: array expected";
+                        for (let i = 0; i < message.deny_artifacts.length; ++i)
+                            if (!$util.isString(message.deny_artifacts[i]))
+                                return "deny_artifacts: string[] expected";
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a Mirror message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.Mirror} Mirror
+                 */
+                Mirror.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.Mirror)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.Mirror: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.Mirror();
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.url != null)
+                        if (typeof object.url !== "string" || object.url.length)
+                            message.url = $String(object.url);
+                    if (object.persist != null)
+                        if (object.persist)
+                            message.persist = $Boolean(object.persist);
+                    if (object.cache_ttl_secs != null)
+                        if (typeof object.cache_ttl_secs === "object" ? object.cache_ttl_secs.low || object.cache_ttl_secs.high : $Number(object.cache_ttl_secs) !== 0)
+                            if ($util.Long)
+                                message.cache_ttl_secs = $util.Long.fromValue(object.cache_ttl_secs, true);
+                            else if (typeof object.cache_ttl_secs === "string")
+                                message.cache_ttl_secs = $parseInt(object.cache_ttl_secs, 10);
+                            else if (typeof object.cache_ttl_secs === "number")
+                                message.cache_ttl_secs = object.cache_ttl_secs;
+                            else if (typeof object.cache_ttl_secs === "object")
+                                message.cache_ttl_secs = new $util.LongBits(object.cache_ttl_secs.low >>> 0, object.cache_ttl_secs.high >>> 0).toNumber(true);
+                    if (object.negative_cache != null)
+                        if (object.negative_cache)
+                            message.negative_cache = $Boolean(object.negative_cache);
+                    if (object.timeout_secs != null)
+                        if (typeof object.timeout_secs === "object" ? object.timeout_secs.low || object.timeout_secs.high : $Number(object.timeout_secs) !== 0)
+                            if ($util.Long)
+                                message.timeout_secs = $util.Long.fromValue(object.timeout_secs, true);
+                            else if (typeof object.timeout_secs === "string")
+                                message.timeout_secs = $parseInt(object.timeout_secs, 10);
+                            else if (typeof object.timeout_secs === "number")
+                                message.timeout_secs = object.timeout_secs;
+                            else if (typeof object.timeout_secs === "object")
+                                message.timeout_secs = new $util.LongBits(object.timeout_secs.low >>> 0, object.timeout_secs.high >>> 0).toNumber(true);
+                    if (object.authorization != null) {
+                        if (!$util.isObject(object.authorization))
+                            throw $TypeError(".renop.api.v1.Mirror.authorization: object expected");
+                        message.authorization = $root.renop.api.v1.MirrorCredentials.fromObject(object.authorization, _depth + 1);
+                    }
+                    if (object.enabled_date != null)
+                        if (typeof object.enabled_date !== "string" || object.enabled_date.length)
+                            message.enabled_date = $String(object.enabled_date);
+                    if (object.allow_artifacts) {
+                        if (!$Array.isArray(object.allow_artifacts))
+                            throw $TypeError(".renop.api.v1.Mirror.allow_artifacts: array expected");
+                        message.allow_artifacts = $Array(object.allow_artifacts.length);
+                        for (let i = 0; i < object.allow_artifacts.length; ++i)
+                            message.allow_artifacts[i] = $String(object.allow_artifacts[i]);
+                    }
+                    if (object.deny_artifacts) {
+                        if (!$Array.isArray(object.deny_artifacts))
+                            throw $TypeError(".renop.api.v1.Mirror.deny_artifacts: array expected");
+                        message.deny_artifacts = $Array(object.deny_artifacts.length);
+                        for (let i = 0; i < object.deny_artifacts.length; ++i)
+                            message.deny_artifacts[i] = $String(object.deny_artifacts[i]);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a Mirror message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {renop.api.v1.Mirror} message Mirror
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                Mirror.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults) {
+                        object.allow_artifacts = [];
+                        object.deny_artifacts = [];
+                    }
+                    if (options.defaults) {
+                        object.name = "";
+                        object.url = "";
+                        object.persist = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.cache_ttl_secs = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.cache_ttl_secs = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.negative_cache = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.timeout_secs = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.timeout_secs = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.authorization = null;
+                        object.enabled_date = "";
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        object.url = message.url;
+                    if (message.persist != null && $Object.hasOwnProperty.call(message, "persist"))
+                        object.persist = message.persist;
+                    if (message.cache_ttl_secs != null && $Object.hasOwnProperty.call(message, "cache_ttl_secs"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.cache_ttl_secs = typeof message.cache_ttl_secs === "number" ? $BigInt(message.cache_ttl_secs) : $util.Long.fromBits(message.cache_ttl_secs.low >>> 0, message.cache_ttl_secs.high >>> 0, true).toBigInt();
+                        else if (typeof message.cache_ttl_secs === "number")
+                            object.cache_ttl_secs = options.longs === $String ? $String(message.cache_ttl_secs) : message.cache_ttl_secs;
+                        else
+                            object.cache_ttl_secs = options.longs === $String ? $util.Long.prototype.toString.call(message.cache_ttl_secs) : options.longs === $Number ? new $util.LongBits(message.cache_ttl_secs.low >>> 0, message.cache_ttl_secs.high >>> 0).toNumber(true) : message.cache_ttl_secs;
+                    if (message.negative_cache != null && $Object.hasOwnProperty.call(message, "negative_cache"))
+                        object.negative_cache = message.negative_cache;
+                    if (message.timeout_secs != null && $Object.hasOwnProperty.call(message, "timeout_secs"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.timeout_secs = typeof message.timeout_secs === "number" ? $BigInt(message.timeout_secs) : $util.Long.fromBits(message.timeout_secs.low >>> 0, message.timeout_secs.high >>> 0, true).toBigInt();
+                        else if (typeof message.timeout_secs === "number")
+                            object.timeout_secs = options.longs === $String ? $String(message.timeout_secs) : message.timeout_secs;
+                        else
+                            object.timeout_secs = options.longs === $String ? $util.Long.prototype.toString.call(message.timeout_secs) : options.longs === $Number ? new $util.LongBits(message.timeout_secs.low >>> 0, message.timeout_secs.high >>> 0).toNumber(true) : message.timeout_secs;
+                    if (message.authorization != null && $Object.hasOwnProperty.call(message, "authorization"))
+                        object.authorization = $root.renop.api.v1.MirrorCredentials.toObject(message.authorization, options, _depth + 1);
+                    if (message.enabled_date != null && $Object.hasOwnProperty.call(message, "enabled_date"))
+                        object.enabled_date = message.enabled_date;
+                    if (message.allow_artifacts && message.allow_artifacts.length) {
+                        object.allow_artifacts = $Array(message.allow_artifacts.length);
+                        for (let j = 0; j < message.allow_artifacts.length; ++j)
+                            object.allow_artifacts[j] = message.allow_artifacts[j];
+                    }
+                    if (message.deny_artifacts && message.deny_artifacts.length) {
+                        object.deny_artifacts = $Array(message.deny_artifacts.length);
+                        for (let j = 0; j < message.deny_artifacts.length; ++j)
+                            object.deny_artifacts[j] = message.deny_artifacts[j];
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this Mirror to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                Mirror.prototype.toJSON = function() {
+                    return Mirror.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for Mirror
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.Mirror
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                Mirror.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.Mirror";
+                };
+
+                return Mirror;
+            })();
+
+            v1.S3Config = (function() {
+
+                /**
+                 * Properties of a S3Config.
+                 * @typedef {Object} renop.api.v1.S3Config.$Properties
+                 * @property {boolean|null} [enabled] S3Config enabled
+                 * @property {string|null} [endpoint] S3Config endpoint
+                 * @property {string|null} [bucket] S3Config bucket
+                 * @property {string|null} [region] S3Config region
+                 * @property {string|null} [access_key_id] S3Config access_key_id
+                 * @property {string|null} [secret_access_key] S3Config secret_access_key
+                 * @property {boolean|null} [force_path_style] S3Config force_path_style
+                 * @property {boolean|null} [redirect_downloads] S3Config redirect_downloads
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a S3Config.
+                 * @memberof renop.api.v1
+                 * @interface IS3Config
+                 * @augments renop.api.v1.S3Config.$Properties
+                 * @deprecated Use renop.api.v1.S3Config.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a S3Config.
+                 * @typedef {renop.api.v1.S3Config.$Properties} renop.api.v1.S3Config.$Shape
+                 */
+
+                /**
+                 * Constructs a new S3Config.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a S3Config.
+                 * @constructor
+                 * @param {renop.api.v1.S3Config.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const S3Config = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * S3Config enabled.
+                 * @member {boolean} enabled
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.enabled = false;
+
+                /**
+                 * S3Config endpoint.
+                 * @member {string} endpoint
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.endpoint = "";
+
+                /**
+                 * S3Config bucket.
+                 * @member {string} bucket
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.bucket = "";
+
+                /**
+                 * S3Config region.
+                 * @member {string} region
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.region = "";
+
+                /**
+                 * S3Config access_key_id.
+                 * @member {string} access_key_id
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.access_key_id = "";
+
+                /**
+                 * S3Config secret_access_key.
+                 * @member {string} secret_access_key
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.secret_access_key = "";
+
+                /**
+                 * S3Config force_path_style.
+                 * @member {boolean} force_path_style
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.force_path_style = false;
+
+                /**
+                 * S3Config redirect_downloads.
+                 * @member {boolean} redirect_downloads
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.redirect_downloads = false;
+
+                /**
+                 * Creates a new S3Config instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {renop.api.v1.S3Config.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.S3Config} S3Config instance
+                 * @type {{
+                 *   (properties: renop.api.v1.S3Config.$Shape): renop.api.v1.S3Config & renop.api.v1.S3Config.$Shape;
+                 *   (properties?: renop.api.v1.S3Config.$Properties): renop.api.v1.S3Config;
+                 * }}
+                 */
+                S3Config.create = function(properties) {
+                    return new S3Config(properties);
+                };
+
+                /**
+                 * Encodes the specified S3Config message. Does not implicitly {@link renop.api.v1.S3Config.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {renop.api.v1.S3Config.$Properties} message S3Config message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                S3Config.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.enabled != null && $Object.hasOwnProperty.call(message, "enabled") && message.enabled !== false)
+                        writer.uint32(/* id 1, wireType 0 =*/8).bool(message.enabled);
+                    if (message.endpoint != null && $Object.hasOwnProperty.call(message, "endpoint") && message.endpoint !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.endpoint);
+                    if (message.bucket != null && $Object.hasOwnProperty.call(message, "bucket") && message.bucket !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.bucket);
+                    if (message.region != null && $Object.hasOwnProperty.call(message, "region") && message.region !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.region);
+                    if (message.access_key_id != null && $Object.hasOwnProperty.call(message, "access_key_id") && message.access_key_id !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.access_key_id);
+                    if (message.secret_access_key != null && $Object.hasOwnProperty.call(message, "secret_access_key") && message.secret_access_key !== "")
+                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.secret_access_key);
+                    if (message.force_path_style != null && $Object.hasOwnProperty.call(message, "force_path_style") && message.force_path_style !== false)
+                        writer.uint32(/* id 7, wireType 0 =*/56).bool(message.force_path_style);
+                    if (message.redirect_downloads != null && $Object.hasOwnProperty.call(message, "redirect_downloads") && message.redirect_downloads !== false)
+                        writer.uint32(/* id 8, wireType 0 =*/64).bool(message.redirect_downloads);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified S3Config message, length delimited. Does not implicitly {@link renop.api.v1.S3Config.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {renop.api.v1.S3Config.$Properties} message S3Config message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                S3Config.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a S3Config message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.S3Config & renop.api.v1.S3Config.$Shape} S3Config
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                S3Config.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.S3Config(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.enabled = value;
+                                else
+                                    delete message.enabled;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.endpoint = value;
+                                else
+                                    delete message.endpoint;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.bucket = value;
+                                else
+                                    delete message.bucket;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.region = value;
+                                else
+                                    delete message.region;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.access_key_id = value;
+                                else
+                                    delete message.access_key_id;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.secret_access_key = value;
+                                else
+                                    delete message.secret_access_key;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.force_path_style = value;
+                                else
+                                    delete message.force_path_style;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.redirect_downloads = value;
+                                else
+                                    delete message.redirect_downloads;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a S3Config message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.S3Config & renop.api.v1.S3Config.$Shape} S3Config
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                S3Config.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a S3Config message.
+                 * @function verify
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                S3Config.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.enabled != null && $Object.hasOwnProperty.call(message, "enabled"))
+                        if (typeof message.enabled !== "boolean")
+                            return "enabled: boolean expected";
+                    if (message.endpoint != null && $Object.hasOwnProperty.call(message, "endpoint"))
+                        if (!$util.isString(message.endpoint))
+                            return "endpoint: string expected";
+                    if (message.bucket != null && $Object.hasOwnProperty.call(message, "bucket"))
+                        if (!$util.isString(message.bucket))
+                            return "bucket: string expected";
+                    if (message.region != null && $Object.hasOwnProperty.call(message, "region"))
+                        if (!$util.isString(message.region))
+                            return "region: string expected";
+                    if (message.access_key_id != null && $Object.hasOwnProperty.call(message, "access_key_id"))
+                        if (!$util.isString(message.access_key_id))
+                            return "access_key_id: string expected";
+                    if (message.secret_access_key != null && $Object.hasOwnProperty.call(message, "secret_access_key"))
+                        if (!$util.isString(message.secret_access_key))
+                            return "secret_access_key: string expected";
+                    if (message.force_path_style != null && $Object.hasOwnProperty.call(message, "force_path_style"))
+                        if (typeof message.force_path_style !== "boolean")
+                            return "force_path_style: boolean expected";
+                    if (message.redirect_downloads != null && $Object.hasOwnProperty.call(message, "redirect_downloads"))
+                        if (typeof message.redirect_downloads !== "boolean")
+                            return "redirect_downloads: boolean expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a S3Config message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.S3Config} S3Config
+                 */
+                S3Config.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.S3Config)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.S3Config: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.S3Config();
+                    if (object.enabled != null)
+                        if (object.enabled)
+                            message.enabled = $Boolean(object.enabled);
+                    if (object.endpoint != null)
+                        if (typeof object.endpoint !== "string" || object.endpoint.length)
+                            message.endpoint = $String(object.endpoint);
+                    if (object.bucket != null)
+                        if (typeof object.bucket !== "string" || object.bucket.length)
+                            message.bucket = $String(object.bucket);
+                    if (object.region != null)
+                        if (typeof object.region !== "string" || object.region.length)
+                            message.region = $String(object.region);
+                    if (object.access_key_id != null)
+                        if (typeof object.access_key_id !== "string" || object.access_key_id.length)
+                            message.access_key_id = $String(object.access_key_id);
+                    if (object.secret_access_key != null)
+                        if (typeof object.secret_access_key !== "string" || object.secret_access_key.length)
+                            message.secret_access_key = $String(object.secret_access_key);
+                    if (object.force_path_style != null)
+                        if (object.force_path_style)
+                            message.force_path_style = $Boolean(object.force_path_style);
+                    if (object.redirect_downloads != null)
+                        if (object.redirect_downloads)
+                            message.redirect_downloads = $Boolean(object.redirect_downloads);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a S3Config message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {renop.api.v1.S3Config} message S3Config
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                S3Config.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.enabled = false;
+                        object.endpoint = "";
+                        object.bucket = "";
+                        object.region = "";
+                        object.access_key_id = "";
+                        object.secret_access_key = "";
+                        object.force_path_style = false;
+                        object.redirect_downloads = false;
+                    }
+                    if (message.enabled != null && $Object.hasOwnProperty.call(message, "enabled"))
+                        object.enabled = message.enabled;
+                    if (message.endpoint != null && $Object.hasOwnProperty.call(message, "endpoint"))
+                        object.endpoint = message.endpoint;
+                    if (message.bucket != null && $Object.hasOwnProperty.call(message, "bucket"))
+                        object.bucket = message.bucket;
+                    if (message.region != null && $Object.hasOwnProperty.call(message, "region"))
+                        object.region = message.region;
+                    if (message.access_key_id != null && $Object.hasOwnProperty.call(message, "access_key_id"))
+                        object.access_key_id = message.access_key_id;
+                    if (message.secret_access_key != null && $Object.hasOwnProperty.call(message, "secret_access_key"))
+                        object.secret_access_key = message.secret_access_key;
+                    if (message.force_path_style != null && $Object.hasOwnProperty.call(message, "force_path_style"))
+                        object.force_path_style = message.force_path_style;
+                    if (message.redirect_downloads != null && $Object.hasOwnProperty.call(message, "redirect_downloads"))
+                        object.redirect_downloads = message.redirect_downloads;
+                    return object;
+                };
+
+                /**
+                 * Converts this S3Config to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                S3Config.prototype.toJSON = function() {
+                    return S3Config.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for S3Config
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.S3Config
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                S3Config.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.S3Config";
+                };
+
+                return S3Config;
+            })();
+
+            v1.Repository = (function() {
+
+                /**
+                 * Properties of a Repository.
+                 * @typedef {Object} renop.api.v1.Repository.$Properties
+                 * @property {string|null} [name] Repository name
+                 * @property {string|null} [visibility] Repository visibility
+                 * @property {Array.<renop.api.v1.Mirror.$Properties>|null} [mirrors] Repository mirrors
+                 * @property {boolean|null} [allow_redeployment] Repository allow_redeployment
+                 * @property {renop.api.v1.S3Config.$Properties|null} [s3] Repository s3
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a Repository.
+                 * @memberof renop.api.v1
+                 * @interface IRepository
+                 * @augments renop.api.v1.Repository.$Properties
+                 * @deprecated Use renop.api.v1.Repository.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a Repository.
+                 * @typedef {renop.api.v1.Repository.$Properties} renop.api.v1.Repository.$Shape
+                 */
+
+                /**
+                 * Constructs a new Repository.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a Repository.
+                 * @constructor
+                 * @param {renop.api.v1.Repository.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const Repository = function (properties) {
+                    this.mirrors = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * Repository name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 */
+                Repository.prototype.name = "";
+
+                /**
+                 * Repository visibility.
+                 * @member {string} visibility
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 */
+                Repository.prototype.visibility = "";
+
+                /**
+                 * Repository mirrors.
+                 * @member {Array.<renop.api.v1.Mirror.$Properties>} mirrors
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 */
+                Repository.prototype.mirrors = $util.emptyArray;
+
+                /**
+                 * Repository allow_redeployment.
+                 * @member {boolean} allow_redeployment
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 */
+                Repository.prototype.allow_redeployment = false;
+
+                /**
+                 * Repository s3.
+                 * @member {renop.api.v1.S3Config.$Properties|null|undefined} s3
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 */
+                Repository.prototype.s3 = null;
+
+                /**
+                 * Creates a new Repository instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {renop.api.v1.Repository.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.Repository} Repository instance
+                 * @type {{
+                 *   (properties: renop.api.v1.Repository.$Shape): renop.api.v1.Repository & renop.api.v1.Repository.$Shape;
+                 *   (properties?: renop.api.v1.Repository.$Properties): renop.api.v1.Repository;
+                 * }}
+                 */
+                Repository.create = function(properties) {
+                    return new Repository(properties);
+                };
+
+                /**
+                 * Encodes the specified Repository message. Does not implicitly {@link renop.api.v1.Repository.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {renop.api.v1.Repository.$Properties} message Repository message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Repository.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.visibility != null && $Object.hasOwnProperty.call(message, "visibility") && message.visibility !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.visibility);
+                    if (message.mirrors != null && message.mirrors.length)
+                        for (let i = 0; i < message.mirrors.length; ++i)
+                            $root.renop.api.v1.Mirror.encode(message.mirrors[i], writer.uint32(/* id 3, wireType 2 =*/26).fork(), _depth + 1).ldelim();
+                    if (message.allow_redeployment != null && $Object.hasOwnProperty.call(message, "allow_redeployment") && message.allow_redeployment !== false)
+                        writer.uint32(/* id 4, wireType 0 =*/32).bool(message.allow_redeployment);
+                    if (message.s3 != null && $Object.hasOwnProperty.call(message, "s3"))
+                        $root.renop.api.v1.S3Config.encode(message.s3, writer.uint32(/* id 5, wireType 2 =*/42).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified Repository message, length delimited. Does not implicitly {@link renop.api.v1.Repository.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {renop.api.v1.Repository.$Properties} message Repository message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                Repository.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a Repository message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.Repository & renop.api.v1.Repository.$Shape} Repository
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Repository.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.Repository(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.visibility = value;
+                                else
+                                    delete message.visibility;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.mirrors && message.mirrors.length))
+                                    message.mirrors = [];
+                                message.mirrors.push($root.renop.api.v1.Mirror.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.allow_redeployment = value;
+                                else
+                                    delete message.allow_redeployment;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                message.s3 = $root.renop.api.v1.S3Config.decode(reader, reader.uint32(), $undefined, _depth + 1, message.s3);
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a Repository message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.Repository & renop.api.v1.Repository.$Shape} Repository
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                Repository.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a Repository message.
+                 * @function verify
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                Repository.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.visibility != null && $Object.hasOwnProperty.call(message, "visibility"))
+                        if (!$util.isString(message.visibility))
+                            return "visibility: string expected";
+                    if (message.mirrors != null && $Object.hasOwnProperty.call(message, "mirrors")) {
+                        if (!$Array.isArray(message.mirrors))
+                            return "mirrors: array expected";
+                        for (let i = 0; i < message.mirrors.length; ++i) {
+                            let error = $root.renop.api.v1.Mirror.verify(message.mirrors[i], _depth + 1);
+                            if (error)
+                                return "mirrors." + error;
+                        }
+                    }
+                    if (message.allow_redeployment != null && $Object.hasOwnProperty.call(message, "allow_redeployment"))
+                        if (typeof message.allow_redeployment !== "boolean")
+                            return "allow_redeployment: boolean expected";
+                    if (message.s3 != null && $Object.hasOwnProperty.call(message, "s3")) {
+                        let error = $root.renop.api.v1.S3Config.verify(message.s3, _depth + 1);
+                        if (error)
+                            return "s3." + error;
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a Repository message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.Repository} Repository
+                 */
+                Repository.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.Repository)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.Repository: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.Repository();
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.visibility != null)
+                        if (typeof object.visibility !== "string" || object.visibility.length)
+                            message.visibility = $String(object.visibility);
+                    if (object.mirrors) {
+                        if (!$Array.isArray(object.mirrors))
+                            throw $TypeError(".renop.api.v1.Repository.mirrors: array expected");
+                        message.mirrors = $Array(object.mirrors.length);
+                        for (let i = 0; i < object.mirrors.length; ++i) {
+                            if (!$util.isObject(object.mirrors[i]))
+                                throw $TypeError(".renop.api.v1.Repository.mirrors: object expected");
+                            message.mirrors[i] = $root.renop.api.v1.Mirror.fromObject(object.mirrors[i], _depth + 1);
+                        }
+                    }
+                    if (object.allow_redeployment != null)
+                        if (object.allow_redeployment)
+                            message.allow_redeployment = $Boolean(object.allow_redeployment);
+                    if (object.s3 != null) {
+                        if (!$util.isObject(object.s3))
+                            throw $TypeError(".renop.api.v1.Repository.s3: object expected");
+                        message.s3 = $root.renop.api.v1.S3Config.fromObject(object.s3, _depth + 1);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a Repository message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {renop.api.v1.Repository} message Repository
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                Repository.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.mirrors = [];
+                    if (options.defaults) {
+                        object.name = "";
+                        object.visibility = "";
+                        object.allow_redeployment = false;
+                        object.s3 = null;
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.visibility != null && $Object.hasOwnProperty.call(message, "visibility"))
+                        object.visibility = message.visibility;
+                    if (message.mirrors && message.mirrors.length) {
+                        object.mirrors = $Array(message.mirrors.length);
+                        for (let j = 0; j < message.mirrors.length; ++j)
+                            object.mirrors[j] = $root.renop.api.v1.Mirror.toObject(message.mirrors[j], options, _depth + 1);
+                    }
+                    if (message.allow_redeployment != null && $Object.hasOwnProperty.call(message, "allow_redeployment"))
+                        object.allow_redeployment = message.allow_redeployment;
+                    if (message.s3 != null && $Object.hasOwnProperty.call(message, "s3"))
+                        object.s3 = $root.renop.api.v1.S3Config.toObject(message.s3, options, _depth + 1);
+                    return object;
+                };
+
+                /**
+                 * Converts this Repository to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                Repository.prototype.toJSON = function() {
+                    return Repository.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for Repository
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.Repository
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                Repository.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.Repository";
+                };
+
+                return Repository;
+            })();
+
+            v1.MavenRepositoriesResponse = (function() {
+
+                /**
+                 * Properties of a MavenRepositoriesResponse.
+                 * @typedef {Object} renop.api.v1.MavenRepositoriesResponse.$Properties
+                 * @property {Object.<string,renop.api.v1.Repository.$Properties>|null} [repositories] MavenRepositoriesResponse repositories
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a MavenRepositoriesResponse.
+                 * @memberof renop.api.v1
+                 * @interface IMavenRepositoriesResponse
+                 * @augments renop.api.v1.MavenRepositoriesResponse.$Properties
+                 * @deprecated Use renop.api.v1.MavenRepositoriesResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a MavenRepositoriesResponse.
+                 * @typedef {renop.api.v1.MavenRepositoriesResponse.$Properties} renop.api.v1.MavenRepositoriesResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new MavenRepositoriesResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a MavenRepositoriesResponse.
+                 * @constructor
+                 * @param {renop.api.v1.MavenRepositoriesResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const MavenRepositoriesResponse = function (properties) {
+                    this.repositories = {};
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * MavenRepositoriesResponse repositories.
+                 * @member {Object.<string,renop.api.v1.Repository.$Properties>} repositories
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @instance
+                 */
+                MavenRepositoriesResponse.prototype.repositories = $util.emptyObject;
+
+                /**
+                 * Creates a new MavenRepositoriesResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {renop.api.v1.MavenRepositoriesResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.MavenRepositoriesResponse} MavenRepositoriesResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.MavenRepositoriesResponse.$Shape): renop.api.v1.MavenRepositoriesResponse & renop.api.v1.MavenRepositoriesResponse.$Shape;
+                 *   (properties?: renop.api.v1.MavenRepositoriesResponse.$Properties): renop.api.v1.MavenRepositoriesResponse;
+                 * }}
+                 */
+                MavenRepositoriesResponse.create = function(properties) {
+                    return new MavenRepositoriesResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified MavenRepositoriesResponse message. Does not implicitly {@link renop.api.v1.MavenRepositoriesResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {renop.api.v1.MavenRepositoriesResponse.$Properties} message MavenRepositoriesResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MavenRepositoriesResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.repositories != null && $Object.hasOwnProperty.call(message, "repositories"))
+                        for (let keys = $Object.keys(message.repositories), i = 0; i < keys.length; ++i) {
+                            writer.uint32(/* id 1, wireType 2 =*/10).fork().uint32(/* id 1, wireType 2 =*/10).string(keys[i]);
+                            $root.renop.api.v1.Repository.encode(message.repositories[keys[i]], writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim().ldelim();
+                        }
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified MavenRepositoriesResponse message, length delimited. Does not implicitly {@link renop.api.v1.MavenRepositoriesResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {renop.api.v1.MavenRepositoriesResponse.$Properties} message MavenRepositoriesResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MavenRepositoriesResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a MavenRepositoriesResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.MavenRepositoriesResponse & renop.api.v1.MavenRepositoriesResponse.$Shape} MavenRepositoriesResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MavenRepositoriesResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MavenRepositoriesResponse(), key, value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (message.repositories === $util.emptyObject)
+                                    message.repositories = {};
+                                let end2 = reader.uint32() + reader.pos;
+                                key = "";
+                                value = null;
+                                while (reader.pos < end2) {
+                                    let tag2 = reader.tag();
+                                    wireType = tag2 & 7;
+                                    switch (tag2 >>>= 3) {
+                                    case 1:
+                                        if (wireType !== 2)
+                                            break;
+                                        key = reader.stringVerify();
+                                        continue;
+                                    case 2:
+                                        if (wireType !== 2)
+                                            break;
+                                        value = $root.renop.api.v1.Repository.decode(reader, reader.uint32(), $undefined, _depth + 1, value);
+                                        continue;
+                                    }
+                                    reader.skipType(wireType, _depth, tag2);
+                                }
+                                if (key === "__proto__")
+                                    $util.makeProp(message.repositories, key);
+                                message.repositories[key] = value || new $root.renop.api.v1.Repository();
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a MavenRepositoriesResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.MavenRepositoriesResponse & renop.api.v1.MavenRepositoriesResponse.$Shape} MavenRepositoriesResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MavenRepositoriesResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a MavenRepositoriesResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                MavenRepositoriesResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.repositories != null && $Object.hasOwnProperty.call(message, "repositories")) {
+                        if (!$util.isObject(message.repositories))
+                            return "repositories: object expected";
+                        let key = $Object.keys(message.repositories);
+                        for (let i = 0; i < key.length; ++i) {
+                            let error = $root.renop.api.v1.Repository.verify(message.repositories[key[i]], _depth + 1);
+                            if (error)
+                                return "repositories." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a MavenRepositoriesResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.MavenRepositoriesResponse} MavenRepositoriesResponse
+                 */
+                MavenRepositoriesResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.MavenRepositoriesResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.MavenRepositoriesResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.MavenRepositoriesResponse();
+                    if (object.repositories) {
+                        if (!$util.isObject(object.repositories))
+                            throw $TypeError(".renop.api.v1.MavenRepositoriesResponse.repositories: object expected");
+                        message.repositories = {};
+                        for (let keys = $Object.keys(object.repositories), i = 0; i < keys.length; ++i) {
+                            if (keys[i] === "__proto__")
+                                $util.makeProp(message.repositories, keys[i]);
+                            if (!$util.isObject(object.repositories[keys[i]]))
+                                throw $TypeError(".renop.api.v1.MavenRepositoriesResponse.repositories: object expected");
+                            message.repositories[keys[i]] = $root.renop.api.v1.Repository.fromObject(object.repositories[keys[i]], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a MavenRepositoriesResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {renop.api.v1.MavenRepositoriesResponse} message MavenRepositoriesResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                MavenRepositoriesResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.objects || options.defaults)
+                        object.repositories = {};
+                    let keys2;
+                    if (message.repositories && (keys2 = $Object.keys(message.repositories)).length) {
+                        object.repositories = {};
+                        for (let j = 0; j < keys2.length; ++j) {
+                            if (keys2[j] === "__proto__")
+                                $util.makeProp(object.repositories, keys2[j]);
+                            object.repositories[keys2[j]] = $root.renop.api.v1.Repository.toObject(message.repositories[keys2[j]], options, _depth + 1);
+                        }
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this MavenRepositoriesResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                MavenRepositoriesResponse.prototype.toJSON = function() {
+                    return MavenRepositoriesResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for MavenRepositoriesResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.MavenRepositoriesResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                MavenRepositoriesResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.MavenRepositoriesResponse";
+                };
+
+                return MavenRepositoriesResponse;
+            })();
+
+            v1.FileDetails = (function() {
+
+                /**
+                 * Properties of a FileDetails.
+                 * @typedef {Object} renop.api.v1.FileDetails.$Properties
+                 * @property {string|null} [type] FileDetails type
+                 * @property {string|null} [name] FileDetails name
+                 * @property {number|Long|null} [content_length] FileDetails content_length
+                 * @property {string|null} [content_type] FileDetails content_type
+                 * @property {string|null} [last_modified_time] FileDetails last_modified_time
+                 * @property {Array.<renop.api.v1.FileDetails.$Properties>|null} [files] FileDetails files
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a FileDetails.
+                 * @memberof renop.api.v1
+                 * @interface IFileDetails
+                 * @augments renop.api.v1.FileDetails.$Properties
+                 * @deprecated Use renop.api.v1.FileDetails.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a FileDetails.
+                 * @typedef {renop.api.v1.FileDetails.$Properties} renop.api.v1.FileDetails.$Shape
+                 */
+
+                /**
+                 * Constructs a new FileDetails.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a FileDetails.
+                 * @constructor
+                 * @param {renop.api.v1.FileDetails.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const FileDetails = function (properties) {
+                    this.files = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * FileDetails type.
+                 * @member {string} type
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.type = "";
+
+                /**
+                 * FileDetails name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.name = "";
+
+                /**
+                 * FileDetails content_length.
+                 * @member {number|Long|null|undefined} content_length
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.content_length = null;
+
+                /**
+                 * FileDetails content_type.
+                 * @member {string|null|undefined} content_type
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.content_type = null;
+
+                /**
+                 * FileDetails last_modified_time.
+                 * @member {string|null|undefined} last_modified_time
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.last_modified_time = null;
+
+                /**
+                 * FileDetails files.
+                 * @member {Array.<renop.api.v1.FileDetails.$Properties>} files
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.files = $util.emptyArray;
+
+                // OneOf field names bound to virtual getters and setters
+                let $oneOfFields;
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(FileDetails.prototype, "_content_length", {
+                    get: $util.oneOfGetter($oneOfFields = ["content_length"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(FileDetails.prototype, "_content_type", {
+                    get: $util.oneOfGetter($oneOfFields = ["content_type"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(FileDetails.prototype, "_last_modified_time", {
+                    get: $util.oneOfGetter($oneOfFields = ["last_modified_time"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                /**
+                 * Creates a new FileDetails instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {renop.api.v1.FileDetails.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.FileDetails} FileDetails instance
+                 * @type {{
+                 *   (properties: renop.api.v1.FileDetails.$Shape): renop.api.v1.FileDetails & renop.api.v1.FileDetails.$Shape;
+                 *   (properties?: renop.api.v1.FileDetails.$Properties): renop.api.v1.FileDetails;
+                 * }}
+                 */
+                FileDetails.create = function(properties) {
+                    return new FileDetails(properties);
+                };
+
+                /**
+                 * Encodes the specified FileDetails message. Does not implicitly {@link renop.api.v1.FileDetails.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {renop.api.v1.FileDetails.$Properties} message FileDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FileDetails.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type") && message.type !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.type);
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+                    if (message.content_length != null && $Object.hasOwnProperty.call(message, "content_length"))
+                        writer.uint32(/* id 3, wireType 0 =*/24).int64(message.content_length);
+                    if (message.content_type != null && $Object.hasOwnProperty.call(message, "content_type"))
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.content_type);
+                    if (message.last_modified_time != null && $Object.hasOwnProperty.call(message, "last_modified_time"))
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.last_modified_time);
+                    if (message.files != null && message.files.length)
+                        for (let i = 0; i < message.files.length; ++i)
+                            $root.renop.api.v1.FileDetails.encode(message.files[i], writer.uint32(/* id 6, wireType 2 =*/50).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified FileDetails message, length delimited. Does not implicitly {@link renop.api.v1.FileDetails.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {renop.api.v1.FileDetails.$Properties} message FileDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FileDetails.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a FileDetails message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.FileDetails & renop.api.v1.FileDetails.$Shape} FileDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FileDetails.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FileDetails(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.type = value;
+                                else
+                                    delete message.type;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                message.content_length = reader.int64();
+                                message._content_length = "content_length";
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                message.content_type = reader.stringVerify();
+                                message._content_type = "content_type";
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                message.last_modified_time = reader.stringVerify();
+                                message._last_modified_time = "last_modified_time";
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.files && message.files.length))
+                                    message.files = [];
+                                message.files.push($root.renop.api.v1.FileDetails.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a FileDetails message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.FileDetails & renop.api.v1.FileDetails.$Shape} FileDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FileDetails.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a FileDetails message.
+                 * @function verify
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                FileDetails.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    let properties = {};
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
+                        if (!$util.isString(message.type))
+                            return "type: string expected";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.content_length != null && $Object.hasOwnProperty.call(message, "content_length")) {
+                        properties._content_length = 1;
+                        if (!$util.isInteger(message.content_length) && !(message.content_length && $util.isInteger(message.content_length.low) && $util.isInteger(message.content_length.high)))
+                            return "content_length: integer|Long expected";
+                    }
+                    if (message.content_type != null && $Object.hasOwnProperty.call(message, "content_type")) {
+                        properties._content_type = 1;
+                        if (!$util.isString(message.content_type))
+                            return "content_type: string expected";
+                    }
+                    if (message.last_modified_time != null && $Object.hasOwnProperty.call(message, "last_modified_time")) {
+                        properties._last_modified_time = 1;
+                        if (!$util.isString(message.last_modified_time))
+                            return "last_modified_time: string expected";
+                    }
+                    if (message.files != null && $Object.hasOwnProperty.call(message, "files")) {
+                        if (!$Array.isArray(message.files))
+                            return "files: array expected";
+                        for (let i = 0; i < message.files.length; ++i) {
+                            let error = $root.renop.api.v1.FileDetails.verify(message.files[i], _depth + 1);
+                            if (error)
+                                return "files." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a FileDetails message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.FileDetails} FileDetails
+                 */
+                FileDetails.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.FileDetails)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.FileDetails: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.FileDetails();
+                    if (object.type != null)
+                        if (typeof object.type !== "string" || object.type.length)
+                            message.type = $String(object.type);
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.content_length != null)
+                        if ($util.Long)
+                            message.content_length = $util.Long.fromValue(object.content_length, false);
+                        else if (typeof object.content_length === "string")
+                            message.content_length = $parseInt(object.content_length, 10);
+                        else if (typeof object.content_length === "number")
+                            message.content_length = object.content_length;
+                        else if (typeof object.content_length === "object")
+                            message.content_length = new $util.LongBits(object.content_length.low >>> 0, object.content_length.high >>> 0).toNumber();
+                    if (object.content_type != null)
+                        message.content_type = $String(object.content_type);
+                    if (object.last_modified_time != null)
+                        message.last_modified_time = $String(object.last_modified_time);
+                    if (object.files) {
+                        if (!$Array.isArray(object.files))
+                            throw $TypeError(".renop.api.v1.FileDetails.files: array expected");
+                        message.files = $Array(object.files.length);
+                        for (let i = 0; i < object.files.length; ++i) {
+                            if (!$util.isObject(object.files[i]))
+                                throw $TypeError(".renop.api.v1.FileDetails.files: object expected");
+                            message.files[i] = $root.renop.api.v1.FileDetails.fromObject(object.files[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a FileDetails message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {renop.api.v1.FileDetails} message FileDetails
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                FileDetails.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.files = [];
+                    if (options.defaults) {
+                        object.type = "";
+                        object.name = "";
+                    }
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
+                        object.type = message.type;
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.content_length != null && $Object.hasOwnProperty.call(message, "content_length"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.content_length = typeof message.content_length === "number" ? $BigInt(message.content_length) : $util.Long.fromBits(message.content_length.low >>> 0, message.content_length.high >>> 0, false).toBigInt();
+                        else if (typeof message.content_length === "number")
+                            object.content_length = options.longs === $String ? $String(message.content_length) : message.content_length;
+                        else
+                            object.content_length = options.longs === $String ? $util.Long.prototype.toString.call(message.content_length) : options.longs === $Number ? new $util.LongBits(message.content_length.low >>> 0, message.content_length.high >>> 0).toNumber() : message.content_length;
+                    if (message.content_type != null && $Object.hasOwnProperty.call(message, "content_type"))
+                        object.content_type = message.content_type;
+                    if (message.last_modified_time != null && $Object.hasOwnProperty.call(message, "last_modified_time"))
+                        object.last_modified_time = message.last_modified_time;
+                    if (message.files && message.files.length) {
+                        object.files = $Array(message.files.length);
+                        for (let j = 0; j < message.files.length; ++j)
+                            object.files[j] = $root.renop.api.v1.FileDetails.toObject(message.files[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this FileDetails to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                FileDetails.prototype.toJSON = function() {
+                    return FileDetails.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for FileDetails
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.FileDetails
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                FileDetails.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.FileDetails";
+                };
+
+                return FileDetails;
+            })();
+
+            v1.RepoMirrorInfo = (function() {
+
+                /**
+                 * Properties of a RepoMirrorInfo.
+                 * @typedef {Object} renop.api.v1.RepoMirrorInfo.$Properties
+                 * @property {string|null} [name] RepoMirrorInfo name
+                 * @property {string|null} [url] RepoMirrorInfo url
+                 * @property {boolean|null} [persist] RepoMirrorInfo persist
+                 * @property {string|null} [enabled_date] RepoMirrorInfo enabled_date
+                 * @property {number|Long|null} [cache_ttl] RepoMirrorInfo cache_ttl
+                 * @property {boolean|null} [negative_cache] RepoMirrorInfo negative_cache
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a RepoMirrorInfo.
+                 * @memberof renop.api.v1
+                 * @interface IRepoMirrorInfo
+                 * @augments renop.api.v1.RepoMirrorInfo.$Properties
+                 * @deprecated Use renop.api.v1.RepoMirrorInfo.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a RepoMirrorInfo.
+                 * @typedef {renop.api.v1.RepoMirrorInfo.$Properties} renop.api.v1.RepoMirrorInfo.$Shape
+                 */
+
+                /**
+                 * Constructs a new RepoMirrorInfo.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a RepoMirrorInfo.
+                 * @constructor
+                 * @param {renop.api.v1.RepoMirrorInfo.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const RepoMirrorInfo = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * RepoMirrorInfo name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @instance
+                 */
+                RepoMirrorInfo.prototype.name = "";
+
+                /**
+                 * RepoMirrorInfo url.
+                 * @member {string} url
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @instance
+                 */
+                RepoMirrorInfo.prototype.url = "";
+
+                /**
+                 * RepoMirrorInfo persist.
+                 * @member {boolean} persist
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @instance
+                 */
+                RepoMirrorInfo.prototype.persist = false;
+
+                /**
+                 * RepoMirrorInfo enabled_date.
+                 * @member {string} enabled_date
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @instance
+                 */
+                RepoMirrorInfo.prototype.enabled_date = "";
+
+                /**
+                 * RepoMirrorInfo cache_ttl.
+                 * @member {number|Long} cache_ttl
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @instance
+                 */
+                RepoMirrorInfo.prototype.cache_ttl = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RepoMirrorInfo negative_cache.
+                 * @member {boolean} negative_cache
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @instance
+                 */
+                RepoMirrorInfo.prototype.negative_cache = false;
+
+                /**
+                 * Creates a new RepoMirrorInfo instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {renop.api.v1.RepoMirrorInfo.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.RepoMirrorInfo} RepoMirrorInfo instance
+                 * @type {{
+                 *   (properties: renop.api.v1.RepoMirrorInfo.$Shape): renop.api.v1.RepoMirrorInfo & renop.api.v1.RepoMirrorInfo.$Shape;
+                 *   (properties?: renop.api.v1.RepoMirrorInfo.$Properties): renop.api.v1.RepoMirrorInfo;
+                 * }}
+                 */
+                RepoMirrorInfo.create = function(properties) {
+                    return new RepoMirrorInfo(properties);
+                };
+
+                /**
+                 * Encodes the specified RepoMirrorInfo message. Does not implicitly {@link renop.api.v1.RepoMirrorInfo.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {renop.api.v1.RepoMirrorInfo.$Properties} message RepoMirrorInfo message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepoMirrorInfo.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url") && message.url !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.url);
+                    if (message.persist != null && $Object.hasOwnProperty.call(message, "persist") && message.persist !== false)
+                        writer.uint32(/* id 3, wireType 0 =*/24).bool(message.persist);
+                    if (message.enabled_date != null && $Object.hasOwnProperty.call(message, "enabled_date") && message.enabled_date !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.enabled_date);
+                    if (message.cache_ttl != null && $Object.hasOwnProperty.call(message, "cache_ttl") && (typeof message.cache_ttl === "object" ? message.cache_ttl.low || message.cache_ttl.high : message.cache_ttl !== 0))
+                        writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.cache_ttl);
+                    if (message.negative_cache != null && $Object.hasOwnProperty.call(message, "negative_cache") && message.negative_cache !== false)
+                        writer.uint32(/* id 6, wireType 0 =*/48).bool(message.negative_cache);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified RepoMirrorInfo message, length delimited. Does not implicitly {@link renop.api.v1.RepoMirrorInfo.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {renop.api.v1.RepoMirrorInfo.$Properties} message RepoMirrorInfo message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepoMirrorInfo.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a RepoMirrorInfo message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.RepoMirrorInfo & renop.api.v1.RepoMirrorInfo.$Shape} RepoMirrorInfo
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepoMirrorInfo.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepoMirrorInfo(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.url = value;
+                                else
+                                    delete message.url;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.persist = value;
+                                else
+                                    delete message.persist;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.enabled_date = value;
+                                else
+                                    delete message.enabled_date;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.cache_ttl = value;
+                                else
+                                    delete message.cache_ttl;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.negative_cache = value;
+                                else
+                                    delete message.negative_cache;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a RepoMirrorInfo message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.RepoMirrorInfo & renop.api.v1.RepoMirrorInfo.$Shape} RepoMirrorInfo
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepoMirrorInfo.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a RepoMirrorInfo message.
+                 * @function verify
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                RepoMirrorInfo.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        if (!$util.isString(message.url))
+                            return "url: string expected";
+                    if (message.persist != null && $Object.hasOwnProperty.call(message, "persist"))
+                        if (typeof message.persist !== "boolean")
+                            return "persist: boolean expected";
+                    if (message.enabled_date != null && $Object.hasOwnProperty.call(message, "enabled_date"))
+                        if (!$util.isString(message.enabled_date))
+                            return "enabled_date: string expected";
+                    if (message.cache_ttl != null && $Object.hasOwnProperty.call(message, "cache_ttl"))
+                        if (!$util.isInteger(message.cache_ttl) && !(message.cache_ttl && $util.isInteger(message.cache_ttl.low) && $util.isInteger(message.cache_ttl.high)))
+                            return "cache_ttl: integer|Long expected";
+                    if (message.negative_cache != null && $Object.hasOwnProperty.call(message, "negative_cache"))
+                        if (typeof message.negative_cache !== "boolean")
+                            return "negative_cache: boolean expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a RepoMirrorInfo message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.RepoMirrorInfo} RepoMirrorInfo
+                 */
+                RepoMirrorInfo.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.RepoMirrorInfo)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.RepoMirrorInfo: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.RepoMirrorInfo();
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.url != null)
+                        if (typeof object.url !== "string" || object.url.length)
+                            message.url = $String(object.url);
+                    if (object.persist != null)
+                        if (object.persist)
+                            message.persist = $Boolean(object.persist);
+                    if (object.enabled_date != null)
+                        if (typeof object.enabled_date !== "string" || object.enabled_date.length)
+                            message.enabled_date = $String(object.enabled_date);
+                    if (object.cache_ttl != null)
+                        if (typeof object.cache_ttl === "object" ? object.cache_ttl.low || object.cache_ttl.high : $Number(object.cache_ttl) !== 0)
+                            if ($util.Long)
+                                message.cache_ttl = $util.Long.fromValue(object.cache_ttl, true);
+                            else if (typeof object.cache_ttl === "string")
+                                message.cache_ttl = $parseInt(object.cache_ttl, 10);
+                            else if (typeof object.cache_ttl === "number")
+                                message.cache_ttl = object.cache_ttl;
+                            else if (typeof object.cache_ttl === "object")
+                                message.cache_ttl = new $util.LongBits(object.cache_ttl.low >>> 0, object.cache_ttl.high >>> 0).toNumber(true);
+                    if (object.negative_cache != null)
+                        if (object.negative_cache)
+                            message.negative_cache = $Boolean(object.negative_cache);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a RepoMirrorInfo message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {renop.api.v1.RepoMirrorInfo} message RepoMirrorInfo
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                RepoMirrorInfo.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.name = "";
+                        object.url = "";
+                        object.persist = false;
+                        object.enabled_date = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.cache_ttl = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.cache_ttl = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.negative_cache = false;
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        object.url = message.url;
+                    if (message.persist != null && $Object.hasOwnProperty.call(message, "persist"))
+                        object.persist = message.persist;
+                    if (message.enabled_date != null && $Object.hasOwnProperty.call(message, "enabled_date"))
+                        object.enabled_date = message.enabled_date;
+                    if (message.cache_ttl != null && $Object.hasOwnProperty.call(message, "cache_ttl"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.cache_ttl = typeof message.cache_ttl === "number" ? $BigInt(message.cache_ttl) : $util.Long.fromBits(message.cache_ttl.low >>> 0, message.cache_ttl.high >>> 0, true).toBigInt();
+                        else if (typeof message.cache_ttl === "number")
+                            object.cache_ttl = options.longs === $String ? $String(message.cache_ttl) : message.cache_ttl;
+                        else
+                            object.cache_ttl = options.longs === $String ? $util.Long.prototype.toString.call(message.cache_ttl) : options.longs === $Number ? new $util.LongBits(message.cache_ttl.low >>> 0, message.cache_ttl.high >>> 0).toNumber(true) : message.cache_ttl;
+                    if (message.negative_cache != null && $Object.hasOwnProperty.call(message, "negative_cache"))
+                        object.negative_cache = message.negative_cache;
+                    return object;
+                };
+
+                /**
+                 * Converts this RepoMirrorInfo to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                RepoMirrorInfo.prototype.toJSON = function() {
+                    return RepoMirrorInfo.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for RepoMirrorInfo
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.RepoMirrorInfo
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                RepoMirrorInfo.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.RepoMirrorInfo";
+                };
+
+                return RepoMirrorInfo;
+            })();
+
+            v1.RepoDetailsResponse = (function() {
+
+                /**
+                 * Properties of a RepoDetailsResponse.
+                 * @typedef {Object} renop.api.v1.RepoDetailsResponse.$Properties
+                 * @property {string|null} [name] RepoDetailsResponse name
+                 * @property {string|null} [visibility] RepoDetailsResponse visibility
+                 * @property {number|Long|null} [total_size] RepoDetailsResponse total_size
+                 * @property {number|Long|null} [artifact_size] RepoDetailsResponse artifact_size
+                 * @property {number|Long|null} [metadata_size] RepoDetailsResponse metadata_size
+                 * @property {number|Long|null} [total_files] RepoDetailsResponse total_files
+                 * @property {number|Long|null} [artifact_count] RepoDetailsResponse artifact_count
+                 * @property {number|Long|null} [metadata_count] RepoDetailsResponse metadata_count
+                 * @property {Array.<renop.api.v1.RepoMirrorInfo.$Properties>|null} [mirrors] RepoDetailsResponse mirrors
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a RepoDetailsResponse.
+                 * @memberof renop.api.v1
+                 * @interface IRepoDetailsResponse
+                 * @augments renop.api.v1.RepoDetailsResponse.$Properties
+                 * @deprecated Use renop.api.v1.RepoDetailsResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a RepoDetailsResponse.
+                 * @typedef {renop.api.v1.RepoDetailsResponse.$Properties} renop.api.v1.RepoDetailsResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new RepoDetailsResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a RepoDetailsResponse.
+                 * @constructor
+                 * @param {renop.api.v1.RepoDetailsResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const RepoDetailsResponse = function (properties) {
+                    this.mirrors = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * RepoDetailsResponse name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.name = "";
+
+                /**
+                 * RepoDetailsResponse visibility.
+                 * @member {string} visibility
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.visibility = "";
+
+                /**
+                 * RepoDetailsResponse total_size.
+                 * @member {number|Long} total_size
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.total_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RepoDetailsResponse artifact_size.
+                 * @member {number|Long} artifact_size
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.artifact_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RepoDetailsResponse metadata_size.
+                 * @member {number|Long} metadata_size
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.metadata_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RepoDetailsResponse total_files.
+                 * @member {number|Long} total_files
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.total_files = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RepoDetailsResponse artifact_count.
+                 * @member {number|Long} artifact_count
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.artifact_count = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RepoDetailsResponse metadata_count.
+                 * @member {number|Long} metadata_count
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.metadata_count = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RepoDetailsResponse mirrors.
+                 * @member {Array.<renop.api.v1.RepoMirrorInfo.$Properties>} mirrors
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.mirrors = $util.emptyArray;
+
+                /**
+                 * Creates a new RepoDetailsResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {renop.api.v1.RepoDetailsResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.RepoDetailsResponse} RepoDetailsResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.RepoDetailsResponse.$Shape): renop.api.v1.RepoDetailsResponse & renop.api.v1.RepoDetailsResponse.$Shape;
+                 *   (properties?: renop.api.v1.RepoDetailsResponse.$Properties): renop.api.v1.RepoDetailsResponse;
+                 * }}
+                 */
+                RepoDetailsResponse.create = function(properties) {
+                    return new RepoDetailsResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified RepoDetailsResponse message. Does not implicitly {@link renop.api.v1.RepoDetailsResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {renop.api.v1.RepoDetailsResponse.$Properties} message RepoDetailsResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepoDetailsResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.visibility != null && $Object.hasOwnProperty.call(message, "visibility") && message.visibility !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.visibility);
+                    if (message.total_size != null && $Object.hasOwnProperty.call(message, "total_size") && (typeof message.total_size === "object" ? message.total_size.low || message.total_size.high : message.total_size !== 0))
+                        writer.uint32(/* id 3, wireType 0 =*/24).int64(message.total_size);
+                    if (message.artifact_size != null && $Object.hasOwnProperty.call(message, "artifact_size") && (typeof message.artifact_size === "object" ? message.artifact_size.low || message.artifact_size.high : message.artifact_size !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).int64(message.artifact_size);
+                    if (message.metadata_size != null && $Object.hasOwnProperty.call(message, "metadata_size") && (typeof message.metadata_size === "object" ? message.metadata_size.low || message.metadata_size.high : message.metadata_size !== 0))
+                        writer.uint32(/* id 5, wireType 0 =*/40).int64(message.metadata_size);
+                    if (message.total_files != null && $Object.hasOwnProperty.call(message, "total_files") && (typeof message.total_files === "object" ? message.total_files.low || message.total_files.high : message.total_files !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).int64(message.total_files);
+                    if (message.artifact_count != null && $Object.hasOwnProperty.call(message, "artifact_count") && (typeof message.artifact_count === "object" ? message.artifact_count.low || message.artifact_count.high : message.artifact_count !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).int64(message.artifact_count);
+                    if (message.metadata_count != null && $Object.hasOwnProperty.call(message, "metadata_count") && (typeof message.metadata_count === "object" ? message.metadata_count.low || message.metadata_count.high : message.metadata_count !== 0))
+                        writer.uint32(/* id 8, wireType 0 =*/64).int64(message.metadata_count);
+                    if (message.mirrors != null && message.mirrors.length)
+                        for (let i = 0; i < message.mirrors.length; ++i)
+                            $root.renop.api.v1.RepoMirrorInfo.encode(message.mirrors[i], writer.uint32(/* id 9, wireType 2 =*/74).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified RepoDetailsResponse message, length delimited. Does not implicitly {@link renop.api.v1.RepoDetailsResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {renop.api.v1.RepoDetailsResponse.$Properties} message RepoDetailsResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepoDetailsResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a RepoDetailsResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.RepoDetailsResponse & renop.api.v1.RepoDetailsResponse.$Shape} RepoDetailsResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepoDetailsResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepoDetailsResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.visibility = value;
+                                else
+                                    delete message.visibility;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.total_size = value;
+                                else
+                                    delete message.total_size;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.artifact_size = value;
+                                else
+                                    delete message.artifact_size;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.metadata_size = value;
+                                else
+                                    delete message.metadata_size;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.total_files = value;
+                                else
+                                    delete message.total_files;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.artifact_count = value;
+                                else
+                                    delete message.artifact_count;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.metadata_count = value;
+                                else
+                                    delete message.metadata_count;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.mirrors && message.mirrors.length))
+                                    message.mirrors = [];
+                                message.mirrors.push($root.renop.api.v1.RepoMirrorInfo.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a RepoDetailsResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.RepoDetailsResponse & renop.api.v1.RepoDetailsResponse.$Shape} RepoDetailsResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepoDetailsResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a RepoDetailsResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                RepoDetailsResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.visibility != null && $Object.hasOwnProperty.call(message, "visibility"))
+                        if (!$util.isString(message.visibility))
+                            return "visibility: string expected";
+                    if (message.total_size != null && $Object.hasOwnProperty.call(message, "total_size"))
+                        if (!$util.isInteger(message.total_size) && !(message.total_size && $util.isInteger(message.total_size.low) && $util.isInteger(message.total_size.high)))
+                            return "total_size: integer|Long expected";
+                    if (message.artifact_size != null && $Object.hasOwnProperty.call(message, "artifact_size"))
+                        if (!$util.isInteger(message.artifact_size) && !(message.artifact_size && $util.isInteger(message.artifact_size.low) && $util.isInteger(message.artifact_size.high)))
+                            return "artifact_size: integer|Long expected";
+                    if (message.metadata_size != null && $Object.hasOwnProperty.call(message, "metadata_size"))
+                        if (!$util.isInteger(message.metadata_size) && !(message.metadata_size && $util.isInteger(message.metadata_size.low) && $util.isInteger(message.metadata_size.high)))
+                            return "metadata_size: integer|Long expected";
+                    if (message.total_files != null && $Object.hasOwnProperty.call(message, "total_files"))
+                        if (!$util.isInteger(message.total_files) && !(message.total_files && $util.isInteger(message.total_files.low) && $util.isInteger(message.total_files.high)))
+                            return "total_files: integer|Long expected";
+                    if (message.artifact_count != null && $Object.hasOwnProperty.call(message, "artifact_count"))
+                        if (!$util.isInteger(message.artifact_count) && !(message.artifact_count && $util.isInteger(message.artifact_count.low) && $util.isInteger(message.artifact_count.high)))
+                            return "artifact_count: integer|Long expected";
+                    if (message.metadata_count != null && $Object.hasOwnProperty.call(message, "metadata_count"))
+                        if (!$util.isInteger(message.metadata_count) && !(message.metadata_count && $util.isInteger(message.metadata_count.low) && $util.isInteger(message.metadata_count.high)))
+                            return "metadata_count: integer|Long expected";
+                    if (message.mirrors != null && $Object.hasOwnProperty.call(message, "mirrors")) {
+                        if (!$Array.isArray(message.mirrors))
+                            return "mirrors: array expected";
+                        for (let i = 0; i < message.mirrors.length; ++i) {
+                            let error = $root.renop.api.v1.RepoMirrorInfo.verify(message.mirrors[i], _depth + 1);
+                            if (error)
+                                return "mirrors." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a RepoDetailsResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.RepoDetailsResponse} RepoDetailsResponse
+                 */
+                RepoDetailsResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.RepoDetailsResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.RepoDetailsResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.RepoDetailsResponse();
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.visibility != null)
+                        if (typeof object.visibility !== "string" || object.visibility.length)
+                            message.visibility = $String(object.visibility);
+                    if (object.total_size != null)
+                        if (typeof object.total_size === "object" ? object.total_size.low || object.total_size.high : $Number(object.total_size) !== 0)
+                            if ($util.Long)
+                                message.total_size = $util.Long.fromValue(object.total_size, false);
+                            else if (typeof object.total_size === "string")
+                                message.total_size = $parseInt(object.total_size, 10);
+                            else if (typeof object.total_size === "number")
+                                message.total_size = object.total_size;
+                            else if (typeof object.total_size === "object")
+                                message.total_size = new $util.LongBits(object.total_size.low >>> 0, object.total_size.high >>> 0).toNumber();
+                    if (object.artifact_size != null)
+                        if (typeof object.artifact_size === "object" ? object.artifact_size.low || object.artifact_size.high : $Number(object.artifact_size) !== 0)
+                            if ($util.Long)
+                                message.artifact_size = $util.Long.fromValue(object.artifact_size, false);
+                            else if (typeof object.artifact_size === "string")
+                                message.artifact_size = $parseInt(object.artifact_size, 10);
+                            else if (typeof object.artifact_size === "number")
+                                message.artifact_size = object.artifact_size;
+                            else if (typeof object.artifact_size === "object")
+                                message.artifact_size = new $util.LongBits(object.artifact_size.low >>> 0, object.artifact_size.high >>> 0).toNumber();
+                    if (object.metadata_size != null)
+                        if (typeof object.metadata_size === "object" ? object.metadata_size.low || object.metadata_size.high : $Number(object.metadata_size) !== 0)
+                            if ($util.Long)
+                                message.metadata_size = $util.Long.fromValue(object.metadata_size, false);
+                            else if (typeof object.metadata_size === "string")
+                                message.metadata_size = $parseInt(object.metadata_size, 10);
+                            else if (typeof object.metadata_size === "number")
+                                message.metadata_size = object.metadata_size;
+                            else if (typeof object.metadata_size === "object")
+                                message.metadata_size = new $util.LongBits(object.metadata_size.low >>> 0, object.metadata_size.high >>> 0).toNumber();
+                    if (object.total_files != null)
+                        if (typeof object.total_files === "object" ? object.total_files.low || object.total_files.high : $Number(object.total_files) !== 0)
+                            if ($util.Long)
+                                message.total_files = $util.Long.fromValue(object.total_files, false);
+                            else if (typeof object.total_files === "string")
+                                message.total_files = $parseInt(object.total_files, 10);
+                            else if (typeof object.total_files === "number")
+                                message.total_files = object.total_files;
+                            else if (typeof object.total_files === "object")
+                                message.total_files = new $util.LongBits(object.total_files.low >>> 0, object.total_files.high >>> 0).toNumber();
+                    if (object.artifact_count != null)
+                        if (typeof object.artifact_count === "object" ? object.artifact_count.low || object.artifact_count.high : $Number(object.artifact_count) !== 0)
+                            if ($util.Long)
+                                message.artifact_count = $util.Long.fromValue(object.artifact_count, false);
+                            else if (typeof object.artifact_count === "string")
+                                message.artifact_count = $parseInt(object.artifact_count, 10);
+                            else if (typeof object.artifact_count === "number")
+                                message.artifact_count = object.artifact_count;
+                            else if (typeof object.artifact_count === "object")
+                                message.artifact_count = new $util.LongBits(object.artifact_count.low >>> 0, object.artifact_count.high >>> 0).toNumber();
+                    if (object.metadata_count != null)
+                        if (typeof object.metadata_count === "object" ? object.metadata_count.low || object.metadata_count.high : $Number(object.metadata_count) !== 0)
+                            if ($util.Long)
+                                message.metadata_count = $util.Long.fromValue(object.metadata_count, false);
+                            else if (typeof object.metadata_count === "string")
+                                message.metadata_count = $parseInt(object.metadata_count, 10);
+                            else if (typeof object.metadata_count === "number")
+                                message.metadata_count = object.metadata_count;
+                            else if (typeof object.metadata_count === "object")
+                                message.metadata_count = new $util.LongBits(object.metadata_count.low >>> 0, object.metadata_count.high >>> 0).toNumber();
+                    if (object.mirrors) {
+                        if (!$Array.isArray(object.mirrors))
+                            throw $TypeError(".renop.api.v1.RepoDetailsResponse.mirrors: array expected");
+                        message.mirrors = $Array(object.mirrors.length);
+                        for (let i = 0; i < object.mirrors.length; ++i) {
+                            if (!$util.isObject(object.mirrors[i]))
+                                throw $TypeError(".renop.api.v1.RepoDetailsResponse.mirrors: object expected");
+                            message.mirrors[i] = $root.renop.api.v1.RepoMirrorInfo.fromObject(object.mirrors[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a RepoDetailsResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {renop.api.v1.RepoDetailsResponse} message RepoDetailsResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                RepoDetailsResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.mirrors = [];
+                    if (options.defaults) {
+                        object.name = "";
+                        object.visibility = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.total_size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.total_size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.artifact_size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.artifact_size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.metadata_size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.metadata_size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.total_files = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.total_files = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.artifact_count = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.artifact_count = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.metadata_count = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.metadata_count = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.visibility != null && $Object.hasOwnProperty.call(message, "visibility"))
+                        object.visibility = message.visibility;
+                    if (message.total_size != null && $Object.hasOwnProperty.call(message, "total_size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.total_size = typeof message.total_size === "number" ? $BigInt(message.total_size) : $util.Long.fromBits(message.total_size.low >>> 0, message.total_size.high >>> 0, false).toBigInt();
+                        else if (typeof message.total_size === "number")
+                            object.total_size = options.longs === $String ? $String(message.total_size) : message.total_size;
+                        else
+                            object.total_size = options.longs === $String ? $util.Long.prototype.toString.call(message.total_size) : options.longs === $Number ? new $util.LongBits(message.total_size.low >>> 0, message.total_size.high >>> 0).toNumber() : message.total_size;
+                    if (message.artifact_size != null && $Object.hasOwnProperty.call(message, "artifact_size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.artifact_size = typeof message.artifact_size === "number" ? $BigInt(message.artifact_size) : $util.Long.fromBits(message.artifact_size.low >>> 0, message.artifact_size.high >>> 0, false).toBigInt();
+                        else if (typeof message.artifact_size === "number")
+                            object.artifact_size = options.longs === $String ? $String(message.artifact_size) : message.artifact_size;
+                        else
+                            object.artifact_size = options.longs === $String ? $util.Long.prototype.toString.call(message.artifact_size) : options.longs === $Number ? new $util.LongBits(message.artifact_size.low >>> 0, message.artifact_size.high >>> 0).toNumber() : message.artifact_size;
+                    if (message.metadata_size != null && $Object.hasOwnProperty.call(message, "metadata_size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.metadata_size = typeof message.metadata_size === "number" ? $BigInt(message.metadata_size) : $util.Long.fromBits(message.metadata_size.low >>> 0, message.metadata_size.high >>> 0, false).toBigInt();
+                        else if (typeof message.metadata_size === "number")
+                            object.metadata_size = options.longs === $String ? $String(message.metadata_size) : message.metadata_size;
+                        else
+                            object.metadata_size = options.longs === $String ? $util.Long.prototype.toString.call(message.metadata_size) : options.longs === $Number ? new $util.LongBits(message.metadata_size.low >>> 0, message.metadata_size.high >>> 0).toNumber() : message.metadata_size;
+                    if (message.total_files != null && $Object.hasOwnProperty.call(message, "total_files"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.total_files = typeof message.total_files === "number" ? $BigInt(message.total_files) : $util.Long.fromBits(message.total_files.low >>> 0, message.total_files.high >>> 0, false).toBigInt();
+                        else if (typeof message.total_files === "number")
+                            object.total_files = options.longs === $String ? $String(message.total_files) : message.total_files;
+                        else
+                            object.total_files = options.longs === $String ? $util.Long.prototype.toString.call(message.total_files) : options.longs === $Number ? new $util.LongBits(message.total_files.low >>> 0, message.total_files.high >>> 0).toNumber() : message.total_files;
+                    if (message.artifact_count != null && $Object.hasOwnProperty.call(message, "artifact_count"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.artifact_count = typeof message.artifact_count === "number" ? $BigInt(message.artifact_count) : $util.Long.fromBits(message.artifact_count.low >>> 0, message.artifact_count.high >>> 0, false).toBigInt();
+                        else if (typeof message.artifact_count === "number")
+                            object.artifact_count = options.longs === $String ? $String(message.artifact_count) : message.artifact_count;
+                        else
+                            object.artifact_count = options.longs === $String ? $util.Long.prototype.toString.call(message.artifact_count) : options.longs === $Number ? new $util.LongBits(message.artifact_count.low >>> 0, message.artifact_count.high >>> 0).toNumber() : message.artifact_count;
+                    if (message.metadata_count != null && $Object.hasOwnProperty.call(message, "metadata_count"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.metadata_count = typeof message.metadata_count === "number" ? $BigInt(message.metadata_count) : $util.Long.fromBits(message.metadata_count.low >>> 0, message.metadata_count.high >>> 0, false).toBigInt();
+                        else if (typeof message.metadata_count === "number")
+                            object.metadata_count = options.longs === $String ? $String(message.metadata_count) : message.metadata_count;
+                        else
+                            object.metadata_count = options.longs === $String ? $util.Long.prototype.toString.call(message.metadata_count) : options.longs === $Number ? new $util.LongBits(message.metadata_count.low >>> 0, message.metadata_count.high >>> 0).toNumber() : message.metadata_count;
+                    if (message.mirrors && message.mirrors.length) {
+                        object.mirrors = $Array(message.mirrors.length);
+                        for (let j = 0; j < message.mirrors.length; ++j)
+                            object.mirrors[j] = $root.renop.api.v1.RepoMirrorInfo.toObject(message.mirrors[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this RepoDetailsResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                RepoDetailsResponse.prototype.toJSON = function() {
+                    return RepoDetailsResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for RepoDetailsResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                RepoDetailsResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.RepoDetailsResponse";
+                };
+
+                return RepoDetailsResponse;
+            })();
+
+            v1.RebuildIndexRequest = (function() {
+
+                /**
+                 * Properties of a RebuildIndexRequest.
+                 * @typedef {Object} renop.api.v1.RebuildIndexRequest.$Properties
+                 * @property {string|null} [mode] RebuildIndexRequest mode
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a RebuildIndexRequest.
+                 * @memberof renop.api.v1
+                 * @interface IRebuildIndexRequest
+                 * @augments renop.api.v1.RebuildIndexRequest.$Properties
+                 * @deprecated Use renop.api.v1.RebuildIndexRequest.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a RebuildIndexRequest.
+                 * @typedef {renop.api.v1.RebuildIndexRequest.$Properties} renop.api.v1.RebuildIndexRequest.$Shape
+                 */
+
+                /**
+                 * Constructs a new RebuildIndexRequest.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a RebuildIndexRequest.
+                 * @constructor
+                 * @param {renop.api.v1.RebuildIndexRequest.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const RebuildIndexRequest = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * RebuildIndexRequest mode.
+                 * @member {string} mode
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @instance
+                 */
+                RebuildIndexRequest.prototype.mode = "";
+
+                /**
+                 * Creates a new RebuildIndexRequest instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {renop.api.v1.RebuildIndexRequest.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.RebuildIndexRequest} RebuildIndexRequest instance
+                 * @type {{
+                 *   (properties: renop.api.v1.RebuildIndexRequest.$Shape): renop.api.v1.RebuildIndexRequest & renop.api.v1.RebuildIndexRequest.$Shape;
+                 *   (properties?: renop.api.v1.RebuildIndexRequest.$Properties): renop.api.v1.RebuildIndexRequest;
+                 * }}
+                 */
+                RebuildIndexRequest.create = function(properties) {
+                    return new RebuildIndexRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified RebuildIndexRequest message. Does not implicitly {@link renop.api.v1.RebuildIndexRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {renop.api.v1.RebuildIndexRequest.$Properties} message RebuildIndexRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RebuildIndexRequest.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.mode != null && $Object.hasOwnProperty.call(message, "mode") && message.mode !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.mode);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified RebuildIndexRequest message, length delimited. Does not implicitly {@link renop.api.v1.RebuildIndexRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {renop.api.v1.RebuildIndexRequest.$Properties} message RebuildIndexRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RebuildIndexRequest.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a RebuildIndexRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.RebuildIndexRequest & renop.api.v1.RebuildIndexRequest.$Shape} RebuildIndexRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RebuildIndexRequest.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RebuildIndexRequest(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.mode = value;
+                                else
+                                    delete message.mode;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a RebuildIndexRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.RebuildIndexRequest & renop.api.v1.RebuildIndexRequest.$Shape} RebuildIndexRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RebuildIndexRequest.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a RebuildIndexRequest message.
+                 * @function verify
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                RebuildIndexRequest.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.mode != null && $Object.hasOwnProperty.call(message, "mode"))
+                        if (!$util.isString(message.mode))
+                            return "mode: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a RebuildIndexRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.RebuildIndexRequest} RebuildIndexRequest
+                 */
+                RebuildIndexRequest.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.RebuildIndexRequest)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.RebuildIndexRequest: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.RebuildIndexRequest();
+                    if (object.mode != null)
+                        if (typeof object.mode !== "string" || object.mode.length)
+                            message.mode = $String(object.mode);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a RebuildIndexRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {renop.api.v1.RebuildIndexRequest} message RebuildIndexRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                RebuildIndexRequest.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults)
+                        object.mode = "";
+                    if (message.mode != null && $Object.hasOwnProperty.call(message, "mode"))
+                        object.mode = message.mode;
+                    return object;
+                };
+
+                /**
+                 * Converts this RebuildIndexRequest to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                RebuildIndexRequest.prototype.toJSON = function() {
+                    return RebuildIndexRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for RebuildIndexRequest
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.RebuildIndexRequest
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                RebuildIndexRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.RebuildIndexRequest";
+                };
+
+                return RebuildIndexRequest;
+            })();
+
+            v1.SettingsDomainsResponse = (function() {
+
+                /**
+                 * Properties of a SettingsDomainsResponse.
+                 * @typedef {Object} renop.api.v1.SettingsDomainsResponse.$Properties
+                 * @property {Array.<string>|null} [domains] SettingsDomainsResponse domains
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a SettingsDomainsResponse.
+                 * @memberof renop.api.v1
+                 * @interface ISettingsDomainsResponse
+                 * @augments renop.api.v1.SettingsDomainsResponse.$Properties
+                 * @deprecated Use renop.api.v1.SettingsDomainsResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a SettingsDomainsResponse.
+                 * @typedef {renop.api.v1.SettingsDomainsResponse.$Properties} renop.api.v1.SettingsDomainsResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new SettingsDomainsResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a SettingsDomainsResponse.
+                 * @constructor
+                 * @param {renop.api.v1.SettingsDomainsResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const SettingsDomainsResponse = function (properties) {
+                    this.domains = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * SettingsDomainsResponse domains.
+                 * @member {Array.<string>} domains
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @instance
+                 */
+                SettingsDomainsResponse.prototype.domains = $util.emptyArray;
+
+                /**
+                 * Creates a new SettingsDomainsResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {renop.api.v1.SettingsDomainsResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.SettingsDomainsResponse} SettingsDomainsResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.SettingsDomainsResponse.$Shape): renop.api.v1.SettingsDomainsResponse & renop.api.v1.SettingsDomainsResponse.$Shape;
+                 *   (properties?: renop.api.v1.SettingsDomainsResponse.$Properties): renop.api.v1.SettingsDomainsResponse;
+                 * }}
+                 */
+                SettingsDomainsResponse.create = function(properties) {
+                    return new SettingsDomainsResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified SettingsDomainsResponse message. Does not implicitly {@link renop.api.v1.SettingsDomainsResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {renop.api.v1.SettingsDomainsResponse.$Properties} message SettingsDomainsResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SettingsDomainsResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.domains != null && message.domains.length)
+                        for (let i = 0; i < message.domains.length; ++i)
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.domains[i]);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified SettingsDomainsResponse message, length delimited. Does not implicitly {@link renop.api.v1.SettingsDomainsResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {renop.api.v1.SettingsDomainsResponse.$Properties} message SettingsDomainsResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SettingsDomainsResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a SettingsDomainsResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.SettingsDomainsResponse & renop.api.v1.SettingsDomainsResponse.$Shape} SettingsDomainsResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SettingsDomainsResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SettingsDomainsResponse();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.domains && message.domains.length))
+                                    message.domains = [];
+                                message.domains.push(reader.stringVerify());
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a SettingsDomainsResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.SettingsDomainsResponse & renop.api.v1.SettingsDomainsResponse.$Shape} SettingsDomainsResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SettingsDomainsResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a SettingsDomainsResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                SettingsDomainsResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.domains != null && $Object.hasOwnProperty.call(message, "domains")) {
+                        if (!$Array.isArray(message.domains))
+                            return "domains: array expected";
+                        for (let i = 0; i < message.domains.length; ++i)
+                            if (!$util.isString(message.domains[i]))
+                                return "domains: string[] expected";
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a SettingsDomainsResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.SettingsDomainsResponse} SettingsDomainsResponse
+                 */
+                SettingsDomainsResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.SettingsDomainsResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.SettingsDomainsResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.SettingsDomainsResponse();
+                    if (object.domains) {
+                        if (!$Array.isArray(object.domains))
+                            throw $TypeError(".renop.api.v1.SettingsDomainsResponse.domains: array expected");
+                        message.domains = $Array(object.domains.length);
+                        for (let i = 0; i < object.domains.length; ++i)
+                            message.domains[i] = $String(object.domains[i]);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a SettingsDomainsResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {renop.api.v1.SettingsDomainsResponse} message SettingsDomainsResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                SettingsDomainsResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.domains = [];
+                    if (message.domains && message.domains.length) {
+                        object.domains = $Array(message.domains.length);
+                        for (let j = 0; j < message.domains.length; ++j)
+                            object.domains[j] = message.domains[j];
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this SettingsDomainsResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                SettingsDomainsResponse.prototype.toJSON = function() {
+                    return SettingsDomainsResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for SettingsDomainsResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.SettingsDomainsResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                SettingsDomainsResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.SettingsDomainsResponse";
+                };
+
+                return SettingsDomainsResponse;
+            })();
+
+            v1.FrontendConfig = (function() {
+
+                /**
+                 * Properties of a FrontendConfig.
+                 * @typedef {Object} renop.api.v1.FrontendConfig.$Properties
+                 * @property {string|null} [id] FrontendConfig id
+                 * @property {string|null} [title] FrontendConfig title
+                 * @property {string|null} [description] FrontendConfig description
+                 * @property {string|null} [organization_website] FrontendConfig organization_website
+                 * @property {string|null} [organization_logo] FrontendConfig organization_logo
+                 * @property {string|null} [background_url] FrontendConfig background_url
+                 * @property {string|null} [icp_license] FrontendConfig icp_license
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a FrontendConfig.
+                 * @memberof renop.api.v1
+                 * @interface IFrontendConfig
+                 * @augments renop.api.v1.FrontendConfig.$Properties
+                 * @deprecated Use renop.api.v1.FrontendConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a FrontendConfig.
+                 * @typedef {renop.api.v1.FrontendConfig.$Properties} renop.api.v1.FrontendConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new FrontendConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a FrontendConfig.
+                 * @constructor
+                 * @param {renop.api.v1.FrontendConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const FrontendConfig = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * FrontendConfig id.
+                 * @member {string} id
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.id = "";
+
+                /**
+                 * FrontendConfig title.
+                 * @member {string} title
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.title = "";
+
+                /**
+                 * FrontendConfig description.
+                 * @member {string} description
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.description = "";
+
+                /**
+                 * FrontendConfig organization_website.
+                 * @member {string} organization_website
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.organization_website = "";
+
+                /**
+                 * FrontendConfig organization_logo.
+                 * @member {string} organization_logo
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.organization_logo = "";
+
+                /**
+                 * FrontendConfig background_url.
+                 * @member {string} background_url
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.background_url = "";
+
+                /**
+                 * FrontendConfig icp_license.
+                 * @member {string} icp_license
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.icp_license = "";
+
+                /**
+                 * Creates a new FrontendConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {renop.api.v1.FrontendConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.FrontendConfig} FrontendConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.FrontendConfig.$Shape): renop.api.v1.FrontendConfig & renop.api.v1.FrontendConfig.$Shape;
+                 *   (properties?: renop.api.v1.FrontendConfig.$Properties): renop.api.v1.FrontendConfig;
+                 * }}
+                 */
+                FrontendConfig.create = function(properties) {
+                    return new FrontendConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified FrontendConfig message. Does not implicitly {@link renop.api.v1.FrontendConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {renop.api.v1.FrontendConfig.$Properties} message FrontendConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FrontendConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id") && message.id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title") && message.title !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.title);
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description") && message.description !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+                    if (message.organization_website != null && $Object.hasOwnProperty.call(message, "organization_website") && message.organization_website !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.organization_website);
+                    if (message.organization_logo != null && $Object.hasOwnProperty.call(message, "organization_logo") && message.organization_logo !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.organization_logo);
+                    if (message.background_url != null && $Object.hasOwnProperty.call(message, "background_url") && message.background_url !== "")
+                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.background_url);
+                    if (message.icp_license != null && $Object.hasOwnProperty.call(message, "icp_license") && message.icp_license !== "")
+                        writer.uint32(/* id 7, wireType 2 =*/58).string(message.icp_license);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified FrontendConfig message, length delimited. Does not implicitly {@link renop.api.v1.FrontendConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {renop.api.v1.FrontendConfig.$Properties} message FrontendConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FrontendConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a FrontendConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.FrontendConfig & renop.api.v1.FrontendConfig.$Shape} FrontendConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FrontendConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FrontendConfig(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.id = value;
+                                else
+                                    delete message.id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.title = value;
+                                else
+                                    delete message.title;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.description = value;
+                                else
+                                    delete message.description;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.organization_website = value;
+                                else
+                                    delete message.organization_website;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.organization_logo = value;
+                                else
+                                    delete message.organization_logo;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.background_url = value;
+                                else
+                                    delete message.background_url;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.icp_license = value;
+                                else
+                                    delete message.icp_license;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a FrontendConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.FrontendConfig & renop.api.v1.FrontendConfig.$Shape} FrontendConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FrontendConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a FrontendConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                FrontendConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        if (!$util.isString(message.id))
+                            return "id: string expected";
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title"))
+                        if (!$util.isString(message.title))
+                            return "title: string expected";
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description"))
+                        if (!$util.isString(message.description))
+                            return "description: string expected";
+                    if (message.organization_website != null && $Object.hasOwnProperty.call(message, "organization_website"))
+                        if (!$util.isString(message.organization_website))
+                            return "organization_website: string expected";
+                    if (message.organization_logo != null && $Object.hasOwnProperty.call(message, "organization_logo"))
+                        if (!$util.isString(message.organization_logo))
+                            return "organization_logo: string expected";
+                    if (message.background_url != null && $Object.hasOwnProperty.call(message, "background_url"))
+                        if (!$util.isString(message.background_url))
+                            return "background_url: string expected";
+                    if (message.icp_license != null && $Object.hasOwnProperty.call(message, "icp_license"))
+                        if (!$util.isString(message.icp_license))
+                            return "icp_license: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a FrontendConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.FrontendConfig} FrontendConfig
+                 */
+                FrontendConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.FrontendConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.FrontendConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.FrontendConfig();
+                    if (object.id != null)
+                        if (typeof object.id !== "string" || object.id.length)
+                            message.id = $String(object.id);
+                    if (object.title != null)
+                        if (typeof object.title !== "string" || object.title.length)
+                            message.title = $String(object.title);
+                    if (object.description != null)
+                        if (typeof object.description !== "string" || object.description.length)
+                            message.description = $String(object.description);
+                    if (object.organization_website != null)
+                        if (typeof object.organization_website !== "string" || object.organization_website.length)
+                            message.organization_website = $String(object.organization_website);
+                    if (object.organization_logo != null)
+                        if (typeof object.organization_logo !== "string" || object.organization_logo.length)
+                            message.organization_logo = $String(object.organization_logo);
+                    if (object.background_url != null)
+                        if (typeof object.background_url !== "string" || object.background_url.length)
+                            message.background_url = $String(object.background_url);
+                    if (object.icp_license != null)
+                        if (typeof object.icp_license !== "string" || object.icp_license.length)
+                            message.icp_license = $String(object.icp_license);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a FrontendConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {renop.api.v1.FrontendConfig} message FrontendConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                FrontendConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.id = "";
+                        object.title = "";
+                        object.description = "";
+                        object.organization_website = "";
+                        object.organization_logo = "";
+                        object.background_url = "";
+                        object.icp_license = "";
+                    }
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        object.id = message.id;
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title"))
+                        object.title = message.title;
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description"))
+                        object.description = message.description;
+                    if (message.organization_website != null && $Object.hasOwnProperty.call(message, "organization_website"))
+                        object.organization_website = message.organization_website;
+                    if (message.organization_logo != null && $Object.hasOwnProperty.call(message, "organization_logo"))
+                        object.organization_logo = message.organization_logo;
+                    if (message.background_url != null && $Object.hasOwnProperty.call(message, "background_url"))
+                        object.background_url = message.background_url;
+                    if (message.icp_license != null && $Object.hasOwnProperty.call(message, "icp_license"))
+                        object.icp_license = message.icp_license;
+                    return object;
+                };
+
+                /**
+                 * Converts this FrontendConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                FrontendConfig.prototype.toJSON = function() {
+                    return FrontendConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for FrontendConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                FrontendConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.FrontendConfig";
+                };
+
+                return FrontendConfig;
+            })();
+
+            v1.ServerConfig = (function() {
+
+                /**
+                 * Properties of a ServerConfig.
+                 * @typedef {Object} renop.api.v1.ServerConfig.$Properties
+                 * @property {string|null} [host] ServerConfig host
+                 * @property {number|null} [port] ServerConfig port
+                 * @property {boolean|null} [ssl_enabled] ServerConfig ssl_enabled
+                 * @property {string|null} [ssl_cert_path] ServerConfig ssl_cert_path
+                 * @property {string|null} [ssl_key_path] ServerConfig ssl_key_path
+                 * @property {string|null} [domain] ServerConfig domain
+                 * @property {boolean|null} [enable_compression] ServerConfig enable_compression
+                 * @property {number|null} [file_cache_size_mb] ServerConfig file_cache_size_mb
+                 * @property {number|null} [max_active_requests] ServerConfig max_active_requests
+                 * @property {Array.<string>|null} [trusted_proxies] ServerConfig trusted_proxies
+                 * @property {string|null} [cdn_ip_header] ServerConfig cdn_ip_header
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a ServerConfig.
+                 * @memberof renop.api.v1
+                 * @interface IServerConfig
+                 * @augments renop.api.v1.ServerConfig.$Properties
+                 * @deprecated Use renop.api.v1.ServerConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a ServerConfig.
+                 * @typedef {renop.api.v1.ServerConfig.$Properties} renop.api.v1.ServerConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new ServerConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a ServerConfig.
+                 * @constructor
+                 * @param {renop.api.v1.ServerConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const ServerConfig = function (properties) {
+                    this.trusted_proxies = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * ServerConfig host.
+                 * @member {string} host
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.host = "";
+
+                /**
+                 * ServerConfig port.
+                 * @member {number} port
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.port = 0;
+
+                /**
+                 * ServerConfig ssl_enabled.
+                 * @member {boolean} ssl_enabled
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.ssl_enabled = false;
+
+                /**
+                 * ServerConfig ssl_cert_path.
+                 * @member {string} ssl_cert_path
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.ssl_cert_path = "";
+
+                /**
+                 * ServerConfig ssl_key_path.
+                 * @member {string} ssl_key_path
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.ssl_key_path = "";
+
+                /**
+                 * ServerConfig domain.
+                 * @member {string} domain
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.domain = "";
+
+                /**
+                 * ServerConfig enable_compression.
+                 * @member {boolean} enable_compression
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.enable_compression = false;
+
+                /**
+                 * ServerConfig file_cache_size_mb.
+                 * @member {number} file_cache_size_mb
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.file_cache_size_mb = 0;
+
+                /**
+                 * ServerConfig max_active_requests.
+                 * @member {number} max_active_requests
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.max_active_requests = 0;
+
+                /**
+                 * ServerConfig trusted_proxies.
+                 * @member {Array.<string>} trusted_proxies
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.trusted_proxies = $util.emptyArray;
+
+                /**
+                 * ServerConfig cdn_ip_header.
+                 * @member {string} cdn_ip_header
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.cdn_ip_header = "";
+
+                /**
+                 * Creates a new ServerConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {renop.api.v1.ServerConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.ServerConfig} ServerConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.ServerConfig.$Shape): renop.api.v1.ServerConfig & renop.api.v1.ServerConfig.$Shape;
+                 *   (properties?: renop.api.v1.ServerConfig.$Properties): renop.api.v1.ServerConfig;
+                 * }}
+                 */
+                ServerConfig.create = function(properties) {
+                    return new ServerConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified ServerConfig message. Does not implicitly {@link renop.api.v1.ServerConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {renop.api.v1.ServerConfig.$Properties} message ServerConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ServerConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.host != null && $Object.hasOwnProperty.call(message, "host") && message.host !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.host);
+                    if (message.port != null && $Object.hasOwnProperty.call(message, "port") && message.port !== 0)
+                        writer.uint32(/* id 2, wireType 0 =*/16).uint32(message.port);
+                    if (message.ssl_enabled != null && $Object.hasOwnProperty.call(message, "ssl_enabled") && message.ssl_enabled !== false)
+                        writer.uint32(/* id 3, wireType 0 =*/24).bool(message.ssl_enabled);
+                    if (message.ssl_cert_path != null && $Object.hasOwnProperty.call(message, "ssl_cert_path") && message.ssl_cert_path !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.ssl_cert_path);
+                    if (message.ssl_key_path != null && $Object.hasOwnProperty.call(message, "ssl_key_path") && message.ssl_key_path !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.ssl_key_path);
+                    if (message.domain != null && $Object.hasOwnProperty.call(message, "domain") && message.domain !== "")
+                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.domain);
+                    if (message.enable_compression != null && $Object.hasOwnProperty.call(message, "enable_compression") && message.enable_compression !== false)
+                        writer.uint32(/* id 7, wireType 0 =*/56).bool(message.enable_compression);
+                    if (message.file_cache_size_mb != null && $Object.hasOwnProperty.call(message, "file_cache_size_mb") && message.file_cache_size_mb !== 0)
+                        writer.uint32(/* id 8, wireType 0 =*/64).uint32(message.file_cache_size_mb);
+                    if (message.max_active_requests != null && $Object.hasOwnProperty.call(message, "max_active_requests") && message.max_active_requests !== 0)
+                        writer.uint32(/* id 9, wireType 0 =*/72).uint32(message.max_active_requests);
+                    if (message.trusted_proxies != null && message.trusted_proxies.length)
+                        for (let i = 0; i < message.trusted_proxies.length; ++i)
+                            writer.uint32(/* id 10, wireType 2 =*/82).string(message.trusted_proxies[i]);
+                    if (message.cdn_ip_header != null && $Object.hasOwnProperty.call(message, "cdn_ip_header") && message.cdn_ip_header !== "")
+                        writer.uint32(/* id 11, wireType 2 =*/90).string(message.cdn_ip_header);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified ServerConfig message, length delimited. Does not implicitly {@link renop.api.v1.ServerConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {renop.api.v1.ServerConfig.$Properties} message ServerConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ServerConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a ServerConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.ServerConfig & renop.api.v1.ServerConfig.$Shape} ServerConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ServerConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ServerConfig(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.host = value;
+                                else
+                                    delete message.host;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.uint32())
+                                    message.port = value;
+                                else
+                                    delete message.port;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.ssl_enabled = value;
+                                else
+                                    delete message.ssl_enabled;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.ssl_cert_path = value;
+                                else
+                                    delete message.ssl_cert_path;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.ssl_key_path = value;
+                                else
+                                    delete message.ssl_key_path;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.domain = value;
+                                else
+                                    delete message.domain;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.enable_compression = value;
+                                else
+                                    delete message.enable_compression;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.uint32())
+                                    message.file_cache_size_mb = value;
+                                else
+                                    delete message.file_cache_size_mb;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.uint32())
+                                    message.max_active_requests = value;
+                                else
+                                    delete message.max_active_requests;
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.trusted_proxies && message.trusted_proxies.length))
+                                    message.trusted_proxies = [];
+                                message.trusted_proxies.push(reader.stringVerify());
+                                continue;
+                            }
+                        case 11: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.cdn_ip_header = value;
+                                else
+                                    delete message.cdn_ip_header;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a ServerConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.ServerConfig & renop.api.v1.ServerConfig.$Shape} ServerConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ServerConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a ServerConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                ServerConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.host != null && $Object.hasOwnProperty.call(message, "host"))
+                        if (!$util.isString(message.host))
+                            return "host: string expected";
+                    if (message.port != null && $Object.hasOwnProperty.call(message, "port"))
+                        if (!$util.isInteger(message.port))
+                            return "port: integer expected";
+                    if (message.ssl_enabled != null && $Object.hasOwnProperty.call(message, "ssl_enabled"))
+                        if (typeof message.ssl_enabled !== "boolean")
+                            return "ssl_enabled: boolean expected";
+                    if (message.ssl_cert_path != null && $Object.hasOwnProperty.call(message, "ssl_cert_path"))
+                        if (!$util.isString(message.ssl_cert_path))
+                            return "ssl_cert_path: string expected";
+                    if (message.ssl_key_path != null && $Object.hasOwnProperty.call(message, "ssl_key_path"))
+                        if (!$util.isString(message.ssl_key_path))
+                            return "ssl_key_path: string expected";
+                    if (message.domain != null && $Object.hasOwnProperty.call(message, "domain"))
+                        if (!$util.isString(message.domain))
+                            return "domain: string expected";
+                    if (message.enable_compression != null && $Object.hasOwnProperty.call(message, "enable_compression"))
+                        if (typeof message.enable_compression !== "boolean")
+                            return "enable_compression: boolean expected";
+                    if (message.file_cache_size_mb != null && $Object.hasOwnProperty.call(message, "file_cache_size_mb"))
+                        if (!$util.isInteger(message.file_cache_size_mb))
+                            return "file_cache_size_mb: integer expected";
+                    if (message.max_active_requests != null && $Object.hasOwnProperty.call(message, "max_active_requests"))
+                        if (!$util.isInteger(message.max_active_requests))
+                            return "max_active_requests: integer expected";
+                    if (message.trusted_proxies != null && $Object.hasOwnProperty.call(message, "trusted_proxies")) {
+                        if (!$Array.isArray(message.trusted_proxies))
+                            return "trusted_proxies: array expected";
+                        for (let i = 0; i < message.trusted_proxies.length; ++i)
+                            if (!$util.isString(message.trusted_proxies[i]))
+                                return "trusted_proxies: string[] expected";
+                    }
+                    if (message.cdn_ip_header != null && $Object.hasOwnProperty.call(message, "cdn_ip_header"))
+                        if (!$util.isString(message.cdn_ip_header))
+                            return "cdn_ip_header: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a ServerConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.ServerConfig} ServerConfig
+                 */
+                ServerConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.ServerConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.ServerConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.ServerConfig();
+                    if (object.host != null)
+                        if (typeof object.host !== "string" || object.host.length)
+                            message.host = $String(object.host);
+                    if (object.port != null)
+                        if ($Number(object.port) !== 0)
+                            message.port = object.port >>> 0;
+                    if (object.ssl_enabled != null)
+                        if (object.ssl_enabled)
+                            message.ssl_enabled = $Boolean(object.ssl_enabled);
+                    if (object.ssl_cert_path != null)
+                        if (typeof object.ssl_cert_path !== "string" || object.ssl_cert_path.length)
+                            message.ssl_cert_path = $String(object.ssl_cert_path);
+                    if (object.ssl_key_path != null)
+                        if (typeof object.ssl_key_path !== "string" || object.ssl_key_path.length)
+                            message.ssl_key_path = $String(object.ssl_key_path);
+                    if (object.domain != null)
+                        if (typeof object.domain !== "string" || object.domain.length)
+                            message.domain = $String(object.domain);
+                    if (object.enable_compression != null)
+                        if (object.enable_compression)
+                            message.enable_compression = $Boolean(object.enable_compression);
+                    if (object.file_cache_size_mb != null)
+                        if ($Number(object.file_cache_size_mb) !== 0)
+                            message.file_cache_size_mb = object.file_cache_size_mb >>> 0;
+                    if (object.max_active_requests != null)
+                        if ($Number(object.max_active_requests) !== 0)
+                            message.max_active_requests = object.max_active_requests >>> 0;
+                    if (object.trusted_proxies) {
+                        if (!$Array.isArray(object.trusted_proxies))
+                            throw $TypeError(".renop.api.v1.ServerConfig.trusted_proxies: array expected");
+                        message.trusted_proxies = $Array(object.trusted_proxies.length);
+                        for (let i = 0; i < object.trusted_proxies.length; ++i)
+                            message.trusted_proxies[i] = $String(object.trusted_proxies[i]);
+                    }
+                    if (object.cdn_ip_header != null)
+                        if (typeof object.cdn_ip_header !== "string" || object.cdn_ip_header.length)
+                            message.cdn_ip_header = $String(object.cdn_ip_header);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a ServerConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {renop.api.v1.ServerConfig} message ServerConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                ServerConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.trusted_proxies = [];
+                    if (options.defaults) {
+                        object.host = "";
+                        object.port = 0;
+                        object.ssl_enabled = false;
+                        object.ssl_cert_path = "";
+                        object.ssl_key_path = "";
+                        object.domain = "";
+                        object.enable_compression = false;
+                        object.file_cache_size_mb = 0;
+                        object.max_active_requests = 0;
+                        object.cdn_ip_header = "";
+                    }
+                    if (message.host != null && $Object.hasOwnProperty.call(message, "host"))
+                        object.host = message.host;
+                    if (message.port != null && $Object.hasOwnProperty.call(message, "port"))
+                        object.port = message.port;
+                    if (message.ssl_enabled != null && $Object.hasOwnProperty.call(message, "ssl_enabled"))
+                        object.ssl_enabled = message.ssl_enabled;
+                    if (message.ssl_cert_path != null && $Object.hasOwnProperty.call(message, "ssl_cert_path"))
+                        object.ssl_cert_path = message.ssl_cert_path;
+                    if (message.ssl_key_path != null && $Object.hasOwnProperty.call(message, "ssl_key_path"))
+                        object.ssl_key_path = message.ssl_key_path;
+                    if (message.domain != null && $Object.hasOwnProperty.call(message, "domain"))
+                        object.domain = message.domain;
+                    if (message.enable_compression != null && $Object.hasOwnProperty.call(message, "enable_compression"))
+                        object.enable_compression = message.enable_compression;
+                    if (message.file_cache_size_mb != null && $Object.hasOwnProperty.call(message, "file_cache_size_mb"))
+                        object.file_cache_size_mb = message.file_cache_size_mb;
+                    if (message.max_active_requests != null && $Object.hasOwnProperty.call(message, "max_active_requests"))
+                        object.max_active_requests = message.max_active_requests;
+                    if (message.trusted_proxies && message.trusted_proxies.length) {
+                        object.trusted_proxies = $Array(message.trusted_proxies.length);
+                        for (let j = 0; j < message.trusted_proxies.length; ++j)
+                            object.trusted_proxies[j] = message.trusted_proxies[j];
+                    }
+                    if (message.cdn_ip_header != null && $Object.hasOwnProperty.call(message, "cdn_ip_header"))
+                        object.cdn_ip_header = message.cdn_ip_header;
+                    return object;
+                };
+
+                /**
+                 * Converts this ServerConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                ServerConfig.prototype.toJSON = function() {
+                    return ServerConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for ServerConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.ServerConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                ServerConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.ServerConfig";
+                };
+
+                return ServerConfig;
+            })();
+
+            v1.StorageConfig = (function() {
+
+                /**
+                 * Properties of a StorageConfig.
+                 * @typedef {Object} renop.api.v1.StorageConfig.$Properties
+                 * @property {string|null} [storage_path] StorageConfig storage_path
+                 * @property {boolean|null} [enable_javadoc_preview] StorageConfig enable_javadoc_preview
+                 * @property {string|null} [javadoc_extract_path] StorageConfig javadoc_extract_path
+                 * @property {number|Long|null} [max_javadoc_size_mb] StorageConfig max_javadoc_size_mb
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a StorageConfig.
+                 * @memberof renop.api.v1
+                 * @interface IStorageConfig
+                 * @augments renop.api.v1.StorageConfig.$Properties
+                 * @deprecated Use renop.api.v1.StorageConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a StorageConfig.
+                 * @typedef {renop.api.v1.StorageConfig.$Properties} renop.api.v1.StorageConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new StorageConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a StorageConfig.
+                 * @constructor
+                 * @param {renop.api.v1.StorageConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const StorageConfig = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * StorageConfig storage_path.
+                 * @member {string} storage_path
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 */
+                StorageConfig.prototype.storage_path = "";
+
+                /**
+                 * StorageConfig enable_javadoc_preview.
+                 * @member {boolean} enable_javadoc_preview
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 */
+                StorageConfig.prototype.enable_javadoc_preview = false;
+
+                /**
+                 * StorageConfig javadoc_extract_path.
+                 * @member {string} javadoc_extract_path
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 */
+                StorageConfig.prototype.javadoc_extract_path = "";
+
+                /**
+                 * StorageConfig max_javadoc_size_mb.
+                 * @member {number|Long} max_javadoc_size_mb
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 */
+                StorageConfig.prototype.max_javadoc_size_mb = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new StorageConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {renop.api.v1.StorageConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.StorageConfig} StorageConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.StorageConfig.$Shape): renop.api.v1.StorageConfig & renop.api.v1.StorageConfig.$Shape;
+                 *   (properties?: renop.api.v1.StorageConfig.$Properties): renop.api.v1.StorageConfig;
+                 * }}
+                 */
+                StorageConfig.create = function(properties) {
+                    return new StorageConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified StorageConfig message. Does not implicitly {@link renop.api.v1.StorageConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {renop.api.v1.StorageConfig.$Properties} message StorageConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StorageConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.storage_path != null && $Object.hasOwnProperty.call(message, "storage_path") && message.storage_path !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.storage_path);
+                    if (message.enable_javadoc_preview != null && $Object.hasOwnProperty.call(message, "enable_javadoc_preview") && message.enable_javadoc_preview !== false)
+                        writer.uint32(/* id 2, wireType 0 =*/16).bool(message.enable_javadoc_preview);
+                    if (message.javadoc_extract_path != null && $Object.hasOwnProperty.call(message, "javadoc_extract_path") && message.javadoc_extract_path !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.javadoc_extract_path);
+                    if (message.max_javadoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_javadoc_size_mb") && (typeof message.max_javadoc_size_mb === "object" ? message.max_javadoc_size_mb.low || message.max_javadoc_size_mb.high : message.max_javadoc_size_mb !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).int64(message.max_javadoc_size_mb);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified StorageConfig message, length delimited. Does not implicitly {@link renop.api.v1.StorageConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {renop.api.v1.StorageConfig.$Properties} message StorageConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                StorageConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a StorageConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.StorageConfig & renop.api.v1.StorageConfig.$Shape} StorageConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StorageConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StorageConfig(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.storage_path = value;
+                                else
+                                    delete message.storage_path;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.enable_javadoc_preview = value;
+                                else
+                                    delete message.enable_javadoc_preview;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.javadoc_extract_path = value;
+                                else
+                                    delete message.javadoc_extract_path;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.max_javadoc_size_mb = value;
+                                else
+                                    delete message.max_javadoc_size_mb;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a StorageConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.StorageConfig & renop.api.v1.StorageConfig.$Shape} StorageConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                StorageConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a StorageConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                StorageConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.storage_path != null && $Object.hasOwnProperty.call(message, "storage_path"))
+                        if (!$util.isString(message.storage_path))
+                            return "storage_path: string expected";
+                    if (message.enable_javadoc_preview != null && $Object.hasOwnProperty.call(message, "enable_javadoc_preview"))
+                        if (typeof message.enable_javadoc_preview !== "boolean")
+                            return "enable_javadoc_preview: boolean expected";
+                    if (message.javadoc_extract_path != null && $Object.hasOwnProperty.call(message, "javadoc_extract_path"))
+                        if (!$util.isString(message.javadoc_extract_path))
+                            return "javadoc_extract_path: string expected";
+                    if (message.max_javadoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_javadoc_size_mb"))
+                        if (!$util.isInteger(message.max_javadoc_size_mb) && !(message.max_javadoc_size_mb && $util.isInteger(message.max_javadoc_size_mb.low) && $util.isInteger(message.max_javadoc_size_mb.high)))
+                            return "max_javadoc_size_mb: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a StorageConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.StorageConfig} StorageConfig
+                 */
+                StorageConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.StorageConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.StorageConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.StorageConfig();
+                    if (object.storage_path != null)
+                        if (typeof object.storage_path !== "string" || object.storage_path.length)
+                            message.storage_path = $String(object.storage_path);
+                    if (object.enable_javadoc_preview != null)
+                        if (object.enable_javadoc_preview)
+                            message.enable_javadoc_preview = $Boolean(object.enable_javadoc_preview);
+                    if (object.javadoc_extract_path != null)
+                        if (typeof object.javadoc_extract_path !== "string" || object.javadoc_extract_path.length)
+                            message.javadoc_extract_path = $String(object.javadoc_extract_path);
+                    if (object.max_javadoc_size_mb != null)
+                        if (typeof object.max_javadoc_size_mb === "object" ? object.max_javadoc_size_mb.low || object.max_javadoc_size_mb.high : $Number(object.max_javadoc_size_mb) !== 0)
+                            if ($util.Long)
+                                message.max_javadoc_size_mb = $util.Long.fromValue(object.max_javadoc_size_mb, false);
+                            else if (typeof object.max_javadoc_size_mb === "string")
+                                message.max_javadoc_size_mb = $parseInt(object.max_javadoc_size_mb, 10);
+                            else if (typeof object.max_javadoc_size_mb === "number")
+                                message.max_javadoc_size_mb = object.max_javadoc_size_mb;
+                            else if (typeof object.max_javadoc_size_mb === "object")
+                                message.max_javadoc_size_mb = new $util.LongBits(object.max_javadoc_size_mb.low >>> 0, object.max_javadoc_size_mb.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a StorageConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {renop.api.v1.StorageConfig} message StorageConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                StorageConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.storage_path = "";
+                        object.enable_javadoc_preview = false;
+                        object.javadoc_extract_path = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.max_javadoc_size_mb = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.max_javadoc_size_mb = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.storage_path != null && $Object.hasOwnProperty.call(message, "storage_path"))
+                        object.storage_path = message.storage_path;
+                    if (message.enable_javadoc_preview != null && $Object.hasOwnProperty.call(message, "enable_javadoc_preview"))
+                        object.enable_javadoc_preview = message.enable_javadoc_preview;
+                    if (message.javadoc_extract_path != null && $Object.hasOwnProperty.call(message, "javadoc_extract_path"))
+                        object.javadoc_extract_path = message.javadoc_extract_path;
+                    if (message.max_javadoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_javadoc_size_mb"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.max_javadoc_size_mb = typeof message.max_javadoc_size_mb === "number" ? $BigInt(message.max_javadoc_size_mb) : $util.Long.fromBits(message.max_javadoc_size_mb.low >>> 0, message.max_javadoc_size_mb.high >>> 0, false).toBigInt();
+                        else if (typeof message.max_javadoc_size_mb === "number")
+                            object.max_javadoc_size_mb = options.longs === $String ? $String(message.max_javadoc_size_mb) : message.max_javadoc_size_mb;
+                        else
+                            object.max_javadoc_size_mb = options.longs === $String ? $util.Long.prototype.toString.call(message.max_javadoc_size_mb) : options.longs === $Number ? new $util.LongBits(message.max_javadoc_size_mb.low >>> 0, message.max_javadoc_size_mb.high >>> 0).toNumber() : message.max_javadoc_size_mb;
+                    return object;
+                };
+
+                /**
+                 * Converts this StorageConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                StorageConfig.prototype.toJSON = function() {
+                    return StorageConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for StorageConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.StorageConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                StorageConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.StorageConfig";
+                };
+
+                return StorageConfig;
+            })();
+
+            v1.UpdaterConfig = (function() {
+
+                /**
+                 * Properties of an UpdaterConfig.
+                 * @typedef {Object} renop.api.v1.UpdaterConfig.$Properties
+                 * @property {string|null} [channel] UpdaterConfig channel
+                 * @property {string|null} [mode] UpdaterConfig mode
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an UpdaterConfig.
+                 * @memberof renop.api.v1
+                 * @interface IUpdaterConfig
+                 * @augments renop.api.v1.UpdaterConfig.$Properties
+                 * @deprecated Use renop.api.v1.UpdaterConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an UpdaterConfig.
+                 * @typedef {renop.api.v1.UpdaterConfig.$Properties} renop.api.v1.UpdaterConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new UpdaterConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an UpdaterConfig.
+                 * @constructor
+                 * @param {renop.api.v1.UpdaterConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const UpdaterConfig = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * UpdaterConfig channel.
+                 * @member {string} channel
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @instance
+                 */
+                UpdaterConfig.prototype.channel = "";
+
+                /**
+                 * UpdaterConfig mode.
+                 * @member {string} mode
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @instance
+                 */
+                UpdaterConfig.prototype.mode = "";
+
+                /**
+                 * Creates a new UpdaterConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {renop.api.v1.UpdaterConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.UpdaterConfig} UpdaterConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.UpdaterConfig.$Shape): renop.api.v1.UpdaterConfig & renop.api.v1.UpdaterConfig.$Shape;
+                 *   (properties?: renop.api.v1.UpdaterConfig.$Properties): renop.api.v1.UpdaterConfig;
+                 * }}
+                 */
+                UpdaterConfig.create = function(properties) {
+                    return new UpdaterConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified UpdaterConfig message. Does not implicitly {@link renop.api.v1.UpdaterConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {renop.api.v1.UpdaterConfig.$Properties} message UpdaterConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UpdaterConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.channel != null && $Object.hasOwnProperty.call(message, "channel") && message.channel !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.channel);
+                    if (message.mode != null && $Object.hasOwnProperty.call(message, "mode") && message.mode !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.mode);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified UpdaterConfig message, length delimited. Does not implicitly {@link renop.api.v1.UpdaterConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {renop.api.v1.UpdaterConfig.$Properties} message UpdaterConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UpdaterConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an UpdaterConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.UpdaterConfig & renop.api.v1.UpdaterConfig.$Shape} UpdaterConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UpdaterConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UpdaterConfig(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.channel = value;
+                                else
+                                    delete message.channel;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.mode = value;
+                                else
+                                    delete message.mode;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an UpdaterConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.UpdaterConfig & renop.api.v1.UpdaterConfig.$Shape} UpdaterConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UpdaterConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an UpdaterConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                UpdaterConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.channel != null && $Object.hasOwnProperty.call(message, "channel"))
+                        if (!$util.isString(message.channel))
+                            return "channel: string expected";
+                    if (message.mode != null && $Object.hasOwnProperty.call(message, "mode"))
+                        if (!$util.isString(message.mode))
+                            return "mode: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an UpdaterConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.UpdaterConfig} UpdaterConfig
+                 */
+                UpdaterConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.UpdaterConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.UpdaterConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.UpdaterConfig();
+                    if (object.channel != null)
+                        if (typeof object.channel !== "string" || object.channel.length)
+                            message.channel = $String(object.channel);
+                    if (object.mode != null)
+                        if (typeof object.mode !== "string" || object.mode.length)
+                            message.mode = $String(object.mode);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an UpdaterConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {renop.api.v1.UpdaterConfig} message UpdaterConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                UpdaterConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.channel = "";
+                        object.mode = "";
+                    }
+                    if (message.channel != null && $Object.hasOwnProperty.call(message, "channel"))
+                        object.channel = message.channel;
+                    if (message.mode != null && $Object.hasOwnProperty.call(message, "mode"))
+                        object.mode = message.mode;
+                    return object;
+                };
+
+                /**
+                 * Converts this UpdaterConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                UpdaterConfig.prototype.toJSON = function() {
+                    return UpdaterConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for UpdaterConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.UpdaterConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                UpdaterConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.UpdaterConfig";
+                };
+
+                return UpdaterConfig;
+            })();
+
+            v1.IndexDomainSettings = (function() {
+
+                /**
+                 * Properties of an IndexDomainSettings.
+                 * @typedef {Object} renop.api.v1.IndexDomainSettings.$Properties
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an IndexDomainSettings.
+                 * @memberof renop.api.v1
+                 * @interface IIndexDomainSettings
+                 * @augments renop.api.v1.IndexDomainSettings.$Properties
+                 * @deprecated Use renop.api.v1.IndexDomainSettings.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an IndexDomainSettings.
+                 * @typedef {renop.api.v1.IndexDomainSettings.$Properties} renop.api.v1.IndexDomainSettings.$Shape
+                 */
+
+                /**
+                 * Constructs a new IndexDomainSettings.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an IndexDomainSettings.
+                 * @constructor
+                 * @param {renop.api.v1.IndexDomainSettings.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const IndexDomainSettings = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * Creates a new IndexDomainSettings instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {renop.api.v1.IndexDomainSettings.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.IndexDomainSettings} IndexDomainSettings instance
+                 * @type {{
+                 *   (properties: renop.api.v1.IndexDomainSettings.$Shape): renop.api.v1.IndexDomainSettings & renop.api.v1.IndexDomainSettings.$Shape;
+                 *   (properties?: renop.api.v1.IndexDomainSettings.$Properties): renop.api.v1.IndexDomainSettings;
+                 * }}
+                 */
+                IndexDomainSettings.create = function(properties) {
+                    return new IndexDomainSettings(properties);
+                };
+
+                /**
+                 * Encodes the specified IndexDomainSettings message. Does not implicitly {@link renop.api.v1.IndexDomainSettings.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {renop.api.v1.IndexDomainSettings.$Properties} message IndexDomainSettings message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                IndexDomainSettings.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified IndexDomainSettings message, length delimited. Does not implicitly {@link renop.api.v1.IndexDomainSettings.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {renop.api.v1.IndexDomainSettings.$Properties} message IndexDomainSettings message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                IndexDomainSettings.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an IndexDomainSettings message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.IndexDomainSettings & renop.api.v1.IndexDomainSettings.$Shape} IndexDomainSettings
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                IndexDomainSettings.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.IndexDomainSettings();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        reader.skipType(tag & 7, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an IndexDomainSettings message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.IndexDomainSettings & renop.api.v1.IndexDomainSettings.$Shape} IndexDomainSettings
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                IndexDomainSettings.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an IndexDomainSettings message.
+                 * @function verify
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                IndexDomainSettings.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    return null;
+                };
+
+                /**
+                 * Creates an IndexDomainSettings message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.IndexDomainSettings} IndexDomainSettings
+                 */
+                IndexDomainSettings.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.IndexDomainSettings)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.IndexDomainSettings: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    return new $root.renop.api.v1.IndexDomainSettings();
+                };
+
+                /**
+                 * Creates a plain object from an IndexDomainSettings message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {renop.api.v1.IndexDomainSettings} message IndexDomainSettings
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                IndexDomainSettings.toObject = function () {
+                    return {};
+                };
+
+                /**
+                 * Converts this IndexDomainSettings to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                IndexDomainSettings.prototype.toJSON = function() {
+                    return IndexDomainSettings.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for IndexDomainSettings
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.IndexDomainSettings
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                IndexDomainSettings.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.IndexDomainSettings";
+                };
+
+                return IndexDomainSettings;
+            })();
+
+            v1.ChunkedUploadInitRequest = (function() {
+
+                /**
+                 * Properties of a ChunkedUploadInitRequest.
+                 * @typedef {Object} renop.api.v1.ChunkedUploadInitRequest.$Properties
+                 * @property {string|null} [purpose] ChunkedUploadInitRequest purpose
+                 * @property {string|null} [filename] ChunkedUploadInitRequest filename
+                 * @property {number|Long|null} [size] ChunkedUploadInitRequest size
+                 * @property {string|null} [path] ChunkedUploadInitRequest path
+                 * @property {boolean|null} [generate_checksums] ChunkedUploadInitRequest generate_checksums
+                 * @property {number|Long|null} [chunk_size] ChunkedUploadInitRequest chunk_size
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a ChunkedUploadInitRequest.
+                 * @memberof renop.api.v1
+                 * @interface IChunkedUploadInitRequest
+                 * @augments renop.api.v1.ChunkedUploadInitRequest.$Properties
+                 * @deprecated Use renop.api.v1.ChunkedUploadInitRequest.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a ChunkedUploadInitRequest.
+                 * @typedef {renop.api.v1.ChunkedUploadInitRequest.$Properties} renop.api.v1.ChunkedUploadInitRequest.$Shape
+                 */
+
+                /**
+                 * Constructs a new ChunkedUploadInitRequest.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a ChunkedUploadInitRequest.
+                 * @constructor
+                 * @param {renop.api.v1.ChunkedUploadInitRequest.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const ChunkedUploadInitRequest = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * ChunkedUploadInitRequest purpose.
+                 * @member {string} purpose
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 */
+                ChunkedUploadInitRequest.prototype.purpose = "";
+
+                /**
+                 * ChunkedUploadInitRequest filename.
+                 * @member {string} filename
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 */
+                ChunkedUploadInitRequest.prototype.filename = "";
+
+                /**
+                 * ChunkedUploadInitRequest size.
+                 * @member {number|Long} size
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 */
+                ChunkedUploadInitRequest.prototype.size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * ChunkedUploadInitRequest path.
+                 * @member {string} path
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 */
+                ChunkedUploadInitRequest.prototype.path = "";
+
+                /**
+                 * ChunkedUploadInitRequest generate_checksums.
+                 * @member {boolean} generate_checksums
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 */
+                ChunkedUploadInitRequest.prototype.generate_checksums = false;
+
+                /**
+                 * ChunkedUploadInitRequest chunk_size.
+                 * @member {number|Long} chunk_size
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 */
+                ChunkedUploadInitRequest.prototype.chunk_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new ChunkedUploadInitRequest instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitRequest.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.ChunkedUploadInitRequest} ChunkedUploadInitRequest instance
+                 * @type {{
+                 *   (properties: renop.api.v1.ChunkedUploadInitRequest.$Shape): renop.api.v1.ChunkedUploadInitRequest & renop.api.v1.ChunkedUploadInitRequest.$Shape;
+                 *   (properties?: renop.api.v1.ChunkedUploadInitRequest.$Properties): renop.api.v1.ChunkedUploadInitRequest;
+                 * }}
+                 */
+                ChunkedUploadInitRequest.create = function(properties) {
+                    return new ChunkedUploadInitRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified ChunkedUploadInitRequest message. Does not implicitly {@link renop.api.v1.ChunkedUploadInitRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitRequest.$Properties} message ChunkedUploadInitRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ChunkedUploadInitRequest.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.purpose != null && $Object.hasOwnProperty.call(message, "purpose") && message.purpose !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.purpose);
+                    if (message.filename != null && $Object.hasOwnProperty.call(message, "filename") && message.filename !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.filename);
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size") && (typeof message.size === "object" ? message.size.low || message.size.high : message.size !== 0))
+                        writer.uint32(/* id 3, wireType 0 =*/24).int64(message.size);
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path") && message.path !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.path);
+                    if (message.generate_checksums != null && $Object.hasOwnProperty.call(message, "generate_checksums") && message.generate_checksums !== false)
+                        writer.uint32(/* id 5, wireType 0 =*/40).bool(message.generate_checksums);
+                    if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size") && (typeof message.chunk_size === "object" ? message.chunk_size.low || message.chunk_size.high : message.chunk_size !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).int64(message.chunk_size);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified ChunkedUploadInitRequest message, length delimited. Does not implicitly {@link renop.api.v1.ChunkedUploadInitRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitRequest.$Properties} message ChunkedUploadInitRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ChunkedUploadInitRequest.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a ChunkedUploadInitRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.ChunkedUploadInitRequest & renop.api.v1.ChunkedUploadInitRequest.$Shape} ChunkedUploadInitRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ChunkedUploadInitRequest.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ChunkedUploadInitRequest(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.purpose = value;
+                                else
+                                    delete message.purpose;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.filename = value;
+                                else
+                                    delete message.filename;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.size = value;
+                                else
+                                    delete message.size;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.path = value;
+                                else
+                                    delete message.path;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.generate_checksums = value;
+                                else
+                                    delete message.generate_checksums;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.chunk_size = value;
+                                else
+                                    delete message.chunk_size;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a ChunkedUploadInitRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.ChunkedUploadInitRequest & renop.api.v1.ChunkedUploadInitRequest.$Shape} ChunkedUploadInitRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ChunkedUploadInitRequest.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a ChunkedUploadInitRequest message.
+                 * @function verify
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                ChunkedUploadInitRequest.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.purpose != null && $Object.hasOwnProperty.call(message, "purpose"))
+                        if (!$util.isString(message.purpose))
+                            return "purpose: string expected";
+                    if (message.filename != null && $Object.hasOwnProperty.call(message, "filename"))
+                        if (!$util.isString(message.filename))
+                            return "filename: string expected";
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size"))
+                        if (!$util.isInteger(message.size) && !(message.size && $util.isInteger(message.size.low) && $util.isInteger(message.size.high)))
+                            return "size: integer|Long expected";
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        if (!$util.isString(message.path))
+                            return "path: string expected";
+                    if (message.generate_checksums != null && $Object.hasOwnProperty.call(message, "generate_checksums"))
+                        if (typeof message.generate_checksums !== "boolean")
+                            return "generate_checksums: boolean expected";
+                    if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size"))
+                        if (!$util.isInteger(message.chunk_size) && !(message.chunk_size && $util.isInteger(message.chunk_size.low) && $util.isInteger(message.chunk_size.high)))
+                            return "chunk_size: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a ChunkedUploadInitRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.ChunkedUploadInitRequest} ChunkedUploadInitRequest
+                 */
+                ChunkedUploadInitRequest.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.ChunkedUploadInitRequest)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.ChunkedUploadInitRequest: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.ChunkedUploadInitRequest();
+                    if (object.purpose != null)
+                        if (typeof object.purpose !== "string" || object.purpose.length)
+                            message.purpose = $String(object.purpose);
+                    if (object.filename != null)
+                        if (typeof object.filename !== "string" || object.filename.length)
+                            message.filename = $String(object.filename);
+                    if (object.size != null)
+                        if (typeof object.size === "object" ? object.size.low || object.size.high : $Number(object.size) !== 0)
+                            if ($util.Long)
+                                message.size = $util.Long.fromValue(object.size, false);
+                            else if (typeof object.size === "string")
+                                message.size = $parseInt(object.size, 10);
+                            else if (typeof object.size === "number")
+                                message.size = object.size;
+                            else if (typeof object.size === "object")
+                                message.size = new $util.LongBits(object.size.low >>> 0, object.size.high >>> 0).toNumber();
+                    if (object.path != null)
+                        if (typeof object.path !== "string" || object.path.length)
+                            message.path = $String(object.path);
+                    if (object.generate_checksums != null)
+                        if (object.generate_checksums)
+                            message.generate_checksums = $Boolean(object.generate_checksums);
+                    if (object.chunk_size != null)
+                        if (typeof object.chunk_size === "object" ? object.chunk_size.low || object.chunk_size.high : $Number(object.chunk_size) !== 0)
+                            if ($util.Long)
+                                message.chunk_size = $util.Long.fromValue(object.chunk_size, false);
+                            else if (typeof object.chunk_size === "string")
+                                message.chunk_size = $parseInt(object.chunk_size, 10);
+                            else if (typeof object.chunk_size === "number")
+                                message.chunk_size = object.chunk_size;
+                            else if (typeof object.chunk_size === "object")
+                                message.chunk_size = new $util.LongBits(object.chunk_size.low >>> 0, object.chunk_size.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a ChunkedUploadInitRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitRequest} message ChunkedUploadInitRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                ChunkedUploadInitRequest.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.purpose = "";
+                        object.filename = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.path = "";
+                        object.generate_checksums = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.chunk_size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.chunk_size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.purpose != null && $Object.hasOwnProperty.call(message, "purpose"))
+                        object.purpose = message.purpose;
+                    if (message.filename != null && $Object.hasOwnProperty.call(message, "filename"))
+                        object.filename = message.filename;
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.size = typeof message.size === "number" ? $BigInt(message.size) : $util.Long.fromBits(message.size.low >>> 0, message.size.high >>> 0, false).toBigInt();
+                        else if (typeof message.size === "number")
+                            object.size = options.longs === $String ? $String(message.size) : message.size;
+                        else
+                            object.size = options.longs === $String ? $util.Long.prototype.toString.call(message.size) : options.longs === $Number ? new $util.LongBits(message.size.low >>> 0, message.size.high >>> 0).toNumber() : message.size;
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        object.path = message.path;
+                    if (message.generate_checksums != null && $Object.hasOwnProperty.call(message, "generate_checksums"))
+                        object.generate_checksums = message.generate_checksums;
+                    if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.chunk_size = typeof message.chunk_size === "number" ? $BigInt(message.chunk_size) : $util.Long.fromBits(message.chunk_size.low >>> 0, message.chunk_size.high >>> 0, false).toBigInt();
+                        else if (typeof message.chunk_size === "number")
+                            object.chunk_size = options.longs === $String ? $String(message.chunk_size) : message.chunk_size;
+                        else
+                            object.chunk_size = options.longs === $String ? $util.Long.prototype.toString.call(message.chunk_size) : options.longs === $Number ? new $util.LongBits(message.chunk_size.low >>> 0, message.chunk_size.high >>> 0).toNumber() : message.chunk_size;
+                    return object;
+                };
+
+                /**
+                 * Converts this ChunkedUploadInitRequest to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                ChunkedUploadInitRequest.prototype.toJSON = function() {
+                    return ChunkedUploadInitRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for ChunkedUploadInitRequest
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                ChunkedUploadInitRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.ChunkedUploadInitRequest";
+                };
+
+                return ChunkedUploadInitRequest;
+            })();
+
+            v1.ChunkedUploadInitResponse = (function() {
+
+                /**
+                 * Properties of a ChunkedUploadInitResponse.
+                 * @typedef {Object} renop.api.v1.ChunkedUploadInitResponse.$Properties
+                 * @property {string|null} [upload_id] ChunkedUploadInitResponse upload_id
+                 * @property {number|Long|null} [chunk_size] ChunkedUploadInitResponse chunk_size
+                 * @property {number|null} [chunk_count] ChunkedUploadInitResponse chunk_count
+                 * @property {string|null} [purpose] ChunkedUploadInitResponse purpose
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a ChunkedUploadInitResponse.
+                 * @memberof renop.api.v1
+                 * @interface IChunkedUploadInitResponse
+                 * @augments renop.api.v1.ChunkedUploadInitResponse.$Properties
+                 * @deprecated Use renop.api.v1.ChunkedUploadInitResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a ChunkedUploadInitResponse.
+                 * @typedef {renop.api.v1.ChunkedUploadInitResponse.$Properties} renop.api.v1.ChunkedUploadInitResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new ChunkedUploadInitResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a ChunkedUploadInitResponse.
+                 * @constructor
+                 * @param {renop.api.v1.ChunkedUploadInitResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const ChunkedUploadInitResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * ChunkedUploadInitResponse upload_id.
+                 * @member {string} upload_id
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @instance
+                 */
+                ChunkedUploadInitResponse.prototype.upload_id = "";
+
+                /**
+                 * ChunkedUploadInitResponse chunk_size.
+                 * @member {number|Long} chunk_size
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @instance
+                 */
+                ChunkedUploadInitResponse.prototype.chunk_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * ChunkedUploadInitResponse chunk_count.
+                 * @member {number} chunk_count
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @instance
+                 */
+                ChunkedUploadInitResponse.prototype.chunk_count = 0;
+
+                /**
+                 * ChunkedUploadInitResponse purpose.
+                 * @member {string} purpose
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @instance
+                 */
+                ChunkedUploadInitResponse.prototype.purpose = "";
+
+                /**
+                 * Creates a new ChunkedUploadInitResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.ChunkedUploadInitResponse} ChunkedUploadInitResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.ChunkedUploadInitResponse.$Shape): renop.api.v1.ChunkedUploadInitResponse & renop.api.v1.ChunkedUploadInitResponse.$Shape;
+                 *   (properties?: renop.api.v1.ChunkedUploadInitResponse.$Properties): renop.api.v1.ChunkedUploadInitResponse;
+                 * }}
+                 */
+                ChunkedUploadInitResponse.create = function(properties) {
+                    return new ChunkedUploadInitResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified ChunkedUploadInitResponse message. Does not implicitly {@link renop.api.v1.ChunkedUploadInitResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitResponse.$Properties} message ChunkedUploadInitResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ChunkedUploadInitResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.upload_id != null && $Object.hasOwnProperty.call(message, "upload_id") && message.upload_id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.upload_id);
+                    if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size") && (typeof message.chunk_size === "object" ? message.chunk_size.low || message.chunk_size.high : message.chunk_size !== 0))
+                        writer.uint32(/* id 2, wireType 0 =*/16).int64(message.chunk_size);
+                    if (message.chunk_count != null && $Object.hasOwnProperty.call(message, "chunk_count") && message.chunk_count !== 0)
+                        writer.uint32(/* id 3, wireType 0 =*/24).int32(message.chunk_count);
+                    if (message.purpose != null && $Object.hasOwnProperty.call(message, "purpose") && message.purpose !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.purpose);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified ChunkedUploadInitResponse message, length delimited. Does not implicitly {@link renop.api.v1.ChunkedUploadInitResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitResponse.$Properties} message ChunkedUploadInitResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ChunkedUploadInitResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a ChunkedUploadInitResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.ChunkedUploadInitResponse & renop.api.v1.ChunkedUploadInitResponse.$Shape} ChunkedUploadInitResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ChunkedUploadInitResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ChunkedUploadInitResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.upload_id = value;
+                                else
+                                    delete message.upload_id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.chunk_size = value;
+                                else
+                                    delete message.chunk_size;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.chunk_count = value;
+                                else
+                                    delete message.chunk_count;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.purpose = value;
+                                else
+                                    delete message.purpose;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a ChunkedUploadInitResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.ChunkedUploadInitResponse & renop.api.v1.ChunkedUploadInitResponse.$Shape} ChunkedUploadInitResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ChunkedUploadInitResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a ChunkedUploadInitResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                ChunkedUploadInitResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.upload_id != null && $Object.hasOwnProperty.call(message, "upload_id"))
+                        if (!$util.isString(message.upload_id))
+                            return "upload_id: string expected";
+                    if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size"))
+                        if (!$util.isInteger(message.chunk_size) && !(message.chunk_size && $util.isInteger(message.chunk_size.low) && $util.isInteger(message.chunk_size.high)))
+                            return "chunk_size: integer|Long expected";
+                    if (message.chunk_count != null && $Object.hasOwnProperty.call(message, "chunk_count"))
+                        if (!$util.isInteger(message.chunk_count))
+                            return "chunk_count: integer expected";
+                    if (message.purpose != null && $Object.hasOwnProperty.call(message, "purpose"))
+                        if (!$util.isString(message.purpose))
+                            return "purpose: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a ChunkedUploadInitResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.ChunkedUploadInitResponse} ChunkedUploadInitResponse
+                 */
+                ChunkedUploadInitResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.ChunkedUploadInitResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.ChunkedUploadInitResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.ChunkedUploadInitResponse();
+                    if (object.upload_id != null)
+                        if (typeof object.upload_id !== "string" || object.upload_id.length)
+                            message.upload_id = $String(object.upload_id);
+                    if (object.chunk_size != null)
+                        if (typeof object.chunk_size === "object" ? object.chunk_size.low || object.chunk_size.high : $Number(object.chunk_size) !== 0)
+                            if ($util.Long)
+                                message.chunk_size = $util.Long.fromValue(object.chunk_size, false);
+                            else if (typeof object.chunk_size === "string")
+                                message.chunk_size = $parseInt(object.chunk_size, 10);
+                            else if (typeof object.chunk_size === "number")
+                                message.chunk_size = object.chunk_size;
+                            else if (typeof object.chunk_size === "object")
+                                message.chunk_size = new $util.LongBits(object.chunk_size.low >>> 0, object.chunk_size.high >>> 0).toNumber();
+                    if (object.chunk_count != null)
+                        if ($Number(object.chunk_count) !== 0)
+                            message.chunk_count = object.chunk_count | 0;
+                    if (object.purpose != null)
+                        if (typeof object.purpose !== "string" || object.purpose.length)
+                            message.purpose = $String(object.purpose);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a ChunkedUploadInitResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadInitResponse} message ChunkedUploadInitResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                ChunkedUploadInitResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.upload_id = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.chunk_size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.chunk_size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.chunk_count = 0;
+                        object.purpose = "";
+                    }
+                    if (message.upload_id != null && $Object.hasOwnProperty.call(message, "upload_id"))
+                        object.upload_id = message.upload_id;
+                    if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.chunk_size = typeof message.chunk_size === "number" ? $BigInt(message.chunk_size) : $util.Long.fromBits(message.chunk_size.low >>> 0, message.chunk_size.high >>> 0, false).toBigInt();
+                        else if (typeof message.chunk_size === "number")
+                            object.chunk_size = options.longs === $String ? $String(message.chunk_size) : message.chunk_size;
+                        else
+                            object.chunk_size = options.longs === $String ? $util.Long.prototype.toString.call(message.chunk_size) : options.longs === $Number ? new $util.LongBits(message.chunk_size.low >>> 0, message.chunk_size.high >>> 0).toNumber() : message.chunk_size;
+                    if (message.chunk_count != null && $Object.hasOwnProperty.call(message, "chunk_count"))
+                        object.chunk_count = message.chunk_count;
+                    if (message.purpose != null && $Object.hasOwnProperty.call(message, "purpose"))
+                        object.purpose = message.purpose;
+                    return object;
+                };
+
+                /**
+                 * Converts this ChunkedUploadInitResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                ChunkedUploadInitResponse.prototype.toJSON = function() {
+                    return ChunkedUploadInitResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for ChunkedUploadInitResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.ChunkedUploadInitResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                ChunkedUploadInitResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.ChunkedUploadInitResponse";
+                };
+
+                return ChunkedUploadInitResponse;
+            })();
+
+            v1.ChunkedUploadCompleteResponse = (function() {
+
+                /**
+                 * Properties of a ChunkedUploadCompleteResponse.
+                 * @typedef {Object} renop.api.v1.ChunkedUploadCompleteResponse.$Properties
+                 * @property {string|null} [status] ChunkedUploadCompleteResponse status
+                 * @property {string|null} [message] ChunkedUploadCompleteResponse message
+                 * @property {string|null} [path] ChunkedUploadCompleteResponse path
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a ChunkedUploadCompleteResponse.
+                 * @memberof renop.api.v1
+                 * @interface IChunkedUploadCompleteResponse
+                 * @augments renop.api.v1.ChunkedUploadCompleteResponse.$Properties
+                 * @deprecated Use renop.api.v1.ChunkedUploadCompleteResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a ChunkedUploadCompleteResponse.
+                 * @typedef {renop.api.v1.ChunkedUploadCompleteResponse.$Properties} renop.api.v1.ChunkedUploadCompleteResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new ChunkedUploadCompleteResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a ChunkedUploadCompleteResponse.
+                 * @constructor
+                 * @param {renop.api.v1.ChunkedUploadCompleteResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const ChunkedUploadCompleteResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * ChunkedUploadCompleteResponse status.
+                 * @member {string} status
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @instance
+                 */
+                ChunkedUploadCompleteResponse.prototype.status = "";
+
+                /**
+                 * ChunkedUploadCompleteResponse message.
+                 * @member {string} message
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @instance
+                 */
+                ChunkedUploadCompleteResponse.prototype.message = "";
+
+                /**
+                 * ChunkedUploadCompleteResponse path.
+                 * @member {string} path
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @instance
+                 */
+                ChunkedUploadCompleteResponse.prototype.path = "";
+
+                /**
+                 * Creates a new ChunkedUploadCompleteResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadCompleteResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.ChunkedUploadCompleteResponse} ChunkedUploadCompleteResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.ChunkedUploadCompleteResponse.$Shape): renop.api.v1.ChunkedUploadCompleteResponse & renop.api.v1.ChunkedUploadCompleteResponse.$Shape;
+                 *   (properties?: renop.api.v1.ChunkedUploadCompleteResponse.$Properties): renop.api.v1.ChunkedUploadCompleteResponse;
+                 * }}
+                 */
+                ChunkedUploadCompleteResponse.create = function(properties) {
+                    return new ChunkedUploadCompleteResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified ChunkedUploadCompleteResponse message. Does not implicitly {@link renop.api.v1.ChunkedUploadCompleteResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadCompleteResponse.$Properties} message ChunkedUploadCompleteResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ChunkedUploadCompleteResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status") && message.status !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.status);
+                    if (message.message != null && $Object.hasOwnProperty.call(message, "message") && message.message !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.message);
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path") && message.path !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.path);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified ChunkedUploadCompleteResponse message, length delimited. Does not implicitly {@link renop.api.v1.ChunkedUploadCompleteResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadCompleteResponse.$Properties} message ChunkedUploadCompleteResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ChunkedUploadCompleteResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a ChunkedUploadCompleteResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.ChunkedUploadCompleteResponse & renop.api.v1.ChunkedUploadCompleteResponse.$Shape} ChunkedUploadCompleteResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ChunkedUploadCompleteResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ChunkedUploadCompleteResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.status = value;
+                                else
+                                    delete message.status;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.message = value;
+                                else
+                                    delete message.message;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.path = value;
+                                else
+                                    delete message.path;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a ChunkedUploadCompleteResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.ChunkedUploadCompleteResponse & renop.api.v1.ChunkedUploadCompleteResponse.$Shape} ChunkedUploadCompleteResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ChunkedUploadCompleteResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a ChunkedUploadCompleteResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                ChunkedUploadCompleteResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        if (!$util.isString(message.status))
+                            return "status: string expected";
+                    if (message.message != null && $Object.hasOwnProperty.call(message, "message"))
+                        if (!$util.isString(message.message))
+                            return "message: string expected";
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        if (!$util.isString(message.path))
+                            return "path: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a ChunkedUploadCompleteResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.ChunkedUploadCompleteResponse} ChunkedUploadCompleteResponse
+                 */
+                ChunkedUploadCompleteResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.ChunkedUploadCompleteResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.ChunkedUploadCompleteResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.ChunkedUploadCompleteResponse();
+                    if (object.status != null)
+                        if (typeof object.status !== "string" || object.status.length)
+                            message.status = $String(object.status);
+                    if (object.message != null)
+                        if (typeof object.message !== "string" || object.message.length)
+                            message.message = $String(object.message);
+                    if (object.path != null)
+                        if (typeof object.path !== "string" || object.path.length)
+                            message.path = $String(object.path);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a ChunkedUploadCompleteResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {renop.api.v1.ChunkedUploadCompleteResponse} message ChunkedUploadCompleteResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                ChunkedUploadCompleteResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.status = "";
+                        object.message = "";
+                        object.path = "";
+                    }
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        object.status = message.status;
+                    if (message.message != null && $Object.hasOwnProperty.call(message, "message"))
+                        object.message = message.message;
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        object.path = message.path;
+                    return object;
+                };
+
+                /**
+                 * Converts this ChunkedUploadCompleteResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                ChunkedUploadCompleteResponse.prototype.toJSON = function() {
+                    return ChunkedUploadCompleteResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for ChunkedUploadCompleteResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                ChunkedUploadCompleteResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.ChunkedUploadCompleteResponse";
+                };
+
+                return ChunkedUploadCompleteResponse;
+            })();
+
+            v1.ErrorMessage = (function() {
+
+                /**
+                 * Properties of an ErrorMessage.
+                 * @typedef {Object} renop.api.v1.ErrorMessage.$Properties
+                 * @property {string|null} [error] ErrorMessage error
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an ErrorMessage.
+                 * @memberof renop.api.v1
+                 * @interface IErrorMessage
+                 * @augments renop.api.v1.ErrorMessage.$Properties
+                 * @deprecated Use renop.api.v1.ErrorMessage.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an ErrorMessage.
+                 * @typedef {renop.api.v1.ErrorMessage.$Properties} renop.api.v1.ErrorMessage.$Shape
+                 */
+
+                /**
+                 * Constructs a new ErrorMessage.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an ErrorMessage.
+                 * @constructor
+                 * @param {renop.api.v1.ErrorMessage.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const ErrorMessage = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * ErrorMessage error.
+                 * @member {string} error
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @instance
+                 */
+                ErrorMessage.prototype.error = "";
+
+                /**
+                 * Creates a new ErrorMessage instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {renop.api.v1.ErrorMessage.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.ErrorMessage} ErrorMessage instance
+                 * @type {{
+                 *   (properties: renop.api.v1.ErrorMessage.$Shape): renop.api.v1.ErrorMessage & renop.api.v1.ErrorMessage.$Shape;
+                 *   (properties?: renop.api.v1.ErrorMessage.$Properties): renop.api.v1.ErrorMessage;
+                 * }}
+                 */
+                ErrorMessage.create = function(properties) {
+                    return new ErrorMessage(properties);
+                };
+
+                /**
+                 * Encodes the specified ErrorMessage message. Does not implicitly {@link renop.api.v1.ErrorMessage.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {renop.api.v1.ErrorMessage.$Properties} message ErrorMessage message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ErrorMessage.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.error != null && $Object.hasOwnProperty.call(message, "error") && message.error !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.error);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified ErrorMessage message, length delimited. Does not implicitly {@link renop.api.v1.ErrorMessage.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {renop.api.v1.ErrorMessage.$Properties} message ErrorMessage message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ErrorMessage.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an ErrorMessage message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.ErrorMessage & renop.api.v1.ErrorMessage.$Shape} ErrorMessage
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ErrorMessage.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ErrorMessage(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.error = value;
+                                else
+                                    delete message.error;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an ErrorMessage message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.ErrorMessage & renop.api.v1.ErrorMessage.$Shape} ErrorMessage
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ErrorMessage.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an ErrorMessage message.
+                 * @function verify
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                ErrorMessage.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.error != null && $Object.hasOwnProperty.call(message, "error"))
+                        if (!$util.isString(message.error))
+                            return "error: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an ErrorMessage message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.ErrorMessage} ErrorMessage
+                 */
+                ErrorMessage.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.ErrorMessage)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.ErrorMessage: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.ErrorMessage();
+                    if (object.error != null)
+                        if (typeof object.error !== "string" || object.error.length)
+                            message.error = $String(object.error);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an ErrorMessage message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {renop.api.v1.ErrorMessage} message ErrorMessage
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                ErrorMessage.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults)
+                        object.error = "";
+                    if (message.error != null && $Object.hasOwnProperty.call(message, "error"))
+                        object.error = message.error;
+                    return object;
+                };
+
+                /**
+                 * Converts this ErrorMessage to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                ErrorMessage.prototype.toJSON = function() {
+                    return ErrorMessage.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for ErrorMessage
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.ErrorMessage
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                ErrorMessage.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.ErrorMessage";
+                };
+
+                return ErrorMessage;
+            })();
+
+            return v1;
+        })();
+
+        return api;
+    })();
+
+    return renop;
+})();
+
+export {
+  $root as default
+};

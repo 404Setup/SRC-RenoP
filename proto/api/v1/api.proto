@@ -1,0 +1,277 @@
+syntax = "proto3";
+
+package renop.api.v1;
+
+option go_package = "renop/pb";
+
+message AccessTokenIdentifier {
+  string type = 1;
+  int32 value = 2;
+}
+
+message AccessTokenDto {
+  AccessTokenIdentifier identifier = 1;
+  string name = 2;
+  string created_at = 3;
+  string description = 4;
+  optional int64 expires_at = 5;
+  repeated string tokens = 6;
+  repeated string permissions = 7;
+}
+
+message AccessTokenPermission {
+  string identifier = 1;
+  string shortcut = 2;
+}
+
+message RoutePermission {
+  string identifier = 1;
+  string shortcut = 2;
+}
+
+message Route {
+  string path = 1;
+  RoutePermission permission = 2;
+}
+
+message SessionDetails {
+  AccessTokenDto access_token = 1;
+  repeated AccessTokenPermission permissions = 2;
+  repeated Route routes = 3;
+  string session_token = 4;
+}
+
+message LoginRequest {
+  string name = 1;
+  string secret = 2;
+}
+
+// SessionDto is a browser login session (not Basic/Bearer). Session secret is never exposed.
+message SessionDto {
+  string public_id = 1;
+  string username = 2;
+  string ip = 3;
+  string user_agent = 4;
+  // Unix milliseconds
+  int64 created_at = 5;
+  // Unix milliseconds — last activity used for idle timeout
+  int64 last_active = 6;
+  // Unix milliseconds — last_active + idle timeout (typically 7 days)
+  int64 expires_at = 7;
+  // True when this session is the one making the request
+  bool current = 8;
+}
+
+message SessionList {
+  repeated SessionDto sessions = 1;
+}
+
+// StatusOk is a simple success body for mutating profile/session endpoints.
+message StatusOk {
+  string status = 1;
+}
+
+message AccessTokenList {
+  repeated AccessTokenDto tokens = 1;
+}
+
+message UpdateState {
+  string status = 1;
+  string latest_version = 2;
+  string download_url = 3;
+  int32 progress = 4;
+  string error_message = 5;
+  int64 size = 6;
+  int64 estimated_disk_space = 7;
+  string release_date = 8;
+  string release_notes = 9;
+  string commit_sha = 10;
+  bool is_release = 11;
+}
+
+message InstanceStatus {
+  string version = 1;
+  bool development = 2;
+  int64 uptime = 3;
+  uint64 used_memory = 4;
+  uint64 total_memory = 5;
+  uint64 renop_used_disk = 6;
+  uint64 disk_used = 7;
+  uint64 disk_total = 8;
+  uint64 used_threads = 9;
+  uint64 available_threads = 10;
+  uint64 total_threads = 11;
+  string architecture = 12;
+  string os = 13;
+  int32 logical_cores = 14;
+  int32 physical_cores = 15;
+  uint64 failures_count = 16;
+  UpdateState update_state = 17;
+}
+
+message StatusSnapshot {
+  int64 timestamp = 1;
+  uint64 used_memory = 2;
+  uint64 used_threads = 3;
+  uint64 open_files = 4;
+}
+
+message StatusSnapshotList {
+  repeated StatusSnapshot snapshots = 1;
+}
+
+message MirrorCredentials {
+  string method = 1;
+  string login = 2;
+  string password = 3;
+}
+
+message Mirror {
+  string name = 1;
+  string url = 2;
+  bool persist = 3;
+  uint64 cache_ttl_secs = 4;
+  bool negative_cache = 5;
+  uint64 timeout_secs = 6;
+  MirrorCredentials authorization = 7;
+  string enabled_date = 8;
+  repeated string allow_artifacts = 9;
+  repeated string deny_artifacts = 10;
+}
+
+message S3Config {
+  bool enabled = 1;
+  string endpoint = 2;
+  string bucket = 3;
+  string region = 4;
+  string access_key_id = 5;
+  string secret_access_key = 6;
+  bool force_path_style = 7;
+  bool redirect_downloads = 8;
+}
+
+message Repository {
+  string name = 1;
+  string visibility = 2;
+  repeated Mirror mirrors = 3;
+  bool allow_redeployment = 4;
+  S3Config s3 = 5;
+}
+
+message MavenRepositoriesResponse {
+  map<string, Repository> repositories = 1;
+}
+
+message FileDetails {
+  string type = 1;
+  string name = 2;
+  optional int64 content_length = 3;
+  optional string content_type = 4;
+  optional string last_modified_time = 5;
+  repeated FileDetails files = 6;
+}
+
+message RepoMirrorInfo {
+  string name = 1;
+  string url = 2;
+  bool persist = 3;
+  string enabled_date = 4;
+  uint64 cache_ttl = 5;
+  bool negative_cache = 6;
+}
+
+message RepoDetailsResponse {
+  string name = 1;
+  string visibility = 2;
+  int64 total_size = 3;
+  int64 artifact_size = 4;
+  int64 metadata_size = 5;
+  int64 total_files = 6;
+  int64 artifact_count = 7;
+  int64 metadata_count = 8;
+  repeated RepoMirrorInfo mirrors = 9;
+}
+
+message RebuildIndexRequest {
+  // "full" or "diff"
+  string mode = 1;
+}
+
+message SettingsDomainsResponse {
+  repeated string domains = 1;
+}
+
+message FrontendConfig {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string organization_website = 4;
+  string organization_logo = 5;
+  string background_url = 6;
+  string icp_license = 7;
+}
+
+message ServerConfig {
+  string host = 1;
+  uint32 port = 2;
+  bool ssl_enabled = 3;
+  string ssl_cert_path = 4;
+  string ssl_key_path = 5;
+  string domain = 6;
+  bool enable_compression = 7;
+  uint32 file_cache_size_mb = 8;
+  uint32 max_active_requests = 9;
+  repeated string trusted_proxies = 10;
+  string cdn_ip_header = 11;
+}
+
+message StorageConfig {
+  string storage_path = 1;
+  bool enable_javadoc_preview = 2;
+  string javadoc_extract_path = 3;
+  int64 max_javadoc_size_mb = 4;
+}
+
+message UpdaterConfig {
+  // "release" | "nightly"
+  string channel = 1;
+  // "manual" | "auto_check" | "auto_install" | "safe_install"
+  string mode = 2;
+}
+
+// Index domain has no writable configuration fields.
+message IndexDomainSettings {}
+
+// ChunkedUploadInitRequest starts a concurrent multi-part upload session.
+// purpose: "storage" (repository artifact) or "updater" (offline update zip).
+message ChunkedUploadInitRequest {
+  string purpose = 1;
+  string filename = 2;
+  int64 size = 3;
+  // Destination for purpose=storage, e.g. "releases/com/example/a.jar".
+  string path = 4;
+  bool generate_checksums = 5;
+  // Preferred part size in bytes; server may clamp (default 4 MiB).
+  int64 chunk_size = 6;
+}
+
+message ChunkedUploadInitResponse {
+  string upload_id = 1;
+  int64 chunk_size = 2;
+  int32 chunk_count = 3;
+  string purpose = 4;
+}
+
+// ChunkedUploadCompleteResponse is returned after all parts are assembled.
+// status is "created" (storage) or "ready_to_restart" (updater).
+message ChunkedUploadCompleteResponse {
+  string status = 1;
+  string message = 2;
+  // Relative storage path when purpose=storage (repo/…).
+  string path = 3;
+}
+
+// Generic JSON/API error body used by some endpoints (documented shape).
+message ErrorMessage {
+  string error = 1;
+}

@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.language-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+    margin-top: 0.75rem;
+}
+
+.lang-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1.5px solid var(--border-color);
+    background: var(--bg-color);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    text-align: left;
+    outline: none;
+}
+
+.lang-card:hover {
+    border-color: var(--link-hover-color);
+    background-color: var(--item-hover-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.lang-card.active {
+    border-color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 8%, var(--bg-color));
+}
+
+.lang-card-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lang-code-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--item-hover-bg);
+    border: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-color);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.lang-card.active .lang-code-badge {
+    background: var(--link-hover-color);
+    color: #ffffff;
+    border-color: var(--link-hover-color);
+}
+
+.lang-card-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.lang-card-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.lang-card-sub {
+    font-size: 0.775rem;
+    color: var(--text-color);
+    opacity: 0.65;
+    margin-top: 2px;
+}
+
+.lang-card-check {
+    width: 20px;
+    height: 20px;
+    color: var(--link-hover-color);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lang-card.active .lang-card-check {
+    opacity: 1;
+    transform: scale(1);
+}

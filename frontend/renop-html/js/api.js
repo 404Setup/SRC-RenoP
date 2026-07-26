@@ -1,0 +1,161 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+import {logout} from './auth.js';
+import {protoObjectOptions} from './proto/index.js';
+
+/** MIME type for protobuf request/response bodies (must match backend). */
+export const PROTO_CONTENT_TYPE = 'application/x-protobuf';
+
+/**
+ * Build auth headers for API requests.
+ * Browser sessions use a server-managed HttpOnly cookie; the session secret
+ * is kept out of localStorage so scripts cannot access it.
+ * @returns {Object} Empty headers object (credentials are sent via cookies).
+ */
+export function getAuthHeaders() {
+    // Browser sessions use a server-managed HttpOnly cookie. Keeping the
+    // session secret out of localStorage prevents script access to it.
+    return {};
+}
+
+/**
+ * Merge default fetch options so session cookies are always included.
+ * @param {RequestInit} [options={}] - Additional fetch options to merge.
+ * @returns {RequestInit} Options with credentials: 'include' and auth headers.
+ */
+export function withCredentials(options = {}) {
+    return {
+        credentials: 'include',
+        ...options,
+        headers: {
+            ...getAuthHeaders(),
+            ...(options.headers || {}),
+        },
+    };
+}
+
+/**
+ * Clear local session state and force logout when the response is 401/403.
+ * @param {Response} response - Fetch response to inspect.
+ * @throws {Error} Always throws with message 'Unauthorized' on auth failure.
+ */
+function handleAuthFailure(response) {
+    if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('session-token');
+        localStorage.removeItem('username');
+        document.cookie = 'renop_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'renop_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure';
+        logout('kicked');
+        throw new Error('Unauthorized');
+    }
+}
+
+/**
+ * Perform a fetch with credentials and handle auth failures.
+ * @param {string} url - Request URL.
+ * @param {RequestInit} [options={}] - Fetch options.
+ * @returns {Promise<Response>} The fetch response (throws on 401/403).
+ */
+export async function apiRequest(url, options = {}) {
+    const response = await fetch(url, withCredentials(options));
+    handleAuthFailure(response);
+    return response;
+}
+
+/**
+ * Decode a protobuf response body into a plain object (snake_case fields).
+ * @param {Response} response
+ * @param {{decode: Function, toObject: Function}} MessageType
+ */
+export async function decodeProtoResponse(response, MessageType) {
+    const buf = new Uint8Array(await response.arrayBuffer());
+    const message = MessageType.decode(buf);
+    return MessageType.toObject(message, protoObjectOptions);
+}
+
+/**
+ * GET (or other) a protobuf API endpoint and decode into a plain object.
+ * Does not throw on non-OK status; caller checks response.ok.
+ *
+ * @param {string} url
+ * @param {{decode: Function, toObject: Function}} MessageType
+ * @param {RequestInit} [options]
+ * @returns {Promise<{response: Response, data: object|null}>}
+ */
+export async function fetchProto(url, MessageType, options = {}) {
+    const response = await fetch(url, withCredentials({
+        ...options,
+        headers: {
+            Accept: PROTO_CONTENT_TYPE,
+            ...(options.headers || {}),
+        },
+    }));
+    if (!response.ok) {
+        return {response, data: null};
+    }
+    const data = await decodeProtoResponse(response, MessageType);
+    return {response, data};
+}
+
+/**
+ * Send a protobuf request body and optionally decode a protobuf response.
+ *
+ * @param {string} url
+ * @param {string} method
+ * @param {{create: Function, encode: Function}} RequestType
+ * @param {object} requestPayload plain object matching proto fields
+ * @param {{decode: Function, toObject: Function}|null} [ResponseType]
+ * @param {RequestInit} [options]
+ */
+export async function sendProto(url, method, RequestType, requestPayload, ResponseType = null, options = {}) {
+    const body = RequestType.encode(RequestType.create(requestPayload)).finish();
+    const response = await fetch(url, withCredentials({
+        method,
+        ...options,
+        headers: {
+            'Content-Type': PROTO_CONTENT_TYPE,
+            Accept: PROTO_CONTENT_TYPE,
+            ...(options.headers || {}),
+        },
+        body,
+    }));
+    if (!response.ok || !ResponseType) {
+        return {response, data: null};
+    }
+    const data = await decodeProtoResponse(response, ResponseType);
+    return {response, data};
+}
+
+/**
+ * POST a protobuf request body and optionally decode a protobuf response.
+ *
+ * @param {string} url
+ * @param {{create: Function, encode: Function}} RequestType
+ * @param {object} requestPayload plain object matching proto fields
+ * @param {{decode: Function, toObject: Function}|null} [ResponseType]
+ * @param {RequestInit} [options]
+ */
+export async function postProto(url, RequestType, requestPayload, ResponseType = null, options = {}) {
+    return sendProto(url, 'POST', RequestType, requestPayload, ResponseType, options);
+}
+
+/**
+ * PUT a protobuf request body and optionally decode a protobuf response.
+ *
+ * @param {string} url
+ * @param {{create: Function, encode: Function}} RequestType
+ * @param {object} requestPayload plain object matching proto fields
+ * @param {{decode: Function, toObject: Function}|null} [ResponseType]
+ * @param {RequestInit} [options]
+ */
+export async function putProto(url, RequestType, requestPayload, ResponseType = null, options = {}) {
+    return sendProto(url, 'PUT', RequestType, requestPayload, ResponseType, options);
+}

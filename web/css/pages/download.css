@@ -1,0 +1,174 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.download-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+    margin-bottom: 1.25rem;
+}
+
+.download-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 10rem;
+}
+
+.download-field label {
+    font-size: 0.8rem;
+    font-weight: 650;
+    opacity: 0.75;
+}
+
+.download-field .custom-select-wrapper {
+    min-width: 11.5rem;
+    max-width: 18rem;
+}
+
+.download-field .custom-select-btn {
+    background-color: var(--card-bg);
+    border-radius: 0.65rem;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.9rem;
+}
+
+.download-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.release-card {
+    padding: 1.25rem 1.35rem;
+}
+
+.release-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.release-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.release-meta {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0.25rem 0 0;
+}
+
+.release-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.5rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    color: var(--link-hover-color);
+}
+
+.release-badge--preview {
+    background: color-mix(in srgb, #f59e0b 16%, transparent);
+    color: #d97706;
+}
+
+html.dark .release-badge--preview {
+    color: #fbbf24;
+}
+
+.release-changelog {
+    margin: 0 0 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--snippet-bg);
+    border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+    border-radius: 0.75rem;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.release-changelog:empty::before,
+.release-changelog.is-empty::before {
+    content: attr(data-empty);
+    opacity: 0.55;
+    font-style: italic;
+}
+
+.release-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+}
+
+.release-status {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.release-status.is-error {
+    color: #ef4444;
+}
+
+.release-status.is-ok {
+    color: var(--success-color);
+}
+
+.download-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.download-page-info {
+    font-size: 0.88rem;
+    color: var(--muted);
+    min-width: 6rem;
+    text-align: center;
+}
+
+.download-loading,
+.download-error {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--muted);
+}
+
+.download-error {
+    color: #ef4444;
+}
+
+.platform-required {
+    font-size: 0.82rem;
+    color: #ef4444;
+    margin: 0 0 0.75rem;
+}

@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+#app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem 2rem 2rem;
+    min-height: calc(100vh - 5rem);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+#page-root {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#page-root.page-leave {
+    animation: pageFadeOut 0.18s ease forwards;
+    pointer-events: none;
+}
+
+#page-root.page-enter {
+    animation: pageFadeIn 0.28s ease forwards;
+}
+
+@keyframes pageFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+@keyframes pageFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #page-root.page-leave,
+    #page-root.page-enter {
+        animation: none;
+    }
+}
+
+footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+#footer-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+#footer-links a {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+#footer-links a:hover {
+    text-decoration: underline;
+}
+
+#footer-copyright {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+#footer-copyright a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+#footer-copyright a:hover {
+    text-decoration: underline;
+}
+
+.separator {
+    margin: 0 0.15rem;
+    opacity: 0.6;
+}
+
+.page-hero {
+    padding: 1.5rem 0 2rem;
+}
+
+.page-hero h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.75rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+.page-hero p {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 40rem;
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px rgba(0, 0, 0, 0.03);
+}
+
+.muted {
+    color: var(--muted);
+}
+
+@media (max-width: 600px) {
+    #app {
+        padding: 0 1rem 1.5rem 1rem;
+    }
+}

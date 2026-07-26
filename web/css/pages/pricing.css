@@ -1,0 +1,117 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.15rem;
+    margin: 1rem 0 2rem;
+}
+
+.pricing-card {
+    padding: 1.5rem 1.4rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.pricing-card--featured {
+    border-color: color-mix(in srgb, var(--link-hover-color) 55%, var(--border-color));
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--link-hover-color) 16%, transparent);
+}
+
+.pricing-badge {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.55rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--link-hover-color) 14%, transparent);
+    color: var(--link-hover-color);
+}
+
+.pricing-tier {
+    margin: 0 0 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.7;
+}
+
+.pricing-price {
+    margin: 0 0 0.35rem;
+    font-size: 2.4rem;
+    font-weight: 750;
+    letter-spacing: -0.03em;
+    line-height: 1;
+}
+
+.pricing-price span {
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0.65;
+    margin-left: 0.2rem;
+}
+
+.pricing-desc {
+    margin: 0 0 1.1rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    min-height: 2.8rem;
+}
+
+.pricing-features {
+    list-style: none;
+    margin: 0 0 1.35rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    flex: 1;
+}
+
+.pricing-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.pricing-features li svg {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    color: var(--success-color);
+}
+
+.pricing-note {
+    padding: 1.15rem 1.35rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--muted);
+}
+
+.pricing-note strong {
+    color: var(--text-color);
+}
+
+@media (max-width: 900px) {
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 420px;
+    }
+}

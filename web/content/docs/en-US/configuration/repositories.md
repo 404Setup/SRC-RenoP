@@ -1,0 +1,98 @@
+---
+title: Repositories & mirrors
+order: 2
+category: Configuration
+description: repositories.yaml — visibility, mirrors, and S3
+---
+
+# Repositories & mirrors
+
+File: `repositories.yaml` (override with `RENOP_REPOSITORIES`).
+
+Default repositories created for a typical install:
+
+| Name        | Role                              |
+|-------------|-----------------------------------|
+| `releases`  | Release artifacts (often PUBLIC)  |
+| `snapshots` | Snapshot artifacts (often PUBLIC) |
+| `private`   | Private artifacts (PRIVATE)       |
+
+Each entry is keyed by repository name under `repositories:`.
+
+## Repository fields
+
+```yaml
+repositories:
+  releases:
+    name: releases
+    visibility: PUBLIC          # PUBLIC | HIDDEN | PRIVATE
+    allow_redeployment: true
+    mirrors: [ ]
+    s3:
+      enabled: false
+      endpoint: ""
+      bucket: ""
+      region: auto
+      access_key_id: ""
+      secret_access_key: ""
+      force_path_style: true
+      redirect_downloads: false
+```
+
+| Field                | Description                                                                           |
+|----------------------|---------------------------------------------------------------------------------------|
+| `name`               | Repository id (path segment: `http://host:port/{name}/…`)                             |
+| `visibility`         | `PUBLIC` anonymous read; `HIDDEN` restricted listing; `PRIVATE` needs read permission |
+| `allow_redeployment` | Whether overwriting an existing release path is allowed                               |
+| `mirrors`            | Upstream Maven proxies (optional)                                                     |
+| `s3`                 | Optional S3-compatible backend for this repository                                    |
+
+Maven layout under each repo is standard: `group/artifact/version/file`.
+
+## Mirrors
+
+Mirrors proxy missing artifacts from an upstream repository and can cache results locally.
+
+| Field             | Description                                                            |
+|-------------------|------------------------------------------------------------------------|
+| `name`            | Display / config name                                                  |
+| `url`             | Upstream base URL                                                      |
+| `persist`         | Persist cached artifacts to storage                                    |
+| `cache_ttl_secs`  | Positive cache TTL (seconds)                                           |
+| `negative_cache`  | Cache “not found” to avoid hammering upstream                          |
+| `timeout_secs`    | Upstream request timeout                                               |
+| `authorization`   | Optional credentials (`method`, `login`, `password`)                   |
+| `enabled_date`    | Optional activation date string                                        |
+| `allow_artifacts` | If set, only matching `group` or `group:artifact` patterns are proxied |
+| `deny_artifacts`  | If set, matching coordinates are blocked (do not combine with allow)   |
+
+Authorization methods commonly used: `BASIC` / username-password, or `Bearer` / token.
+
+## Visibility vs permissions
+
+| Visibility | Anonymous read                                      | Notes                        |
+|------------|-----------------------------------------------------|------------------------------|
+| PUBLIC     | Yes                                                 | Standard open repos          |
+| HIDDEN     | File fetch may work; root listing needs extra roles |                              |
+| PRIVATE    | No                                                  | Requires `canview` / manager |
+
+Writes always require `canupdate` (or manager). See [Authentication](../api/authentication.md).
+
+## S3-compatible storage
+
+When `s3.enabled` is true, artifacts for that repository are stored in the given bucket. Typical fields:
+
+| Field                                 | Description                                    |
+|---------------------------------------|------------------------------------------------|
+| `endpoint`                            | S3 API endpoint                                |
+| `bucket`                              | Bucket name                                    |
+| `region`                              | Region (or `auto`)                             |
+| `access_key_id` / `secret_access_key` | Credentials                                    |
+| `force_path_style`                    | Path-style URLs (common for MinIO)             |
+| `redirect_downloads`                  | Redirect clients to object URLs when supported |
+
+## Related
+
+- [Configuration overview](./overview.md)
+- [Storage API](../api/storage.md)
+- [Maven client setup](../getting-started/maven-client.md)
