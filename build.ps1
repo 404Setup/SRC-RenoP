@@ -1,0 +1,258 @@
+<#
+.SYNOPSIS
+    Cross-build and package RenoP binaries.
+
+.PARAMETER Mode
+    Full matrix (default), s for mainstream targets, or c for the current
+    Go platform. The positional forms `./build.ps1 s` and `./build.ps1 c` are
+    supported as well as -s and -c. Add the nb suffix (for example
+    `./build.ps1 c nb`) to write binaries directly to the invocation directory
+    without creating ZIP packages.
+
+.PARAMETER Version
+    Version embedded into the binary with -ldflags. If omitted, the full
+    current commit hash is used for a development build.
+
+.PARAMETER Development
+    Whether the binary is a development build. The value is a string so CI
+    can pass either true or false explicitly.
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Position = 0)]
+    [ValidateSet('full', 's', 'c', 'nb')]
+    [string]$Mode = 'full',
+    [Parameter(Position = 1)]
+    [ValidateSet('nb')]
+    [string]$Suffix,
+    [switch]$s,
+    [switch]$c,
+    [switch]$nb,
+    [string]$Version,
+    [string]$Development
+)
+
+$ErrorActionPreference = 'Stop'
+$invocationDirectory = (Get-Location).Path
+$repositoryRoot = (Resolve-Path $PSScriptRoot).Path
+Set-Location $repositoryRoot
+
+$noBundle = $nb -or $Suffix -eq 'nb' -or $Mode -eq 'nb'
+if ($Mode -eq 'nb') { $Mode = 'full' }
+if ($s -and $c) {
+    throw 'Choose only one of -s or -c.'
+}
+if ($s) { $Mode = 's' }
+if ($c) { $Mode = 'c' }
+
+$gitVersion = $null
+try {
+    $gitVersion = (& git rev-parse --short HEAD 2>$null).Trim()
+} catch {
+    $gitVersion = 'unknown'
+}
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = if ([string]::IsNullOrWhiteSpace($gitVersion)) { 'unknown' } else { $gitVersion }
+    if ([string]::IsNullOrWhiteSpace($Development)) { $Development = 'true' }
+} elseif ([string]::IsNullOrWhiteSpace($Development)) {
+    $Development = 'false'
+}
+
+$developmentValue = if ($Development -match '^(?i:true|1|yes)$') { 'true' } else { 'false' }
+$displayVersion = if ($Version -match '^(?i:[0-9a-f]{40}|[0-9a-f]{64})$') {
+    $Version.Substring(0, 7)
+} else {
+    $Version
+}
+$safeVersion = $displayVersion -replace '[^A-Za-z0-9._-]', '_'
+
+$allTargets = @(
+    @{ GOOS = 'freebsd'; GOARCH = 'amd64' },
+    @{ GOOS = 'freebsd'; GOARCH = 'arm64' },
+    @{ GOOS = 'linux'; GOARCH = 'amd64' },
+    @{ GOOS = 'linux'; GOARCH = 'arm64' },
+    @{ GOOS = 'linux'; GOARCH = 'mips64' },
+    @{ GOOS = 'linux'; GOARCH = 'mips64le' },
+    @{ GOOS = 'linux'; GOARCH = 'riscv64' },
+    @{ GOOS = 'netbsd'; GOARCH = 'arm64' },
+    @{ GOOS = 'netbsd'; GOARCH = 'amd64' },
+    @{ GOOS = 'openbsd'; GOARCH = 'amd64' },
+    @{ GOOS = 'openbsd'; GOARCH = 'arm64' },
+    @{ GOOS = 'windows'; GOARCH = 'amd64' },
+    @{ GOOS = 'windows'; GOARCH = 'arm64' }
+)
+
+switch ($Mode) {
+    's' {
+        $targets = @(
+            @{ GOOS = 'linux'; GOARCH = 'amd64' },
+            @{ GOOS = 'linux'; GOARCH = 'arm64' },
+            @{ GOOS = 'windows'; GOARCH = 'amd64' }
+        )
+    }
+    'c' {
+        $currentGoos = (& go env GOHOSTOS).Trim()
+        $currentGoarch = (& go env GOHOSTARCH).Trim()
+        $targets = @(@{ GOOS = $currentGoos; GOARCH = $currentGoarch })
+    }
+    default { $targets = $allTargets }
+}
+
+$availablePlatforms = @(& go tool dist list)
+$unsupportedTargets = @($targets | Where-Object {
+    $platform = "$($_.GOOS)/$($_.GOARCH)"
+    $availablePlatforms -notcontains $platform
+} | ForEach-Object { "$($_.GOOS)/$($_.GOARCH)" })
+if ($unsupportedTargets.Count -gt 0) {
+    throw "The installed Go toolchain does not support: $($unsupportedTargets -join ', '). No substitute binaries will be published."
+}
+
+$dist = Join-Path $repositoryRoot 'dist'
+if (-not $noBundle) {
+    if (Test-Path -LiteralPath $dist) {
+        Remove-Item -LiteralPath $dist -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $dist -Force | Out-Null
+}
+
+$hadCgo = Test-Path Env:CGO_ENABLED
+$originalCgo = $env:CGO_ENABLED
+$hadGoos = Test-Path Env:GOOS
+$originalGoos = $env:GOOS
+$hadGoarch = Test-Path Env:GOARCH
+$originalGoarch = $env:GOARCH
+
+function Invoke-ProtobufGenerate {
+    Write-Host 'Generating protobuf (Go)...'
+    $protoc = Get-Command protoc -ErrorAction SilentlyContinue
+    if (-not $protoc) {
+        throw 'protoc not found on PATH. Install Protocol Buffers compiler to build.'
+    }
+    $protocGenGo = Get-Command protoc-gen-go -ErrorAction SilentlyContinue
+    if (-not $protocGenGo) {
+        Write-Host 'Installing protoc-gen-go...'
+        & go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        if ($LASTEXITCODE -ne 0) {
+            throw "go install protoc-gen-go failed with exit code $LASTEXITCODE."
+        }
+        $goBin = (& go env GOPATH).Trim()
+        if ($goBin) {
+            $env:PATH = (Join-Path $goBin 'bin') + [IO.Path]::PathSeparator + $env:PATH
+        }
+    }
+    $protoFile = Join-Path $repositoryRoot 'proto/api/v1/api.proto'
+    if (-not (Test-Path -LiteralPath $protoFile)) {
+        throw "Proto schema not found at $protoFile"
+    }
+    & protoc -I (Join-Path $repositoryRoot 'proto') --go_out=$repositoryRoot --go_opt=module=renop $protoFile
+    if ($LASTEXITCODE -ne 0) {
+        throw "protoc (Go) failed with exit code $LASTEXITCODE."
+    }
+    $generated = Join-Path $repositoryRoot 'pb/api.pb.go'
+    if (-not (Test-Path -LiteralPath $generated)) {
+        throw "protoc did not produce $generated"
+    }
+}
+
+function Build-FrontendAssets {
+    $frontendDir = Join-Path $repositoryRoot 'frontend/renop-html'
+    if (-not (Test-Path -LiteralPath (Join-Path $frontendDir 'package.json'))) {
+        throw "Frontend package.json not found at $frontendDir"
+    }
+
+    Write-Host 'Building frontend assets (protobuf + Rolldown JS + CSS)...'
+    Push-Location $frontendDir
+    try {
+        if (-not (Test-Path -LiteralPath (Join-Path $frontendDir 'node_modules'))) {
+            if (Test-Path -LiteralPath (Join-Path $frontendDir 'pnpm-lock.yaml')) {
+                & pnpm install --frozen-lockfile
+            } else {
+                & pnpm install
+            }
+            if ($LASTEXITCODE -ne 0) {
+                throw "pnpm install failed with exit code $LASTEXITCODE."
+            }
+        }
+        & pnpm run build
+        if ($LASTEXITCODE -ne 0) {
+            throw "frontend pnpm run build failed with exit code $LASTEXITCODE."
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
+try {
+    Invoke-ProtobufGenerate
+    Build-FrontendAssets
+
+    $env:CGO_ENABLED = '0'
+
+    $manifestTargets = [System.Collections.Generic.List[object]]::new()
+    foreach ($target in $targets) {
+        $goos = $target.GOOS
+        $goarch = $target.GOARCH
+        $binaryExtension = if ($goos -eq 'windows') { '.exe' } else { '' }
+        if ($noBundle) {
+            $binaryName = if ($targets.Count -eq 1) {
+                "renop$binaryExtension"
+            } else {
+                "renop-$goos-$goarch$binaryExtension"
+            }
+            $stage = $null
+            $binaryPath = Join-Path $invocationDirectory $binaryName
+            $archivePath = $null
+        } else {
+            $name = "renop-$safeVersion-$goos-$goarch"
+            $stage = Join-Path $dist ".stage-$goos-$goarch"
+            $binaryName = "renop$binaryExtension"
+            $binaryPath = Join-Path $stage $binaryName
+            $archivePath = Join-Path $dist "$name.zip"
+            New-Item -ItemType Directory -Path $stage -Force | Out-Null
+        }
+
+        $env:GOOS = $goos
+        $env:GOARCH = $goarch
+        $ldflags = "-s -w -X=renop/version.Version=$displayVersion -X=renop/version.Development=$developmentValue"
+        $destinationDescription = if ($noBundle) { $binaryPath } else { $archivePath }
+        Write-Host "Building $goos/$goarch -> $destinationDescription"
+        & go build -ldflags $ldflags -o $binaryPath .
+        if ($LASTEXITCODE -ne 0) {
+            throw "go build failed for $goos/$goarch with exit code $LASTEXITCODE."
+        }
+
+        if ($noBundle) {
+            continue
+        }
+
+        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE') -Destination $stage
+        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'README.md') -Destination $stage
+        Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archivePath -CompressionLevel Optimal -Force
+        $hash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $manifestTargets.Add([ordered]@{
+            os = $goos
+            arch = $goarch
+            file = Split-Path -Leaf $archivePath
+            sha256 = $hash
+        })
+        Remove-Item -LiteralPath $stage -Recurse -Force
+    }
+
+    if (-not $noBundle) {
+        $manifest = [ordered]@{
+            version = $displayVersion
+            development = ($developmentValue -eq 'true')
+            targets = $manifestTargets
+        }
+        $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $dist 'manifest.json') -Encoding utf8
+    }
+}
+finally {
+    if ($hadCgo) { $env:CGO_ENABLED = $originalCgo } else { Remove-Item Env:CGO_ENABLED -ErrorAction SilentlyContinue }
+    if ($hadGoos) { $env:GOOS = $originalGoos } else { Remove-Item Env:GOOS -ErrorAction SilentlyContinue }
+    if ($hadGoarch) { $env:GOARCH = $originalGoarch } else { Remove-Item Env:GOARCH -ErrorAction SilentlyContinue }
+}
+
+$finalDirectory = if ($noBundle) { $invocationDirectory } else { $dist }
+$packagingDescription = if ($noBundle) { 'without packaging' } else { 'with packages' }
+Write-Host "Built $($targets.Count) target(s) into $finalDirectory $packagingDescription"

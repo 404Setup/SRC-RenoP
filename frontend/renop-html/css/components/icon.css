@@ -1,0 +1,56 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+renop-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+renop-icon svg {
+    display: block;
+}
+
+.modal-title renop-icon,
+.modal-title .modal-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.icon-svg {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.lang-btn .lang-icon {
+    opacity: 0.8;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lang-btn:hover .lang-icon {
+    transform: rotate(15deg) scale(1.05);
+}
+
+.lang-btn .chevron-icon {
+    opacity: 0.5;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.lang-btn:hover .chevron-icon {
+    opacity: 0.9;
+    transform: translateY(1px);
+}

@@ -1,0 +1,667 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package updater
+
+import (
+	"archive/zip"
+	"bufio"
+	"context"
+	"debug/elf"
+	"debug/macho"
+	"debug/pe"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"mime/multipart"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/panjf2000/ants/v2"
+
+	"renop/utils"
+)
+
+var (
+	isInstalling         atomic.Bool
+	CanAllocateDiskSpace func(requiredBytes uint64) bool
+)
+
+type pendingBinaryState struct {
+	mu   sync.Mutex
+	path string
+}
+
+func (s *pendingBinaryState) set(newPath string) {
+	s.mu.Lock()
+	old := s.path
+	s.path = newPath
+	s.mu.Unlock()
+	if old != "" && old != newPath {
+		_ = os.Remove(old)
+	}
+}
+
+func (s *pendingBinaryState) get() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.path
+}
+
+func (s *pendingBinaryState) consume() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p := s.path
+	s.path = ""
+	return p
+}
+
+var pendingBinary pendingBinaryState
+
+func targetExecutableName() string {
+	if runtime.GOOS == "windows" {
+		return "renop.exe"
+	}
+	return "renop"
+}
+
+func archiveMatchesPlatform(name, goos, goarch string) bool {
+	nameLower := strings.ToLower(filepath.ToSlash(name))
+	marker := strings.ToLower(goos) + "-" + strings.ToLower(goarch)
+
+	for _, src := range []string{filepath.Base(nameLower), nameLower} {
+		idx := strings.Index(src, marker)
+		if idx < 0 {
+			continue
+		}
+		end := idx + len(marker)
+		if end >= len(src) {
+			return true
+		}
+		switch src[end] {
+		case '.', '-', '_', '/', '\\':
+			return true
+		}
+	}
+	return false
+}
+
+func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
+	fi, err := zipTempFile.Stat()
+	if err != nil {
+		return "", err
+	}
+
+	zipReader, err := zip.NewReader(zipTempFile, fi.Size())
+	if err != nil {
+		return "", fmt.Errorf("Invalid zip file: %w", err)
+	}
+
+	exeName := targetExecutableName()
+	goos, goarch := runtime.GOOS, runtime.GOARCH
+
+	var platformInner *zip.File
+	var anyInner []*zip.File
+	var directExe *zip.File
+
+	for _, f := range zipReader.File {
+		if f.FileInfo().IsDir() {
+			continue
+		}
+		base := filepath.Base(strings.ToLower(filepath.ToSlash(f.Name)))
+		switch {
+		case strings.HasSuffix(base, ".zip"):
+			anyInner = append(anyInner, f)
+			if archiveMatchesPlatform(f.Name, goos, goarch) {
+				platformInner = f
+			}
+		case base == exeName:
+			if directExe == nil {
+				directExe = f
+			}
+		}
+	}
+
+	if platformInner != nil {
+		path, err := extractExecutableFromNestedZip(platformInner, exeName)
+		if err == nil {
+			return finalizeExtractedBinary(path)
+		}
+	}
+
+	if directExe != nil {
+		path, err := materializeZipEntryAsExecutable(directExe)
+		if err == nil {
+			return finalizeExtractedBinary(path)
+		}
+	}
+
+	for _, inner := range anyInner {
+		if platformInner != nil && inner == platformInner {
+			continue
+		}
+		path, err := extractExecutableFromNestedZip(inner, exeName)
+		if err != nil {
+			continue
+		}
+		out, err := finalizeExtractedBinary(path)
+		if err != nil {
+			continue
+		}
+		return out, nil
+	}
+
+	return "", fmt.Errorf("Target executable not found in update package for %s/%s", goos, goarch)
+}
+
+func extractExecutableFromNestedZip(inner *zip.File, exeName string) (string, error) {
+	rc, err := inner.Open()
+	if err != nil {
+		return "", err
+	}
+	defer rc.Close()
+
+	innerTemp, err := os.CreateTemp("", "renop-inner-*.zip")
+	if err != nil {
+		return "", err
+	}
+	innerPath := innerTemp.Name()
+	defer func() {
+		_ = innerTemp.Close()
+		_ = os.Remove(innerPath)
+	}()
+
+	if _, err := io.Copy(innerTemp, rc); err != nil {
+		return "", err
+	}
+	if err := innerTemp.Sync(); err != nil {
+		return "", err
+	}
+	if _, err := innerTemp.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
+
+	ifi, err := innerTemp.Stat()
+	if err != nil {
+		return "", err
+	}
+	innerReader, err := zip.NewReader(innerTemp, ifi.Size())
+	if err != nil {
+		return "", fmt.Errorf("Invalid nested zip %s: %w", inner.Name, err)
+	}
+
+	for _, f := range innerReader.File {
+		if f.FileInfo().IsDir() {
+			continue
+		}
+		if filepath.Base(strings.ToLower(filepath.ToSlash(f.Name))) == exeName {
+			return materializeZipEntryAsExecutable(f)
+		}
+	}
+	return "", fmt.Errorf("Executable %s not found in nested package %s", exeName, filepath.Base(inner.Name))
+}
+
+func materializeZipEntryAsExecutable(f *zip.File) (string, error) {
+	if f.FileInfo().IsDir() {
+		return "", errors.New("Entry is a directory")
+	}
+	rc, err := f.Open()
+	if err != nil {
+		return "", err
+	}
+	defer rc.Close()
+
+	targetFile, err := os.CreateTemp("", "renop-new-*")
+	if err != nil {
+		return "", err
+	}
+	targetPath := targetFile.Name()
+
+	bufOut := bufio.NewWriterSize(targetFile, 128*1024)
+	if _, err := io.Copy(bufOut, rc); err != nil {
+		_ = targetFile.Close()
+		_ = os.Remove(targetPath)
+		return "", err
+	}
+	if err := bufOut.Flush(); err != nil {
+		_ = targetFile.Close()
+		_ = os.Remove(targetPath)
+		return "", err
+	}
+	if err := targetFile.Close(); err != nil {
+		_ = os.Remove(targetPath)
+		return "", err
+	}
+	return targetPath, nil
+}
+
+func finalizeExtractedBinary(path string) (string, error) {
+	if err := ValidateExecutableBinary(path); err != nil {
+		_ = os.Remove(path)
+		return "", err
+	}
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(path, 0755)
+	}
+	return path, nil
+}
+
+var ErrIncompatibleBinary = errors.New("Executable binary does not match current system or architecture")
+
+func ValidateExecutableBinary(filePath string) error {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	switch runtime.GOOS {
+	case "windows":
+		return validateWindowsPE(f)
+	case "darwin":
+		return validateMachO(f)
+	default:
+		return validateELF(f, runtime.GOOS, runtime.GOARCH)
+	}
+}
+
+func validateWindowsPE(f *os.File) error {
+	pf, err := pe.NewFile(f)
+	if err != nil {
+		return fmt.Errorf("%w: not a valid Windows PE executable", ErrIncompatibleBinary)
+	}
+	defer pf.Close()
+
+	want, known := peMachineForGOARCH(runtime.GOARCH)
+	if !known {
+		return nil
+	}
+	if pf.Machine != want {
+		return fmt.Errorf("%w: expected Windows %s, got machine 0x%x", ErrIncompatibleBinary, runtime.GOARCH, pf.Machine)
+	}
+	return nil
+}
+
+func peMachineForGOARCH(goarch string) (machine uint16, ok bool) {
+	switch goarch {
+	case "amd64":
+		return pe.IMAGE_FILE_MACHINE_AMD64, true
+	case "arm64":
+		return pe.IMAGE_FILE_MACHINE_ARM64, true
+	case "386":
+		return pe.IMAGE_FILE_MACHINE_I386, true
+	default:
+		return 0, false
+	}
+}
+
+func validateELF(f *os.File, goos, goarch string) error {
+	ef, err := elf.NewFile(f)
+	if err != nil {
+		return fmt.Errorf("%w: not a valid %s ELF executable", ErrIncompatibleBinary, goos)
+	}
+	defer ef.Close()
+
+	wantMachine, wantClass, wantData, known := elfIdentityForGOARCH(goarch)
+	if !known {
+		return nil
+	}
+	if ef.Machine != wantMachine {
+		return fmt.Errorf("%w: expected %s %s, got machine %s", ErrIncompatibleBinary, goos, goarch, ef.Machine)
+	}
+	if ef.Class != wantClass {
+		return fmt.Errorf("%w: expected %s %s class %v, got %v", ErrIncompatibleBinary, goos, goarch, wantClass, ef.Class)
+	}
+	if wantData != 0 && ef.Data != wantData {
+		return fmt.Errorf("%w: expected %s %s endian %v, got %v", ErrIncompatibleBinary, goos, goarch, wantData, ef.Data)
+	}
+	return nil
+}
+
+func elfIdentityForGOARCH(goarch string) (machine elf.Machine, class elf.Class, data elf.Data, ok bool) {
+	switch goarch {
+	case "amd64":
+		return elf.EM_X86_64, elf.ELFCLASS64, elf.ELFDATA2LSB, true
+	case "arm64":
+		return elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB, true
+	case "386":
+		return elf.EM_386, elf.ELFCLASS32, elf.ELFDATA2LSB, true
+	case "arm":
+		return elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB, true
+	case "riscv64":
+		return elf.EM_RISCV, elf.ELFCLASS64, elf.ELFDATA2LSB, true
+	case "mips64":
+		return elf.EM_MIPS, elf.ELFCLASS64, elf.ELFDATA2MSB, true
+	case "mips64le":
+		return elf.EM_MIPS, elf.ELFCLASS64, elf.ELFDATA2LSB, true
+	default:
+		return 0, 0, 0, false
+	}
+}
+
+func validateMachO(f *os.File) error {
+	mf, err := macho.NewFile(f)
+	if err != nil {
+		fatf, fatErr := macho.NewFatFile(f)
+		if fatErr != nil {
+			return fmt.Errorf("%w: not a valid macOS Mach-O executable", ErrIncompatibleBinary)
+		}
+		defer fatf.Close()
+
+		want, known := machoCpuForGOARCH(runtime.GOARCH)
+		if !known {
+			return nil
+		}
+		for _, arch := range fatf.Arches {
+			if arch.Cpu == want {
+				return nil
+			}
+		}
+		return fmt.Errorf("%w: macOS Fat binary does not contain %s architecture", ErrIncompatibleBinary, runtime.GOARCH)
+	}
+	defer mf.Close()
+
+	want, known := machoCpuForGOARCH(runtime.GOARCH)
+	if !known {
+		return nil
+	}
+	if mf.Cpu != want {
+		return fmt.Errorf("%w: expected macOS %s, got CPU 0x%x", ErrIncompatibleBinary, runtime.GOARCH, mf.Cpu)
+	}
+	return nil
+}
+
+func machoCpuForGOARCH(goarch string) (cpu macho.Cpu, ok bool) {
+	switch goarch {
+	case "amd64":
+		return macho.CpuAmd64, true
+	case "arm64":
+		return macho.CpuArm64, true
+	case "386":
+		return macho.Cpu386, true
+	default:
+		return 0, false
+	}
+}
+
+func SaveAndExtractUploadedZip(fileHeader *multipart.FileHeader) (string, error) {
+	src, err := fileHeader.Open()
+	if err != nil {
+		return "", fmt.Errorf("Failed to open uploaded file: %w", err)
+	}
+	defer src.Close()
+
+	tempZip, err := os.CreateTemp("", "renop-upload-*.zip")
+	if err != nil {
+		return "", fmt.Errorf("Failed to create temp file: %w", err)
+	}
+	tempZipPath := tempZip.Name()
+	defer func() {
+		_ = tempZip.Close()
+		_ = os.Remove(tempZipPath)
+	}()
+
+	bufWriter := bufio.NewWriterSize(tempZip, 128*1024)
+	if _, err := io.Copy(bufWriter, src); err != nil {
+		return "", fmt.Errorf("Failed to save uploaded file: %w", err)
+	}
+	if err := bufWriter.Flush(); err != nil {
+		return "", err
+	}
+
+	return ExtractExecutableFromZip(tempZip)
+}
+
+func ExtractExecutableFromZipPath(zipPath string) (string, error) {
+	f, err := os.Open(zipPath)
+	if err != nil {
+		return "", fmt.Errorf("Failed to open uploaded file: %w", err)
+	}
+	defer f.Close()
+	return ExtractExecutableFromZip(f)
+}
+
+func TryBeginInstall() bool {
+	return isInstalling.CompareAndSwap(false, true)
+}
+
+func EndInstall() {
+	isInstalling.Store(false)
+}
+
+func SetDownloadingProgress(progress int) {
+	updateStateFields(func(s *UpdateState) {
+		s.Status = "downloading"
+		s.Progress = progress
+		s.ErrorMessage = ""
+	})
+}
+
+func SetError(msg string) {
+	updateStateFields(func(s *UpdateState) {
+		s.Status = "error"
+		s.ErrorMessage = msg
+	})
+}
+
+func SetReadyToRestart(binaryPath, latestVersion string) {
+	pendingBinary.set(binaryPath)
+	updateStateFields(func(s *UpdateState) {
+		s.Status = "ready_to_restart"
+		s.Progress = 100
+		s.LatestVersion = latestVersion
+		s.ErrorMessage = ""
+	})
+}
+
+var downloadHTTPClient = &http.Client{
+	Timeout: 0,
+	Transport: &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return utils.DialContextLimited(utils.LimitedDialer(15*time.Second, 30*time.Second), ctx, network, addr)
+		},
+		ForceAttemptHTTP2:     false,
+		DisableCompression:    true,
+		MaxIdleConns:          4,
+		MaxIdleConnsPerHost:   2,
+		MaxConnsPerHost:       4,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		ExpectContinueTimeout: time.Second,
+		DisableKeepAlives:     true,
+	},
+}
+
+func DownloadAndExtract(ctx context.Context, downloadUrl string) (string, error) {
+	zipTempFile, err := os.CreateTemp("", "renop-download-*.zip")
+	if err != nil {
+		return "", err
+	}
+	zipPath := zipTempFile.Name()
+	defer func() {
+		_ = zipTempFile.Close()
+		_ = os.Remove(zipPath)
+	}()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "RenoP-Updater")
+	req.Close = true
+	var capConn utils.ConnCapture
+	req = req.WithContext(utils.WithConnCapture(req.Context(), &capConn))
+
+	resp, err := downloadHTTPClient.Do(req)
+	if err != nil {
+		utils.ForceTCPAbort(capConn.Conn())
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		utils.AbortHTTPResponse(resp, capConn.Conn())
+		return "", fmt.Errorf("Download failed with status %d", resp.StatusCode)
+	}
+
+	bufWriter := bufio.NewWriterSize(zipTempFile, 128*1024)
+	_, copyErr := io.Copy(bufWriter, resp.Body)
+	flushErr := bufWriter.Flush()
+	utils.AbortHTTPResponse(resp, capConn.Conn())
+	if copyErr != nil {
+		return "", fmt.Errorf("Failed to save update package: %w", copyErr)
+	}
+	if flushErr != nil {
+		return "", fmt.Errorf("Failed to flush update package: %w", flushErr)
+	}
+
+	return ExtractExecutableFromZip(zipTempFile)
+}
+
+func moveOrCopyFile(src, dst string) error {
+	err := os.Rename(src, dst)
+	if err == nil {
+		return nil
+	}
+
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	dstDir := filepath.Dir(dst)
+	tmpDst, err := os.CreateTemp(dstDir, ".renop-new-*")
+	if err != nil {
+		out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+		_, err = io.Copy(out, in)
+		_ = os.Remove(src)
+		return err
+	}
+
+	tmpDstPath := tmpDst.Name()
+	bufWriter := bufio.NewWriterSize(tmpDst, 128*1024)
+	if _, err := io.Copy(bufWriter, in); err != nil {
+		_ = tmpDst.Close()
+		_ = os.Remove(tmpDstPath)
+		return err
+	}
+	if err := bufWriter.Flush(); err != nil {
+		_ = tmpDst.Close()
+		_ = os.Remove(tmpDstPath)
+		return err
+	}
+	_ = tmpDst.Close()
+
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(tmpDstPath, 0755)
+	}
+
+	if err := os.Rename(tmpDstPath, dst); err != nil {
+		_ = os.Remove(tmpDstPath)
+		return err
+	}
+
+	_ = os.Remove(src)
+	return nil
+}
+
+func CleanOldExecutables() {
+	currentExe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	currentExe, err = filepath.EvalSymlinks(currentExe)
+	if err != nil {
+		return
+	}
+	oldExe := currentExe + ".old"
+	_ = os.Remove(oldExe)
+
+	cleanupStaleUpdaterTemps()
+}
+
+func cleanupStaleUpdaterTemps() {
+	dir := os.TempDir()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	keep := pendingBinary.get()
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		path := filepath.Join(dir, name)
+		if keep != "" && path == keep {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(name, "renop-upload-"),
+			strings.HasPrefix(name, "renop-download-"),
+			strings.HasPrefix(name, "renop-inner-"),
+			strings.HasPrefix(name, "renop-new-"):
+			_ = os.Remove(path)
+		}
+	}
+}
+
+func ApplyUpdateAndRestart(newBinaryPath string) error {
+	currentExe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	currentExe, err = filepath.EvalSymlinks(currentExe)
+	if err != nil {
+		return err
+	}
+
+	oldExe := currentExe + ".old"
+	_ = os.Remove(oldExe)
+
+	if err := os.Rename(currentExe, oldExe); err != nil {
+		return fmt.Errorf("Failed to backup current executable: %w", err)
+	}
+
+	if err := moveOrCopyFile(newBinaryPath, currentExe); err != nil {
+		_ = os.Rename(oldExe, currentExe)
+		return fmt.Errorf("Failed to replace executable: %w", err)
+	}
+
+	pendingBinary.consume()
+
+	if runtime.GOOS != "windows" {
+		_ = os.Chmod(currentExe, 0755)
+	}
+
+	_ = ants.Submit(func() {
+		time.Sleep(500 * time.Millisecond)
+		if err := reexecProcess(currentExe); err != nil {
+			log.Printf("[Updater] Failed to restart process after update: %v", err)
+			os.Exit(1)
+		}
+	})
+
+	return nil
+}

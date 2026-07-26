@@ -1,0 +1,1487 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+/* Whole upload window (dropzone + selected-files card). Open/close via expandElement. */
+.upload-panel {
+    display: none;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 0;
+    overflow: hidden;
+    will-change: height, opacity, margin-top;
+}
+
+.upload-panel.is-visible {
+    margin-top: 1.25rem;
+}
+
+.upload-dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text-color);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--link-hover-color) 4%, var(--card-bg)) 0%, var(--card-bg) 100%);
+    border: 1.5px dashed color-mix(in srgb, var(--border-color) 95%, var(--link-hover-color));
+    border-radius: 0.9rem;
+    transition: background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+    outline: none;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone:focus-visible {
+    border-color: color-mix(in srgb, var(--link-hover-color) 55%, var(--border-color));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--link-hover-color) 8%, var(--card-bg)) 0%, var(--card-bg) 100%);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+}
+
+.upload-dropzone.dragover {
+    border-color: var(--link-hover-color);
+    border-style: solid;
+    background: color-mix(in srgb, var(--link-hover-color) 10%, var(--card-bg));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--link-hover-color) 14%, transparent);
+    transform: scale(1.01);
+}
+
+.upload-dropzone.is-busy {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.upload-dropzone-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.85rem;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 16%, transparent);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.upload-dropzone:hover .upload-dropzone-icon,
+.upload-dropzone.dragover .upload-dropzone-icon {
+    transform: translateY(-2px);
+    background: color-mix(in srgb, var(--link-hover-color) 18%, transparent);
+}
+
+.upload-dropzone-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.upload-dropzone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.upload-dropzone-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.upload-dropzone-hint {
+    margin: 0;
+    font-size: 0.82rem;
+    opacity: 0.6;
+}
+
+.upload-dropzone-browse {
+    color: var(--link-hover-color);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Height open/close is driven by expandElement/collapseElement (inline height + opacity).
+   Keep this block display:none when closed so it doesn't reserve space. */
+.upload-controls {
+    display: none;
+    margin-top: 0;
+    overflow: hidden;
+    will-change: height, opacity, margin-top;
+}
+
+/* expandElement leaves is-visible on after clearing inline styles — keep spacing here */
+.upload-controls.is-visible {
+    margin-top: 0.85rem;
+    pointer-events: auto;
+}
+
+.upload-controls.is-open {
+    pointer-events: auto;
+}
+
+.upload-controls-inner {
+    min-height: 0;
+}
+
+.upload-controls-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.9rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transform: translateY(-10px) scale(0.97);
+    opacity: 0.88;
+    transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.28s ease;
+}
+
+.upload-controls.is-open .upload-controls-card,
+.upload-controls.is-visible .upload-controls-card {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.upload-files-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.upload-files-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.upload-files-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.upload-file-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 14%, transparent);
+}
+
+.upload-file-count:empty {
+    display: none;
+}
+
+.upload-total-size {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
+    opacity: 0.75;
+}
+
+.upload-total-size:empty {
+    display: none;
+}
+
+.upload-clear-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-color);
+    opacity: 0.6;
+    cursor: pointer;
+    border-radius: 0.4rem;
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.upload-clear-btn:hover:not(:disabled) {
+    opacity: 1;
+    color: #ef4444;
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+
+.upload-clear-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.upload-batch-progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.55rem 0.75rem;
+    background: color-mix(in srgb, var(--link-hover-color) 8%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 25%, transparent);
+    border-radius: 0.6rem;
+    margin-top: 0.2rem;
+    animation: uploadEntryIn 0.2s ease-out;
+}
+
+.upload-batch-progress-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.upload-batch-progress-text {
+    opacity: 0.85;
+}
+
+.upload-batch-progress-percent {
+    font-variant-numeric: tabular-nums;
+    color: var(--link-hover-color);
+    font-weight: 700;
+}
+
+.upload-batch-progress-bar {
+    width: 100%;
+    height: 5px;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--text-color) 10%, transparent);
+    overflow: hidden;
+}
+
+.upload-batch-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);
+    background-size: 200% 100%;
+    animation: shimmerProgress 2s linear infinite;
+    transition: width 0.15s ease;
+    border-radius: 9999px;
+}
+
+@keyframes shimmerProgress {
+    0% {
+        background-position: 0% 0%;
+    }
+    100% {
+        background-position: 200% 0%;
+    }
+}
+
+@keyframes uploadEntryIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes uploadEntryOut {
+    0% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: blur(0);
+        background-color: color-mix(in srgb, #ef4444 14%, var(--snippet-bg));
+        border-color: color-mix(in srgb, #ef4444 40%, var(--border-color));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, #ef4444 40%, transparent);
+    }
+    30% {
+        opacity: 0.6;
+        transform: translateX(16px) scale(0.97);
+        filter: blur(0.5px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(48px) scale(0.88);
+        filter: blur(2px);
+        box-shadow: none;
+    }
+}
+
+.upload-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    max-height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.25rem 0.35rem 0.25rem 0.1rem;
+    transition: max-height 0.25s ease;
+    scroll-behavior: smooth;
+}
+
+.upload-file-list.is-deleting,
+.upload-file-list:has(.is-leaving) {
+    overflow-y: hidden !important;
+}
+
+.upload-file-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.upload-file-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.upload-file-list::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--border-color) 80%, transparent);
+    border-radius: 4px;
+}
+
+.upload-file-list::-webkit-scrollbar-thumb:hover {
+    background: var(--link-hover-color);
+}
+
+.upload-file-list.has-multiple-files {
+    max-height: 360px;
+}
+
+.upload-file-list.has-many-files {
+    max-height: 420px;
+    gap: 0.55rem;
+}
+
+.upload-file-list.has-many-files .upload-file-entry {
+    padding: 0.65rem 0.85rem;
+    flex-shrink: 0;
+    min-height: 48px;
+}
+
+.upload-file-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.upload-file-index {
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    max-width: 0;
+    min-width: 0;
+    transform: scale(0.5) translateX(-8px);
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                min-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.upload-file-index.is-visible {
+    opacity: 0.45;
+    max-width: 2.5rem;
+    min-width: 1.4rem;
+    transform: scale(1) translateX(0);
+}
+
+@keyframes uploadIndexPop {
+    0% { transform: scale(1); opacity: 0.45; }
+    50% { transform: scale(1.35); opacity: 0.9; }
+    100% { transform: scale(1); opacity: 0.45; }
+}
+
+.upload-file-index.is-updated {
+    animation: uploadIndexPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.upload-file-entry {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 0.95rem;
+    background-color: color-mix(in srgb, var(--snippet-bg) 85%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, var(--border-color) 85%, transparent);
+    border-radius: 0.7rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    min-height: 52px;
+    animation-delay: calc(var(--item-index, 0) * 30ms);
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.upload-file-entry:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: color-mix(in srgb, var(--link-hover-color) 45%, var(--border-color));
+}
+
+.upload-file-entry.is-entering {
+    animation: uploadEntryIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.file-entry.is-leaving,
+.upload-file-entry.is-leaving {
+    pointer-events: none;
+    overflow: hidden;
+    animation: uploadEntryOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    will-change: transform, opacity, height;
+}
+
+.upload-file-entry.is-uploading {
+    border-color: color-mix(in srgb, var(--link-hover-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 4%, var(--card-bg));
+}
+
+.upload-file-entry.is-done {
+    border-color: color-mix(in srgb, #10b981 40%, var(--border-color));
+    background: color-mix(in srgb, #10b981 6%, var(--card-bg));
+}
+
+.upload-file-entry.is-error {
+    border-color: color-mix(in srgb, #ef4444 40%, var(--border-color));
+    background: color-mix(in srgb, #ef4444 6%, var(--card-bg));
+}
+
+.upload-file-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.55rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.upload-file-entry:hover .upload-file-icon {
+    transform: scale(1.05);
+}
+
+.upload-file-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.upload-file-name {
+    font-size: 0.86rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.upload-file-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    opacity: 0.75;
+}
+
+.upload-file-size {
+    font-weight: 500;
+    opacity: 0.75;
+}
+
+.upload-file-ext {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    padding: 0.08rem 0.38rem;
+    border-radius: 0.3rem;
+    text-transform: uppercase;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.upload-file-ext--jar {
+    color: #c2410c;
+    background: color-mix(in srgb, #ea580c 15%, transparent);
+}
+
+.upload-file-ext--archive {
+    color: #8b5cf6;
+    background: color-mix(in srgb, #8b5cf6 15%, transparent);
+}
+
+.upload-file-ext--code {
+    color: #d97706;
+    background: color-mix(in srgb, #f59e0b 15%, transparent);
+}
+
+.upload-file-ext--image {
+    color: #059669;
+    background: color-mix(in srgb, #10b981 15%, transparent);
+}
+
+.upload-file-ext--audio {
+    color: #7e22ce;
+    background: color-mix(in srgb, #a855f7 15%, transparent);
+}
+
+.upload-file-ext--video {
+    color: #be123c;
+    background: color-mix(in srgb, #e11d48 15%, transparent);
+}
+
+.upload-file-ext--doc {
+    color: #e11d48;
+    background: color-mix(in srgb, #f43f5e 15%, transparent);
+}
+
+.upload-file-ext--spreadsheet {
+    color: #047857;
+    background: color-mix(in srgb, #059669 15%, transparent);
+}
+
+.upload-file-ext--database {
+    color: #0369a1;
+    background: color-mix(in srgb, #0284c7 15%, transparent);
+}
+
+.upload-file-ext--security {
+    color: #4338ca;
+    background: color-mix(in srgb, #6366f1 15%, transparent);
+}
+
+.upload-file-ext--font {
+    color: #0f766e;
+    background: color-mix(in srgb, #0d9488 15%, transparent);
+}
+
+.upload-file-ext--binary {
+    color: #0891b2;
+    background: color-mix(in srgb, #06b6d4 15%, transparent);
+}
+
+.upload-file-ext--docker {
+    color: #0969da;
+    background: color-mix(in srgb, #0969da 15%, transparent);
+}
+
+.upload-file-ext--pom {
+    color: #c2410c;
+    background: color-mix(in srgb, #c2410c 15%, transparent);
+}
+
+.upload-file-ext--npm {
+    color: #cb3837;
+    background: color-mix(in srgb, #cb3837 15%, transparent);
+}
+
+.upload-file-ext--cargo {
+    color: #d97706;
+    background: color-mix(in srgb, #d97706 15%, transparent);
+}
+
+.upload-file-ext--gomod {
+    color: #00add8;
+    background: color-mix(in srgb, #00add8 15%, transparent);
+}
+
+.upload-file-ext--gradle {
+    color: #059669;
+    background: color-mix(in srgb, #059669 15%, transparent);
+}
+
+.upload-file-ext--env {
+    color: #65a30d;
+    background: color-mix(in srgb, #84cc16 15%, transparent);
+}
+
+.upload-file-ext--k8s {
+    color: #2563eb;
+    background: color-mix(in srgb, #326ce5 15%, transparent);
+}
+
+.upload-file-ext--html {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 15%, transparent);
+}
+
+.upload-file-ext--style {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 15%, transparent);
+}
+
+.upload-file-ext--component {
+    color: #0d9488;
+    background: color-mix(in srgb, #0d9488 15%, transparent);
+}
+
+.upload-file-icon--jar {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+}
+
+.upload-file-icon--javadoc {
+    color: #0f766e;
+    background: color-mix(in srgb, #0f766e 14%, transparent);
+}
+
+.upload-file-icon--sources {
+    color: #b45309;
+    background: color-mix(in srgb, #b45309 14%, transparent);
+}
+
+.upload-file-icon--xml {
+    color: #e67e22;
+    background: color-mix(in srgb, #e67e22 14%, transparent);
+}
+
+.upload-file-icon--archive {
+    color: #8b5cf6;
+    background: color-mix(in srgb, #8b5cf6 14%, transparent);
+}
+
+.upload-file-icon--code {
+    color: #f59e0b;
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+}
+
+.upload-file-icon--image {
+    color: #10b981;
+    background: color-mix(in srgb, #10b981 14%, transparent);
+}
+
+.upload-file-icon--audio {
+    color: #a855f7;
+    background: color-mix(in srgb, #a855f7 14%, transparent);
+}
+
+.upload-file-icon--video {
+    color: #e11d48;
+    background: color-mix(in srgb, #e11d48 14%, transparent);
+}
+
+.upload-file-icon--doc {
+    color: #f43f5e;
+    background: color-mix(in srgb, #f43f5e 14%, transparent);
+}
+
+.upload-file-icon--spreadsheet {
+    color: #059669;
+    background: color-mix(in srgb, #059669 14%, transparent);
+}
+
+.upload-file-icon--database {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+}
+
+.upload-file-icon--security {
+    color: #6366f1;
+    background: color-mix(in srgb, #6366f1 14%, transparent);
+}
+
+.upload-file-icon--font {
+    color: #0d9488;
+    background: color-mix(in srgb, #0d9488 14%, transparent);
+}
+
+.upload-file-icon--binary {
+    color: #06b6d4;
+    background: color-mix(in srgb, #06b6d4 14%, transparent);
+}
+
+.upload-file-icon--docker {
+    color: #0969da;
+    background: color-mix(in srgb, #0969da 14%, transparent);
+}
+
+.upload-file-icon--pom {
+    color: #c2410c;
+    background: color-mix(in srgb, #c2410c 14%, transparent);
+}
+
+.upload-file-icon--npm {
+    color: #cb3837;
+    background: color-mix(in srgb, #cb3837 14%, transparent);
+}
+
+.upload-file-icon--cargo {
+    color: #d97706;
+    background: color-mix(in srgb, #d97706 14%, transparent);
+}
+
+.upload-file-icon--gomod {
+    color: #00add8;
+    background: color-mix(in srgb, #00add8 14%, transparent);
+}
+
+.upload-file-icon--gradle {
+    color: #059669;
+    background: color-mix(in srgb, #059669 14%, transparent);
+}
+
+.upload-file-icon--env {
+    color: #84cc16;
+    background: color-mix(in srgb, #84cc16 14%, transparent);
+}
+
+.upload-file-icon--k8s {
+    color: #326ce5;
+    background: color-mix(in srgb, #326ce5 14%, transparent);
+}
+
+.upload-file-icon--html {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+}
+
+.upload-file-icon--style {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+}
+
+.upload-file-icon--component {
+    color: #0d9488;
+    background: color-mix(in srgb, #0d9488 14%, transparent);
+}
+
+.upload-file-icon--script {
+    color: #16a34a;
+    background: color-mix(in srgb, #16a34a 14%, transparent);
+}
+
+.upload-file-icon--yaml {
+    color: #dc2626;
+    background: color-mix(in srgb, #dc2626 14%, transparent);
+}
+
+.upload-file-icon--json {
+    color: #d97706;
+    background: color-mix(in srgb, #d97706 14%, transparent);
+}
+
+.upload-file-icon--schema {
+    color: #e10098;
+    background: color-mix(in srgb, #e10098 14%, transparent);
+}
+
+.upload-file-icon--config {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+}
+
+.upload-file-icon--pdf {
+    color: #dc2626;
+    background: color-mix(in srgb, #dc2626 14%, transparent);
+}
+
+.upload-file-icon--markdown {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+}
+
+.upload-file-icon--presentation {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+}
+
+.upload-file-icon--ebook {
+    color: #7c3aed;
+    background: color-mix(in srgb, #7c3aed 14%, transparent);
+}
+
+.upload-file-icon--checksum {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+}
+
+.upload-file-icon--disk {
+    color: #475569;
+    background: color-mix(in srgb, #475569 14%, transparent);
+}
+
+.upload-file-icon--app {
+    color: #10b981;
+    background: color-mix(in srgb, #10b981 14%, transparent);
+}
+
+.upload-file-icon--diff {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+}
+
+.upload-file-icon--makefile {
+    color: #b45309;
+    background: color-mix(in srgb, #b45309 14%, transparent);
+}
+
+.upload-file-icon--terraform {
+    color: #7c3aed;
+    background: color-mix(in srgb, #7c3aed 14%, transparent);
+}
+
+.upload-file-icon--notebook {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+}
+
+.upload-file-icon--wasm {
+    color: #6366f1;
+    background: color-mix(in srgb, #6366f1 14%, transparent);
+}
+
+.upload-file-icon--generic {
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+}
+
+.upload-file-icon--war,
+.upload-file-icon--ear,
+.upload-file-icon--aar {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+}
+
+.upload-file-icon--apk {
+    color: #3ddc84;
+    background: color-mix(in srgb, #3ddc84 14%, transparent);
+}
+
+.upload-file-icon--exe {
+    color: #2563eb;
+    background: color-mix(in srgb, #2563eb 14%, transparent);
+}
+
+.upload-file-icon--msi {
+    color: #0ea5e9;
+    background: color-mix(in srgb, #0ea5e9 14%, transparent);
+}
+
+.upload-file-icon--pkg {
+    color: #7c3aed;
+    background: color-mix(in srgb, #7c3aed 14%, transparent);
+}
+
+.upload-file-icon--composer {
+    color: #8892bf;
+    background: color-mix(in srgb, #8892bf 14%, transparent);
+}
+
+.upload-file-icon--gemfile {
+    color: #cc342d;
+    background: color-mix(in srgb, #cc342d 14%, transparent);
+}
+
+.upload-file-icon--pyproject {
+    color: #3776ab;
+    background: color-mix(in srgb, #3776ab 14%, transparent);
+}
+
+.upload-file-icon--gitignore,
+.upload-file-icon--lockfile {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+}
+
+.upload-file-icon--react {
+    color: #61dafb;
+    background: color-mix(in srgb, #61dafb 16%, transparent);
+}
+
+.upload-file-icon--vue {
+    color: #42b883;
+    background: color-mix(in srgb, #42b883 14%, transparent);
+}
+
+.upload-file-icon--svelte {
+    color: #ff3e00;
+    background: color-mix(in srgb, #ff3e00 14%, transparent);
+}
+
+.upload-file-icon--astro {
+    color: #ff5d01;
+    background: color-mix(in srgb, #ff5d01 14%, transparent);
+}
+
+.upload-file-icon--proto {
+    color: #0ea5e9;
+    background: color-mix(in srgb, #0ea5e9 14%, transparent);
+}
+
+.upload-file-icon--graphql {
+    color: #e10098;
+    background: color-mix(in srgb, #e10098 14%, transparent);
+}
+
+.upload-file-icon--geojson {
+    color: #16a34a;
+    background: color-mix(in srgb, #16a34a 14%, transparent);
+}
+
+.upload-file-icon--toml {
+    color: #9c4121;
+    background: color-mix(in srgb, #9c4121 14%, transparent);
+}
+
+.upload-file-icon--svg {
+    color: #ffb13b;
+    background: color-mix(in srgb, #ffb13b 16%, transparent);
+}
+
+.upload-file-icon--design {
+    color: #a855f7;
+    background: color-mix(in srgb, #a855f7 14%, transparent);
+}
+
+.upload-file-icon--model {
+    color: #0891b2;
+    background: color-mix(in srgb, #0891b2 14%, transparent);
+}
+
+.upload-file-icon--word {
+    color: #2b579a;
+    background: color-mix(in srgb, #2b579a 14%, transparent);
+}
+
+.upload-file-icon--txt {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+}
+
+.upload-file-icon--log {
+    color: #78716c;
+    background: color-mix(in srgb, #78716c 14%, transparent);
+}
+
+.upload-file-icon--csv {
+    color: #059669;
+    background: color-mix(in srgb, #059669 14%, transparent);
+}
+
+.upload-file-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.3rem;
+}
+
+.upload-file-status--pending {
+    color: var(--text-color);
+    opacity: 0.55;
+}
+
+.upload-file-status--done {
+    color: #10b981;
+    background: color-mix(in srgb, #10b981 12%, transparent);
+}
+
+.upload-file-status--error {
+    color: #ef4444;
+    background: color-mix(in srgb, #ef4444 12%, transparent);
+}
+
+.upload-file-progress-text {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--link-hover-color);
+    opacity: 1;
+}
+
+.upload-file-progress-text:empty {
+    display: none;
+}
+
+.upload-file-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: var(--text-color);
+    opacity: 0.45;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.upload-file-remove:hover {
+    opacity: 1;
+    color: #ef4444;
+    background: color-mix(in srgb, #ef4444 12%, transparent);
+    transform: scale(1.08);
+}
+
+.upload-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-top: 0.15rem;
+}
+
+.upload-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin: 0;
+    cursor: pointer;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.65rem;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.upload-option:hover {
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+    border-color: color-mix(in srgb, var(--border-color) 70%, transparent);
+}
+
+.upload-option .switch {
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.upload-option-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.upload-option-label {
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.upload-option-desc {
+    font-size: 0.75rem;
+    opacity: 0.55;
+    line-height: 1.35;
+}
+
+.pom-form {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-top: -0.85rem;
+    pointer-events: none;
+    visibility: hidden;
+    transition: grid-template-rows 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.28s ease,
+    margin-top 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.34s step-end;
+}
+
+.pom-form.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    margin-top: 0;
+    pointer-events: auto;
+    visibility: visible;
+    transition: grid-template-rows 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.28s ease,
+    margin-top 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s;
+}
+
+.pom-form-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
+.pom-form-card {
+    background: color-mix(in srgb, var(--snippet-bg) 70%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
+    border-radius: 0.7rem;
+    padding: 0.9rem;
+    transform: translateY(-6px) scale(0.985);
+    transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pom-form.is-open .pom-form-card {
+    transform: translateY(0) scale(1);
+}
+
+.pom-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.pom-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0;
+}
+
+.pom-form .form-group label {
+    width: auto;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.pom-form .form-group input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pom-form .form-group input:focus {
+    outline: none;
+    border-color: var(--link-hover-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 14%, transparent);
+}
+
+.upload-footer {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.15rem;
+}
+
+.upload-destination-field {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.upload-destination-field label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+#upload-destination {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.55rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.875rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#upload-destination:focus {
+    outline: none;
+    border-color: var(--link-hover-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 14%, transparent);
+}
+
+.upload-submit-btn {
+    flex-shrink: 0;
+    min-height: 2.5rem;
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+}
+
+.upload-submit-btn.is-busy {
+    opacity: 0.8;
+    cursor: wait;
+}
+
+@media (max-width: 720px) {
+    .pom-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .upload-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .upload-submit-btn {
+        width: 100%;
+    }
+}
+
+.adjustments-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 2.15rem;
+    padding: 0 0.8rem 0 0.7rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
+    background: var(--card-bg);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.adjustments-trigger-btn svg {
+    display: block;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    opacity: 0.75;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+}
+
+.adjustments-trigger-label {
+    line-height: 1;
+    letter-spacing: 0.01em;
+}
+
+.adjustments-trigger-btn:hover {
+    background: color-mix(in srgb, var(--link-hover-color) 8%, var(--card-bg));
+    border-color: color-mix(in srgb, var(--link-hover-color) 22%, var(--border-color));
+    color: var(--link-hover-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.adjustments-trigger-btn:hover svg {
+    opacity: 1;
+    transform: rotate(20deg);
+}
+
+.adjustments-trigger-btn:active {
+    transform: scale(0.97);
+}
+
+.adjustments-trigger-btn.active {
+    background: color-mix(in srgb, var(--link-hover-color) 12%, var(--card-bg));
+    border-color: color-mix(in srgb, var(--link-hover-color) 30%, var(--border-color));
+    color: var(--link-hover-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+}
+
+.adjustments-trigger-btn.active svg {
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+.adjustments-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 280px;
+    z-index: 200;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07),
+    0 12px 28px -4px rgba(0, 0, 0, 0.10),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    overflow: hidden;
+    transform-origin: top right;
+    transform: scale(0.93) translateY(-6px);
+    opacity: 0;
+    transition: none;
+}
+
+.adjustments-panel.is-open {
+    display: block;
+    animation: adj-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.adjustments-panel.is-closing {
+    display: block;
+    animation: adj-panel-out 0.16s ease-in forwards;
+}
+
+@keyframes adj-panel-in {
+    from {
+        opacity: 0;
+        transform: scale(0.93) translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes adj-panel-out {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.93) translateY(-6px);
+    }
+}
+
+.adjustments-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--link-hover-color) 6%, transparent), transparent);
+}
+
+.adjustments-panel-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background-color: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    color: var(--link-hover-color);
+    flex-shrink: 0;
+}
+
+.adjustments-panel-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.75;
+}
+
+.adjustments-panel-body {
+    padding: 0.4rem 0;
+}
+
+.adjustments-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border-radius: 0;
+}
+
+.adjustments-row:hover {
+    background-color: color-mix(in srgb, var(--item-hover-bg) 60%, transparent);
+}
+
+.adjustments-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.adjustments-row-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-color);
+    line-height: 1.3;
+    user-select: none;
+}
+
+.adjustments-row-desc {
+    font-size: 0.75rem;
+    color: var(--text-color);
+    opacity: 0.5;
+    line-height: 1.3;
+    user-select: none;
+}
+
+.adj-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.adj-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.adj-toggle-track {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    border-radius: 9999px;
+    background-color: color-mix(in srgb, var(--text-color) 18%, transparent);
+    transition: background-color 0.25s ease;
+    flex-shrink: 0;
+}
+
+.adj-toggle input:checked ~ .adj-toggle-track {
+    background-color: var(--link-hover-color);
+}
+
+.adj-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.adj-toggle input:checked ~ .adj-toggle-track .adj-toggle-thumb {
+    transform: translateX(16px);
+}
+
+.adj-toggle:hover .adj-toggle-track {
+    opacity: 0.9;
+}

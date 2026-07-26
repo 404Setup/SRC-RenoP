@@ -1,0 +1,187 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package settings
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/gofiber/fiber/v3"
+	"go.yaml.in/yaml/v3"
+
+	"renop/config"
+	"renop/core"
+	"renop/pb"
+	"renop/storage"
+	"renop/utils"
+	"renop/utils/protohttp"
+)
+
+func GetMavenRepositories(c fiber.Ctx, state *core.AppState) error {
+	if !isManager(c) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	cfg := state.Inner.Config.Load().(*config.Config)
+	return protohttp.Write(c, pb.FromMavenRepositories(cfg.Maven.Repositories))
+}
+
+func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
+	repoName := strings.Clone(c.Params("name"))
+
+	reservedName := strings.ToLower(repoName)
+	if !utils.IsValidRepositoryName(repoName) || reservedName == "css" || reservedName == "js" || reservedName == "svg" || reservedName == "api" || reservedName == "javadocs" || reservedName == "assets" {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid repository name")
+	}
+
+	if !isManager(c) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+
+	var msg pb.Repository
+	if err := protohttp.Read(c, &msg); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	}
+
+	repo := pb.ToRepository(&msg)
+	if repo == nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	}
+	repo.Name = repoName
+	if repo.Mirrors == nil {
+		repo.Mirrors = []config.Mirror{}
+	}
+	vis := strings.ToUpper(strings.TrimSpace(repo.Visibility))
+	if vis != "PUBLIC" && vis != "HIDDEN" && vis != "PRIVATE" {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid visibility. Expected PUBLIC, HIDDEN, or PRIVATE")
+	}
+	repo.Visibility = vis
+
+	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
+		oldConfig := state.Inner.Config.Load().(*config.Config)
+		newConfig := oldConfig.DeepCopy()
+
+		newConfig.Maven.Repositories[repoName] = repo.DeepCopy()
+
+		if err := saveRepositories(newConfig); err != nil {
+			return err
+		}
+		state.Inner.Config.Store(newConfig)
+		config.ClearRepoCacheConfigs()
+		return nil
+	})
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+	}
+
+	if cfg := state.Inner.Config.Load().(*config.Config); cfg != nil {
+		storage.InitS3(cfg)
+	}
+
+	ensureRepositoryStorageDir(state, repoName)
+
+	return c.Status(fiber.StatusOK).SendString("")
+}
+
+func ensureRepositoryStorageDir(state *core.AppState, repoName string) {
+	cfgVal := state.Inner.Config.Load()
+	if cfgVal == nil {
+		return
+	}
+	cfg, ok := cfgVal.(*config.Config)
+	if !ok || cfg == nil || cfg.StoragePath == "" {
+		return
+	}
+
+	repoDir := filepath.Join(cfg.StoragePath, repoName)
+	if err := os.MkdirAll(repoDir, 0755); err != nil {
+		return
+	}
+
+	pathNorm := filepath.ToSlash(filepath.Clean(repoDir))
+	state.Inner.FileIndex.InsertDir(pathNorm)
+
+	state.Inner.IndexWatcherMutex.Lock()
+	if state.Inner.IndexWatcher != nil {
+		_ = state.Inner.IndexWatcher.Add(pathNorm)
+	}
+	state.Inner.IndexWatcherMutex.Unlock()
+}
+
+func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
+	repoName := strings.Clone(c.Params("name"))
+
+	if !utils.IsValidRepositoryName(repoName) {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid repository name")
+	}
+
+	if !isManager(c) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+
+	var (
+		notFound    bool
+		storagePath string
+		s3Cfg       *config.S3Config
+	)
+	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
+		oldConfig := state.Inner.Config.Load().(*config.Config)
+		repo, ok := oldConfig.Maven.Repositories[repoName]
+		if !ok {
+			notFound = true
+			return nil
+		}
+		storagePath = oldConfig.StoragePath
+		if repo.S3 != nil && repo.S3.Enabled {
+			s3Cfg = repo.S3.DeepCopy()
+		}
+
+		newConfig := oldConfig.DeepCopy()
+		delete(newConfig.Maven.Repositories, repoName)
+
+		if err := saveRepositories(newConfig); err != nil {
+			return err
+		}
+		state.Inner.Config.Store(newConfig)
+		storage.InitS3(newConfig)
+		config.ClearRepoCacheConfigs()
+		return nil
+	})
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+	}
+	if notFound {
+		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+	}
+
+	storage.RemoveRepositoryStorage(state, storagePath, repoName, s3Cfg)
+
+	return c.Status(fiber.StatusOK).SendString("")
+}
+
+func saveRepositories(cfg *config.Config) error {
+	yamlData, err := yaml.Marshal(&cfg.Maven)
+	if err != nil {
+		return err
+	}
+
+	reposPath := os.Getenv("RENOP_REPOSITORIES")
+	if reposPath == "" {
+		reposPath = "repositories.yaml"
+	}
+	tmpPath := reposPath + ".tmp"
+	if err := os.WriteFile(tmpPath, yamlData, 0644); err != nil {
+		return err
+	}
+	return utils.SafeRename(tmpPath, reposPath)
+}

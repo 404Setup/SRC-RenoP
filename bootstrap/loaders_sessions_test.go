@@ -1,0 +1,110 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package bootstrap
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/bytedance/sonic"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
+	"renop/core"
+	"renop/pb"
+)
+
+func TestLoadSessionsProtobuf(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sessions.bin")
+
+	store := pb.FromSessionDbDtos([]core.SessionDbDto{
+		{
+			PublicId:     "pub-1",
+			SessionToken: "tok-1",
+			Username:     "admin",
+			Ip:           "127.0.0.1",
+			UserAgent:    "test-agent",
+			CreatedAt:    100,
+			LastActive:   200,
+		},
+	})
+	bin, err := proto.Marshal(store)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, bin, 0644))
+
+	sessions, rewrite := LoadSessions(path)
+	assert.False(t, rewrite)
+	require.Len(t, sessions, 1)
+	assert.Equal(t, "pub-1", sessions[0].PublicId)
+	assert.Equal(t, "tok-1", sessions[0].SessionToken)
+	assert.Equal(t, "admin", sessions[0].Username)
+	assert.Equal(t, int64(100), sessions[0].CreatedAt)
+	assert.Equal(t, int64(200), sessions[0].LastActive)
+}
+
+func TestLoadSessionsLegacyJSONAtPath(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sessions.json")
+
+	dtos := []core.SessionDbDto{
+		{
+			PublicId:     "pub-json",
+			SessionToken: "tok-json",
+			Username:     "user",
+			Ip:           "10.0.0.1",
+			UserAgent:    "ua",
+			CreatedAt:    1,
+			LastActive:   2,
+		},
+	}
+	raw, err := sonic.ConfigFastest.Marshal(dtos)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, raw, 0644))
+
+	sessions, rewrite := LoadSessions(path)
+	assert.True(t, rewrite)
+	require.Len(t, sessions, 1)
+	assert.Equal(t, "tok-json", sessions[0].SessionToken)
+}
+
+func TestLoadSessionsMigratesSiblingJSON(t *testing.T) {
+	dir := t.TempDir()
+	pbPath := filepath.Join(dir, "sessions.bin")
+	jsonPath := filepath.Join(dir, "sessions.json")
+
+	dtos := []core.SessionDbDto{
+		{
+			PublicId:     "legacy",
+			SessionToken: "legacy-tok",
+			Username:     "migrated",
+			CreatedAt:    9,
+			LastActive:   10,
+		},
+	}
+	raw, err := sonic.ConfigFastest.Marshal(dtos)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(jsonPath, raw, 0644))
+
+	sessions, rewrite := LoadSessions(pbPath)
+	assert.True(t, rewrite)
+	require.Len(t, sessions, 1)
+	assert.Equal(t, "legacy-tok", sessions[0].SessionToken)
+	assert.Equal(t, "migrated", sessions[0].Username)
+}
+
+func TestLoadSessionsMissing(t *testing.T) {
+	sessions, rewrite := LoadSessions(filepath.Join(t.TempDir(), "missing.pb"))
+	assert.False(t, rewrite)
+	assert.Empty(t, sessions)
+}

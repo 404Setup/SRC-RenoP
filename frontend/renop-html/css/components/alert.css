@@ -1,0 +1,144 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+#renop-alert-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.alert {
+    padding: 14px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 280px;
+    max-width: 380px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    position: relative;
+    overflow: hidden;
+}
+
+.alert::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+}
+
+.alert-success {
+    border-color: rgba(16, 185, 129, 0.2);
+    background-color: #f0fdf4;
+    color: #166534;
+}
+
+.alert-success::before {
+    background-color: #10b981;
+}
+
+html.dark .alert-success {
+    background-color: #052e16;
+    color: #86efac;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.alert-error {
+    border-color: rgba(239, 68, 68, 0.2);
+    background-color: #fef2f2;
+    color: #991b1b;
+}
+
+.alert-error::before {
+    background-color: #ef4444;
+}
+
+html.dark .alert-error {
+    background-color: #450a0a;
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.alert-info {
+    border-color: rgba(59, 130, 246, 0.2);
+    background-color: #eff6ff;
+    color: #1e40af;
+}
+
+.alert-info::before {
+    background-color: #3b82f6;
+}
+
+html.dark .alert-info {
+    background-color: #172554;
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.alert-close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 0 0 12px;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alert-close svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.5;
+}
+
+.alert-close:hover {
+    opacity: 1;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toastFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.95);
+    }
+}
+
+.alert.alert-leaving {
+    animation: toastFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

@@ -1,0 +1,285 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.browser-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    min-width: 0;
+}
+
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+.index-of {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    padding: 0.28rem 0.6rem 0.28rem 0.5rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 16%, transparent);
+    color: var(--link-hover-color);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    user-select: none;
+    transition: background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.index-of:hover {
+    transform: translateY(-1px) scale(1.03);
+    background: color-mix(in srgb, var(--link-hover-color) 16%, transparent);
+    border-color: color-mix(in srgb, var(--link-hover-color) 32%, transparent);
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--link-hover-color) 20%, transparent);
+}
+
+.index-of-icon {
+    display: block;
+    flex-shrink: 0;
+    opacity: 0.9;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.index-of:hover .index-of-icon {
+    transform: rotate(-8deg) scale(1.1);
+}
+
+.index-of-label {
+    line-height: 1;
+}
+
+.breadcrumb-trail,
+#breadcrumb-links {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0.15rem 0.1rem;
+    cursor: default;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+}
+
+.breadcrumb-trail::-webkit-scrollbar,
+#breadcrumb-links::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.breadcrumb-trail.is-dragging,
+#breadcrumb-links.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.breadcrumb-sep {
+    flex-shrink: 0;
+    opacity: 0.3;
+    font-weight: 500;
+    user-select: none;
+    padding: 0 0.05rem;
+    animation: breadcrumbSegIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--seg-index, 0) * 24ms);
+}
+
+.breadcrumb-seg,
+#breadcrumb-links a {
+    flex-shrink: 0;
+    text-decoration: none;
+    color: var(--text-color);
+    opacity: 0.62;
+    font-weight: 500;
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.4rem;
+    white-space: nowrap;
+    animation: breadcrumbSegIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--seg-index, 0) * 24ms);
+    transition: background-color 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.18s ease;
+}
+
+@keyframes breadcrumbSegIn {
+    from {
+        opacity: 0;
+        transform: translateX(-6px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.breadcrumb-seg:hover,
+#breadcrumb-links a:hover {
+    opacity: 1;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.breadcrumb-seg:active,
+#breadcrumb-links a:active {
+    transform: scale(0.96);
+}
+
+.breadcrumb-seg.is-current,
+#breadcrumb-links a.is-current {
+    opacity: 1;
+    font-weight: 600;
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.up-dir {
+    flex-shrink: 0;
+    text-decoration: none;
+    color: color-mix(in srgb, var(--text-color) 70%, transparent);
+    background-color: var(--card-bg);
+    border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
+    border-radius: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.up-dir.is-visible {
+    animation: upDirIn 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.up-dir.is-hiding {
+    pointer-events: none;
+    animation: upDirOut 0.18s ease-in both;
+}
+
+@keyframes upDirIn {
+    from {
+        opacity: 0;
+        transform: scale(0.82) translateY(2px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes upDirOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.82) translateY(2px);
+    }
+}
+
+.up-dir svg {
+    display: block;
+    width: 15px;
+    height: 15px;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.up-dir:hover {
+    color: var(--link-hover-color);
+    background-color: color-mix(in srgb, var(--link-hover-color) 10%, var(--card-bg));
+    border-color: color-mix(in srgb, var(--link-hover-color) 25%, var(--border-color));
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--link-hover-color) 15%, transparent);
+    transform: translateY(-1px);
+}
+
+.up-dir:hover svg {
+    transform: translateY(-2.5px);
+}
+
+.up-dir:active {
+    transform: scale(0.92) translateY(0);
+}
+
+.browser-adjustments {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+    .browser-header {
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .breadcrumb-seg,
+    #breadcrumb-links a {
+        font-size: 0.84rem;
+    }
+
+    .adjustments-trigger-label {
+        display: none;
+    }
+
+    .adjustments-trigger-btn {
+        width: 2.15rem;
+        padding: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .index-of-label {
+        display: none;
+    }
+
+    .index-of {
+        padding: 0.32rem;
+        width: 1.85rem;
+        height: 1.85rem;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+}

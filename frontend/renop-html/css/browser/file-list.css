@@ -1,0 +1,1371 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.file-list-container {
+    position: relative;
+    border-radius: 0.875rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    min-height: 4.5rem;
+    will-change: height;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-list-viewport {
+    flex: 1;
+    min-height: 0;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.file-list-container.is-exiting.is-nav-forward .file-list-viewport {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.99);
+}
+
+.file-list-container.is-exiting.is-nav-backward .file-list-viewport {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+}
+
+.file-list-container.is-exiting:not(.is-nav-forward):not(.is-nav-backward) .file-list-viewport,
+.file-list-container.is-loading:not(.is-entering) .file-list-viewport {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+.file-list-container.is-entering.is-nav-forward .file-list-viewport {
+    animation: fileListEnterForward 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.file-list-container.is-entering.is-nav-backward .file-list-viewport {
+    animation: fileListEnterBackward 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.file-list-container.is-entering:not(.is-nav-forward):not(.is-nav-backward) .file-list-viewport {
+    animation: fileListEnter 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.file-list-container.is-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+            90deg,
+            transparent 0%,
+            color-mix(in srgb, var(--link-hover-color) 6%, transparent) 50%,
+            transparent 100%
+    );
+    background-size: 200% 100%;
+    opacity: 0;
+    animation: fileListShimmer 1s ease-in-out infinite;
+}
+
+.file-list-container.is-loading:not(.is-entering)::after {
+    opacity: 1;
+}
+
+@keyframes fileListEnter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fileListEnterForward {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes fileListEnterBackward {
+    from {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes fileListShimmer {
+    from {
+        background-position: 100% 0;
+    }
+    to {
+        background-position: -100% 0;
+    }
+}
+
+@keyframes fileItemIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.file-item.file-item--added {
+    animation: fileItemAdd 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--add-index, 0) * 35ms);
+}
+
+@keyframes fileItemAdd {
+    0% {
+        opacity: 0;
+        transform: scale(0.93) translateY(-8px);
+        background-color: color-mix(in srgb, var(--link-hover-color) 25%, transparent);
+        border-color: color-mix(in srgb, var(--link-hover-color) 40%, transparent);
+    }
+    60% {
+        background-color: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        background-color: transparent;
+    }
+}
+
+.file-item.is-removing {
+    pointer-events: none;
+    animation: fileItemRemove 0.38s cubic-bezier(0.25, 1, 0.5, 1) both !important;
+    animation-delay: calc(var(--remove-index, 0) * 35ms);
+    overflow: hidden;
+    will-change: max-height, opacity, transform;
+}
+
+@keyframes fileItemRemove {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        max-height: 4rem;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+        margin-bottom: 0.15rem;
+    }
+    30% {
+        opacity: 0.6;
+        transform: scale(0.97) translateY(-2px);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.93) translateY(-8px);
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        border-color: transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .file-list-viewport,
+    .file-list-container.is-entering .file-list-viewport,
+    .file-list-container.is-entering .file-item,
+    .file-item.file-item--added,
+    .file-item.is-removing,
+    .breadcrumb-seg,
+    .breadcrumb-sep,
+    .up-dir,
+    .up-dir.is-visible,
+    .up-dir.is-hiding,
+    .index-of,
+    .upload-controls-card,
+    .repo-stats-card {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    .file-list-container.is-loading::after {
+        display: none;
+    }
+}
+
+ul.file-list,
+ul#file-list {
+    list-style-type: none;
+    padding: 0.35rem;
+    margin: 0;
+    background-color: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+ul.file-list > li,
+ul#file-list > li {
+    border: none;
+}
+
+.file-list-container.is-entering .file-item {
+    animation: fileItemIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--item-index, 0) * 22ms);
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.45rem 0.35rem 0.35rem;
+    border-radius: 0.65rem;
+    border: 1px solid transparent;
+    transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.file-item:hover {
+    background-color: color-mix(in srgb, var(--item-hover-bg) 70%, transparent);
+    border-color: color-mix(in srgb, var(--border-color) 80%, transparent);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    transform: translateY(-1.5px);
+}
+
+.file-item:active {
+    transform: translateY(0) scale(0.992);
+}
+
+.file-item--dir:hover {
+    background-color: color-mix(in srgb, var(--link-hover-color) 8%, transparent);
+    border-color: color-mix(in srgb, var(--link-hover-color) 20%, transparent);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+}
+
+.file-item-link,
+ul#file-list a.file-item-link {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.35rem 0.35rem;
+    text-decoration: none;
+    color: var(--text-color);
+    border-radius: 0.5rem;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+    transition: none;
+}
+
+.file-item-link:hover,
+ul#file-list a.file-item-link:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transform: none;
+}
+
+.file-entry-left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.file-name-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.file-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 0.55rem;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--text-color) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-color) 85%, transparent);
+    transition: background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.file-icon--repo {
+    color: #6366f1;
+    background: color-mix(in srgb, #6366f1 14%, transparent);
+    border-color: color-mix(in srgb, #6366f1 22%, transparent);
+}
+
+.file-icon--dir {
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    border-color: color-mix(in srgb, var(--link-hover-color) 18%, transparent);
+}
+
+.file-icon--jar {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+    border-color: color-mix(in srgb, #ea580c 22%, transparent);
+}
+
+.file-icon--javadoc {
+    color: #0f766e;
+    background: color-mix(in srgb, #0f766e 14%, transparent);
+    border-color: color-mix(in srgb, #0f766e 22%, transparent);
+}
+
+.file-icon--sources {
+    color: #b45309;
+    background: color-mix(in srgb, #b45309 14%, transparent);
+    border-color: color-mix(in srgb, #b45309 22%, transparent);
+}
+
+.file-icon--xml {
+    color: #e67e22;
+    background: color-mix(in srgb, #e67e22 14%, transparent);
+    border-color: color-mix(in srgb, #e67e22 22%, transparent);
+}
+
+.file-icon--archive {
+    color: #8b5cf6;
+    background: color-mix(in srgb, #8b5cf6 14%, transparent);
+    border-color: color-mix(in srgb, #8b5cf6 22%, transparent);
+}
+
+.file-icon--code {
+    color: #f59e0b;
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+    border-color: color-mix(in srgb, #f59e0b 22%, transparent);
+}
+
+.file-icon--image {
+    color: #10b981;
+    background: color-mix(in srgb, #10b981 14%, transparent);
+    border-color: color-mix(in srgb, #10b981 22%, transparent);
+}
+
+.file-icon--audio {
+    color: #a855f7;
+    background: color-mix(in srgb, #a855f7 14%, transparent);
+    border-color: color-mix(in srgb, #a855f7 22%, transparent);
+}
+
+.file-icon--video {
+    color: #e11d48;
+    background: color-mix(in srgb, #e11d48 14%, transparent);
+    border-color: color-mix(in srgb, #e11d48 22%, transparent);
+}
+
+.file-icon--doc {
+    color: #f43f5e;
+    background: color-mix(in srgb, #f43f5e 14%, transparent);
+    border-color: color-mix(in srgb, #f43f5e 22%, transparent);
+}
+
+.file-icon--spreadsheet {
+    color: #059669;
+    background: color-mix(in srgb, #059669 14%, transparent);
+    border-color: color-mix(in srgb, #059669 22%, transparent);
+}
+
+.file-icon--database {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+    border-color: color-mix(in srgb, #0284c7 22%, transparent);
+}
+
+.file-icon--security {
+    color: #6366f1;
+    background: color-mix(in srgb, #6366f1 14%, transparent);
+    border-color: color-mix(in srgb, #6366f1 22%, transparent);
+}
+
+.file-icon--font {
+    color: #0d9488;
+    background: color-mix(in srgb, #0d9488 14%, transparent);
+    border-color: color-mix(in srgb, #0d9488 22%, transparent);
+}
+
+.file-icon--binary {
+    color: #06b6d4;
+    background: color-mix(in srgb, #06b6d4 14%, transparent);
+    border-color: color-mix(in srgb, #06b6d4 22%, transparent);
+}
+
+.file-icon--docker {
+    color: #0969da;
+    background: color-mix(in srgb, #0969da 14%, transparent);
+    border-color: color-mix(in srgb, #0969da 22%, transparent);
+}
+
+.file-icon--pom {
+    color: #c2410c;
+    background: color-mix(in srgb, #c2410c 14%, transparent);
+    border-color: color-mix(in srgb, #c2410c 22%, transparent);
+}
+
+.file-icon--npm {
+    color: #cb3837;
+    background: color-mix(in srgb, #cb3837 14%, transparent);
+    border-color: color-mix(in srgb, #cb3837 22%, transparent);
+}
+
+.file-icon--cargo {
+    color: #d97706;
+    background: color-mix(in srgb, #d97706 14%, transparent);
+    border-color: color-mix(in srgb, #d97706 22%, transparent);
+}
+
+.file-icon--gomod {
+    color: #00add8;
+    background: color-mix(in srgb, #00add8 14%, transparent);
+    border-color: color-mix(in srgb, #00add8 22%, transparent);
+}
+
+.file-icon--gradle {
+    color: #059669;
+    background: color-mix(in srgb, #059669 14%, transparent);
+    border-color: color-mix(in srgb, #059669 22%, transparent);
+}
+
+.file-icon--env {
+    color: #84cc16;
+    background: color-mix(in srgb, #84cc16 14%, transparent);
+    border-color: color-mix(in srgb, #84cc16 22%, transparent);
+}
+
+.file-icon--k8s {
+    color: #326ce5;
+    background: color-mix(in srgb, #326ce5 14%, transparent);
+    border-color: color-mix(in srgb, #326ce5 22%, transparent);
+}
+
+.file-icon--html {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+    border-color: color-mix(in srgb, #ea580c 22%, transparent);
+}
+
+.file-icon--style {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+    border-color: color-mix(in srgb, #0284c7 22%, transparent);
+}
+
+.file-icon--component {
+    color: #0d9488;
+    background: color-mix(in srgb, #0d9488 14%, transparent);
+    border-color: color-mix(in srgb, #0d9488 22%, transparent);
+}
+
+.file-icon--script {
+    color: #16a34a;
+    background: color-mix(in srgb, #16a34a 14%, transparent);
+    border-color: color-mix(in srgb, #16a34a 22%, transparent);
+}
+
+.file-icon--yaml {
+    color: #dc2626;
+    background: color-mix(in srgb, #dc2626 14%, transparent);
+    border-color: color-mix(in srgb, #dc2626 22%, transparent);
+}
+
+.file-icon--json {
+    color: #d97706;
+    background: color-mix(in srgb, #d97706 14%, transparent);
+    border-color: color-mix(in srgb, #d97706 22%, transparent);
+}
+
+.file-icon--schema {
+    color: #e10098;
+    background: color-mix(in srgb, #e10098 14%, transparent);
+    border-color: color-mix(in srgb, #e10098 22%, transparent);
+}
+
+.file-icon--config {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+    border-color: color-mix(in srgb, #64748b 22%, transparent);
+}
+
+.file-icon--pdf {
+    color: #dc2626;
+    background: color-mix(in srgb, #dc2626 14%, transparent);
+    border-color: color-mix(in srgb, #dc2626 22%, transparent);
+}
+
+.file-icon--markdown {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+    border-color: color-mix(in srgb, #0284c7 22%, transparent);
+}
+
+.file-icon--presentation {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+    border-color: color-mix(in srgb, #ea580c 22%, transparent);
+}
+
+.file-icon--ebook {
+    color: #7c3aed;
+    background: color-mix(in srgb, #7c3aed 14%, transparent);
+    border-color: color-mix(in srgb, #7c3aed 22%, transparent);
+}
+
+.file-icon--checksum {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+    border-color: color-mix(in srgb, #64748b 22%, transparent);
+}
+
+.file-icon--disk {
+    color: #475569;
+    background: color-mix(in srgb, #475569 14%, transparent);
+    border-color: color-mix(in srgb, #475569 22%, transparent);
+}
+
+.file-icon--app {
+    color: #10b981;
+    background: color-mix(in srgb, #10b981 14%, transparent);
+    border-color: color-mix(in srgb, #10b981 22%, transparent);
+}
+
+.file-icon--diff {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+    border-color: color-mix(in srgb, #0284c7 22%, transparent);
+}
+
+.file-icon--makefile {
+    color: #b45309;
+    background: color-mix(in srgb, #b45309 14%, transparent);
+    border-color: color-mix(in srgb, #b45309 22%, transparent);
+}
+
+.file-icon--terraform {
+    color: #7c3aed;
+    background: color-mix(in srgb, #7c3aed 14%, transparent);
+    border-color: color-mix(in srgb, #7c3aed 22%, transparent);
+}
+
+.file-icon--notebook {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+    border-color: color-mix(in srgb, #ea580c 22%, transparent);
+}
+
+.file-icon--wasm {
+    color: #6366f1;
+    background: color-mix(in srgb, #6366f1 14%, transparent);
+    border-color: color-mix(in srgb, #6366f1 22%, transparent);
+}
+
+.file-icon--generic {
+    color: color-mix(in srgb, var(--text-color) 75%, transparent);
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+    border-color: color-mix(in srgb, var(--border-color) 85%, transparent);
+}
+
+.file-item--repo:hover .file-icon--repo {
+    background: color-mix(in srgb, #6366f1 22%, transparent);
+    border-color: color-mix(in srgb, #6366f1 40%, transparent);
+    transform: scale(1.14) rotate(-5deg);
+}
+
+.file-item--dir:hover .file-icon--dir {
+    background: color-mix(in srgb, var(--link-hover-color) 22%, transparent);
+    border-color: color-mix(in srgb, var(--link-hover-color) 35%, transparent);
+    transform: scale(1.14) rotate(-5deg);
+}
+
+.file-item--file:hover .file-icon {
+    transform: scale(1.08);
+}
+
+.file-icon .icon-svg,
+.file-icon svg,
+.file-icon renop-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    display: block;
+}
+
+.file-name {
+    font-weight: 500;
+    font-size: 0.92rem;
+    letter-spacing: -0.01em;
+    word-break: break-all;
+    line-height: 1.3;
+}
+
+.file-type-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    width: fit-content;
+    transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.file-type-badge--repo {
+    color: #6366f1;
+}
+
+.file-type-badge--dir {
+    color: var(--link-hover-color);
+}
+
+.file-type-badge--jar {
+    color: #ea580c;
+}
+
+.file-type-badge--archive {
+    color: #8b5cf6;
+}
+
+.file-type-badge--code {
+    color: #d97706;
+}
+
+.file-type-badge--image {
+    color: #059669;
+}
+
+.file-type-badge--audio {
+    color: #a855f7;
+}
+
+.file-type-badge--video {
+    color: #e11d48;
+}
+
+.file-type-badge--doc {
+    color: #e11d48;
+}
+
+.file-type-badge--spreadsheet {
+    color: #059669;
+}
+
+.file-type-badge--database {
+    color: #0284c7;
+}
+
+.file-type-badge--security {
+    color: #6366f1;
+}
+
+.file-type-badge--font {
+    color: #0d9488;
+}
+
+.file-type-badge--binary {
+    color: #0891b2;
+}
+
+.file-type-badge--docker {
+    color: #0969da;
+}
+
+.file-type-badge--pom {
+    color: #c2410c;
+}
+
+.file-type-badge--npm {
+    color: #cb3837;
+}
+
+.file-type-badge--cargo {
+    color: #d97706;
+}
+
+.file-type-badge--gomod {
+    color: #00add8;
+}
+
+.file-type-badge--gradle {
+    color: #059669;
+}
+
+.file-type-badge--env {
+    color: #84cc16;
+}
+
+.file-type-badge--k8s {
+    color: #326ce5;
+}
+
+.file-type-badge--html {
+    color: #ea580c;
+}
+
+.file-type-badge--style {
+    color: #0284c7;
+}
+
+.file-type-badge--component {
+    color: #0d9488;
+}
+
+.file-type-badge--script {
+    color: #16a34a;
+}
+
+.file-type-badge--yaml {
+    color: #dc2626;
+}
+
+.file-type-badge--json {
+    color: #d97706;
+}
+
+.file-type-badge--schema {
+    color: #e10098;
+}
+
+.file-type-badge--config {
+    color: #64748b;
+}
+
+.file-type-badge--pdf {
+    color: #dc2626;
+}
+
+.file-type-badge--markdown {
+    color: #0284c7;
+}
+
+.file-type-badge--presentation {
+    color: #ea580c;
+}
+
+.file-type-badge--ebook {
+    color: #7c3aed;
+}
+
+.file-type-badge--checksum {
+    color: #64748b;
+}
+
+.file-type-badge--disk {
+    color: #475569;
+}
+
+.file-type-badge--app {
+    color: #10b981;
+}
+
+.file-type-badge--diff {
+    color: #0284c7;
+}
+
+.file-type-badge--makefile {
+    color: #b45309;
+}
+
+.file-type-badge--terraform {
+    color: #7c3aed;
+}
+
+.file-type-badge--notebook {
+    color: #ea580c;
+}
+
+.file-type-badge--wasm {
+    color: #6366f1;
+}
+
+/* subdivided package / archive types */
+.file-icon--war,
+.file-icon--ear,
+.file-icon--aar {
+    color: #ea580c;
+    background: color-mix(in srgb, #ea580c 14%, transparent);
+    border-color: color-mix(in srgb, #ea580c 22%, transparent);
+}
+
+.file-icon--apk {
+    color: #3ddc84;
+    background: color-mix(in srgb, #3ddc84 14%, transparent);
+    border-color: color-mix(in srgb, #3ddc84 22%, transparent);
+}
+
+.file-icon--exe {
+    color: #2563eb;
+    background: color-mix(in srgb, #2563eb 14%, transparent);
+    border-color: color-mix(in srgb, #2563eb 22%, transparent);
+}
+
+.file-icon--msi {
+    color: #0ea5e9;
+    background: color-mix(in srgb, #0ea5e9 14%, transparent);
+    border-color: color-mix(in srgb, #0ea5e9 22%, transparent);
+}
+
+.file-icon--pkg {
+    color: #7c3aed;
+    background: color-mix(in srgb, #7c3aed 14%, transparent);
+    border-color: color-mix(in srgb, #7c3aed 22%, transparent);
+}
+
+.file-icon--composer {
+    color: #8892bf;
+    background: color-mix(in srgb, #8892bf 14%, transparent);
+    border-color: color-mix(in srgb, #8892bf 22%, transparent);
+}
+
+.file-icon--gemfile {
+    color: #cc342d;
+    background: color-mix(in srgb, #cc342d 14%, transparent);
+    border-color: color-mix(in srgb, #cc342d 22%, transparent);
+}
+
+.file-icon--pyproject {
+    color: #3776ab;
+    background: color-mix(in srgb, #3776ab 14%, transparent);
+    border-color: color-mix(in srgb, #3776ab 22%, transparent);
+}
+
+.file-icon--gitignore,
+.file-icon--lockfile {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+    border-color: color-mix(in srgb, #64748b 22%, transparent);
+}
+
+.file-icon--react {
+    color: #61dafb;
+    background: color-mix(in srgb, #61dafb 16%, transparent);
+    border-color: color-mix(in srgb, #61dafb 24%, transparent);
+}
+
+.file-icon--vue {
+    color: #42b883;
+    background: color-mix(in srgb, #42b883 14%, transparent);
+    border-color: color-mix(in srgb, #42b883 22%, transparent);
+}
+
+.file-icon--svelte {
+    color: #ff3e00;
+    background: color-mix(in srgb, #ff3e00 14%, transparent);
+    border-color: color-mix(in srgb, #ff3e00 22%, transparent);
+}
+
+.file-icon--astro {
+    color: #ff5d01;
+    background: color-mix(in srgb, #ff5d01 14%, transparent);
+    border-color: color-mix(in srgb, #ff5d01 22%, transparent);
+}
+
+.file-icon--proto {
+    color: #0ea5e9;
+    background: color-mix(in srgb, #0ea5e9 14%, transparent);
+    border-color: color-mix(in srgb, #0ea5e9 22%, transparent);
+}
+
+.file-icon--graphql {
+    color: #e10098;
+    background: color-mix(in srgb, #e10098 14%, transparent);
+    border-color: color-mix(in srgb, #e10098 22%, transparent);
+}
+
+.file-icon--geojson {
+    color: #16a34a;
+    background: color-mix(in srgb, #16a34a 14%, transparent);
+    border-color: color-mix(in srgb, #16a34a 22%, transparent);
+}
+
+.file-icon--toml {
+    color: #9c4121;
+    background: color-mix(in srgb, #9c4121 14%, transparent);
+    border-color: color-mix(in srgb, #9c4121 22%, transparent);
+}
+
+.file-icon--svg {
+    color: #ffb13b;
+    background: color-mix(in srgb, #ffb13b 16%, transparent);
+    border-color: color-mix(in srgb, #ffb13b 24%, transparent);
+}
+
+.file-icon--design {
+    color: #a855f7;
+    background: color-mix(in srgb, #a855f7 14%, transparent);
+    border-color: color-mix(in srgb, #a855f7 22%, transparent);
+}
+
+.file-icon--model {
+    color: #0891b2;
+    background: color-mix(in srgb, #0891b2 14%, transparent);
+    border-color: color-mix(in srgb, #0891b2 22%, transparent);
+}
+
+.file-icon--word {
+    color: #2b579a;
+    background: color-mix(in srgb, #2b579a 14%, transparent);
+    border-color: color-mix(in srgb, #2b579a 22%, transparent);
+}
+
+.file-icon--txt {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+    border-color: color-mix(in srgb, #64748b 22%, transparent);
+}
+
+.file-icon--log {
+    color: #78716c;
+    background: color-mix(in srgb, #78716c 14%, transparent);
+    border-color: color-mix(in srgb, #78716c 22%, transparent);
+}
+
+.file-icon--csv {
+    color: #059669;
+    background: color-mix(in srgb, #059669 14%, transparent);
+    border-color: color-mix(in srgb, #059669 22%, transparent);
+}
+
+.file-type-badge--war,
+.file-type-badge--ear,
+.file-type-badge--aar {
+    color: #ea580c;
+}
+
+.file-type-badge--apk {
+    color: #16a34a;
+}
+
+.file-type-badge--exe {
+    color: #2563eb;
+}
+
+.file-type-badge--msi {
+    color: #0ea5e9;
+}
+
+.file-type-badge--pkg {
+    color: #7c3aed;
+}
+
+.file-type-badge--composer {
+    color: #8892bf;
+}
+
+.file-type-badge--gemfile {
+    color: #cc342d;
+}
+
+.file-type-badge--pyproject {
+    color: #3776ab;
+}
+
+.file-type-badge--gitignore,
+.file-type-badge--lockfile {
+    color: #64748b;
+}
+
+.file-type-badge--react {
+    color: #0ea5e9;
+}
+
+.file-type-badge--vue {
+    color: #42b883;
+}
+
+.file-type-badge--svelte {
+    color: #ff3e00;
+}
+
+.file-type-badge--astro {
+    color: #ff5d01;
+}
+
+.file-type-badge--proto {
+    color: #0ea5e9;
+}
+
+.file-type-badge--graphql {
+    color: #e10098;
+}
+
+.file-type-badge--geojson {
+    color: #16a34a;
+}
+
+.file-type-badge--toml {
+    color: #9c4121;
+}
+
+.file-type-badge--svg {
+    color: #d97706;
+}
+
+.file-type-badge--design {
+    color: #a855f7;
+}
+
+.file-type-badge--model {
+    color: #0891b2;
+}
+
+.file-type-badge--word {
+    color: #2b579a;
+}
+
+.file-type-badge--txt {
+    color: #64748b;
+}
+
+.file-type-badge--log {
+    color: #78716c;
+}
+
+.file-type-badge--csv {
+    color: #059669;
+}
+
+/* packages / data / tooling refinements */
+.file-icon--nupkg {
+    color: #004880;
+    background: color-mix(in srgb, #004880 14%, transparent);
+    border-color: color-mix(in srgb, #004880 22%, transparent);
+}
+
+.file-icon--whl {
+    color: #3776ab;
+    background: color-mix(in srgb, #3776ab 14%, transparent);
+    border-color: color-mix(in srgb, #3776ab 22%, transparent);
+}
+
+.file-icon--gem {
+    color: #cc342d;
+    background: color-mix(in srgb, #cc342d 14%, transparent);
+    border-color: color-mix(in srgb, #cc342d 22%, transparent);
+}
+
+.file-icon--vsix {
+    color: #007acc;
+    background: color-mix(in srgb, #007acc 14%, transparent);
+    border-color: color-mix(in srgb, #007acc 22%, transparent);
+}
+
+.file-icon--crx {
+    color: #4285f4;
+    background: color-mix(in srgb, #4285f4 14%, transparent);
+    border-color: color-mix(in srgb, #4285f4 22%, transparent);
+}
+
+.file-icon--phar {
+    color: #777bb4;
+    background: color-mix(in srgb, #777bb4 14%, transparent);
+    border-color: color-mix(in srgb, #777bb4 22%, transparent);
+}
+
+.file-icon--mlmodel {
+    color: #f59e0b;
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+    border-color: color-mix(in srgb, #f59e0b 22%, transparent);
+}
+
+.file-icon--parquet {
+    color: #50abf1;
+    background: color-mix(in srgb, #50abf1 14%, transparent);
+    border-color: color-mix(in srgb, #50abf1 22%, transparent);
+}
+
+.file-icon--avro {
+    color: #0b5ea9;
+    background: color-mix(in srgb, #0b5ea9 14%, transparent);
+    border-color: color-mix(in srgb, #0b5ea9 22%, transparent);
+}
+
+.file-icon--pickle {
+    color: #3776ab;
+    background: color-mix(in srgb, #3776ab 14%, transparent);
+    border-color: color-mix(in srgb, #3776ab 22%, transparent);
+}
+
+.file-icon--subtitle {
+    color: #8b5cf6;
+    background: color-mix(in srgb, #8b5cf6 14%, transparent);
+    border-color: color-mix(in srgb, #8b5cf6 22%, transparent);
+}
+
+.file-icon--plist {
+    color: #64748b;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+    border-color: color-mix(in srgb, #64748b 22%, transparent);
+}
+
+.file-icon--calendar {
+    color: #dc2626;
+    background: color-mix(in srgb, #dc2626 14%, transparent);
+    border-color: color-mix(in srgb, #dc2626 22%, transparent);
+}
+
+.file-icon--email {
+    color: #0284c7;
+    background: color-mix(in srgb, #0284c7 14%, transparent);
+    border-color: color-mix(in srgb, #0284c7 22%, transparent);
+}
+
+.file-icon--tsconfig {
+    color: #3178c6;
+    background: color-mix(in srgb, #3178c6 14%, transparent);
+    border-color: color-mix(in srgb, #3178c6 22%, transparent);
+}
+
+.file-icon--eslint {
+    color: #4b32c3;
+    background: color-mix(in srgb, #4b32c3 14%, transparent);
+    border-color: color-mix(in srgb, #4b32c3 22%, transparent);
+}
+
+.file-icon--prettier {
+    color: #f7b93e;
+    background: color-mix(in srgb, #f7b93e 16%, transparent);
+    border-color: color-mix(in srgb, #ca8a04 22%, transparent);
+}
+
+.file-icon--vite {
+    color: #646cff;
+    background: color-mix(in srgb, #646cff 14%, transparent);
+    border-color: color-mix(in srgb, #646cff 22%, transparent);
+}
+
+.file-icon--webpack {
+    color: #8dd6f9;
+    background: color-mix(in srgb, #8dd6f9 16%, transparent);
+    border-color: color-mix(in srgb, #0ea5e9 22%, transparent);
+}
+
+.file-icon--justfile {
+    color: #b45309;
+    background: color-mix(in srgb, #b45309 14%, transparent);
+    border-color: color-mix(in srgb, #b45309 22%, transparent);
+}
+
+.file-icon--procfile {
+    color: #6762a6;
+    background: color-mix(in srgb, #6762a6 14%, transparent);
+    border-color: color-mix(in srgb, #6762a6 22%, transparent);
+}
+
+.file-icon--github {
+    color: #24292f;
+    background: color-mix(in srgb, #94a3b8 16%, transparent);
+    border-color: color-mix(in srgb, #94a3b8 24%, transparent);
+}
+
+.file-type-badge--nupkg { color: #004880; }
+.file-type-badge--whl { color: #3776ab; }
+.file-type-badge--gem { color: #cc342d; }
+.file-type-badge--vsix { color: #007acc; }
+.file-type-badge--crx { color: #4285f4; }
+.file-type-badge--phar { color: #777bb4; }
+.file-type-badge--mlmodel { color: #d97706; }
+.file-type-badge--parquet { color: #0284c7; }
+.file-type-badge--avro { color: #0b5ea9; }
+.file-type-badge--pickle { color: #3776ab; }
+.file-type-badge--subtitle { color: #8b5cf6; }
+.file-type-badge--plist { color: #64748b; }
+.file-type-badge--calendar { color: #dc2626; }
+.file-type-badge--email { color: #0284c7; }
+.file-type-badge--tsconfig { color: #3178c6; }
+.file-type-badge--eslint { color: #4b32c3; }
+.file-type-badge--prettier { color: #ca8a04; }
+.file-type-badge--vite { color: #646cff; }
+.file-type-badge--webpack { color: #0ea5e9; }
+.file-type-badge--justfile { color: #b45309; }
+.file-type-badge--procfile { color: #6762a6; }
+.file-type-badge--github { color: #64748b; }
+
+.file-type-badge--generic {
+    color: var(--text-color);
+    opacity: 0.45;
+}
+
+.file-item:hover .file-type-badge {
+    opacity: 0.88;
+    transform: translateX(2px);
+}
+
+.file-entry-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.2rem;
+    flex-shrink: 0;
+    padding-right: 0.15rem;
+}
+
+.file-size {
+    opacity: 0.55;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    min-width: 4.25rem;
+    text-align: right;
+    padding: 0 0.35rem;
+}
+
+.file-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    opacity: 0.3;
+    color: var(--text-color);
+    transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+}
+
+.file-chevron svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.file-item--dir:hover .file-chevron {
+    opacity: 0.85;
+    transform: translateX(4px);
+    color: var(--link-hover-color);
+}
+
+.file-action-btn {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: color-mix(in srgb, var(--text-color) 55%, transparent);
+    font: inherit;
+    line-height: 0;
+    text-decoration: none;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: background-color 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.file-action-btn svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.file-action-btn--preview:hover,
+.file-action-btn--docs:hover {
+    opacity: 1;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+    transform: scale(1.12);
+}
+
+.file-action-btn--preview:active,
+.file-action-btn--docs:active,
+.file-action-btn--delete:active {
+    transform: scale(0.92);
+}
+
+.file-action-btn--delete {
+    color: color-mix(in srgb, var(--text-color) 50%, transparent);
+}
+
+.file-action-btn--delete:hover {
+    opacity: 1;
+    color: #ef4444;
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+    transform: scale(1.12);
+}
+
+.file-list-container.is-empty .file-list-viewport,
+.file-list-container.is-error .file-list-viewport {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 8rem;
+}
+
+/* Must not force display on elements that use the HTML hidden attribute —
+   otherwise empty/error banners stay visible even when .hidden is set. */
+#empty-state[hidden],
+#error-state[hidden],
+ul#file-list[hidden],
+ul.file-list[hidden] {
+    display: none !important;
+}
+
+.file-list-state:not([hidden]),
+#empty-state:not([hidden]),
+#error-state:not([hidden]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 0;
+    padding: 1.5rem 1.25rem;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 0.9rem;
+    opacity: 0.55;
+    font-weight: 500;
+    animation: stateEnter 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes stateEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.97);
+    }
+    to {
+        opacity: 0.55;
+        transform: scale(1);
+    }
+}
+
+.file-list-state--error:not([hidden]),
+#error-state:not([hidden]) {
+    color: #ef4444;
+    opacity: 0.85;
+}

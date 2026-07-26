@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package renop.storage.v1;
+
+option go_package = "renop/pb";
+
+message StoredSession {
+  string public_id = 1;
+  string session_token = 2;
+  string username = 3;
+  string ip = 4;
+  string user_agent = 5;
+  int64 created_at = 6;
+  int64 last_active = 7;
+}
+
+message SessionStore {
+  uint32 format_version = 1;
+  repeated StoredSession sessions = 2;
+}

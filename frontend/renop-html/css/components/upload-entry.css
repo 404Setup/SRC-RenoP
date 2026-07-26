@@ -1,0 +1,115 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.upload-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: color-mix(in srgb, var(--text-color) 8%, transparent);
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    transition: width 0.12s ease;
+    border-radius: 0 2px 2px 0;
+}
+
+/* Multi-part concurrent chunk progress (one cell per chunk). */
+.upload-chunk-strip {
+    position: absolute;
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 5px;
+    display: flex;
+    gap: 2px;
+    height: 5px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.upload-file-entry.has-chunk-strip,
+.upload-file-entry:has(.upload-chunk-strip) {
+    padding-bottom: 0.95rem;
+}
+
+.upload-chunk-cell {
+    flex: 1 1 0;
+    min-width: 3px;
+    height: 100%;
+    border-radius: 1px;
+    background: color-mix(in srgb, var(--text-color) 10%, transparent);
+    overflow: hidden;
+    position: relative;
+}
+
+.upload-chunk-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    transition: width 0.1s linear;
+}
+
+.upload-chunk-cell.is-pending .upload-chunk-fill {
+    width: 0% !important;
+}
+
+.upload-chunk-cell.is-done {
+    background: color-mix(in srgb, #10b981 22%, transparent);
+}
+
+.upload-chunk-cell.is-done .upload-chunk-fill {
+    width: 100% !important;
+    background: #10b981;
+}
+
+.upload-chunk-cell.is-uploading .upload-chunk-fill,
+.upload-chunk-cell.is-retrying .upload-chunk-fill {
+    background: linear-gradient(90deg, #3b82f6, #93c5fd);
+}
+
+.upload-chunk-cell.is-retrying {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #f59e0b 55%, transparent);
+}
+
+.upload-chunk-cell.is-retrying .upload-chunk-fill {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.upload-chunk-cell.is-error {
+    background: color-mix(in srgb, #ef4444 18%, transparent);
+}
+
+.upload-chunk-cell.is-error .upload-chunk-fill {
+    background: #ef4444;
+}
+
+/* Offline-update modal: larger chunk strip under overall bar */
+.modal-notes-container .upload-chunk-strip,
+.upload-chunk-strip--modal {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin-top: 8px;
+    height: 8px;
+    gap: 3px;
+    pointer-events: auto;
+}
+
+.modal-notes-container .upload-chunk-cell,
+.upload-chunk-strip--modal .upload-chunk-cell {
+    border-radius: 2px;
+    min-width: 4px;
+}

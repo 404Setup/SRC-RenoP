@@ -1,0 +1,392 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.docs-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr) 200px;
+    gap: 1.5rem;
+    align-items: start;
+    padding-top: 0.5rem;
+}
+
+.docs-sidebar,
+.docs-toc,
+.docs-toc-slot .docs-toc {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.docs-toc-slot:empty {
+    /* keep grid column for desktop TOC placement */
+    min-height: 0;
+}
+
+.docs-sidebar-heading,
+.docs-toc h2 {
+    margin: 0 0 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.55;
+}
+
+/* Mobile toggle — hidden on desktop */
+.docs-sidebar-toggle {
+    display: none;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.15rem 0;
+    margin: 0 0 0;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.15s ease;
+}
+
+.docs-sidebar-toggle:hover {
+    opacity: 1;
+}
+
+.docs-sidebar-toggle-label {
+    text-align: left;
+}
+
+.docs-sidebar-chevron-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0.7;
+}
+
+.docs-sidebar.is-expanded .docs-sidebar-chevron-wrap {
+    transform: rotate(180deg);
+    opacity: 1;
+    color: var(--link-hover-color);
+}
+
+.docs-sidebar-body {
+    overflow: hidden;
+    transition:
+        height 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.22s ease;
+}
+
+.docs-cat {
+    margin-bottom: 1rem;
+}
+
+.docs-cat:last-child {
+    margin-bottom: 0;
+}
+
+.docs-cat-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    opacity: 0.8;
+}
+
+.docs-nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.docs-nav a {
+    display: block;
+    text-decoration: none;
+    color: var(--text-color);
+    opacity: 0.72;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.15s, opacity 0.15s, color 0.15s;
+}
+
+.docs-nav a:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+    color: var(--text-color);
+}
+
+.docs-nav a.active {
+    opacity: 1;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+    font-weight: 600;
+}
+
+.docs-content {
+    min-width: 0;
+    padding: 0.25rem 0 2rem;
+    box-sizing: border-box;
+}
+
+.docs-toc-slot {
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* While height is morphing, keep overflow clipped (JS also sets this inline). */
+.docs-content.is-height-morphing,
+.docs-toc-slot.is-height-morphing {
+    overflow: hidden;
+}
+
+.docs-content.docs-content-enter {
+    animation: docsContentFadeIn 0.22s ease forwards;
+}
+
+@keyframes docsContentFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.docs-index-heading {
+    margin-top: 0;
+    font-size: 1.2rem;
+}
+
+.docs-article {
+    padding: 1.5rem 1.75rem 2rem;
+}
+
+.docs-article h1 {
+    margin: 0 0 1rem;
+    font-size: 1.85rem;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+.docs-article h2 {
+    margin: 1.75rem 0 0.75rem;
+    font-size: 1.3rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+}
+
+.docs-article h3 {
+    margin: 1.35rem 0 0.55rem;
+    font-size: 1.08rem;
+}
+
+.docs-article h4 {
+    margin: 1.1rem 0 0.45rem;
+    font-size: 1rem;
+}
+
+.docs-article p,
+.docs-article li {
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.docs-article a {
+    color: var(--link-hover-color);
+}
+
+.docs-article pre {
+    background: var(--snippet-bg);
+    border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+    border-radius: 0.75rem;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+.docs-article code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88em;
+}
+
+.docs-article :not(pre) > code {
+    background: color-mix(in srgb, var(--text-color) 7%, transparent);
+    padding: 0.12rem 0.35rem;
+    border-radius: 0.35rem;
+}
+
+.docs-article table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+}
+
+.docs-article th,
+.docs-article td {
+    border: 1px solid var(--border-color);
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+}
+
+.docs-article th {
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    font-weight: 650;
+}
+
+.docs-article blockquote {
+    margin: 1rem 0;
+    padding: 0.65rem 1rem;
+    border-left: 3px solid var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 6%, transparent);
+    border-radius: 0 0.5rem 0.5rem 0;
+    color: var(--muted);
+}
+
+.docs-toc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.docs-toc-list a {
+    display: block;
+    text-decoration: none;
+    color: var(--text-color);
+    opacity: 0.65;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    padding: 0.25rem 0.4rem;
+    border-radius: 0.35rem;
+}
+
+.docs-toc-list a:hover,
+.docs-toc-list a.active {
+    opacity: 1;
+    color: var(--link-hover-color);
+}
+
+.docs-toc-list .toc-h3 {
+    padding-left: 0.9rem;
+    font-size: 0.78rem;
+}
+
+.docs-empty,
+.docs-loading,
+.docs-error {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--muted);
+}
+
+.docs-index-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.docs-index-cat {
+    padding: 1.15rem 1.25rem;
+}
+
+.docs-index-cat h2 {
+    margin: 0 0 0.65rem;
+    font-size: 1.1rem;
+}
+
+.docs-index-cat ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.docs-index-cat a {
+    text-decoration: none;
+    color: var(--link-hover-color);
+    font-weight: 550;
+}
+
+.docs-index-cat a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 1000px) {
+    .docs-layout {
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+
+    .docs-toc-slot {
+        display: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .docs-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .docs-sidebar {
+        position: static;
+        max-height: none;
+        overflow: visible;
+        padding: 0.85rem 1rem;
+    }
+
+    .docs-sidebar-heading {
+        display: none;
+    }
+
+    .docs-sidebar-toggle {
+        display: flex;
+        margin-bottom: 0;
+    }
+
+    /* Collapsed: no gap under toggle; expanded: body has top spacing */
+    .docs-sidebar.is-collapsed .docs-sidebar-body {
+        margin-top: 0;
+    }
+
+    .docs-sidebar.is-expanded .docs-sidebar-body {
+        margin-top: 0.75rem;
+    }
+
+    .docs-sidebar-body {
+        /* Default collapsed height applied by JS */
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .docs-sidebar-body,
+    .docs-sidebar-chevron-wrap {
+        transition: none !important;
+    }
+
+    .docs-content.docs-content-enter {
+        animation: none;
+    }
+}
