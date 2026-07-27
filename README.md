@@ -42,7 +42,7 @@ Use one of these URLs in Maven's `<repositories>` or
 `<distributionManagement>` configuration.
 
 HTTP API reference (auth, tokens, Maven helpers, settings, updater, storage paths)
-lives under [`docs/api/`](docs/api/README.md). OpenAPI 3: [`docs/api/openapi.yaml`](docs/api/openapi.yaml).
+lives under [`docs/api/`](https://renop.pkg.one/docs/api/README). OpenAPI 3: [`openapi.yaml`](https://renop.pkg.one/assets/openapi.yaml).
 
 ## Configuration
 
