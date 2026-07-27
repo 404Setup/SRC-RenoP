@@ -599,14 +599,23 @@
                 <div class="tabs-container settings-subtabs-container">
                     <nav id="settings-tabs" class="tabs"></nav>
                 </div>
-                <button id="settings-save-btn" class="settings-save-btn" disabled title="Save changes and reload configuration" data-i18n-title="settings.saveBtnTitle">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                        <polyline points="17 21 17 13 7 13 7 21"/>
-                        <polyline points="7 3 7 8 15 8"/>
-                    </svg>
-                    <span data-i18n="settings.saveBtn">Update and reload</span>
-                </button>
+                <div class="settings-actions">
+                    <button id="settings-restart-btn" type="button" class="pill-btn pill-btn--soft" title="Restart the Renop service" data-i18n-title="settings.restartBtnTitle">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-.38-3.72"/>
+                        </svg>
+                        <span data-i18n="settings.restartBtn">Restart Renop</span>
+                    </button>
+                    <button id="settings-save-btn" class="settings-save-btn" disabled title="Save changes and reload configuration" data-i18n-title="settings.saveBtnTitle">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        <span data-i18n="settings.saveBtn">Update and reload</span>
+                    </button>
+                </div>
             </div>
 
             <div id="settings-form-container" class="cfg-page-content"></div>

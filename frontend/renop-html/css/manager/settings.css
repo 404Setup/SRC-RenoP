@@ -885,7 +885,17 @@ html.dark .cfg-badge--warning {
     }
 
     .repos-header .settings-save-btn,
-    .settings-toolbar .settings-save-btn {
+    .settings-toolbar .settings-actions {
+        width: 100%;
+    }
+
+    .settings-toolbar .settings-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .settings-toolbar .settings-actions .settings-save-btn,
+    .settings-toolbar .settings-actions .pill-btn {
         width: 100%;
         justify-content: center;
     }

@@ -563,6 +563,9 @@ export default {
     "settings.rebuildFailed": "触发索引重建 ({mode}) 失败。",
     "settings.savedSuccess": "设置保存成功！",
     "settings.saveFailed": "保存设置失败。",
+    "settings.restartBtn": "重启 Renop",
+    "settings.restartBtnTitle": "重启 Renop 服务",
+    "settings.confirmRestart": "确定要立即重启 Renop 吗？服务将短暂不可用。",
 
     "repos.s3Endpoint": "Endpoint 接口地址",
     "repos.s3EndpointHint": "例如 https://<账号>.r2.cloudflarestorage.com",

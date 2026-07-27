@@ -15,6 +15,7 @@ import {registerTabContainer, smoothScrollToTop, updateTabIndicator} from './app
 import {buildInput, createFieldRow, createSection, createToggleRow, el, makeCustomSelect} from './cfg-ui.js';
 import {createCallout, createIcon, createIndexCard, createSkeleton, createTab} from './components.js';
 import {logout} from './auth.js';
+import {restartApp} from './dashboard.js';
 import {
     FrontendConfig,
     IndexDomainSettings,
@@ -679,3 +680,9 @@ export async function saveDomainSettings() {
 }
 
 document.getElementById('settings-save-btn')?.addEventListener('click', saveDomainSettings);
+
+document.getElementById('settings-restart-btn')?.addEventListener('click', async () => {
+    if (await window.showConfirm(t('settings.confirmRestart'))) {
+        await restartApp();
+    }
+});
