@@ -78,12 +78,13 @@ category: API
 | `ssl_enabled`         | bool            |
 | `ssl_cert_path`       | string          |
 | `ssl_key_path`        | string          |
-| `domain`              | string          |
+| `domains`             | repeated string |
 | `enable_compression`  | bool            |
 | `file_cache_size_mb`  | uint32          |
 | `max_active_requests` | uint32          |
 | `trusted_proxies`     | repeated string |
 | `cdn_ip_header`       | string          |
+| `cors_origins`        | repeated string |
 
 **storage** → `StorageConfig`
 

@@ -218,12 +218,13 @@ func FromServerConfig(s config.ServerConfig) *ServerConfig {
 		SslEnabled:        s.SslEnabled,
 		SslCertPath:       s.SslCertPath,
 		SslKeyPath:        s.SslKeyPath,
-		Domain:            s.Domain,
+		Domains:           append([]string(nil), s.Domains...),
 		EnableCompression: s.EnableCompression,
 		FileCacheSizeMb:   s.FileCacheSizeMb,
 		MaxActiveRequests: s.MaxActiveRequests,
 		TrustedProxies:    append([]string(nil), s.TrustedProxies...),
 		CdnIpHeader:       s.CdnIpHeader,
+		CorsOrigins:       append([]string(nil), s.CorsOrigins...),
 	}
 }
 
@@ -241,12 +242,15 @@ func ApplyServerConfig(dst *config.ServerConfig, src *ServerConfig) {
 	dst.SslEnabled = src.SslEnabled
 	dst.SslCertPath = src.SslCertPath
 	dst.SslKeyPath = src.SslKeyPath
-	dst.Domain = src.Domain
+	dst.Domains = append([]string(nil), src.Domains...)
 	dst.EnableCompression = src.EnableCompression
 	dst.FileCacheSizeMb = src.FileCacheSizeMb
 	dst.MaxActiveRequests = src.MaxActiveRequests
 	dst.TrustedProxies = append([]string(nil), src.TrustedProxies...)
 	dst.CdnIpHeader = src.CdnIpHeader
+	// Explicit empty list is valid (default = domains only); never leave nil.
+	dst.CorsOrigins = append([]string(nil), src.CorsOrigins...)
+	dst.NormalizePublicNames()
 	dst.ParseTrustedProxies()
 }
 

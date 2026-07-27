@@ -57,9 +57,11 @@ type AppStateInner struct {
 	AuthCacheWriteLock sync.Mutex
 	Sessions           pb.MapOf[string, *Session]
 	SessionsIsDirty    atomic.Bool
+
 	// SessionsFlush, when set, schedules an immediate persist of the session store.
 	// Used after logout/revocation so deleted sessions cannot reappear after restart.
-	SessionsFlush          func()
+	SessionsFlush func()
+
 	FileIndex              *index.FileIndex
 	IndexWatcher           *fsnotify.Watcher
 	IndexWatcherMutex      sync.Mutex

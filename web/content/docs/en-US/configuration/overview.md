@@ -42,12 +42,28 @@ Root directory for local artifact storage (default layout under this path). Defa
 | `ssl_enabled`         | `false`           | Enable TLS                                                        |
 | `ssl_cert_path`       | `""`              | Certificate path when TLS is on                                   |
 | `ssl_key_path`        | `""`              | Private key path when TLS is on                                   |
-| `domain`              | `localhost`       | Public domain name used in some UI/metadata                       |
+| `domains`             | `[localhost]`     | Public hostnames for this instance (UI/metadata + default CORS)   |
+| `cors_origins`        | `[]`              | Browser CORS allow list (empty = only `domains`; `*` = any)       |
 | `enable_compression`  | `false`           | HTTP response compression                                         |
 | `file_cache_size_mb`  | `100`             | In-memory file cache size (MB)                                    |
 | `max_active_requests` | `2000`            | Concurrent request cap (overload → 503)                           |
 | `trusted_proxies`     | `[]`              | Extra reverse-proxy CIDR/IPs (loopback always trusted)            |
 | `cdn_ip_header`       | `X-Forwarded-For` | Client IP header behind a trusted proxy (e.g. `CF-Connecting-IP`) |
+
+#### CORS (`server.cors_origins`)
+
+Controls which browser `Origin` values may call this server cross-origin (session cookies use
+`Access-Control-Allow-Credentials`).
+
+| Value | Effect |
+|-------|--------|
+| *(empty)* | Only origins whose host matches one of `server.domains` (any scheme/port) |
+| `*.pkg.one` | Apex `pkg.one` and any subdomain (e.g. `mvnc.pkg.one`, `cdn.pkg.one`) |
+| `https://app.example.com` | Exact full origin (scheme + host + port) |
+| `partner.example.com` | That hostname with any scheme/port |
+| `*` | Allow every origin |
+
+Legacy configs with singular `domain: example.com` still load and migrate to `domains: [example.com]`.
 
 Restart the process after changing host, port, or TLS settings.
 

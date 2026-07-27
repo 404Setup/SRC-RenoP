@@ -10363,12 +10363,13 @@ export const renop = $root.renop = (() => {
                  * @property {boolean|null} [ssl_enabled] ServerConfig ssl_enabled
                  * @property {string|null} [ssl_cert_path] ServerConfig ssl_cert_path
                  * @property {string|null} [ssl_key_path] ServerConfig ssl_key_path
-                 * @property {string|null} [domain] ServerConfig domain
+                 * @property {Array.<string>|null} [domains] ServerConfig domains
                  * @property {boolean|null} [enable_compression] ServerConfig enable_compression
                  * @property {number|null} [file_cache_size_mb] ServerConfig file_cache_size_mb
                  * @property {number|null} [max_active_requests] ServerConfig max_active_requests
                  * @property {Array.<string>|null} [trusted_proxies] ServerConfig trusted_proxies
                  * @property {string|null} [cdn_ip_header] ServerConfig cdn_ip_header
+                 * @property {Array.<string>|null} [cors_origins] ServerConfig cors_origins
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -10394,7 +10395,9 @@ export const renop = $root.renop = (() => {
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
                 const ServerConfig = function (properties) {
+                    this.domains = [];
                     this.trusted_proxies = [];
+                    this.cors_origins = [];
                     if (properties)
                         for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
                             if (properties[keys[i]] != null && keys[i] !== "__proto__")
@@ -10442,12 +10445,12 @@ export const renop = $root.renop = (() => {
                 ServerConfig.prototype.ssl_key_path = "";
 
                 /**
-                 * ServerConfig domain.
-                 * @member {string} domain
+                 * ServerConfig domains.
+                 * @member {Array.<string>} domains
                  * @memberof renop.api.v1.ServerConfig
                  * @instance
                  */
-                ServerConfig.prototype.domain = "";
+                ServerConfig.prototype.domains = $util.emptyArray;
 
                 /**
                  * ServerConfig enable_compression.
@@ -10488,6 +10491,14 @@ export const renop = $root.renop = (() => {
                  * @instance
                  */
                 ServerConfig.prototype.cdn_ip_header = "";
+
+                /**
+                 * ServerConfig cors_origins.
+                 * @member {Array.<string>} cors_origins
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.cors_origins = $util.emptyArray;
 
                 /**
                  * Creates a new ServerConfig instance using the specified properties.
@@ -10531,8 +10542,9 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 4, wireType 2 =*/34).string(message.ssl_cert_path);
                     if (message.ssl_key_path != null && $Object.hasOwnProperty.call(message, "ssl_key_path") && message.ssl_key_path !== "")
                         writer.uint32(/* id 5, wireType 2 =*/42).string(message.ssl_key_path);
-                    if (message.domain != null && $Object.hasOwnProperty.call(message, "domain") && message.domain !== "")
-                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.domain);
+                    if (message.domains != null && message.domains.length)
+                        for (let i = 0; i < message.domains.length; ++i)
+                            writer.uint32(/* id 6, wireType 2 =*/50).string(message.domains[i]);
                     if (message.enable_compression != null && $Object.hasOwnProperty.call(message, "enable_compression") && message.enable_compression !== false)
                         writer.uint32(/* id 7, wireType 0 =*/56).bool(message.enable_compression);
                     if (message.file_cache_size_mb != null && $Object.hasOwnProperty.call(message, "file_cache_size_mb") && message.file_cache_size_mb !== 0)
@@ -10544,6 +10556,9 @@ export const renop = $root.renop = (() => {
                             writer.uint32(/* id 10, wireType 2 =*/82).string(message.trusted_proxies[i]);
                     if (message.cdn_ip_header != null && $Object.hasOwnProperty.call(message, "cdn_ip_header") && message.cdn_ip_header !== "")
                         writer.uint32(/* id 11, wireType 2 =*/90).string(message.cdn_ip_header);
+                    if (message.cors_origins != null && message.cors_origins.length)
+                        for (let i = 0; i < message.cors_origins.length; ++i)
+                            writer.uint32(/* id 12, wireType 2 =*/98).string(message.cors_origins[i]);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -10639,10 +10654,9 @@ export const renop = $root.renop = (() => {
                         case 6: {
                                 if (wireType !== 2)
                                     break;
-                                if ((value = reader.stringVerify()).length)
-                                    message.domain = value;
-                                else
-                                    delete message.domain;
+                                if (!(message.domains && message.domains.length))
+                                    message.domains = [];
+                                message.domains.push(reader.stringVerify());
                                 continue;
                             }
                         case 7: {
@@ -10687,6 +10701,14 @@ export const renop = $root.renop = (() => {
                                     message.cdn_ip_header = value;
                                 else
                                     delete message.cdn_ip_header;
+                                continue;
+                            }
+                        case 12: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.cors_origins && message.cors_origins.length))
+                                    message.cors_origins = [];
+                                message.cors_origins.push(reader.stringVerify());
                                 continue;
                             }
                         }
@@ -10747,9 +10769,13 @@ export const renop = $root.renop = (() => {
                     if (message.ssl_key_path != null && $Object.hasOwnProperty.call(message, "ssl_key_path"))
                         if (!$util.isString(message.ssl_key_path))
                             return "ssl_key_path: string expected";
-                    if (message.domain != null && $Object.hasOwnProperty.call(message, "domain"))
-                        if (!$util.isString(message.domain))
-                            return "domain: string expected";
+                    if (message.domains != null && $Object.hasOwnProperty.call(message, "domains")) {
+                        if (!$Array.isArray(message.domains))
+                            return "domains: array expected";
+                        for (let i = 0; i < message.domains.length; ++i)
+                            if (!$util.isString(message.domains[i]))
+                                return "domains: string[] expected";
+                    }
                     if (message.enable_compression != null && $Object.hasOwnProperty.call(message, "enable_compression"))
                         if (typeof message.enable_compression !== "boolean")
                             return "enable_compression: boolean expected";
@@ -10769,6 +10795,13 @@ export const renop = $root.renop = (() => {
                     if (message.cdn_ip_header != null && $Object.hasOwnProperty.call(message, "cdn_ip_header"))
                         if (!$util.isString(message.cdn_ip_header))
                             return "cdn_ip_header: string expected";
+                    if (message.cors_origins != null && $Object.hasOwnProperty.call(message, "cors_origins")) {
+                        if (!$Array.isArray(message.cors_origins))
+                            return "cors_origins: array expected";
+                        for (let i = 0; i < message.cors_origins.length; ++i)
+                            if (!$util.isString(message.cors_origins[i]))
+                                return "cors_origins: string[] expected";
+                    }
                     return null;
                 };
 
@@ -10805,9 +10838,13 @@ export const renop = $root.renop = (() => {
                     if (object.ssl_key_path != null)
                         if (typeof object.ssl_key_path !== "string" || object.ssl_key_path.length)
                             message.ssl_key_path = $String(object.ssl_key_path);
-                    if (object.domain != null)
-                        if (typeof object.domain !== "string" || object.domain.length)
-                            message.domain = $String(object.domain);
+                    if (object.domains) {
+                        if (!$Array.isArray(object.domains))
+                            throw $TypeError(".renop.api.v1.ServerConfig.domains: array expected");
+                        message.domains = $Array(object.domains.length);
+                        for (let i = 0; i < object.domains.length; ++i)
+                            message.domains[i] = $String(object.domains[i]);
+                    }
                     if (object.enable_compression != null)
                         if (object.enable_compression)
                             message.enable_compression = $Boolean(object.enable_compression);
@@ -10827,6 +10864,13 @@ export const renop = $root.renop = (() => {
                     if (object.cdn_ip_header != null)
                         if (typeof object.cdn_ip_header !== "string" || object.cdn_ip_header.length)
                             message.cdn_ip_header = $String(object.cdn_ip_header);
+                    if (object.cors_origins) {
+                        if (!$Array.isArray(object.cors_origins))
+                            throw $TypeError(".renop.api.v1.ServerConfig.cors_origins: array expected");
+                        message.cors_origins = $Array(object.cors_origins.length);
+                        for (let i = 0; i < object.cors_origins.length; ++i)
+                            message.cors_origins[i] = $String(object.cors_origins[i]);
+                    }
                     return message;
                 };
 
@@ -10847,15 +10891,17 @@ export const renop = $root.renop = (() => {
                     if (_depth > $util.recursionLimit)
                         throw $Error("max depth exceeded");
                     let object = {};
-                    if (options.arrays || options.defaults)
+                    if (options.arrays || options.defaults) {
+                        object.domains = [];
                         object.trusted_proxies = [];
+                        object.cors_origins = [];
+                    }
                     if (options.defaults) {
                         object.host = "";
                         object.port = 0;
                         object.ssl_enabled = false;
                         object.ssl_cert_path = "";
                         object.ssl_key_path = "";
-                        object.domain = "";
                         object.enable_compression = false;
                         object.file_cache_size_mb = 0;
                         object.max_active_requests = 0;
@@ -10871,8 +10917,11 @@ export const renop = $root.renop = (() => {
                         object.ssl_cert_path = message.ssl_cert_path;
                     if (message.ssl_key_path != null && $Object.hasOwnProperty.call(message, "ssl_key_path"))
                         object.ssl_key_path = message.ssl_key_path;
-                    if (message.domain != null && $Object.hasOwnProperty.call(message, "domain"))
-                        object.domain = message.domain;
+                    if (message.domains && message.domains.length) {
+                        object.domains = $Array(message.domains.length);
+                        for (let j = 0; j < message.domains.length; ++j)
+                            object.domains[j] = message.domains[j];
+                    }
                     if (message.enable_compression != null && $Object.hasOwnProperty.call(message, "enable_compression"))
                         object.enable_compression = message.enable_compression;
                     if (message.file_cache_size_mb != null && $Object.hasOwnProperty.call(message, "file_cache_size_mb"))
@@ -10886,6 +10935,11 @@ export const renop = $root.renop = (() => {
                     }
                     if (message.cdn_ip_header != null && $Object.hasOwnProperty.call(message, "cdn_ip_header"))
                         object.cdn_ip_header = message.cdn_ip_header;
+                    if (message.cors_origins && message.cors_origins.length) {
+                        object.cors_origins = $Array(message.cors_origins.length);
+                        for (let j = 0; j < message.cors_origins.length; ++j)
+                            object.cors_origins[j] = message.cors_origins[j];
+                    }
                     return object;
                 };
 

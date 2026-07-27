@@ -42,7 +42,8 @@ est en général `storage`.
 | `ssl_enabled`         | `false`           | Activer TLS                                                                 |
 | `ssl_cert_path`       | `""`              | Chemin du certificat si TLS est activé                                      |
 | `ssl_key_path`        | `""`              | Chemin de la clé privée si TLS est activé                                   |
-| `domain`              | `localhost`       | Nom de domaine public (UI / métadonnées)                                    |
+| `domains`             | `[localhost]`     | Noms d’hôte publics (UI / métadonnées + CORS par défaut)                    |
+| `cors_origins`        | `[]`              | Liste CORS navigateur (vide = `domains` uniquement ; `*` = tout)            |
 | `enable_compression`  | `false`           | Compression des réponses HTTP                                               |
 | `file_cache_size_mb`  | `100`             | Taille du cache fichiers en mémoire (Mo)                                    |
 | `max_active_requests` | `2000`            | Plafond de requêtes concurrentes (surcharge → 503)                          |

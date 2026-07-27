@@ -638,8 +638,12 @@ components:
           type: string
         ssl_key_path:
           type: string
-        domain:
-          type: string
+        domains:
+          type: array
+          items:
+            type: string
+          description: Public hostnames for this instance (default CORS allowlist).
+          example: ["mvnc.pkg.one", "repo.example.com"]
         enable_compression:
           type: boolean
         file_cache_size_mb:
@@ -654,6 +658,14 @@ components:
             type: string
         cdn_ip_header:
           type: string
+        cors_origins:
+          type: array
+          items:
+            type: string
+          description: >
+            Browser CORS allow list. Empty = only origins matching domains.
+            Supports host wildcards (*.pkg.one), full origins, or * for any.
+          example: ["*.pkg.one", "https://partner.example.com"]
 
     StorageConfig:
       type: object

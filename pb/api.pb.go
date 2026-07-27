@@ -1941,20 +1941,24 @@ func (x *FrontendConfig) GetIcpLicense() string {
 }
 
 type ServerConfig struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Host              string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	Port              uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	SslEnabled        bool                   `protobuf:"varint,3,opt,name=ssl_enabled,json=sslEnabled,proto3" json:"ssl_enabled,omitempty"`
-	SslCertPath       string                 `protobuf:"bytes,4,opt,name=ssl_cert_path,json=sslCertPath,proto3" json:"ssl_cert_path,omitempty"`
-	SslKeyPath        string                 `protobuf:"bytes,5,opt,name=ssl_key_path,json=sslKeyPath,proto3" json:"ssl_key_path,omitempty"`
-	Domain            string                 `protobuf:"bytes,6,opt,name=domain,proto3" json:"domain,omitempty"`
-	EnableCompression bool                   `protobuf:"varint,7,opt,name=enable_compression,json=enableCompression,proto3" json:"enable_compression,omitempty"`
-	FileCacheSizeMb   uint32                 `protobuf:"varint,8,opt,name=file_cache_size_mb,json=fileCacheSizeMb,proto3" json:"file_cache_size_mb,omitempty"`
-	MaxActiveRequests uint32                 `protobuf:"varint,9,opt,name=max_active_requests,json=maxActiveRequests,proto3" json:"max_active_requests,omitempty"`
-	TrustedProxies    []string               `protobuf:"bytes,10,rep,name=trusted_proxies,json=trustedProxies,proto3" json:"trusted_proxies,omitempty"`
-	CdnIpHeader       string                 `protobuf:"bytes,11,opt,name=cdn_ip_header,json=cdnIpHeader,proto3" json:"cdn_ip_header,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Host        string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Port        uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	SslEnabled  bool                   `protobuf:"varint,3,opt,name=ssl_enabled,json=sslEnabled,proto3" json:"ssl_enabled,omitempty"`
+	SslCertPath string                 `protobuf:"bytes,4,opt,name=ssl_cert_path,json=sslCertPath,proto3" json:"ssl_cert_path,omitempty"`
+	SslKeyPath  string                 `protobuf:"bytes,5,opt,name=ssl_key_path,json=sslKeyPath,proto3" json:"ssl_key_path,omitempty"`
+	// Public hostnames for this instance (CORS default allowlist, UI/metadata).
+	Domains           []string `protobuf:"bytes,6,rep,name=domains,proto3" json:"domains,omitempty"`
+	EnableCompression bool     `protobuf:"varint,7,opt,name=enable_compression,json=enableCompression,proto3" json:"enable_compression,omitempty"`
+	FileCacheSizeMb   uint32   `protobuf:"varint,8,opt,name=file_cache_size_mb,json=fileCacheSizeMb,proto3" json:"file_cache_size_mb,omitempty"`
+	MaxActiveRequests uint32   `protobuf:"varint,9,opt,name=max_active_requests,json=maxActiveRequests,proto3" json:"max_active_requests,omitempty"`
+	TrustedProxies    []string `protobuf:"bytes,10,rep,name=trusted_proxies,json=trustedProxies,proto3" json:"trusted_proxies,omitempty"`
+	CdnIpHeader       string   `protobuf:"bytes,11,opt,name=cdn_ip_header,json=cdnIpHeader,proto3" json:"cdn_ip_header,omitempty"`
+	// Browser CORS allow list. Empty = only Origins matching domains.
+	// "*" = any origin. Supports host wildcards (*.pkg.one) and full origins.
+	CorsOrigins   []string `protobuf:"bytes,12,rep,name=cors_origins,json=corsOrigins,proto3" json:"cors_origins,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
@@ -2022,11 +2026,11 @@ func (x *ServerConfig) GetSslKeyPath() string {
 	return ""
 }
 
-func (x *ServerConfig) GetDomain() string {
+func (x *ServerConfig) GetDomains() []string {
 	if x != nil {
-		return x.Domain
+		return x.Domains
 	}
-	return ""
+	return nil
 }
 
 func (x *ServerConfig) GetEnableCompression() bool {
@@ -2062,6 +2066,13 @@ func (x *ServerConfig) GetCdnIpHeader() string {
 		return x.CdnIpHeader
 	}
 	return ""
+}
+
+func (x *ServerConfig) GetCorsOrigins() []string {
+	if x != nil {
+		return x.CorsOrigins
+	}
+	return nil
 }
 
 type StorageConfig struct {
@@ -2678,7 +2689,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x11organization_logo\x18\x05 \x01(\tR\x10organizationLogo\x12%\n" +
 	"\x0ebackground_url\x18\x06 \x01(\tR\rbackgroundUrl\x12\x1f\n" +
 	"\vicp_license\x18\a \x01(\tR\n" +
-	"icpLicense\"\x8e\x03\n" +
+	"icpLicense\"\xb3\x03\n" +
 	"\fServerConfig\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x1f\n" +
@@ -2686,14 +2697,15 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"sslEnabled\x12\"\n" +
 	"\rssl_cert_path\x18\x04 \x01(\tR\vsslCertPath\x12 \n" +
 	"\fssl_key_path\x18\x05 \x01(\tR\n" +
-	"sslKeyPath\x12\x16\n" +
-	"\x06domain\x18\x06 \x01(\tR\x06domain\x12-\n" +
+	"sslKeyPath\x12\x18\n" +
+	"\adomains\x18\x06 \x03(\tR\adomains\x12-\n" +
 	"\x12enable_compression\x18\a \x01(\bR\x11enableCompression\x12+\n" +
 	"\x12file_cache_size_mb\x18\b \x01(\rR\x0ffileCacheSizeMb\x12.\n" +
 	"\x13max_active_requests\x18\t \x01(\rR\x11maxActiveRequests\x12'\n" +
 	"\x0ftrusted_proxies\x18\n" +
 	" \x03(\tR\x0etrustedProxies\x12\"\n" +
-	"\rcdn_ip_header\x18\v \x01(\tR\vcdnIpHeader\"\xc9\x01\n" +
+	"\rcdn_ip_header\x18\v \x01(\tR\vcdnIpHeader\x12!\n" +
+	"\fcors_origins\x18\f \x03(\tR\vcorsOrigins\"\xc9\x01\n" +
 	"\rStorageConfig\x12!\n" +
 	"\fstorage_path\x18\x01 \x01(\tR\vstoragePath\x124\n" +
 	"\x16enable_javadoc_preview\x18\x02 \x01(\bR\x14enableJavadocPreview\x120\n" +
