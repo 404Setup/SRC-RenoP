@@ -140,6 +140,106 @@ func TestShouldOmitNightlyNote(t *testing.T) {
 	}
 }
 
+func ghCommit(sha, message, date string) GithubCommitResponse {
+	return GithubCommitResponse{
+		Sha: sha,
+		Commit: GithubCommitDetail{
+			Message:   message,
+			Committer: GithubCommitPerson{Date: date},
+			Author:    GithubCommitPerson{Date: date},
+		},
+	}
+}
+
+func TestCollectNightlyReleaseNotesFromCheckedLatestToCurrent(t *testing.T) {
+	const (
+		afterPkg   = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		latestFull = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+		webOnly    = "cccccccccccccccccccccccccccccccccccccccc"
+		midFull    = "c111111111111111111111111111111111111111"
+		currFull   = "dddddddddddddddddddddddddddddddddddddddd"
+		olderFull  = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+	)
+	commits := []GithubCommitResponse{
+		ghCommit(afterPkg, "chore: not in package yet", "2026-07-27T10:00:00Z"),
+		ghCommit(latestFull, "fix: packaged latest\n\nbody", "2026-07-26T10:00:00Z"),
+		ghCommit(webOnly, "[web] docs only", "2026-07-25T10:00:00Z"),
+		ghCommit(midFull, "feat: middle change", "2026-07-24T10:00:00Z"),
+		ghCommit(currFull, "feat: currently installed", "2026-07-23T10:00:00Z"),
+		ghCommit(olderFull, "chore: older history", "2026-07-22T10:00:00Z"),
+	}
+
+	notes, date := collectNightlyReleaseNotes(commits, "nightly-"+currFull[:7], latestFull)
+	if date != "2026-07-26T10:00:00Z" {
+		t.Fatalf("latest package date: got %q", date)
+	}
+	want := "fix: packaged latest\nfeat: middle change"
+	if notes != want {
+		t.Fatalf("notes=\n%q\nwant\n%q", notes, want)
+	}
+}
+
+func TestCollectNightlyReleaseNotesStopsAtCurrentWithoutIncludingIt(t *testing.T) {
+	const (
+		latest = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+		curr   = "dddddddddddddddddddddddddddddddddddddddd"
+	)
+	commits := []GithubCommitResponse{
+		ghCommit(latest, "fix: latest", "2026-07-26T00:00:00Z"),
+		ghCommit(curr, "feat: current", "2026-07-23T00:00:00Z"),
+	}
+	notes, _ := collectNightlyReleaseNotes(commits, curr[:7], latest)
+	if notes != "fix: latest" {
+		t.Fatalf("got %q", notes)
+	}
+}
+
+func TestCollectNightlyReleaseNotesEmptyWhenUpToDate(t *testing.T) {
+	const sha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	commits := []GithubCommitResponse{
+		ghCommit(sha, "fix: same", "2026-07-26T00:00:00Z"),
+		ghCommit("cccccccccccccccccccccccccccccccccccccccc", "older", "2026-07-20T00:00:00Z"),
+	}
+	notes, _ := collectNightlyReleaseNotes(commits, "nightly-"+sha[:7], sha)
+	if notes != "" {
+		t.Fatalf("expected empty notes when current==latest, got %q", notes)
+	}
+}
+
+func TestCollectNightlyReleaseNotesFallbackWhenLatestMissing(t *testing.T) {
+	const curr = "dddddddddddddddddddddddddddddddddddddddd"
+	commits := []GithubCommitResponse{
+		ghCommit("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "feat: a", "2026-07-26T00:00:00Z"),
+		ghCommit("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "feat: b", "2026-07-25T00:00:00Z"),
+		ghCommit(curr, "feat: current", "2026-07-23T00:00:00Z"),
+	}
+	notes, _ := collectNightlyReleaseNotes(commits, curr[:7], "ffffffffffffffffffffffffffffffffffffffff")
+	want := "feat: a\nfeat: b"
+	if notes != want {
+		t.Fatalf("got %q want %q", notes, want)
+	}
+}
+
+func TestCommitSHAMatches(t *testing.T) {
+	const full = "f306a3851931578435b2b214cf89b0c7c0a0a39d"
+	const short = "f306a38"
+	if !commitSHAMatches(full, short) {
+		t.Fatal("full vs short")
+	}
+	if !commitSHAMatches(full, full) {
+		t.Fatal("full vs full")
+	}
+	if !commitSHAMatches(full, full[:12]) {
+		t.Fatal("full vs abbrev12")
+	}
+	if commitSHAMatches(full, "deadbee") {
+		t.Fatal("unrelated must not match")
+	}
+	if commitSHAMatches("", short) {
+		t.Fatal("empty sha")
+	}
+}
+
 func TestVersionsMatch(t *testing.T) {
 	const short = "f306a38"
 	const full = "f306a3851931578435b2b214cf89b0c7c0a0a39d"

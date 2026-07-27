@@ -663,7 +663,7 @@ components:
           items:
             type: string
           description: >
-            Browser CORS allow list. Empty = only origins matching domains.
+            Extra browser CORS origins on top of domains (domains always remain allowed). Empty = domains only.
             Supports host wildcards (*.pkg.one), full origins, or * for any.
           example: ["*.pkg.one", "https://partner.example.com"]
 

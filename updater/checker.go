@@ -141,6 +141,85 @@ func shouldOmitNightlyNote(subject string) bool {
 	return false
 }
 
+func shortSHA(sha string) string {
+	sha = strings.TrimSpace(sha)
+	if len(sha) > 7 {
+		return sha[:7]
+	}
+	return sha
+}
+
+// commitSHAMatches reports whether a commit SHA matches a target identity
+// (full SHA, short SHA, or either side being a prefix of the other when long enough).
+func commitSHAMatches(sha, target string) bool {
+	sha = strings.TrimSpace(sha)
+	target = strings.TrimSpace(target)
+	if sha == "" || target == "" {
+		return false
+	}
+	if sha == target {
+		return true
+	}
+	short := shortSHA(sha)
+	targetShort := shortSHA(target)
+	if short == target || short == targetShort {
+		return true
+	}
+	if strings.HasPrefix(sha, target) || strings.HasPrefix(target, sha) {
+		return true
+	}
+	if len(target) >= 7 && strings.HasPrefix(target, short) {
+		return true
+	}
+	return strings.HasPrefix(sha, targetShort)
+}
+
+// collectNightlyReleaseNotes builds nightly release notes from commits ordered
+// newest-first.
+func collectNightlyReleaseNotes(commits []GithubCommitResponse, currentVersion, latestCommit string) (notes string, latestDate string) {
+	curr := normalizeVersionID(currentVersion)
+	commitSha := strings.TrimSpace(latestCommit)
+
+	start := 0
+	if commitSha != "" {
+		for i, c := range commits {
+			if commitSHAMatches(c.Sha, commitSha) {
+				start = i
+				break
+			}
+		}
+	}
+
+	end := len(commits)
+	if curr != "" && curr != "dev" {
+		for i := start; i < len(commits); i++ {
+			if commitSHAMatches(commits[i].Sha, curr) {
+				end = i
+				break
+			}
+		}
+	}
+
+	if start < len(commits) {
+		c := commits[start]
+		if c.Commit.Committer.Date != "" {
+			latestDate = c.Commit.Committer.Date
+		} else if c.Commit.Author.Date != "" {
+			latestDate = c.Commit.Author.Date
+		}
+	}
+
+	var noteLines []string
+	for i := start; i < end; i++ {
+		firstLine := commitSubject(commits[i].Commit.Message)
+		if shouldOmitNightlyNote(firstLine) {
+			continue
+		}
+		noteLines = append(noteLines, firstLine)
+	}
+	return strings.Join(noteLines, "\n"), latestDate
+}
+
 func normalizeVersionID(v string) string {
 	curr := strings.TrimSpace(v)
 	curr = strings.TrimPrefix(curr, "v")
@@ -347,53 +426,18 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	}
 
 	commitSha := strings.TrimSpace(info.Commit)
-	shortSha := info.Version
-	if commitSha != "" {
-		if len(commitSha) > 7 {
-			shortSha = commitSha[:7]
-		} else {
-			shortSha = commitSha
-		}
-	} else if shortSha == "" {
-		shortSha = info.Version
-	}
 
 	var commits []GithubCommitResponse
 	releaseNotes := ""
 	commitDate := info.PublishedAt
 	if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=100", &commits); err == nil && len(commits) > 0 {
-		curr := normalizeVersionID(version.Version)
-		var notes []string
-		for _, c := range commits {
-			sha := c.Sha
-			short := sha
-			if len(short) > 7 {
-				short = short[:7]
-			}
-			if curr != "" && curr != "dev" {
-				if curr == sha || curr == short || strings.HasPrefix(sha, curr) || (len(curr) >= 7 && strings.HasPrefix(curr, short)) {
-					break
-				}
-			}
-			if commitSha != "" && (sha == commitSha || strings.HasPrefix(sha, shortSha) || short == shortSha) {
-				firstLine := commitSubject(c.Commit.Message)
-				if !shouldOmitNightlyNote(firstLine) {
-					notes = append(notes, firstLine)
-				}
-				if c.Commit.Committer.Date != "" {
-					commitDate = c.Commit.Committer.Date
-				} else if c.Commit.Author.Date != "" {
-					commitDate = c.Commit.Author.Date
-				}
-				break
-			}
-			firstLine := commitSubject(c.Commit.Message)
-			if shouldOmitNightlyNote(firstLine) {
-				continue
-			}
-			notes = append(notes, firstLine)
+		// From the update-check latest package commit down to the running version
+		// (not from main HEAD / prefix-filtered tip down to current).
+		var noteDate string
+		releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha)
+		if noteDate != "" {
+			commitDate = noteDate
 		}
-		releaseNotes = strings.Join(notes, "\n")
 	}
 	const maxNotes = 32 << 10
 	releaseNotes = clipString(releaseNotes, maxNotes)

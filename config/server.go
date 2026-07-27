@@ -28,9 +28,10 @@ type ServerConfig struct {
 	// Domains lists public hostnames for this instance (used by CORS defaults and UI/metadata).
 	Domains []string `json:"domains" yaml:"domains"`
 
-	// CorsOrigins controls browser CORS. Empty = only origins whose host matches Domains.
-	// "*" allows any origin. Supports exact origins (https://a.example.com), hostnames,
-	// and wildcards (*.pkg.one matches pkg.one and any subdomain).
+	// CorsOrigins adds browser CORS allow patterns on top of Domains.
+	// Empty = only origins whose host matches Domains. "*" allows any origin.
+	// Supports exact origins (https://a.example.com), hostnames, and wildcards
+	// (*.pkg.one matches pkg.one and any subdomain). Domains always remain allowed.
 	CorsOrigins []string `json:"cors_origins" yaml:"cors_origins"`
 
 	CdnIpHeader          string       `json:"cdn_ip_header" yaml:"cdn_ip_header"`
@@ -212,25 +213,40 @@ func (s *ServerConfig) PrimaryDomain() string {
 }
 
 // IsOriginAllowed reports whether a browser Origin may call this server under CORS.
-// Empty CorsOrigins means only hosts listed in Domains (any scheme/port).
-// Pattern "*" allows every origin. Host wildcards like "*.pkg.one" match the apex
-// and any subdomain. Full origins (https://app.example.com) must match exactly.
+//
+// Policy:
+//   - Instance Domains always form the base allowlist (any scheme/port).
+//   - CorsOrigins adds extra patterns (exact origins, hostnames, wildcards).
+//   - Pattern "*" in CorsOrigins allows every origin.
+//   - Empty CorsOrigins means domains only.
+//
+// Full origins (https://app.example.com) must match exactly. Host wildcards like
+// "*.pkg.one" match the apex and any subdomain.
 func (s *ServerConfig) IsOriginAllowed(origin string) bool {
 	origin = strings.TrimSpace(origin)
 	if origin == "" {
 		return false
 	}
-	patterns := s.CorsOrigins
-	if len(patterns) == 0 {
-		// Default: only configured instance domains.
-		for _, d := range s.Domains {
-			if matchOriginPattern(origin, d) {
-				return true
-			}
-		}
+	if s == nil {
 		return false
 	}
-	for _, p := range patterns {
+
+	// Explicit allow-all in cors_origins.
+	for _, p := range s.CorsOrigins {
+		if strings.TrimSpace(p) == "*" {
+			return true
+		}
+	}
+
+	// Base allowlist: configured public hostnames for this instance.
+	for _, d := range s.Domains {
+		if matchOriginPattern(origin, d) {
+			return true
+		}
+	}
+
+	// Additional patterns from cors_origins (union with domains, not replace).
+	for _, p := range s.CorsOrigins {
 		if matchOriginPattern(origin, p) {
 			return true
 		}
