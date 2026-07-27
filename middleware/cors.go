@@ -25,47 +25,47 @@ const (
 	corsMaxAge       = "86400"
 )
 
-// CorsMiddleware enforces browser CORS using server.domains / server.cors_origins.
+// CorsMiddleware enforces browser CORS using server.domains ∪ server.cors_origins.
 // Credentials are always allowed when an Origin matches so session cookies work
 // for approved cross-origin UIs. Disallowed origins receive no CORS headers.
 func CorsMiddleware(state *core.AppState) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		origin := strings.TrimSpace(c.Get("Origin"))
+		origin := strings.TrimSpace(c.Get(fiber.HeaderOrigin))
 		if origin == "" {
 			return c.Next()
 		}
 
-		cfg := state.Inner.Config.Load().(*config.Config)
-		if !cfg.Server.IsOriginAllowed(origin) {
+		cfg, _ := state.Inner.Config.Load().(*config.Config)
+		if cfg == nil || !cfg.Server.IsOriginAllowed(origin) {
 			if c.Method() == fiber.MethodOptions {
 				return c.SendStatus(fiber.StatusForbidden)
 			}
 			return c.Next()
 		}
 
-		c.Set("Access-Control-Allow-Origin", origin)
-		c.Set("Access-Control-Allow-Credentials", "true")
-		c.Set("Vary", "Origin")
+		c.Set(fiber.HeaderAccessControlAllowOrigin, origin)
+		c.Set(fiber.HeaderAccessControlAllowCredentials, "true")
+		c.Vary(fiber.HeaderOrigin)
 
 		if c.Method() == fiber.MethodOptions {
-			reqHeaders := strings.TrimSpace(c.Get("Access-Control-Request-Headers"))
+			reqHeaders := strings.TrimSpace(c.Get(fiber.HeaderAccessControlRequestHeaders))
 			if reqHeaders != "" {
-				c.Set("Access-Control-Allow-Headers", reqHeaders)
+				c.Set(fiber.HeaderAccessControlAllowHeaders, reqHeaders)
 			} else {
-				c.Set("Access-Control-Allow-Headers", corsAllowHeaders)
+				c.Set(fiber.HeaderAccessControlAllowHeaders, corsAllowHeaders)
 			}
-			reqMethod := strings.TrimSpace(c.Get("Access-Control-Request-Method"))
+			reqMethod := strings.TrimSpace(c.Get(fiber.HeaderAccessControlRequestMethod))
 			if reqMethod != "" {
-				c.Set("Access-Control-Allow-Methods", reqMethod)
+				c.Set(fiber.HeaderAccessControlAllowMethods, reqMethod)
 			} else {
-				c.Set("Access-Control-Allow-Methods", corsAllowMethods)
+				c.Set(fiber.HeaderAccessControlAllowMethods, corsAllowMethods)
 			}
-			c.Set("Access-Control-Max-Age", corsMaxAge)
+			c.Set(fiber.HeaderAccessControlMaxAge, corsMaxAge)
 			return c.SendStatus(fiber.StatusNoContent)
 		}
 
-		c.Set("Access-Control-Allow-Headers", corsAllowHeaders)
-		c.Set("Access-Control-Allow-Methods", corsAllowMethods)
+		c.Set(fiber.HeaderAccessControlAllowHeaders, corsAllowHeaders)
+		c.Set(fiber.HeaderAccessControlAllowMethods, corsAllowMethods)
 		return c.Next()
 	}
 }

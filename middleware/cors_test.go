@@ -121,3 +121,32 @@ func TestCorsPreflightForbidden(t *testing.T) {
 		t.Fatalf("expected 403, got %d", resp.StatusCode)
 	}
 }
+
+func TestCorsDomainsStillAllowedWhenCorsOriginsSet(t *testing.T) {
+	sc := config.DefaultServerConfig()
+	sc.Domains = []string{"mvnc.pkg.one"}
+	sc.CorsOrigins = []string{"https://partner.example.com"}
+	app := setupCorsApp(t, sc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/ping", nil)
+	req.Header.Set("Origin", "https://mvnc.pkg.one")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "https://mvnc.pkg.one" {
+		t.Fatalf("domain origin ACAO = %q, want https://mvnc.pkg.one", got)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/api/ping", nil)
+	req2.Header.Set("Origin", "https://partner.example.com")
+	resp2, err := app.Test(req2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp2.Body.Close()
+	if got := resp2.Header.Get("Access-Control-Allow-Origin"); got != "https://partner.example.com" {
+		t.Fatalf("partner ACAO = %q", got)
+	}
+}

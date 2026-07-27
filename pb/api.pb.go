@@ -1941,24 +1941,21 @@ func (x *FrontendConfig) GetIcpLicense() string {
 }
 
 type ServerConfig struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	Host        string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	Port        uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	SslEnabled  bool                   `protobuf:"varint,3,opt,name=ssl_enabled,json=sslEnabled,proto3" json:"ssl_enabled,omitempty"`
-	SslCertPath string                 `protobuf:"bytes,4,opt,name=ssl_cert_path,json=sslCertPath,proto3" json:"ssl_cert_path,omitempty"`
-	SslKeyPath  string                 `protobuf:"bytes,5,opt,name=ssl_key_path,json=sslKeyPath,proto3" json:"ssl_key_path,omitempty"`
-	// Public hostnames for this instance (CORS default allowlist, UI/metadata).
-	Domains           []string `protobuf:"bytes,6,rep,name=domains,proto3" json:"domains,omitempty"`
-	EnableCompression bool     `protobuf:"varint,7,opt,name=enable_compression,json=enableCompression,proto3" json:"enable_compression,omitempty"`
-	FileCacheSizeMb   uint32   `protobuf:"varint,8,opt,name=file_cache_size_mb,json=fileCacheSizeMb,proto3" json:"file_cache_size_mb,omitempty"`
-	MaxActiveRequests uint32   `protobuf:"varint,9,opt,name=max_active_requests,json=maxActiveRequests,proto3" json:"max_active_requests,omitempty"`
-	TrustedProxies    []string `protobuf:"bytes,10,rep,name=trusted_proxies,json=trustedProxies,proto3" json:"trusted_proxies,omitempty"`
-	CdnIpHeader       string   `protobuf:"bytes,11,opt,name=cdn_ip_header,json=cdnIpHeader,proto3" json:"cdn_ip_header,omitempty"`
-	// Browser CORS allow list. Empty = only Origins matching domains.
-	// "*" = any origin. Supports host wildcards (*.pkg.one) and full origins.
-	CorsOrigins   []string `protobuf:"bytes,12,rep,name=cors_origins,json=corsOrigins,proto3" json:"cors_origins,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Host              string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Port              uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	SslEnabled        bool                   `protobuf:"varint,3,opt,name=ssl_enabled,json=sslEnabled,proto3" json:"ssl_enabled,omitempty"`
+	SslCertPath       string                 `protobuf:"bytes,4,opt,name=ssl_cert_path,json=sslCertPath,proto3" json:"ssl_cert_path,omitempty"`
+	SslKeyPath        string                 `protobuf:"bytes,5,opt,name=ssl_key_path,json=sslKeyPath,proto3" json:"ssl_key_path,omitempty"`
+	Domains           []string               `protobuf:"bytes,6,rep,name=domains,proto3" json:"domains,omitempty"`
+	EnableCompression bool                   `protobuf:"varint,7,opt,name=enable_compression,json=enableCompression,proto3" json:"enable_compression,omitempty"`
+	FileCacheSizeMb   uint32                 `protobuf:"varint,8,opt,name=file_cache_size_mb,json=fileCacheSizeMb,proto3" json:"file_cache_size_mb,omitempty"`
+	MaxActiveRequests uint32                 `protobuf:"varint,9,opt,name=max_active_requests,json=maxActiveRequests,proto3" json:"max_active_requests,omitempty"`
+	TrustedProxies    []string               `protobuf:"bytes,10,rep,name=trusted_proxies,json=trustedProxies,proto3" json:"trusted_proxies,omitempty"`
+	CdnIpHeader       string                 `protobuf:"bytes,11,opt,name=cdn_ip_header,json=cdnIpHeader,proto3" json:"cdn_ip_header,omitempty"`
+	CorsOrigins       []string               `protobuf:"bytes,12,rep,name=cors_origins,json=corsOrigins,proto3" json:"cors_origins,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {

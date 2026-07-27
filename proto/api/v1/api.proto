@@ -217,15 +217,12 @@ message ServerConfig {
   bool ssl_enabled = 3;
   string ssl_cert_path = 4;
   string ssl_key_path = 5;
-  // Public hostnames for this instance (CORS default allowlist, UI/metadata).
-  repeated string domains = 6;
+   repeated string domains = 6;
   bool enable_compression = 7;
   uint32 file_cache_size_mb = 8;
   uint32 max_active_requests = 9;
   repeated string trusted_proxies = 10;
   string cdn_ip_header = 11;
-  // Browser CORS allow list. Empty = only Origins matching domains.
-  // "*" = any origin. Supports host wildcards (*.pkg.one) and full origins.
   repeated string cors_origins = 12;
 }
 

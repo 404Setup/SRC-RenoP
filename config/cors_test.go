@@ -79,6 +79,25 @@ func TestIsOriginAllowedStarAndExtras(t *testing.T) {
 	}
 }
 
+func TestIsOriginAllowedCorsOriginsUnionsDomains(t *testing.T) {
+	s := DefaultServerConfig()
+	s.Domains = []string{"mvnc.pkg.one"}
+	s.CorsOrigins = []string{"https://partner.example.com"}
+
+	if !s.IsOriginAllowed("https://mvnc.pkg.one") {
+		t.Fatal("domains must still be allowed when cors_origins is non-empty")
+	}
+	if !s.IsOriginAllowed("http://mvnc.pkg.one:3000") {
+		t.Fatal("domain host match any scheme/port")
+	}
+	if !s.IsOriginAllowed("https://partner.example.com") {
+		t.Fatal("extra cors origin must be allowed")
+	}
+	if s.IsOriginAllowed("https://evil.example.com") {
+		t.Fatal("foreign origin must not be allowed")
+	}
+}
+
 func TestLegacyDomainYAML(t *testing.T) {
 	var s ServerConfig
 	err := yaml.Unmarshal([]byte(`
