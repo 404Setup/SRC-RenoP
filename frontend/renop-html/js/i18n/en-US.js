@@ -562,6 +562,9 @@ export default {
     "settings.rebuildFailed": "Failed to trigger index rebuild ({mode}).",
     "settings.savedSuccess": "Settings saved successfully!",
     "settings.saveFailed": "Failed to save settings.",
+    "settings.restartBtn": "Restart Renop",
+    "settings.restartBtnTitle": "Restart the Renop service",
+    "settings.confirmRestart": "Restart Renop now? The service will be briefly unavailable.",
 
     "repos.s3Endpoint": "Endpoint URL",
     "repos.s3EndpointHint": "e.g. https://<account>.r2.cloudflarestorage.com",

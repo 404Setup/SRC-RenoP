@@ -655,13 +655,30 @@ func ApplyUpdateAndRestart(newBinaryPath string) error {
 		_ = os.Chmod(currentExe, 0755)
 	}
 
+	return scheduleReexec(currentExe)
+}
+
+// RestartProcess re-executes the current binary without applying an update.
+// Used by Settings → Restart when no pending update package is ready.
+func RestartProcess() error {
+	currentExe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	currentExe, err = filepath.EvalSymlinks(currentExe)
+	if err != nil {
+		return err
+	}
+	return scheduleReexec(currentExe)
+}
+
+func scheduleReexec(exePath string) error {
 	_ = ants.Submit(func() {
 		time.Sleep(500 * time.Millisecond)
-		if err := reexecProcess(currentExe); err != nil {
-			log.Printf("[Updater] Failed to restart process after update: %v", err)
+		if err := reexecProcess(exePath); err != nil {
+			log.Printf("[Updater] Failed to restart process: %v", err)
 			os.Exit(1)
 		}
 	})
-
 	return nil
 }

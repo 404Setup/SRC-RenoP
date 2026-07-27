@@ -311,16 +311,18 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 		}
 
 		pending := pendingBinary.get()
-		if pending == "" {
-			return c.Status(fiber.StatusBadRequest).SendString("No update ready to install")
+		if pending != "" {
+			log.Print("[Updater] Restarting application to apply update...")
+			if err := ApplyUpdateAndRestart(pending); err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			}
+			return c.JSON(fiber.Map{"status": "restarting"})
 		}
 
-		log.Print("[Updater] Restarting application to apply update...")
-		err := ApplyUpdateAndRestart(pending)
-		if err != nil {
+		log.Print("[Updater] Restarting application...")
+		if err := RestartProcess(); err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
-
 		return c.JSON(fiber.Map{"status": "restarting"})
 	})
 }
