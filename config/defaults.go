@@ -81,6 +81,14 @@ func DefaultDomain() string {
 	return "localhost"
 }
 
+func DefaultDomains() []string {
+	return []string{DefaultDomain()}
+}
+
+func DefaultCorsOrigins() []string {
+	return []string{}
+}
+
 func DefaultTrustedProxies() []string {
 	// Loopback is always trusted in IsTrustedProxy; list extra reverse-proxy hops here
 	// (e.g. Docker bridge or a remote Caddy). Defaults stay empty so configs stay minimal.
@@ -123,7 +131,8 @@ func DefaultServerConfig() ServerConfig {
 		SslEnabled:        false,
 		SslCertPath:       "",
 		SslKeyPath:        "",
-		Domain:            "localhost",
+		Domains:           DefaultDomains(),
+		CorsOrigins:       DefaultCorsOrigins(),
 		EnableCompression: false,
 		FileCacheSizeMb:   100,
 		MaxActiveRequests: 2000,

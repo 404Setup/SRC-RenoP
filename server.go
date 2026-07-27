@@ -62,6 +62,7 @@ func main() {
 		ReadBufferSize:               8 * 1024,
 	})
 
+	app.Use(middleware.CorsMiddleware(state))
 	app.Use(middleware.AnomalyMiddleware(state))
 
 	opChan := make(chan token.TokenOp, 100)

@@ -103,12 +103,12 @@ func TestIsWebOnlyCommit(t *testing.T) {
 		subject string
 		want    bool
 	}{
-		{"[web] update homepage", true},
-		{"[Web] docs", true},
-		{"[WEB] i18n", true},
-		{"fix: not web", false},
-		{"prefix [web] middle", false},
-		{"", false},
+		{subject: "[web] update homepage", want: true},
+		{subject: "[Web] docs", want: true},
+		{subject: "[WEB] i18n", want: true},
+		{subject: "fix: not web", want: false},
+		{subject: "prefix [web] middle", want: false},
+		{subject: "", want: false},
 	}
 	for _, tc := range cases {
 		if got := isWebOnlyCommit(tc.subject); got != tc.want {

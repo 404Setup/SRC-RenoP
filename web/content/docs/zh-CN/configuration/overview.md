@@ -40,12 +40,27 @@ RenoP 将配置与状态保存在进程工作目录，路径可通过环境变�
 | `ssl_enabled`         | `false`           | 是否启用 TLS                                      |
 | `ssl_cert_path`       | `""`              | 证书路径                                          |
 | `ssl_key_path`        | `""`              | 私钥路径                                          |
-| `domain`              | `localhost`       | 对外域名（部分 UI/元数据）                        |
+| `domains`             | `[localhost]`     | 本实例对外主机名（UI/元数据 + 默认 CORS 白名单）  |
+| `cors_origins`        | `[]`              | 浏览器 CORS 允许列表（空 = 仅 `domains`；`*` = 全部） |
 | `enable_compression`  | `false`           | HTTP 压缩                                         |
 | `file_cache_size_mb`  | `100`             | 内存文件缓存（MB）                                |
 | `max_active_requests` | `2000`            | 并发请求上限（超限返回 503）                      |
 | `trusted_proxies`     | `[]`              | 额外可信反向代理 CIDR/IP（环回始终可信）          |
 | `cdn_ip_header`       | `X-Forwarded-For` | 可信代理后取真实 IP 的头（如 `CF-Connecting-IP`） |
+
+#### CORS（`server.cors_origins`）
+
+控制哪些浏览器 `Origin` 可以跨域访问本服务（会话 Cookie 使用 `Access-Control-Allow-Credentials`）。
+
+| 取值 | 效果 |
+|------|------|
+| *（空）* | 仅允许主机名匹配 `server.domains` 的 Origin（任意协议/端口） |
+| `*.pkg.one` | 根域 `pkg.one` 及其所有子域（如 `mvnc.pkg.one`） |
+| `https://app.example.com` | 精确匹配完整 Origin |
+| `partner.example.com` | 该主机名任意协议/端口 |
+| `*` | 允许任意来源 |
+
+旧配置中的单数 `domain: example.com` 仍可加载，并会迁移为 `domains: [example.com]`。
 
 修改 host、port 或 TLS 后需 **重启**进程。
 

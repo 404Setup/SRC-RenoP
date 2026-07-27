@@ -266,7 +266,7 @@ func TestFullServerUpdate(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Server.Port = 8080
-	cfg.Server.Domain = "myrepo.custom.com"
+	cfg.Server.Domains = []string{"myrepo.custom.com"}
 	cfg.Server.FileCacheSizeMb = 100
 	app, appState := setupSettingsTestApp(t, &cfg)
 
@@ -276,12 +276,13 @@ func TestFullServerUpdate(t *testing.T) {
 		SslEnabled:        cfg.Server.SslEnabled,
 		SslCertPath:       cfg.Server.SslCertPath,
 		SslKeyPath:        cfg.Server.SslKeyPath,
-		Domain:            "myrepo.custom.com",
+		Domains:           []string{"myrepo.custom.com", "cdn.myrepo.custom.com"},
 		EnableCompression: cfg.Server.EnableCompression,
 		FileCacheSizeMb:   256,
 		MaxActiveRequests: cfg.Server.MaxActiveRequests,
 		TrustedProxies:    append([]string(nil), cfg.Server.TrustedProxies...),
 		CdnIpHeader:       cfg.Server.CdnIpHeader,
+		CorsOrigins:       []string{"*.myrepo.custom.com", "https://partner.example.com"},
 	})
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
@@ -291,8 +292,11 @@ func TestFullServerUpdate(t *testing.T) {
 	if updatedCfg.Server.Port != 8080 {
 		t.Fatalf("expected Port to remain 8080, got %d", updatedCfg.Server.Port)
 	}
-	if updatedCfg.Server.Domain != "myrepo.custom.com" {
-		t.Fatalf("expected Domain to remain 'myrepo.custom.com', got %s", updatedCfg.Server.Domain)
+	if len(updatedCfg.Server.Domains) != 2 || updatedCfg.Server.Domains[0] != "myrepo.custom.com" {
+		t.Fatalf("expected Domains to be updated, got %v", updatedCfg.Server.Domains)
+	}
+	if len(updatedCfg.Server.CorsOrigins) != 2 {
+		t.Fatalf("expected CorsOrigins to be updated, got %v", updatedCfg.Server.CorsOrigins)
 	}
 	if updatedCfg.Server.FileCacheSizeMb != 256 {
 		t.Fatalf("expected FileCacheSizeMb to be updated to 256, got %d", updatedCfg.Server.FileCacheSizeMb)

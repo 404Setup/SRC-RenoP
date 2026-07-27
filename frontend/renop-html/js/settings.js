@@ -461,6 +461,26 @@ function renderServerSettings(container, data) {
     );
     const netFields = netSection.querySelector('.cfg-fields');
 
+    const domainsValue = Array.isArray(data.domains) ? data.domains.join(', ') : '';
+    const domainsInput = buildInput('text', domainsValue, 'e.g. mvnc.pkg.one, repo.example.com', e => {
+        const raw = e.target.value.trim();
+        currentConfig.domains = raw
+            ? raw.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+        enableSave();
+    });
+    netFields.appendChild(createFieldRow(t('settings.domains'), t('settings.domainsHint'), domainsInput));
+
+    const corsValue = Array.isArray(data.cors_origins) ? data.cors_origins.join(', ') : '';
+    const corsInput = buildInput('text', corsValue, 'e.g. *.pkg.one, https://app.example.com, *', e => {
+        const raw = e.target.value.trim();
+        currentConfig.cors_origins = raw
+            ? raw.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+        enableSave();
+    });
+    netFields.appendChild(createFieldRow(t('settings.corsOrigins'), t('settings.corsOriginsHint'), corsInput));
+
     const cdnInput = buildInput('text', data.cdn_ip_header, 'e.g. CF-Connecting-IP', e => {
         currentConfig.cdn_ip_header = e.target.value;
         enableSave();

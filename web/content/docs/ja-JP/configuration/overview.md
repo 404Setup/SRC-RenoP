@@ -40,7 +40,8 @@ RenoP は設定と状態をプロセスの作業ディレクトリに保存し�
 | `ssl_enabled`         | `false`           | TLS を有効化                                                           |
 | `ssl_cert_path`       | `""`              | TLS 有効時の証明書パス                                                 |
 | `ssl_key_path`        | `""`              | TLS 有効時の秘密鍵パス                                                 |
-| `domain`              | `localhost`       | 公開ドメイン名（一部 UI / メタデータ）                                 |
+| `domains`             | `[localhost]`     | 公開ホスト名（UI / メタデータ + 既定 CORS）                            |
+| `cors_origins`        | `[]`              | ブラウザ CORS 許可リスト（空 = `domains` のみ、`*` = すべて）          |
 | `enable_compression`  | `false`           | HTTP 応答圧縮                                                          |
 | `file_cache_size_mb`  | `100`             | メモリ上のファイルキャッシュサイズ（MB）                               |
 | `max_active_requests` | `2000`            | 同時リクエスト上限（超過時 503）                                       |
