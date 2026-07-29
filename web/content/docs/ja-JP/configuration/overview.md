@@ -43,8 +43,8 @@ description: 設定ファイル、サーバー設定、環境変数
 | `domains`             | `[localhost]`     | このインスタンスの公開ホスト名（UI / メタデータおよび既定 CORS）                 |
 | `cors_origins`        | `[]`              | ブラウザ CORS 許可リスト（空 = `domains` のみ、`*` = すべてのオリジン）          |
 | `enable_compression`  | `false`           | HTTP 応答圧縮を有効にするか                                                      |
-| `file_cache_size_mb`  | `100`             | メモリ上のファイルキャッシュサイズ（MB）                                         |
-| `max_active_requests` | `2000`            | 同時リクエスト上限（超過時は 503）                                               |
+| `file_cache_size_mb`  | `16`              | メモリ上のファイルキャッシュサイズ（MB）                                         |
+| `max_active_requests` | `512`             | 同時リクエスト上限（超過時は 503）                                               |
 | `trusted_proxies`     | `[]`              | 追加のリバースプロキシ CIDR/IP（ループバックは常に信頼）                         |
 | `cdn_ip_header`       | `X-Forwarded-For` | 信頼できるプロキシ背後でクライアント IP を読むヘッダー（例: `CF-Connecting-IP`） |
 

@@ -44,7 +44,7 @@ const (
 	MaxSessions = 256
 
 	// chunkIOBufSize is the pooled read buffer for streamed part bodies.
-	chunkIOBufSize = 512 * 1024
+	chunkIOBufSize = 128 * 1024
 
 	PurposeStorage = "storage"
 	PurposeUpdater = "updater"

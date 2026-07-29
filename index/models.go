@@ -209,8 +209,16 @@ func internString(s string) string {
 		return val
 	}
 	if pathInternSize.Load() >= 50000 {
-		pathInternPool = pb.MapOf[string, string]{}
-		pathInternSize.Store(0)
+		var evicted int64
+		pathInternPool.Range(func(k string, _ string) bool {
+			if _, loaded := pathInternPool.LoadAndDelete(k); loaded {
+				evicted++
+			}
+			return evicted < 5000
+		})
+		if evicted > 0 {
+			pathInternSize.Add(-evicted)
+		}
 	}
 	cloned := strings.Clone(s)
 	actual, loaded := pathInternPool.LoadOrStore(cloned, cloned)

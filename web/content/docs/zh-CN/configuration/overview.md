@@ -43,8 +43,8 @@ description: 配置文件、服务端设置与环境变量
 | `domains`             | `[localhost]`     | 本实例对外主机名（用于 UI/元数据，以及默认 CORS）           |
 | `cors_origins`        | `[]`              | 浏览器 CORS 允许列表（空 = 仅 `domains`；`*` = 全部）       |
 | `enable_compression`  | `false`           | 是否启用 HTTP 响应压缩                                      |
-| `file_cache_size_mb`  | `100`             | 内存文件缓存大小（MB）                                      |
-| `max_active_requests` | `2000`            | 并发请求上限（超限返回 503）                                |
+| `file_cache_size_mb`  | `16`              | 内存文件缓存大小（MB）                                      |
+| `max_active_requests` | `512`             | 并发请求上限（超限返回 503）                                |
 | `trusted_proxies`     | `[]`              | 额外可信反向代理的 CIDR/IP（环回地址始终可信）              |
 | `cdn_ip_header`       | `X-Forwarded-For` | 经可信代理后读取客户端 IP 的请求头（如 `CF-Connecting-IP`） |
 

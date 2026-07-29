@@ -34,11 +34,11 @@ For Cloudflare → Caddy → RenoP, set `cdn_ip_header` to `CF-Connecting-IP`. L
 
 | Setting                      | Default | Effect                     |
 |------------------------------|---------|----------------------------|
-| `server.max_active_requests` | `2000`  | Maximum in-flight requests |
+| `server.max_active_requests` | `512`   | Maximum in-flight requests |
 
 - Every request that enters the middleware is counted, including authenticated and static requests.
 - If the live count would exceed the cap, the middleware returns **`503 Service Unavailable`**.
-- A configured value of `0` is normalized to `2000` at load time. This field has no unlimited mode.
+- A configured value of `0` is normalized to `512` at load time. This field has no unlimited mode.
 
 Fiber’s own concurrency limit is set to the same value when the server starts.
 
@@ -50,7 +50,7 @@ Fiber’s own concurrency limit is set to the same value when the server starts.
 | Failure store TTL      | 5 min | Lifetime window for `AnomalyFailures` cache |
 
 **Counted as a failure:** after the handler returns, if the final status is **`401`** or **`403`**, the per-IP failure
-counter is incremented (8-byte little-endian value in cache).
+counter is incremented.
 
 **Ban behavior:**
 

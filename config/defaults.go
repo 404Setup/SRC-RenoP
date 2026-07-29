@@ -134,8 +134,8 @@ func DefaultServerConfig() ServerConfig {
 		Domains:           DefaultDomains(),
 		CorsOrigins:       DefaultCorsOrigins(),
 		EnableCompression: false,
-		FileCacheSizeMb:   100,
-		MaxActiveRequests: 2000,
+		FileCacheSizeMb:   16,
+		MaxActiveRequests: 512,
 		TrustedProxies:    []string{},
 		CdnIpHeader:       DefaultCdnIpHeader(),
 	}

@@ -12,16 +12,13 @@ package storage
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"github.com/allegro/bigcache/v3"
 	"github.com/gofiber/fiber/v3"
 
 	"renop/config"
@@ -39,13 +36,7 @@ func TestBinaryArtifactContentTypeOnFastPath(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(&cfg)
 	state.Inner.FileIndex = index.NewFileIndex()
-	var err error
-	cacheConfig := bigcache.DefaultConfig(time.Hour)
-	cacheConfig.HardMaxCacheSize = 16
-	state.Inner.FileCache, err = bigcache.New(context.Background(), cacheConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	state.Inner.FileCache = core.NewFileByteCache(16 << 20)
 	repo := cfg.Maven.Repositories["releases"]
 	repo.AllowRedeployment = true
 

@@ -44,8 +44,8 @@ Répertoire racine du stockage local des artefacts. Le chemin relatif par défau
 | `domains`             | `[localhost]`     | Noms d’hôte publics de l’instance (UI / métadonnées et CORS par défaut)         |
 | `cors_origins`        | `[]`              | Liste CORS navigateur (vide = `domains` uniquement ; `*` = toute origine)       |
 | `enable_compression`  | `false`           | Activer la compression des réponses HTTP                                        |
-| `file_cache_size_mb`  | `100`             | Taille du cache fichiers en mémoire (Mo)                                        |
-| `max_active_requests` | `2000`            | Nombre maximal de requêtes concurrentes (surcharge → 503)                       |
+| `file_cache_size_mb`  | `16`              | Taille du cache fichiers en mémoire (Mo)                                        |
+| `max_active_requests` | `512`             | Nombre maximal de requêtes concurrentes (surcharge → 503)                       |
 | `trusted_proxies`     | `[]`              | CIDR/IP de reverse proxies supplémentaires (loopback toujours de confiance)     |
 | `cdn_ip_header`       | `X-Forwarded-For` | En-tête d’IP client derrière un proxy de confiance (par ex. `CF-Connecting-IP`) |
 

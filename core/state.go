@@ -15,7 +15,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/allegro/bigcache/v3"
 	"github.com/fsnotify/fsnotify"
 	"github.com/llxisdsh/pb"
 
@@ -67,13 +66,12 @@ type AppStateInner struct {
 	IndexWatcher           *fsnotify.Watcher
 	IndexWatcherMutex      sync.Mutex
 	StartTime              int64
-	FileCache              *bigcache.BigCache
+	FileCache              *FileByteCache
 	MetadataCache          pb.MapOf[string, *config.Metadata]
 	MetadataCacheEntries   atomic.Uint64
 	MetadataCacheWriteLock sync.Mutex
 	InFlightDownloads      *InFlightManager
-	AnomalyRequests        *bigcache.BigCache
-	AnomalyFailures        *bigcache.BigCache
+	AnomalyFailures        *AnomalyFailureStore
 	ProxyClientSemaphore   chan struct{}
 }
 
@@ -85,9 +83,10 @@ func NewAppState() *AppState {
 	return &AppState{
 		Inner: &AppStateInner{
 			Config:               &atomic.Value{},
-			ProxyClientSemaphore: make(chan struct{}, 1000),
+			ProxyClientSemaphore: make(chan struct{}, 256),
 			StartTime:            time.Now().UnixMilli(),
 			InFlightDownloads:    NewInFlightManager(),
+			AnomalyFailures:      NewAnomalyFailureStore(),
 		},
 	}
 }

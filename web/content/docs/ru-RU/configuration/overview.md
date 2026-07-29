@@ -44,8 +44,8 @@ description: Файлы конфигурации, параметры серве�
 | `domains`             | `[localhost]`     | Публичные имена хостов экземпляра (UI / метаданные и CORS по умолчанию)     |
 | `cors_origins`        | `[]`              | Список CORS для браузера (пусто = только `domains`; `*` = любой origin)     |
 | `enable_compression`  | `false`           | Включить сжатие HTTP-ответов                                                |
-| `file_cache_size_mb`  | `100`             | Размер файлового кэша в памяти (МБ)                                         |
-| `max_active_requests` | `2000`            | Максимум одновременных запросов (при перегрузке — 503)                      |
+| `file_cache_size_mb`  | `16`              | Размер файлового кэша в памяти (МБ)                                         |
+| `max_active_requests` | `512`             | Максимум одновременных запросов (при перегрузке — 503)                      |
 | `trusted_proxies`     | `[]`              | Дополнительные CIDR/IP reverse proxy (loopback всегда считается доверенным) |
 | `cdn_ip_header`       | `X-Forwarded-For` | Заголовок IP клиента за доверенным прокси (например `CF-Connecting-IP`)     |
 

@@ -27,7 +27,6 @@ import (
 	"renop/core"
 	"renop/index"
 	"renop/updater"
-	"renop/utils"
 )
 
 const maxStatusSnapshots = 15
@@ -257,7 +256,8 @@ func StartStatusSnapshotScheduler(state *core.AppState, intervalDuration time.Du
 				OpenFiles:   0,
 			}
 
-			utils.ReleaseMemoryToOS()
+			// Do not call FreeOSMemory/TrimProcessWorkingSet on this path: forced scavenges
+			// thrash the heap and inflate private commit (dashboard VSS) without a lasting win.
 
 			for {
 				currentPtr := state.Inner.StatusSnapshots.Load()

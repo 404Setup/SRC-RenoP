@@ -104,10 +104,10 @@ func (s *ServerConfig) setDefaults() {
 		s.CorsOrigins = normalizeOriginPatterns(s.CorsOrigins)
 	}
 	if s.FileCacheSizeMb == 0 {
-		s.FileCacheSizeMb = 100
+		s.FileCacheSizeMb = 16
 	}
 	if s.MaxActiveRequests == 0 {
-		s.MaxActiveRequests = 2000
+		s.MaxActiveRequests = 512
 	}
 	if s.TrustedProxies == nil {
 		s.TrustedProxies = DefaultTrustedProxies()

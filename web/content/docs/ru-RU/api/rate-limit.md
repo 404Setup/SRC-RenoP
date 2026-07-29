@@ -34,11 +34,11 @@ category: API
 
 | Setting                      | Default | Effect                      |
 |------------------------------|---------|-----------------------------|
-| `server.max_active_requests` | `2000`  | Максимум in-flight запросов |
+| `server.max_active_requests` | `512`   | Максимум in-flight запросов |
 
 - Учитывается каждый запрос, входящий в middleware, включая authenticated и static.
 - Если текущий счётчик превысит cap, middleware возвращает **`503 Service Unavailable`**.
-- Значение `0` в конфигурации нормализуется в `2000` при загрузке. Unlimited mode для этого поля нет.
+- Значение `0` в конфигурации нормализуется в `512` при загрузке. Unlimited mode для этого поля нет.
 
 Concurrency limit Fiber выставляется в то же значение при старте сервера.
 
@@ -50,7 +50,7 @@ Concurrency limit Fiber выставляется в то же значение �
 | Failure store TTL      | 5 min | Окно жизни кэша `AnomalyFailures` |
 
 **Считается failure:** после возврата handler, если итоговый status — **`401`** или **`403`**, счётчик failures для IP
-увеличивается (8-байтовое little-endian значение в кэше).
+увеличивается.
 
 **Поведение бана:**
 

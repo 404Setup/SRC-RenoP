@@ -11,13 +11,11 @@
 package bootstrap
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/allegro/bigcache/v3"
 	"go.yaml.in/yaml/v3"
 
 	"renop/config"
@@ -80,12 +78,12 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	storage.InitS3(cfg)
 	javadocs.InitJavadocs(cfg)
 
-	concurrencyLimit := 2000
-	if cfg.Server.MaxActiveRequests > 0 && int(cfg.Server.MaxActiveRequests) < concurrencyLimit {
-		concurrencyLimit = int(cfg.Server.MaxActiveRequests)
+	concurrencyLimit := int(cfg.Server.MaxActiveRequests)
+	if concurrencyLimit <= 0 {
+		concurrencyLimit = 512
 	}
-	if concurrencyLimit < 1 {
-		concurrencyLimit = 1
+	if concurrencyLimit > 262144 {
+		concurrencyLimit = 262144
 	}
 	state.Inner.ProxyClientSemaphore = make(chan struct{}, concurrencyLimit)
 
@@ -118,22 +116,8 @@ func Initialize() (*core.AppState, BootstrapContext) {
 
 	state.Inner.FileIndex = fileIndex
 
-	cacheConfig := bigcache.DefaultConfig(1 * time.Hour)
-	cacheConfig.Shards = 8
-	cacheConfig.MaxEntriesInWindow = 1000
-	cacheConfig.MaxEntrySize = 256
-	cacheConfig.HardMaxCacheSize = int(cfg.Server.FileCacheSizeMb)
-	cache, err := bigcache.New(context.Background(), cacheConfig)
-	if err == nil {
-		state.Inner.FileCache = cache
-	}
-
-	anomalyFailsConfig := bigcache.DefaultConfig(5 * time.Minute)
-	anomalyFailsConfig.Shards = 4
-	anomalyFailsConfig.MaxEntriesInWindow = 500
-	anomalyFailsConfig.MaxEntrySize = 64
-	anomalyFailsCache, _ := bigcache.New(context.Background(), anomalyFailsConfig)
-	state.Inner.AnomalyFailures = anomalyFailsCache
+	// Lightweight size-capped map (starts empty — no bigcache shard preallocation).
+	state.Inner.FileCache = core.NewFileByteCache(int(cfg.Server.FileCacheSizeMb) << 20)
 
 	bootstrapCtx := BootstrapContext{
 		ConfigPath:   configPath,

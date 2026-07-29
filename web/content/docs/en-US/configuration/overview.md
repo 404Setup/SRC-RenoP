@@ -44,8 +44,8 @@ Root directory for local artifact storage. The default relative path is `storage
 | `domains`             | `[localhost]`     | Public hostnames for this instance (UI/metadata and default CORS)                 |
 | `cors_origins`        | `[]`              | Browser CORS allow list (empty = `domains` only; `*` = any origin)                |
 | `enable_compression`  | `false`           | Enable HTTP response compression                                                  |
-| `file_cache_size_mb`  | `100`             | In-memory file cache size (MB)                                                    |
-| `max_active_requests` | `2000`            | Maximum concurrent requests (overload returns 503)                                |
+| `file_cache_size_mb`  | `16`              | In-memory file cache size (MB)                                                    |
+| `max_active_requests` | `512`             | Maximum concurrent requests (overload returns 503)                                |
 | `trusted_proxies`     | `[]`              | Additional reverse-proxy CIDR/IP ranges (loopback is always trusted)              |
 | `cdn_ip_header`       | `X-Forwarded-For` | Header used for client IP behind a trusted proxy (for example `CF-Connecting-IP`) |
 

@@ -12,7 +12,6 @@ package middleware
 
 import (
 	"crypto/subtle"
-	"encoding/binary"
 	"errors"
 	"path"
 	"strings"
@@ -249,12 +248,9 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 
 		ip := utils.ExtractIP(c, &cfg.Server)
 
-		if failures, err := state.Inner.AnomalyFailures.Get(ip); err == nil && len(failures) >= 8 {
-			count := binary.LittleEndian.Uint64(failures[:8])
-			if count >= MaxFailuresPerMinute {
-				c.Set(fiber.HeaderConnection, "close")
-				return c.SendStatus(fiber.StatusForbidden)
-			}
+		if state.Inner.AnomalyFailures != nil && state.Inner.AnomalyFailures.Count(ip) >= MaxFailuresPerMinute {
+			c.Set(fiber.HeaderConnection, "close")
+			return c.SendStatus(fiber.StatusForbidden)
 		}
 
 		if !isVerifiedAuthenticatedRequest(c, state) {
@@ -275,14 +271,9 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 		}
 
 		if status == fiber.StatusUnauthorized || status == fiber.StatusForbidden {
-			var count uint64
-			if failures, getErr := state.Inner.AnomalyFailures.Get(ip); getErr == nil && len(failures) >= 8 {
-				count = binary.LittleEndian.Uint64(failures[:8])
+			if state.Inner.AnomalyFailures != nil {
+				state.Inner.AnomalyFailures.Increment(ip)
 			}
-			count++
-			var buf [8]byte
-			binary.LittleEndian.PutUint64(buf[:], count)
-			state.Inner.AnomalyFailures.Set(ip, buf[:])
 		}
 
 		return err

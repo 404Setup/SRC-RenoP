@@ -35,11 +35,11 @@ d’entrée dans `trusted_proxies`.
 
 | Réglage                      | Défaut | Effet                             |
 |------------------------------|--------|-----------------------------------|
-| `server.max_active_requests` | `2000` | Nombre maximal de requêtes en vol |
+| `server.max_active_requests` | `512`  | Nombre maximal de requêtes en vol |
 
 - Toute requête entrant dans le middleware est comptée, y compris les requêtes authentifiées et statiques.
 - Si le compteur en direct dépasserait le plafond, le middleware renvoie **`503 Service Unavailable`**.
-- Une valeur configurée de `0` est normalisée à `2000` au chargement. Ce champ n’offre pas de mode illimité.
+- Une valeur configurée de `0` est normalisée à `512` au chargement. Ce champ n’offre pas de mode illimité.
 
 La limite de concurrence de Fiber est alignée sur cette valeur au démarrage du serveur.
 
@@ -51,7 +51,7 @@ La limite de concurrence de Fiber est alignée sur cette valeur au démarrage du
 | Failure store TTL      | 5 min  | Fenêtre de vie du cache `AnomalyFailures` |
 
 **Compté comme failure :** après le retour du handler, si le statut final est **`401`** ou **`403`**, le compteur de
-failures par IP est incrémenté (valeur little-endian sur 8 octets en cache).
+failures par IP est incrémenté.
 
 **Comportement de ban :**
 

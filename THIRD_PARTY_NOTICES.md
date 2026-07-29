@@ -27,7 +27,6 @@ redistributed by RenoP. Reposilite is available under its own license (Apache-2.
 | Module                              | Version  | SPDX                                       | Copyright / notices                                                                                            |
 |-------------------------------------|----------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------|
 | `github.com/3JoB/unsafeConvert`     | v1.6.0   | Apache-2.0                                 | Authors of unsafeConvert                                                                                       |
-| `github.com/allegro/bigcache/v3`    | v3.1.0   | Apache-2.0                                 | Allegro and contributors                                                                                       |
 | `github.com/andybalholm/brotli`     | v1.2.2   | MIT                                        | Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors                                                      |
 | `github.com/cespare/xxhash/v2`      | v2.3.0   | MIT                                        | Copyright (c) 2016 Caleb Spare                                                                                 |
 | `github.com/dustin/go-humanize`     | v1.0.1   | MIT                                        | Copyright (c) 2005-2008 Dustin Sallings                                                                        |
