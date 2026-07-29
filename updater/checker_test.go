@@ -225,7 +225,7 @@ func TestCollectNightlyReleaseNotesFromCheckedLatestToCurrent(t *testing.T) {
 		ghCommit(olderFull, "chore: older history", "2026-07-22T10:00:00Z"),
 	}
 
-	notes, date := collectNightlyReleaseNotes(commits, "nightly-"+currFull[:7], latestFull)
+	notes, date := collectNightlyReleaseNotes(commits, "nightly-"+currFull[:7], latestFull, false)
 	if date != "2026-07-26T10:00:00Z" {
 		t.Fatalf("latest package date: got %q", date)
 	}
@@ -244,7 +244,7 @@ func TestCollectNightlyReleaseNotesStopsAtCurrentWithoutIncludingIt(t *testing.T
 		ghCommit(latest, "fix: latest", "2026-07-26T00:00:00Z"),
 		ghCommit(curr, "feat: current", "2026-07-23T00:00:00Z"),
 	}
-	notes, _ := collectNightlyReleaseNotes(commits, curr[:7], latest)
+	notes, _ := collectNightlyReleaseNotes(commits, curr[:7], latest, false)
 	if notes != "fix: latest" {
 		t.Fatalf("got %q", notes)
 	}
@@ -256,7 +256,7 @@ func TestCollectNightlyReleaseNotesEmptyWhenUpToDate(t *testing.T) {
 		ghCommit(sha, "fix: same", "2026-07-26T00:00:00Z"),
 		ghCommit("cccccccccccccccccccccccccccccccccccccccc", "older", "2026-07-20T00:00:00Z"),
 	}
-	notes, _ := collectNightlyReleaseNotes(commits, "nightly-"+sha[:7], sha)
+	notes, _ := collectNightlyReleaseNotes(commits, "nightly-"+sha[:7], sha, false)
 	if notes != "" {
 		t.Fatalf("expected empty notes when current==latest, got %q", notes)
 	}
@@ -269,7 +269,7 @@ func TestCollectNightlyReleaseNotesFallbackWhenLatestMissing(t *testing.T) {
 		ghCommit("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "feat: b", "2026-07-25T00:00:00Z"),
 		ghCommit(curr, "feat: current", "2026-07-23T00:00:00Z"),
 	}
-	notes, _ := collectNightlyReleaseNotes(commits, curr[:7], "ffffffffffffffffffffffffffffffffffffffff")
+	notes, _ := collectNightlyReleaseNotes(commits, curr[:7], "ffffffffffffffffffffffffffffffffffffffff", false)
 	want := "feat: a\nfeat: b"
 	if notes != want {
 		t.Fatalf("got %q want %q", notes, want)
@@ -290,7 +290,7 @@ func TestCollectNightlyReleaseNotesEmptyWhenCurrentAheadOfPackage(t *testing.T) 
 		ghCommit(olderFull, "chore: older history", "2026-07-22T10:00:00Z"),
 	}
 
-	notes, date := collectNightlyReleaseNotes(commits, "nightly-"+currFull[:7], latestFull)
+	notes, date := collectNightlyReleaseNotes(commits, "nightly-"+currFull[:7], latestFull, false)
 	if notes != "" {
 		t.Fatalf("expected empty notes when current is ahead of package, got %q", notes)
 	}
@@ -299,15 +299,25 @@ func TestCollectNightlyReleaseNotesEmptyWhenCurrentAheadOfPackage(t *testing.T) 
 	}
 }
 
-func TestCollectNightlyReleaseNotesEmptyWhenCurrentNotInWindow(t *testing.T) {
+func TestCollectNightlyReleaseNotesPartialWhenCurrentNotInWindow(t *testing.T) {
 	const latestFull = "cccccccccccccccccccccccccccccccccccccccc"
 	commits := []GithubCommitResponse{
 		ghCommit(latestFull, "fix: packaged latest", "2026-07-26T10:00:00Z"),
-		ghCommit("dddddddddddddddddddddddddddddddddddddddd", "chore: older", "2026-07-22T10:00:00Z"),
+		ghCommit("dddddddddddddddddddddddddddddddddddddddd", "feat: still in window", "2026-07-22T10:00:00Z"),
 	}
-	notes, _ := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull)
+	// Without GitHub existence confirmation, do not invent a partial changelog.
+	notes, _ := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull, false)
 	if notes != "" {
-		t.Fatalf("expected empty notes when current is not in the commit window, got %q", notes)
+		t.Fatalf("expected empty notes without existsOutside, got %q", notes)
+	}
+	// Stale install confirmed on GitHub: show partial window as changelog.
+	notes, date := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull, true)
+	if date != "2026-07-26T10:00:00Z" {
+		t.Fatalf("package date: got %q", date)
+	}
+	want := "fix: packaged latest\nfeat: still in window"
+	if notes != want {
+		t.Fatalf("notes=\n%q\nwant\n%q", notes, want)
 	}
 }
 
@@ -430,14 +440,14 @@ func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 		},
 	}
 	target := findTarget(info, "windows", "amd64")
-	if decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil) {
+	if decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, false) {
 		t.Fatal("must not report update when platform package is missing")
 	}
 	info.Targets = append(info.Targets, ChannelInfoTarget{
 		OS: "windows", Arch: "amd64", File: "win.zip", Size: 2,
 	})
 	target = findTarget(info, "windows", "amd64")
-	if !decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil) {
+	if !decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, false) {
 		t.Fatal("must report update when platform package exists and version differs")
 	}
 }
@@ -445,16 +455,16 @@ func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 func TestDecideHasUpdateSemver(t *testing.T) {
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	if decideHasUpdate("1.2.3", "1.2.3", "", target, nil) {
+	if decideHasUpdate("1.2.3", "1.2.3", "", target, nil, false) {
 		t.Fatal("same semver is not an update")
 	}
-	if !decideHasUpdate("1.2.3", "1.3.0", "", target, nil) {
+	if !decideHasUpdate("1.2.3", "1.3.0", "", target, nil, false) {
 		t.Fatal("newer semver is an update")
 	}
-	if decideHasUpdate("1.3.0", "1.2.3", "", target, nil) {
+	if decideHasUpdate("1.3.0", "1.2.3", "", target, nil, false) {
 		t.Fatal("older semver must not be treated as an update")
 	}
-	if decideHasUpdate("v1.3.0", "1.2.9", "", target, nil) {
+	if decideHasUpdate("v1.3.0", "1.2.9", "", target, nil, false) {
 		t.Fatal("older semver with v-prefix must not be an update")
 	}
 }
@@ -472,15 +482,15 @@ func TestDecideHasUpdateNightlyAheadOfStable(t *testing.T) {
 	}
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	if decideHasUpdate("nightly-"+nightlyAhead[:7], "0.0.1", stableCommit, target, commits) {
+	if decideHasUpdate("nightly-"+nightlyAhead[:7], "0.0.1", stableCommit, target, commits, false) {
 		t.Fatal("older stable must not be an update over a newer nightly")
 	}
-	if decideHasUpdate(nightlyAhead[:7], "v0.0.1", stableCommit, target, commits) {
+	if decideHasUpdate(nightlyAhead[:7], "v0.0.1", stableCommit, target, commits, false) {
 		t.Fatal("short sha nightly ahead of stable must not report update")
 	}
 
 	const olderNightly = "dddddddddddddddddddddddddddddddddddddddd"
-	if !decideHasUpdate("nightly-"+olderNightly[:7], "0.0.2", stableCommit, target, commits) {
+	if !decideHasUpdate("nightly-"+olderNightly[:7], "0.0.2", stableCommit, target, commits, false) {
 		t.Fatal("stable newer than running nightly should be an update")
 	}
 }
@@ -498,20 +508,20 @@ func TestDecideHasUpdateNightlyAheadOfPackage(t *testing.T) {
 	}
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	if decideHasUpdate("nightly-"+curr[:7], pkg[:7], pkg, target, commits) {
+	if decideHasUpdate("nightly-"+curr[:7], pkg[:7], pkg, target, commits, false) {
 		t.Fatal("current ahead of nightly package must not report update")
 	}
-	if !decideHasUpdate("nightly-"+older[:7], pkg[:7], pkg, target, commits) {
+	if !decideHasUpdate("nightly-"+older[:7], pkg[:7], pkg, target, commits, false) {
 		t.Fatal("package ahead of current must report update")
 	}
-	if decideHasUpdate("nightly-"+pkg[:7], pkg[:7], pkg, target, commits) {
+	if decideHasUpdate("nightly-"+pkg[:7], pkg[:7], pkg, target, commits, false) {
 		t.Fatal("same package commit is not an update")
 	}
 }
 
 func TestDecideHasUpdateCommitLikeWithoutGraph(t *testing.T) {
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
-	if decideHasUpdate("f306a38", "0.0.1", "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", target, nil) {
+	if decideHasUpdate("f306a38", "0.0.1", "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", target, nil, false) {
 		t.Fatal("commit-like current without graph must not assume stable is newer")
 	}
 }
@@ -557,8 +567,68 @@ func TestRemoteIsStrictlyNewer(t *testing.T) {
 	if !ok || newer {
 		t.Fatalf("equal: newer=%v ok=%v", newer, ok)
 	}
+	// Missing current is not decidable from the list alone — existence is probed separately.
 	_, ok = remoteIsStrictlyNewer(commits, "deadbee", newC)
 	if ok {
-		t.Fatal("missing current must not be ok")
+		t.Fatal("missing current must not be ok without existence proof")
+	}
+	_, ok = remoteIsStrictlyNewer(commits, oldC[:7], "ffffffffffffffffffff")
+	if ok {
+		t.Fatal("missing remote must not be ok")
+	}
+}
+
+func TestDecideHasUpdateCurrentOutsideCommitWindow(t *testing.T) {
+	const (
+		pkg = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		mid = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	)
+	commits := []GithubCommitResponse{
+		ghCommit(pkg, "fix: packaged", "2026-07-28T00:00:00Z"),
+		ghCommit(mid, "feat: mid", "2026-07-20T00:00:00Z"),
+	}
+	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
+
+	// Without existence confirmation, stay conservative.
+	if decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, commits, false) {
+		t.Fatal("outside window without existence proof must not report update")
+	}
+	// After GitHub confirms the running SHA still exists → stale install has an update.
+	if !decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, commits, true) {
+		t.Fatal("stale nightly confirmed on GitHub must report update")
+	}
+	if !decideHasUpdate("eeeeeee", "0.0.2", pkg, target, commits, true) {
+		t.Fatal("stale short-sha confirmed on GitHub must report update vs release package")
+	}
+	// Without a commit graph, keep the conservative no-update for commit-like IDs.
+	if decideHasUpdate("eeeeeee", "0.0.2", pkg, target, nil, true) {
+		t.Fatal("commit-like current without graph must not assume update")
+	}
+}
+
+func TestGithubCommitExistsStatusMapping(t *testing.T) {
+	// Route githubCommitExists through a local server by temporarily swapping
+	// the API base is not injectable; verify the helper's status switch via a
+	// thin local exercise of the same decision table.
+	cases := []struct {
+		code            int
+		wantExists      bool
+		wantChecked     bool
+	}{
+		{http.StatusOK, true, true},
+		{http.StatusNotFound, false, true},
+		{http.StatusUnprocessableEntity, false, true},
+		{http.StatusInternalServerError, false, false},
+		{http.StatusForbidden, false, false},
+	}
+	for _, tc := range cases {
+		exists, checked := mapGithubCommitStatus(tc.code)
+		if exists != tc.wantExists || checked != tc.wantChecked {
+			t.Fatalf("status %d: exists=%v checked=%v want exists=%v checked=%v",
+				tc.code, exists, checked, tc.wantExists, tc.wantChecked)
+		}
+	}
+	if exists, checked := githubCommitExists(context.Background(), ""); exists || checked {
+		t.Fatalf("empty sha must not probe: exists=%v checked=%v", exists, checked)
 	}
 }

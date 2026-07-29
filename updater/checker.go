@@ -187,7 +187,8 @@ func findCommitIndex(commits []GithubCommitResponse, id string) int {
 	return -1
 }
 
-// commitDateAt returns the committer/author date for commits[i], if present.
+const githubRepoAPI = "https://api.github.com/repos/404Setup/SRC-RenoP"
+
 func commitDateAt(commits []GithubCommitResponse, i int) string {
 	if i < 0 || i >= len(commits) {
 		return ""
@@ -199,9 +200,59 @@ func commitDateAt(commits []GithubCommitResponse, i int) string {
 	return c.Commit.Author.Date
 }
 
-// remoteIsStrictlyNewer reports whether remote identity is strictly newer than
-// currentVersion in a newest-first commit list. ok is false when either side
-// cannot be located, so the caller should fall back to another strategy.
+func githubCommitExists(ctx context.Context, sha string) (exists bool, checked bool) {
+	sha = strings.TrimSpace(sha)
+	if sha == "" {
+		return false, false
+	}
+	url := githubRepoAPI + "/commits/" + sha
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false, false
+	}
+	req.Header.Set("User-Agent", "RenoP-Updater")
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Close = true
+
+	resp, err := checkHTTPClient.Do(req)
+	if err != nil {
+		return false, false
+	}
+	defer utils.DrainAndClose(resp.Body)
+
+	return mapGithubCommitStatus(resp.StatusCode)
+}
+
+func mapGithubCommitStatus(statusCode int) (exists bool, checked bool) {
+	switch statusCode {
+	case http.StatusOK:
+		return true, true
+	case http.StatusNotFound, http.StatusUnprocessableEntity:
+		return false, true
+	default:
+		return false, false
+	}
+}
+
+func resolveCurrentCommit(ctx context.Context, current string, commits []GithubCommitResponse) (idx int, existsOutside bool, verified bool) {
+	curr := normalizeVersionID(current)
+	if curr == "" || curr == "dev" {
+		return -1, false, true
+	}
+	idx = findCommitIndex(commits, curr)
+	if idx >= 0 {
+		return idx, false, true
+	}
+	if !looksLikeCommitID(curr) {
+		return -1, false, true
+	}
+	exists, checked := githubCommitExists(ctx, curr)
+	if !checked {
+		return -1, false, false
+	}
+	return -1, exists, true
+}
+
 func remoteIsStrictlyNewer(commits []GithubCommitResponse, currentVersion, remoteCommit string) (newer, ok bool) {
 	remoteIdx := findCommitIndex(commits, strings.TrimSpace(remoteCommit))
 	if remoteIdx < 0 {
@@ -218,11 +269,7 @@ func remoteIsStrictlyNewer(commits []GithubCommitResponse, currentVersion, remot
 	return remoteIdx < currIdx, true
 }
 
-// collectNightlyReleaseNotes builds nightly release notes from commits ordered
-// newest-first. Notes cover the range from the latest packaged commit (inclusive)
-// down to the running version (exclusive). When the running commit is at or
-// ahead of the package, notes are empty (no downgrade changelog).
-func collectNightlyReleaseNotes(commits []GithubCommitResponse, currentVersion, latestCommit string) (notes string, latestDate string) {
+func collectNightlyReleaseNotes(commits []GithubCommitResponse, currentVersion, latestCommit string, currentExistsOutside bool) (notes string, latestDate string) {
 	curr := normalizeVersionID(currentVersion)
 	commitSha := strings.TrimSpace(latestCommit)
 
@@ -250,6 +297,11 @@ func collectNightlyReleaseNotes(commits []GithubCommitResponse, currentVersion, 
 	switch {
 	case currIdx > start:
 		end = currIdx
+	case currIdx < 0 && currentExistsOutside:
+		if !startFound {
+			start = 0
+			latestDate = commitDateAt(commits, start)
+		}
 	case currIdx < 0 && curr != "" && curr != "dev" && startFound:
 		return "", latestDate
 	case !startFound && currIdx >= 0:
@@ -295,7 +347,6 @@ func looksLikeCommitID(s string) bool {
 	return true
 }
 
-// versionsMatch reports whether the running binary identity matches a remote version/commit.
 func versionsMatch(curr, remoteVersion, remoteCommit string) bool {
 	curr = normalizeVersionID(curr)
 	if curr == "" {
@@ -320,10 +371,7 @@ func versionsMatch(curr, remoteVersion, remoteCommit string) bool {
 	return false
 }
 
-// decideHasUpdate decides whether remote is a real upgrade over current.
-// commits may be nil; when provided (newest-first), they resolve commit-order
-// cases such as nightly-ahead-of-stable or current-ahead-of-nightly-package.
-func decideHasUpdate(current, remoteVersion, remoteCommit string, target *ChannelInfoTarget, commits []GithubCommitResponse) bool {
+func decideHasUpdate(current, remoteVersion, remoteCommit string, target *ChannelInfoTarget, commits []GithubCommitResponse, currentExistsOutside bool) bool {
 	if target == nil {
 		return false
 	}
@@ -345,6 +393,9 @@ func decideHasUpdate(current, remoteVersion, remoteCommit string, target *Channe
 	if len(commits) > 0 {
 		if newer, ok := remoteIsStrictlyNewer(commits, current, remoteID); ok {
 			return newer
+		}
+		if currentExistsOutside && findCommitIndex(commits, remoteID) >= 0 {
+			return true
 		}
 	}
 
@@ -466,10 +517,14 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 	needCommitOrder := target != nil &&
 		!versionsMatch(version.Version, info.Version, commitSha) &&
 		!(looksLikeSemver(currN) && looksLikeSemver(remoteN))
+	currentExistsOutside := false
 	if needCommitOrder {
-		_, _ = doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=30", &commits)
+		_, _ = doGitHubJSON(checkCtx, githubRepoAPI+"/commits?sha=main&per_page=30", &commits)
+		if len(commits) > 0 {
+			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
+		}
 	}
-	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits)
+	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits, currentExistsOutside)
 
 	latestVersion := info.Version
 	if !strings.HasPrefix(latestVersion, "v") && looksLikeSemver(latestVersion) {
@@ -540,9 +595,11 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	var commits []GithubCommitResponse
 	releaseNotes := ""
 	commitDate := info.PublishedAt
-	if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
+	currentExistsOutside := false
+	if _, err := doGitHubJSON(checkCtx, githubRepoAPI+"/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
+		_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
 		var noteDate string
-		releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha)
+		releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha, currentExistsOutside)
 		if noteDate != "" {
 			commitDate = noteDate
 		}
@@ -550,7 +607,7 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	const maxNotes = 4 << 10
 	releaseNotes = clipString(releaseNotes, maxNotes)
 
-	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits)
+	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits, currentExistsOutside)
 
 	latestVersion := info.Version
 	if !strings.HasPrefix(latestVersion, "nightly-") {
