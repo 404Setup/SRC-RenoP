@@ -1,0 +1,158 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.modal {
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--modal-overlay);
+    backdrop-filter: blur(8px) saturate(180%);
+    -webkit-backdrop-filter: blur(8px) saturate(180%);
+    z-index: -1;
+    animation: backdropFadeIn 0.25s ease-out forwards;
+}
+
+.modal-content {
+    position: relative;
+    z-index: 1001;
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    border: 1px solid var(--modal-border);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    padding: 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 1rem;
+    box-sizing: border-box;
+    animation: modalFadeIn 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.close-btn {
+    position: absolute;
+    right: 1.25rem;
+    top: 1.1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 1.25rem;
+    line-height: 1;
+    opacity: 0.6;
+    transition: background-color 0.2s, opacity 0.2s, transform 0.2s;
+    z-index: 20;
+}
+
+.close-btn:hover {
+    background-color: var(--modal-close-hover);
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+.modal-header {
+    flex-shrink: 0;
+    padding: 1.25rem 1.75rem 1rem 1.75rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 655;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.modal-subtitle {
+    color: var(--text-color);
+    font-size: 0.875rem;
+    opacity: 0.75;
+    margin: 4px 0 0;
+}
+
+.modal-body {
+    flex: 0 1 auto;
+    overflow-y: auto;
+    padding: 1.25rem 1.75rem;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes modalFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(15px) scale(0.97);
+    }
+}
+
+@keyframes backdropFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0) saturate(100%);
+        -webkit-backdrop-filter: blur(0) saturate(100%);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(8px) saturate(180%);
+        -webkit-backdrop-filter: blur(8px) saturate(180%);
+    }
+}
+
+@keyframes backdropFadeOut {
+    from {
+        opacity: 1;
+        backdrop-filter: blur(8px) saturate(180%);
+        -webkit-backdrop-filter: blur(8px) saturate(180%);
+    }
+    to {
+        opacity: 0;
+        backdrop-filter: blur(0) saturate(100%);
+        -webkit-backdrop-filter: blur(0) saturate(100%);
+    }
+}

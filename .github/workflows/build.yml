@@ -80,7 +80,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: frontend/renop-html/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install protoc
         uses: ./.github/actions/setup-protoc
         with:

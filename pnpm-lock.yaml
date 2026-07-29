@@ -6,8 +6,13 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  frontend/renop-html:
     dependencies:
+      '@renop/ui':
+        specifier: workspace:*
+        version: link:../../packages/renop-ui
       protobufjs:
         specifier: ^8.7.1
         version: 8.7.1
@@ -18,6 +23,24 @@ importers:
       protobufjs-cli:
         specifier: ^2.6.1
         version: 2.6.1(protobufjs@8.7.1)
+      rolldown:
+        specifier: ^1.2.0
+        version: 1.2.0
+
+  packages/renop-ui: {}
+
+  web:
+    dependencies:
+      '@renop/ui':
+        specifier: workspace:*
+        version: link:../packages/renop-ui
+      marked:
+        specifier: ^15.0.12
+        version: 15.0.12
+    devDependencies:
+      lightningcss:
+        specifier: ^1.33.0
+        version: 1.33.0
       rolldown:
         specifier: ^1.2.0
         version: 1.2.0
@@ -357,6 +380,11 @@ packages:
 
   markdown-it@14.3.0:
     resolution: {integrity: sha512-RCEsPjR+sr0x+AuYp601tKTkgFG4YEPLCzHST3cQ/fhlJkqAkz1L2/Qbp1j9qw5SBwQHFBoW8+hoN5xssOF0Tw==}
+    hasBin: true
+
+  marked@15.0.12:
+    resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
+    engines: {node: '>= 18'}
     hasBin: true
 
   marked@4.0.10:
@@ -704,6 +732,8 @@ snapshots:
       mdurl: 2.1.0
       punycode.js: 2.3.1
       uc.micro: 2.1.0
+
+  marked@15.0.12: {}
 
   marked@4.0.10: {}
 

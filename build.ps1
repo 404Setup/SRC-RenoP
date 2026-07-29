@@ -161,10 +161,10 @@ function Build-FrontendAssets {
     }
 
     Write-Host 'Building frontend assets (protobuf + Rolldown JS + CSS)...'
-    Push-Location $frontendDir
-    try {
-        if (-not (Test-Path -LiteralPath (Join-Path $frontendDir 'node_modules'))) {
-            if (Test-Path -LiteralPath (Join-Path $frontendDir 'pnpm-lock.yaml')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $frontendDir 'node_modules'))) {
+        Push-Location $repositoryRoot
+        try {
+            if (Test-Path -LiteralPath (Join-Path $repositoryRoot 'pnpm-lock.yaml')) {
                 & pnpm install --frozen-lockfile
             } else {
                 & pnpm install
@@ -172,7 +172,13 @@ function Build-FrontendAssets {
             if ($LASTEXITCODE -ne 0) {
                 throw "pnpm install failed with exit code $LASTEXITCODE."
             }
+        } finally {
+            Pop-Location
         }
+    }
+
+    Push-Location $frontendDir
+    try {
         & pnpm run build
         if ($LASTEXITCODE -ne 0) {
             throw "frontend pnpm run build failed with exit code $LASTEXITCODE."

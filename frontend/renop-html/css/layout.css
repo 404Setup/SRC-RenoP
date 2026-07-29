@@ -10,4 +10,5 @@
 
 @import "./layout/base.css";
 @import "./layout/navigation.css";
+@import "../../../packages/renop-ui/css/theme.css";
 @import "./layout/structure.css";

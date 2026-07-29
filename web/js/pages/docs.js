@@ -11,7 +11,7 @@
 import { t, getDocsLocale } from '../i18n.js';
 import { el, clear } from '../lib/dom.js';
 import { renderMarkdown } from '../lib/markdown.js';
-import { morphElementHeight, prefersReducedMotion } from '../lib/height-anim.js';
+import { morphElementHeight, prefersReducedMotion } from '@renop/ui/height-anim';
 
 let indexCache = null;
 let tocObserver = null;
@@ -385,7 +385,7 @@ function applyNodes(container, nodes) {
 
 /**
  * Swap children and morph height like the product frontend file list
- * (`morphElementHeight` in renop-html browser/utils.js).
+ * (`morphElementHeight` from `@renop/ui/height-anim`).
  * Soft navigations animate; first paint / hard mount skips height tween.
  * @param {HTMLElement|null|undefined} container
  * @param {Array<Node|null|undefined>} nodes - New children.

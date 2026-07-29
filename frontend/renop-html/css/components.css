@@ -20,7 +20,8 @@
 @import "./components/code-badge.css";
 @import "./components/file-card.css";
 @import "./components/upload-entry.css";
-@import "./components/lang-card.css";
+@import "../../../packages/renop-ui/css/components/lang-card.css";
+@import "../../../packages/renop-ui/css/components/lang-btn.css";
 @import "./components/chart-bar.css";
 @import "./components/tab.css";
 @import "./components/misc.css";

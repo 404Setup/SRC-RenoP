@@ -8,15 +8,6 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-/*
- * Height morph animations (ported from frontend/renop-html browser/utils.js).
- * Used when content swaps would otherwise snap layout height.
- *
- * Shrink animations use the Web Animations API when available — CSS
- * `height` transitions are unreliable when going from tall → short after a
- * DOM swap (browser may skip the transition or measure incorrectly).
- */
-
 const HEIGHT_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const heightAnimTokens = new WeakMap();
 
@@ -33,7 +24,7 @@ export function prefersReducedMotion() {
 /**
  * Bump the per-element animation generation token so older animations can self-abort.
  * @param {HTMLElement} el
- * @returns {number} New token for this element.
+ * @returns {number}
  */
 function nextHeightAnimToken(el) {
     const token = (heightAnimTokens.get(el) || 0) + 1;
@@ -44,7 +35,7 @@ function nextHeightAnimToken(el) {
 /**
  * @param {HTMLElement} el
  * @param {number} token
- * @returns {boolean} True if `token` is still the latest for `el`.
+ * @returns {boolean}
  */
 function isHeightAnimCurrent(el, token) {
     return heightAnimTokens.get(el) === token;
@@ -68,7 +59,7 @@ function clearHeightInlineStyles(el) {
  * Measure an element's natural (content) height, restoring prior inline height.
  * Forces `height: auto` so shrink targets are not stuck on a previous locked height.
  * @param {HTMLElement|null|undefined} el
- * @returns {number} Content height in CSS pixels.
+ * @returns {number}
  */
 export function measureNaturalHeight(el) {
     if (!el) return 0;
@@ -89,7 +80,7 @@ export function measureNaturalHeight(el) {
 /**
  * Lock current height so later content swaps don't jump the layout.
  * @param {HTMLElement|null|undefined} el
- * @returns {number} Locked height in CSS pixels, or 0 if `el` is missing.
+ * @returns {number}
  */
 export function lockElementHeight(el) {
     if (!el) return 0;
@@ -124,13 +115,10 @@ function cancelWaapi(el) {
  * Animate element height from its current locked/computed height to the natural
  * height of its current content. Optionally run `mutate` before measuring.
  * Works for both grow and shrink. Prefers the Web Animations API; falls back to CSS transitions.
- * @param {HTMLElement|null|undefined} el - Element to animate (no-op morph if missing; `mutate` still runs).
- * @param {(() => void)|null|undefined} mutate - DOM mutation run after locking start height.
+ * @param {HTMLElement|null|undefined} el
+ * @param {(() => void)|null|undefined} mutate
  * @param {{ duration?: number, easing?: string, alsoOpacity?: boolean }} [options]
- * @param {number} [options.duration=340] - Animation duration in ms.
- * @param {string} [options.easing] - CSS easing string.
- * @param {boolean} [options.alsoOpacity=false] - Also fade opacity to 1 during the morph.
- * @returns {Promise<void>} Resolves when the animation finishes or is superseded.
+ * @returns {Promise<void>}
  */
 export function morphElementHeight(el, mutate, {
     duration = 340,
@@ -172,12 +160,12 @@ export function morphElementHeight(el, mutate, {
     if (typeof el.animate === 'function') {
         const keyframes = alsoOpacity
             ? [
-                { height: `${from}px`, opacity: el.style.opacity || '1' },
-                { height: `${to}px`, opacity: '1' },
+                {height: `${from}px`, opacity: el.style.opacity || '1'},
+                {height: `${to}px`, opacity: '1'},
             ]
             : [
-                { height: `${from}px` },
-                { height: `${to}px` },
+                {height: `${from}px`},
+                {height: `${to}px`},
             ];
 
         let anim;
@@ -194,7 +182,6 @@ export function morphElementHeight(el, mutate, {
         if (anim) {
             return new Promise((resolve) => {
                 let settled = false;
-                /** Settle WAAPI morph: lock end height, cancel animation, clear styles. */
                 const finish = () => {
                     if (settled) return;
                     settled = true;
@@ -208,6 +195,7 @@ export function morphElementHeight(el, mutate, {
                     try {
                         anim.cancel();
                     } catch {
+                        /* ignore */
                     }
                     requestAnimationFrame(() => {
                         if (!isHeightAnimCurrent(el, token)) {
@@ -242,7 +230,6 @@ export function morphElementHeight(el, mutate, {
 
     return new Promise((resolve) => {
         let settled = false;
-        /** Settle CSS-transition morph and clear listeners. */
         const finish = () => {
             if (settled) return;
             settled = true;
@@ -275,5 +262,167 @@ export function morphElementHeight(el, mutate, {
             });
         });
         setTimeout(finish, duration + 80);
+    });
+}
+
+/**
+ * Expand a previously hidden block (display:none) with height + opacity.
+ * `mutate` runs while the element is measurable but still collapsed.
+ * @param {HTMLElement|null|undefined} el
+ * @param {{ duration?: number, easing?: string, marginTop?: string, mutate?: (() => void) }} [options]
+ * @returns {Promise<void>}
+ */
+export function expandElement(el, {
+    duration = 360,
+    easing = HEIGHT_EASE,
+    marginTop = '',
+    mutate,
+} = {}) {
+    if (!el) return Promise.resolve();
+
+    const token = nextHeightAnimToken(el);
+    cancelWaapi(el);
+
+    if (typeof mutate === 'function') mutate();
+
+    if (prefersReducedMotion()) {
+        el.hidden = false;
+        el.style.display = 'block';
+        el.classList.add('is-visible');
+        clearHeightInlineStyles(el);
+        return Promise.resolve();
+    }
+
+    el.hidden = false;
+    el.style.display = 'block';
+    el.style.overflow = 'hidden';
+    el.style.height = '0px';
+    el.style.opacity = '0';
+    if (marginTop) el.style.marginTop = '0px';
+    void el.offsetHeight;
+
+    const to = measureNaturalHeight(el);
+    el.classList.add('is-visible');
+
+    const props = [
+        `height ${duration}ms ${easing}`,
+        `opacity ${Math.min(duration, 280)}ms ease`,
+    ];
+    if (marginTop) props.push(`margin-top ${duration}ms ${easing}`);
+    el.style.transition = props.join(', ');
+
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            el.removeEventListener('transitionend', onEnd);
+            if (!isHeightAnimCurrent(el, token)) {
+                resolve();
+                return;
+            }
+            clearHeightInlineStyles(el);
+            resolve();
+        };
+        /** @param {TransitionEvent} e */
+        const onEnd = (e) => {
+            if (e.target === el && e.propertyName === 'height') finish();
+        };
+        el.addEventListener('transitionend', onEnd);
+        requestAnimationFrame(() => {
+            if (!isHeightAnimCurrent(el, token)) {
+                finish();
+                return;
+            }
+            el.style.height = `${to}px`;
+            el.style.opacity = '1';
+            if (marginTop) el.style.marginTop = marginTop;
+        });
+        setTimeout(finish, duration + 60);
+    });
+}
+
+/**
+ * Collapse an element to height 0, then set display:none.
+ * @param {HTMLElement|null|undefined} el
+ * @param {{ duration?: number, easing?: string, marginTop?: boolean }} [options]
+ * @returns {Promise<void>}
+ */
+export function collapseElement(el, {
+    duration = 300,
+    easing = HEIGHT_EASE,
+    marginTop = true,
+} = {}) {
+    if (!el) return Promise.resolve();
+
+    const token = nextHeightAnimToken(el);
+    cancelWaapi(el);
+
+    const computed = getComputedStyle(el);
+    const isHidden = el.hidden
+        || el.style.display === 'none'
+        || computed.display === 'none';
+
+    if (isHidden && !el.classList.contains('is-visible')) {
+        el.classList.remove('is-visible');
+        el.hidden = true;
+        el.style.display = 'none';
+        return Promise.resolve();
+    }
+
+    if (prefersReducedMotion()) {
+        el.classList.remove('is-visible');
+        el.hidden = true;
+        el.style.display = 'none';
+        clearHeightInlineStyles(el);
+        return Promise.resolve();
+    }
+
+    const from = el.getBoundingClientRect().height;
+    const fromMargin = computed.marginTop;
+    el.style.overflow = 'hidden';
+    el.style.height = `${from}px`;
+    el.style.opacity = '1';
+    if (marginTop) el.style.marginTop = fromMargin;
+    el.classList.remove('is-visible');
+    void el.offsetHeight;
+
+    const props = [
+        `height ${duration}ms ${easing}`,
+        `opacity ${Math.min(duration, 240)}ms ease`,
+    ];
+    if (marginTop) props.push(`margin-top ${duration}ms ${easing}`);
+    el.style.transition = props.join(', ');
+
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            el.removeEventListener('transitionend', onEnd);
+            if (!isHeightAnimCurrent(el, token)) {
+                resolve();
+                return;
+            }
+            el.hidden = true;
+            el.style.display = 'none';
+            clearHeightInlineStyles(el);
+            resolve();
+        };
+        /** @param {TransitionEvent} e */
+        const onEnd = (e) => {
+            if (e.target === el && e.propertyName === 'height') finish();
+        };
+        el.addEventListener('transitionend', onEnd);
+        requestAnimationFrame(() => {
+            if (!isHeightAnimCurrent(el, token)) {
+                finish();
+                return;
+            }
+            el.style.height = '0px';
+            el.style.opacity = '0';
+            if (marginTop) el.style.marginTop = '0px';
+        });
+        setTimeout(finish, duration + 60);
     });
 }

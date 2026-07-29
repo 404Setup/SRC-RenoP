@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {closeModalWithAnim} from '@renop/ui/modal';
 import {t, translateError} from '../i18n.js';
 import {el} from '../cfg-ui.js';
 import {createIcon, ICONS} from './icon.js';
@@ -264,27 +265,21 @@ export class RenopDialog extends HTMLElement {
      * @returns {void}
      */
     close(result) {
-        if (this._isClosing) return;
+        if (this._isClosing || this.dataset.isClosing === 'true') return;
         this._isClosing = true;
         if (this._handleEsc) {
             document.removeEventListener('keydown', this._handleEsc);
         }
 
-        if (this._modalContent && this._backdrop) {
-            this._modalContent.style.animation = 'modalFadeOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards';
-            this._backdrop.style.animation = 'backdropFadeOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards';
-        }
-
-        setTimeout(() => {
-            this.style.display = 'none';
+        closeModalWithAnim(this, () => {
             this.classList.remove('visible');
             if (this._options.destroyOnClose !== false && this.parentNode) {
                 this.parentNode.removeChild(this);
             }
-            if (window.updateModalInertState) window.updateModalInertState();
             if (this._options.onClose) this._options.onClose(result);
             if (this._resolve) this._resolve(result);
-        }, 200);
+            this._isClosing = false;
+        });
     }
 }
 

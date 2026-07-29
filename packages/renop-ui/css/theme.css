@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.theme-btn .sun-icon {
+    display: none;
+}
+
+.theme-btn .moon-icon {
+    display: block;
+}
+
+html.dark .theme-btn .sun-icon {
+    display: block;
+}
+
+html.dark .theme-btn .moon-icon {
+    display: none;
+}
+
+.theme-btn .theme-icon {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+}
+
+.theme-btn--switching .theme-icon {
+    animation: theme-icon-spin 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes theme-icon-spin {
+    0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    40% {
+        transform: scale(0.5) rotate(90deg);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(0.5) rotate(-60deg);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.theme-transition-overlay {
+    position: fixed;
+    top: var(--ripple-y, 50%);
+    left: var(--ripple-x, 50%);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: var(--theme-transition-color, #f3f4f6);
+    z-index: 99999;
+    pointer-events: none;
+    will-change: transform, opacity;
+    animation: theme-ripple-expand 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes theme-ripple-expand {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0.85;
+    }
+    55% {
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(40);
+        opacity: 0;
+    }
+}

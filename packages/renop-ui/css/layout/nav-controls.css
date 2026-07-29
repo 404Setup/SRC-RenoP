@@ -1,0 +1,96 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.top-nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.nav-controls-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+    background-color: var(--card-bg);
+    border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
+    border-radius: 9999px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+    padding: 0.22rem;
+    max-width: 100%;
+}
+
+.nav-controls-group button,
+.nav-controls-group .nav-github-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 0.4rem 0.8rem;
+    border-radius: 9999px;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.nav-controls-group button:hover,
+.nav-controls-group .nav-github-btn:hover {
+    background-color: color-mix(in srgb, var(--text-color) 6%, transparent);
+    color: var(--text-color);
+}
+
+.nav-controls-group button:active {
+    transform: scale(0.97);
+}
+
+.nav-controls-group .theme-btn,
+.nav-controls-group .icon-btn,
+.nav-controls-group .nav-github-btn {
+    width: 2.05rem;
+    height: 2.05rem;
+    min-width: 2.05rem;
+    padding: 0;
+    color: color-mix(in srgb, var(--text-color) 75%, transparent);
+}
+
+.nav-controls-group .theme-btn:hover,
+.nav-controls-group .icon-btn:hover,
+.nav-controls-group .nav-github-btn:hover {
+    color: var(--text-color);
+    background-color: color-mix(in srgb, var(--text-color) 7%, transparent);
+}
+
+.nav-controls-group .divider {
+    width: 1px;
+    height: 1.1rem;
+    background-color: color-mix(in srgb, var(--border-color) 90%, transparent);
+    margin: 0 0.15rem;
+    flex-shrink: 0;
+}
+
+/* Compact language control on narrow viewports (apps may tighten further). */
+@media (max-width: 800px) {
+    .lang-btn .current-lang-name,
+    .lang-btn .chevron-icon {
+        display: none !important;
+    }
+
+    .lang-btn {
+        padding: 0.4rem 0.5rem !important;
+    }
+}

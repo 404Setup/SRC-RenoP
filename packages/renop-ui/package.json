@@ -1,0 +1,30 @@
+{
+  "name": "@renop/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared UI primitives for RenoP web and frontend",
+  "exports": {
+    ".": "./js/index.js",
+    "./theme": "./js/theme.js",
+    "./height-anim": "./js/height-anim.js",
+    "./dom": "./js/dom.js",
+    "./lang-card": "./js/lang-card.js",
+    "./modal": "./js/modal.js",
+    "./scroll": "./js/scroll.js",
+    "./tabs": "./js/tabs.js",
+    "./i18n-util": "./js/i18n-util.js",
+    "./css/tokens.css": "./css/tokens.css",
+    "./css/theme.css": "./css/theme.css",
+    "./css/base.css": "./css/base.css",
+    "./css/layout/nav-controls.css": "./css/layout/nav-controls.css",
+    "./css/components/lang-card.css": "./css/components/lang-card.css",
+    "./css/components/lang-btn.css": "./css/components/lang-btn.css",
+    "./css/components/modal.css": "./css/components/modal.css",
+    "./css/components/tabs.css": "./css/components/tabs.css"
+  },
+  "files": [
+    "js",
+    "css"
+  ]
+}

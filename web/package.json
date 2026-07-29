@@ -19,6 +19,7 @@
     "rolldown": "^1.2.0"
   },
   "dependencies": {
+    "@renop/ui": "workspace:*",
     "marked": "^15.0.12"
   }
 }

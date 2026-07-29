@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {initTheme} from './theme.js';
+import {initTheme} from '@renop/ui/theme';
 import {cachedIsLoggedIn, cachedIsManager, initializeSession, setSwitchTabHandler} from './auth.js';
 import {initI18n, t} from './i18n.js';
 import {RenopDialog} from './components.js';

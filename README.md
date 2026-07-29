@@ -72,34 +72,10 @@ pwsh ./build.ps1 c nb            # current platform, no archive
 pwsh ./build.ps1 -Version v1.2.3 -Development false
 ```
 
-The `nb` suffix writes binaries directly to the directory where the script was started and skips ZIP and manifest
-generation. Full Git hashes are shortened to seven characters in archive names; the binary and manifest keep the full
-hash.
-
-The build script first generates Protocol Buffer code, then runs `pnpm run build` in `frontend/renop-html`
-(protobuf static modules + Rolldown for JS, lightningcss for CSS into `frontend/renop-html/dist`), then embeds those
-assets and builds with `CGO_ENABLED=0`, restoring the previous CGO setting afterward. It does not change `GOCACHE`,
-`GOMODCACHE`, `GOMODULE`, or any Go module path.
-
-**Protobuf** (partial API transport): schemas live under `proto/api/v1/`. At compile time:
-
-- Go: `protoc` + `protoc-gen-go` → `pb/api.pb.go` (requires `protoc` on `PATH`)
-- Frontend: `pbjs` (protobufjs-cli) → `frontend/renop-html/js/proto/api.js`
-
-Selected UI APIs use `application/x-protobuf` instead of JSON (status, auth login/me, tokens list, maven
-repositories/details). Other endpoints remain JSON.
-
-To rebuild only the frontend (or before a plain `go build` / `go test`):
-
 ```powershell
-# regenerate Go pb code (from repo root)
 protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto
-# or: go generate ./pb
-
-cd frontend/renop-html
-pnpm install --frozen-lockfile   # or: pnpm install
-pnpm run build
-# or from repo root:
+pnpm install --frozen-lockfile
+pnpm --filter renop-html build
 go generate ./frontend
 ```
 

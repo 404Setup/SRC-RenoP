@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {el} from '@renop/ui/dom';
 import {t} from './i18n.js';
 import {
     createFieldRow as buildFieldRow,
@@ -16,28 +17,7 @@ import {
     createToggleRow as buildToggleRow
 } from './components.js';
 
-/**
- * Creates a DOM element with optional props and children (lightweight hyperscript helper).
- * @param {string} tag - HTML tag name.
- * @param {Object.<string, *>} [props={}] - Attributes/properties; `class` sets className, `style` objects are assigned, `on*` functions become listeners.
- * @param {...(Node|string|null|undefined)} children - Child nodes or text strings (nullish skipped).
- * @returns {HTMLElement} The created element.
- */
-export function el(tag, props = {}, ...children) {
-
-    const node = document.createElement(tag);
-    for (const [k, v] of Object.entries(props)) {
-        if (k === 'class') node.className = v;
-        else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
-        else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
-        else node[k] = v;
-    }
-    for (const child of children) {
-        if (child == null) continue;
-        node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
-    }
-    return node;
-}
+export {el};
 
 export const makeCfgToggle = createToggle;
 
@@ -657,7 +637,7 @@ export function createSection(iconSvg, title, subtitle, options = {}) {
     section.appendChild(body);
 
     const originalAppendChild = section.appendChild.bind(section);
-    section.appendChild = function(child) {
+    section.appendChild = function (child) {
         if (child === header || child === body) {
             return originalAppendChild(child);
         }

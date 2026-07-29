@@ -56,61 +56,6 @@
     background-color: var(--link-hover-color);
 }
 
-.lang-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0.4rem 0.75rem;
-    height: 36px;
-    border-radius: 8px;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-sizing: border-box;
-    overflow: hidden;
-    white-space: nowrap;
-    will-change: width;
-}
-
-.lang-btn.is-animating {
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.lang-btn:hover {
-    border-color: var(--link-hover-color);
-    background-color: var(--item-hover-bg);
-    color: var(--link-hover-color);
-}
-
-.lang-btn .current-lang-name {
-    display: inline-block;
-    line-height: 1;
-    font-size: 0.825rem;
-    transition: opacity 0.12s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity, transform;
-}
-
-.lang-btn .current-lang-name.lang-name-changing {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.92);
-}
-
-.lang-btn .current-lang-name.lang-name-changed {
-    animation: langNameFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 .pill-btn.is-pressing {
     transform: scale(0.96);
     filter: brightness(0.9);

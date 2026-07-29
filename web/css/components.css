@@ -10,6 +10,7 @@
 
 @import "./components/button.css";
 @import "./components/dialog.css";
-@import "./components/lang-card.css";
+@import "../../packages/renop-ui/css/components/lang-card.css";
+@import "../../packages/renop-ui/css/components/lang-btn.css";
 @import "./components/tab.css";
 @import "./components/custom-select.css";

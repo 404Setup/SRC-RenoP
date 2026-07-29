@@ -20,7 +20,15 @@ import koKR from './i18n/ko-KR.js';
 import ruRU from './i18n/ru-RU.js';
 import esES from './i18n/es-ES.js';
 import ptPT from './i18n/pt-PT.js';
-import {createLangCard} from './components.js';
+import {createLangCard} from '@renop/ui/lang-card';
+import {bindModalChrome} from '@renop/ui/modal';
+import {
+    animateLangButtonLabel,
+    detectLanguage as detectLanguageShared,
+    matchLocaleKey,
+    syncLangCardsActive,
+    translateKey,
+} from '@renop/ui/i18n-util';
 
 const STORAGE_KEY = 'renop_language';
 const DEFAULT_LANG = 'en-US';
@@ -131,56 +139,14 @@ export function getLanguageDetails() {
  * @returns {void}
  */
 function updateLanguageUI() {
-    const currentLangNameEl = document.getElementById('current-lang-name');
-    const langBtn = document.getElementById('lang-btn');
     const details = languageDetails[currentLang] || languageDetails[DEFAULT_LANG];
     const newName = details ? details.name : currentLang;
-
-    if (currentLangNameEl) {
-        const oldName = currentLangNameEl.textContent.trim();
-
-        if (oldName && oldName !== newName && langBtn && document.readyState !== 'loading') {
-            const startWidth = langBtn.getBoundingClientRect().width;
-
-            langBtn.style.width = `${startWidth}px`;
-            langBtn.classList.add('is-animating');
-            currentLangNameEl.classList.add('lang-name-changing');
-
-            setTimeout(() => {
-                currentLangNameEl.textContent = newName;
-
-                langBtn.style.width = 'auto';
-                const targetWidth = langBtn.getBoundingClientRect().width;
-
-                langBtn.style.width = `${startWidth}px`;
-                void langBtn.offsetWidth;
-
-                langBtn.style.width = `${targetWidth}px`;
-                currentLangNameEl.classList.remove('lang-name-changing');
-                currentLangNameEl.classList.add('lang-name-changed');
-
-                setTimeout(() => {
-                    langBtn.style.width = '';
-                    langBtn.classList.remove('is-animating');
-                    currentLangNameEl.classList.remove('lang-name-changed');
-                }, 300);
-            }, 120);
-        } else {
-            currentLangNameEl.textContent = newName;
-        }
-    }
-
-    const grid = document.getElementById('language-grid');
-    if (grid) {
-        grid.querySelectorAll('.lang-card').forEach(card => {
-            const lKey = card.getAttribute('data-lang');
-            if (lKey === currentLang) {
-                card.classList.add('active');
-            } else {
-                card.classList.remove('active');
-            }
-        });
-    }
+    animateLangButtonLabel({
+        nameEl: document.getElementById('current-lang-name'),
+        btn: document.getElementById('lang-btn'),
+        newName,
+    });
+    syncLangCardsActive(document.getElementById('language-grid'), currentLang);
 }
 
 /**
@@ -189,33 +155,7 @@ function updateLanguageUI() {
  * @returns {string|null} Matched registry key, or null if unsupported.
  */
 function resolveLanguage(lang) {
-    if (!lang || typeof lang !== 'string') return null;
-    const clean = lang.trim();
-
-    for (const key of Object.keys(languages)) {
-        if (key.toLowerCase() === clean.toLowerCase()) {
-            return key;
-        }
-    }
-
-    const cleanLower = clean.toLowerCase();
-
-    if (cleanLower.startsWith('zh') || cleanLower.startsWith('yue')) {
-        if (cleanLower.includes('yue') || cleanLower.includes('cantonese')) return 'zh-YUE';
-        if (cleanLower.includes('hk')) return 'zh-HK';
-        if (cleanLower.includes('tw') || cleanLower.includes('hant')) return 'zh-TW';
-        if (cleanLower.includes('cn') || cleanLower.includes('hans') || cleanLower.includes('sg')) return 'zh-CN';
-        return 'zh-CN';
-    }
-
-    const base = clean.split('-')[0].toLowerCase();
-    for (const key of Object.keys(languages)) {
-        if (key.toLowerCase().startsWith(base)) {
-            return key;
-        }
-    }
-
-    return null;
+    return matchLocaleKey(lang, languages);
 }
 
 /**
@@ -223,28 +163,11 @@ function resolveLanguage(lang) {
  * @returns {{lang: string, source: 'localStorage'|'browser'|'fallback'}} Detected language and source.
  */
 function detectLanguage() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-        const resolved = resolveLanguage(saved);
-        if (resolved) {
-            return {lang: resolved, source: 'localStorage'};
-        }
-    }
-
-    const browserLangs = (navigator.languages && navigator.languages.length)
-        ? navigator.languages
-        : [navigator.language];
-
-    for (const bLang of browserLangs) {
-        if (bLang) {
-            const resolved = resolveLanguage(bLang);
-            if (resolved) {
-                return {lang: resolved, source: 'browser'};
-            }
-        }
-    }
-
-    return {lang: DEFAULT_LANG, source: 'fallback'};
+    return detectLanguageShared({
+        storageKey: STORAGE_KEY,
+        defaultLang: DEFAULT_LANG,
+        resolve: resolveLanguage,
+    });
 }
 
 /**
@@ -254,16 +177,10 @@ function detectLanguage() {
  * @returns {string} Translated (and interpolated) string.
  */
 export function t(key, params = {}) {
-    const dict = languages[currentLang] || languages[DEFAULT_LANG] || {};
-    let text = dict[key] || languages[DEFAULT_LANG]?.[key] || key;
-
-    if (typeof text === 'string' && params && typeof params === 'object') {
-        for (const [pKey, pVal] of Object.entries(params)) {
-            text = text.replace(new RegExp(`\\{${pKey}\\}`, 'g'), pVal);
-        }
-    }
-
-    return text;
+    return translateKey(key, params, {
+        current: languages[currentLang] || {},
+        fallback: languages[DEFAULT_LANG] || {},
+    });
 }
 
 const ERROR_KEY_MAP = {
@@ -484,11 +401,8 @@ export function initI18n() {
     };
 
     const setupLanguageModal = () => {
-        const langBtn = document.getElementById('lang-btn');
-        const langModal = document.getElementById('language-modal');
-        const langBackdrop = document.getElementById('language-backdrop');
-        const closeBtn = document.getElementById('btn-close-language-modal');
         const langGrid = document.getElementById('language-grid');
+        let closeModal = () => {};
 
         if (langGrid && langGrid.children.length === 0) {
             getAvailableLanguages().forEach(code => {
@@ -507,56 +421,16 @@ export function initI18n() {
             });
         }
 
-        const openModal = () => {
-            if (langModal) {
-                if (langModal.dataset.isClosing === 'true') return;
-                const backdrop = langModal.querySelector('.modal-backdrop');
-                const content = langModal.querySelector('.modal-content');
-                if (backdrop) backdrop.style.animation = 'backdropFadeIn 0.25s ease-out forwards';
-                if (content) content.style.animation = 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards';
-                langModal.style.display = 'flex';
-                if (typeof window.updateModalInertState === 'function') {
-                    window.updateModalInertState();
-                }
-                updateLanguageUI();
-            }
-        };
-
-        const closeModal = () => {
-            if (!langModal || langModal.style.display === 'none' || langModal.dataset.isClosing === 'true') return;
-            langModal.dataset.isClosing = 'true';
-            const backdrop = langModal.querySelector('.modal-backdrop');
-            const content = langModal.querySelector('.modal-content');
-
-            if (backdrop) backdrop.style.animation = 'backdropFadeOut 0.2s ease-out forwards';
-            if (content) content.style.animation = 'modalFadeOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards';
-
-            setTimeout(() => {
-                langModal.style.display = 'none';
-                if (backdrop) backdrop.style.animation = '';
-                if (content) content.style.animation = '';
-                langModal.dataset.isClosing = 'false';
-                if (typeof window.updateModalInertState === 'function') {
-                    window.updateModalInertState();
-                }
-            }, 180);
-        };
-
-        if (langBtn) {
-            langBtn.addEventListener('click', openModal);
-        }
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closeModal);
-        }
-        if (langBackdrop) {
-            langBackdrop.addEventListener('click', closeModal);
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && langModal && langModal.style.display === 'flex') {
-                closeModal();
-            }
+        const chrome = bindModalChrome({
+            modal: document.getElementById('language-modal'),
+            openTriggers: [document.getElementById('lang-btn')],
+            closeTriggers: [
+                document.getElementById('btn-close-language-modal'),
+                document.getElementById('language-backdrop'),
+            ],
+            onOpen: () => updateLanguageUI(),
         });
+        if (chrome) closeModal = chrome.close;
 
         const langSelect = document.getElementById('lang-select');
         if (langSelect) {

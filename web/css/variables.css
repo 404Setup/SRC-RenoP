@@ -8,61 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-:root {
-    --bg-color: #f3f4f6;
-    --text-color: #111827;
-    --header-bg: #f3f4f6;
-    --card-bg: #ffffff;
-    --link-color: #111827;
-    --link-hover-color: #3b82f6;
-    --border-color: #e5e7eb;
-    --item-hover-bg: #e5e7eb;
-    --snippet-bg: #f3f4f6;
-    --modal-overlay: rgba(15, 23, 42, 0.3);
-    --modal-close-hover: rgba(0, 0, 0, 0.05);
-    --modal-border: rgba(0, 0, 0, 0.08);
-    --success-color: #16a34a;
-    --muted: color-mix(in srgb, var(--text-color) 62%, transparent);
-}
-
-html.dark {
-    --bg-color: #000000;
-    --text-color: #f9fafb;
-    --header-bg: #000000;
-    --card-bg: #1f2937;
-    --link-color: #f9fafb;
-    --link-hover-color: #60a5fa;
-    --border-color: #374151;
-    --item-hover-bg: #374151;
-    --snippet-bg: #111827;
-    --modal-overlay: rgba(0, 0, 0, 0.5);
-    --modal-close-hover: rgba(255, 255, 255, 0.1);
-    --modal-border: rgba(255, 255, 255, 0.08);
-    --success-color: #4ade80;
-}
-
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--text-color) 30%, transparent);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--text-color) 40%, transparent);
-}
-
-html.dark img.header-logo,
-html.dark .nav-logo {
-    filter: invert(1);
-}
+@import url("../../packages/renop-ui/css/tokens.css");
 
 html.dark .primary-btn,
 html.dark .pill-btn--primary {
@@ -73,27 +19,4 @@ html.dark .pill-btn--primary {
 html.dark .primary-btn:hover:not(:disabled),
 html.dark .pill-btn--primary:hover:not(:disabled) {
     background-color: #1d4ed8;
-}
-
-@media (prefers-color-scheme: dark) {
-    html:not(.light) {
-        --bg-color: #000000;
-        --text-color: #f9fafb;
-        --header-bg: #000000;
-        --card-bg: #1f2937;
-        --link-color: #f9fafb;
-        --link-hover-color: #60a5fa;
-        --border-color: #374151;
-        --item-hover-bg: #374151;
-        --snippet-bg: #111827;
-        --modal-overlay: rgba(0, 0, 0, 0.5);
-        --modal-close-hover: rgba(255, 255, 255, 0.1);
-        --modal-border: rgba(255, 255, 255, 0.08);
-        --success-color: #4ade80;
-    }
-
-    html:not(.light) img.header-logo,
-    html:not(.light) .nav-logo {
-        filter: invert(1);
-    }
 }

@@ -16,6 +16,7 @@
     "rolldown": "^1.2.0"
   },
   "dependencies": {
+    "@renop/ui": "workspace:*",
     "protobufjs": "^8.7.1"
   }
 }

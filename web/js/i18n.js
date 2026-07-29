@@ -13,7 +13,15 @@ import zhCN from './i18n/zh-CN.js';
 import jaJP from './i18n/ja-JP.js';
 import ruRU from './i18n/ru-RU.js';
 import frFR from './i18n/fr-FR.js';
-import {createLangCard} from './components/lang-card.js';
+import {createLangCard} from '@renop/ui/lang-card';
+import {bindModalChrome, configureModalInert} from '@renop/ui/modal';
+import {
+    animateLangButtonLabel,
+    detectLanguage as detectLanguageShared,
+    matchLocaleKey,
+    syncLangCardsActive,
+    translateKey,
+} from '@renop/ui/i18n-util';
 
 const STORAGE_KEY = 'renop_web_language';
 const DEFAULT_LANG = 'en-US';
@@ -78,69 +86,25 @@ export function getCurrentLang() {
  * @returns {string}
  */
 export function t(key, params = {}) {
-    const dict = languages[currentLang] || languages[DEFAULT_LANG] || {};
-    let text = dict[key] || languages[DEFAULT_LANG]?.[key] || key;
-
-    if (typeof text === 'string' && params && typeof params === 'object') {
-        for (const [pKey, pVal] of Object.entries(params)) {
-            text = text.replace(new RegExp(`\\{${pKey}\\}`, 'g'), String(pVal));
-        }
-    }
-    return text;
+    return translateKey(key, params, {
+        current: languages[currentLang] || {},
+        fallback: languages[DEFAULT_LANG] || {},
+    });
 }
 
 /**
  * Sync the language button label and modal active card with `currentLang`.
- * Animates the button width when the display name changes after first paint.
  * @returns {void}
  */
 function updateLanguageUI() {
-    const currentLangNameEl = document.getElementById('current-lang-name');
-    const langBtn = document.getElementById('lang-btn');
     const details = languageDetails[currentLang] || languageDetails[DEFAULT_LANG];
     const newName = details ? details.name : currentLang;
-
-    if (currentLangNameEl) {
-        const oldName = currentLangNameEl.textContent.trim();
-
-        if (oldName && oldName !== newName && langBtn && document.readyState !== 'loading') {
-            const startWidth = langBtn.getBoundingClientRect().width;
-
-            langBtn.style.width = `${startWidth}px`;
-            langBtn.classList.add('is-animating');
-            currentLangNameEl.classList.add('lang-name-changing');
-
-            setTimeout(() => {
-                currentLangNameEl.textContent = newName;
-
-                langBtn.style.width = 'auto';
-                const targetWidth = langBtn.getBoundingClientRect().width;
-
-                langBtn.style.width = `${startWidth}px`;
-                void langBtn.offsetWidth;
-
-                langBtn.style.width = `${targetWidth}px`;
-                currentLangNameEl.classList.remove('lang-name-changing');
-                currentLangNameEl.classList.add('lang-name-changed');
-
-                setTimeout(() => {
-                    langBtn.style.width = '';
-                    langBtn.classList.remove('is-animating');
-                    currentLangNameEl.classList.remove('lang-name-changed');
-                }, 300);
-            }, 120);
-        } else {
-            currentLangNameEl.textContent = newName;
-        }
-    }
-
-    const grid = document.getElementById('language-grid');
-    if (grid) {
-        grid.querySelectorAll('.lang-card').forEach((card) => {
-            const lKey = card.getAttribute('data-lang');
-            card.classList.toggle('active', lKey === currentLang);
-        });
-    }
+    animateLangButtonLabel({
+        nameEl: document.getElementById('current-lang-name'),
+        btn: document.getElementById('lang-btn'),
+        newName,
+    });
+    syncLangCardsActive(document.getElementById('language-grid'), currentLang);
 }
 
 /**
@@ -206,28 +170,14 @@ export function updatePageTranslations() {
  * @returns {string|null} Primary code, or null if unrecognized.
  */
 function resolveLanguage(lang) {
-    if (!lang || typeof lang !== 'string') return null;
-    const clean = lang.trim();
-    const cleanLower = clean.toLowerCase();
-
-    for (const key of Object.keys(languages)) {
-        if (key.toLowerCase() === cleanLower) {
-            if (key === 'en' || key === 'en-US') return 'en-US';
-            if (key.startsWith('zh') || key.startsWith('yue')) return 'zh-CN';
-            if (key === 'ja' || key === 'ja-JP') return 'ja-JP';
-            if (key === 'ru' || key === 'ru-RU') return 'ru-RU';
-            if (key === 'fr' || key === 'fr-FR') return 'fr-FR';
-            if (languageDetails[key]) return key;
-        }
-    }
-
-    if (cleanLower.startsWith('zh') || cleanLower.startsWith('yue')) return 'zh-CN';
-    if (cleanLower.startsWith('ja')) return 'ja-JP';
-    if (cleanLower.startsWith('ru')) return 'ru-RU';
-    if (cleanLower.startsWith('fr')) return 'fr-FR';
-    if (cleanLower.startsWith('en')) return 'en-US';
-
-    return null;
+    const matched = matchLocaleKey(lang, languages);
+    if (!matched) return null;
+    if (matched === 'en' || matched === 'en-US') return 'en-US';
+    if (matched.startsWith('zh') || matched.startsWith('yue')) return 'zh-CN';
+    if (matched === 'ja' || matched === 'ja-JP') return 'ja-JP';
+    if (matched === 'ru' || matched === 'ru-RU') return 'ru-RU';
+    if (matched === 'fr' || matched === 'fr-FR') return 'fr-FR';
+    return languageDetails[matched] ? matched : null;
 }
 
 /**
@@ -235,22 +185,15 @@ function resolveLanguage(lang) {
  * @returns {string} Primary language code.
  */
 function detectLanguage() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-        const resolved = resolveLanguage(saved);
-        if (resolved && languageDetails[resolved]) return resolved;
-    }
-
-    const browserLangs = navigator.languages?.length
-        ? navigator.languages
-        : [navigator.language];
-
-    for (const bLang of browserLangs) {
-        if (!bLang) continue;
-        const resolved = resolveLanguage(bLang);
-        if (resolved && languageDetails[resolved]) return resolved;
-    }
-    return DEFAULT_LANG;
+    const {lang} = detectLanguageShared({
+        storageKey: STORAGE_KEY,
+        defaultLang: DEFAULT_LANG,
+        resolve: (raw) => {
+            const resolved = resolveLanguage(raw);
+            return resolved && languageDetails[resolved] ? resolved : null;
+        },
+    });
+    return lang;
 }
 
 /**
@@ -267,6 +210,9 @@ export function setLanguage(lang) {
     window.dispatchEvent(new CustomEvent('languageChanged', {detail: {lang: primary}}));
     return primary;
 }
+
+/** Closes the language modal (wired in `initI18n`). */
+let closeLanguageModal = () => {};
 
 /**
  * Rebuild language-selection cards inside `#language-grid`.
@@ -294,26 +240,6 @@ function populateLanguageGrid() {
 }
 
 /**
- * Show the language picker modal.
- * @returns {void}
- */
-function openLanguageModal() {
-    const modal = document.getElementById('language-modal');
-    if (!modal) return;
-    populateLanguageGrid();
-    modal.style.display = 'flex';
-}
-
-/**
- * Hide the language picker modal.
- * @returns {void}
- */
-function closeLanguageModal() {
-    const modal = document.getElementById('language-modal');
-    if (modal) modal.style.display = 'none';
-}
-
-/**
  * Detect language, apply translations, wire modal controls, and expose `window.setLanguage` / `getLanguage`.
  * @returns {void}
  */
@@ -323,12 +249,25 @@ export function initI18n() {
         currentLang = DEFAULT_LANG;
     }
 
+    configureModalInert({
+        modalIds: ['language-modal'],
+        rootSelectors: ['#app', '.top-nav', 'main'],
+        installGlobal: true,
+    });
+
     updatePageTranslations();
     populateLanguageGrid();
 
-    document.getElementById('lang-btn')?.addEventListener('click', openLanguageModal);
-    document.getElementById('btn-close-language-modal')?.addEventListener('click', closeLanguageModal);
-    document.getElementById('language-backdrop')?.addEventListener('click', closeLanguageModal);
+    const chrome = bindModalChrome({
+        modal: document.getElementById('language-modal'),
+        openTriggers: [document.getElementById('lang-btn')],
+        closeTriggers: [
+            document.getElementById('btn-close-language-modal'),
+            document.getElementById('language-backdrop'),
+        ],
+        onOpen: () => populateLanguageGrid(),
+    });
+    if (chrome) closeLanguageModal = chrome.close;
 
     window.setLanguage = setLanguage;
     window.getLanguage = () => ({current: currentLang, available: getAvailableLanguages()});

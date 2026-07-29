@@ -8,7 +8,29 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import "./layout/base.css";
-@import "./layout/navigation.css";
-@import "../../packages/renop-ui/css/theme.css";
-@import "./layout/structure.css";
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+}
+
+a {
+    -webkit-user-drag: none;
+    color: var(--link-color);
+}
+
+a:hover {
+    color: var(--link-hover-color);
+}
+
+img, svg {
+    -webkit-user-select: none;
+    user-select: none;
+}
