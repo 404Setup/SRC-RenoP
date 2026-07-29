@@ -34,6 +34,7 @@ type FileByteCache struct {
 type fileCacheShard struct {
 	mu      sync.RWMutex
 	entries map[string][]byte
+
 	// order is a FIFO of keys for eviction. May contain stale keys after Delete;
 	// those are skipped and compacted lazily.
 	order []string

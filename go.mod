@@ -4,6 +4,7 @@ go 1.26.5
 
 require (
 	github.com/3JoB/unsafeConvert v1.6.0
+	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/goccy/go-json v0.10.6
 	github.com/gofiber/fiber/v3 v3.4.0
@@ -21,7 +22,6 @@ require (
 )
 
 require (
-	github.com/allegro/bigcache/v3 v3.1.0 // indirect
 	github.com/andybalholm/brotli v1.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

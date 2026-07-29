@@ -305,12 +305,10 @@ func TestCollectNightlyReleaseNotesPartialWhenCurrentNotInWindow(t *testing.T) {
 		ghCommit(latestFull, "fix: packaged latest", "2026-07-26T10:00:00Z"),
 		ghCommit("dddddddddddddddddddddddddddddddddddddddd", "feat: still in window", "2026-07-22T10:00:00Z"),
 	}
-	// Without GitHub existence confirmation, do not invent a partial changelog.
 	notes, _ := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull, false)
 	if notes != "" {
 		t.Fatalf("expected empty notes without existsOutside, got %q", notes)
 	}
-	// Stale install confirmed on GitHub: show partial window as changelog.
 	notes, date := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull, true)
 	if date != "2026-07-26T10:00:00Z" {
 		t.Fatalf("package date: got %q", date)
@@ -567,7 +565,6 @@ func TestRemoteIsStrictlyNewer(t *testing.T) {
 	if !ok || newer {
 		t.Fatalf("equal: newer=%v ok=%v", newer, ok)
 	}
-	// Missing current is not decidable from the list alone — existence is probed separately.
 	_, ok = remoteIsStrictlyNewer(commits, "deadbee", newC)
 	if ok {
 		t.Fatal("missing current must not be ok without existence proof")
@@ -589,37 +586,31 @@ func TestDecideHasUpdateCurrentOutsideCommitWindow(t *testing.T) {
 	}
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	// Without existence confirmation, stay conservative.
 	if decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, commits, false) {
 		t.Fatal("outside window without existence proof must not report update")
 	}
-	// After GitHub confirms the running SHA still exists → stale install has an update.
 	if !decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, commits, true) {
 		t.Fatal("stale nightly confirmed on GitHub must report update")
 	}
 	if !decideHasUpdate("eeeeeee", "0.0.2", pkg, target, commits, true) {
 		t.Fatal("stale short-sha confirmed on GitHub must report update vs release package")
 	}
-	// Without a commit graph, keep the conservative no-update for commit-like IDs.
 	if decideHasUpdate("eeeeeee", "0.0.2", pkg, target, nil, true) {
 		t.Fatal("commit-like current without graph must not assume update")
 	}
 }
 
 func TestGithubCommitExistsStatusMapping(t *testing.T) {
-	// Route githubCommitExists through a local server by temporarily swapping
-	// the API base is not injectable; verify the helper's status switch via a
-	// thin local exercise of the same decision table.
 	cases := []struct {
-		code            int
-		wantExists      bool
-		wantChecked     bool
+		code        int
+		wantExists  bool
+		wantChecked bool
 	}{
-		{http.StatusOK, true, true},
-		{http.StatusNotFound, false, true},
-		{http.StatusUnprocessableEntity, false, true},
-		{http.StatusInternalServerError, false, false},
-		{http.StatusForbidden, false, false},
+		{code: http.StatusOK, wantExists: true, wantChecked: true},
+		{code: http.StatusNotFound, wantExists: false, wantChecked: true},
+		{code: http.StatusUnprocessableEntity, wantExists: false, wantChecked: true},
+		{code: http.StatusInternalServerError, wantExists: false, wantChecked: false},
+		{code: http.StatusForbidden, wantExists: false, wantChecked: false},
 	}
 	for _, tc := range cases {
 		exists, checked := mapGithubCommitStatus(tc.code)
