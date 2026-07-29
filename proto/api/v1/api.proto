@@ -109,17 +109,14 @@ message InstanceStatus {
   int32 physical_cores = 15;
   uint64 failures_count = 16;
   UpdateState update_state = 17;
-  // vss_memory is process VSS in bytes (commit charge on Windows; VMS on Linux).
   uint64 vss_memory = 18;
 }
 
 message StatusSnapshot {
   int64 timestamp = 1;
-  // used_memory is process RSS in bytes.
   uint64 used_memory = 2;
   uint64 used_threads = 3;
   uint64 open_files = 4;
-  // vss_memory is process VSS in bytes.
   uint64 vss_memory = 5;
 }
 

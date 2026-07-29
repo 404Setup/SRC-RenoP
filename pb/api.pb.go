@@ -824,10 +824,9 @@ type InstanceStatus struct {
 	PhysicalCores    int32        `protobuf:"varint,15,opt,name=physical_cores,json=physicalCores,proto3" json:"physical_cores,omitempty"`
 	FailuresCount    uint64       `protobuf:"varint,16,opt,name=failures_count,json=failuresCount,proto3" json:"failures_count,omitempty"`
 	UpdateState      *UpdateState `protobuf:"bytes,17,opt,name=update_state,json=updateState,proto3" json:"update_state,omitempty"`
-	// vss_memory is process VSS in bytes (commit charge on Windows; VMS on Linux).
-	VssMemory     uint64 `protobuf:"varint,18,opt,name=vss_memory,json=vssMemory,proto3" json:"vss_memory,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	VssMemory        uint64       `protobuf:"varint,18,opt,name=vss_memory,json=vssMemory,proto3" json:"vss_memory,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *InstanceStatus) Reset() {
@@ -987,14 +986,12 @@ func (x *InstanceStatus) GetVssMemory() uint64 {
 }
 
 type StatusSnapshot struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Timestamp int64                  `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// used_memory is process RSS in bytes.
-	UsedMemory  uint64 `protobuf:"varint,2,opt,name=used_memory,json=usedMemory,proto3" json:"used_memory,omitempty"`
-	UsedThreads uint64 `protobuf:"varint,3,opt,name=used_threads,json=usedThreads,proto3" json:"used_threads,omitempty"`
-	OpenFiles   uint64 `protobuf:"varint,4,opt,name=open_files,json=openFiles,proto3" json:"open_files,omitempty"`
-	// vss_memory is process VSS in bytes.
-	VssMemory     uint64 `protobuf:"varint,5,opt,name=vss_memory,json=vssMemory,proto3" json:"vss_memory,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Timestamp     int64                  `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	UsedMemory    uint64                 `protobuf:"varint,2,opt,name=used_memory,json=usedMemory,proto3" json:"used_memory,omitempty"`
+	UsedThreads   uint64                 `protobuf:"varint,3,opt,name=used_threads,json=usedThreads,proto3" json:"used_threads,omitempty"`
+	OpenFiles     uint64                 `protobuf:"varint,4,opt,name=open_files,json=openFiles,proto3" json:"open_files,omitempty"`
+	VssMemory     uint64                 `protobuf:"varint,5,opt,name=vss_memory,json=vssMemory,proto3" json:"vss_memory,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

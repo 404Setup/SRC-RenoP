@@ -572,7 +572,7 @@ components:
         vss_memory:
           type: integer
           format: int64
-          description: Process VSS in bytes (commit charge on Windows)
+          description: Process VSS in bytes (commit charge on Windows; private pages+swap on Linux, not full VmSize)
 
     StatusSnapshot:
       type: object
