@@ -106,26 +106,13 @@ impulse or a fleeting interest.
 
 A better choice is to open an Issue or submit a PR — we do our best to listen to everyone's voice.
 
-## Credits
-
-RenoP was developed with [Reposilite](https://github.com/dzikoysk/reposilite)
-as a reference for a small, self-hosted Maven repository.
-
-The project is built on:
-
-- [Fiber](https://github.com/gofiber/fiber), [Sonic](https://github.com/bytedance/sonic),
-  and [go-yaml](https://github.com/yaml/go-yaml)
-- [BigCache](https://github.com/allegro/bigcache), [fsnotify](https://github.com/fsnotify/fsnotify), [ants](https://github.com/panjf2000/ants),
-  and [gopsutil](https://github.com/shirou/gopsutil)
-- [MinIO Go SDK](https://github.com/minio/minio-go) for S3-compatible storage
-- [Feather](https://github.com/feathericons/feather) for interface icons
-- [google/uuid](https://github.com/google/uuid), [x/crypto](https://pkg.go.dev/golang.org/x/crypto),
-  and [x/time](https://pkg.go.dev/golang.org/x/time)
-- [pb](https://github.com/llxisdsh/pb) and [unsafeConvert](https://github.com/3JoB/unsafeConvert)
-- [Testify](https://github.com/stretchr/testify) for tests
-
-These projects remain under their respective licenses.
-
 ## License
 
-RenoP is licensed under the [Mozilla Public License 2.0](LICENSE) and is marked as incompatible with secondary licenses.
+RenoP is licensed under the [Mozilla Public License 2.0](LICENSE) and is
+marked as incompatible with secondary licenses.
+
+Third-party components retain their own licenses. Copyright notices, SPDX
+identifiers, Apache `NOTICE` excerpts, and full license texts are in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) (also shipped in release
+archives). RenoP used [Reposilite](https://github.com/dzikoysk/reposilite) as a
+design reference only; its code is not redistributed here.

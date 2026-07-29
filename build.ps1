@@ -233,6 +233,7 @@ try {
 
         Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE') -Destination $stage
         Copy-Item -LiteralPath (Join-Path $repositoryRoot 'README.md') -Destination $stage
+        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'THIRD_PARTY_NOTICES.md') -Destination $stage
         Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archivePath -CompressionLevel Optimal -Force
         $hash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
         $size = (Get-Item -LiteralPath $archivePath).Length
