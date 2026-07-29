@@ -1,28 +1,27 @@
 ---
-title: Maven client setup
+title: Maven client
 order: 4
 category: Getting started
-description: settings.xml and pom.xml for RenoP repositories
+description: settings.xml and pom.xml for RenoP
 ---
 
-# Maven client setup
+# Maven client
 
-Point Maven (or Gradle with Maven repos) at your RenoP instance. Default base URL: `http://localhost:3000`.
+Point Maven (or Gradle with Maven repos) at RenoP. Default base: `http://localhost:3000`.
 
 ## Repository URLs
 
-| Path                              | Typical use        |
-|-----------------------------------|--------------------|
-| `http://localhost:3000/releases`  | Stable artifacts   |
-| `http://localhost:3000/snapshots` | Snapshot artifacts |
-| `http://localhost:3000/private`   | Private artifacts  |
+| Path                              | Use       |
+|-----------------------------------|-----------|
+| `http://localhost:3000/releases`  | Releases  |
+| `http://localhost:3000/snapshots` | Snapshots |
+| `http://localhost:3000/private`   | Private   |
 
-Replace host/port with your deployment.
+Change host/port for your deploy.
 
-## Read dependencies (`pom.xml`)
+## Dependencies (`pom.xml`)
 
 ```xml
-
 <repositories>
     <repository>
         <id>renop-releases</id>
@@ -47,10 +46,9 @@ Replace host/port with your deployment.
 </repositories>
 ```
 
-## Deploy / publish (`pom.xml`)
+## Deploy (`pom.xml`)
 
 ```xml
-
 <distributionManagement>
     <repository>
         <id>renop-releases</id>
@@ -65,11 +63,9 @@ Replace host/port with your deployment.
 
 ## Credentials (`~/.m2/settings.xml`)
 
-PUBLIC repos may not need auth for reads. Deployments and PRIVATE repos need credentials. RenoP accepts **Basic** auth
-with username + password **or** upload token (see [Authentication](../api/authentication.md)).
+PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. Basic auth: username + password **or** upload token ([Authentication](../api/authentication.md)).
 
 ```xml
-
 <settings>
     <servers>
         <server>
@@ -86,17 +82,15 @@ with username + password **or** upload token (see [Authentication](../api/authen
 </settings>
 ```
 
-The `<id>` in `settings.xml` must match the `<id>` in `pom.xml`.
+`<id>` in `settings.xml` must match `<id>` in `pom.xml`.
 
-## Bearer / token style
-
-For non-Maven HTTP clients:
+## Other HTTP clients
 
 - `Authorization: Basic base64(user:password_or_token)`
 - `Authorization: Bearer <user>:<secret>` or `Bearer <upload-token>`
 - GET/HEAD only: `?token=…`
 
-## Gradle (Maven repository)
+## Gradle
 
 ```kotlin
 repositories {
@@ -107,7 +101,7 @@ repositories {
 }
 ```
 
-## Related
+## See also
 
 - [Quick start](./quickstart.md)
 - [Repositories & mirrors](../configuration/repositories.md)

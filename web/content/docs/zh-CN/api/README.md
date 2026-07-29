@@ -13,7 +13,7 @@ category: API
 | `/api/*`    | 管理 API（登录、设置、状态等）       |
 | `/{repo}/…` | Maven 仓库布局（下载 / 上传 / 删除） |
 
-错误正文常为纯文本（`Unauthorized`、`Forbidden`、`Not found`）。请优先信任状态码。
+错误正文多半是纯文本（`Unauthorized`、`Forbidden`、`Not found`）。以状态码为准。
 
 ## 索引
 

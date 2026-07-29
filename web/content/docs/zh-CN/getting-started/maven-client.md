@@ -1,28 +1,27 @@
 ---
-title: Maven 客户端配置
+title: Maven 客户端
 order: 4
 category: 快速开始
-description: 面向 RenoP 的 settings.xml 与 pom.xml
+description: 给 RenoP 用的 settings.xml 与 pom.xml
 ---
 
-# Maven 客户端配置
+# Maven 客户端
 
-将 Maven（或使用 Maven 仓库的 Gradle）指向你的 RenoP 实例。默认基址：`http://localhost:3000`。
+把 Maven（或走 Maven 仓库的 Gradle）指到 RenoP。默认基址：`http://localhost:3000`。
 
 ## 仓库 URL
 
-| 路径                              | 典型用途 |
-|-----------------------------------|----------|
-| `http://localhost:3000/releases`  | 正式制品 |
-| `http://localhost:3000/snapshots` | 快照制品 |
-| `http://localhost:3000/private`   | 私有制品 |
+| 路径                              | 用途 |
+|-----------------------------------|------|
+| `http://localhost:3000/releases`  | 正式版 |
+| `http://localhost:3000/snapshots` | 快照 |
+| `http://localhost:3000/private`   | 私有 |
 
-按实际部署替换 host/port。
+按实际部署改 host/port。
 
-## 读取依赖（`pom.xml`）
+## 读依赖（`pom.xml`）
 
 ```xml
-
 <repositories>
     <repository>
         <id>renop-releases</id>
@@ -50,7 +49,6 @@ description: 面向 RenoP 的 settings.xml 与 pom.xml
 ## 发布（`pom.xml`）
 
 ```xml
-
 <distributionManagement>
     <repository>
         <id>renop-releases</id>
@@ -65,11 +63,9 @@ description: 面向 RenoP 的 settings.xml 与 pom.xml
 
 ## 凭据（`~/.m2/settings.xml`）
 
-PUBLIC 仓库读操作可能无需认证； **部署**与 **PRIVATE** 仓库需要凭据。RenoP 支持 **Basic**（用户名 + 密码或上传
-Token）。详见 [认证](../api/authentication.md)。
+PUBLIC 读一般不用认证；部署和 PRIVATE 要凭据。Basic：用户名 + 密码 **或** 上传 Token（见 [认证](../api/authentication.md)）。
 
 ```xml
-
 <settings>
     <servers>
         <server>
@@ -86,9 +82,9 @@ Token）。详见 [认证](../api/authentication.md)。
 </settings>
 ```
 
-`settings.xml` 中的 `<id>` 必须与 `pom.xml` 中的 `<id>` 一致。
+`settings.xml` 里的 `<id>` 必须和 `pom.xml` 一致。
 
-## 其他客户端
+## 其它 HTTP 客户端
 
 - `Authorization: Basic base64(user:password_or_token)`
 - `Authorization: Bearer <user>:<secret>` 或 `Bearer <upload-token>`
@@ -100,6 +96,7 @@ Token）。详见 [认证](../api/authentication.md)。
 repositories {
     maven {
         url = uri("http://localhost:3000/releases")
+        // credentials { username = "..."; password = "..." }
     }
 }
 ```

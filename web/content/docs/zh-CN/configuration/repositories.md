@@ -9,13 +9,13 @@ description: repositories.yaml — 可见性、镜像与 S3
 
 文件：`repositories.yaml`（可用 `RENOP_REPOSITORIES` 覆盖）。
 
-常见默认仓库：
+默认仓库：
 
 | 名称        | 用途                    |
 |-------------|-------------------------|
-| `releases`  | 正式制品（多为 PUBLIC） |
-| `snapshots` | 快照制品（多为 PUBLIC） |
-| `private`   | 私有制品（PRIVATE）     |
+| `releases`  | 正式版（一般是 PUBLIC） |
+| `snapshots` | 快照（一般是 PUBLIC）   |
+| `private`   | 私有（PRIVATE）         |
 
 ## 仓库字段
 
@@ -49,7 +49,7 @@ repositories:
 
 ## 镜像
 
-镜像在本地缺失时从上游拉取，并可缓存结果。
+本地没有时从上游拉，并可缓存。
 
 | 字段                                 | 说明                                              |
 |--------------------------------------|---------------------------------------------------|
@@ -66,7 +66,7 @@ repositories:
 
 | 可见性  | 匿名读 | 说明                    |
 |---------|--------|-------------------------|
-| PUBLIC  | 是     | 开放仓库                |
+| PUBLIC  | 是     | 公开可读                |
 | HIDDEN  | 受限   | 根列表等需额外角色      |
 | PRIVATE | 否     | 需要 `canview` 或管理员 |
 

@@ -9,15 +9,15 @@ description: repositories.yaml — visibility, mirrors, and S3
 
 File: `repositories.yaml` (override with `RENOP_REPOSITORIES`).
 
-Default repositories created for a typical install:
+Default repositories:
 
-| Name        | Role                              |
-|-------------|-----------------------------------|
-| `releases`  | Release artifacts (often PUBLIC)  |
-| `snapshots` | Snapshot artifacts (often PUBLIC) |
-| `private`   | Private artifacts (PRIVATE)       |
+| Name        | Role                    |
+|-------------|-------------------------|
+| `releases`  | Releases (usually PUBLIC)  |
+| `snapshots` | Snapshots (usually PUBLIC) |
+| `private`   | Private (PRIVATE)       |
 
-Each entry is keyed by repository name under `repositories:`.
+Keyed by name under `repositories:`.
 
 ## Repository fields
 
@@ -51,7 +51,7 @@ Maven layout under each repo is standard: `group/artifact/version/file`.
 
 ## Mirrors
 
-Mirrors proxy missing artifacts from an upstream repository and can cache results locally.
+On miss, mirrors fetch from upstream and may cache the result.
 
 | Field             | Description                                                            |
 |-------------------|------------------------------------------------------------------------|
@@ -59,7 +59,7 @@ Mirrors proxy missing artifacts from an upstream repository and can cache result
 | `url`             | Upstream base URL                                                      |
 | `persist`         | Persist cached artifacts to storage                                    |
 | `cache_ttl_secs`  | Positive cache TTL (seconds)                                           |
-| `negative_cache`  | Cache “not found” to avoid hammering upstream                          |
+| `negative_cache`  | Cache “not found” responses                                            |
 | `timeout_secs`    | Upstream request timeout                                               |
 | `authorization`   | Optional credentials (`method`, `login`, `password`)                   |
 | `enabled_date`    | Optional activation date string                                        |
@@ -72,7 +72,7 @@ Authorization methods commonly used: `BASIC` / username-password, or `Bearer` / 
 
 | Visibility | Anonymous read                                      | Notes                        |
 |------------|-----------------------------------------------------|------------------------------|
-| PUBLIC     | Yes                                                 | Standard open repos          |
+| PUBLIC     | Yes                                                 | Open repo                    |
 | HIDDEN     | File fetch may work; root listing needs extra roles |                              |
 | PRIVATE    | No                                                  | Requires `canview` / manager |
 
@@ -91,8 +91,8 @@ When `s3.enabled` is true, artifacts for that repository are stored in the given
 | `force_path_style`                    | Path-style URLs (common for MinIO)             |
 | `redirect_downloads`                  | Redirect clients to object URLs when supported |
 
-## Related
+## See also
 
 - [Configuration overview](./overview.md)
 - [Storage API](../api/storage.md)
-- [Maven client setup](../getting-started/maven-client.md)
+- [Maven client](../getting-started/maven-client.md)

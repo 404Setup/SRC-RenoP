@@ -4,118 +4,114 @@ order: 9
 category: API
 ---
 
-# Rate limiting и защита от аномалий
+# Rate limits
 
-Глобальный middleware (`AnomalyMiddleware`) выполняется на каждом запросе до обработчиков маршрутов. Реализация:
-`middleware/anomaly.go`.
+Глобальный middleware `AnomalyMiddleware` (`middleware/anomaly.go`) выполняется до route handlers.
 
-Три независимых контроля по порядку:
+Контроли, по порядку:
 
-1. **Лимит одновременных запросов** — на весь процесс
-2. **Бан после сбоев auth** — на IP клиента
-3. **Rate limit анонимных запросов** — на IP клиента (token bucket)
+1. Concurrent request cap (на процесс)
+2. Бан по ошибкам аутентификации (по client IP)
+3. Rate limit анонимных запросов (по client IP, token bucket)
 
-При срабатывании лимита ответ может выставить `Connection: close`.
+При срабатывании лимита ответ может устанавливать `Connection: close`.
 
-## IP клиента
+## Client IP
 
-Лимиты ключуются по IP из `utils.ExtractIP`:
+Лимиты ключуются по client IP из `utils.ExtractIP`:
 
 - По умолчанию: peer-адрес (`c.IP()`).
-- Если peer — loopback (`127.0.0.1` / `::1`, типично для локального Caddy/nginx) или указан в
-  `server.trusted_proxies`, **и** задан `server.cdn_ip_header`, IP клиента берётся из этого заголовка (многозначные
-  заголовки обходятся справа налево, доверенные hop’ы пропускаются).
+- Если peer — loopback (`127.0.0.1` / `::1`) или указан в `server.trusted_proxies`, и задан `server.cdn_ip_header`,
+  client IP берётся из этого заголовка. Multi-value заголовки обходятся справа налево; trusted hops пропускаются.
 
-Неверное доверие прокси может свести многих пользователей к одному IP (или наоборот). См. server config
-в [settings.md](./settings.md).
+Неверная настройка доверия к proxy может отобразить многих клиентов на один IP или наоборот.
+См. [settings.md](./settings.md).
 
-Для Cloudflare → Caddy → RenoP задайте `cdn_ip_header` = `CF-Connecting-IP`; loopback-peer’ам запись в `trusted_proxies`
-не нужна.
+Для Cloudflare → Caddy → RenoP задайте `cdn_ip_header` = `CF-Connecting-IP`. Loopback peers не требуют записи в
+`trusted_proxies`.
 
-## 1. Лимит одновременных запросов
+## 1. Concurrent request cap
 
-| Настройка                    | По умолчанию | Эффект                              |
-|------------------------------|--------------|-------------------------------------|
-| `server.max_active_requests` | `2000`       | Макс. in-flight запросов в процессе |
+| Setting                      | Default | Effect                      |
+|------------------------------|---------|-----------------------------|
+| `server.max_active_requests` | `2000`  | Максимум in-flight запросов |
 
-- Считаются **все** запросы, вошедшие в middleware (включая authenticated и static).
-- Если live-счётчик превысит лимит → **`503 Service Unavailable`**.
-- `0` в конфиге нормализуется к умолчанию (`2000`) при загрузке; «безлимита» через это поле нет.
+- Учитывается каждый запрос, входящий в middleware, включая authenticated и static.
+- Если текущий счётчик превысит cap, middleware возвращает **`503 Service Unavailable`**.
+- Значение `0` в конфигурации нормализуется в `2000` при загрузке. Unlimited mode для этого поля нет.
 
-Собственный concurrency limit Fiber выравнивается с этим значением при старте.
+Concurrency limit Fiber выставляется в то же значение при старте сервера.
 
-## 2. Бан после сбоев auth (на IP)
+## 2. Auth-failure ban (по IP)
 
-| Константа              | Значение | Смысл                                 |
-|------------------------|----------|---------------------------------------|
-| `MaxFailuresPerMinute` | `5`      | Порог счётчика сбоев до бана          |
-| Failure store TTL      | 5 мин    | Окно жизни BigCache `AnomalyFailures` |
+| Constant               | Value | Meaning                           |
+|------------------------|-------|-----------------------------------|
+| `MaxFailuresPerMinute` | `5`   | Порог числа failures до бана      |
+| Failure store TTL      | 5 min | Окно жизни кэша `AnomalyFailures` |
 
-**Что считается сбоем**
+**Считается failure:** после возврата handler, если итоговый status — **`401`** или **`403`**, счётчик failures для IP
+увеличивается (8-байтовое little-endian значение в кэше).
 
-После handler, если финальный статус **`401`** или **`403`**, per-IP счётчик увеличивается (8-байтный little-endian
-счётчик в кэше).
+**Поведение бана:**
 
-**Поведение бана**
+- Если счётчик уже **≥ 5** в начале запроса, middleware немедленно возвращает **`403 Forbidden`** и не запускает
+  handler.
+- Ответ бана формируется до `Next()`, поэтому счётчик снова не увеличивается.
+- TTL записи — **5 минут** с последней записи; каждый зафиксированный failure обновляет запись. После expiry счётчик
+  удаляется.
 
-- Если в начале запроса счётчик уже **≥ 5** → сразу **`403 Forbidden`** (handler не вызывается).
-- Ответ бана возвращается *до* `Next()`, поэтому счётчик снова **не** увеличивается.
-- TTL записи — **5 минут** с последней записи (каждый зафиксированный сбой обновляет entry). После истечения счётчик
-  исчезает, IP может снова пробовать.
+Бан применяется ко всем путям, кроме static frontend skip list ниже, включая уже authenticated клиентов. Повторяющиеся
+401/403 от handlers банят IP независимо от credentials последующих запросов.
 
-**Область**
+Примечание: имя константы содержит «per minute», но окно хранилища — **5 минут**. Счётчик только растёт до истечения
+записи.
 
-Применяется ко **всем** путям, прошедшим static-frontend skip (ниже), включая authenticated клиентов. Клиент, который
-продолжает получать 401/403 от handlers, попадёт под бан независимо от credentials на следующих запросах.
-
-Примечание: имя константы говорит «per minute», но окно store — **5 минут**, и счётчик только растёт до истечения entry.
-
-## 3. Rate limit анонимных запросов (на IP)
+## 3. Анонимный rate limit (по IP)
 
 Token bucket через `golang.org/x/time/rate`, один limiter на IP (`GlobalIPLimiter`).
 
-| Константа              | Значение | Смысл                                                        |
-|------------------------|----------|--------------------------------------------------------------|
-| `MaxRequestsPerMinute` | `100`    | Устойчивая скорость: 100 токенов / минуту (~1 каждые 600 ms) |
-| `MaxRequestsBurst`     | `60`     | Ёмкость burst (макс. токенов сразу)                          |
+| Constant               | Value | Meaning                                            |
+|------------------------|-------|----------------------------------------------------|
+| `MaxRequestsPerMinute` | `100` | Sustained rate: 100 tokens в минуту (~1 на 600 ms) |
+| `MaxRequestsBurst`     | `60`  | Burst capacity (максимум tokens одновременно)      |
 
-- **Кто ограничен:** запросы, **не** подтверждённые как authenticated (см. ниже).
-- **Кто освобождён:** успешно проверенные Session / Bearer / Basic (или GET/HEAD `?token=`, резолвящийся в валидную
-  session или bearer).
+- **Ограничены:** запросы, не прошедшие проверку authenticated (см. ниже).
+- **Освобождены:** успешно проверенные Session, Bearer или Basic, либо GET/HEAD `?token=`, разрешающийся в валидную
+  session или bearer.
 - **При превышении:** **`429 Too Many Requests`**.
 
-### Что значит «verified authenticated»
+### Аутентификация для exemption
 
-Та же идея, что production auth carriers (см. [authentication.md](./authentication.md)):
+Носители совпадают с production auth ([authentication.md](./authentication.md)):
 
-| Carrier                                           | Verified когда                                  |
+| Carrier                                           | Verified when                                   |
 |---------------------------------------------------|-------------------------------------------------|
-| Cookie `renop_session` / `Authorization: Session` | Сессия есть и в idle timeout                    |
-| `Authorization: Bearer <user>:<secret>`           | Имя + secret совпадают с живой учётной записью  |
-| `Authorization: Bearer <upload-token>`            | Токен проиндексирован и не истёк                |
-| `Authorization: Basic …`                          | Имя + password/secret совпадают                 |
-| GET/HEAD `?token=`                                | Токен — валидный session id или bearer как выше |
+| Cookie `renop_session` / `Authorization: Session` | Session существует и в пределах idle timeout    |
+| `Authorization: Bearer <user>:<secret>`           | Username и secret соответствуют живому account  |
+| `Authorization: Bearer <upload-token>`            | Token проиндексирован и не истёк                |
+| `Authorization: Basic …`                          | Username и password/secret совпадают            |
+| GET/HEAD `?token=`                                | Token — валидный session id или bearer как выше |
 
-Присутствующие, но **невалидные** credentials **не** освобождают запрос; они всё равно тратят rate-limit токены и могут
-увеличить счётчик сбоев, если handler вернёт 401/403.
+Невалидные credentials не дают exemption. Такие запросы всё равно потребляют rate-limit tokens, а 401/403 от handler
+увеличивают failure counter.
 
-Idle-сессии не считаются authenticated (idle timeout ≈ 7 дней; см. docs по auth).
+Idle-expired sessions не считаются authenticated (idle timeout примерно 7 дней; см. документацию auth).
 
 ### Жизненный цикл limiter
 
-| Поведение             | Деталь                                           |
-|-----------------------|--------------------------------------------------|
-| Ключ                  | Строка IP клиента                                |
-| Idle eviction         | Entry неиспользованный **5 минут** удаляется     |
-| Периодическая очистка | Каждые **5 минут**                               |
-| Аварийная очистка     | Когда IP > **10 000**, очистка запускается сразу |
+| Behavior          | Detail                                                |
+|-------------------|-------------------------------------------------------|
+| Key               | Строка client IP                                      |
+| Idle eviction     | Запись без использования **5 минут** удаляется        |
+| Periodic cleanup  | Каждые **5 минут**                                    |
+| Emergency cleanup | При более чем **10 000** IP cleanup выполняется сразу |
 
 ## Static frontend skip
 
-Только для **GET** и **HEAD** эти пути пропускают auth-failure ban и anonymous rate limit (но всё ещё считаются в
-concurrent cap):
+Только для **GET** и **HEAD** следующие пути пропускают auth-failure ban и анонимный rate limit. Они по-прежнему
+учитываются в concurrent request cap:
 
-| Паттерн пути  |
+| Path          |
 |---------------|
 | `/`           |
 | `/index.html` |
@@ -124,26 +120,14 @@ concurrent cap):
 | `/css/*`      |
 | `/svg/*`      |
 
-API-маршруты, пути Maven-репозиториев и другие методы **не** пропускаются.
+API routes, пути Maven-репозиториев и другие HTTP methods не пропускаются.
 
-## Коды статуса (этот middleware)
+## Status codes
 
-| Код | Когда                                         |
-|-----|-----------------------------------------------|
-| 429 | Анонимный IP превысил token-bucket rate limit |
-| 403 | IP забанен после слишком многих 401/403       |
-| 503 | Превышен concurrent request cap процесса      |
+| Code | When                                          |
+|------|-----------------------------------------------|
+| 429  | Анонимный IP превысил token-bucket rate limit |
+| 403  | IP забанен после слишком многих 401/403       |
+| 503  | Превышен concurrent request cap процесса      |
 
-Тела обычно пустые; доверяйте коду статуса. Заголовка `Retry-After` сейчас нет.
-
-## Рекомендации клиентам
-
-1. Для высокообъёмного или скриптового трафика предпочитайте authenticated доступ (session cookie, Basic или Bearer),
-   чтобы per-IP anonymous bucket не применялся.
-2. Избегайте плотных login / probe циклов: **5** handler-level **401/403** с одного IP могут забанить его до **~5
-   минут**.
-3. За reverse proxy или CDN корректно задайте `trusted_proxies` и `cdn_ip_header`, чтобы лимиты были на реального
-   клиента, а не на прокси.
-4. На **429** делайте backoff (напр. exponential) перед повтором unauthenticated вызовов.
-5. На **503** с этого слоя инстанс насыщен; повторите позже или масштабируйте / поднимите `max_active_requests`, если
-   уместно.
+Тела ответов обычно пустые. Заголовка `Retry-After` нет.

@@ -137,13 +137,29 @@ jobs:
     if: needs.metadata.outputs.release == 'true' && needs.metadata.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Build changelog from commits
+        id: changelog
+        shell: pwsh
+        env:
+          COMMIT: ${{ needs.metadata.outputs.commit }}
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          $footer = 'Downloads: https://mvnc.pkg.one/update/renop/stable'
+          pwsh -NoProfile -File ./.github/scripts/generate-changelog.ps1 `
+              -Commit $env:COMMIT `
+              -OutFile $out `
+              -Footer $footer
+          "path=$out" >> $env:GITHUB_OUTPUT
+          Write-Host "----- release notes -----"
+          Get-Content -LiteralPath $out -Raw
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.metadata.outputs.tag }}
           target_commitish: ${{ needs.metadata.outputs.commit }}
-          generate_release_notes: true
-          body: |
-            Official packages are hosted at the RenoP update source:
-
-            https://mvnc.pkg.one/update/renop/stable/info.json
+          generate_release_notes: false
+          body_path: ${{ steps.changelog.outputs.path }}

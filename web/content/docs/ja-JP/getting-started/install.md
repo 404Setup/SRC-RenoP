@@ -2,40 +2,39 @@
 title: インストール
 order: 2
 category: はじめに
-description: RenoP バイナリの入手と配置
+description: RenoP バイナリの入手
 ---
 
 # インストール
 
-## 公式ダウンロード
+## ダウンロード
 
-Web サイトの [ダウンロード](/download) ページを利用します。
+[ダウンロード](/download) ページ:
 
-- **安定版** — 公式ソース `https://mvnc.pkg.one/update/renop/stable/`（OS/アーキ別 zip）
-- **プレビュー** — 公式ソース `https://mvnc.pkg.one/update/renop/nightly/`（OS/アーキ別 zip）
+- **安定版** — `https://mvnc.pkg.one/update/renop/stable/`（OS/アーキ別 zip）
+- **プレビュー** — `https://mvnc.pkg.one/update/renop/nightly/`
 
-メタデータは CI が各チャネルの `info.json` に公開します。変更履歴は引き続き GitHub から取得します。
+CI がチャネルごとに `info.json` を出す。変更履歴は GitHub から。
 
-サポート対象はプロジェクトのビルドマトリクスに従います（Windows、Linux、FreeBSD、NetBSD、OpenBSD。amd64 / arm64 および追加の
-Linux アーキテクチャ）。
+対応プラットフォームはビルドマトリクスどおり（Windows / Linux / FreeBSD / NetBSD / OpenBSD、amd64/arm64 など）。
 
-## リリースアーカイブから
+## zip から
 
-1. 自分のプラットフォーム用 zip をダウンロード
-2. 展開する
-3. Windows では `renop.exe`、Unix 系では `./renop` を実行
+1. 自分の OS/arch の zip を取る
+2. 作業ディレクトリに展開（設定はプロセス CWD 付近にできる）
+3. Windows は `renop.exe`、それ以外は `./renop`
 
-デフォルトでは RenoP は `0.0.0.0:3000` で待ち受けます。
+デフォルトで `0.0.0.0:3000` を listen。初回起動前に `RENOP_DEFAULT_ADMIN_PASSWORD` を設定 — [クイックスタート](./quickstart.md)。
 
 ## ソースからビルド
 
-ビルドには **Go**、 **PowerShell 7**、 **Node.js**（フロントエンドの Rolldown バンドル）が必要です。
+**Go**、**PowerShell 7**、**Node.js** が必要。
 
 ```powershell
-pwsh ./build.ps1                 # 全ターゲットマトリクス、dist/ にパッケージ
-pwsh ./build.ps1 s               # Linux amd64/arm64 と Windows amd64
-pwsh ./build.ps1 c               # 現在のプラットフォームのみ
-pwsh ./build.ps1 c nb            # 現在のプラットフォーム、アーカイブなし
+pwsh ./build.ps1                 # 全マトリクス → dist/
+pwsh ./build.ps1 s               # Linux amd64/arm64、Windows amd64
+pwsh ./build.ps1 c               # 現在のプラットフォーム
+pwsh ./build.ps1 c nb            # 現在のプラットフォーム、zip なし
 ```
 
-protobuf とフロントエンドの詳細はリポジトリの `README.md` を参照してください。
+詳細はリポジトリの `README.md`。

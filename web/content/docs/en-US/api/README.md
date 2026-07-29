@@ -13,7 +13,7 @@ Default listen address: `0.0.0.0:3000`.
 | `/api/*`    | Management APIs (login, settings, status, …)         |
 | `/{repo}/…` | Maven repository layout (download / upload / delete) |
 
-Error bodies are often plain text (`Unauthorized`, `Forbidden`, `Not found`). Trust the status code first.
+Error bodies are usually plain text (`Unauthorized`, `Forbidden`, `Not found`). Prefer the status code.
 
 ## Index
 

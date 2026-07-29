@@ -258,10 +258,8 @@ func (idx *FileIndex) addChild(filePath string) {
 		idx.Children = make(map[string][]string)
 	}
 	list := idx.Children[parentInterned]
-	for _, item := range list {
-		if item == baseInterned {
-			return
-		}
+	if slices.Contains(list, baseInterned) {
+		return
 	}
 	idx.Children[parentInterned] = append(list, baseInterned)
 }

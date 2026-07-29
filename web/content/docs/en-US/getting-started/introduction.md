@@ -2,42 +2,39 @@
 title: Introduction
 order: 1
 category: Getting started
-description: What RenoP is and who it is for
+description: What RenoP is
 ---
 
 # Introduction
 
-RenoP is a lightweight, rapidly deployable **self-hosted Maven server** for individuals and teams.
+RenoP is a self-hosted Maven server.
 
-It focuses on:
-
-- Fast setup with sensible defaults
 - Release, snapshot, and private repositories
-- Maven mirror proxying with local caching
-- A small web UI for browsing, uploads, users, tokens, and health
+- Upstream mirror proxy with local caching
+- Web UI for browse, upload, users, tokens, and health
 
-If you intend to use it for **public hosting**, RenoP currently does not target that scenario as a primary goal.
+Public multi-tenant hosting is out of scope for now.
 
-## Design goals
+## Goals
 
-| Goal         | Meaning                                              |
-|--------------|------------------------------------------------------|
-| Simple ops   | One binary, config files in the working directory    |
-| Maven-native | Standard repository layouts and client compatibility |
-| Transparent  | No ads, no product telemetry, free community edition |
+| Goal         | Meaning                                           |
+|--------------|---------------------------------------------------|
+| Simple ops   | One binary; config lives in the working directory |
+| Maven layout | Standard repository paths; normal clients work    |
+| No junk      | No ads, no product telemetry, free                |
 
-## Feature highlights
+## Features
 
-- **Release / snapshot / private** repositories with Maven layouts
+- **Release / snapshot / private** repositories (Maven layout)
 - **Upstream mirrors** with local cache and negative cache
-- **Web UI** for browsing, upload, users, tokens, and health
-- **Local disk or S3-compatible** object storage
-- **Auth**: sessions, Basic, Bearer / upload tokens, repository permissions
-- **Extras**: checksums, Javadoc browsing, online updater, chunked upload API
+- **Web UI**: browse, upload, users, tokens, health
+- **Local disk or S3-compatible** storage
+- **Auth**: sessions, Basic, Bearer / upload tokens, repo permissions
+- **Also**: checksums, Javadoc browsing, online updater, chunked upload API
 
 ## Next steps
 
-1. [Install](./install.md) a release or preview build
-2. Follow the [Quick start](./quickstart.md)
-3. Connect a [Maven client](./maven-client.md)
-4. Review [Configuration](../configuration/overview.md) when you need more control
+1. [Install](./install.md)
+2. [Quick start](./quickstart.md)
+3. [Maven client](./maven-client.md)
+4. [Configuration](../configuration/overview.md)

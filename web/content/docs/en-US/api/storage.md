@@ -6,7 +6,7 @@ category: API
 
 # Repository storage paths
 
-Artifacts are not under `/api`. Layout:
+Artifact paths are not under `/api`. Layout:
 
 ```text
 /{repo_name}/{maven-path}
@@ -20,18 +20,18 @@ Default repositories:
 /private/...
 ```
 
-Repository names must not collide with static routes: `api`, `js`, `css`, `svg`, `assets`, `javadocs`, etc.
+Repository names must not collide with static routes such as `api`, `js`, `css`, `svg`, `assets`, or `javadocs`.
 
 ## Methods
 
-| Method     | Permission | Behavior                                                            |
-|------------|------------|---------------------------------------------------------------------|
-| GET        | read       | Download; browser HTML requests may fall back to the management SPA |
-| HEAD       | read       | Headers only                                                        |
-| PUT / POST | write      | Upload / overwrite                                                  |
-| DELETE     | write      | Delete; success 204                                                 |
+| Method     | Permission | Behavior                                                              |
+|------------|------------|-----------------------------------------------------------------------|
+| GET        | read       | Download; browser requests with HTML Accept may fall back to the SPA  |
+| HEAD       | read       | Response headers only                                                 |
+| PUT / POST | write      | Upload or overwrite                                                   |
+| DELETE     | write      | Delete; success status `204`                                          |
 
-Body limit is about 2 GiB (`BodyLimit`); uploads stream.
+Maximum body size is approximately 2 GiB (`BodyLimit`). Uploads are streamed.
 
 ### Upload
 
@@ -40,67 +40,58 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-Typical success: `201 Created`. If redeploy is disabled and the file exists, the server rejects overwrite (treat any
-non-2xx as failure).
+Successful upload returns `201 Created`. If redeployment is disabled and the object already exists, the request fails with a non-2xx status.
 
-Optional header: `X-Generate-Checksums: true` writes `.md5` / `.sha1` / `.sha256` / `.sha512` sidecars.
+Optional request header `X-Generate-Checksums: true` writes `.md5`, `.sha1`, `.sha256`, and `.sha512` sidecar files.
 
-The server maintains index, optional checksums, and S3 sync. Maven clients see a normal repository layout.
+The server updates the artifact index, optional checksums, and S3 synchronization as configured. Clients observe a standard Maven repository layout.
 
-### Multi-part (chunked) upload — optional
+### Chunked upload (optional)
 
-The original single-request `PUT` above is unchanged. For large files the web UI may use concurrent chunked upload
-instead (with per-part retries). Machine clients can use the same API.
+Authentication matches storage write: session cookie, Basic, or Bearer, with write permission on the target repository.
 
-**When to use multi-part:** the browser UI skips chunking for files under **8 MiB** (single `PUT` is faster). Machine
-clients may still open a chunked session for any size; the server will collapse very small payloads into one part.
+Prefix: `/api/upload/chunked`
 
-Prefix: `/api/upload/chunked` (session cookie / Basic / Bearer; needs write permission on the target repo).
+The browser UI uses chunked upload for files of **8 MiB** or larger; smaller files use a single `PUT`. Non-browser clients may open a chunked session for any size. The server may combine very small payloads into a single part.
 
-Init and complete use **`application/x-protobuf`** (`ChunkedUploadInitRequest` /
-`ChunkedUploadInitResponse` / `ChunkedUploadCompleteResponse` in `proto/api/v1/api.proto`). Part bodies are raw binary.
+Init and complete use **`application/x-protobuf`** (`ChunkedUploadInitRequest`, `ChunkedUploadInitResponse`, and `ChunkedUploadCompleteResponse` in `proto/api/v1/api.proto`). Part bodies are raw binary.
 
-1. **`POST /api/upload/chunked/`** — start a session (`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`)
+1. **`POST /api/upload/chunked/`** — create a session (`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`)
 
-Logical fields (snake_case):
+| Field                | Description                                      |
+|----------------------|--------------------------------------------------|
+| `purpose`            | `storage` (default)                              |
+| `path`               | Destination path `repo/…/file`                   |
+| `filename`           | Optional display name                            |
+| `size`               | Total size in bytes                              |
+| `generate_checksums` | Whether to write checksum sidecars               |
+| `chunk_size`         | Preferred part size (optional; server normalizes)|
 
-| Field                | Meaning                                           |
-|----------------------|---------------------------------------------------|
-| `purpose`            | `storage` (default)                               |
-| `path`               | Destination `repo/…/file`                         |
-| `filename`           | Optional display name                             |
-| `size`               | Total bytes                                       |
-| `generate_checksums` | Write checksum sidecars                           |
-| `chunk_size`         | Preferred part size (optional; server normalizes) |
-
-Response fields: `upload_id`, `chunk_size`, `chunk_count`, `purpose`. Always use the returned
-`chunk_size` / `chunk_count` for subsequent `PUT`s.
+Response fields: `upload_id`, `chunk_size`, `chunk_count`, `purpose`. Subsequent part uploads must use the returned `chunk_size` and `chunk_count`.
 
 **Part size rules** (server, `upload.NormalizeChunkSize`):
 
-| Total size | Typical part size       |
-|------------|-------------------------|
-| ≤ 256 KiB  | Single part = file size |
-| ≤ 8 MiB    | Single part = file size |
-| ≤ 32 MiB   | 4 MiB                   |
-| ≤ 128 MiB  | 8 MiB                   |
-| ≤ 512 MiB  | 16 MiB                  |
-| ≤ 2 GiB    | 24 MiB                  |
-| larger     | 32 MiB (max)            |
+| Total size | Part size                        |
+|------------|----------------------------------|
+| ≤ 256 KiB  | Single part equal to file size   |
+| ≤ 8 MiB    | Single part equal to file size   |
+| ≤ 32 MiB   | 4 MiB                            |
+| ≤ 128 MiB  | 8 MiB                            |
+| ≤ 512 MiB  | 16 MiB                           |
+| ≤ 2 GiB    | 24 MiB                           |
+| larger     | 32 MiB (maximum)                 |
 
-Client `chunk_size` is clamped to **256 KiB … 32 MiB**. If it would create more than ~2048 parts, the server raises the
-part size. Omit `chunk_size` (or send `0`) to accept the table above.
+Client-supplied `chunk_size` is clamped to **256 KiB … 32 MiB**. If the resulting part count would exceed approximately 2048, the server increases the part size. Omit `chunk_size` or send `0` to use the table above.
 
-2. **`PUT /api/upload/chunked/:upload_id/:index`** — raw part body (0-based), parallel OK  
-   Success: `204`. Re-PUT of an already accepted index is idempotent (retry-safe).
+2. **`PUT /api/upload/chunked/:upload_id/:index`** — raw part body (0-based index); parallel uploads allowed  
+   Success: `204`. Re-uploading an already accepted index is idempotent.
 
-3. **`POST /api/upload/chunked/:upload_id/complete`** — assemble, index, optional checksums  
-   Success: `201` + `ChunkedUploadCompleteResponse` (`status=created`, `path=…`).
+3. **`POST /api/upload/chunked/:upload_id/complete`** — assemble, update index, optional checksums  
+   Success: `201` with `ChunkedUploadCompleteResponse` (`status=created`, `path=…`).
 
-4. **`DELETE /api/upload/chunked/:upload_id`** — abort and discard temp data (`204`).
+4. **`DELETE /api/upload/chunked/:upload_id`** — abort the session and discard temporary data (`204`).
 
-Sessions expire after about **15 minutes** if not completed (temps are removed). Clients should retry failed parts with
-backoff.
+Incomplete sessions expire after approximately **15 minutes**; temporary data is removed.
 
 ### Download
 
@@ -108,10 +99,9 @@ backoff.
 curl -O "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-PUBLIC needs no auth. PRIVATE uses Basic / Bearer.
+PUBLIC repositories require no authentication. PRIVATE repositories require Basic or Bearer credentials.
 
-With mirrors configured, missing local files may be fetched from upstream (cache / negative-cache per repository
-config).
+When mirrors are configured, missing local objects may be fetched from upstream according to per-repository cache and negative-cache settings.
 
 ### Delete
 
@@ -122,8 +112,7 @@ curl -X DELETE -u admin:SECRET \
 
 ## Browser access
 
-With `Accept: text/html`, missing repositories or some directories fall through to the management SPA so
-`http://host/releases/...` can open the UI. Machine clients should use `Accept: */*` or omit Accept to avoid HTML.
+With `Accept: text/html`, missing repositories or some directories fall through to the management SPA so paths such as `http://host/releases/...` can open the UI. Machine clients should send `Accept: */*` or omit `Accept` to avoid HTML responses.
 
 ## Javadoc preview
 
@@ -134,27 +123,26 @@ GET /javadoc/:repo_name/*path-to-javadoc.jar
 GET /javadoc/:repo_name/*path-to-javadoc.jar/raw/...
 ```
 
-Needs matching read permission. `raw` serves files inside the jar. Size limited by `max_javadoc_size_mb`.
+Requires matching read permission. The `raw` form serves files from inside the jar. Size is limited by `max_javadoc_size_mb`.
 
 ## Maven configuration example
 
 ```xml
-
 <repository>
     <id>renop</id>
     <url>http://localhost:3000/releases</url>
 </repository>
 
 <distributionManagement>
-<repository>
-    <id>renop</id>
-    <url>http://localhost:3000/releases</url>
-</repository>
-<snapshotRepository>
-    <id>renop</id>
-    <url>http://localhost:3000/snapshots</url>
-</snapshotRepository>
+    <repository>
+        <id>renop</id>
+        <url>http://localhost:3000/releases</url>
+    </repository>
+    <snapshotRepository>
+        <id>renop</id>
+        <url>http://localhost:3000/snapshots</url>
+    </snapshotRepository>
 </distributionManagement>
 ```
 
-In `~/.m2/settings.xml`, set username + password (or upload token) for the server id.
+In `~/.m2/settings.xml`, set username and password (or upload token) for the matching server `id`.

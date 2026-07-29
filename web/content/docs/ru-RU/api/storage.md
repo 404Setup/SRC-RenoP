@@ -1,12 +1,12 @@
 ---
-title: Хранилище
+title: Storage
 order: 8
 category: API
 ---
 
 # Пути хранилища репозиториев
 
-Артефакты не под `/api`. Раскладка:
+Пути артефактов не находятся под `/api`. Layout:
 
 ```text
 /{repo_name}/{maven-path}
@@ -20,112 +20,101 @@ category: API
 /private/...
 ```
 
-Имена репозиториев не должны пересекаться со статическими маршрутами: `api`, `js`, `css`, `svg`, `assets`, `javadocs` и
-т.д.
+Имена репозиториев не должны пересекаться со static routes, такими как `api`, `js`, `css`, `svg`, `assets` или `javadocs`.
 
-## Методы
+## Methods
 
-| Метод      | Право  | Поведение                                                       |
-|------------|--------|-----------------------------------------------------------------|
-| GET        | чтение | Скачивание; HTML-запросы браузера могут упасть в management SPA |
-| HEAD       | чтение | Только заголовки                                                |
-| PUT / POST | запись | Загрузка / перезапись                                           |
-| DELETE     | запись | Удаление; успех 204                                             |
+| Method     | Permission | Behavior                                                                   |
+|------------|------------|----------------------------------------------------------------------------|
+| GET        | read       | Download; browser-запросы с HTML Accept могут упасть в management SPA      |
+| HEAD       | read       | Только response headers                                                    |
+| PUT / POST | write      | Upload или overwrite                                                       |
+| DELETE     | write      | Delete; success status `204`                                               |
 
-Лимит тела около 2 GiB (`BodyLimit`); загрузки идут потоком.
+Максимальный размер body примерно 2 GiB (`BodyLimit`). Upload выполняется потоком.
 
-### Загрузка
+### Upload
 
 ```bash
 curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-Типичный успех: `201 Created`. Если redeploy выключен и файл есть, сервер отклоняет перезапись (любой не-2xx считайте
-ошибкой).
+Успешный upload возвращает `201 Created`. Если redeploy отключён и объект уже существует, запрос завершается non-2xx.
 
-Опциональный заголовок: `X-Generate-Checksums: true` пишет sidecar `.md5` / `.sha1` / `.sha256` / `.sha512`.
+Опциональный request header `X-Generate-Checksums: true` записывает sidecar-файлы `.md5`, `.sha1`, `.sha256` и `.sha512`.
 
-Сервер ведёт индекс, опциональные checksums и синхронизацию S3. Клиенты Maven видят обычную раскладку репозитория.
+Сервер обновляет artifact index, optional checksums и S3 sync согласно конфигурации. Клиенты видят стандартный Maven repository layout.
 
-### Многочастная (chunked) загрузка — опционально
+### Chunked upload (optional)
 
-Оригинальный однозапросный `PUT` выше не меняется. Для больших файлов web UI может использовать параллельную
-chunked-загрузку (с ретраями частей). Машинные клиенты могут использовать тот же API.
+Аутентификация совпадает с storage write: session cookie, Basic или Bearer, с write permission на target repository.
 
-**Когда multi-part:** браузерный UI не дробит файлы меньше **8 MiB** (одиночный `PUT` быстрее). Машинные клиенты могут
-открыть chunked-сессию для любого размера; сервер свернёт очень маленькие payload в одну часть.
+Prefix: `/api/upload/chunked`
 
-Префикс: `/api/upload/chunked` (session cookie / Basic / Bearer; нужно право записи на целевой репозиторий).
+Browser UI использует chunked upload для файлов **8 MiB** и больше; меньшие файлы идут одним `PUT`. Non-browser clients могут открыть chunked session любого размера. Сервер может объединить очень малые payload в одну part.
 
-Init и complete используют **`application/x-protobuf`** (`ChunkedUploadInitRequest` /
-`ChunkedUploadInitResponse` / `ChunkedUploadCompleteResponse` в `proto/api/v1/api.proto`). Тела частей — сырой binary.
+Init и complete используют **`application/x-protobuf`** (`ChunkedUploadInitRequest`, `ChunkedUploadInitResponse` и `ChunkedUploadCompleteResponse` в `proto/api/v1/api.proto`). Part bodies — raw binary.
 
-1. **`POST /api/upload/chunked/`** — начать сессию (`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`)
+1. **`POST /api/upload/chunked/`** — создать session (`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`)
 
-Логические поля (snake_case):
+| Field                | Description                                         |
+|----------------------|-----------------------------------------------------|
+| `purpose`            | `storage` (default)                                 |
+| `path`               | Destination path `repo/…/file`                      |
+| `filename`           | Optional display name                               |
+| `size`               | Total size in bytes                                 |
+| `generate_checksums` | Whether to write checksum sidecars                  |
+| `chunk_size`         | Preferred part size (optional; server normalizes)   |
 
-| Поле                 | Смысл                                                           |
-|----------------------|-----------------------------------------------------------------|
-| `purpose`            | `storage` (по умолчанию)                                        |
-| `path`               | Назначение `repo/…/file`                                        |
-| `filename`           | Опциональное отображаемое имя                                   |
-| `size`               | Всего байт                                                      |
-| `generate_checksums` | Писать sidecar checksums                                        |
-| `chunk_size`         | Предпочтительный размер части (опционально; сервер нормализует) |
+Response fields: `upload_id`, `chunk_size`, `chunk_count`, `purpose`. Последующие part uploads должны использовать returned `chunk_size` и `chunk_count`.
 
-Поля ответа: `upload_id`, `chunk_size`, `chunk_count`, `purpose`. Всегда используйте возвращённые
-`chunk_size` / `chunk_count` для последующих `PUT`.
+**Правила размера part** (server, `upload.NormalizeChunkSize`):
 
-**Правила размера частей** (сервер, `upload.NormalizeChunkSize`):
+| Total size | Part size                           |
+|------------|-------------------------------------|
+| ≤ 256 KiB  | Single part equal to file size      |
+| ≤ 8 MiB    | Single part equal to file size      |
+| ≤ 32 MiB   | 4 MiB                               |
+| ≤ 128 MiB  | 8 MiB                               |
+| ≤ 512 MiB  | 16 MiB                              |
+| ≤ 2 GiB    | 24 MiB                              |
+| larger     | 32 MiB (maximum)                    |
 
-| Общий размер | Типичный размер части     |
-|--------------|---------------------------|
-| ≤ 256 KiB    | Одна часть = размер файла |
-| ≤ 8 MiB      | Одна часть = размер файла |
-| ≤ 32 MiB     | 4 MiB                     |
-| ≤ 128 MiB    | 8 MiB                     |
-| ≤ 512 MiB    | 16 MiB                    |
-| ≤ 2 GiB      | 24 MiB                    |
-| больше       | 32 MiB (макс.)            |
+Client-supplied `chunk_size` ограничен **256 KiB … 32 MiB**. Если число parts превысило бы примерно 2048, сервер увеличивает part size. Опустите `chunk_size` или отправьте `0`, чтобы использовать таблицу выше.
 
-Клиентский `chunk_size` ограничен **256 KiB … 32 MiB**. Если частей > ~2048, сервер увеличивает размер части. Опустите
-`chunk_size` (или `0`), чтобы принять таблицу выше.
+2. **`PUT /api/upload/chunked/:upload_id/:index`** — raw part body (0-based index); parallel uploads разрешены  
+   Success: `204`. Повторная загрузка уже accepted index идемпотентна.
 
-2. **`PUT /api/upload/chunked/:upload_id/:index`** — сырое тело части (0-based), параллельно OK  
-   Успех: `204`. Повтор PUT уже принятого index идемпотентен (безопасно для retry).
+3. **`POST /api/upload/chunked/:upload_id/complete`** — assemble, update index, optional checksums  
+   Success: `201` с `ChunkedUploadCompleteResponse` (`status=created`, `path=…`).
 
-3. **`POST /api/upload/chunked/:upload_id/complete`** — собрать, индекс, опциональные checksums  
-   Успех: `201` + `ChunkedUploadCompleteResponse` (`status=created`, `path=…`).
+4. **`DELETE /api/upload/chunked/:upload_id`** — abort session и discard temporary data (`204`).
 
-4. **`DELETE /api/upload/chunked/:upload_id`** — отмена и удаление temp (`204`).
+Incomplete sessions истекают примерно через **15 minutes**; temporary data удаляется.
 
-Сессии истекают примерно через **15 минут** без complete (temps удаляются). Клиенты должны ретраить части с backoff.
-
-### Скачивание
+### Download
 
 ```bash
 curl -O "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-PUBLIC без auth. PRIVATE — Basic / Bearer.
+PUBLIC repositories не требуют authentication. PRIVATE требуют Basic или Bearer.
 
-При настроенных зеркалах отсутствующие локальные файлы могут подтягиваться с upstream (cache / negative-cache по конфигу
-репозитория).
+При настроенных mirrors отсутствующие локально objects могут быть получены с upstream согласно per-repository cache и negative-cache.
 
-### Удаление
+### Delete
 
 ```bash
 curl -X DELETE -u admin:SECRET \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-## Доступ из браузера
+## Browser access
 
-С `Accept: text/html` отсутствующие репозитории или некоторые каталоги проваливаются в management SPA, чтобы
-`http://host/releases/...` открывал UI. Машинным клиентам — `Accept: */*` или без Accept, чтобы избежать HTML.
+С `Accept: text/html` отсутствующие repositories или некоторые directories fall through в management SPA, поэтому пути вида `http://host/releases/...` могут открыть UI. Machine clients должны отправлять `Accept: */*` или опускать `Accept`, чтобы не получать HTML.
 
-## Превью Javadoc
+## Javadoc preview
 
 Когда включено:
 
@@ -134,27 +123,26 @@ GET /javadoc/:repo_name/*path-to-javadoc.jar
 GET /javadoc/:repo_name/*path-to-javadoc.jar/raw/...
 ```
 
-Нужно соответствующее право чтения. `raw` отдаёт файлы внутри jar. Размер ограничен `max_javadoc_size_mb`.
+Требуется matching read permission. Форма `raw` отдаёт files внутри jar. Size ограничен `max_javadoc_size_mb`.
 
 ## Пример конфигурации Maven
 
 ```xml
-
 <repository>
     <id>renop</id>
     <url>http://localhost:3000/releases</url>
 </repository>
 
 <distributionManagement>
-<repository>
-    <id>renop</id>
-    <url>http://localhost:3000/releases</url>
-</repository>
-<snapshotRepository>
-    <id>renop</id>
-    <url>http://localhost:3000/snapshots</url>
-</snapshotRepository>
+    <repository>
+        <id>renop</id>
+        <url>http://localhost:3000/releases</url>
+    </repository>
+    <snapshotRepository>
+        <id>renop</id>
+        <url>http://localhost:3000/snapshots</url>
+    </snapshotRepository>
 </distributionManagement>
 ```
 
-В `~/.m2/settings.xml` задайте username + password (или upload-токен) для server id.
+В `~/.m2/settings.xml` задайте username и password (или upload token) для matching server `id`.

@@ -2,33 +2,30 @@
 title: Introduction
 order: 1
 category: Premiers pas
-description: Qu’est-ce que RenoP et à qui il s’adresse
+description: Qu’est-ce que RenoP
 ---
 
 # Introduction
 
-RenoP est un **serveur Maven auto-hébergé** léger et rapidement déployable, pour les particuliers et les équipes.
+RenoP est un serveur Maven auto-hébergé.
 
-Il se concentre sur :
+- Dépôts release, snapshot et private
+- Proxy de miroirs amont avec cache local
+- Interface web : parcours, upload, utilisateurs, jetons, santé
 
-- Une mise en route rapide avec des valeurs par défaut raisonnables
-- Des dépôts release, snapshot et private
-- Un proxy de miroirs Maven avec cache local
-- Une petite interface web pour parcourir, téléverser, gérer les utilisateurs, les jetons et la santé
+L’hébergement public multi-locataire n’est pas l’objectif pour l’instant.
 
-Si vous visez un **hébergement public**, ce n’est pas aujourd’hui le scénario principal de RenoP.
+## Objectifs
 
-## Objectifs de conception
-
-| Objectif            | Signification                                                               |
-|---------------------|-----------------------------------------------------------------------------|
-| Exploitation simple | Un binaire, des fichiers de config dans le répertoire de travail            |
-| Natif Maven         | Disposition standard des dépôts et compatibilité clients                    |
-| Transparence        | Pas de publicité, pas de télémétrie produit, édition communautaire gratuite |
+| Objectif            | Signification                                     |
+|---------------------|---------------------------------------------------|
+| Exploitation simple | Un binaire ; config dans le répertoire de travail |
+| Disposition Maven   | Chemins de dépôt standard ; clients habituels     |
+| Sans superflu       | Pas de pub, pas de télémétrie produit, gratuit    |
 
 ## Étapes suivantes
 
-1. [Installer](./install.md) une version stable ou preview
-2. Suivre le [démarrage rapide](./quickstart.md)
-3. Configurer un [client Maven](./maven-client.md)
-4. Consulter la [configuration](../configuration/overview.md) pour un contrôle plus fin
+1. [Installer](./install.md)
+2. [Démarrage rapide](./quickstart.md)
+3. [Client Maven](./maven-client.md)
+4. [Configuration](../configuration/overview.md)

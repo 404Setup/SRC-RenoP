@@ -2,48 +2,45 @@
 title: Install
 order: 2
 category: Getting started
-description: Download and place the RenoP binary
+description: Download the RenoP binary
 ---
 
 # Install
 
-## Official downloads
+## Download
 
-Use the website [Download](/download) page:
+[Download](/download) page:
 
-- **Stable** — official host `https://mvnc.pkg.one/update/renop/stable/` (per-platform zips)
-- **Preview** — official host `https://mvnc.pkg.one/update/renop/nightly/` (per-platform zips)
+- **Stable** — `https://mvnc.pkg.one/update/renop/stable/` (zip per platform)
+- **Preview** — `https://mvnc.pkg.one/update/renop/nightly/`
 
-Metadata is published as `info.json` by CI (`publish-update.ps1`). Changelogs are still fetched from GitHub.
+CI publishes `info.json` per channel. Release notes come from GitHub.
 
-Supported platforms follow the project build matrix (Windows, Linux, FreeBSD, NetBSD, OpenBSD; amd64/arm64 and
-additional Linux arches).
+Platforms match the build matrix: Windows, Linux, FreeBSD, NetBSD, OpenBSD; amd64/arm64 and extra Linux arches.
 
-## From a release archive
+## From a zip
 
-1. Download the zip for your platform
-2. Extract it into a working directory (config files are created next to the binary’s CWD)
-3. Run `renop.exe` on Windows or `./renop` on Unix-like systems
+1. Download the zip for your OS/arch
+2. Extract into a working directory (config is created next to the process CWD)
+3. Run `renop.exe` (Windows) or `./renop` (Unix)
 
-RenoP listens on `0.0.0.0:3000` by default. Set `RENOP_DEFAULT_ADMIN_PASSWORD` before the first start
-(see [Quick start](./quickstart.md)).
+Listens on `0.0.0.0:3000` by default. Set `RENOP_DEFAULT_ADMIN_PASSWORD` before first start — see [Quick start](./quickstart.md).
 
-## System requirements
+## Requirements
 
-- A writable working directory for config, sessions, index, and (by default) local storage
-- Outbound HTTPS if you use upstream mirrors or the online updater
-- Optional: reverse proxy (nginx, Caddy, …) terminating TLS in front of RenoP
+- Writable working directory (config, sessions, index, default local storage)
+- Outbound HTTPS if you use mirrors or the online updater
+- Optional reverse proxy (nginx, Caddy, …) for TLS
 
 ## Build from source
 
-Building requires **Go**, **PowerShell 7**, and **Node.js** (frontend Rolldown bundle).
+Needs **Go**, **PowerShell 7**, **Node.js**.
 
 ```powershell
-pwsh ./build.ps1                 # full target matrix, packaged in dist/
-pwsh ./build.ps1 s               # Linux amd64/arm64 and Windows amd64
-pwsh ./build.ps1 c               # current platform only
-pwsh ./build.ps1 c nb            # current platform, no archive
+pwsh ./build.ps1                 # full matrix → dist/
+pwsh ./build.ps1 s               # Linux amd64/arm64, Windows amd64
+pwsh ./build.ps1 c               # current platform
+pwsh ./build.ps1 c nb            # current platform, no zip
 ```
 
-The build generates Protocol Buffer code, bundles `frontend/renop-html`, embeds assets, and compiles with
-`CGO_ENABLED=0`. See the repository `README.md` for protobuf and frontend-only rebuild steps.
+Generates protobuf, bundles `frontend/renop-html`, embeds assets, builds with `CGO_ENABLED=0`. Details in the repo `README.md`.

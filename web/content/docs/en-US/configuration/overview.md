@@ -7,8 +7,7 @@ description: Config files, server settings, and environment variables
 
 # Configuration overview
 
-RenoP stores configuration and state next to the process working directory. Paths can be overridden with environment
-variables.
+Config and state sit in the process working directory. Override paths with env vars.
 
 ## Files
 
@@ -30,8 +29,7 @@ Also related at runtime:
 
 ### `storage_path`
 
-Root directory for local artifact storage (default layout under this path). Default relative path is typically
-`storage`.
+Local artifact storage root. Default relative path is usually `storage`.
 
 ### `server`
 
@@ -88,26 +86,23 @@ Branding for the embedded repository browser:
 | `channel` | `release` | `release` or `nightly`                            |
 | `mode`    | `manual`  | How updates are applied (e.g. manual from the UI) |
 
-The website [Download](/download) page uses the same release and nightly sources.
+Website [Download](/download) uses the same stable/nightly sources.
 
 ## Management UI
 
-Signed-in **manager** / **admin** accounts can edit many settings under **Settings** and **Repositories**. File-level
-changes still apply after reload/restart as documented for each domain.
+**manager** / **admin** can edit most things under Settings and Repositories. Some file edits need reload/restart (see each domain).
 
-## Storage backends
-
-Artifacts can live on:
+## Storage
 
 - **Local disk** under `storage_path` (default)
-- **S3-compatible object storage** (global or per repository in `repositories.yaml`)
+- **S3-compatible** object storage (per repo in `repositories.yaml`)
 
-Checksum sidecars (MD5 / SHA-1 / SHA-256 / SHA-512) can be generated on upload.
+Upload can write MD5 / SHA-1 / SHA-256 / SHA-512 sidecars.
 
-See [Repositories & mirrors](./repositories.md) for visibility, mirrors, and S3 fields.
+Visibility, mirrors, S3 fields: [Repositories & mirrors](./repositories.md).
 
-## Related
+## See also
 
 - [Quick start](../getting-started/quickstart.md)
-- [Maven client setup](../getting-started/maven-client.md)
+- [Maven client](../getting-started/maven-client.md)
 - [API index](../api/README.md)

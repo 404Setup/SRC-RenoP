@@ -2,34 +2,32 @@
 title: Quick start
 order: 3
 category: Getting started
-description: First run, admin password, and default repository URLs
+description: First run, admin password, default repo URLs
 ---
 
 # Quick start
 
 ## First start
 
-On first start, RenoP creates an `admin` account. Set its password before starting the server:
+First run creates an `admin` account. Set the password before starting:
 
 ```bash
 RENOP_DEFAULT_ADMIN_PASSWORD='replace-this-password' ./renop
 ```
 
-If the variable is not set, a random password is printed to the server log. Open `http://localhost:3000` after startup.
+If unset, a random password is printed to the server log. Then open `http://localhost:3000`.
 
-Sign in with username `admin` and that password. Manager accounts can open the web UI to browse artifacts, manage users,
-repositories, and settings.
+Log in as `admin`. Managers can use the web UI for artifacts, users, repos, and settings.
 
 ## Default repositories
 
-| Path                              | Role               |
-|-----------------------------------|--------------------|
-| `http://localhost:3000/releases`  | Release artifacts  |
-| `http://localhost:3000/snapshots` | Snapshot artifacts |
-| `http://localhost:3000/private`   | Private artifacts  |
+| Path                              | Role      |
+|-----------------------------------|-----------|
+| `http://localhost:3000/releases`  | Releases  |
+| `http://localhost:3000/snapshots` | Snapshots |
+| `http://localhost:3000/private`   | Private   |
 
-Use these URLs in Maven's `<repositories>` or `<distributionManagement>`. Full client
-examples: [Maven client setup](./maven-client.md).
+Use these in Maven `<repositories>` / `<distributionManagement>`. Examples: [Maven client](./maven-client.md).
 
 ## Health check
 
@@ -40,20 +38,20 @@ curl -s http://localhost:3000/api/status/health
 
 ## Environment variables
 
-| Variable                       | Default             | Purpose                                 |
-|--------------------------------|---------------------|-----------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | Server, frontend, storage path, updater |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repositories, mirrors, per-repo S3      |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | Accounts and access tokens              |
-| `RENOP_INDEX`                  | `index.json`        | Persisted artifact index                |
-| `RENOP_SESSIONS`               | `sessions.json`     | Persisted login sessions                |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | generated           | Password for the first admin account    |
+| Variable                       | Default             | Purpose                          |
+|--------------------------------|---------------------|----------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | Server, frontend, storage, updater |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repos, mirrors, per-repo S3      |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | Accounts and tokens              |
+| `RENOP_INDEX`                  | `index.json`        | Artifact index                   |
+| `RENOP_SESSIONS`               | `sessions.json`     | Login sessions                   |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | generated           | First admin password             |
 
-Most settings can also be changed from the management UI. Restart the server after changing listener or TLS settings.
+Most of this is also editable in the management UI. Restart after changing listen address or TLS.
 
-## Next steps
+## Next
 
-1. [Configure](../configuration/overview.md) bind address, TLS, and branding
-2. Define [repositories & mirrors](../configuration/repositories.md)
-3. Wire [Maven clients](./maven-client.md)
-4. Explore the [HTTP API](../api/README.md)
+1. [Configuration](../configuration/overview.md) — bind, TLS, branding
+2. [Repositories & mirrors](../configuration/repositories.md)
+3. [Maven client](./maven-client.md)
+4. [HTTP API](../api/README.md)

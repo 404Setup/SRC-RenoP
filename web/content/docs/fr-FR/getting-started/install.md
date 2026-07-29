@@ -2,40 +2,39 @@
 title: Installation
 order: 2
 category: Premiers pas
-description: Télécharger et placer le binaire RenoP
+description: Télécharger le binaire RenoP
 ---
 
 # Installation
 
-## Téléchargements officiels
+## Téléchargement
 
-Utilisez la page [Téléchargement](/download) du site :
+Page [Téléchargement](/download) :
 
-- **Stable** — source officielle `https://mvnc.pkg.one/update/renop/stable/` (zip par plateforme)
-- **Preview** — source officielle `https://mvnc.pkg.one/update/renop/nightly/` (zip par plateforme)
+- **Stable** — `https://mvnc.pkg.one/update/renop/stable/` (zip par plateforme)
+- **Preview** — `https://mvnc.pkg.one/update/renop/nightly/`
 
-Les métadonnées sont publiées dans `info.json` par la CI. Le changelog reste chargé depuis GitHub.
+La CI publie `info.json` par canal. Les notes de version viennent de GitHub.
 
-Les plateformes prises en charge suivent la matrice de build du projet (Windows, Linux, FreeBSD, NetBSD, OpenBSD ;
-amd64/arm64 et architectures Linux supplémentaires).
+Plateformes = matrice de build (Windows, Linux, FreeBSD, NetBSD, OpenBSD ; amd64/arm64 et arch Linux en plus).
 
-## Depuis une archive de release
+## Depuis un zip
 
-1. Téléchargez le zip de votre plateforme
-2. Extrayez-le
-3. Lancez `renop.exe` sous Windows ou `./renop` sous Unix
+1. Télécharger le zip OS/arch
+2. Extraire dans un répertoire de travail (config à côté du CWD du processus)
+3. `renop.exe` (Windows) ou `./renop` (Unix)
 
-RenoP écoute par défaut sur `0.0.0.0:3000`.
+Écoute `0.0.0.0:3000` par défaut. Définir `RENOP_DEFAULT_ADMIN_PASSWORD` avant le premier démarrage — [démarrage rapide](./quickstart.md).
 
-## Compiler depuis les sources
+## Compiler
 
-Il faut **Go**, **PowerShell 7** et **Node.js** (bundle frontend Rolldown).
+**Go**, **PowerShell 7**, **Node.js**.
 
 ```powershell
-pwsh ./build.ps1                 # matrice complète, paquets dans dist/
-pwsh ./build.ps1 s               # Linux amd64/arm64 et Windows amd64
-pwsh ./build.ps1 c               # plateforme courante uniquement
-pwsh ./build.ps1 c nb            # plateforme courante, sans archive
+pwsh ./build.ps1                 # matrice complète → dist/
+pwsh ./build.ps1 s               # Linux amd64/arm64, Windows amd64
+pwsh ./build.ps1 c               # plateforme courante
+pwsh ./build.ps1 c nb            # plateforme courante, sans zip
 ```
 
 Voir le `README.md` du dépôt pour protobuf et le frontend.

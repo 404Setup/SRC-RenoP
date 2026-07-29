@@ -2,41 +2,42 @@
 title: Быстрый старт
 order: 3
 category: Начало работы
-description: Первый запуск и URL репозиториев по умолчанию
+description: Первый запуск, пароль admin, URL репозиториев
 ---
 
 # Быстрый старт
 
 ## Первый запуск
 
-При первом запуске RenoP создаёт учётную запись `admin`. Задайте пароль до старта сервера:
+При первом запуске создаётся `admin`. Пароль — до старта:
 
 ```bash
 RENOP_DEFAULT_ADMIN_PASSWORD='replace-this-password' ./renop
 ```
 
-Если переменная не задана, случайный пароль печатается в лог сервера. После старта откройте `http://localhost:3000`.
+Если не задано — случайный пароль в логе сервера. Дальше `http://localhost:3000`.
+
+Вход: `admin`. Manager в web UI — артефакты, пользователи, репозитории, настройки.
 
 ## Репозитории по умолчанию
 
-| Путь                              | Назначение          |
-|-----------------------------------|---------------------|
-| `http://localhost:3000/releases`  | Релизные артефакты  |
-| `http://localhost:3000/snapshots` | Snapshot-артефакты  |
-| `http://localhost:3000/private`   | Приватные артефакты |
+| Путь                              | Назначение |
+|-----------------------------------|------------|
+| `http://localhost:3000/releases`  | Releases   |
+| `http://localhost:3000/snapshots` | Snapshots  |
+| `http://localhost:3000/private`   | Private    |
 
-Укажите один из этих URL в `<repositories>` или `<distributionManagement>` Maven. Полные
-примеры: [Maven-клиент](./maven-client.md).
+В Maven: `<repositories>` / `<distributionManagement>`. Примеры: [Maven-клиент](./maven-client.md).
 
 ## Переменные окружения
 
-| Переменная                     | По умолчанию        | Назначение                               |
-|--------------------------------|---------------------|------------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | Сервер, фронтенд и хранилище             |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | Репозитории, зеркала и S3 на репозиторий |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | Учётные записи и токены доступа          |
-| `RENOP_INDEX`                  | `index.json`        | Сохранённый индекс артефактов            |
-| `RENOP_SESSIONS`               | `sessions.json`     | Сохранённые сессии входа                 |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | генерируется        | Пароль первой учётной записи admin       |
+| Переменная                     | По умолчанию        | Назначение                        |
+|--------------------------------|---------------------|-----------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | Сервер, UI, storage, updater      |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Репозитории, зеркала, S3 на repo  |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | Аккаунты и токены                 |
+| `RENOP_INDEX`                  | `index.json`        | Индекс артефактов                 |
+| `RENOP_SESSIONS`               | `sessions.json`     | Сессии входа                      |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | генерируется        | Пароль первого admin              |
 
-Большинство настроек также можно менять в UI. После изменения listener или TLS перезапустите сервер.
+Многое правится и в UI. После смены listen/TLS — перезапуск.

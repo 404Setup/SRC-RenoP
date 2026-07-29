@@ -7,8 +7,7 @@ description: Fichiers de config, paramètres serveur et variables d’environnem
 
 # Vue d’ensemble de la configuration
 
-RenoP stocke la configuration et l’état à côté du répertoire de travail du processus. Les chemins peuvent être
-surchargés via des variables d’environnement.
+Config et état dans le répertoire de travail du processus. Chemins surchargeables via variables d’environnement.
 
 ## Fichiers
 
@@ -73,23 +72,20 @@ Marque du navigateur de dépôt embarqué :
 | `channel` | `release` | `release` ou `nightly`                              |
 | `mode`    | `manual`  | Mode d’application des mises à jour (ex. manuel UI) |
 
-La page [Téléchargement](/download) du site utilise les mêmes sources release et nightly.
+Page [Téléchargement](/download) : mêmes sources stable / nightly.
 
 ## Interface d’administration
 
-Les comptes **manager** / **admin** connectés peuvent modifier de nombreux réglages sous **Settings** et
-**Repositories**. Les changements au niveau fichier s’appliquent après rechargement / redémarrage selon le domaine.
+**manager** / **admin** : la plupart des réglages sous Settings et Repositories. Certains changements fichier exigent reload/restart.
 
-## Backends de stockage
+## Stockage
 
-Les artefacts peuvent vivre sur :
+- **Disque local** sous `storage_path` (défaut)
+- **S3-compatible** (par dépôt dans `repositories.yaml`)
 
-- **Disque local** sous `storage_path` (par défaut)
-- **Object storage compatible S3** (global ou par dépôt dans `repositories.yaml`)
+Upload peut écrire des sidecars MD5 / SHA-1 / SHA-256 / SHA-512.
 
-Des sidecars de checksum (MD5 / SHA-1 / SHA-256 / SHA-512) peuvent être générés à l’upload.
-
-Voir [Dépôts et miroirs](./repositories.md) pour la visibilité, les miroirs et les champs S3.
+Visibilité, miroirs, S3 : [Dépôts et miroirs](./repositories.md).
 
 ## Voir aussi
 
