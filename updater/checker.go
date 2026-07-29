@@ -150,39 +150,90 @@ func commitSHAMatches(sha, target string) bool {
 	return strings.HasPrefix(sha, targetShort)
 }
 
+// findCommitIndex returns the index of the first commit matching id in a
+// newest-first list, or -1 if not found.
+func findCommitIndex(commits []GithubCommitResponse, id string) int {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return -1
+	}
+	for i, c := range commits {
+		if commitSHAMatches(c.Sha, id) {
+			return i
+		}
+	}
+	return -1
+}
+
+// commitDateAt returns the committer/author date for commits[i], if present.
+func commitDateAt(commits []GithubCommitResponse, i int) string {
+	if i < 0 || i >= len(commits) {
+		return ""
+	}
+	c := commits[i]
+	if c.Commit.Committer.Date != "" {
+		return c.Commit.Committer.Date
+	}
+	return c.Commit.Author.Date
+}
+
+// remoteIsStrictlyNewer reports whether remote identity is strictly newer than
+// currentVersion in a newest-first commit list. ok is false when either side
+// cannot be located, so the caller should fall back to another strategy.
+func remoteIsStrictlyNewer(commits []GithubCommitResponse, currentVersion, remoteCommit string) (newer, ok bool) {
+	remoteIdx := findCommitIndex(commits, strings.TrimSpace(remoteCommit))
+	if remoteIdx < 0 {
+		return false, false
+	}
+	curr := normalizeVersionID(currentVersion)
+	if curr == "" || curr == "dev" {
+		return false, false
+	}
+	currIdx := findCommitIndex(commits, curr)
+	if currIdx < 0 {
+		return false, false
+	}
+	return remoteIdx < currIdx, true
+}
+
 // collectNightlyReleaseNotes builds nightly release notes from commits ordered
-// newest-first.
+// newest-first. Notes cover the range from the latest packaged commit (inclusive)
+// down to the running version (exclusive). When the running commit is at or
+// ahead of the package, notes are empty (no downgrade changelog).
 func collectNightlyReleaseNotes(commits []GithubCommitResponse, currentVersion, latestCommit string) (notes string, latestDate string) {
 	curr := normalizeVersionID(currentVersion)
 	commitSha := strings.TrimSpace(latestCommit)
 
 	start := 0
+	startFound := false
 	if commitSha != "" {
-		for i, c := range commits {
-			if commitSHAMatches(c.Sha, commitSha) {
-				start = i
-				break
-			}
+		if idx := findCommitIndex(commits, commitSha); idx >= 0 {
+			start = idx
+			startFound = true
 		}
+	}
+
+	currIdx := -1
+	if curr != "" && curr != "dev" {
+		currIdx = findCommitIndex(commits, curr)
+	}
+
+	latestDate = commitDateAt(commits, start)
+
+	if currIdx >= 0 && currIdx <= start {
+		return "", latestDate
 	}
 
 	end := len(commits)
-	if curr != "" && curr != "dev" {
-		for i := start; i < len(commits); i++ {
-			if commitSHAMatches(commits[i].Sha, curr) {
-				end = i
-				break
-			}
-		}
-	}
-
-	if start < len(commits) {
-		c := commits[start]
-		if c.Commit.Committer.Date != "" {
-			latestDate = c.Commit.Committer.Date
-		} else if c.Commit.Author.Date != "" {
-			latestDate = c.Commit.Author.Date
-		}
+	switch {
+	case currIdx > start:
+		end = currIdx
+	case currIdx < 0 && curr != "" && curr != "dev" && startFound:
+		return "", latestDate
+	case !startFound && currIdx >= 0:
+		start = 0
+		end = currIdx
+		latestDate = commitDateAt(commits, start)
 	}
 
 	var noteLines []string
@@ -201,6 +252,25 @@ func normalizeVersionID(v string) string {
 	curr = strings.TrimPrefix(curr, "v")
 	curr = strings.TrimPrefix(curr, "nightly-")
 	return strings.TrimSpace(curr)
+}
+
+// looksLikeCommitID reports whether s looks like a git commit identity
+// rather than a semver or other label.
+func looksLikeCommitID(s string) bool {
+	s = normalizeVersionID(s)
+	if s == "" || s == "dev" || looksLikeSemver(s) {
+		return false
+	}
+	if len(s) < 7 || len(s) > 40 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+			return false
+		}
+	}
+	return true
 }
 
 // versionsMatch reports whether the running binary identity matches a remote version/commit.
@@ -226,6 +296,41 @@ func versionsMatch(curr, remoteVersion, remoteCommit string) bool {
 		}
 	}
 	return false
+}
+
+// decideHasUpdate decides whether remote is a real upgrade over current.
+// commits may be nil; when provided (newest-first), they resolve commit-order
+// cases such as nightly-ahead-of-stable or current-ahead-of-nightly-package.
+func decideHasUpdate(current, remoteVersion, remoteCommit string, target *ChannelInfoTarget, commits []GithubCommitResponse) bool {
+	if target == nil {
+		return false
+	}
+	if versionsMatch(current, remoteVersion, remoteCommit) {
+		return false
+	}
+
+	currN := normalizeVersionID(current)
+	remoteN := normalizeVersionID(remoteVersion)
+
+	if looksLikeSemver(currN) && looksLikeSemver(remoteN) {
+		return utils.CompareVersions(remoteN, currN) > 0
+	}
+
+	remoteID := strings.TrimSpace(remoteCommit)
+	if remoteID == "" {
+		remoteID = remoteN
+	}
+	if len(commits) > 0 {
+		if newer, ok := remoteIsStrictlyNewer(commits, current, remoteID); ok {
+			return newer
+		}
+	}
+
+	if looksLikeCommitID(currN) {
+		return false
+	}
+
+	return true
 }
 
 func infoJSONURL(ch Channel) string {
@@ -289,8 +394,6 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 	}
 
 	target := findTarget(info, runtime.GOOS, runtime.GOARCH)
-	matched := versionsMatch(version.Version, info.Version, info.Commit)
-	hasUpdate := !matched && target != nil
 
 	downloadURL := ""
 	var size int64
@@ -301,7 +404,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 
 	relNotes := ""
 	relDate := info.PublishedAt
-	commitSha := info.Commit
+	commitSha := strings.TrimSpace(info.Commit)
 	var rel GithubReleaseResponse
 	tagCandidates := []string{info.Version, "v" + strings.TrimPrefix(info.Version, "v")}
 	for _, tag := range tagCandidates {
@@ -334,6 +437,17 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 	}
 	const maxNotes = 32 << 10
 	relNotes = clipString(relNotes, maxNotes)
+
+	var commits []GithubCommitResponse
+	currN := normalizeVersionID(version.Version)
+	remoteN := normalizeVersionID(info.Version)
+	needCommitOrder := target != nil &&
+		!versionsMatch(version.Version, info.Version, commitSha) &&
+		!(looksLikeSemver(currN) && looksLikeSemver(remoteN))
+	if needCommitOrder {
+		_, _ = doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=100", &commits)
+	}
+	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits)
 
 	latestVersion := info.Version
 	if !strings.HasPrefix(latestVersion, "v") && looksLikeSemver(latestVersion) {
@@ -391,8 +505,6 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	}
 
 	target := findTarget(info, runtime.GOOS, runtime.GOARCH)
-	matched := versionsMatch(version.Version, info.Version, info.Commit)
-	hasUpdate := !matched && target != nil
 
 	downloadURL := ""
 	var size int64
@@ -407,8 +519,6 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	releaseNotes := ""
 	commitDate := info.PublishedAt
 	if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=100", &commits); err == nil && len(commits) > 0 {
-		// From the update-check latest package commit down to the running version
-		// (not from main HEAD / prefix-filtered tip down to current).
 		var noteDate string
 		releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha)
 		if noteDate != "" {
@@ -417,6 +527,8 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	}
 	const maxNotes = 32 << 10
 	releaseNotes = clipString(releaseNotes, maxNotes)
+
+	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits)
 
 	latestVersion := info.Version
 	if !strings.HasPrefix(latestVersion, "nightly-") {

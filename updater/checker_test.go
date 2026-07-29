@@ -220,6 +220,41 @@ func TestCollectNightlyReleaseNotesFallbackWhenLatestMissing(t *testing.T) {
 	}
 }
 
+func TestCollectNightlyReleaseNotesEmptyWhenCurrentAheadOfPackage(t *testing.T) {
+	const (
+		currFull   = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		midFull    = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+		latestFull = "cccccccccccccccccccccccccccccccccccccccc"
+		olderFull  = "dddddddddddddddddddddddddddddddddddddddd"
+	)
+	commits := []GithubCommitResponse{
+		ghCommit(currFull, "feat: local ahead of package", "2026-07-28T10:00:00Z"),
+		ghCommit(midFull, "feat: between", "2026-07-27T10:00:00Z"),
+		ghCommit(latestFull, "fix: packaged latest", "2026-07-26T10:00:00Z"),
+		ghCommit(olderFull, "chore: older history", "2026-07-22T10:00:00Z"),
+	}
+
+	notes, date := collectNightlyReleaseNotes(commits, "nightly-"+currFull[:7], latestFull)
+	if notes != "" {
+		t.Fatalf("expected empty notes when current is ahead of package, got %q", notes)
+	}
+	if date != "2026-07-26T10:00:00Z" {
+		t.Fatalf("package date: got %q", date)
+	}
+}
+
+func TestCollectNightlyReleaseNotesEmptyWhenCurrentNotInWindow(t *testing.T) {
+	const latestFull = "cccccccccccccccccccccccccccccccccccccccc"
+	commits := []GithubCommitResponse{
+		ghCommit(latestFull, "fix: packaged latest", "2026-07-26T10:00:00Z"),
+		ghCommit("dddddddddddddddddddddddddddddddddddddddd", "chore: older", "2026-07-22T10:00:00Z"),
+	}
+	notes, _ := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull)
+	if notes != "" {
+		t.Fatalf("expected empty notes when current is not in the commit window, got %q", notes)
+	}
+}
+
 func TestCommitSHAMatches(t *testing.T) {
 	const full = "f306a3851931578435b2b214cf89b0c7c0a0a39d"
 	const short = "f306a38"
@@ -332,24 +367,142 @@ func TestResolveCheckChannelFromConfig(t *testing.T) {
 
 func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 	info := &ChannelInfo{
-		Version: "newsha1",
+		Version: "1.2.3",
 		Commit:  "newsha1full00000000000000000000000000000",
 		Targets: []ChannelInfoTarget{
 			{OS: "linux", Arch: "mips64", File: "only-mips.zip", Size: 1},
 		},
 	}
 	target := findTarget(info, "windows", "amd64")
-	matched := versionsMatch("0.0.1", info.Version, info.Commit)
-	hasUpdate := !matched && target != nil
-	if hasUpdate {
+	if decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil) {
 		t.Fatal("must not report update when platform package is missing")
 	}
 	info.Targets = append(info.Targets, ChannelInfoTarget{
 		OS: "windows", Arch: "amd64", File: "win.zip", Size: 2,
 	})
 	target = findTarget(info, "windows", "amd64")
-	hasUpdate = !matched && target != nil
-	if !hasUpdate {
+	if !decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil) {
 		t.Fatal("must report update when platform package exists and version differs")
+	}
+}
+
+func TestDecideHasUpdateSemver(t *testing.T) {
+	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
+
+	if decideHasUpdate("1.2.3", "1.2.3", "", target, nil) {
+		t.Fatal("same semver is not an update")
+	}
+	if !decideHasUpdate("1.2.3", "1.3.0", "", target, nil) {
+		t.Fatal("newer semver is an update")
+	}
+	if decideHasUpdate("1.3.0", "1.2.3", "", target, nil) {
+		t.Fatal("older semver must not be treated as an update")
+	}
+	if decideHasUpdate("v1.3.0", "1.2.9", "", target, nil) {
+		t.Fatal("older semver with v-prefix must not be an update")
+	}
+}
+
+func TestDecideHasUpdateNightlyAheadOfStable(t *testing.T) {
+	const (
+		nightlyAhead = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		stableCommit = "cccccccccccccccccccccccccccccccccccccccc"
+		older        = "dddddddddddddddddddddddddddddddddddddddd"
+	)
+	commits := []GithubCommitResponse{
+		ghCommit(nightlyAhead, "feat: after release", "2026-07-28T00:00:00Z"),
+		ghCommit(stableCommit, "release: v0.0.1", "2026-07-20T00:00:00Z"),
+		ghCommit(older, "chore: old", "2026-07-10T00:00:00Z"),
+	}
+	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
+
+	if decideHasUpdate("nightly-"+nightlyAhead[:7], "0.0.1", stableCommit, target, commits) {
+		t.Fatal("older stable must not be an update over a newer nightly")
+	}
+	if decideHasUpdate(nightlyAhead[:7], "v0.0.1", stableCommit, target, commits) {
+		t.Fatal("short sha nightly ahead of stable must not report update")
+	}
+
+	const olderNightly = "dddddddddddddddddddddddddddddddddddddddd"
+	if !decideHasUpdate("nightly-"+olderNightly[:7], "0.0.2", stableCommit, target, commits) {
+		t.Fatal("stable newer than running nightly should be an update")
+	}
+}
+
+func TestDecideHasUpdateNightlyAheadOfPackage(t *testing.T) {
+	const (
+		curr  = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		pkg   = "cccccccccccccccccccccccccccccccccccccccc"
+		older = "dddddddddddddddddddddddddddddddddddddddd"
+	)
+	commits := []GithubCommitResponse{
+		ghCommit(curr, "feat: ahead", "2026-07-28T00:00:00Z"),
+		ghCommit(pkg, "fix: packaged", "2026-07-26T00:00:00Z"),
+		ghCommit(older, "chore: old", "2026-07-20T00:00:00Z"),
+	}
+	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
+
+	if decideHasUpdate("nightly-"+curr[:7], pkg[:7], pkg, target, commits) {
+		t.Fatal("current ahead of nightly package must not report update")
+	}
+	if !decideHasUpdate("nightly-"+older[:7], pkg[:7], pkg, target, commits) {
+		t.Fatal("package ahead of current must report update")
+	}
+	if decideHasUpdate("nightly-"+pkg[:7], pkg[:7], pkg, target, commits) {
+		t.Fatal("same package commit is not an update")
+	}
+}
+
+func TestDecideHasUpdateCommitLikeWithoutGraph(t *testing.T) {
+	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
+	if decideHasUpdate("f306a38", "0.0.1", "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", target, nil) {
+		t.Fatal("commit-like current without graph must not assume stable is newer")
+	}
+}
+
+func TestLooksLikeCommitID(t *testing.T) {
+	if !looksLikeCommitID("f306a38") {
+		t.Fatal("short sha")
+	}
+	if !looksLikeCommitID("nightly-f306a38") {
+		t.Fatal("nightly-prefixed sha")
+	}
+	if looksLikeCommitID("0.0.1") {
+		t.Fatal("semver is not a commit id")
+	}
+	if looksLikeCommitID("dev") {
+		t.Fatal("dev is not a commit id")
+	}
+	if looksLikeCommitID("v1.2.3") {
+		t.Fatal("v-semver is not a commit id")
+	}
+}
+
+func TestRemoteIsStrictlyNewer(t *testing.T) {
+	const (
+		newC = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		midC = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+		oldC = "cccccccccccccccccccccccccccccccccccccccc"
+	)
+	commits := []GithubCommitResponse{
+		ghCommit(newC, "n", "2026-07-28T00:00:00Z"),
+		ghCommit(midC, "m", "2026-07-27T00:00:00Z"),
+		ghCommit(oldC, "o", "2026-07-26T00:00:00Z"),
+	}
+	newer, ok := remoteIsStrictlyNewer(commits, oldC[:7], newC)
+	if !ok || !newer {
+		t.Fatalf("remote newer: newer=%v ok=%v", newer, ok)
+	}
+	newer, ok = remoteIsStrictlyNewer(commits, newC[:7], midC)
+	if !ok || newer {
+		t.Fatalf("remote older: newer=%v ok=%v", newer, ok)
+	}
+	newer, ok = remoteIsStrictlyNewer(commits, midC[:7], midC)
+	if !ok || newer {
+		t.Fatalf("equal: newer=%v ok=%v", newer, ok)
+	}
+	_, ok = remoteIsStrictlyNewer(commits, "deadbee", newC)
+	if ok {
+		t.Fatal("missing current must not be ok")
 	}
 }
