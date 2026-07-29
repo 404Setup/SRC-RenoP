@@ -12,8 +12,10 @@ package updater
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"runtime"
 	"strings"
@@ -27,9 +29,29 @@ import (
 
 const maxRemoteJSONBody = 1 << 20
 
-var checkHTTPClient = utils.OutboundClient(15 * time.Second)
+var checkHTTPClient = &http.Client{
+	Transport: &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout: 10 * time.Second,
+		}).DialContext,
+		TLSClientConfig: &tls.Config{
+			ClientSessionCache: nil,
+		},
+		TLSNextProto:          make(map[string]func(string, *tls.Conn) http.RoundTripper),
+		DisableCompression:    true,
+		DisableKeepAlives:     true,
+		MaxIdleConns:          0,
+		MaxIdleConnsPerHost:   0,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 15 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	},
+	Timeout: 15 * time.Second,
+}
 
 func CheckUpdate(ctx context.Context, channel Channel) (*CheckResult, error) {
+	defer checkHTTPClient.CloseIdleConnections()
 	if channel == ChannelNightly {
 		return checkNightly(ctx)
 	}
@@ -435,7 +457,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 			}
 		}
 	}
-	const maxNotes = 32 << 10
+	const maxNotes = 4 << 10
 	relNotes = clipString(relNotes, maxNotes)
 
 	var commits []GithubCommitResponse
@@ -445,7 +467,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 		!versionsMatch(version.Version, info.Version, commitSha) &&
 		!(looksLikeSemver(currN) && looksLikeSemver(remoteN))
 	if needCommitOrder {
-		_, _ = doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=100", &commits)
+		_, _ = doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=30", &commits)
 	}
 	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits)
 
@@ -518,14 +540,14 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	var commits []GithubCommitResponse
 	releaseNotes := ""
 	commitDate := info.PublishedAt
-	if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=100", &commits); err == nil && len(commits) > 0 {
+	if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
 		var noteDate string
 		releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha)
 		if noteDate != "" {
 			commitDate = noteDate
 		}
 	}
-	const maxNotes = 32 << 10
+	const maxNotes = 4 << 10
 	releaseNotes = clipString(releaseNotes, maxNotes)
 
 	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits)

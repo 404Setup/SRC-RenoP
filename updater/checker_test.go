@@ -128,6 +128,23 @@ func TestDoJSONGetDoesNotRetainResponseBuffer(t *testing.T) {
 	runtime.ReadMemStats(&m)
 }
 
+func TestCheckUpdateClosesIdleConnsAndFreesMemory(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"version":"1.0.0","commit":"abc1234567890"}`)
+	}))
+	t.Cleanup(ts.Close)
+
+	var info ChannelInfo
+	status, err := doJSONGet(context.Background(), ts.URL, "application/json", &info)
+	if err != nil || status != 200 {
+		t.Fatalf("status=%d err=%v", status, err)
+	}
+
+	checkHTTPClient.CloseIdleConnections()
+	runtime.GC()
+}
+
 func TestCommitSubject(t *testing.T) {
 	if got := commitSubject("fix\n\nbody"); got != "fix" {
 		t.Fatalf("got %q", got)

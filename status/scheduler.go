@@ -15,7 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"renop/core"
 	"renop/index"
 	"renop/updater"
+	"renop/utils"
 )
 
 const maxStatusSnapshots = 15
@@ -257,7 +257,7 @@ func StartStatusSnapshotScheduler(state *core.AppState, intervalDuration time.Du
 				OpenFiles:   0,
 			}
 
-			debug.FreeOSMemory()
+			utils.ReleaseMemoryToOS()
 
 			for {
 				currentPtr := state.Inner.StatusSnapshots.Load()

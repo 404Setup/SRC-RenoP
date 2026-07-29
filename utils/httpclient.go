@@ -26,7 +26,7 @@ var DefaultTransport = &http.Transport{
 		ClientSessionCache: nil,
 	},
 	ForceAttemptHTTP2:     false,
-	DisableCompression:    true,
+	DisableCompression:    false,
 	DisableKeepAlives:     true,
 	MaxIdleConns:          0,
 	MaxIdleConnsPerHost:   0,

@@ -24,6 +24,7 @@ import (
 	"renop/auth"
 	"renop/config"
 	"renop/core"
+	"renop/utils"
 	"renop/utils/protohttp"
 	"renop/version"
 )
@@ -113,6 +114,8 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 			s.IsRelease = res.IsRelease
 		})
 
+		utils.ReleaseMemoryToOS()
+
 		if mode != ModeAutoInstall {
 			return
 		}
@@ -159,18 +162,23 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			s.Size = res.Size
 			s.EstimatedDiskSpace = res.EstimatedDiskSpace
 			s.ReleaseDate = strings.Clone(res.ReleaseDate)
-			s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
-			s.CommitSha = strings.Clone(res.CommitSha)
 			s.IsRelease = res.IsRelease
 			if res.HasUpdate {
 				s.Status = "available"
 				s.LatestVersion = strings.Clone(res.LatestVersion)
 				s.DownloadUrl = strings.Clone(res.DownloadUrl)
+				s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
+				s.CommitSha = strings.Clone(res.CommitSha)
 			} else {
 				s.Status = "idle"
 				s.LatestVersion = strings.Clone(version.Version)
+				s.DownloadUrl = ""
+				s.ReleaseNotes = ""
+				s.CommitSha = ""
 			}
 		})
+
+		utils.ReleaseMemoryToOS()
 
 		return c.JSON(res)
 	})
