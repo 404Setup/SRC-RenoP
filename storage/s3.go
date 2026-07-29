@@ -16,6 +16,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -137,13 +138,20 @@ func GetS3Client(repoS3 *config.S3Config) (*minio.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	transport.MaxConnsPerHost = 1024
-	transport.MaxIdleConnsPerHost = 256
-	transport.MaxIdleConns = 2048
+	transport.MaxConnsPerHost = 64
+	transport.MaxIdleConnsPerHost = 4
+	transport.MaxIdleConns = 16
+	transport.IdleConnTimeout = 15 * time.Second
 	transport.DisableCompression = true
 	transport.ResponseHeaderTimeout = 30 * time.Second
 	transport.ExpectContinueTimeout = time.Second
 	transport.ForceAttemptHTTP2 = false
+	if transport.DialContext == nil {
+		transport.DialContext = (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext
+	}
 
 	creds := credentials.NewStaticV4(repoS3.AccessKeyId, repoS3.SecretAccessKey, "")
 	opts := &minio.Options{

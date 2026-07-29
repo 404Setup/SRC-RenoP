@@ -13,7 +13,6 @@ package proxy
 import (
 	"bytes"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -183,24 +182,75 @@ func TestProxyArtifactSmallOK(t *testing.T) {
 	}
 }
 
-func TestLimitTCPBuffersApplied(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
+func TestProxyArtifactSmallSequentialMemory(t *testing.T) {
+	payload := []byte(`<metadata><version>1.0.0</version></metadata>`)
+	var hits atomic.Int64
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
+		w.Header().Set("Content-Type", "application/xml")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(payload)
+	}))
+	t.Cleanup(ts.Close)
+
+	state := testAppState()
+	repo := &config.Repository{
+		Name: "small-mem-repo",
+		Mirrors: []config.Mirror{
+			{Url: ts.URL, TimeoutSecs: 5},
+		},
 	}
-	t.Cleanup(func() { _ = ln.Close() })
-	go func() {
-		c, err := ln.Accept()
-		if err == nil {
-			_ = c.Close()
+	storage := t.TempDir()
+
+	{
+		path := "warm/meta.xml"
+		pathStr := filepath.ToSlash(filepath.Join(storage, repo.Name, path))
+		dl, _ := state.Inner.InFlightDownloads.LockPath(pathStr)
+		rc, err := ProxyArtifact(state, repo, path, storage, pathStr, dl)
+		if err != nil {
+			t.Fatalf("warm: %v", err)
 		}
-	}()
-	c, err := net.Dial("tcp", ln.Addr().String())
-	if err != nil {
-		t.Fatal(err)
+		_, _ = io.Copy(io.Discard, rc)
+		_ = rc.Close()
 	}
-	t.Cleanup(func() { _ = c.Close() })
-	if tc, ok := c.(*net.TCPConn); ok {
-		_ = tc.SetReadBuffer(64 << 10)
+
+	runtime.GC()
+	runtime.GC()
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
+
+	const n = 20
+	for i := range n {
+		path := "com/example/m" + strconv.Itoa(i) + "/maven-metadata.xml"
+		pathStr := filepath.ToSlash(filepath.Join(storage, repo.Name, path))
+		dl, _ := state.Inner.InFlightDownloads.LockPath(pathStr)
+		rc, err := ProxyArtifact(state, repo, path, storage, pathStr, dl)
+		if err != nil {
+			t.Fatalf("iter %d: %v", i, err)
+		}
+		data, err := io.ReadAll(rc)
+		_ = rc.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(data, payload) {
+			t.Fatalf("iter %d: bad body", i)
+		}
+	}
+
+	runtime.GC()
+	runtime.GC()
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+
+	var growth uint64
+	if after.HeapAlloc > before.HeapAlloc {
+		growth = after.HeapAlloc - before.HeapAlloc
+	}
+	const maxGrowth = 1 << 20
+	if growth > maxGrowth {
+		t.Fatalf("HeapAlloc grew by %d after %d small proxy GETs (limit %d); hits=%d",
+			growth, n, maxGrowth, hits.Load())
 	}
 }

@@ -13,6 +13,7 @@ package settings
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"net/http"
@@ -254,30 +255,35 @@ func validateBackgroundUrl(bgUrl string) error {
 	}
 
 	const maxBackgroundSize = 5 * 1024 * 1024
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{
+			ClientSessionCache: nil,
+		},
+		DisableKeepAlives: true,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			_, port, err := net.SplitHostPort(addr)
+			if err != nil || port == "" {
+				if parsedUrl.Scheme == "https" {
+					port = "443"
+				} else {
+					port = "80"
+				}
+			}
+			return dialer.DialContext(ctx, "tcp", net.JoinHostPort(validIp, port))
+		},
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 15 * time.Second,
+	}
+	defer transport.CloseIdleConnections()
+
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				_, port, err := net.SplitHostPort(addr)
-				if err != nil || port == "" {
-					if parsedUrl.Scheme == "https" {
-						port = "443"
-					} else {
-						port = "80"
-					}
-				}
-				var d net.Dialer
-				d.Timeout = 10 * time.Second
-				return d.DialContext(ctx, "tcp", net.JoinHostPort(validIp, port))
-			},
-			ForceAttemptHTTP2:     false,
-			DisableKeepAlives:     true,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ResponseHeaderTimeout: 15 * time.Second,
-		},
+		Transport: transport,
 	}
 
 	req, err := http.NewRequest(http.MethodGet, bgUrl, nil)

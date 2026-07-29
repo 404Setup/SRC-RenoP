@@ -15,7 +15,6 @@ import (
 	"context"
 	"io"
 	"mime"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,26 +39,7 @@ var (
 	OnArtifactStored func(localPath string)
 )
 
-var httpClient = &http.Client{
-	Timeout: 0,
-	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return utils.DialContextLimited(utils.LimitedDialer(10*time.Second, 30*time.Second), ctx, network, addr)
-		},
-		ForceAttemptHTTP2:     false,
-		DisableCompression:    true,
-		MaxIdleConns:          128,
-		MaxIdleConnsPerHost:   32,
-		MaxConnsPerHost:       256,
-		IdleConnTimeout:       30 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 15 * time.Second,
-		ExpectContinueTimeout: time.Second,
-		ReadBufferSize:        16 << 10,
-		WriteBufferSize:       8 << 10,
-	},
-}
+var httpClient = utils.OutboundClient(0)
 
 func escapeArtifactPath(path string) string {
 	parts := strings.Split(path, "/")
@@ -165,8 +145,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		}
 
 		streamCtx, streamCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		var capConn utils.ConnCapture
-		req = req.WithContext(utils.WithConnCapture(streamCtx, &capConn))
+		req = req.WithContext(streamCtx)
 
 		select {
 		case state.Inner.ProxyClientSemaphore <- struct{}{}:
@@ -177,7 +156,6 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 
 		res, err := httpClient.Do(req)
 		if err != nil {
-			utils.ForceTCPAbort(capConn.Conn())
 			streamCancel()
 			<-state.Inner.ProxyClientSemaphore
 			continue
@@ -194,18 +172,18 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 			const maxFastPathSize = 128 * 1024
 			var data []byte
 			var readErr error
-			if res.ContentLength >= 0 && res.ContentLength <= maxFastPathSize {
-				limitReader := io.LimitReader(res.Body, maxFastPathSize+1)
-				data, readErr = io.ReadAll(limitReader)
-			} else if res.ContentLength < 0 {
-				limitReader := io.LimitReader(res.Body, maxFastPathSize+1)
-				data, readErr = io.ReadAll(limitReader)
+			switch {
+			case res.ContentLength >= 0 && res.ContentLength <= maxFastPathSize:
+				data = make([]byte, res.ContentLength)
+				_, readErr = io.ReadFull(res.Body, data)
+			case res.ContentLength < 0:
+				data, readErr = io.ReadAll(io.LimitReader(res.Body, maxFastPathSize+1))
 			}
 
 			completeSmallResponse := readErr == nil && len(data) <= maxFastPathSize &&
 				(res.ContentLength < 0 || int64(len(data)) == res.ContentLength)
 			if completeSmallResponse {
-				utils.AbortHTTPResponse(res, capConn.Conn())
+				utils.DrainAndClose(res.Body)
 				streamCancel()
 				<-state.Inner.ProxyClientSemaphore
 
@@ -252,7 +230,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 			return stream, nil
 		}
 
-		utils.AbortHTTPResponse(res, capConn.Conn())
+		utils.DrainAndClose(res.Body)
 		streamCancel()
 		<-state.Inner.ProxyClientSemaphore
 	}
@@ -301,8 +279,7 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		var capConn utils.ConnCapture
-		req = req.WithContext(utils.WithConnCapture(ctx, &capConn))
+		req = req.WithContext(ctx)
 
 		select {
 		case state.Inner.ProxyClientSemaphore <- struct{}{}:
@@ -316,12 +293,8 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		<-state.Inner.ProxyClientSemaphore
 
 		if err != nil {
-			utils.ForceTCPAbort(capConn.Conn())
 			continue
 		}
-
-		utils.AbortHTTPResponse(res, capConn.Conn())
-
 		if res.StatusCode >= 200 && res.StatusCode < 300 {
 			headers := make(http.Header, 4)
 			if v := res.Header.Get("Content-Type"); v != "" {
@@ -336,8 +309,10 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 			if v := res.Header.Get("ETag"); v != "" {
 				headers.Set("ETag", v)
 			}
+			utils.DrainAndClose(res.Body)
 			return true, headers, nil
 		}
+		utils.DrainAndClose(res.Body)
 	}
 
 	return false, nil, nil

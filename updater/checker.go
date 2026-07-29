@@ -14,7 +14,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"runtime"
 	"strings"
@@ -28,24 +27,7 @@ import (
 
 const maxRemoteJSONBody = 1 << 20
 
-var checkHTTPClient = &http.Client{
-	Timeout: 15 * time.Second,
-	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return utils.DialContextLimited(utils.LimitedDialer(8*time.Second, 30*time.Second), ctx, network, addr)
-		},
-		ForceAttemptHTTP2:     false,
-		MaxIdleConns:          4,
-		MaxIdleConnsPerHost:   2,
-		MaxConnsPerHost:       4,
-		IdleConnTimeout:       30 * time.Second,
-		TLSHandshakeTimeout:   5 * time.Second,
-		ResponseHeaderTimeout: 8 * time.Second,
-		ExpectContinueTimeout: time.Second,
-		DisableKeepAlives:     true,
-	},
-}
+var checkHTTPClient = utils.OutboundClient(15 * time.Second)
 
 func CheckUpdate(ctx context.Context, channel Channel) (*CheckResult, error) {
 	if channel == ChannelNightly {
@@ -63,30 +45,24 @@ func doJSONGet(ctx context.Context, url string, accept string, dst any) (statusC
 	if accept != "" {
 		req.Header.Set("Accept", accept)
 	}
-
 	req.Close = true
-	var capConn utils.ConnCapture
-	req = req.WithContext(utils.WithConnCapture(req.Context(), &capConn))
 
 	resp, err := checkHTTPClient.Do(req)
 	if err != nil {
-		utils.ForceTCPAbort(capConn.Conn())
 		return 0, err
 	}
+	defer utils.DrainAndClose(resp.Body)
 
 	statusCode = resp.StatusCode
 	if statusCode != http.StatusOK {
-		utils.AbortHTTPResponse(resp, capConn.Conn())
 		return statusCode, fmt.Errorf("status %d", statusCode)
 	}
 
 	if resp.ContentLength > maxRemoteJSONBody {
-		utils.AbortHTTPResponse(resp, capConn.Conn())
 		return statusCode, fmt.Errorf("response too large: Content-Length=%d", resp.ContentLength)
 	}
 
 	data, err := utils.ReadAllLimited(resp.Body, maxRemoteJSONBody)
-	utils.AbortHTTPResponse(resp, capConn.Conn())
 	if err != nil {
 		if errors.Is(err, utils.ErrResponseTooLarge) {
 			return statusCode, fmt.Errorf("response exceeds %d bytes", maxRemoteJSONBody)

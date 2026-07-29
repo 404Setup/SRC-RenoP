@@ -25,17 +25,12 @@ import (
 	"renop/utils"
 )
 
-// proxyStreamWriteBufSize is the size of the per-stream disk write buffer.
-const proxyStreamWriteBufSize = 128 * 1024
+const proxyStreamWriteBufSize = 16 * 1024
 
-// proxyStreamReader tees the upstream HTTP body into a temp file while
-// simultaneously serving the bytes to the downstream caller (Fiber response
-// writer). On Close it atomically renames the temp file to its final location
-// when the full body was received successfully.
 type proxyStreamReader struct {
 	bodyReader io.ReadCloser
 	tmpFile    *os.File
-	writeBuf   []byte // owned 128 KiB buffer; nil when tmpFile is nil
+	writeBuf   []byte // 16 KiB buffer; nil when tmpFile is nil
 	writePos   int    // bytes buffered in writeBuf pending the next flush
 
 	tmpPath    string // path of the temp file
@@ -131,9 +126,15 @@ func (p *proxyStreamReader) Close() error {
 			p.writeBuf = nil
 		}()
 
-		p.closeErr = p.bodyReader.Close()
-		if p.closeErr != nil {
-			success = false
+		if p.bodyReader != nil {
+			if success {
+				p.closeErr = p.bodyReader.Close()
+				if p.closeErr != nil {
+					success = false
+				}
+			} else {
+				_ = p.bodyReader.Close()
+			}
 		}
 
 		if p.tmpFile != nil {
@@ -188,9 +189,6 @@ func (p *proxyStreamReader) Close() error {
 	return p.closeErr
 }
 
-// CreateProxyStream returns an io.ReadCloser that tees the upstream body to
-// a temp file. The caller reads from the stream as normal; on Close the temp
-// file is renamed to localFilePath when the body was fully and correctly received.
 func CreateProxyStream(
 	bodyReader io.ReadCloser,
 	expectedSize int64,

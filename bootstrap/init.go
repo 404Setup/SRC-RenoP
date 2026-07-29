@@ -119,9 +119,9 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	state.Inner.FileIndex = fileIndex
 
 	cacheConfig := bigcache.DefaultConfig(1 * time.Hour)
-	cacheConfig.Shards = 256
-	cacheConfig.MaxEntriesInWindow = 1000 * 10 * 2
-	cacheConfig.MaxEntrySize = 500
+	cacheConfig.Shards = 8
+	cacheConfig.MaxEntriesInWindow = 1000
+	cacheConfig.MaxEntrySize = 256
 	cacheConfig.HardMaxCacheSize = int(cfg.Server.FileCacheSizeMb)
 	cache, err := bigcache.New(context.Background(), cacheConfig)
 	if err == nil {
@@ -129,9 +129,9 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	}
 
 	anomalyFailsConfig := bigcache.DefaultConfig(5 * time.Minute)
-	anomalyFailsConfig.Shards = 64
-	anomalyFailsConfig.MaxEntriesInWindow = 1000 * 10
-	anomalyFailsConfig.MaxEntrySize = 256
+	anomalyFailsConfig.Shards = 4
+	anomalyFailsConfig.MaxEntriesInWindow = 500
+	anomalyFailsConfig.MaxEntrySize = 64
 	anomalyFailsCache, _ := bigcache.New(context.Background(), anomalyFailsConfig)
 	state.Inner.AnomalyFailures = anomalyFailsCache
 
@@ -145,7 +145,7 @@ func Initialize() (*core.AppState, BootstrapContext) {
 }
 
 func StartServices(state *core.AppState, context BootstrapContext) {
-	status.StartStatusSnapshotScheduler(state, 120*time.Second)
+	status.StartStatusSnapshotScheduler(state, 30*time.Second)
 	tasks.StartIndexSaver(state, context.IndexPath)
 	tasks.StartSessionSaver(state, context.SessionsPath)
 

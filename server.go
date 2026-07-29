@@ -12,11 +12,14 @@ package main
 
 import (
 	"log"
+	"os"
+	"runtime/debug"
 	"strconv"
 	"time"
 
 	"github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v3"
+	"github.com/valyala/fasthttp"
 
 	"renop/api"
 	"renop/auth"
@@ -33,14 +36,22 @@ import (
 	"renop/upload"
 )
 
+func init() {
+	fasthttp.SetBodySizePoolLimit(64*1024, 64*1024)
+}
+
 func main() {
+	if os.Getenv("GOGC") == "" {
+		debug.SetGCPercent(40)
+	}
+
 	state, context := bootstrap.Initialize()
 	bootstrap.StartServices(state, context)
 	cfg := state.Inner.Config.Load().(*config.Config)
 
 	concurrency := int(cfg.Server.MaxActiveRequests)
 	if concurrency <= 0 {
-		concurrency = 2000
+		concurrency = 512
 	}
 	if concurrency > 262144 {
 		concurrency = 262144
@@ -59,7 +70,7 @@ func main() {
 		WriteTimeout:                 30 * time.Minute,
 		DisablePreParseMultipartForm: true,
 		UnescapePath:                 false,
-		ReadBufferSize:               8 * 1024,
+		ReadBufferSize:               4 * 1024,
 	})
 
 	app.Use(middleware.CorsMiddleware(state))

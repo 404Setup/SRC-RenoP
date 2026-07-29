@@ -13,6 +13,7 @@ package storage
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -92,7 +93,7 @@ func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, c
 				defer rc.Close()
 				data, readErr := io.ReadAll(rc)
 				if readErr == nil {
-					if state.Inner.FileCache != nil {
+					if state.Inner.FileCache != nil && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
 						var etagVal, lmVal string
 						if etagHeader != nil {
 							etagVal = *etagHeader
@@ -127,7 +128,7 @@ func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, c
 	if fileSize > 0 && fileSize <= 128*1024 {
 		data, err := os.ReadFile(localFilePath)
 		if err == nil {
-			if state.Inner.FileCache != nil {
+			if state.Inner.FileCache != nil && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
 				var etagVal, lmVal string
 				if etagHeader != nil {
 					etagVal = *etagHeader
@@ -154,4 +155,9 @@ func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, c
 	}
 
 	return c.SendFile(localFilePath)
+}
+
+func isCacheableMetadata(pathStr string) bool {
+	ext := strings.ToLower(filepath.Ext(pathStr))
+	return ext == ".pom" || ext == ".xml" || ext == ".json" || ext == ".sha1" || ext == ".md5"
 }

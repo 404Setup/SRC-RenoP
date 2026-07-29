@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/process"
 
 	"renop/config"
 	"renop/core"
@@ -56,6 +58,9 @@ var (
 	lastDiskUpdate      time.Time
 	lastDiskUpdateMutex sync.Mutex
 	cachedDiskUsed      uint64
+
+	selfProcess     *process.Process
+	selfProcessOnce sync.Once
 )
 
 func init() {
@@ -76,6 +81,24 @@ func init() {
 
 func MarkStorageUpdated() {
 	storageDirty.Store(true)
+}
+
+// processRSSMiB returns this process's resident set size in MiB, or 0 on error.
+func processRSSMiB() uint64 {
+	selfProcessOnce.Do(func() {
+		p, err := process.NewProcess(int32(os.Getpid()))
+		if err == nil {
+			selfProcess = p
+		}
+	})
+	if selfProcess == nil {
+		return 0
+	}
+	mi, err := selfProcess.MemoryInfo()
+	if err != nil || mi == nil {
+		return 0
+	}
+	return mi.RSS / (1024 * 1024)
 }
 
 func GetFreeDiskSpace(state *core.AppState) uint64 {
@@ -202,12 +225,22 @@ func StartStatusSnapshotScheduler(state *core.AppState, intervalDuration time.Du
 		defer ticker.Stop()
 
 		updateMemory := func() {
-			var m runtime.MemStats
-			runtime.ReadMemStats(&m)
+			debug.FreeOSMemory()
 
-			usedMemory := m.Alloc / (1024 * 1024)
+			usedMemory := processRSSMiB()
+			if usedMemory == 0 {
+				var m runtime.MemStats
+				runtime.ReadMemStats(&m)
+				if m.Sys > m.HeapReleased {
+					usedMemory = (m.Sys - m.HeapReleased) / (1024 * 1024)
+				} else {
+					usedMemory = m.Alloc / (1024 * 1024)
+				}
+			}
 			totalMemory := cachedTotalMemory
 			if totalMemory == 0 {
+				var m runtime.MemStats
+				runtime.ReadMemStats(&m)
 				totalMemory = m.Sys / (1024 * 1024)
 			}
 			logicalCores := cachedLogicalCores

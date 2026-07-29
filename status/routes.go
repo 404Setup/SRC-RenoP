@@ -45,10 +45,19 @@ func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
 		logicalCores = cachedLogicalCores
 		physicalCores = cachedPhysicalCores
 		totalMemory = cachedTotalMemory
-		var m runtime.MemStats
-		runtime.ReadMemStats(&m)
-		usedMemory = m.Alloc / (1024 * 1024)
+		usedMemory = processRSSMiB()
+		if usedMemory == 0 {
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+			if m.Sys > m.HeapReleased {
+				usedMemory = (m.Sys - m.HeapReleased) / (1024 * 1024)
+			} else {
+				usedMemory = m.Alloc / (1024 * 1024)
+			}
+		}
 		if totalMemory == 0 {
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
 			totalMemory = m.Sys / (1024 * 1024)
 		}
 		renopUsedDisk, diskUsed, diskTotal = UpdateDiskStats(state)

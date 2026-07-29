@@ -22,7 +22,6 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -469,25 +468,7 @@ func SetReadyToRestart(binaryPath, latestVersion string) {
 	})
 }
 
-var downloadHTTPClient = &http.Client{
-	Timeout: 0,
-	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return utils.DialContextLimited(utils.LimitedDialer(15*time.Second, 30*time.Second), ctx, network, addr)
-		},
-		ForceAttemptHTTP2:     false,
-		DisableCompression:    true,
-		MaxIdleConns:          4,
-		MaxIdleConnsPerHost:   2,
-		MaxConnsPerHost:       4,
-		IdleConnTimeout:       30 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 30 * time.Second,
-		ExpectContinueTimeout: time.Second,
-		DisableKeepAlives:     true,
-	},
-}
+var downloadHTTPClient = utils.OutboundClient(0)
 
 func DownloadAndExtract(ctx context.Context, downloadUrl string) (string, error) {
 	zipTempFile, err := os.CreateTemp("", "renop-download-*.zip")
@@ -506,24 +487,20 @@ func DownloadAndExtract(ctx context.Context, downloadUrl string) (string, error)
 	}
 	req.Header.Set("User-Agent", "RenoP-Updater")
 	req.Close = true
-	var capConn utils.ConnCapture
-	req = req.WithContext(utils.WithConnCapture(req.Context(), &capConn))
 
 	resp, err := downloadHTTPClient.Do(req)
 	if err != nil {
-		utils.ForceTCPAbort(capConn.Conn())
 		return "", err
 	}
+	defer utils.DrainAndClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		utils.AbortHTTPResponse(resp, capConn.Conn())
 		return "", fmt.Errorf("Download failed with status %d", resp.StatusCode)
 	}
 
-	bufWriter := bufio.NewWriterSize(zipTempFile, 128*1024)
+	bufWriter := bufio.NewWriterSize(zipTempFile, 32*1024)
 	_, copyErr := io.Copy(bufWriter, resp.Body)
 	flushErr := bufWriter.Flush()
-	utils.AbortHTTPResponse(resp, capConn.Conn())
 	if copyErr != nil {
 		return "", fmt.Errorf("Failed to save update package: %w", copyErr)
 	}

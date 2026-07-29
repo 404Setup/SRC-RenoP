@@ -11,12 +11,9 @@
 package utils
 
 import (
-	"bytes"
 	"errors"
 	"io"
-	"sync"
-
-	"github.com/valyala/fasthttp"
+	"net/http"
 )
 
 // ErrResponseTooLarge is returned when an HTTP response body exceeds the
@@ -24,29 +21,13 @@ import (
 var ErrResponseTooLarge = errors.New("HTTP response body exceeds size limit")
 
 // maxDrainForReuse matches net/http's internal body-slurp budget for keep-alive
-// reuse. We only discard this much on error paths so a multi-megabyte error
-// page or misdirected binary is never pulled fully into process memory.
+// reuse. We discard at most this much on early close so multi-megabyte payloads
+// are never pulled fully into process memory while allowing connection reuse.
 const maxDrainForReuse = 256 << 10
 
-// FastHTTPBodyPoolLimit is the max capacity a fasthttp request/response body
-// buffer may keep when returned to the global pool. Larger buffers are dropped
-// for GC instead of permanently inflating process Alloc after failed clients.
-const FastHTTPBodyPoolLimit = 256 << 10
-
-// FastHTTPStreamPreBuffer is the recommended MaxResponseBodySize when
-// StreamResponseBody is true. fasthttp only truly streams fixed Content-Length
-// bodies larger than this threshold; with Max=0 it still pre-allocates the full
-// Content-Length before any bytes are read (the client-failure leak).
-const FastHTTPStreamPreBuffer = 64 << 10
-
-func init() {
-	fasthttp.SetBodySizePoolLimit(FastHTTPBodyPoolLimit, FastHTTPBodyPoolLimit)
-}
-
-// DrainAndClose discards a bounded prefix of body then closes it.
+// DrainAndClose discards up to 256 KiB of body then closes it.
 // Always call this (or Close after a full intentional read) on every non-nil
-// body. Unbounded Close-only on a huge unread body can still leave socket/TLS
-// buffers and prevents clean connection reuse.
+// body to enable net/http connection reuse without unbounded memory consumption.
 func DrainAndClose(body io.ReadCloser) {
 	if body == nil {
 		return
@@ -55,8 +36,8 @@ func DrainAndClose(body io.ReadCloser) {
 	_ = body.Close()
 }
 
-// DiscardHTTPBody closes an HTTP response body without pulling a large payload
-// into the process.
+// DiscardHTTPBody closes an HTTP response body without pulling large payloads
+// into process memory.
 func DiscardHTTPBody(body io.ReadCloser, contentLength int64) {
 	if body == nil {
 		return
@@ -66,6 +47,15 @@ func DiscardHTTPBody(body io.ReadCloser, contentLength int64) {
 		return
 	}
 	DrainAndClose(body)
+}
+
+// CloseHTTPResponse closes a net/http Response body cleanly.
+func CloseHTTPResponse(resp *http.Response) {
+	if resp == nil || resp.Body == nil {
+		return
+	}
+	DrainAndClose(resp.Body)
+	resp.Body = http.NoBody
 }
 
 // ReadAllLimited reads r up to max bytes. If more data is available it returns
@@ -82,98 +72,4 @@ func ReadAllLimited(r io.Reader, max int64) ([]byte, error) {
 		return nil, ErrResponseTooLarge
 	}
 	return data, nil
-}
-
-// FastHTTPBody owns a fasthttp.Response and exposes its body as io.ReadCloser.
-// Close always closes any body stream and releases the response to the pool.
-//
-// Callers must not ReleaseResponse themselves after wrapping.
-type FastHTTPBody struct {
-	resp *fasthttp.Response
-	r    io.Reader
-	once sync.Once
-	err  error
-}
-
-// NewFastHTTPBody wraps resp. If the body is streamed, reads come from the
-// stream; otherwise a private copy of the buffered body is used so the response
-// can be released on Close without invalidating the data.
-func NewFastHTTPBody(resp *fasthttp.Response) *FastHTTPBody {
-	if resp == nil {
-		return &FastHTTPBody{r: bytes.NewReader(nil)}
-	}
-	if stream := resp.BodyStream(); stream != nil {
-		return &FastHTTPBody{resp: resp, r: stream}
-	}
-	data := append([]byte(nil), resp.Body()...)
-	dropFastHTTPResponseBody(resp)
-	fasthttp.ReleaseResponse(resp)
-	return &FastHTTPBody{r: bytes.NewReader(data)}
-}
-
-func (b *FastHTTPBody) Read(p []byte) (int, error) {
-	if b.r == nil {
-		return 0, io.EOF
-	}
-	return b.r.Read(p)
-}
-
-func (b *FastHTTPBody) Close() error {
-	b.once.Do(func() {
-		if b.resp != nil {
-			b.err = b.resp.CloseBodyStream()
-			dropFastHTTPResponseBody(b.resp)
-			fasthttp.ReleaseResponse(b.resp)
-			b.resp = nil
-		}
-		b.r = nil
-	})
-	return b.err
-}
-
-// AbortFastHTTPResponse closes any body stream without draining and releases
-// the response. Prefer this on error / non-success paths when the body is unwanted.
-func AbortFastHTTPResponse(resp *fasthttp.Response) {
-	if resp == nil {
-		return
-	}
-	_ = resp.CloseBodyStream()
-	dropFastHTTPResponseBody(resp)
-	fasthttp.ReleaseResponse(resp)
-}
-
-// dropFastHTTPResponseBody discards the response body buffer so it is never
-// put back into responseBodyPool. Safe when body is nil or already empty.
-func dropFastHTTPResponseBody(resp *fasthttp.Response) {
-	if resp == nil {
-		return
-	}
-	resp.ReleaseBody(0)
-}
-
-// FastHTTPContentLength returns Content-Length as int64, or -1 when unknown
-// (chunked / identity / missing).
-func FastHTTPContentLength(resp *fasthttp.Response) int64 {
-	if resp == nil {
-		return -1
-	}
-	cl := resp.Header.ContentLength()
-	if cl < 0 {
-		return -1
-	}
-	return int64(cl)
-}
-
-// ConfigureFastHTTPStreamClient sets the safe streaming pair for outbound
-// clients that may receive large bodies (mirrors, downloads). Without a
-// positive MaxResponseBodySize, StreamResponseBody still fully buffers fixed
-// Content-Length responses.
-func ConfigureFastHTTPStreamClient(c *fasthttp.Client) {
-	if c == nil {
-		return
-	}
-	if c.MaxResponseBodySize <= 0 {
-		c.MaxResponseBodySize = FastHTTPStreamPreBuffer
-	}
-	c.StreamResponseBody = true
 }
