@@ -103,13 +103,13 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 
 		updateStateFields(func(s *UpdateState) {
 			s.Status = "available"
-			s.LatestVersion = res.LatestVersion
-			s.DownloadUrl = res.DownloadUrl
+			s.LatestVersion = strings.Clone(res.LatestVersion)
+			s.DownloadUrl = strings.Clone(res.DownloadUrl)
 			s.Size = res.Size
 			s.EstimatedDiskSpace = res.EstimatedDiskSpace
-			s.ReleaseDate = res.ReleaseDate
-			s.ReleaseNotes = res.ReleaseNotes
-			s.CommitSha = res.CommitSha
+			s.ReleaseDate = strings.Clone(res.ReleaseDate)
+			s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
+			s.CommitSha = strings.Clone(res.CommitSha)
 			s.IsRelease = res.IsRelease
 		})
 
@@ -158,17 +158,17 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 		updateStateFields(func(s *UpdateState) {
 			s.Size = res.Size
 			s.EstimatedDiskSpace = res.EstimatedDiskSpace
-			s.ReleaseDate = res.ReleaseDate
-			s.ReleaseNotes = res.ReleaseNotes
-			s.CommitSha = res.CommitSha
+			s.ReleaseDate = strings.Clone(res.ReleaseDate)
+			s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
+			s.CommitSha = strings.Clone(res.CommitSha)
 			s.IsRelease = res.IsRelease
 			if res.HasUpdate {
 				s.Status = "available"
-				s.LatestVersion = res.LatestVersion
-				s.DownloadUrl = res.DownloadUrl
+				s.LatestVersion = strings.Clone(res.LatestVersion)
+				s.DownloadUrl = strings.Clone(res.DownloadUrl)
 			} else {
 				s.Status = "idle"
-				s.LatestVersion = version.Version
+				s.LatestVersion = strings.Clone(version.Version)
 			}
 		})
 

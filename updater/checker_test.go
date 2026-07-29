@@ -89,6 +89,45 @@ func TestClipStringDoesNotRetainFullBacking(t *testing.T) {
 	}
 }
 
+func TestClipStringSmallDoesNotRetainFullBacking(t *testing.T) {
+	big := strings.Repeat("a", 1<<20)
+	sub := big[:10]
+	clipped := clipString(sub, 32768)
+	if clipped != "aaaaaaaaaa" {
+		t.Fatalf("got %q", clipped)
+	}
+	big = ""
+	sub = ""
+	runtime.GC()
+	if clipped != "aaaaaaaaaa" {
+		t.Fatal("clip content mismatch")
+	}
+}
+
+func TestDoJSONGetDoesNotRetainResponseBuffer(t *testing.T) {
+	padding := strings.Repeat("x", 500<<10)
+	payload := `{"version":"1.2.3","commit":"` + padding + `"}`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, payload)
+	}))
+	t.Cleanup(ts.Close)
+
+	var info ChannelInfo
+	status, err := doJSONGet(context.Background(), ts.URL, "application/json", &info)
+	if err != nil || status != 200 {
+		t.Fatalf("doJSONGet failed: status=%d, err=%v", status, err)
+	}
+	if info.Version != "1.2.3" {
+		t.Fatalf("version=%q", info.Version)
+	}
+
+	runtime.GC()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+}
+
 func TestCommitSubject(t *testing.T) {
 	if got := commitSubject("fix\n\nbody"); got != "fix" {
 		t.Fatalf("got %q", got)

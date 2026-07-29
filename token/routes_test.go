@@ -17,7 +17,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 
@@ -52,7 +52,7 @@ func TestUpsertToken(t *testing.T) {
 	payload := core.CreateAccessTokenRequest{
 		Permissions: []string{"base"},
 	}
-	body, _ := sonic.ConfigFastest.Marshal(payload)
+	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPut, "/tokens/instan", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -67,7 +67,7 @@ func TestUpsertToken(t *testing.T) {
 	payload2 := core.CreateAccessTokenRequest{
 		Permissions: []string{"base", "showing"},
 	}
-	body2, _ := sonic.ConfigFastest.Marshal(payload2)
+	body2, _ := json.Marshal(payload2)
 	req2 := httptest.NewRequest(http.MethodPut, "/tokens/instan", bytes.NewReader(body2))
 	req2.Header.Set("Content-Type", "application/json")
 
@@ -87,7 +87,7 @@ func TestUpsertToken(t *testing.T) {
 		NewName:     &newName,
 		Permissions: []string{"base", "showing"},
 	}
-	body3, _ := sonic.ConfigFastest.Marshal(payload3)
+	body3, _ := json.Marshal(payload3)
 	req3 := httptest.NewRequest(http.MethodPut, "/tokens/instan", bytes.NewReader(body3))
 	req3.Header.Set("Content-Type", "application/json")
 
@@ -115,7 +115,7 @@ func TestUpsertToken(t *testing.T) {
 		Permissions: []string{"base"},
 		IsCreate:    true,
 	}
-	bodyDup, _ := sonic.ConfigFastest.Marshal(payloadCreateDup)
+	bodyDup, _ := json.Marshal(payloadCreateDup)
 	reqDup := httptest.NewRequest(http.MethodPut, "/tokens/instan2", bytes.NewReader(bodyDup))
 	reqDup.Header.Set("Content-Type", "application/json")
 

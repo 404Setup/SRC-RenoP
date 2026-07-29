@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -365,7 +365,7 @@ func (s *ServerConfig) ParseTrustedProxies() {
 
 func (s *ServerConfig) UnmarshalJSON(data []byte) error {
 	var w serverConfigWire
-	if err := sonic.ConfigFastest.Unmarshal(data, &w); err != nil {
+	if err := json.Unmarshal(data, &w); err != nil {
 		return err
 	}
 	s.applyWire(&w)

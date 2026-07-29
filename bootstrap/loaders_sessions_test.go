@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -68,7 +68,7 @@ func TestLoadSessionsLegacyJSONAtPath(t *testing.T) {
 			LastActive:   2,
 		},
 	}
-	raw, err := sonic.ConfigFastest.Marshal(dtos)
+	raw, err := json.Marshal(dtos)
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(path, raw, 0644))
 
@@ -92,7 +92,7 @@ func TestLoadSessionsMigratesSiblingJSON(t *testing.T) {
 			LastActive:   10,
 		},
 	}
-	raw, err := sonic.ConfigFastest.Marshal(dtos)
+	raw, err := json.Marshal(dtos)
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(jsonPath, raw, 0644))
 

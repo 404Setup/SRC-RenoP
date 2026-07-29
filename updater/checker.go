@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 
 	"renop/utils"
 	"renop/version"
@@ -69,7 +69,7 @@ func doJSONGet(ctx context.Context, url string, accept string, dst any) (statusC
 		}
 		return statusCode, err
 	}
-	if err := sonic.ConfigFastest.Unmarshal(data, dst); err != nil {
+	if err := json.Unmarshal(data, dst); err != nil {
 		return statusCode, err
 	}
 	return statusCode, nil
@@ -80,10 +80,10 @@ func doGitHubJSON(ctx context.Context, url string, dst any) (statusCode int, err
 }
 
 func clipString(s string, max int) string {
-	if max <= 0 || len(s) <= max {
-		return s
+	if max > 0 && len(s) > max {
+		s = s[:max]
 	}
-	return strings.Clone(s[:max])
+	return strings.Clone(s)
 }
 
 func commitSubject(message string) string {
@@ -456,15 +456,15 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 
 	return &CheckResult{
 		HasUpdate:          hasUpdate,
-		CurrentVersion:     version.Version,
-		LatestVersion:      latestVersion,
-		DownloadUrl:        downloadURL,
+		CurrentVersion:     strings.Clone(version.Version),
+		LatestVersion:      strings.Clone(latestVersion),
+		DownloadUrl:        strings.Clone(downloadURL),
 		Channel:            string(ChannelRelease),
 		Size:               size,
 		EstimatedDiskSpace: size * 3,
-		ReleaseDate:        relDate,
-		ReleaseNotes:       relNotes,
-		CommitSha:          commitSha,
+		ReleaseDate:        strings.Clone(relDate),
+		ReleaseNotes:       strings.Clone(relNotes),
+		CommitSha:          strings.Clone(commitSha),
 		IsRelease:          true,
 	}, nil
 }
@@ -537,15 +537,15 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 
 	return &CheckResult{
 		HasUpdate:          hasUpdate,
-		CurrentVersion:     version.Version,
-		LatestVersion:      latestVersion,
-		DownloadUrl:        downloadURL,
+		CurrentVersion:     strings.Clone(version.Version),
+		LatestVersion:      strings.Clone(latestVersion),
+		DownloadUrl:        strings.Clone(downloadURL),
 		Channel:            string(ChannelNightly),
 		Size:               size,
 		EstimatedDiskSpace: size * 3,
-		ReleaseDate:        commitDate,
-		ReleaseNotes:       releaseNotes,
-		CommitSha:          commitSha,
+		ReleaseDate:        strings.Clone(commitDate),
+		ReleaseNotes:       strings.Clone(releaseNotes),
+		CommitSha:          strings.Clone(commitSha),
 		IsRelease:          false,
 	}, nil
 }

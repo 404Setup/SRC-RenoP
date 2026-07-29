@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/valyala/fasthttp"
 
@@ -62,8 +62,8 @@ func main() {
 		AppName:                      "RenoP",
 		BodyLimit:                    2 * 1024 * 1024 * 1024,
 		StreamRequestBody:            true,
-		JSONEncoder:                  sonic.ConfigFastest.Marshal,
-		JSONDecoder:                  sonic.ConfigFastest.Unmarshal,
+		JSONEncoder:                  json.Marshal,
+		JSONDecoder:                  json.Unmarshal,
 		Concurrency:                  concurrency,
 		IdleTimeout:                  30 * time.Second,
 		ReadTimeout:                  120 * time.Second,

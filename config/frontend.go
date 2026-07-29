@@ -14,7 +14,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -51,7 +51,7 @@ func (f *FrontendConfig) UnmarshalJSON(data []byte) error {
 	f.setDefaults()
 	type alias FrontendConfig
 	aux := (*alias)(f)
-	return sonic.ConfigFastest.Unmarshal(data, aux)
+	return json.Unmarshal(data, aux)
 }
 
 func (f *FrontendConfig) UnmarshalYAML(value *yaml.Node) error {

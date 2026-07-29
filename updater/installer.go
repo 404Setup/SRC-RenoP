@@ -454,7 +454,7 @@ func SetDownloadingProgress(progress int) {
 func SetError(msg string) {
 	updateStateFields(func(s *UpdateState) {
 		s.Status = "error"
-		s.ErrorMessage = msg
+		s.ErrorMessage = strings.Clone(msg)
 	})
 }
 
@@ -463,7 +463,7 @@ func SetReadyToRestart(binaryPath, latestVersion string) {
 	updateStateFields(func(s *UpdateState) {
 		s.Status = "ready_to_restart"
 		s.Progress = 100
-		s.LatestVersion = latestVersion
+		s.LatestVersion = strings.Clone(latestVersion)
 		s.ErrorMessage = ""
 	})
 }

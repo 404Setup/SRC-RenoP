@@ -13,13 +13,13 @@ package config
 import (
 	"testing"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
 
 func TestMirrorDefaultsJson(t *testing.T) {
 	var m Mirror
-	err := sonic.ConfigFastest.Unmarshal([]byte(`{}`), &m)
+	err := json.Unmarshal([]byte(`{}`), &m)
 	if err != nil {
 		t.Fatal(err)
 	}

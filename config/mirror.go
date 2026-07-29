@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/3JoB/unsafeConvert"
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -157,7 +157,7 @@ func (m *Mirror) UnmarshalJSON(data []byte) error {
 	m.setDefaults()
 	type alias Mirror
 	aux := (*alias)(m)
-	return sonic.ConfigFastest.Unmarshal(data, aux)
+	return json.Unmarshal(data, aux)
 }
 
 func (m *Mirror) UnmarshalYAML(value *yaml.Node) error {
@@ -186,7 +186,7 @@ func (m *MirrorCredentials) UnmarshalJSON(data []byte) error {
 	m.setDefaults()
 	type alias MirrorCredentials
 	aux := (*alias)(m)
-	return sonic.ConfigFastest.Unmarshal(data, aux)
+	return json.Unmarshal(data, aux)
 }
 
 func (m *MirrorCredentials) UnmarshalYAML(value *yaml.Node) error {

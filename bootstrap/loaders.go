@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
@@ -133,7 +133,7 @@ func isLegacySessionsJSON(data []byte) bool {
 
 func parseSessionsJSON(data []byte) []core.SessionDbDto {
 	var sessions []core.SessionDbDto
-	if err := sonic.ConfigFastest.Unmarshal(data, &sessions); err != nil {
+	if err := json.Unmarshal(data, &sessions); err != nil {
 		log.Printf("Failed to parse legacy sessions JSON: %v", err)
 		return []core.SessionDbDto{}
 	}

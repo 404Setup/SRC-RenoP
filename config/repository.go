@@ -11,11 +11,10 @@
 package config
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/3JoB/unsafeConvert"
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -55,7 +54,7 @@ func (m *MirroredRepositorySettings) UnmarshalJSON(data []byte) error {
 	m.setDefaults()
 	type alias MirroredRepositorySettings
 	aux := (*alias)(m)
-	return sonic.ConfigFastest.Unmarshal(data, aux)
+	return json.Unmarshal(data, aux)
 }
 
 func (m *MirroredRepositorySettings) UnmarshalYAML(value *yaml.Node) error {
@@ -77,7 +76,7 @@ func (s *StorageProviderSettings) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(s),
 	}
-	if err := sonic.ConfigFastest.Unmarshal(data, &aux); err != nil {
+	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
 	s.Value = data
@@ -115,7 +114,7 @@ func (r *RepositorySettings) UnmarshalJSON(data []byte) error {
 	r.setDefaults()
 	type alias RepositorySettings
 	aux := (*alias)(r)
-	return sonic.ConfigFastest.Unmarshal(data, aux)
+	return json.Unmarshal(data, aux)
 }
 
 func (r *RepositorySettings) UnmarshalYAML(value *yaml.Node) error {
@@ -146,7 +145,7 @@ func (m *MavenSettings) UnmarshalJSON(data []byte) error {
 	m.setDefaults()
 	type alias MavenSettings
 	aux := (*alias)(m)
-	return sonic.ConfigFastest.Unmarshal(data, aux)
+	return json.Unmarshal(data, aux)
 }
 
 func (m *MavenSettings) UnmarshalYAML(value *yaml.Node) error {

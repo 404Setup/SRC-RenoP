@@ -13,7 +13,7 @@ package config
 import (
 	"strings"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -42,7 +42,7 @@ func (u *UpdaterConfig) UnmarshalJSON(data []byte) error {
 	u.setDefaults()
 	type alias UpdaterConfig
 	aux := (*alias)(u)
-	if err := sonic.ConfigFastest.Unmarshal(data, aux); err != nil {
+	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
 	u.setDefaults()

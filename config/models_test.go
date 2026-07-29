@@ -13,7 +13,7 @@ package config
 import (
 	"testing"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 )
 
 func TestIsArtifactAllowedPrefixBoundary(t *testing.T) {
@@ -75,7 +75,7 @@ func TestIsArtifactAllowedGAAndDeny(t *testing.T) {
 
 func TestMirrorCredentialsUnmarshaling(t *testing.T) {
 	var m MirrorCredentials
-	err := sonic.ConfigFastest.Unmarshal([]byte(`{"method":"basic","login":"foo","password":"bar"}`), &m)
+	err := json.Unmarshal([]byte(`{"method":"basic","login":"foo","password":"bar"}`), &m)
 	if err != nil {
 		t.Fatal(err)
 	}

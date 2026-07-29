@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 
 	"renop/config"
@@ -65,7 +65,7 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 		ArtifactId: "test-artifact",
 		Version:    "1.0.0",
 	}
-	body, _ := sonic.ConfigFastest.Marshal(payload)
+	body, _ := json.Marshal(payload)
 
 	req := httptest.NewRequest("POST", "/maven/generate/pom/test-repo/com/example/test-artifact/1.0.0/test-artifact-1.0.0.pom", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -94,7 +94,7 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 		ArtifactId: "test-artifact",
 		Version:    "2.0.0",
 	}
-	body2, _ := sonic.ConfigFastest.Marshal(payload2)
+	body2, _ := json.Marshal(payload2)
 
 	req2 := httptest.NewRequest("POST", "/maven/generate/pom/test-repo/com/example/test-artifact/2.0.0", bytes.NewReader(body2))
 	req2.Header.Set("Content-Type", "application/json")

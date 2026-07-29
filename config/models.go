@@ -13,7 +13,7 @@ package config
 import (
 	"strings"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -48,7 +48,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	c.setDefaults()
 	type alias Config
 	aux := (*alias)(c)
-	if err := sonic.ConfigFastest.Unmarshal(data, aux); err != nil {
+	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
 	c.Updater.setDefaults()
@@ -74,25 +74,25 @@ type SettingsUpdate struct {
 
 func (su *SettingsUpdate) UnmarshalJSON(data []byte) error {
 	var obj map[string]any
-	if err := sonic.ConfigFastest.Unmarshal(data, &obj); err != nil {
+	if err := json.Unmarshal(data, &obj); err != nil {
 		return err
 	}
 
 	if _, ok := obj["host"]; ok {
 		s := DefaultServerConfig()
-		if err := sonic.ConfigFastest.Unmarshal(data, &s); err == nil {
+		if err := json.Unmarshal(data, &s); err == nil {
 			su.Server = &s
 			return nil
 		}
 	} else if _, ok := obj["repositories"]; ok {
 		m := DefaultMavenSettings()
-		if err := sonic.ConfigFastest.Unmarshal(data, &m); err == nil {
+		if err := json.Unmarshal(data, &m); err == nil {
 			su.Maven = &m
 			return nil
 		}
 	} else {
 		f := DefaultFrontendConfig()
-		if err := sonic.ConfigFastest.Unmarshal(data, &f); err == nil {
+		if err := json.Unmarshal(data, &f); err == nil {
 			su.Frontend = &f
 			return nil
 		}

@@ -14,7 +14,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/bytedance/sonic"
+	"github.com/goccy/go-json"
 )
 
 func TestFileIndexGetChildren(t *testing.T) {
@@ -130,7 +130,7 @@ func TestFileIndexWriteJSONEscapesPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	var decoded FileIndexSnapshot
-	if err := sonic.ConfigFastest.Unmarshal(buf.Bytes(), &decoded); err != nil {
+	if err := json.NewDecoder(&buf).Decode(&decoded); err != nil {
 		t.Fatalf("index JSON is invalid: %v", err)
 	}
 	if _, ok := decoded.Files[`storage/repo/quoted"name.jar`]; !ok {
