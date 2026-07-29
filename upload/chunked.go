@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/panjf2000/ants/v2"
 )
 
 const (
@@ -168,12 +167,12 @@ func DefaultManager() *Manager {
 // Safe to call multiple times; only the first call starts the worker.
 func StartBackgroundCleanup(storagePath string) {
 	defaultManager.once.Do(func() {
-		_ = ants.Submit(func() {
+		go func() {
 			CleanupOrphanPartials(storagePath, 0)
 			_ = CleanupStaleOSTempUploads(0, true)
-		})
+		}()
 
-		_ = ants.Submit(func() {
+		go func() {
 			ticker := time.NewTicker(time.Minute)
 			defer ticker.Stop()
 			for range ticker.C {
@@ -181,7 +180,7 @@ func StartBackgroundCleanup(storagePath string) {
 				_ = CleanupOrphanPartials(storagePath, SessionTTL)
 				_ = CleanupStaleOSTempUploads(SessionTTL, false)
 			}
-		})
+		}()
 	})
 }
 

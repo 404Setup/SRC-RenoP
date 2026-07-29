@@ -22,7 +22,6 @@ import (
 	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"github.com/llxisdsh/pb"
-	"github.com/panjf2000/ants/v2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/time/rate"
 
@@ -102,14 +101,10 @@ func (i *IPLimiter) GetLimiter(ip string) *rate.Limiter {
 	if !loaded {
 		if i.count.Add(1) > 10000 {
 			if i.isCleaning.CompareAndSwap(false, true) {
-				err := ants.Submit(func() {
+				go func() {
 					defer i.isCleaning.Store(false)
 					i.cleanup()
-				})
-				if err != nil {
-					i.cleanup()
-					i.isCleaning.Store(false)
-				}
+				}()
 			}
 		}
 	} else {

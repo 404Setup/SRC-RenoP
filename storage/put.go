@@ -29,7 +29,6 @@ import (
 	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
-	"github.com/panjf2000/ants/v2"
 
 	"renop/config"
 	"renop/core"
@@ -296,18 +295,12 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 		for _, cs := range checksums {
 			wg.Add(1)
 			checksum := cs
-			submitErr := ants.Submit(func() {
+			go func() {
 				defer wg.Done()
 				if err := SaveAndUploadChecksum(state, localFilePath, checksum.ext, checksum.hash); err != nil {
 					errOnce.Do(func() { firstErr = err })
 				}
-			})
-			if submitErr != nil {
-				if err := SaveAndUploadChecksum(state, localFilePath, checksum.ext, checksum.hash); err != nil {
-					errOnce.Do(func() { firstErr = err })
-				}
-				wg.Done()
-			}
+			}()
 		}
 		wg.Wait()
 
@@ -327,9 +320,9 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 	if strings.HasSuffix(localFilePath, "-javadoc.jar") {
 		javadocs.CleanupJavadoc(localFilePath)
 		if !IsS3Enabled(localFilePath) {
-			_ = ants.Submit(func() {
+			go func() {
 				_, _ = javadocs.EnsureJavadocExtractedBlocking(localFilePath)
-			})
+			}()
 		}
 	}
 

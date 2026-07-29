@@ -47,7 +47,6 @@ redistributed by RenoP. Reposilite is available under its own license (Apache-2.
 | `github.com/minio/crc64nvme`        | v1.1.1   | Apache-2.0                                 | Copyright (c) 2025 Minio Inc.                                                                                  |
 | `github.com/minio/md5-simd`         | v1.1.2   | Apache-2.0                                 | Copyright (c) 2020 MinIO Inc.                                                                                  |
 | `github.com/minio/minio-go/v7`      | v7.2.1   | Apache-2.0                                 | See [Apache NOTICE excerpts](#apache-notice-excerpts)                                                          |
-| `github.com/panjf2000/ants/v2`      | v2.12.1  | MIT                                        | Copyright (c) 2018 Andy Pan                                                                                    |
 | `github.com/philhofer/fwd`          | v1.2.0   | MIT                                        | Copyright (c) 2014-2015 Philip Hofer                                                                           |
 | `github.com/rs/xid`                 | v1.6.0   | MIT                                        | Copyright (c) 2015 Olivier Poitrey                                                                             |
 | `github.com/shirou/gopsutil/v3`     | v3.24.5  | BSD-3-Clause                               | Copyright (c) 2014 WAKAYAMA Shirou                                                                             |

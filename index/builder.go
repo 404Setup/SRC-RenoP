@@ -15,14 +15,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/panjf2000/ants/v2"
 )
 
 var S3IndexBuilder func(basePath string, idx *FileIndex)
 
-// isTemporaryPath reports upload/proxy partials that must not enter the file index.
-// Matches: *.tmp, *.tmp.<id>, *.<ext>.tmp.<id>, *.chunk.<uuid>
 func isTemporaryPath(pathStr string) bool {
 	name := filepath.Base(pathStr)
 	if name == "" {
@@ -103,14 +99,10 @@ func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
 	for _, subdir := range subdirs {
 		wg.Add(1)
 		sd := subdir
-		err := ants.Submit(func() {
+		go func() {
 			defer wg.Done()
 			scanSingleDirTree(sd, idx)
-		})
-		if err != nil {
-			scanSingleDirTree(sd, idx)
-			wg.Done()
-		}
+		}()
 	}
 	wg.Wait()
 }
@@ -126,9 +118,6 @@ func BuildIndexSync(basePath string, idx *FileIndex) {
 	ScanLocalDir(baseCleaned, idx, true)
 }
 
-// replaceIndexFromScan rebuilds idx from a fresh scan of basePath.
-// Entries absent from the new scan are removed (including dirs that still exist
-// on disk under a previous storage root — required when StoragePath moves).
 func replaceIndexFromScan(basePath string, idx *FileIndex) {
 	newIndex := NewFileIndexCustom(true)
 	BuildIndexSync(basePath, newIndex)
@@ -172,16 +161,11 @@ func replaceIndexFromScan(basePath string, idx *FileIndex) {
 }
 
 func RebuildIndexAsync(basePath string, idx *FileIndex) {
-	err := ants.Submit(func() {
-		replaceIndexFromScan(basePath, idx)
-	})
-	if err != nil {
-		replaceIndexFromScan(basePath, idx)
-	}
+	go replaceIndexFromScan(basePath, idx)
 }
 
 func RebuildIndexDiff(basePath string, idx *FileIndex) {
-	_ = ants.Submit(func() {
+	go func() {
 		newIndex := NewFileIndexCustom(true)
 		BuildIndexSync(basePath, newIndex)
 
@@ -223,5 +207,5 @@ func RebuildIndexDiff(basePath string, idx *FileIndex) {
 		})
 
 		idx.IsDirty.Store(true)
-	})
+	}()
 }

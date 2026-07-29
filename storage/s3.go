@@ -29,7 +29,6 @@ import (
 	"github.com/llxisdsh/pb"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/panjf2000/ants/v2"
 
 	"renop/config"
 	"renop/core"
@@ -358,7 +357,7 @@ func DeletePrefixFromS3Config(s3Cfg *config.S3Config, s3Prefix string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
 	defer cancel()
 	objectsCh := make(chan minio.ObjectInfo)
-	_ = ants.Submit(func() {
+	go func() {
 		defer close(objectsCh)
 		for object := range client.ListObjects(ctx, s3Cfg.Bucket, minio.ListObjectsOptions{
 			Prefix:    s3Prefix,
@@ -374,7 +373,7 @@ func DeletePrefixFromS3Config(s3Cfg *config.S3Config, s3Prefix string) error {
 				return
 			}
 		}
-	})
+	}()
 	errorCh := client.RemoveObjects(ctx, s3Cfg.Bucket, objectsCh, minio.RemoveObjectsOptions{})
 	for err := range errorCh {
 		if err.Err != nil {

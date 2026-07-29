@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/panjf2000/ants/v2"
 
 	"renop/core"
 	"renop/index"
@@ -108,7 +107,7 @@ func handleChecksumFallback(c fiber.Ctx, localFilePath string, state *core.AppSt
 					for cExt, cHash := range hashes {
 						wg.Add(1)
 						extStr, hashStr := cExt, cHash
-						err := ants.Submit(func() {
+						go func() {
 							defer wg.Done()
 							cPath := basePath + extStr
 							if IsS3Enabled(cPath) {
@@ -121,21 +120,7 @@ func handleChecksumFallback(c fiber.Ctx, localFilePath string, state *core.AppSt
 								Size:    int64(len(hashStr)),
 								ModTime: now,
 							})
-						})
-						if err != nil {
-							cPath := basePath + extStr
-							if IsS3Enabled(cPath) {
-								s3Key := utils.GetS3Key(cPath)
-								_ = UploadStreamToS3(s3Key, strings.NewReader(hashStr), int64(len(hashStr)), "text/plain")
-							} else {
-								_ = os.WriteFile(cPath, []byte(hashStr), 0644)
-							}
-							state.Inner.FileIndex.InsertFile(cPath, index.FileInfo{
-								Size:    int64(len(hashStr)),
-								ModTime: now,
-							})
-							wg.Done()
-						}
+						}()
 					}
 					wg.Wait()
 					computedSuccess = true

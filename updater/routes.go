@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/panjf2000/ants/v2"
 
 	"renop/auth"
 	"renop/config"
@@ -94,7 +93,7 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 	lastAutoCheck = time.Now()
 	autoCheckLock.Unlock()
 
-	_ = ants.Submit(func() {
+	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 		res, err := CheckUpdate(ctx, channel)
@@ -133,7 +132,7 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 		if applyErr := ApplyUpdateAndRestart(targetPath); applyErr != nil {
 			_ = os.Remove(targetPath)
 		}
-	})
+	}()
 }
 
 func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
@@ -206,7 +205,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			return c.Status(fiber.StatusConflict).SendString("Installation already in progress")
 		}
 
-		err := ants.Submit(func() {
+		go func() {
 			defer isInstalling.Store(false)
 
 			st := GetUpdateState()
@@ -233,12 +232,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			} else {
 				SetReadyToRestart(targetPath, st.LatestVersion)
 			}
-		})
-
-		if err != nil {
-			isInstalling.Store(false)
-			return c.Status(fiber.StatusServiceUnavailable).SendString("Task submission failed")
-		}
+		}()
 
 		return c.JSON(fiber.Map{"status": "started"})
 	})

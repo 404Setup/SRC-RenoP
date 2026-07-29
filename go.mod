@@ -11,7 +11,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/llxisdsh/pb v1.5.25
 	github.com/minio/minio-go/v7 v7.2.1
-	github.com/panjf2000/ants/v2 v2.12.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
 	github.com/valyala/fasthttp v1.72.0
@@ -51,7 +50,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect

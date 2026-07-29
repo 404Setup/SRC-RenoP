@@ -31,8 +31,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/panjf2000/ants/v2"
-
 	"renop/utils"
 )
 
@@ -650,12 +648,12 @@ func RestartProcess() error {
 }
 
 func scheduleReexec(exePath string) error {
-	_ = ants.Submit(func() {
+	go func() {
 		time.Sleep(500 * time.Millisecond)
 		if err := reexecProcess(exePath); err != nil {
 			log.Printf("[Updater] Failed to restart process: %v", err)
 			os.Exit(1)
 		}
-	})
+	}()
 	return nil
 }

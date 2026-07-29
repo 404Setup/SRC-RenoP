@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/panjf2000/ants/v2"
 )
 
 var OnStorageUpdated func()
@@ -54,7 +53,7 @@ func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error
 						if info.IsDir() {
 							idx.InsertDir(pathCleaned)
 							if event.Has(fsnotify.Create) {
-								_ = ants.Submit(func() {
+								go func() {
 									_ = filepath.WalkDir(pathCleaned, func(path string, d fs.DirEntry, err error) error {
 										if err == nil {
 											pathNorm := filepath.ToSlash(filepath.Clean(path))
@@ -72,7 +71,7 @@ func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error
 										}
 										return nil
 									})
-								})
+								}()
 							}
 						} else {
 							parentCleaned := filepath.ToSlash(filepath.Dir(pathCleaned))
