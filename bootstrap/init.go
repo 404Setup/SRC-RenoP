@@ -145,7 +145,7 @@ func Initialize() (*core.AppState, BootstrapContext) {
 }
 
 func StartServices(state *core.AppState, context BootstrapContext) {
-	status.StartStatusSnapshotScheduler(state, 30*time.Second)
+	status.StartStatusSnapshotScheduler(state, 20*time.Second)
 	tasks.StartIndexSaver(state, context.IndexPath)
 	tasks.StartSessionSaver(state, context.SessionsPath)
 
