@@ -155,12 +155,12 @@ export async function renderDownload({root}) {
     let os = platform.os;
     let arch = platform.arch;
 
-    root.appendChild(
-        el('header', {class: 'page-hero'},
-            el('h1', {}, t('download.title')),
-            el('p', {}, t('download.lead')),
-        ),
+    const hero = el('header', {class: 'page-hero'},
+        el('h1', {}, t('download.title')),
     );
+    const lead = t('download.lead');
+    if (lead) hero.appendChild(el('p', {}, lead));
+    root.appendChild(hero);
 
     const tabs = el('div', {class: 'tabs-container'},
         el('div', {class: 'tabs'},
