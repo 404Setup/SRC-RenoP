@@ -108,9 +108,7 @@ init/complete: **`application/x-protobuf`**（`ChunkedUploadInitRequest` / `Chun
 
 ## `POST /api/updater/restart`
 
-準備済みバイナリを適用して再起動。
-
-未準備 → 400（`No update ready to install`）。
+準備済みの更新バイナリがある場合は適用してプロセスを再起動します。ない場合は更新を適用せず、現行プロセスのみ再起動します。
 
 ```json
 {"status": "restarting"}

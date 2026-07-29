@@ -2,22 +2,23 @@
 title: Vue d’ensemble de la configuration
 order: 1
 category: Configuration
-description: Fichiers de config, paramètres serveur et variables d’environnement
+description: Fichiers de configuration, paramètres serveur et variables d’environnement
 ---
 
 # Vue d’ensemble de la configuration
 
-Config et état dans le répertoire de travail du processus. Chemins surchargeables via variables d’environnement.
+Les fichiers de configuration et l’état d’exécution sont stockés dans le répertoire de travail du processus. Les chemins
+peuvent être redéfinis par des variables d’environnement.
 
 ## Fichiers
 
-| Fichier             | Variable d’env       | Rôle                                                            |
-|---------------------|----------------------|-----------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | Bind serveur, TLS, marque frontend, chemin de stockage, updater |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Dépôts, miroirs, S3 par dépôt                                   |
-| `tokens.yaml`       | `RENOP_TOKENS`       | Utilisateurs, rôles, jetons d’upload                            |
-| `index.json`        | `RENOP_INDEX`        | Cache d’index des artefacts                                     |
-| `sessions.json`     | `RENOP_SESSIONS`     | Sessions de connexion navigateur                                |
+| Fichier             | Variable d’environnement | Rôle                                                                                |
+|---------------------|--------------------------|-------------------------------------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`           | Adresse d’écoute, TLS, marque frontend, chemin de stockage, updater                 |
+| `repositories.yaml` | `RENOP_REPOSITORIES`     | Dépôts, miroirs, S3 par dépôt                                                       |
+| `tokens.yaml`       | `RENOP_TOKENS`           | Utilisateurs, rôles, jetons d’upload                                                |
+| `index.json`        | `RENOP_INDEX`            | Cache d’index des artefacts                                                         |
+| `sessions.bin`      | `RENOP_SESSIONS`         | Sessions de connexion navigateur (l’ancien `sessions.json` est migré au chargement) |
 
 Lié à l’exécution :
 
@@ -29,63 +30,81 @@ Lié à l’exécution :
 
 ### `storage_path`
 
-Répertoire racine du stockage local des artefacts (disposition par défaut sous ce chemin). Le chemin relatif par défaut
-est en général `storage`.
+Répertoire racine du stockage local des artefacts. Le chemin relatif par défaut est `storage`.
 
 ### `server`
 
-| Clé                   | Défaut            | Description                                                                 |
-|-----------------------|-------------------|-----------------------------------------------------------------------------|
-| `host`                | `0.0.0.0`         | Adresse d’écoute                                                            |
-| `port`                | `3000`            | Port d’écoute                                                               |
-| `ssl_enabled`         | `false`           | Activer TLS                                                                 |
-| `ssl_cert_path`       | `""`              | Chemin du certificat si TLS est activé                                      |
-| `ssl_key_path`        | `""`              | Chemin de la clé privée si TLS est activé                                   |
-| `domains`             | `[localhost]`     | Noms d’hôte publics (UI / métadonnées + CORS par défaut)                    |
-| `cors_origins`        | `[]`              | Liste CORS navigateur (vide = `domains` uniquement ; `*` = tout)            |
-| `enable_compression`  | `false`           | Compression des réponses HTTP                                               |
-| `file_cache_size_mb`  | `100`             | Taille du cache fichiers en mémoire (Mo)                                    |
-| `max_active_requests` | `2000`            | Plafond de requêtes concurrentes (surcharge → 503)                          |
-| `trusted_proxies`     | `[]`              | CIDR/IP de reverse proxies supplémentaires (loopback toujours de confiance) |
-| `cdn_ip_header`       | `X-Forwarded-For` | En-tête d’IP client derrière un proxy de confiance (ex. `CF-Connecting-IP`) |
+| Clé                   | Défaut            | Description                                                                     |
+|-----------------------|-------------------|---------------------------------------------------------------------------------|
+| `host`                | `0.0.0.0`         | Adresse d’écoute                                                                |
+| `port`                | `3000`            | Port d’écoute                                                                   |
+| `ssl_enabled`         | `false`           | Activer TLS                                                                     |
+| `ssl_cert_path`       | `""`              | Chemin du certificat lorsque TLS est activé                                     |
+| `ssl_key_path`        | `""`              | Chemin de la clé privée lorsque TLS est activé                                  |
+| `domains`             | `[localhost]`     | Noms d’hôte publics de l’instance (UI / métadonnées et CORS par défaut)         |
+| `cors_origins`        | `[]`              | Liste CORS navigateur (vide = `domains` uniquement ; `*` = toute origine)       |
+| `enable_compression`  | `false`           | Activer la compression des réponses HTTP                                        |
+| `file_cache_size_mb`  | `100`             | Taille du cache fichiers en mémoire (Mo)                                        |
+| `max_active_requests` | `2000`            | Nombre maximal de requêtes concurrentes (surcharge → 503)                       |
+| `trusted_proxies`     | `[]`              | CIDR/IP de reverse proxies supplémentaires (loopback toujours de confiance)     |
+| `cdn_ip_header`       | `X-Forwarded-For` | En-tête d’IP client derrière un proxy de confiance (par ex. `CF-Connecting-IP`) |
 
-Redémarrez le processus après modification de host, port ou TLS.
+#### CORS (`server.cors_origins`)
+
+Détermine les valeurs `Origin` du navigateur autorisées en accès cross-origin. Les cookies de session sont renvoyés avec
+`Access-Control-Allow-Credentials`.
+
+| Valeur                    | Effet                                                                                                 |
+|---------------------------|-------------------------------------------------------------------------------------------------------|
+| *(vide)*                  | Uniquement les origines dont l’hôte correspond à un élément de `server.domains` (tout schéma ou port) |
+| `*.pkg.one`               | Domaine apex `pkg.one` et tout sous-domaine (par ex. `mvnc.pkg.one`)                                  |
+| `https://app.example.com` | Origine complète exacte (schéma, hôte et port)                                                        |
+| `partner.example.com`     | Cet hôte avec tout schéma ou port                                                                     |
+| `*`                       | Autoriser toute origine                                                                               |
+
+Les configurations héritées utilisant la forme singulière `domain: example.com` se chargent encore et sont migrées vers
+`domains: [example.com]`.
+
+Redémarrez le processus après modification de `host`, `port` ou des paramètres TLS.
 
 ### `frontend`
 
-Marque du navigateur de dépôt embarqué :
+Champs de marque du navigateur de dépôt embarqué :
 
-| Clé                    | Description                          |
-|------------------------|--------------------------------------|
-| `id`                   | Identifiant frontend / site          |
-| `title`                | Titre de page                        |
-| `description`          | Courte description                   |
-| `organization_website` | URL org / produit                    |
-| `organization_logo`    | Chemin du logo (ex. `/svg/logo.svg`) |
-| `background_url`       | Image de fond optionnelle            |
-| `icp_license`          | Texte ICP / conformité optionnel     |
+| Clé                    | Description                              |
+|------------------------|------------------------------------------|
+| `id`                   | Identifiant frontend / site              |
+| `title`                | Titre de page                            |
+| `description`          | Courte description                       |
+| `organization_website` | URL de l’organisation ou du produit      |
+| `organization_logo`    | Chemin du logo (par ex. `/svg/logo.svg`) |
+| `background_url`       | URL d’image de fond optionnelle          |
+| `icp_license`          | Texte ICP ou de conformité optionnel     |
 
 ### `updater`
 
-| Clé       | Défaut    | Description                                         |
-|-----------|-----------|-----------------------------------------------------|
-| `channel` | `release` | `release` ou `nightly`                              |
-| `mode`    | `manual`  | Mode d’application des mises à jour (ex. manuel UI) |
+| Clé       | Défaut    | Description                                                                   |
+|-----------|-----------|-------------------------------------------------------------------------------|
+| `channel` | `release` | `release` ou `nightly`                                                        |
+| `mode`    | `manual`  | Mode d’application des mises à jour (par ex. installation manuelle dans l’UI) |
 
-Page [Téléchargement](/download) : mêmes sources stable / nightly.
+La page [Téléchargement](/download) du site et les mises à jour dans l’instance utilisent la même classe de sources
+stable et nightly.
 
 ## Interface d’administration
 
-**manager** / **admin** : la plupart des réglages sous Settings et Repositories. Certains changements fichier exigent reload/restart.
+Les comptes disposant des permissions **manager** ou **admin** peuvent modifier la plupart des paramètres sous Settings
+et Repositories. Certains changements de configuration nécessitent un rechargement ou un redémarrage du processus après
+écriture du fichier. Consultez la documentation de chaque domaine de configuration.
 
 ## Stockage
 
-- **Disque local** sous `storage_path` (défaut)
-- **S3-compatible** (par dépôt dans `repositories.yaml`)
+- **Disque local** sous `storage_path` (mode par défaut)
+- **Stockage objet compatible S3**, configuré par dépôt dans `repositories.yaml`
 
-Upload peut écrire des sidecars MD5 / SHA-1 / SHA-256 / SHA-512.
+Les uploads peuvent écrire des fichiers de checksum sidecars MD5 / SHA-1 / SHA-256 / SHA-512.
 
-Visibilité, miroirs, S3 : [Dépôts et miroirs](./repositories.md).
+Pour la visibilité, les miroirs et les champs S3, voir [Dépôts et miroirs](./repositories.md).
 
 ## Voir aussi
 

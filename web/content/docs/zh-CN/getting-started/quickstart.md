@@ -9,15 +9,15 @@ description: 首次启动、管理员密码、默认仓库地址
 
 ## 首次启动
 
-首次启动会创建 `admin`。启动前设密码：
+首次启动时会创建 `admin` 账户。请在启动前通过环境变量设置密码：
 
 ```bash
 RENOP_DEFAULT_ADMIN_PASSWORD='replace-this-password' ./renop
 ```
 
-不设的话，随机密码打在服务器日志里。然后打开 `http://localhost:3000`。
+若未设置该变量，服务会生成随机密码并写入服务器日志。启动完成后访问 `http://localhost:3000`。
 
-用 `admin` 登录。管理员可在 Web UI 管制品、用户、仓库和设置。
+使用 `admin` 登录。具备 manager / admin 权限的账户可在 Web 界面中管理制品、用户、仓库与系统设置。
 
 ## 默认仓库
 
@@ -27,7 +27,7 @@ RENOP_DEFAULT_ADMIN_PASSWORD='replace-this-password' ./renop
 | `http://localhost:3000/snapshots` | 快照   |
 | `http://localhost:3000/private`   | 私有   |
 
-写进 Maven 的 `<repositories>` 或 `<distributionManagement>`。示例：[Maven 客户端](./maven-client.md)。
+将上述地址配置到 Maven 的 `<repositories>` 或 `<distributionManagement>`。示例见 [Maven 客户端](./maven-client.md)。
 
 ## 健康检查
 
@@ -38,16 +38,16 @@ curl -s http://localhost:3000/api/status/health
 
 ## 环境变量
 
-| 变量                           | 默认                | 用途                     |
-|--------------------------------|---------------------|--------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | 服务、前端、存储、更新器 |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | 仓库、镜像、按仓库 S3    |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | 账户与 Token             |
-| `RENOP_INDEX`                  | `index.json`        | 制品索引                 |
-| `RENOP_SESSIONS`               | `sessions.json`     | 登录会话                 |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自动生成            | 首个 admin 密码          |
+| 变量                           | 默认                | 用途                                                  |
+|--------------------------------|---------------------|-------------------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | 服务、前端、存储、更新器                              |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | 仓库、镜像、按仓库 S3                                 |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | 账户与 Token                                          |
+| `RENOP_INDEX`                  | `index.json`        | 制品索引                                              |
+| `RENOP_SESSIONS`               | `sessions.bin`      | 登录会话（protobuf；旧版 `sessions.json` 会自动迁移） |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自动生成            | 首个 admin 密码                                       |
 
-多数也能在管理 UI 里改。改监听地址或 TLS 后要重启。
+多数配置项也可在管理界面中修改。修改监听地址或 TLS 相关配置后，需要重启进程。
 
 ## 下一步
 

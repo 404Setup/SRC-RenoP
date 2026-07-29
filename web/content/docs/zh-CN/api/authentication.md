@@ -26,7 +26,7 @@ category: API
 
 - **PUBLIC** — 匿名可读
 - **HIDDEN** — 文件可读；列出根目录需要额外角色
-- **PRIVATE** — 需要显式读权限或 manager
+- **PRIVATE** — 需要 `canview` / `allview` / `proview`、该仓库写权限或 manager
 
 写入（PUT/POST/DELETE 制品）始终需要 `canupdate` 或 manager。
 
@@ -54,7 +54,8 @@ category: API
 | 403  | 账户已过期       |
 | 400  | 正文无法读取     |
 
-响应中的 `session_token` 与 cookie 一致；浏览器可仅依赖 cookie。
+会话 id 只写入 `renop_session` cookie。登录响应里的 `session_token` 为空；浏览器依赖 cookie，脚本可将同一 id 以
+`Authorization: Session …` 发送。
 
 ## 当前用户
 
@@ -117,20 +118,21 @@ Basic 的 secret 可用账户密码或上传令牌，取决于账户配置。
 
 ### `GET /api/auth/profile/sessions`
 
-列出当前用户的 **浏览器登录会话**。Basic / Bearer 认证 **不会** 创建会话，也不会出现在此列表。Session 密钥（Cookie 值）**不会** 返回。
+列出当前用户的 **浏览器登录会话**。Basic / Bearer 认证 **不会** 创建会话，也不会出现在此列表。Session 密钥（Cookie 值）
+**不会** 返回。
 
 响应：`application/x-protobuf`，`SessionList`
 
-| 字段（`sessions[]` 每项） | 含义 |
-|---------------------------|------|
-| `public_id` | 用于撤销 API 的不透明 ID（不是 Cookie 密钥） |
-| `username` | 账户名 |
-| `ip` | 最后一次看到的客户端 IP |
-| `user_agent` | 登录时的设备 / User-Agent |
-| `created_at` | 创建时间（Unix 毫秒） |
-| `last_active` | 最后活跃（Unix 毫秒） |
-| `expires_at` | 空闲过期：`last_active` + 空闲超时（通常 7 天，Unix 毫秒） |
-| `current` | 为本次请求所用会话时为 `true` |
+| 字段（`sessions[]` 每项） | 含义                                                       |
+|---------------------------|------------------------------------------------------------|
+| `public_id`               | 用于撤销 API 的不透明 ID（不是 Cookie 密钥）               |
+| `username`                | 账户名                                                     |
+| `ip`                      | 最后一次看到的客户端 IP                                    |
+| `user_agent`              | 登录时的设备 / User-Agent                                  |
+| `created_at`              | 创建时间（Unix 毫秒）                                      |
+| `last_active`             | 最后活跃（Unix 毫秒）                                      |
+| `expires_at`              | 空闲过期：`last_active` + 空闲超时（通常 7 天，Unix 毫秒） |
+| `current`                 | 为本次请求所用会话时为 `true`                              |
 
 ### `POST /api/auth/profile/sessions/revoke-others`
 

@@ -109,7 +109,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [frontend, server, storage, updater, index]
+        enum: [ frontend, server, storage, updater, index ]
     VersionFilter:
       name: filter
       in: query
@@ -130,7 +130,7 @@ components:
       required: false
       schema:
         type: string
-        enum: [release, nightly]
+        enum: [ release, nightly ]
         default: release
 
   responses:
@@ -184,7 +184,8 @@ components:
 
     StatusOk:
       type: object
-      description: Protobuf message StatusOk (application/x-protobuf) for some mutating auth/session endpoints; also used as JSON `{status: success}` elsewhere.
+      description:
+        Protobuf message StatusOk (application/x-protobuf) for some mutating auth/session endpoints; also used as JSON `{status: success}` elsewhere.
       properties:
         status:
           type: string
@@ -194,7 +195,7 @@ components:
     LoginRequest:
       type: object
       description: Protobuf message LoginRequest (wire format application/x-protobuf).
-      required: [name, secret]
+      required: [ name, secret ]
       properties:
         name:
           type: string
@@ -241,7 +242,7 @@ components:
           type: array
           items:
             type: string
-          example: ["manager", "canview:*", "canupdate:*"]
+          example: [ "manager", "canview:*", "canupdate:*" ]
 
     AccessTokenPermission:
       type: object
@@ -285,7 +286,9 @@ components:
             $ref: "#/components/schemas/Route"
         session_token:
           type: string
-          description: Present when the request used a Session authorization header.
+          description: |
+            Set when the request used an Authorization Session header.
+            Empty on login (session id is only in the renop_session cookie).
 
     AccessTokenList:
       type: object
@@ -298,7 +301,7 @@ components:
 
     UpdatePasswordRequest:
       type: object
-      required: [new_password]
+      required: [ new_password ]
       properties:
         new_password:
           type: string
@@ -388,7 +391,7 @@ components:
       properties:
         type:
           type: string
-          enum: [FILE, DIRECTORY]
+          enum: [ FILE, DIRECTORY ]
         name:
           type: string
         content_length:
@@ -432,7 +435,7 @@ components:
           type: string
         visibility:
           type: string
-          enum: [PUBLIC, HIDDEN, PRIVATE]
+          enum: [ PUBLIC, HIDDEN, PRIVATE ]
         total_size:
           type: integer
           format: int64
@@ -491,7 +494,7 @@ components:
       properties:
         status:
           type: string
-          enum: [idle, available, downloading, ready_to_restart, error]
+          enum: [ idle, available, downloading, ready_to_restart, error ]
         latest_version:
           type: string
         download_url:
@@ -595,11 +598,11 @@ components:
     RebuildIndexRequest:
       type: object
       description: Protobuf message RebuildIndexRequest (application/x-protobuf).
-      required: [mode]
+      required: [ mode ]
       properties:
         mode:
           type: string
-          enum: [full, diff]
+          enum: [ full, diff ]
 
     FrontendConfig:
       type: object
@@ -643,7 +646,7 @@ components:
           items:
             type: string
           description: Public hostnames for this instance (default CORS allowlist).
-          example: ["mvnc.pkg.one", "repo.example.com"]
+          example: [ "mvnc.pkg.one", "repo.example.com" ]
         enable_compression:
           type: boolean
         file_cache_size_mb:
@@ -665,7 +668,7 @@ components:
           description: >
             Extra browser CORS origins on top of domains (domains always remain allowed). Empty = domains only.
             Supports host wildcards (*.pkg.one), full origins, or * for any.
-          example: ["*.pkg.one", "https://partner.example.com"]
+          example: [ "*.pkg.one", "https://partner.example.com" ]
 
     StorageConfig:
       type: object
@@ -688,10 +691,10 @@ components:
       properties:
         channel:
           type: string
-          enum: [release, nightly]
+          enum: [ release, nightly ]
         mode:
           type: string
-          enum: [manual, auto_check, auto_install, safe_install]
+          enum: [ manual, auto_check, auto_install, safe_install ]
 
     SettingsDomainsResponse:
       type: object
@@ -701,7 +704,7 @@ components:
           type: array
           items:
             type: string
-          example: [frontend, server, storage, updater, index]
+          example: [ frontend, server, storage, updater, index ]
 
     IndexDomainSettings:
       type: object
@@ -710,11 +713,11 @@ components:
     ChunkedUploadInitRequest:
       type: object
       description: Protobuf message ChunkedUploadInitRequest (wire format application/x-protobuf).
-      required: [size]
+      required: [ size ]
       properties:
         purpose:
           type: string
-          enum: [storage, updater]
+          enum: [ storage, updater ]
           default: storage
         filename:
           type: string
@@ -828,7 +831,7 @@ components:
           type: string
         visibility:
           type: string
-          enum: [PUBLIC, HIDDEN, PRIVATE]
+          enum: [ PUBLIC, HIDDEN, PRIVATE ]
         allow_redeployment:
           type: boolean
         mirrors:
@@ -906,10 +909,10 @@ paths:
   # ========== Auth ==========
   /api/auth/login:
     post:
-      tags: [auth]
+      tags: [ auth ]
       summary: Login
       operationId: postAuthLogin
-      security: []
+      security: [ ]
       requestBody:
         required: true
         content:
@@ -918,7 +921,9 @@ paths:
               $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
-          description: Session created; Set-Cookie renop_session.
+          description: |
+            Session created. The session id is delivered only via Set-Cookie
+            `renop_session`; SessionDetails.session_token is empty.
           headers:
             Set-Cookie:
               schema:
@@ -937,12 +942,12 @@ paths:
 
   /api/auth/me:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: Current session user
       operationId: getAuthMe
       security:
-        - sessionCookie: []
-        - sessionHeader: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
       responses:
         "200":
           description: SessionDetails
@@ -955,24 +960,24 @@ paths:
 
   /api/auth/logout:
     post:
-      tags: [auth]
+      tags: [ auth ]
       summary: Logout
       operationId: postAuthLogout
       security:
-        - sessionCookie: []
-        - sessionHeader: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
       responses:
         "204":
           description: Session invalidated (also when none existed).
 
   /api/auth/profile/password:
     put:
-      tags: [auth]
+      tags: [ auth ]
       summary: Change own password
       operationId: putAuthProfilePassword
       security:
-        - sessionCookie: []
-        - sessionHeader: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
       requestBody:
         required: true
         content:
@@ -993,12 +998,12 @@ paths:
 
   /api/auth/profile/token:
     post:
-      tags: [auth]
+      tags: [ auth ]
       summary: Regenerate own upload token
       operationId: postAuthProfileToken
       security:
-        - sessionCookie: []
-        - sessionHeader: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
       responses:
         "200":
           description: New upload token
@@ -1011,7 +1016,7 @@ paths:
 
   /api/auth/profile/sessions:
     get:
-      tags: [auth]
+      tags: [ auth ]
       summary: List own browser sessions
       description: |
         Returns browser login sessions for the authenticated user only.
@@ -1019,10 +1024,10 @@ paths:
         Session secrets (cookie values) are never included; use `public_id` to revoke.
       operationId: getAuthProfileSessions
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: SessionList protobuf
@@ -1035,17 +1040,17 @@ paths:
 
   /api/auth/profile/sessions/revoke-others:
     post:
-      tags: [auth]
+      tags: [ auth ]
       summary: Revoke all other own sessions
       description: |
         Revokes every browser session for the current user except the session making this request.
         If the caller is not using session auth (Basic/Bearer), all of their browser sessions are revoked.
       operationId: postAuthProfileSessionsRevokeOthers
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: StatusOk protobuf
@@ -1058,17 +1063,17 @@ paths:
 
   /api/auth/profile/sessions/{session_id}:
     delete:
-      tags: [auth]
+      tags: [ auth ]
       summary: Revoke one of own sessions
       description: |
         Revoke a browser session owned by the current user by `public_id`.
         Missing id is a no-op. Revoking the current session clears the cookie.
       operationId: deleteAuthProfileSession
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/SessionPublicId"
       responses:
@@ -1084,14 +1089,14 @@ paths:
   # ========== Tokens ==========
   /api/tokens:
     get:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: List accounts
       operationId: getTokens
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: AccessTokenList (manager)
@@ -1104,14 +1109,14 @@ paths:
 
   /api/tokens/{name}:
     get:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: Get one account
       operationId: getToken
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/TokenName"
       responses:
@@ -1126,14 +1131,14 @@ paths:
         "404":
           $ref: "#/components/responses/PlainNotFound"
     put:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: Create or update account
       operationId: putToken
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/TokenName"
       requestBody:
@@ -1158,14 +1163,14 @@ paths:
         "409":
           $ref: "#/components/responses/PlainConflict"
     delete:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: Delete account
       operationId: deleteToken
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/TokenName"
       responses:
@@ -1178,7 +1183,7 @@ paths:
 
   /api/tokens/{name}/sessions:
     get:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: List browser sessions for a user (manager)
       description: |
         Manager-only. Lists browser login sessions for the named account.
@@ -1186,10 +1191,10 @@ paths:
         When the manager is viewing their own account, `current` marks their request session.
       operationId: getTokenUserSessions
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/TokenName"
       responses:
@@ -1206,17 +1211,17 @@ paths:
 
   /api/tokens/{name}/sessions/revoke-all:
     post:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: Revoke browser sessions for a user (manager)
       description: |
         Manager-only. Revokes all browser sessions for the named account.
         If the manager targets their own account, the session making this request is kept so they are not locked out mid-request.
       operationId: postTokenUserSessionsRevokeAll
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/TokenName"
       responses:
@@ -1231,15 +1236,15 @@ paths:
 
   /api/tokens/{name}/sessions/{session_id}:
     delete:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: Revoke one browser session for a user (manager)
       description: Manager-only. Revoke by `public_id`. Missing id is a no-op.
       operationId: deleteTokenUserSession
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/TokenName"
         - $ref: "#/components/parameters/SessionPublicId"
@@ -1255,14 +1260,14 @@ paths:
 
   /api/tokens/{name}/token:
     post:
-      tags: [tokens]
+      tags: [ tokens ]
       summary: Re-issue upload token for a user
       operationId: postTokenUploadToken
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/TokenName"
       responses:
@@ -1280,10 +1285,10 @@ paths:
   # ========== Status ==========
   /api/status/health:
     get:
-      tags: [status]
+      tags: [ status ]
       summary: Health probe
       operationId: getStatusHealth
-      security: []
+      security: [ ]
       responses:
         "200":
           description: Always UP when process is serving
@@ -1295,10 +1300,10 @@ paths:
 
   /api/status/hash:
     get:
-      tags: [status]
+      tags: [ status ]
       summary: Frontend asset content hash
       operationId: getStatusHash
-      security: []
+      security: [ ]
       responses:
         "200":
           description: JSON string hash
@@ -1309,10 +1314,10 @@ paths:
 
   /api/status/instance:
     get:
-      tags: [status]
+      tags: [ status ]
       summary: Instance runtime status
       operationId: getStatusInstance
-      security: []
+      security: [ ]
       responses:
         "200":
           description: InstanceStatus
@@ -1323,10 +1328,10 @@ paths:
 
   /api/status/snapshots:
     get:
-      tags: [status]
+      tags: [ status ]
       summary: Historical metric samples
       operationId: getStatusSnapshots
-      security: []
+      security: [ ]
       responses:
         "200":
           description: StatusSnapshotList (empty list if none)
@@ -1338,14 +1343,14 @@ paths:
   # ========== Maven helpers ==========
   /api/maven/details:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: List visible repositories (virtual root)
       operationId: getMavenDetailsRoot
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: FileDetails directory named repositories
@@ -1356,14 +1361,14 @@ paths:
 
   /api/maven/details/{repo_name}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: Repository root details
       operationId: getMavenDetailsRepo
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
       responses:
@@ -1378,16 +1383,16 @@ paths:
 
   /api/maven/details/{repo_name}/{path}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: Path details under a repository
       operationId: getMavenDetailsPath
       description: |
         Server route is `/api/maven/details/:repo_name/*` (catch-all path).
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"
@@ -1403,14 +1408,14 @@ paths:
 
   /api/maven/repo-details/{repo_name}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: Repository stats and mirrors
       operationId: getMavenRepoDetails
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
       responses:
@@ -1427,17 +1432,17 @@ paths:
 
   /api/maven/versions/{repo_name}/{path}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: List versions for a coordinate
       operationId: getMavenVersions
       description: |
         Path should be groupId/artifactId with maven-metadata.xml.
         Server route: `/api/maven/versions/:repo_name/*`.
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"
@@ -1455,15 +1460,15 @@ paths:
 
   /api/maven/latest/version/{repo_name}/{path}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: Latest version string
       operationId: getMavenLatestVersion
       description: Server route `/api/maven/latest/version/:repo_name/*`.
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"
@@ -1474,7 +1479,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [raw]
+            enum: [ raw ]
           description: If raw, response is a plain version string (still JSON-encoded string in some clients — server returns raw text body).
       responses:
         "200":
@@ -1492,15 +1497,15 @@ paths:
 
   /api/maven/latest/details/{repo_name}/{path}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: FileDetails for latest artifact
       operationId: getMavenLatestDetails
       description: Server route `/api/maven/latest/details/:repo_name/*`. JSON (not protobuf).
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"
@@ -1526,15 +1531,15 @@ paths:
 
   /api/maven/latest/file/{repo_name}/{path}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: Download latest matching artifact
       operationId: getMavenLatestFile
       description: Server route `/api/maven/latest/file/:repo_name/*`. Streams or redirects via storage layer.
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"
@@ -1563,11 +1568,11 @@ paths:
 
   /api/badge/latest/{repo_name}/{path}:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: Latest-version SVG badge
       operationId: getBadgeLatest
       description: Server route `/api/badge/latest/:repo_name/*`.
-      security: []
+      security: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"
@@ -1596,15 +1601,15 @@ paths:
 
   /api/maven/generate/pom/{repo_name}/{path}:
     post:
-      tags: [maven]
+      tags: [ maven ]
       summary: Generate and write a POM
       operationId: postMavenGeneratePom
       description: Server route `/api/maven/generate/pom/:repo_name/*`. Requires write permission.
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"
@@ -1630,10 +1635,10 @@ paths:
 
   /api/privacy-policy:
     get:
-      tags: [maven]
+      tags: [ maven ]
       summary: Privacy policy text file
       operationId: getPrivacyPolicy
-      security: []
+      security: [ ]
       responses:
         "200":
           description: Contents of privacy-policy.txt
@@ -1644,10 +1649,10 @@ paths:
         "404":
           description: File not present
     head:
-      tags: [maven]
+      tags: [ maven ]
       summary: Privacy policy existence
       operationId: headPrivacyPolicy
-      security: []
+      security: [ ]
       responses:
         "200":
           description: File present
@@ -1657,14 +1662,14 @@ paths:
   # ========== Settings ==========
   /api/settings/index/rebuild:
     post:
-      tags: [settings]
+      tags: [ settings ]
       summary: Rebuild artifact index
       operationId: postSettingsIndexRebuild
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -1686,14 +1691,14 @@ paths:
 
   /api/settings/domains:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: List config domain names
       operationId: getSettingsDomains
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: SettingsDomainsResponse
@@ -1706,17 +1711,17 @@ paths:
 
   /api/settings/domain/{name}:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: Get one config domain
       operationId: getSettingsDomain
       description: |
         Response is protobuf; message type depends on `:name`:
         `FrontendConfig`, `ServerConfig`, `StorageConfig`, `UpdaterConfig`, or empty `IndexDomainSettings`.
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/DomainName"
       responses:
@@ -1736,17 +1741,17 @@ paths:
         "404":
           $ref: "#/components/responses/PlainNotFound"
     put:
-      tags: [settings]
+      tags: [ settings ]
       summary: Replace one config domain (full body)
       operationId: putSettingsDomain
       description: |
         Full replace of the domain. Request body is protobuf matching the domain type.
         Omitted proto3 fields become zero values (send the complete domain config).
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/DomainName"
       requestBody:
@@ -1776,14 +1781,14 @@ paths:
 
   /api/settings/maven/repositories:
     get:
-      tags: [settings]
+      tags: [ settings ]
       summary: List Maven repository configs
       operationId: getSettingsMavenRepositories
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: MavenRepositoriesResponse
@@ -1796,17 +1801,17 @@ paths:
 
   /api/settings/maven/repositories/{name}:
     put:
-      tags: [settings]
+      tags: [ settings ]
       summary: Create or replace a repository (full body)
       operationId: putSettingsMavenRepository
       description: |
         Full replace of the repository config. Body is protobuf `Repository`.
         Path `:name` wins over body `name`.
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - name: name
           in: path
@@ -1833,15 +1838,15 @@ paths:
         "403":
           $ref: "#/components/responses/PlainForbidden"
     delete:
-      tags: [settings]
+      tags: [ settings ]
       summary: Remove repository from config
       operationId: deleteSettingsMavenRepository
       description: Does not delete files on disk.
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - name: name
           in: path
@@ -1862,10 +1867,10 @@ paths:
   # ========== Updater ==========
   /api/updater/status:
     get:
-      tags: [updater]
+      tags: [ updater ]
       summary: Current update state
       operationId: getUpdaterStatus
-      security: []
+      security: [ ]
       responses:
         "200":
           description: UpdateState (protobuf)
@@ -1878,14 +1883,14 @@ paths:
 
   /api/updater/check:
     post:
-      tags: [updater]
+      tags: [ updater ]
       summary: Check for updates
       operationId: postUpdaterCheck
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - $ref: "#/components/parameters/Channel"
       responses:
@@ -1902,14 +1907,14 @@ paths:
 
   /api/updater/install:
     post:
-      tags: [updater]
+      tags: [ updater ]
       summary: Download and extract update (async)
       operationId: postUpdaterInstall
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: Install started
@@ -1926,14 +1931,14 @@ paths:
 
   /api/updater/upload:
     post:
-      tags: [updater]
+      tags: [ updater ]
       summary: Offline update via zip upload
       operationId: postUpdaterUpload
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -1966,7 +1971,7 @@ paths:
 
   /api/upload/chunked/:
     post:
-      tags: [storage, updater]
+      tags: [ storage, updater ]
       summary: Start multi-part (chunked) upload session
       description: |
         Optional concurrent upload path used by the web UI for large files.
@@ -1976,10 +1981,10 @@ paths:
         Failed parts may be retried by the client; a successful part is idempotent on re-PUT.
       operationId: postChunkedUploadInit
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -2004,17 +2009,17 @@ paths:
 
   /api/upload/chunked/{upload_id}/{index}:
     put:
-      tags: [storage, updater]
+      tags: [ storage, updater ]
       summary: Upload one chunk (raw body)
       description: |
         Raw part body (`application/octet-stream`). Parts may be sent in parallel.
         Re-PUT of an already accepted index is a no-op success (retry-safe).
       operationId: putChunkedUploadPart
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - name: upload_id
           in: path
@@ -2044,17 +2049,17 @@ paths:
 
   /api/upload/chunked/{upload_id}/complete:
     post:
-      tags: [storage, updater]
+      tags: [ storage, updater ]
       summary: Complete multi-part upload
       description: |
         Assembles parts and commits the artifact or offline update package.
         Response is `application/x-protobuf` (`ChunkedUploadCompleteResponse`).
       operationId: postChunkedUploadComplete
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - name: upload_id
           in: path
@@ -2083,14 +2088,14 @@ paths:
 
   /api/upload/chunked/{upload_id}:
     delete:
-      tags: [storage, updater]
+      tags: [ storage, updater ]
       summary: Abort multi-part upload
       operationId: deleteChunkedUpload
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       parameters:
         - name: upload_id
           in: path
@@ -2103,14 +2108,17 @@ paths:
 
   /api/updater/restart:
     post:
-      tags: [updater]
-      summary: Apply prepared binary and restart
+      tags: [ updater ]
+      summary: Apply pending update if any, then restart
+      description: |
+        If a prepared update binary is pending, applies it and restarts the process.
+        Otherwise restarts the current process without applying an update.
       operationId: postUpdaterRestart
       security:
-        - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
       responses:
         "200":
           description: Restarting (connection will drop)
@@ -2118,10 +2126,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Restarting"
-        "400":
-          $ref: "#/components/responses/PlainBadRequest"
         "403":
           $ref: "#/components/responses/PlainForbidden"
+        "500":
+          description: Restart or apply-update failed
+          content:
+            text/plain:
+              schema:
+                type: string
 
   # ========== Storage (Maven layout) ==========
   /{repo_name}/{path}:
@@ -2129,17 +2141,17 @@ paths:
       - $ref: "#/components/parameters/RepoName"
       - $ref: "#/components/parameters/MavenPath"
     get:
-      tags: [storage]
+      tags: [ storage ]
       summary: Download artifact or browse path
       operationId: getStoragePath
       description: |
         Server route `/:repo_name/*`. With Accept text/html, missing repos may
         serve the management SPA. Prefer Accept */* for machine clients.
       security:
-        - {}
-        - basicAuth: []
-        - bearerAuth: []
-        - sessionCookie: []
+        - { }
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+        - sessionCookie: [ ]
       responses:
         "200":
           description: File body
@@ -2157,27 +2169,27 @@ paths:
         "404":
           $ref: "#/components/responses/PlainNotFound"
     head:
-      tags: [storage]
+      tags: [ storage ]
       summary: Artifact metadata
       operationId: headStoragePath
       security:
-        - {}
-        - basicAuth: []
-        - bearerAuth: []
-        - sessionCookie: []
+        - { }
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+        - sessionCookie: [ ]
       responses:
         "200":
           description: Headers only
         "404":
           $ref: "#/components/responses/PlainNotFound"
     put:
-      tags: [storage]
+      tags: [ storage ]
       summary: Upload / overwrite artifact
       operationId: putStoragePath
       security:
-        - basicAuth: []
-        - bearerAuth: []
-        - sessionCookie: []
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+        - sessionCookie: [ ]
       requestBody:
         required: true
         content:
@@ -2195,13 +2207,13 @@ paths:
         "507":
           description: Insufficient disk
     post:
-      tags: [storage]
+      tags: [ storage ]
       summary: Upload / overwrite artifact (POST)
       operationId: postStoragePath
       security:
-        - basicAuth: []
-        - bearerAuth: []
-        - sessionCookie: []
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+        - sessionCookie: [ ]
       requestBody:
         required: true
         content:
@@ -2217,13 +2229,13 @@ paths:
         "403":
           $ref: "#/components/responses/PlainForbidden"
     delete:
-      tags: [storage]
+      tags: [ storage ]
       summary: Delete path
       operationId: deleteStoragePath
       security:
-        - basicAuth: []
-        - bearerAuth: []
-        - sessionCookie: []
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+        - sessionCookie: [ ]
       responses:
         "204":
           description: Deleted
@@ -2235,7 +2247,7 @@ paths:
   # ========== Javadoc ==========
   /javadoc/{repo_name}/{path}:
     get:
-      tags: [javadoc]
+      tags: [ javadoc ]
       summary: Javadoc jar preview
       operationId: getJavadoc
       description: |
@@ -2243,10 +2255,10 @@ paths:
         the extracted jar. Requires read permission. Size limited by
         max_javadoc_size_mb.
       security:
-        - {}
-        - basicAuth: []
-        - bearerAuth: []
-        - sessionCookie: []
+        - { }
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+        - sessionCookie: [ ]
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - $ref: "#/components/parameters/MavenPath"

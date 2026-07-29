@@ -108,9 +108,7 @@ Part size: see [storage.md](./storage.md). Use `chunk_size` / `chunk_count` from
 
 ## `POST /api/updater/restart`
 
-Apply prepared binary and restart.
-
-Not ready → 400 (`No update ready to install`).
+If a prepared update binary is pending, applies it and restarts the process. Otherwise restarts the current process without applying an update.
 
 ```json
 {"status": "restarting"}

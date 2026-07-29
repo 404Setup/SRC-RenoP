@@ -108,9 +108,7 @@ Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `Chunk
 
 ## `POST /api/updater/restart`
 
-Применить подготовленный бинарник и перезапустить.
-
-Не готов → 400 (`No update ready to install`).
+Если есть подготовленный бинарник обновления — применяет его и перезапускает процесс. Иначе перезапускает текущий процесс без применения обновления.
 
 ```json
 {"status": "restarting"}

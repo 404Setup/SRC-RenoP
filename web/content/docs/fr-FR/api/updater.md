@@ -108,9 +108,7 @@ Taille de partie : [storage.md](./storage.md). Utiliser `chunk_size` / `chunk_co
 
 ## `POST /api/updater/restart`
 
-Applique le binaire préparé et redémarre.
-
-Pas prêt → 400 (`No update ready to install`).
+Si un binaire de mise à jour est en attente, l’applique puis redémarre le processus. Sinon redémarre le processus courant sans appliquer de mise à jour.
 
 ```json
 {"status": "restarting"}

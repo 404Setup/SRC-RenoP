@@ -26,7 +26,7 @@ Repository visibility:
 
 - **PUBLIC** — anonymous read
 - **HIDDEN** — files readable; listing the root needs extra roles
-- **PRIVATE** — needs explicit read permission or manager
+- **PRIVATE** — needs `canview` / `allview` / `proview`, write rights on that repo, or manager
 
 Writes (PUT/POST/DELETE artifacts) always need `canupdate` or manager.
 
@@ -54,7 +54,7 @@ On success: `SessionDetails` (protobuf) and cookie:
 | 403    | Account expired            |
 | 400    | Unreadable body            |
 
-Response `session_token` matches the cookie; browsers can rely on the cookie alone.
+The session id is set only on the `renop_session` cookie. The `session_token` field in the login response is empty; browsers use the cookie, and scripts may resend the same id as `Authorization: Session …`.
 
 ## Current user
 

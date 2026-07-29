@@ -26,7 +26,7 @@ category: API
 
 - **PUBLIC** — 匿名読み取り可
 - **HIDDEN** — ファイルは読めるが、ルート一覧には追加ロールが必要
-- **PRIVATE** — 明示的な読み取り権限または manager が必要
+- **PRIVATE** — `canview` / `allview` / `proview`、当該リポジトリの書き込み権限、または manager
 
 書き込み（成果物の PUT/POST/DELETE）には常に `canupdate` または manager が必要です。
 
@@ -54,7 +54,7 @@ category: API
 | 403        | アカウント期限切れ               |
 | 400        | 本文が読めない                   |
 
-レスポンスの `session_token` は Cookie と一致します。ブラウザは Cookie のみでも構いません。
+セッション id は `renop_session` Cookie にのみ設定されます。ログイン応答の `session_token` は空です。ブラウザは Cookie を使い、スクリプトは同じ id を `Authorization: Session …` で送れます。
 
 ## 現在のユーザー
 

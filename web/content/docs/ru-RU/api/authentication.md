@@ -26,7 +26,7 @@ category: API
 
 - **PUBLIC** — анонимное чтение
 - **HIDDEN** — файлы читаемы; список корня требует доп. ролей
-- **PRIVATE** — нужно явное право чтения или manager
+- **PRIVATE** — нужны `canview` / `allview` / `proview`, права записи на репозиторий или manager
 
 Запись (PUT/POST/DELETE артефактов) всегда требует `canupdate` или manager.
 
@@ -54,7 +54,7 @@ category: API
 | 403    | Учётная запись истекла  |
 | 400    | Нечитаемое тело         |
 
-`session_token` в ответе совпадает с cookie; браузеры могут полагаться только на cookie.
+Идентификатор сессии выставляется только в cookie `renop_session`. Поле `session_token` в ответе login пустое; браузеры используют cookie, скрипты могут передать тот же id как `Authorization: Session …`.
 
 ## Текущий пользователь
 

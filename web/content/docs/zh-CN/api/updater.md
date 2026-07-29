@@ -37,16 +37,16 @@ idle → available → downloading → ready_to_restart
 
 ## `POST /api/updater/check`
 
-| 查询      | 默认                   | 含义                   |
-|-----------|------------------------|------------------------|
+| 查询      | 默认                     | 含义                   |
+|-----------|--------------------------|------------------------|
 | `channel` | 设置项 `updater.channel` | `release` 或 `nightly` |
 
 省略 / 非法 → `updater.channel`（默认 `release`）。
 
-| 通道        | `info.json`                                           |
-|-------------|-------------------------------------------------------|
-| `nightly`   | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
-| `release`   | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
+| 通道      | `info.json`                                           |
+|-----------|-------------------------------------------------------|
+| `nightly` | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release` | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
 
 包路径：`…/{nightly\|stable}/{version}/{file}`。
 
@@ -108,9 +108,7 @@ init/complete：`application/x-protobuf`（`ChunkedUploadInitRequest` / `Chunked
 
 ## `POST /api/updater/restart`
 
-应用已准备的二进制并重启。
-
-未就绪 → 400（`No update ready to install`）。
+若已有待应用的更新二进制，则应用后重启进程；否则仅重启当前进程（不应用更新）。
 
 ```json
 {"status": "restarting"}

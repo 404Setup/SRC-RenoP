@@ -42,21 +42,22 @@ Use one of these URLs in Maven's `<repositories>` or
 `<distributionManagement>` configuration.
 
 HTTP API reference (auth, tokens, Maven helpers, settings, updater, storage paths)
-lives under [`docs/api/`](https://renop.pkg.one/docs/api/README). OpenAPI 3: [`openapi.yaml`](https://renop.pkg.one/assets/openapi.yaml).
+lives under [`docs/api/`](https://renop.pkg.one/docs/api/README). OpenAPI 3: [
+`openapi.yaml`](https://renop.pkg.one/assets/openapi.yaml).
 
 ## Configuration
 
 RenoP creates its configuration and state files in the working directory. Their paths can be overridden with environment
 variables.
 
-| Variable                       | Default             | Purpose                                               |
-|--------------------------------|---------------------|-------------------------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | Server, frontend, and storage settings                |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repositories, mirrors, and per-repository S3 settings |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | Accounts and access tokens                            |
-| `RENOP_INDEX`                  | `index.json`        | Persisted artifact index                              |
-| `RENOP_SESSIONS`               | `sessions.json`     | Persisted login sessions                              |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | generated           | Password used when the first admin account is created |
+| Variable                       | Default             | Purpose                                                       |
+|--------------------------------|---------------------|---------------------------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | Server, frontend, and storage settings                        |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repositories, mirrors, and per-repository S3 settings         |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | Accounts and access tokens                                    |
+| `RENOP_INDEX`                  | `index.json`        | Persisted artifact index                                      |
+| `RENOP_SESSIONS`               | `sessions.bin`      | Persisted login sessions (legacy `sessions.json` is migrated) |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | generated           | Password used when the first admin account is created         |
 
 Most settings can also be changed from the management UI. Restart the server after changing listener or TLS settings.
 

@@ -24,7 +24,7 @@ repositories:
   releases:
     name: releases
     visibility: PUBLIC          # PUBLIC | HIDDEN | PRIVATE
-    allow_redeployment: true
+    allow_redeployment: false
     mirrors: [ ]
     s3:
       enabled: false
@@ -37,13 +37,13 @@ repositories:
       redirect_downloads: false
 ```
 
-| 字段                 | 说明                                                     |
-|----------------------|----------------------------------------------------------|
-| `name`               | 仓库 ID（路径：`http://host:port/{name}/…`）             |
-| `visibility`         | `PUBLIC` 匿名可读；`HIDDEN` 限制列表；`PRIVATE` 需读权限 |
-| `allow_redeployment` | 是否允许覆盖已有 release 路径                            |
-| `mirrors`            | 上游 Maven 代理（可选）                                  |
-| `s3`                 | 该仓库的 S3 兼容后端（可选）                             |
+| 字段                 | 说明                                                                               |
+|----------------------|------------------------------------------------------------------------------------|
+| `name`               | 仓库 ID（路径：`http://host:port/{name}/…`）                                       |
+| `visibility`         | `PUBLIC` 匿名可读；`HIDDEN` 限制列表；`PRIVATE` 需读权限                           |
+| `allow_redeployment` | 是否允许覆盖已有制品路径（默认：releases/private 为 `false`，snapshots 为 `true`） |
+| `mirrors`            | 上游 Maven 代理（可选）                                                            |
+| `s3`                 | 该仓库的 S3 兼容后端（可选）                                                       |
 
 目录布局为标准 Maven：`group/artifact/version/file`。
 
@@ -64,11 +64,11 @@ repositories:
 
 ## 可见性与权限
 
-| 可见性  | 匿名读 | 说明                    |
-|---------|--------|-------------------------|
-| PUBLIC  | 是     | 公开可读                |
-| HIDDEN  | 受限   | 根列表等需额外角色      |
-| PRIVATE | 否     | 需要 `canview` 或管理员 |
+| 可见性  | 匿名读 | 说明                                                   |
+|---------|--------|--------------------------------------------------------|
+| PUBLIC  | 是     | 公开可读                                               |
+| HIDDEN  | 受限   | 根列表等需额外角色                                     |
+| PRIVATE | 否     | 需要 `canview` / `allview` / `proview`、写权限或管理员 |
 
 写入始终需要 `canupdate`（或管理员）。详见 [认证](../api/authentication.md)。
 

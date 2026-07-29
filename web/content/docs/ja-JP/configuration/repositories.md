@@ -26,7 +26,7 @@ repositories:
   releases:
     name: releases
     visibility: PUBLIC          # PUBLIC | HIDDEN | PRIVATE
-    allow_redeployment: true
+    allow_redeployment: false
     mirrors: [ ]
     s3:
       enabled: false
@@ -43,7 +43,7 @@ repositories:
 |----------------------|---------------------------------------------------------------------------------------|
 | `name`               | Repository id (path segment: `http://host:port/{name}/…`)                             |
 | `visibility`         | `PUBLIC` anonymous read; `HIDDEN` restricted listing; `PRIVATE` needs read permission |
-| `allow_redeployment` | Whether overwriting an existing release path is allowed                               |
+| `allow_redeployment` | Whether overwriting an existing artifact path is allowed (defaults: releases/private `false`, snapshots `true`) |
 | `mirrors`            | Upstream Maven proxies (optional)                                                     |
 | `s3`                 | Optional S3-compatible backend for this repository                                    |
 
@@ -74,7 +74,7 @@ Authorization methods commonly used: `BASIC` / username-password, or `Bearer` / 
 |------------|-----------------------------------------------------|------------------------------|
 | PUBLIC     | Yes                                                 | Open repo                    |
 | HIDDEN     | File fetch may work; root listing needs extra roles |                              |
-| PRIVATE    | No                                                  | Requires `canview` / manager |
+| PRIVATE    | No                                                  | Needs `canview` / `allview` / `proview`, write rights, or manager |
 
 Writes always require `canupdate` (or manager). See [Authentication](../api/authentication.md).
 

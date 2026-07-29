@@ -26,7 +26,7 @@ Visibilité des dépôts :
 
 - **PUBLIC** — lecture anonyme
 - **HIDDEN** — fichiers lisibles ; lister la racine demande des rôles supplémentaires
-- **PRIVATE** — permission de lecture explicite ou manager
+- **PRIVATE** — `canview` / `allview` / `proview`, droits d’écriture sur ce dépôt, ou manager
 
 Les écritures (PUT/POST/DELETE d’artefacts) exigent toujours `canupdate` ou manager.
 
@@ -54,7 +54,7 @@ En cas de succès : `SessionDetails` (protobuf) et cookie :
 | 403    | Compte expiré               |
 | 400    | Corps illisible             |
 
-Le `session_token` de réponse correspond au cookie ; les navigateurs peuvent s’en tenir au cookie.
+L’identifiant de session n’est posé que dans le cookie `renop_session`. Le champ `session_token` de la réponse de login est vide ; les navigateurs s’appuient sur le cookie, les scripts peuvent renvoyer le même id en `Authorization: Session …`.
 
 ## Utilisateur courant
 

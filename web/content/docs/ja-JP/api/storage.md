@@ -20,16 +20,16 @@ category: API
 /private/...
 ```
 
-リポジトリ名は `api`、`js`、`css`、`svg`、`assets`、`javadocs` などの静的ルートと衝突してはなりません。
+リポジトリ名は `api`、`js`、`css`、`svg`、`assets`、`javadoc` などの静的ルート接頭辞と衝突してはなりません。
 
 ## メソッド
 
-| メソッド   | 権限 | 動作                                                                  |
-|------------|------|-----------------------------------------------------------------------|
+| メソッド   | 権限 | 動作                                                                      |
+|------------|------|---------------------------------------------------------------------------|
 | GET        | 読   | ダウンロード。HTML Accept のブラウザ要求は管理 SPA にフォールバックし得る |
-| HEAD       | 読   | 応答ヘッダのみ                                                        |
-| PUT / POST | 書   | アップロードまたは上書き                                              |
-| DELETE     | 書   | 削除。成功時 `204`                                                    |
+| HEAD       | 読   | 応答ヘッダのみ                                                            |
+| PUT / POST | 書   | アップロードまたは上書き                                                  |
+| DELETE     | 書   | 削除。成功時 `204`                                                        |
 
 最大 body サイズは約 2 GiB（`BodyLimit`）。アップロードはストリーム処理されます。
 
@@ -40,11 +40,12 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-成功時は `201 Created` を返します。redeploy が無効で対象オブジェクトが既に存在する場合、非 2xx で失敗します。
+成功時は `201 Created` を返します。redeploy が無効で対象オブジェクトが既に存在する場合、`409 Conflict` になります。
 
 任意のリクエスト ヘッダ `X-Generate-Checksums: true` は `.md5`、`.sha1`、`.sha256`、`.sha512` サイドカーを書き込みます。
 
-サーバは設定に従い成果物インデックス、任意チェックサム、S3 同期を更新します。クライアントから見えるのは標準の Maven リポジトリ レイアウトです。
+サーバは設定に従い成果物インデックス、任意チェックサム、S3 同期を更新します。クライアントから見えるのは標準の Maven リポジトリ
+レイアウトです。
 
 ### チャンク アップロード（任意）
 
@@ -52,36 +53,40 @@ curl -u admin:SECRET -T artifact.jar \
 
 プレフィックス: `/api/upload/chunked`
 
-ブラウザ UI は **8 MiB** 以上のファイルでチャンク アップロードを使い、それ未満は単一 `PUT` を使います。非ブラウザ クライアントは任意サイズでチャンク セッションを開けます。サーバは極小のペイロードを単一部分にまとめることがあります。
+ブラウザ UI は **8 MiB** 以上のファイルでチャンク アップロードを使い、それ未満は単一 `PUT` を使います。非ブラウザ
+クライアントは任意サイズでチャンク セッションを開けます。サーバは極小のペイロードを単一部分にまとめることがあります。
 
-init と complete は **`application/x-protobuf`**（`proto/api/v1/api.proto` の `ChunkedUploadInitRequest`、`ChunkedUploadInitResponse`、`ChunkedUploadCompleteResponse`）を使います。パート body は raw バイナリです。
+init と complete は **`application/x-protobuf`**（`proto/api/v1/api.proto` の `ChunkedUploadInitRequest`、
+`ChunkedUploadInitResponse`、`ChunkedUploadCompleteResponse`）を使います。パート body は raw バイナリです。
 
 1. **`POST /api/upload/chunked/`** — セッション作成（`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`）
 
-| フィールド           | 説明                                           |
-|----------------------|------------------------------------------------|
-| `purpose`            | `storage`（既定）                              |
-| `path`               | 宛先パス `repo/…/file`                         |
-| `filename`           | 任意の表示名                                   |
-| `size`               | 総バイト数                                     |
-| `generate_checksums` | チェックサム サイドカーを書くか                |
-| `chunk_size`         | 希望パート サイズ（任意。サーバが正規化）      |
+| フィールド           | 説明                                      |
+|----------------------|-------------------------------------------|
+| `purpose`            | `storage`（既定）                         |
+| `path`               | 宛先パス `repo/…/file`                    |
+| `filename`           | 任意の表示名                              |
+| `size`               | 総バイト数                                |
+| `generate_checksums` | チェックサム サイドカーを書くか           |
+| `chunk_size`         | 希望パート サイズ（任意。サーバが正規化） |
 
-応答フィールド: `upload_id`、`chunk_size`、`chunk_count`、`purpose`。以降のパート アップロードは返却された `chunk_size` と `chunk_count` を使用する必要があります。
+応答フィールド: `upload_id`、`chunk_size`、`chunk_count`、`purpose`。以降のパート アップロードは返却された `chunk_size` と
+`chunk_count` を使用する必要があります。
 
 **パート サイズ規則**（サーバ、`upload.NormalizeChunkSize`）:
 
-| 総サイズ  | パート サイズ                  |
-|-----------|--------------------------------|
-| ≤ 256 KiB | 単一部分 = ファイル サイズ     |
-| ≤ 8 MiB   | 単一部分 = ファイル サイズ     |
-| ≤ 32 MiB  | 4 MiB                          |
-| ≤ 128 MiB | 8 MiB                          |
-| ≤ 512 MiB | 16 MiB                         |
-| ≤ 2 GiB   | 24 MiB                         |
-| それ以上  | 32 MiB（上限）                 |
+| 総サイズ  | パート サイズ              |
+|-----------|----------------------------|
+| ≤ 256 KiB | 単一部分 = ファイル サイズ |
+| ≤ 8 MiB   | 単一部分 = ファイル サイズ |
+| ≤ 32 MiB  | 4 MiB                      |
+| ≤ 128 MiB | 8 MiB                      |
+| ≤ 512 MiB | 16 MiB                     |
+| ≤ 2 GiB   | 24 MiB                     |
+| それ以上  | 32 MiB（上限）             |
 
-クライアント指定の `chunk_size` は **256 KiB … 32 MiB** にクランプされます。パート数が約 2048 を超える場合、サーバはパート サイズを上げます。`chunk_size` を省略するか `0` を送ると上表を使います。
+クライアント指定の `chunk_size` は **256 KiB … 32 MiB** にクランプされます。パート数が約 2048 を超える場合、サーバはパート
+サイズを上げます。`chunk_size` を省略するか `0` を送ると上表を使います。
 
 2. **`PUT /api/upload/chunked/:upload_id/:index`** — raw パート body（0 始まり）。並列アップロード可  
    成功: `204`。受理済み index の再アップロードは冪等です。
@@ -112,7 +117,8 @@ curl -X DELETE -u admin:SECRET \
 
 ## ブラウザ アクセス
 
-`Accept: text/html` のとき、欠落リポジトリや一部ディレクトリは管理 SPA にフォールバックし、`http://host/releases/...` のようなパスで UI を開けます。機械クライアントは HTML を避けるため `Accept: */*` を送るか `Accept` を省略してください。
+`Accept: text/html` のとき、欠落リポジトリや一部ディレクトリは管理 SPA にフォールバックし、`http://host/releases/...`
+のようなパスで UI を開けます。機械クライアントは HTML を避けるため `Accept: */*` を送るか `Accept` を省略してください。
 
 ## Javadoc プレビュー
 
@@ -128,20 +134,21 @@ GET /javadoc/:repo_name/*path-to-javadoc.jar/raw/...
 ## Maven 設定例
 
 ```xml
+
 <repository>
     <id>renop</id>
     <url>http://localhost:3000/releases</url>
 </repository>
 
 <distributionManagement>
-    <repository>
-        <id>renop</id>
-        <url>http://localhost:3000/releases</url>
-    </repository>
-    <snapshotRepository>
-        <id>renop</id>
-        <url>http://localhost:3000/snapshots</url>
-    </snapshotRepository>
+<repository>
+    <id>renop</id>
+    <url>http://localhost:3000/releases</url>
+</repository>
+<snapshotRepository>
+    <id>renop</id>
+    <url>http://localhost:3000/snapshots</url>
+</snapshotRepository>
 </distributionManagement>
 ```
 
