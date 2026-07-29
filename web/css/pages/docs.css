@@ -179,6 +179,11 @@
 
 .docs-article {
     padding: 1.5rem 1.75rem 2rem;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 .docs-article h1 {
@@ -213,6 +218,25 @@
 
 .docs-article a {
     color: var(--link-hover-color);
+    overflow-wrap: anywhere;
+}
+
+.docs-article img,
+.docs-article video,
+.docs-article iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Shared scrollport for wide pre / tables (touch-friendly on mobile) */
+.docs-article pre,
+.docs-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    /* Avoid parent layout stretch from min-content width */
+    min-width: 0;
 }
 
 .docs-article pre {
@@ -220,9 +244,15 @@
     border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
     border-radius: 0.75rem;
     padding: 0.9rem 1rem;
-    overflow-x: auto;
     font-size: 0.85rem;
     line-height: 1.55;
+}
+
+.docs-article pre code {
+    /* Keep fenced blocks as single-line scroll, not wrap */
+    white-space: pre;
+    word-break: normal;
+    overflow-wrap: normal;
 }
 
 .docs-article code {
@@ -234,12 +264,23 @@
     background: color-mix(in srgb, var(--text-color) 7%, transparent);
     padding: 0.12rem 0.35rem;
     border-radius: 0.35rem;
+    /* Long inline code wraps inside the article instead of overflowing */
+    white-space: break-spaces;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.docs-table-wrap {
+    margin: 1rem 0;
+    border-radius: 0.5rem;
 }
 
 .docs-article table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
     border-collapse: collapse;
-    margin: 1rem 0;
+    margin: 0;
     font-size: 0.9rem;
 }
 
@@ -248,6 +289,10 @@
     border: 1px solid var(--border-color);
     padding: 0.55rem 0.75rem;
     text-align: left;
+    /* Prefer wrap in cells when space allows; wide tables still scroll via wrap */
+    overflow-wrap: break-word;
+    word-break: break-word;
+    vertical-align: top;
 }
 
 .docs-article th {
@@ -262,6 +307,9 @@
     background: color-mix(in srgb, var(--link-hover-color) 6%, transparent);
     border-radius: 0 0.5rem 0.5rem 0;
     color: var(--muted);
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
 }
 
 .docs-toc-list {
@@ -347,7 +395,7 @@
 
 @media (max-width: 720px) {
     .docs-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .docs-sidebar {
@@ -355,6 +403,13 @@
         max-height: none;
         overflow: visible;
         padding: 0.85rem 1rem;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .docs-article {
+        padding: 1.15rem 1rem 1.5rem;
     }
 
     .docs-sidebar-heading {

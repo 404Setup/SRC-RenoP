@@ -79,6 +79,12 @@ export function renderMarkdown(source) {
         return `<h${depth} id="${id}">${inner}</h${depth}>\n`;
     };
 
+    const originTable = renderer.table.bind(renderer);
+    renderer.table = function table(token) {
+        const inner = originTable(token);
+        return `<div class="docs-table-wrap">${inner}</div>\n`;
+    };
+
     if (typeof originHeading === 'function') {
         // keep custom only
     }

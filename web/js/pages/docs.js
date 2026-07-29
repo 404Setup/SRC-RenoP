@@ -486,6 +486,7 @@ async function fillContent({ main, tocSlot, layout, slug, categories, bundle, fa
         if (!article.querySelector('h1')) {
             article.prepend(el('h1', {}, meta.title));
         }
+        wrapOverflowBlocks(article);
         rewriteDocLinks(article, meta.slug);
 
         const tocEl = buildToc(toc);
@@ -655,6 +656,22 @@ export async function renderDocs({ root, params, soft = false }) {
  */
 export function invalidateDocsCache() {
     indexCache = null;
+}
+
+/**
+ * Ensure wide blocks stay inside the article: wrap bare tables for horizontal scroll.
+ * Markdown already wraps tables; this is a safety net for fallback parse paths.
+ * @param {HTMLElement} article - Rendered article root.
+ * @returns {void}
+ */
+function wrapOverflowBlocks(article) {
+    article.querySelectorAll('table').forEach((table) => {
+        if (table.parentElement?.classList.contains('docs-table-wrap')) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'docs-table-wrap';
+        table.replaceWith(wrap);
+        wrap.appendChild(table);
+    });
 }
 
 /**
