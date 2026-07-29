@@ -804,26 +804,30 @@ func (x *UpdateState) GetIsRelease() bool {
 }
 
 type InstanceStatus struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Version          string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	Development      bool                   `protobuf:"varint,2,opt,name=development,proto3" json:"development,omitempty"`
-	Uptime           int64                  `protobuf:"varint,3,opt,name=uptime,proto3" json:"uptime,omitempty"`
-	UsedMemory       uint64                 `protobuf:"varint,4,opt,name=used_memory,json=usedMemory,proto3" json:"used_memory,omitempty"`
-	TotalMemory      uint64                 `protobuf:"varint,5,opt,name=total_memory,json=totalMemory,proto3" json:"total_memory,omitempty"`
-	RenopUsedDisk    uint64                 `protobuf:"varint,6,opt,name=renop_used_disk,json=renopUsedDisk,proto3" json:"renop_used_disk,omitempty"`
-	DiskUsed         uint64                 `protobuf:"varint,7,opt,name=disk_used,json=diskUsed,proto3" json:"disk_used,omitempty"`
-	DiskTotal        uint64                 `protobuf:"varint,8,opt,name=disk_total,json=diskTotal,proto3" json:"disk_total,omitempty"`
-	UsedThreads      uint64                 `protobuf:"varint,9,opt,name=used_threads,json=usedThreads,proto3" json:"used_threads,omitempty"`
-	AvailableThreads uint64                 `protobuf:"varint,10,opt,name=available_threads,json=availableThreads,proto3" json:"available_threads,omitempty"`
-	TotalThreads     uint64                 `protobuf:"varint,11,opt,name=total_threads,json=totalThreads,proto3" json:"total_threads,omitempty"`
-	Architecture     string                 `protobuf:"bytes,12,opt,name=architecture,proto3" json:"architecture,omitempty"`
-	Os               string                 `protobuf:"bytes,13,opt,name=os,proto3" json:"os,omitempty"`
-	LogicalCores     int32                  `protobuf:"varint,14,opt,name=logical_cores,json=logicalCores,proto3" json:"logical_cores,omitempty"`
-	PhysicalCores    int32                  `protobuf:"varint,15,opt,name=physical_cores,json=physicalCores,proto3" json:"physical_cores,omitempty"`
-	FailuresCount    uint64                 `protobuf:"varint,16,opt,name=failures_count,json=failuresCount,proto3" json:"failures_count,omitempty"`
-	UpdateState      *UpdateState           `protobuf:"bytes,17,opt,name=update_state,json=updateState,proto3" json:"update_state,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Version     string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Development bool                   `protobuf:"varint,2,opt,name=development,proto3" json:"development,omitempty"`
+	Uptime      int64                  `protobuf:"varint,3,opt,name=uptime,proto3" json:"uptime,omitempty"`
+	// used_memory is process RSS in bytes (private working set on Windows; VmRSS on Linux).
+	UsedMemory uint64 `protobuf:"varint,4,opt,name=used_memory,json=usedMemory,proto3" json:"used_memory,omitempty"`
+	// total_memory is system physical memory in bytes.
+	TotalMemory      uint64       `protobuf:"varint,5,opt,name=total_memory,json=totalMemory,proto3" json:"total_memory,omitempty"`
+	RenopUsedDisk    uint64       `protobuf:"varint,6,opt,name=renop_used_disk,json=renopUsedDisk,proto3" json:"renop_used_disk,omitempty"`
+	DiskUsed         uint64       `protobuf:"varint,7,opt,name=disk_used,json=diskUsed,proto3" json:"disk_used,omitempty"`
+	DiskTotal        uint64       `protobuf:"varint,8,opt,name=disk_total,json=diskTotal,proto3" json:"disk_total,omitempty"`
+	UsedThreads      uint64       `protobuf:"varint,9,opt,name=used_threads,json=usedThreads,proto3" json:"used_threads,omitempty"`
+	AvailableThreads uint64       `protobuf:"varint,10,opt,name=available_threads,json=availableThreads,proto3" json:"available_threads,omitempty"`
+	TotalThreads     uint64       `protobuf:"varint,11,opt,name=total_threads,json=totalThreads,proto3" json:"total_threads,omitempty"`
+	Architecture     string       `protobuf:"bytes,12,opt,name=architecture,proto3" json:"architecture,omitempty"`
+	Os               string       `protobuf:"bytes,13,opt,name=os,proto3" json:"os,omitempty"`
+	LogicalCores     int32        `protobuf:"varint,14,opt,name=logical_cores,json=logicalCores,proto3" json:"logical_cores,omitempty"`
+	PhysicalCores    int32        `protobuf:"varint,15,opt,name=physical_cores,json=physicalCores,proto3" json:"physical_cores,omitempty"`
+	FailuresCount    uint64       `protobuf:"varint,16,opt,name=failures_count,json=failuresCount,proto3" json:"failures_count,omitempty"`
+	UpdateState      *UpdateState `protobuf:"bytes,17,opt,name=update_state,json=updateState,proto3" json:"update_state,omitempty"`
+	// vss_memory is process VSS in bytes (commit charge on Windows; VMS on Linux).
+	VssMemory     uint64 `protobuf:"varint,18,opt,name=vss_memory,json=vssMemory,proto3" json:"vss_memory,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InstanceStatus) Reset() {
@@ -975,12 +979,22 @@ func (x *InstanceStatus) GetUpdateState() *UpdateState {
 	return nil
 }
 
+func (x *InstanceStatus) GetVssMemory() uint64 {
+	if x != nil {
+		return x.VssMemory
+	}
+	return 0
+}
+
 type StatusSnapshot struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Timestamp     int64                  `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	UsedMemory    uint64                 `protobuf:"varint,2,opt,name=used_memory,json=usedMemory,proto3" json:"used_memory,omitempty"`
-	UsedThreads   uint64                 `protobuf:"varint,3,opt,name=used_threads,json=usedThreads,proto3" json:"used_threads,omitempty"`
-	OpenFiles     uint64                 `protobuf:"varint,4,opt,name=open_files,json=openFiles,proto3" json:"open_files,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Timestamp int64                  `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// used_memory is process RSS in bytes.
+	UsedMemory  uint64 `protobuf:"varint,2,opt,name=used_memory,json=usedMemory,proto3" json:"used_memory,omitempty"`
+	UsedThreads uint64 `protobuf:"varint,3,opt,name=used_threads,json=usedThreads,proto3" json:"used_threads,omitempty"`
+	OpenFiles   uint64 `protobuf:"varint,4,opt,name=open_files,json=openFiles,proto3" json:"open_files,omitempty"`
+	// vss_memory is process VSS in bytes.
+	VssMemory     uint64 `protobuf:"varint,5,opt,name=vss_memory,json=vssMemory,proto3" json:"vss_memory,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1039,6 +1053,13 @@ func (x *StatusSnapshot) GetUsedThreads() uint64 {
 func (x *StatusSnapshot) GetOpenFiles() uint64 {
 	if x != nil {
 		return x.OpenFiles
+	}
+	return 0
+}
+
+func (x *StatusSnapshot) GetVssMemory() uint64 {
+	if x != nil {
+		return x.VssMemory
 	}
 	return 0
 }
@@ -2573,7 +2594,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"commit_sha\x18\n" +
 	" \x01(\tR\tcommitSha\x12\x1d\n" +
 	"\n" +
-	"is_release\x18\v \x01(\bR\tisRelease\"\xe6\x04\n" +
+	"is_release\x18\v \x01(\bR\tisRelease\"\x85\x05\n" +
 	"\x0eInstanceStatus\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12 \n" +
 	"\vdevelopment\x18\x02 \x01(\bR\vdevelopment\x12\x16\n" +
@@ -2594,14 +2615,18 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\rlogical_cores\x18\x0e \x01(\x05R\flogicalCores\x12%\n" +
 	"\x0ephysical_cores\x18\x0f \x01(\x05R\rphysicalCores\x12%\n" +
 	"\x0efailures_count\x18\x10 \x01(\x04R\rfailuresCount\x12<\n" +
-	"\fupdate_state\x18\x11 \x01(\v2\x19.renop.api.v1.UpdateStateR\vupdateState\"\x91\x01\n" +
+	"\fupdate_state\x18\x11 \x01(\v2\x19.renop.api.v1.UpdateStateR\vupdateState\x12\x1d\n" +
+	"\n" +
+	"vss_memory\x18\x12 \x01(\x04R\tvssMemory\"\xb0\x01\n" +
 	"\x0eStatusSnapshot\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\x12\x1f\n" +
 	"\vused_memory\x18\x02 \x01(\x04R\n" +
 	"usedMemory\x12!\n" +
 	"\fused_threads\x18\x03 \x01(\x04R\vusedThreads\x12\x1d\n" +
 	"\n" +
-	"open_files\x18\x04 \x01(\x04R\topenFiles\"P\n" +
+	"open_files\x18\x04 \x01(\x04R\topenFiles\x12\x1d\n" +
+	"\n" +
+	"vss_memory\x18\x05 \x01(\x04R\tvssMemory\"P\n" +
 	"\x12StatusSnapshotList\x12:\n" +
 	"\tsnapshots\x18\x01 \x03(\v2\x1c.renop.api.v1.StatusSnapshotR\tsnapshots\"]\n" +
 	"\x11MirrorCredentials\x12\x16\n" +

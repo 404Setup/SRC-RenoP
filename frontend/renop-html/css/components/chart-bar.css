@@ -28,3 +28,37 @@
     border-radius: 4px 4px 0 0;
     transition: height 0.3s ease;
 }
+
+.chart-bar-group {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    align-self: flex-end;
+    height: 0%;
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-bar-seg {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+.chart-bar-group:hover .chart-bar-seg {
+    opacity: 1;
+}
+
+.chart-bar-seg--vss {
+    background: linear-gradient(to top, color-mix(in srgb, #93c5fd 70%, transparent) 0%, color-mix(in srgb, #a5b4fc 55%, transparent) 100%);
+    z-index: 1;
+}
+
+.chart-bar-seg--rss {
+    background: linear-gradient(to top, #3b82f6 0%, #6366f1 100%);
+    z-index: 2;
+}

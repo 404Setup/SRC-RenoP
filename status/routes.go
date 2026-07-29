@@ -31,10 +31,11 @@ func SetupRoutes(api fiber.Router, state *core.AppState) {
 
 func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
 	memPtr := CachedMemory.Load()
-	var usedMemory, totalMemory, renopUsedDisk, diskUsed, diskTotal uint64
+	var usedMemory, vssMemory, totalMemory, renopUsedDisk, diskUsed, diskTotal uint64
 	var logicalCores, physicalCores int
 	if memPtr != nil {
 		usedMemory = memPtr.UsedMemory
+		vssMemory = memPtr.VssMemory
 		totalMemory = memPtr.TotalMemory
 		renopUsedDisk = memPtr.RenopUsedDisk
 		diskUsed = memPtr.DiskUsed
@@ -45,20 +46,11 @@ func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
 		logicalCores = cachedLogicalCores
 		physicalCores = cachedPhysicalCores
 		totalMemory = cachedTotalMemory
-		usedMemory = processRSSMiB()
-		if usedMemory == 0 {
-			var m runtime.MemStats
-			runtime.ReadMemStats(&m)
-			if m.Sys > m.HeapReleased {
-				usedMemory = (m.Sys - m.HeapReleased) / (1024 * 1024)
-			} else {
-				usedMemory = m.Alloc / (1024 * 1024)
-			}
-		}
+		usedMemory, vssMemory = processMemoryWithFallback()
 		if totalMemory == 0 {
 			var m runtime.MemStats
 			runtime.ReadMemStats(&m)
-			totalMemory = m.Sys / (1024 * 1024)
+			totalMemory = m.Sys
 		}
 		renopUsedDisk, diskUsed, diskTotal = UpdateDiskStats(state)
 	}
@@ -80,6 +72,7 @@ func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
 		Development:      version.IsDevelopment(),
 		Uptime:           uptime,
 		UsedMemory:       usedMemory,
+		VssMemory:        vssMemory,
 		TotalMemory:      totalMemory,
 		RenopUsedDisk:    renopUsedDisk,
 		DiskUsed:         diskUsed,

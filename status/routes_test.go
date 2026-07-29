@@ -55,4 +55,24 @@ func TestGetInstanceStatusIncludesUpdateState(t *testing.T) {
 	if statusResp.GetUpdateState().GetStatus() != "idle" {
 		t.Fatalf("expected default update state status 'idle', got '%s'", statusResp.GetUpdateState().GetStatus())
 	}
+	if statusResp.GetUsedMemory() == 0 && statusResp.GetVssMemory() == 0 {
+		t.Fatalf("expected non-zero process memory (RSS or VSS), got both zero")
+	}
+	if statusResp.GetUsedMemory() > 0 && statusResp.GetUsedMemory() < 1024*1024 {
+		t.Fatalf("used_memory looks too small for bytes (got %d); unit regression?", statusResp.GetUsedMemory())
+	}
+	if statusResp.GetTotalMemory() < 64*1024*1024 {
+		t.Fatalf("expected total system memory in bytes (>=64MiB), got %d", statusResp.GetTotalMemory())
+	}
+}
+
+func TestProcessMemoryBytesNonZero(t *testing.T) {
+	rss, vss := processMemoryBytes()
+	if rss == 0 && vss == 0 {
+		t.Fatal("processMemoryBytes returned zeros")
+	}
+	t.Logf("RSS=%d (%.2f MiB) VSS=%d (%.2f MiB)", rss, float64(rss)/(1024*1024), vss, float64(vss)/(1024*1024))
+	if rss > 2*1024*1024*1024 {
+		t.Fatalf("RSS unreasonably large: %d", rss)
+	}
 }

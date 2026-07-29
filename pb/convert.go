@@ -26,6 +26,7 @@ func FromStatusSnapshots(snapshots []core.StatusSnapshot) *StatusSnapshotList {
 		out.Snapshots = append(out.Snapshots, &StatusSnapshot{
 			Timestamp:   s.Timestamp,
 			UsedMemory:  s.UsedMemory,
+			VssMemory:   s.VssMemory,
 			UsedThreads: s.UsedThreads,
 			OpenFiles:   s.OpenFiles,
 		})
@@ -233,10 +234,7 @@ func ApplyServerConfig(dst *config.ServerConfig, src *ServerConfig) {
 	if dst == nil || src == nil {
 		return
 	}
-	port := src.Port
-	if port > 0xFFFF {
-		port = 0xFFFF
-	}
+	port := min(src.Port, 0xFFFF)
 	dst.Host = src.Host
 	dst.Port = uint16(port)
 	dst.SslEnabled = src.SslEnabled
@@ -248,7 +246,6 @@ func ApplyServerConfig(dst *config.ServerConfig, src *ServerConfig) {
 	dst.MaxActiveRequests = src.MaxActiveRequests
 	dst.TrustedProxies = append([]string(nil), src.TrustedProxies...)
 	dst.CdnIpHeader = src.CdnIpHeader
-	// Explicit empty list is valid (default = domains only); never leave nil.
 	dst.CorsOrigins = append([]string(nil), src.CorsOrigins...)
 	dst.NormalizePublicNames()
 	dst.ParseTrustedProxies()

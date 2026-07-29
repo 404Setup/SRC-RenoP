@@ -533,10 +533,11 @@ components:
         used_memory:
           type: integer
           format: int64
-          description: Roughly MiB
+          description: Process RSS in bytes (private working set on Windows)
         total_memory:
           type: integer
           format: int64
+          description: System physical memory in bytes
         renop_used_disk:
           type: integer
           format: int64
@@ -568,6 +569,10 @@ components:
           format: int64
         update_state:
           $ref: "#/components/schemas/UpdateState"
+        vss_memory:
+          type: integer
+          format: int64
+          description: Process VSS in bytes (commit charge on Windows)
 
     StatusSnapshot:
       type: object
@@ -578,12 +583,17 @@ components:
         used_memory:
           type: integer
           format: int64
+          description: Process RSS in bytes
         used_threads:
           type: integer
           format: int64
         open_files:
           type: integer
           format: int64
+        vss_memory:
+          type: integer
+          format: int64
+          description: Process VSS in bytes
 
     StatusSnapshotList:
       type: object

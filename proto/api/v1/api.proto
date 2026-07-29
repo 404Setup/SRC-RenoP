@@ -93,7 +93,9 @@ message InstanceStatus {
   string version = 1;
   bool development = 2;
   int64 uptime = 3;
+  // used_memory is process RSS in bytes (private working set on Windows; VmRSS on Linux).
   uint64 used_memory = 4;
+  // total_memory is system physical memory in bytes.
   uint64 total_memory = 5;
   uint64 renop_used_disk = 6;
   uint64 disk_used = 7;
@@ -107,13 +109,18 @@ message InstanceStatus {
   int32 physical_cores = 15;
   uint64 failures_count = 16;
   UpdateState update_state = 17;
+  // vss_memory is process VSS in bytes (commit charge on Windows; VMS on Linux).
+  uint64 vss_memory = 18;
 }
 
 message StatusSnapshot {
   int64 timestamp = 1;
+  // used_memory is process RSS in bytes.
   uint64 used_memory = 2;
   uint64 used_threads = 3;
   uint64 open_files = 4;
+  // vss_memory is process VSS in bytes.
+  uint64 vss_memory = 5;
 }
 
 message StatusSnapshotList {

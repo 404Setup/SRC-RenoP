@@ -23,7 +23,6 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
-	"github.com/shirou/gopsutil/v3/process"
 
 	"renop/config"
 	"renop/core"
@@ -35,6 +34,7 @@ const maxStatusSnapshots = 15
 
 type CachedMemoryState struct {
 	UsedMemory    uint64
+	VssMemory     uint64
 	TotalMemory   uint64
 	RenopUsedDisk uint64
 	DiskUsed      uint64
@@ -58,9 +58,6 @@ var (
 	lastDiskUpdate      time.Time
 	lastDiskUpdateMutex sync.Mutex
 	cachedDiskUsed      uint64
-
-	selfProcess     *process.Process
-	selfProcessOnce sync.Once
 )
 
 func init() {
@@ -75,7 +72,7 @@ func init() {
 		cachedPhysicalCores = counts
 	}
 	if v, err := mem.VirtualMemory(); err == nil {
-		cachedTotalMemory = v.Total / (1024 * 1024)
+		cachedTotalMemory = v.Total
 	}
 }
 
@@ -83,22 +80,24 @@ func MarkStorageUpdated() {
 	storageDirty.Store(true)
 }
 
-// processRSSMiB returns this process's resident set size in MiB, or 0 on error.
-func processRSSMiB() uint64 {
-	selfProcessOnce.Do(func() {
-		p, err := process.NewProcess(int32(os.Getpid()))
-		if err == nil {
-			selfProcess = p
+// processMemoryWithFallback returns RSS and VSS in bytes, with runtime.MemStats fallback.
+func processMemoryWithFallback() (rss, vss uint64) {
+	rss, vss = processMemoryBytes()
+	if rss == 0 {
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		if m.Sys > m.HeapReleased {
+			rss = m.Sys - m.HeapReleased
+		} else {
+			rss = m.Alloc
 		}
-	})
-	if selfProcess == nil {
-		return 0
 	}
-	mi, err := selfProcess.MemoryInfo()
-	if err != nil || mi == nil {
-		return 0
+	if vss == 0 {
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		vss = max(m.Sys, rss)
 	}
-	return mi.RSS / (1024 * 1024)
+	return rss, vss
 }
 
 func GetFreeDiskSpace(state *core.AppState) uint64 {
@@ -225,23 +224,13 @@ func StartStatusSnapshotScheduler(state *core.AppState, intervalDuration time.Du
 		defer ticker.Stop()
 
 		updateMemory := func() {
-			debug.FreeOSMemory()
-
-			usedMemory := processRSSMiB()
-			if usedMemory == 0 {
-				var m runtime.MemStats
-				runtime.ReadMemStats(&m)
-				if m.Sys > m.HeapReleased {
-					usedMemory = (m.Sys - m.HeapReleased) / (1024 * 1024)
-				} else {
-					usedMemory = m.Alloc / (1024 * 1024)
-				}
-			}
+			usedMemory, vssMemory := processMemoryWithFallback()
 			totalMemory := cachedTotalMemory
 			if totalMemory == 0 {
-				var m runtime.MemStats
-				runtime.ReadMemStats(&m)
-				totalMemory = m.Sys / (1024 * 1024)
+				if v, err := mem.VirtualMemory(); err == nil {
+					totalMemory = v.Total
+					cachedTotalMemory = totalMemory
+				}
 			}
 			logicalCores := cachedLogicalCores
 			physicalCores := cachedPhysicalCores
@@ -250,6 +239,7 @@ func StartStatusSnapshotScheduler(state *core.AppState, intervalDuration time.Du
 
 			CachedMemory.Store(&CachedMemoryState{
 				UsedMemory:    usedMemory,
+				VssMemory:     vssMemory,
 				TotalMemory:   totalMemory,
 				RenopUsedDisk: renopUsedDisk,
 				DiskUsed:      diskUsed,
@@ -262,9 +252,12 @@ func StartStatusSnapshotScheduler(state *core.AppState, intervalDuration time.Du
 			snapshot := core.StatusSnapshot{
 				Timestamp:   time.Now().UnixMilli(),
 				UsedMemory:  usedMemory,
+				VssMemory:   vssMemory,
 				UsedThreads: usedThreads,
 				OpenFiles:   0,
 			}
+
+			debug.FreeOSMemory()
 
 			for {
 				currentPtr := state.Inner.StatusSnapshots.Load()

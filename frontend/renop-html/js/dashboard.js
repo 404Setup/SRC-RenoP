@@ -11,7 +11,6 @@
 import {fetchProto, getAuthHeaders} from './api.js';
 import {formatBytes} from './browser/utils.js';
 import {t} from './i18n.js';
-import {createChartBar} from './components.js';
 import {logout} from './auth.js';
 import {InstanceStatus, StatusSnapshotList, UpdateState} from './proto/index.js';
 
@@ -173,15 +172,22 @@ export async function fetchInstanceStatus() {
             document.getElementById('dashboard-version').textContent = displayVersion;
             _calibrateUptime(data.uptime / 1000);
             const memEl = document.getElementById('dashboard-memory');
-            const usedMem = data.used_memory !== undefined ? data.used_memory : data.usedMemory;
+            const rssMem = data.used_memory !== undefined ? data.used_memory : data.usedMemory;
+            const vssMem = data.vss_memory !== undefined ? data.vss_memory : data.vssMemory;
             const totalMem = data.total_memory !== undefined ? data.total_memory : data.totalMemory;
-            if (memEl && usedMem !== undefined && totalMem !== undefined && usedMem !== null && totalMem !== null) {
-                const usedBytes = Number(usedMem || 0) * 1024 * 1024;
-                const totalBytes = Number(totalMem || 0) * 1024 * 1024;
-                memEl.dataset.usedMemory = String(usedBytes);
+            if (memEl && rssMem !== undefined && totalMem !== undefined && rssMem !== null && totalMem !== null) {
+                // API reports memory fields in bytes (not MiB).
+                const rssBytes = Number(rssMem || 0);
+                const vssBytes = Number(vssMem || 0);
+                const totalBytes = Number(totalMem || 0);
+                memEl.dataset.rssMemory = String(rssBytes);
+                memEl.dataset.vssMemory = String(vssBytes);
                 memEl.dataset.totalMemory = String(totalBytes);
+                // Backward-compat keys for languageChanged handlers / older markup.
+                memEl.dataset.usedMemory = String(rssBytes);
                 memEl.textContent = t('dashboard.memoryFormat', {
-                    used: formatBytes(usedBytes),
+                    rss: formatBytes(rssBytes),
+                    vss: formatBytes(vssBytes),
                     total: formatBytes(totalBytes)
                 });
             }
@@ -262,9 +268,89 @@ async function fetchSnapshots() {
 }
 
 /**
+ * Reads RSS (used_memory) and VSS from a snapshot point, in bytes.
+ * @param {object} point - Status snapshot.
+ * @returns {{rss: number, vss: number}}
+ */
+function _snapshotMemoryBytes(point) {
+    const rss = Number(point.used_memory !== undefined ? point.used_memory : (point.usedMemory || 0)) || 0;
+    let vss = Number(point.vss_memory !== undefined ? point.vss_memory : (point.vssMemory || 0)) || 0;
+    if (vss < rss) vss = rss;
+    return {rss, vss};
+}
+
+/**
+ * Builds a tooltip for a memory snapshot bar (RSS / VSS / total process occupancy).
+ * @param {number} rssBytes
+ * @param {number} vssBytes
+ * @param {number|string|Date} timestamp
+ * @returns {string}
+ */
+function _memoryBarTitle(rssBytes, vssBytes, timestamp) {
+    const time = new Date(timestamp).toLocaleTimeString();
+    const totalBytes = Math.max(rssBytes, vssBytes);
+    return t('dashboard.chartBarTitle', {
+        rss: formatBytes(rssBytes),
+        vss: formatBytes(vssBytes),
+        total: formatBytes(totalBytes),
+        time
+    });
+}
+
+/**
+ * Applies RSS/VSS segment heights on a chart bar group.
+ * Full bar height follows process total occupancy (max of RSS/VSS); VSS and RSS
+ * are layered inside the same column.
+ * @param {HTMLElement} group
+ * @param {number} rssBytes
+ * @param {number} vssBytes
+ * @param {number} maxMemoryBytes
+ * @returns {void}
+ */
+function _applyMemoryBarHeights(group, rssBytes, vssBytes, maxMemoryBytes) {
+    const totalBytes = Math.max(rssBytes, vssBytes);
+    const totalPct = maxMemoryBytes > 0 ? (totalBytes / maxMemoryBytes) * 100 : 0;
+    const vssPctOfBar = totalBytes > 0 ? (vssBytes / totalBytes) * 100 : 0;
+    const rssPctOfBar = totalBytes > 0 ? (rssBytes / totalBytes) * 100 : 0;
+
+    group.style.height = `${totalPct}%`;
+    group.title = group.dataset.barTitle || '';
+
+    const vssSeg = group.querySelector('.chart-bar-seg--vss');
+    const rssSeg = group.querySelector('.chart-bar-seg--rss');
+    if (vssSeg) vssSeg.style.height = `${vssPctOfBar}%`;
+    if (rssSeg) rssSeg.style.height = `${rssPctOfBar}%`;
+}
+
+/**
+ * Creates a single chart column with layered RSS / VSS segments.
+ * @param {string} title
+ * @returns {HTMLElement}
+ */
+function _createMemoryChartBar(title) {
+    const group = document.createElement('div');
+    group.className = 'chart-bar-group';
+    group.dataset.barTitle = title;
+    group.title = title;
+
+    const vssSeg = document.createElement('div');
+    vssSeg.className = 'chart-bar-seg chart-bar-seg--vss';
+    vssSeg.style.height = '0%';
+
+    const rssSeg = document.createElement('div');
+    rssSeg.className = 'chart-bar-seg chart-bar-seg--rss';
+    rssSeg.style.height = '0%';
+
+    group.appendChild(vssSeg);
+    group.appendChild(rssSeg);
+    return group;
+}
+
+/**
  * Renders or updates the memory usage bar chart from status snapshot points.
+ * Each column layers RSS and VSS (and thus process total occupancy) in one bar.
  * Reuses existing bars when length matches; otherwise rebuilds the chart and drag handlers.
- * @param {Array<object>} data - Snapshot points with used_memory/usedMemory and timestamp.
+ * @param {Array<object>} data - Snapshot points with used_memory/vss_memory and timestamp.
  * @returns {void}
  */
 function drawSnapshotsChart(data) {
@@ -284,9 +370,15 @@ function drawSnapshotsChart(data) {
     container.className = 'snapshots-chart-container';
     chart.className = 'snapshots-chart';
 
-    const maxMemory = Math.max(...data.map(d => d.used_memory !== undefined ? d.used_memory : (d.usedMemory || 0)), 10);
+    const maxMemory = Math.max(
+        ...data.map((d) => {
+            const {rss, vss} = _snapshotMemoryBytes(d);
+            return Math.max(rss, vss);
+        }),
+        10 * 1024 * 1024 // floor axis at 10 MiB so tiny samples still render
+    );
 
-    const existingBars = chart.querySelectorAll('.chart-bar');
+    const existingBars = chart.querySelectorAll('.chart-bar-group');
     const existingLabels = card.querySelectorAll('.chart-y-label');
 
     if (existingBars.length === data.length) {
@@ -294,11 +386,10 @@ function drawSnapshotsChart(data) {
         _appendYLabels(card, maxMemory);
 
         data.forEach((point, i) => {
-            const usedMem = point.used_memory !== undefined ? point.used_memory : (point.usedMemory || 0);
-            const heightPct = (usedMem / maxMemory) * 100;
+            const {rss, vss} = _snapshotMemoryBytes(point);
             const bar = existingBars[i];
-            bar.style.height = `${heightPct}%`;
-            bar.title = `${formatBytes(usedMem * 1024 * 1024)} at ${new Date(point.timestamp).toLocaleTimeString()}`;
+            bar.dataset.barTitle = _memoryBarTitle(rss, vss, point.timestamp);
+            _applyMemoryBarHeights(bar, rss, vss, maxMemory);
         });
     } else {
         existingLabels.forEach(el => el.remove());
@@ -306,16 +397,13 @@ function drawSnapshotsChart(data) {
         _appendYLabels(card, maxMemory);
 
         data.forEach((point) => {
-            const usedMem = point.used_memory !== undefined ? point.used_memory : (point.usedMemory || 0);
-            const heightPct = (usedMem / maxMemory) * 100;
-            const barTitle = `${formatBytes(usedMem * 1024 * 1024)} at ${new Date(point.timestamp).toLocaleTimeString()}`;
-
-            const bar = createChartBar(0, barTitle);
+            const {rss, vss} = _snapshotMemoryBytes(point);
+            const barTitle = _memoryBarTitle(rss, vss, point.timestamp);
+            const bar = _createMemoryChartBar(barTitle);
             chart.appendChild(bar);
 
             bar.getBoundingClientRect();
-            bar.setAttribute('height-pct', String(heightPct));
-            bar.style.height = `${heightPct}%`;
+            _applyMemoryBarHeights(bar, rss, vss, maxMemory);
         });
     }
     if (!chart.dataset.dragInitialized) {
@@ -359,15 +447,15 @@ function drawSnapshotsChart(data) {
 }
 
 /**
- * Appends top/bottom Y-axis labels for the snapshots chart based on max memory (MB).
+ * Appends top/bottom Y-axis labels for the snapshots chart based on max memory (bytes).
  * @param {HTMLElement} card - Chart card element that hosts the Y labels.
- * @param {number} maxMemory - Maximum used memory in megabytes across snapshots.
+ * @param {number} maxMemoryBytes - Maximum used memory in bytes across snapshots.
  * @returns {void}
  */
-function _appendYLabels(card, maxMemory) {
+function _appendYLabels(card, maxMemoryBytes) {
     const maxLabel = document.createElement('div');
     maxLabel.className = 'chart-y-label chart-y-label--top';
-    maxLabel.textContent = formatBytes(maxMemory * 1024 * 1024, 0);
+    maxLabel.textContent = formatBytes(maxMemoryBytes, 0);
 
     const minLabel = document.createElement('div');
     minLabel.className = 'chart-y-label chart-y-label--bottom';
@@ -649,9 +737,12 @@ export function stopDashboardRefresh() {
 
 window.addEventListener('languageChanged', () => {
     const memoryEl = document.getElementById('dashboard-memory');
-    if (memoryEl && memoryEl.dataset.usedMemory !== undefined && memoryEl.dataset.totalMemory !== undefined) {
+    if (memoryEl && memoryEl.dataset.totalMemory !== undefined) {
+        const rssBytes = Number(memoryEl.dataset.rssMemory ?? memoryEl.dataset.usedMemory ?? 0);
+        const vssBytes = Number(memoryEl.dataset.vssMemory ?? 0);
         memoryEl.textContent = t('dashboard.memoryFormat', {
-            used: formatBytes(Number(memoryEl.dataset.usedMemory)),
+            rss: formatBytes(rssBytes),
+            vss: formatBytes(vssBytes),
             total: formatBytes(Number(memoryEl.dataset.totalMemory))
         });
     }

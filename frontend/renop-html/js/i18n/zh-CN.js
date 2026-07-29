@@ -259,7 +259,10 @@ export default {
     "dashboard.failures": "失败次数",
     "dashboard.chartTitle": "内存使用趋势",
     "dashboard.liveBadge": "实时",
-    "dashboard.memoryFormat": "{used} / {total}",
+    "dashboard.memoryFormat": "RSS {rss} / VSS {vss} / {total}",
+    "dashboard.chartBarTitle": "RSS {rss} · VSS {vss} · 程序总占用 {total} · {time}",
+    "dashboard.chartLegendRss": "RSS（常驻）",
+    "dashboard.chartLegendVss": "VSS（虚拟）",
     "dashboard.disk": "硬盘占用",
     "dashboard.diskFormat": "{renopUsed} / {diskUsed} / {diskTotal}",
 

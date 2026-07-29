@@ -38,6 +38,7 @@ type CachedFile struct {
 type StatusSnapshot struct {
 	Timestamp   int64  `json:"timestamp"`
 	UsedMemory  uint64 `json:"used_memory"`
+	VssMemory   uint64 `json:"vss_memory"`
 	UsedThreads uint64 `json:"used_threads"`
 	OpenFiles   uint64 `json:"open_files"`
 }

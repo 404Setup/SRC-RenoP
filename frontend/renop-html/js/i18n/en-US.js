@@ -258,7 +258,10 @@ export default {
     "dashboard.failures": "Failures",
     "dashboard.chartTitle": "Memory Over Time",
     "dashboard.liveBadge": "Live",
-    "dashboard.memoryFormat": "{used} of {total}",
+    "dashboard.memoryFormat": "RSS {rss} / VSS {vss} / {total}",
+    "dashboard.chartBarTitle": "RSS {rss} · VSS {vss} · Total {total} at {time}",
+    "dashboard.chartLegendRss": "RSS (resident)",
+    "dashboard.chartLegendVss": "VSS (virtual)",
     "dashboard.disk": "Disk Usage",
     "dashboard.diskFormat": "{renopUsed} / {diskUsed} / {diskTotal}",
 

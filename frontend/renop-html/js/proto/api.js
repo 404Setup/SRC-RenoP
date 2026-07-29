@@ -4284,6 +4284,7 @@ export const renop = $root.renop = (() => {
                  * @property {number|null} [physical_cores] InstanceStatus physical_cores
                  * @property {number|Long|null} [failures_count] InstanceStatus failures_count
                  * @property {renop.api.v1.UpdateState.$Properties|null} [update_state] InstanceStatus update_state
+                 * @property {number|Long|null} [vss_memory] InstanceStatus vss_memory
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -4452,6 +4453,14 @@ export const renop = $root.renop = (() => {
                 InstanceStatus.prototype.update_state = null;
 
                 /**
+                 * InstanceStatus vss_memory.
+                 * @member {number|Long} vss_memory
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.vss_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
                  * Creates a new InstanceStatus instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.InstanceStatus
@@ -4517,6 +4526,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 16, wireType 0 =*/128).uint64(message.failures_count);
                     if (message.update_state != null && $Object.hasOwnProperty.call(message, "update_state"))
                         $root.renop.api.v1.UpdateState.encode(message.update_state, writer.uint32(/* id 17, wireType 2 =*/138).fork(), _depth + 1).ldelim();
+                    if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory") && (typeof message.vss_memory === "object" ? message.vss_memory.low || message.vss_memory.high : message.vss_memory !== 0))
+                        writer.uint32(/* id 18, wireType 0 =*/144).uint64(message.vss_memory);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -4714,6 +4725,15 @@ export const renop = $root.renop = (() => {
                                 message.update_state = $root.renop.api.v1.UpdateState.decode(reader, reader.uint32(), $undefined, _depth + 1, message.update_state);
                                 continue;
                             }
+                        case 18: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.vss_memory = value;
+                                else
+                                    delete message.vss_memory;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -4810,6 +4830,9 @@ export const renop = $root.renop = (() => {
                         if (error)
                             return "update_state." + error;
                     }
+                    if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory"))
+                        if (!$util.isInteger(message.vss_memory) && !(message.vss_memory && $util.isInteger(message.vss_memory.low) && $util.isInteger(message.vss_memory.high)))
+                            return "vss_memory: integer|Long expected";
                     return null;
                 };
 
@@ -4954,6 +4977,16 @@ export const renop = $root.renop = (() => {
                             throw $TypeError(".renop.api.v1.InstanceStatus.update_state: object expected");
                         message.update_state = $root.renop.api.v1.UpdateState.fromObject(object.update_state, _depth + 1);
                     }
+                    if (object.vss_memory != null)
+                        if (typeof object.vss_memory === "object" ? object.vss_memory.low || object.vss_memory.high : $Number(object.vss_memory) !== 0)
+                            if ($util.Long)
+                                message.vss_memory = $util.Long.fromValue(object.vss_memory, true);
+                            else if (typeof object.vss_memory === "string")
+                                message.vss_memory = $parseInt(object.vss_memory, 10);
+                            else if (typeof object.vss_memory === "number")
+                                message.vss_memory = object.vss_memory;
+                            else if (typeof object.vss_memory === "object")
+                                message.vss_memory = new $util.LongBits(object.vss_memory.low >>> 0, object.vss_memory.high >>> 0).toNumber(true);
                     return message;
                 };
 
@@ -5032,6 +5065,11 @@ export const renop = $root.renop = (() => {
                         } else
                             object.failures_count = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                         object.update_state = null;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.vss_memory = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.vss_memory = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                     }
                     if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
                         object.version = message.version;
@@ -5117,6 +5155,13 @@ export const renop = $root.renop = (() => {
                             object.failures_count = options.longs === $String ? $util.Long.prototype.toString.call(message.failures_count) : options.longs === $Number ? new $util.LongBits(message.failures_count.low >>> 0, message.failures_count.high >>> 0).toNumber(true) : message.failures_count;
                     if (message.update_state != null && $Object.hasOwnProperty.call(message, "update_state"))
                         object.update_state = $root.renop.api.v1.UpdateState.toObject(message.update_state, options, _depth + 1);
+                    if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.vss_memory = typeof message.vss_memory === "number" ? $BigInt(message.vss_memory) : $util.Long.fromBits(message.vss_memory.low >>> 0, message.vss_memory.high >>> 0, true).toBigInt();
+                        else if (typeof message.vss_memory === "number")
+                            object.vss_memory = options.longs === $String ? $String(message.vss_memory) : message.vss_memory;
+                        else
+                            object.vss_memory = options.longs === $String ? $util.Long.prototype.toString.call(message.vss_memory) : options.longs === $Number ? new $util.LongBits(message.vss_memory.low >>> 0, message.vss_memory.high >>> 0).toNumber(true) : message.vss_memory;
                     return object;
                 };
 
@@ -5157,6 +5202,7 @@ export const renop = $root.renop = (() => {
                  * @property {number|Long|null} [used_memory] StatusSnapshot used_memory
                  * @property {number|Long|null} [used_threads] StatusSnapshot used_threads
                  * @property {number|Long|null} [open_files] StatusSnapshot open_files
+                 * @property {number|Long|null} [vss_memory] StatusSnapshot vss_memory
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -5221,6 +5267,14 @@ export const renop = $root.renop = (() => {
                 StatusSnapshot.prototype.open_files = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
 
                 /**
+                 * StatusSnapshot vss_memory.
+                 * @member {number|Long} vss_memory
+                 * @memberof renop.api.v1.StatusSnapshot
+                 * @instance
+                 */
+                StatusSnapshot.prototype.vss_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
                  * Creates a new StatusSnapshot instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.StatusSnapshot
@@ -5260,6 +5314,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 3, wireType 0 =*/24).uint64(message.used_threads);
                     if (message.open_files != null && $Object.hasOwnProperty.call(message, "open_files") && (typeof message.open_files === "object" ? message.open_files.low || message.open_files.high : message.open_files !== 0))
                         writer.uint32(/* id 4, wireType 0 =*/32).uint64(message.open_files);
+                    if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory") && (typeof message.vss_memory === "object" ? message.vss_memory.low || message.vss_memory.high : message.vss_memory !== 0))
+                        writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.vss_memory);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -5343,6 +5399,15 @@ export const renop = $root.renop = (() => {
                                     delete message.open_files;
                                 continue;
                             }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.vss_memory = value;
+                                else
+                                    delete message.vss_memory;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -5398,6 +5463,9 @@ export const renop = $root.renop = (() => {
                     if (message.open_files != null && $Object.hasOwnProperty.call(message, "open_files"))
                         if (!$util.isInteger(message.open_files) && !(message.open_files && $util.isInteger(message.open_files.low) && $util.isInteger(message.open_files.high)))
                             return "open_files: integer|Long expected";
+                    if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory"))
+                        if (!$util.isInteger(message.vss_memory) && !(message.vss_memory && $util.isInteger(message.vss_memory.low) && $util.isInteger(message.vss_memory.high)))
+                            return "vss_memory: integer|Long expected";
                     return null;
                 };
 
@@ -5459,6 +5527,16 @@ export const renop = $root.renop = (() => {
                                 message.open_files = object.open_files;
                             else if (typeof object.open_files === "object")
                                 message.open_files = new $util.LongBits(object.open_files.low >>> 0, object.open_files.high >>> 0).toNumber(true);
+                    if (object.vss_memory != null)
+                        if (typeof object.vss_memory === "object" ? object.vss_memory.low || object.vss_memory.high : $Number(object.vss_memory) !== 0)
+                            if ($util.Long)
+                                message.vss_memory = $util.Long.fromValue(object.vss_memory, true);
+                            else if (typeof object.vss_memory === "string")
+                                message.vss_memory = $parseInt(object.vss_memory, 10);
+                            else if (typeof object.vss_memory === "number")
+                                message.vss_memory = object.vss_memory;
+                            else if (typeof object.vss_memory === "object")
+                                message.vss_memory = new $util.LongBits(object.vss_memory.low >>> 0, object.vss_memory.high >>> 0).toNumber(true);
                     return message;
                 };
 
@@ -5500,6 +5578,11 @@ export const renop = $root.renop = (() => {
                             object.open_files = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
                         } else
                             object.open_files = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.vss_memory = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.vss_memory = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                     }
                     if (message.timestamp != null && $Object.hasOwnProperty.call(message, "timestamp"))
                         if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
@@ -5529,6 +5612,13 @@ export const renop = $root.renop = (() => {
                             object.open_files = options.longs === $String ? $String(message.open_files) : message.open_files;
                         else
                             object.open_files = options.longs === $String ? $util.Long.prototype.toString.call(message.open_files) : options.longs === $Number ? new $util.LongBits(message.open_files.low >>> 0, message.open_files.high >>> 0).toNumber(true) : message.open_files;
+                    if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.vss_memory = typeof message.vss_memory === "number" ? $BigInt(message.vss_memory) : $util.Long.fromBits(message.vss_memory.low >>> 0, message.vss_memory.high >>> 0, true).toBigInt();
+                        else if (typeof message.vss_memory === "number")
+                            object.vss_memory = options.longs === $String ? $String(message.vss_memory) : message.vss_memory;
+                        else
+                            object.vss_memory = options.longs === $String ? $util.Long.prototype.toString.call(message.vss_memory) : options.longs === $Number ? new $util.LongBits(message.vss_memory.low >>> 0, message.vss_memory.high >>> 0).toNumber(true) : message.vss_memory;
                     return object;
                 };
 
