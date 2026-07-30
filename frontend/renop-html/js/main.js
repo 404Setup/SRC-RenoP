@@ -76,11 +76,40 @@ window.addEventListener('languageChanged', async () => {
     const bgUrl = bgUrlMeta ? bgUrlMeta.getAttribute("content") : "";
     if (bgUrl && bgUrl !== "{{RENOP.BACKGROUND_URL}}") {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.onload = function () {
             document.body.style.backgroundImage = 'url("' + bgUrl.replace(/"/g, '\\"') + '")';
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center';
             document.body.style.backgroundAttachment = 'fixed';
+
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 32;
+                canvas.height = 32;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, 32, 32);
+                const imageData = ctx.getImageData(0, 0, 32, 32);
+                const data = imageData.data;
+                let totalLum = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    totalLum += 0.299 * r + 0.587 * g + 0.114 * b;
+                }
+                const avgLum = totalLum / (data.length / 4);
+                if (avgLum > 130) {
+                    document.documentElement.setAttribute('data-custom-bg', 'light');
+                    document.body.classList.add('light-custom-bg');
+                } else {
+                    document.documentElement.setAttribute('data-custom-bg', 'dark');
+                    document.body.classList.remove('light-custom-bg');
+                }
+            } catch (e) {
+                document.documentElement.setAttribute('data-custom-bg', 'custom');
+                document.body.classList.add('custom-bg-active');
+            }
         };
         img.onerror = function () {
             console.error('Failed to load background image, falling back to default.');
@@ -106,15 +135,23 @@ window.addEventListener('languageChanged', async () => {
 
                 RenopDialog.show({
                     id: 'asset-update-modal',
-                    maxWidth: '440px',
+                    glass: true,
+                    maxWidth: '420px',
                     closable: false,
                     centered: true,
                     title: t('main.updateAvailable'),
-                    headerStyle: {paddingRight: '0', textAlign: 'center'},
-                    titleStyle: {justifyContent: 'center', textAlign: 'center', width: '100%'},
+                    headerStyle: {padding: '1.1rem 1.25rem 0.6rem', textAlign: 'center'},
+                    titleStyle: {justifyContent: 'center', textAlign: 'center', width: '100%', fontSize: '1.15rem'},
                     body: updateMsg,
-                    bodyStyle: {marginBottom: '1.25rem', textAlign: 'center'},
-                    footerStyle: {justifyContent: 'center', marginTop: '1.25rem'},
+                    bodyStyle: {
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        padding: '0.85rem 1.25rem 1.1rem'
+                    },
+                    footerStyle: {justifyContent: 'center', padding: '0.75rem 1.25rem'},
                     footer: [
                         {
                             text: t('main.forceUpdate'),

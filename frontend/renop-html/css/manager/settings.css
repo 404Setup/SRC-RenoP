@@ -1366,47 +1366,53 @@ html.dark .skeleton-bone {
 
 .settings-form--exiting-next {
     opacity: 0;
-    transform: translate3d(-12px, 0, 0);
-    transition: opacity 0.1s cubic-bezier(0.2, 0, 0, 1), transform 0.1s cubic-bezier(0.2, 0, 0, 1);
+    transform: translate3d(-24px, 0, 0) scale(0.982);
+    filter: blur(2px);
+    transition: opacity 0.18s cubic-bezier(0.2, 0, 0, 1), transform 0.18s cubic-bezier(0.2, 0, 0, 1), filter 0.18s ease;
     pointer-events: none;
 }
 
 .settings-form--exiting-prev {
     opacity: 0;
-    transform: translate3d(12px, 0, 0);
-    transition: opacity 0.1s cubic-bezier(0.2, 0, 0, 1), transform 0.1s cubic-bezier(0.2, 0, 0, 1);
+    transform: translate3d(24px, 0, 0) scale(0.982);
+    filter: blur(2px);
+    transition: opacity 0.18s cubic-bezier(0.2, 0, 0, 1), transform 0.18s cubic-bezier(0.2, 0, 0, 1), filter 0.18s ease;
     pointer-events: none;
 }
 
 .settings-form--enter-next {
-    animation: settingsSlideInNext 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity;
+    animation: settingsSlideInNext 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity, filter;
 }
 
 .settings-form--enter-prev {
-    animation: settingsSlideInPrev 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    will-change: transform, opacity;
+    animation: settingsSlideInPrev 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity, filter;
 }
 
 @keyframes settingsSlideInNext {
     0% {
         opacity: 0;
-        transform: translate3d(16px, 0, 0);
+        transform: translate3d(28px, 0, 0) scale(0.982);
+        filter: blur(2px);
     }
     100% {
         opacity: 1;
-        transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
     }
 }
 
 @keyframes settingsSlideInPrev {
     0% {
         opacity: 0;
-        transform: translate3d(-16px, 0, 0);
+        transform: translate3d(-28px, 0, 0) scale(0.982);
+        filter: blur(2px);
     }
     100% {
         opacity: 1;
-        transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
     }
 }
 

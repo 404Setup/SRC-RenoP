@@ -208,6 +208,8 @@ async function loadDomainSettings(domain, direction = 'next') {
                 requestAnimationFrame(() => {
                     if (activeFetchId !== fetchId) return;
                     container.classList.remove('settings-form--exiting-next', 'settings-form--exiting-prev', 'settings-form--enter-next', 'settings-form--enter-prev', 'is-content-entering');
+                    // Force browser reflow to restart CSS keyframe animation
+                    void container.offsetWidth;
 
                     if (direction === 'none') {
                         container.classList.add('is-content-entering');

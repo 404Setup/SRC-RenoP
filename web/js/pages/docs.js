@@ -282,6 +282,19 @@ function buildToc(toc) {
         );
     }
     aside.appendChild(ul);
+    aside.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href^="#"]');
+        if (!a) return;
+        const hash = a.getAttribute('href');
+        if (!hash || hash === '#') return;
+        const targetId = hash.slice(1);
+        const targetEl = document.getElementById(targetId) || document.getElementById(decodeURIComponent(targetId));
+        if (targetEl) {
+            e.preventDefault();
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', hash);
+        }
+    });
     return aside;
 }
 
@@ -502,6 +515,16 @@ async function fillContent({ main, tocSlot, layout, slug, categories, bundle, fa
 
         document.title = `${meta.title} — RenoP`;
         attachTocObserver(article, tocEl);
+
+        if (location.hash && location.hash.length > 1) {
+            const hashId = decodeURIComponent(location.hash.slice(1));
+            const targetEl = document.getElementById(hashId);
+            if (targetEl) {
+                setTimeout(() => {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 60);
+            }
+        }
     } catch {
         await Promise.all([
             replaceWithHeightMorph(main, [

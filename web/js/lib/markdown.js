@@ -26,6 +26,7 @@ marked.setOptions({
  */
 function slugify(text) {
     return String(text)
+        .replace(/<[^>]*>/g, '')
         .trim()
         .toLowerCase()
         .replace(/[^\p{L}\p{N}\s\-_/]/gu, '')

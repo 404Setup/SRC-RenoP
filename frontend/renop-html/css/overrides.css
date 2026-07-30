@@ -1,0 +1,221 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+html.dark.light-custom-bg .tabs-container,
+html.dark[data-custom-bg="light"] .tabs-container,
+html.dark.light-custom-bg .settings-subtabs-container,
+html.dark[data-custom-bg="light"] .settings-subtabs-container {
+    background-color: rgba(15, 23, 42, 0.82) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+html.dark.light-custom-bg .tabs .tab,
+html.dark[data-custom-bg="light"] .tabs .tab,
+html.dark.light-custom-bg .settings-subtabs-container .tab,
+html.dark[data-custom-bg="light"] .settings-subtabs-container .tab {
+    color: #cbd5e1 !important;
+    opacity: 0.9 !important;
+}
+
+html.dark.light-custom-bg .tabs .tab:hover,
+html.dark[data-custom-bg="light"] .tabs .tab:hover,
+html.dark.light-custom-bg .settings-subtabs-container .tab:hover,
+html.dark[data-custom-bg="light"] .settings-subtabs-container .tab:hover {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+html.dark.light-custom-bg .tabs .tab.active,
+html.dark[data-custom-bg="light"] .tabs .tab.active,
+html.dark.light-custom-bg .settings-subtabs-container .tab.active,
+html.dark[data-custom-bg="light"] .settings-subtabs-container .tab.active {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+html.dark.light-custom-bg .tab-indicator,
+html.dark[data-custom-bg="light"] .tab-indicator {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+html.dark.light-custom-bg .header-url,
+html.dark[data-custom-bg="light"] .header-url {
+    color: #f9fafb !important;
+    background: rgba(15, 23, 42, 0.82) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark.light-custom-bg .breadcrumb-nav,
+html.dark[data-custom-bg="light"] .breadcrumb-nav {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    border-radius: 9999px !important;
+    padding: 0.25rem 0.75rem !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18) !important;
+}
+
+html.dark.light-custom-bg .index-of,
+html.dark[data-custom-bg="light"] .index-of {
+    background: rgba(37, 99, 235, 0.25) !important;
+    border: 1px solid rgba(96, 165, 250, 0.4) !important;
+    color: #60a5fa !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark.light-custom-bg .breadcrumb-seg,
+html.dark.light-custom-bg #breadcrumb-links a,
+html.dark[data-custom-bg="light"] .breadcrumb-seg,
+html.dark[data-custom-bg="light"] #breadcrumb-links a {
+    color: #e2e8f0 !important;
+    opacity: 0.9 !important;
+}
+
+html.dark.light-custom-bg .breadcrumb-seg.is-current,
+html.dark.light-custom-bg #breadcrumb-links a.is-current,
+html.dark[data-custom-bg="light"] .breadcrumb-seg.is-current,
+html.dark[data-custom-bg="light"] #breadcrumb-links a.is-current {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+}
+
+html.dark.light-custom-bg .profile-hero-name,
+html.dark.light-custom-bg .profile-header .profile-title,
+html.dark[data-custom-bg="light"] .profile-hero-name,
+html.dark[data-custom-bg="light"] .profile-header .profile-title {
+    color: #0f172a !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+}
+
+html.dark.light-custom-bg .profile-hero-sub,
+html.dark.light-custom-bg .profile-header .profile-subtitle,
+html.dark[data-custom-bg="light"] .profile-hero-sub,
+html.dark[data-custom-bg="light"] .profile-header .profile-subtitle {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+    font-weight: 500 !important;
+}
+
+html.dark.light-custom-bg .dashboard-section-title,
+html.dark[data-custom-bg="light"] .dashboard-section-title {
+    color: #0f172a !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+}
+
+html.dark.light-custom-bg .dashboard-section-badge,
+html.dark[data-custom-bg="light"] .dashboard-section-badge {
+    background: rgba(22, 101, 52, 0.85) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(34, 197, 94, 0.5) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.dark.light-custom-bg .dashboard-title,
+html.dark.light-custom-bg .settings-title,
+html.dark.light-custom-bg .settings-header h2,
+html.dark.light-custom-bg .users-title,
+html.dark.light-custom-bg .repositories-title,
+html.dark.light-custom-bg .repos-header-text h2,
+html.dark[data-custom-bg="light"] .dashboard-title,
+html.dark[data-custom-bg="light"] .settings-title,
+html.dark[data-custom-bg="light"] .settings-header h2,
+html.dark[data-custom-bg="light"] .users-title,
+html.dark[data-custom-bg="light"] .repositories-title,
+html.dark[data-custom-bg="light"] .repos-header-text h2 {
+    color: #0f172a !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+}
+
+html.dark.light-custom-bg .dashboard-subtitle,
+html.dark.light-custom-bg .settings-subtitle,
+html.dark.light-custom-bg .settings-header p,
+html.dark.light-custom-bg .users-subtitle,
+html.dark.light-custom-bg .repositories-subtitle,
+html.dark[data-custom-bg="light"] .dashboard-subtitle,
+html.dark[data-custom-bg="light"] .settings-subtitle,
+html.dark[data-custom-bg="light"] .settings-header p,
+html.dark[data-custom-bg="light"] .users-subtitle,
+html.dark[data-custom-bg="light"] .repositories-subtitle {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+    font-weight: 500 !important;
+}
+
+html.light .tabs-container,
+html.light .settings-subtabs-container {
+    background-color: rgba(15, 23, 42, 0.05) !important;
+    border: 1px solid rgba(15, 23, 42, 0.03) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+html.light .tabs .tab,
+html.light .settings-subtabs-container .tab {
+    color: var(--text-color) !important;
+    opacity: 0.65 !important;
+}
+
+html.light .tabs .tab.active,
+html.light .settings-subtabs-container .tab.active {
+    color: var(--link-hover-color) !important;
+    opacity: 1 !important;
+}
+
+html.light .tab-indicator {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .header-url {
+    color: var(--text-color) !important;
+    background: rgba(15, 23, 42, 0.04) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+html.light .breadcrumb-nav {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+html.light .index-of {
+    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 16%, transparent) !important;
+    color: var(--link-hover-color) !important;
+    text-shadow: none !important;
+}
+
+html.light .breadcrumb-seg,
+html.light #breadcrumb-links a {
+    color: var(--text-color) !important;
+    opacity: 0.62 !important;
+}
+
+html.light .breadcrumb-seg.is-current,
+html.light #breadcrumb-links a.is-current {
+    color: var(--text-color) !important;
+    opacity: 1 !important;
+    font-weight: 500 !important;
+}

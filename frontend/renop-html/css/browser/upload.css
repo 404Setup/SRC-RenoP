@@ -43,6 +43,10 @@
     outline: none;
 }
 
+.upload-dropzone * {
+    pointer-events: none;
+}
+
 .upload-dropzone:hover,
 .upload-dropzone:focus-visible {
     border-color: color-mix(in srgb, var(--link-hover-color) 55%, var(--border-color));

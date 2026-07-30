@@ -186,6 +186,13 @@
     word-wrap: break-word;
 }
 
+.docs-article h1,
+.docs-article h2,
+.docs-article h3,
+.docs-article h4 {
+    scroll-margin-top: 1.5rem;
+}
+
 .docs-article h1 {
     margin: 0 0 1rem;
     font-size: 1.85rem;

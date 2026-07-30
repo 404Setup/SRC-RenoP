@@ -92,6 +92,7 @@ export class RenopDialog extends HTMLElement {
         this.appendChild(this._backdrop);
 
         const modalClasses = ['modal-content'];
+        if (opts.glass || opts.frosted) modalClasses.push('modal-glass');
         if (opts.className) modalClasses.push(...opts.className.split(' '));
         if (opts.size) modalClasses.push(`modal-${opts.size}`);
 

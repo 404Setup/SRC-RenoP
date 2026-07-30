@@ -219,6 +219,7 @@ export function showUpdateModal(updateData = {}) {
 
     return RenopDialog.show({
         id: 'renop-update-modal-container',
+        glass: true,
         size: 'md',
         centered: true,
         title: t('updater.foundNewVersion', {version: updateData.latest_version || ''}),
@@ -469,6 +470,7 @@ export function showOfflineUpdateModal() {
 
         RenopDialog.show({
             id: 'renop-offline-modal-container',
+            glass: true,
             size: 'md',
             centered: true,
             title: t('updater.offlineTitle'),

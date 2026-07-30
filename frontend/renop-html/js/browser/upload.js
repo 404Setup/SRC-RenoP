@@ -248,21 +248,32 @@ export function initUpload() {
         }
     });
 
-    uploadZone.addEventListener('dragover', (e) => {
+    let dragCounter = 0;
+
+    uploadZone.addEventListener('dragenter', (e) => {
         e.preventDefault();
+        dragCounter++;
         uploadZone.classList.add('dragover');
     });
 
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
     uploadZone.addEventListener('dragleave', (e) => {
-        if (!uploadZone.contains(e.relatedTarget)) {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter <= 0) {
+            dragCounter = 0;
             uploadZone.classList.remove('dragover');
         }
     });
 
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
+        dragCounter = 0;
         uploadZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
+        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
             addPendingFiles(e.dataTransfer.files);
         }
     });

@@ -10,8 +10,6 @@
 
 @import url("../../../../packages/renop-ui/css/layout/nav-controls.css");
 
-/* Product UI top nav: title + auth controls + user menu. */
-
 .top-nav {
     display: flex;
     justify-content: space-between;
