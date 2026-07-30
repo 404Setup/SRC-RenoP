@@ -433,6 +433,28 @@
                     </div>
                 </div>
             </div>
+            <div class="dashboard-section dashboard-debug-section" id="dashboard-debug-tools" hidden>
+                <div class="dashboard-section-header">
+                    <h3 class="dashboard-section-title" data-i18n="dashboard.debugTitle">Debug memory</h3>
+                    <span class="dashboard-section-badge dashboard-section-badge--debug" data-i18n="dashboard.debugBadge">Debug</span>
+                </div>
+                <div class="dashboard-debug-card">
+                    <p class="dashboard-debug-hint" data-i18n="dashboard.debugMemoryHint">
+                        Download a full Go heap profile (pprof) for flame-graph analysis. Open with Speedscope or go tool pprof.
+                    </p>
+                    <div class="dashboard-debug-actions">
+                        <button type="button" class="pill-btn pill-btn--soft" id="btn-dump-heap" data-i18n="dashboard.dumpHeap">
+                            Dump heap flamegraph
+                        </button>
+                        <button type="button" class="pill-btn pill-btn--soft" id="btn-dump-allocs" data-i18n="dashboard.dumpAllocs">
+                            Dump allocs profile
+                        </button>
+                        <button type="button" class="pill-btn pill-btn--soft" id="btn-dump-goroutine" data-i18n="dashboard.dumpGoroutine">
+                            Dump goroutines
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="tab-content-profile" class="tab-content" style="display: none;">

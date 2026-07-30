@@ -86,6 +86,7 @@ func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
 		PhysicalCores:    int32(physicalCores),
 		FailuresCount:    failuresCount,
 		UpdateState:      updater.ToPbUpdateState(updater.GetUpdateState()),
+		DebugMode:        DebugModeActive(),
 	}
 
 	return protohttp.Write(c, res)

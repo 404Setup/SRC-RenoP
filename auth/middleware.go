@@ -289,6 +289,7 @@ func authorizeRequest(c fiber.Ctx, user *config.User) error {
 	restricted := strings.HasPrefix(path, "/api/settings") ||
 		strings.HasPrefix(path, "/api/tokens") ||
 		strings.HasPrefix(path, "/api/statistics") ||
+		strings.HasPrefix(path, "/api/debug") ||
 		path == "/api/status/instance" ||
 		path == "/api/status/snapshots"
 	if restricted && !isManager(user) {

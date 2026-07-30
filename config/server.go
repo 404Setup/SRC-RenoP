@@ -42,6 +42,8 @@ type ServerConfig struct {
 	Port                 uint16       `json:"port" yaml:"port"`
 	SslEnabled           bool         `json:"ssl_enabled" yaml:"ssl_enabled"`
 	EnableCompression    bool         `json:"enable_compression" yaml:"enable_compression"`
+	// DebugMode enables manager-only memory profile dump APIs. Requires process restart to activate.
+	DebugMode bool `json:"debug_mode" yaml:"debug_mode"`
 }
 
 // serverConfigWire is used for JSON/YAML unmarshalling so we can accept the
@@ -60,6 +62,7 @@ type serverConfigWire struct {
 	Port              uint16   `json:"port" yaml:"port"`
 	SslEnabled        bool     `json:"ssl_enabled" yaml:"ssl_enabled"`
 	EnableCompression bool     `json:"enable_compression" yaml:"enable_compression"`
+	DebugMode         bool     `json:"debug_mode" yaml:"debug_mode"`
 }
 
 func (s *ServerConfig) applyWire(w *serverConfigWire) {
@@ -77,6 +80,7 @@ func (s *ServerConfig) applyWire(w *serverConfigWire) {
 	s.Port = w.Port
 	s.SslEnabled = w.SslEnabled
 	s.EnableCompression = w.EnableCompression
+	s.DebugMode = w.DebugMode
 
 	if len(w.Domains) > 0 {
 		s.Domains = normalizeDomainList(w.Domains)
@@ -412,6 +416,7 @@ func (s *ServerConfig) DeepCopy() ServerConfig {
 		FileCacheSizeMb:   s.FileCacheSizeMb,
 		MaxActiveRequests: s.MaxActiveRequests,
 		CdnIpHeader:       strings.Clone(s.CdnIpHeader),
+		DebugMode:         s.DebugMode,
 	}
 	if s.Domains != nil {
 		cloned.Domains = make([]string, len(s.Domains))

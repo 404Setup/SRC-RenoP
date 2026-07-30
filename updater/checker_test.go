@@ -24,6 +24,7 @@ import (
 
 	"renop/config"
 	"renop/core"
+	"renop/utils"
 )
 
 func largeBodyHandler(size int) http.Handler {
@@ -135,14 +136,22 @@ func TestCheckUpdateClosesIdleConnsAndFreesMemory(t *testing.T) {
 	}))
 	t.Cleanup(ts.Close)
 
+	before := currentCheckHTTPClient()
 	var info ChannelInfo
 	status, err := doJSONGet(context.Background(), ts.URL, "application/json", &info)
 	if err != nil || status != 200 {
 		t.Fatalf("status=%d err=%v", status, err)
 	}
 
-	checkHTTPClient.CloseIdleConnections()
-	runtime.GC()
+	recycleCheckHTTPClient()
+	after := currentCheckHTTPClient()
+	if after == nil {
+		t.Fatal("expected a live check HTTP client after recycle")
+	}
+	if before != nil && after == before {
+		t.Fatal("expected check HTTP client to be replaced after recycle")
+	}
+	utils.ReleaseMemoryToOS()
 }
 
 func TestCommitSubject(t *testing.T) {

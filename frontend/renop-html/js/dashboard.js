@@ -8,10 +8,11 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {fetchProto, getAuthHeaders} from './api.js';
+import {apiRequest, fetchProto, getAuthHeaders} from './api.js';
 import {formatBytes} from './browser/utils.js';
 import {t} from './i18n.js';
 import {logout} from './auth.js';
+import {showAlert} from './alert.js';
 import {InstanceStatus, StatusSnapshotList, UpdateState} from './proto/index.js';
 
 let refreshInterval = null;
@@ -152,6 +153,93 @@ function setupUpdateBtnLongPress(updateBtn) {
 }
 
 /**
+ * Shows or hides debug memory dump tools (requires server.debug_mode + restart).
+ * @param {boolean} active
+ * @returns {void}
+ */
+function updateDebugMemoryTools(active) {
+    const panel = document.getElementById('dashboard-debug-tools');
+    if (!panel) return;
+    panel.hidden = !active;
+    if (!active) return;
+    _wireDebugDumpButton('btn-dump-heap', 'heap');
+    _wireDebugDumpButton('btn-dump-allocs', 'allocs');
+    _wireDebugDumpButton('btn-dump-goroutine', 'goroutine');
+}
+
+/**
+ * @param {string} buttonId
+ * @param {'heap'|'allocs'|'goroutine'} kind
+ */
+function _wireDebugDumpButton(buttonId, kind) {
+    const btn = document.getElementById(buttonId);
+    if (!btn || btn.dataset.wired === '1') return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+        void downloadMemoryProfile(kind, btn);
+    });
+}
+
+/**
+ * Downloads a pprof profile for flame-graph analysis (Speedscope / go tool pprof).
+ * @param {'heap'|'allocs'|'goroutine'} kind
+ * @param {HTMLButtonElement|null} [btn]
+ * @returns {Promise<void>}
+ */
+async function downloadMemoryProfile(kind, btn = null) {
+    const path = kind === 'allocs'
+        ? '/api/debug/memory/allocs'
+        : kind === 'goroutine'
+            ? '/api/debug/memory/goroutine'
+            : '/api/debug/memory/heap?gc=1';
+    const filename = kind === 'allocs'
+        ? 'renop-allocs.pprof'
+        : kind === 'goroutine'
+            ? 'renop-goroutine.pprof'
+            : 'renop-heap.pprof';
+
+    const prevText = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = t('dashboard.dumpWorking');
+    }
+    try {
+        const response = await apiRequest(path, {method: 'GET'});
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            showAlert(
+                `${t('dashboard.dumpFailed')}: ${text || response.status}`,
+                'error',
+            );
+            return;
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showAlert(t('dashboard.dumpReadyBody', {file: filename}), 'success');
+    } catch (e) {
+        if (e && e.message === 'Unauthorized') return;
+        console.error('memory profile dump failed', e);
+        showAlert(`${t('dashboard.dumpFailed')}: ${e?.message || e}`, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = prevText || t(
+                kind === 'allocs' ? 'dashboard.dumpAllocs'
+                    : kind === 'goroutine' ? 'dashboard.dumpGoroutine'
+                        : 'dashboard.dumpHeap',
+            );
+        }
+    }
+}
+
+/**
  * Fetches instance status and updates dashboard stats (version, uptime, memory, disk, etc.).
  * Also wires the update button and applies updater UI when an update state is present.
  * @returns {Promise<void>}
@@ -225,6 +313,8 @@ export async function fetchInstanceStatus() {
                     updateDashboardVersionUI(data.update_state);
                 }
             }
+
+            updateDebugMemoryTools(!!data.debug_mode);
         } else if (response.status === 401 || response.status === 403) {
             logout('kicked');
         }

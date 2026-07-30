@@ -226,6 +226,7 @@ func FromServerConfig(s config.ServerConfig) *ServerConfig {
 		TrustedProxies:    append([]string(nil), s.TrustedProxies...),
 		CdnIpHeader:       s.CdnIpHeader,
 		CorsOrigins:       append([]string(nil), s.CorsOrigins...),
+		DebugMode:         s.DebugMode,
 	}
 }
 
@@ -247,6 +248,7 @@ func ApplyServerConfig(dst *config.ServerConfig, src *ServerConfig) {
 	dst.TrustedProxies = append([]string(nil), src.TrustedProxies...)
 	dst.CdnIpHeader = src.CdnIpHeader
 	dst.CorsOrigins = append([]string(nil), src.CorsOrigins...)
+	dst.DebugMode = src.DebugMode
 	dst.NormalizePublicNames()
 	dst.ParseTrustedProxies()
 }

@@ -329,6 +329,35 @@ html.dark .dashboard-section-badge {
     background: color-mix(in srgb, #93c5fd 80%, #a5b4fc);
 }
 
+.dashboard-debug-section {
+    margin-top: 1.25rem;
+}
+
+.dashboard-section-badge--debug {
+    background: color-mix(in srgb, #f59e0b 18%, transparent);
+    color: #d97706;
+}
+
+.dashboard-debug-card {
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    background: var(--card-bg, #fff);
+}
+
+.dashboard-debug-hint {
+    margin: 0 0 0.85rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--text-muted, #64748b);
+}
+
+.dashboard-debug-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
 .chart-container {
     position: relative;
     height: 320px;

@@ -455,6 +455,23 @@ function renderServerSettings(container, data) {
     });
     perfFields.appendChild(createFieldRow(t('settings.maxActiveReq'), t('settings.maxActiveReqHint'), maxReqInput));
 
+    const debugSection = createSection(
+        createIcon('performance'),
+        t('settings.debugTitle'),
+        t('settings.debugSubtitle')
+    );
+    const debugFields = debugSection.querySelector('.cfg-fields');
+    debugFields.appendChild(createToggleRow(
+        t('settings.debugMode'),
+        t('settings.debugModeDesc'),
+        data.debug_mode === true,
+        checked => {
+            currentConfig.debug_mode = checked;
+            enableSave();
+        }
+    ));
+    debugSection.appendChild(createCallout('warning', t('settings.debugModeRestart'), 'warning'));
+
     const netSection = createSection(
         createIcon('network'),
         t('settings.network'),
@@ -500,6 +517,7 @@ function renderServerSettings(container, data) {
 
     wrap.appendChild(sslSection);
     wrap.appendChild(perfSection);
+    wrap.appendChild(debugSection);
     wrap.appendChild(netSection);
     container.appendChild(wrap);
 }

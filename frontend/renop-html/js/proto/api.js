@@ -4285,6 +4285,7 @@ export const renop = $root.renop = (() => {
                  * @property {number|Long|null} [failures_count] InstanceStatus failures_count
                  * @property {renop.api.v1.UpdateState.$Properties|null} [update_state] InstanceStatus update_state
                  * @property {number|Long|null} [vss_memory] InstanceStatus vss_memory
+                 * @property {boolean|null} [debug_mode] InstanceStatus debug_mode
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -4461,6 +4462,14 @@ export const renop = $root.renop = (() => {
                 InstanceStatus.prototype.vss_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
 
                 /**
+                 * InstanceStatus debug_mode.
+                 * @member {boolean} debug_mode
+                 * @memberof renop.api.v1.InstanceStatus
+                 * @instance
+                 */
+                InstanceStatus.prototype.debug_mode = false;
+
+                /**
                  * Creates a new InstanceStatus instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.InstanceStatus
@@ -4528,6 +4537,8 @@ export const renop = $root.renop = (() => {
                         $root.renop.api.v1.UpdateState.encode(message.update_state, writer.uint32(/* id 17, wireType 2 =*/138).fork(), _depth + 1).ldelim();
                     if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory") && (typeof message.vss_memory === "object" ? message.vss_memory.low || message.vss_memory.high : message.vss_memory !== 0))
                         writer.uint32(/* id 18, wireType 0 =*/144).uint64(message.vss_memory);
+                    if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode") && message.debug_mode !== false)
+                        writer.uint32(/* id 19, wireType 0 =*/152).bool(message.debug_mode);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -4734,6 +4745,15 @@ export const renop = $root.renop = (() => {
                                     delete message.vss_memory;
                                 continue;
                             }
+                        case 19: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.debug_mode = value;
+                                else
+                                    delete message.debug_mode;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -4833,6 +4853,9 @@ export const renop = $root.renop = (() => {
                     if (message.vss_memory != null && $Object.hasOwnProperty.call(message, "vss_memory"))
                         if (!$util.isInteger(message.vss_memory) && !(message.vss_memory && $util.isInteger(message.vss_memory.low) && $util.isInteger(message.vss_memory.high)))
                             return "vss_memory: integer|Long expected";
+                    if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode"))
+                        if (typeof message.debug_mode !== "boolean")
+                            return "debug_mode: boolean expected";
                     return null;
                 };
 
@@ -4987,6 +5010,9 @@ export const renop = $root.renop = (() => {
                                 message.vss_memory = object.vss_memory;
                             else if (typeof object.vss_memory === "object")
                                 message.vss_memory = new $util.LongBits(object.vss_memory.low >>> 0, object.vss_memory.high >>> 0).toNumber(true);
+                    if (object.debug_mode != null)
+                        if (object.debug_mode)
+                            message.debug_mode = $Boolean(object.debug_mode);
                     return message;
                 };
 
@@ -5070,6 +5096,7 @@ export const renop = $root.renop = (() => {
                             object.vss_memory = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
                         } else
                             object.vss_memory = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.debug_mode = false;
                     }
                     if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
                         object.version = message.version;
@@ -5162,6 +5189,8 @@ export const renop = $root.renop = (() => {
                             object.vss_memory = options.longs === $String ? $String(message.vss_memory) : message.vss_memory;
                         else
                             object.vss_memory = options.longs === $String ? $util.Long.prototype.toString.call(message.vss_memory) : options.longs === $Number ? new $util.LongBits(message.vss_memory.low >>> 0, message.vss_memory.high >>> 0).toNumber(true) : message.vss_memory;
+                    if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode"))
+                        object.debug_mode = message.debug_mode;
                     return object;
                 };
 
@@ -10460,6 +10489,7 @@ export const renop = $root.renop = (() => {
                  * @property {Array.<string>|null} [trusted_proxies] ServerConfig trusted_proxies
                  * @property {string|null} [cdn_ip_header] ServerConfig cdn_ip_header
                  * @property {Array.<string>|null} [cors_origins] ServerConfig cors_origins
+                 * @property {boolean|null} [debug_mode] ServerConfig debug_mode
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -10591,6 +10621,14 @@ export const renop = $root.renop = (() => {
                 ServerConfig.prototype.cors_origins = $util.emptyArray;
 
                 /**
+                 * ServerConfig debug_mode.
+                 * @member {boolean} debug_mode
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.debug_mode = false;
+
+                /**
                  * Creates a new ServerConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.ServerConfig
@@ -10649,6 +10687,8 @@ export const renop = $root.renop = (() => {
                     if (message.cors_origins != null && message.cors_origins.length)
                         for (let i = 0; i < message.cors_origins.length; ++i)
                             writer.uint32(/* id 12, wireType 2 =*/98).string(message.cors_origins[i]);
+                    if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode") && message.debug_mode !== false)
+                        writer.uint32(/* id 13, wireType 0 =*/104).bool(message.debug_mode);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -10801,6 +10841,15 @@ export const renop = $root.renop = (() => {
                                 message.cors_origins.push(reader.stringVerify());
                                 continue;
                             }
+                        case 13: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.debug_mode = value;
+                                else
+                                    delete message.debug_mode;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -10892,6 +10941,9 @@ export const renop = $root.renop = (() => {
                             if (!$util.isString(message.cors_origins[i]))
                                 return "cors_origins: string[] expected";
                     }
+                    if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode"))
+                        if (typeof message.debug_mode !== "boolean")
+                            return "debug_mode: boolean expected";
                     return null;
                 };
 
@@ -10961,6 +11013,9 @@ export const renop = $root.renop = (() => {
                         for (let i = 0; i < object.cors_origins.length; ++i)
                             message.cors_origins[i] = $String(object.cors_origins[i]);
                     }
+                    if (object.debug_mode != null)
+                        if (object.debug_mode)
+                            message.debug_mode = $Boolean(object.debug_mode);
                     return message;
                 };
 
@@ -10996,6 +11051,7 @@ export const renop = $root.renop = (() => {
                         object.file_cache_size_mb = 0;
                         object.max_active_requests = 0;
                         object.cdn_ip_header = "";
+                        object.debug_mode = false;
                     }
                     if (message.host != null && $Object.hasOwnProperty.call(message, "host"))
                         object.host = message.host;
@@ -11030,6 +11086,8 @@ export const renop = $root.renop = (() => {
                         for (let j = 0; j < message.cors_origins.length; ++j)
                             object.cors_origins[j] = message.cors_origins[j];
                     }
+                    if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode"))
+                        object.debug_mode = message.debug_mode;
                     return object;
                 };
 

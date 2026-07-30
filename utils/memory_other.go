@@ -13,13 +13,14 @@
 package utils
 
 import (
+	"runtime"
 	"runtime/debug"
 )
 
-// TrimProcessWorkingSet is a no-op on non-Windows platforms.
 func TrimProcessWorkingSet() {}
 
-// ReleaseMemoryToOS forces Go garbage collection and frees OS memory.
 func ReleaseMemoryToOS() {
+	runtime.GC()
+	runtime.GC()
 	debug.FreeOSMemory()
 }

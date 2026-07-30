@@ -96,6 +96,7 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
+		// CheckUpdate always recycles its HTTP client and ReleaseMemoryToOS (all platforms).
 		res, err := CheckUpdate(ctx, channel)
 		if err != nil || !res.HasUpdate {
 			return
@@ -112,7 +113,7 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 			s.CommitSha = strings.Clone(res.CommitSha)
 			s.IsRelease = res.IsRelease
 		})
-
+		// Reclaim again after cloning release notes into long-lived state.
 		utils.ReleaseMemoryToOS()
 
 		if mode != ModeAutoInstall {

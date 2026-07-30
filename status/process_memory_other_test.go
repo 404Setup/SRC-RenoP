@@ -31,30 +31,22 @@ func TestParseProcKBField(t *testing.T) {
 		t.Fatalf("Missing: got %d want 0", got)
 	}
 
-	rollup := []byte("Rss:                 48000 kB\nPss:                 45000 kB\nPrivate_Clean:        1200 kB\nPrivate_Dirty:       40000 kB\nSwap:                   64 kB\n")
-	priv := parseProcKBField(rollup, "Private_Dirty") + parseProcKBField(rollup, "Private_Clean")
-	sw := parseProcKBField(rollup, "Swap")
-	if priv != (40000+1200)*1024 {
+	rollup := []byte("Rss:                 48000 kB\nPss:                 45000 kB\nPrivate_Clean:        1200 kB\nPrivate_Dirty:       40000 kB\nAnonymous:           41000 kB\nSwap:                   64 kB\n")
+	priv := parseProcKBField(rollup, "Private_Dirty") + parseProcKBField(rollup, "Private_Clean") + parseProcKBField(rollup, "Swap")
+	if priv != (40000+1200+64)*1024 {
 		t.Fatalf("private: got %d", priv)
 	}
-	if sw != 64*1024 {
-		t.Fatalf("swap: got %d", sw)
-	}
 	vmSize := parseProcKBField(status, "VmSize")
-	vss := priv + sw
-	if vss >= vmSize {
-		t.Fatalf("expected private commit VSS %d << VmSize %d", vss, vmSize)
-	}
-	if vss > 50*1024*1024 {
-		t.Fatalf("sample VSS unexpectedly large: %d", vss)
+	if priv >= vmSize {
+		t.Fatalf("expected private commit %d << VmSize %d", priv, vmSize)
 	}
 }
 
 func TestSanitizeVirtualSize(t *testing.T) {
 	rss := uint64(40 << 20)
-	goVMS := uint64(1280 << 20)
-	if got := sanitizeVirtualSize(rss, goVMS); got != rss {
-		t.Fatalf("inflated VMS: got %d want RSS %d", got, rss)
+	goVMS := uint64(1280 << 20) // ~1.25 GiB — classic Go reserved VA
+	if got := sanitizeVirtualSize(rss, goVMS); got != 0 {
+		t.Fatalf("inflated VMS: got %d want 0 (drop)", got)
 	}
 	modest := rss + 32<<20
 	if got := sanitizeVirtualSize(rss, modest); got != modest {
@@ -68,13 +60,37 @@ func TestSanitizeVirtualSize(t *testing.T) {
 	}
 }
 
+func TestCombineVSS(t *testing.T) {
+	rss := uint64(40 << 20)
+	// Private alone ≈ RSS is the old bug path that made the dual chart useless.
+	if got := combineVSS(rss, rss-1024); got != rss {
+		t.Fatalf("got %d want rss", got)
+	}
+	// Go retained above RSS should lift VSS (Windows-like commit > working set).
+	goRet := rss + 20<<20
+	if got := combineVSS(rss, rss, goRet); got != goRet {
+		t.Fatalf("got %d want goRet %d", got, goRet)
+	}
+	// Never use multi-gig VA.
+	if got := combineVSS(rss, 0, goRet); got != goRet {
+		t.Fatalf("got %d", got)
+	}
+}
+
+func TestGoRuntimeRetainedBytesNonZero(t *testing.T) {
+	if got := goRuntimeRetainedBytes(); got == 0 {
+		t.Fatal("expected non-zero Go retained bytes")
+	}
+}
+
 func TestProcessMemoryBytesNotInflatedVA(t *testing.T) {
 	rss, vss := processMemoryBytes()
 	if rss == 0 && vss == 0 {
 		t.Fatal("processMemoryBytes returned zeros")
 	}
-	t.Logf("RSS=%.2f MiB VSS=%.2f MiB", float64(rss)/(1024*1024), float64(vss)/(1024*1024))
-	if vss > 512<<20 && vss > rss*3 {
+	t.Logf("RSS=%.2f MiB VSS=%.2f MiB retained=%.2f MiB",
+		float64(rss)/(1024*1024), float64(vss)/(1024*1024), float64(goRuntimeRetainedBytes())/(1024*1024))
+	if vss > 512<<20 && vss > rss*3 && vss > goRuntimeRetainedBytes()*2 {
 		t.Fatalf("VSS looks like inflated virtual address size: RSS=%d VSS=%d", rss, vss)
 	}
 	if vss < rss {

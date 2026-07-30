@@ -572,7 +572,10 @@ components:
         vss_memory:
           type: integer
           format: int64
-          description: Process VSS in bytes (commit charge on Windows; private pages+swap on Linux, not full VmSize)
+          description: Process VSS in bytes (Windows commit charge; Linux/Unix max of RSS, private+swap, Go retained — not full VmSize)
+        debug_mode:
+          type: boolean
+          description: True when this process was started with server.debug_mode (memory dump APIs available)
 
     StatusSnapshot:
       type: object
@@ -679,6 +682,9 @@ components:
             Extra browser CORS origins on top of domains (domains always remain allowed). Empty = domains only.
             Supports host wildcards (*.pkg.one), full origins, or * for any.
           example: [ "*.pkg.one", "https://partner.example.com" ]
+        debug_mode:
+          type: boolean
+          description: Persist debug mode; restart required to activate dump APIs
 
     StorageConfig:
       type: object
@@ -1349,6 +1355,65 @@ paths:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/StatusSnapshotList"
+
+  /api/debug/memory/heap:
+    get:
+      tags: [ debug ]
+      summary: Download Go heap pprof profile (flame graph)
+      description: >
+        Manager-only. Requires server.debug_mode enabled at process start.
+        Default runs GC before dump (?gc=0 to skip). Open with Speedscope or go tool pprof.
+      operationId: getDebugMemoryHeap
+      parameters:
+        - name: gc
+          in: query
+          schema:
+            type: string
+            enum: ["0", "1"]
+            default: "1"
+          description: Set to 0 to skip GC before sampling
+      responses:
+        "200":
+          description: Binary pprof profile (application/octet-stream)
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: Not a manager, or debug mode inactive
+
+  /api/debug/memory/allocs:
+    get:
+      tags: [ debug ]
+      summary: Download Go allocs pprof profile
+      operationId: getDebugMemoryAllocs
+      responses:
+        "200":
+          description: Binary pprof profile
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: Not a manager, or debug mode inactive
+
+  /api/debug/memory/goroutine:
+    get:
+      tags: [ debug ]
+      summary: Download Go goroutine pprof profile
+      operationId: getDebugMemoryGoroutine
+      responses:
+        "200":
+          description: Binary pprof profile
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: Not a manager, or debug mode inactive
 
   # ========== Maven helpers ==========
   /api/maven/details:

@@ -110,6 +110,7 @@ message InstanceStatus {
   uint64 failures_count = 16;
   UpdateState update_state = 17;
   uint64 vss_memory = 18;
+  bool debug_mode = 19;
 }
 
 message StatusSnapshot {
@@ -228,6 +229,7 @@ message ServerConfig {
   repeated string trusted_proxies = 10;
   string cdn_ip_header = 11;
   repeated string cors_origins = 12;
+  bool debug_mode = 13;
 }
 
 message StorageConfig {

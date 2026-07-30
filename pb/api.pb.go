@@ -825,6 +825,7 @@ type InstanceStatus struct {
 	FailuresCount    uint64       `protobuf:"varint,16,opt,name=failures_count,json=failuresCount,proto3" json:"failures_count,omitempty"`
 	UpdateState      *UpdateState `protobuf:"bytes,17,opt,name=update_state,json=updateState,proto3" json:"update_state,omitempty"`
 	VssMemory        uint64       `protobuf:"varint,18,opt,name=vss_memory,json=vssMemory,proto3" json:"vss_memory,omitempty"`
+	DebugMode        bool         `protobuf:"varint,19,opt,name=debug_mode,json=debugMode,proto3" json:"debug_mode,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -983,6 +984,13 @@ func (x *InstanceStatus) GetVssMemory() uint64 {
 		return x.VssMemory
 	}
 	return 0
+}
+
+func (x *InstanceStatus) GetDebugMode() bool {
+	if x != nil {
+		return x.DebugMode
+	}
+	return false
 }
 
 type StatusSnapshot struct {
@@ -1972,6 +1980,7 @@ type ServerConfig struct {
 	TrustedProxies    []string               `protobuf:"bytes,10,rep,name=trusted_proxies,json=trustedProxies,proto3" json:"trusted_proxies,omitempty"`
 	CdnIpHeader       string                 `protobuf:"bytes,11,opt,name=cdn_ip_header,json=cdnIpHeader,proto3" json:"cdn_ip_header,omitempty"`
 	CorsOrigins       []string               `protobuf:"bytes,12,rep,name=cors_origins,json=corsOrigins,proto3" json:"cors_origins,omitempty"`
+	DebugMode         bool                   `protobuf:"varint,13,opt,name=debug_mode,json=debugMode,proto3" json:"debug_mode,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -2088,6 +2097,13 @@ func (x *ServerConfig) GetCorsOrigins() []string {
 		return x.CorsOrigins
 	}
 	return nil
+}
+
+func (x *ServerConfig) GetDebugMode() bool {
+	if x != nil {
+		return x.DebugMode
+	}
+	return false
 }
 
 type StorageConfig struct {
@@ -2591,7 +2607,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"commit_sha\x18\n" +
 	" \x01(\tR\tcommitSha\x12\x1d\n" +
 	"\n" +
-	"is_release\x18\v \x01(\bR\tisRelease\"\x85\x05\n" +
+	"is_release\x18\v \x01(\bR\tisRelease\"\xa4\x05\n" +
 	"\x0eInstanceStatus\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12 \n" +
 	"\vdevelopment\x18\x02 \x01(\bR\vdevelopment\x12\x16\n" +
@@ -2614,7 +2630,9 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x0efailures_count\x18\x10 \x01(\x04R\rfailuresCount\x12<\n" +
 	"\fupdate_state\x18\x11 \x01(\v2\x19.renop.api.v1.UpdateStateR\vupdateState\x12\x1d\n" +
 	"\n" +
-	"vss_memory\x18\x12 \x01(\x04R\tvssMemory\"\xb0\x01\n" +
+	"vss_memory\x18\x12 \x01(\x04R\tvssMemory\x12\x1d\n" +
+	"\n" +
+	"debug_mode\x18\x13 \x01(\bR\tdebugMode\"\xb0\x01\n" +
 	"\x0eStatusSnapshot\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\x12\x1f\n" +
 	"\vused_memory\x18\x02 \x01(\x04R\n" +
@@ -2708,7 +2726,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x11organization_logo\x18\x05 \x01(\tR\x10organizationLogo\x12%\n" +
 	"\x0ebackground_url\x18\x06 \x01(\tR\rbackgroundUrl\x12\x1f\n" +
 	"\vicp_license\x18\a \x01(\tR\n" +
-	"icpLicense\"\xb3\x03\n" +
+	"icpLicense\"\xd2\x03\n" +
 	"\fServerConfig\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x1f\n" +
@@ -2724,7 +2742,9 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x0ftrusted_proxies\x18\n" +
 	" \x03(\tR\x0etrustedProxies\x12\"\n" +
 	"\rcdn_ip_header\x18\v \x01(\tR\vcdnIpHeader\x12!\n" +
-	"\fcors_origins\x18\f \x03(\tR\vcorsOrigins\"\xc9\x01\n" +
+	"\fcors_origins\x18\f \x03(\tR\vcorsOrigins\x12\x1d\n" +
+	"\n" +
+	"debug_mode\x18\r \x01(\bR\tdebugMode\"\xc9\x01\n" +
 	"\rStorageConfig\x12!\n" +
 	"\fstorage_path\x18\x01 \x01(\tR\vstoragePath\x124\n" +
 	"\x16enable_javadoc_preview\x18\x02 \x01(\bR\x14enableJavadocPreview\x120\n" +

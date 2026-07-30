@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -29,29 +30,80 @@ import (
 
 const maxRemoteJSONBody = 1 << 20
 
-var checkHTTPClient = &http.Client{
-	Transport: &http.Transport{
+// checkHTTPClient is recycled after every CheckUpdate so TLS/conn state from one-shot
+// HTTPS does not pin heap across checks (especially visible as RSS growth on Linux/Unix).
+var checkHTTPClient atomic.Pointer[http.Client]
+
+func init() {
+	checkHTTPClient.Store(newCheckHTTPClient())
+}
+
+func newCheckHTTPClient() *http.Client {
+	return &http.Client{
+		Transport: newCheckTransport(),
+		Timeout:   15 * time.Second,
+	}
+}
+
+func newCheckTransport() *http.Transport {
+	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout: 10 * time.Second,
 		}).DialContext,
 		TLSClientConfig: &tls.Config{
 			ClientSessionCache: nil,
+			MinVersion:         tls.VersionTLS12,
 		},
-		TLSNextProto:          make(map[string]func(string, *tls.Conn) http.RoundTripper),
+		ForceAttemptHTTP2:     false,
+		TLSNextProto:          map[string]func(string, *tls.Conn) http.RoundTripper{},
 		DisableCompression:    true,
 		DisableKeepAlives:     true,
 		MaxIdleConns:          0,
 		MaxIdleConnsPerHost:   0,
+		MaxConnsPerHost:       2,
+		IdleConnTimeout:       time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 15 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-	},
-	Timeout: 15 * time.Second,
+	}
+}
+
+// recycleCheckHTTPClient closes the previous client transport and installs a fresh one
+// so the old TLS buffers / conn maps become unreachable for GC + FreeOSMemory.
+func recycleCheckHTTPClient() {
+	old := checkHTTPClient.Swap(newCheckHTTPClient())
+	if old == nil {
+		return
+	}
+	old.CloseIdleConnections()
+	if tr, ok := old.Transport.(*http.Transport); ok {
+		tr.CloseIdleConnections()
+		// Drop transport reference on the abandoned client (helps GC).
+		old.Transport = nil
+	}
+}
+
+func currentCheckHTTPClient() *http.Client {
+	if c := checkHTTPClient.Load(); c != nil {
+		return c
+	}
+	c := newCheckHTTPClient()
+	if checkHTTPClient.CompareAndSwap(nil, c) {
+		return c
+	}
+	return checkHTTPClient.Load()
 }
 
 func CheckUpdate(ctx context.Context, channel Channel) (*CheckResult, error) {
-	defer checkHTTPClient.CloseIdleConnections()
+	// Always recycle the one-shot HTTPS client and return scavenged heap to the OS.
+	// Windows also trims the working set inside ReleaseMemoryToOS; Linux/Unix rely on
+	// FreeOSMemory (MADV_DONTNEED) after the transport is unreachable.
+	defer func() {
+		recycleCheckHTTPClient()
+		utils.ReleaseMemoryToOS()
+	}()
+
 	if channel == ChannelNightly {
 		return checkNightly(ctx)
 	}
@@ -69,7 +121,7 @@ func doJSONGet(ctx context.Context, url string, accept string, dst any) (statusC
 	}
 	req.Close = true
 
-	resp, err := checkHTTPClient.Do(req)
+	resp, err := currentCheckHTTPClient().Do(req)
 	if err != nil {
 		return 0, err
 	}
@@ -214,7 +266,7 @@ func githubCommitExists(ctx context.Context, sha string) (exists bool, checked b
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Close = true
 
-	resp, err := checkHTTPClient.Do(req)
+	resp, err := currentCheckHTTPClient().Do(req)
 	if err != nil {
 		return false, false
 	}

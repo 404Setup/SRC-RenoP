@@ -48,6 +48,8 @@ func main() {
 	state, context := bootstrap.Initialize()
 	bootstrap.StartServices(state, context)
 	cfg := state.Inner.Config.Load().(*config.Config)
+	// Latch debug dump APIs for this process; settings changes require restart.
+	status.InitDebugMode(cfg.Server.DebugMode)
 
 	concurrency := int(cfg.Server.MaxActiveRequests)
 	if concurrency <= 0 {
@@ -86,6 +88,7 @@ func main() {
 	auth.SetupAuthRoutes(apiGroup, state, opChan)
 	token.SetupTokenRoutes(apiGroup, state, opChan)
 	status.SetupRoutes(apiGroup, state)
+	status.SetupDebugRoutes(apiGroup)
 	api.SetupApiRoutes(apiGroup, state)
 	upload.SetupChunkedUploadRoutes(apiGroup, state)
 	settings.SetupSettingsRoutes(apiGroup.Group("/settings"), state)

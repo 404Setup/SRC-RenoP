@@ -15,6 +15,7 @@ package status
 import (
 	"bytes"
 	"os"
+	"runtime"
 	"strconv"
 	"sync"
 
@@ -38,14 +39,16 @@ func processMemoryBytes() (rss, vss uint64) {
 		}
 	})
 	if selfProcess == nil {
-		return 0, 0
+		ret := goRuntimeRetainedBytes()
+		return ret, ret
 	}
 	mi, err := selfProcess.MemoryInfo()
 	if err != nil || mi == nil {
-		return 0, 0
+		ret := goRuntimeRetainedBytes()
+		return ret, ret
 	}
 	rss = mi.RSS
-	vss = sanitizeVirtualSize(rss, mi.VMS)
+	vss = combineVSS(rss, sanitizeVirtualSize(rss, mi.VMS), goRuntimeRetainedBytes())
 	return rss, vss
 }
 
@@ -57,21 +60,45 @@ func processMemoryFromProcSelf() (rss, vss uint64, ok bool) {
 	rss = parseProcKBField(status, "VmRSS")
 	swap := parseProcKBField(status, "VmSwap")
 
+	var privateCommit uint64
 	if rollup, err := os.ReadFile("/proc/self/smaps_rollup"); err == nil {
-		priv := parseProcKBField(rollup, "Private_Dirty") + parseProcKBField(rollup, "Private_Clean")
-		sw := parseProcKBField(rollup, "Swap")
-		vss = priv + sw
+		privateCommit = parseProcKBField(rollup, "Private_Dirty") +
+			parseProcKBField(rollup, "Private_Clean") +
+			parseProcKBField(rollup, "Swap")
+		anon := parseProcKBField(rollup, "Anonymous") + parseProcKBField(rollup, "Swap")
+		if anon > privateCommit {
+			privateCommit = anon
+		}
 	}
-	if vss == 0 {
-		vss = rss + swap
+	if privateCommit == 0 {
+		privateCommit = rss + swap
 	}
-	if rss == 0 && vss == 0 {
+
+	if rss == 0 && privateCommit == 0 {
 		return 0, 0, false
 	}
-	if vss < rss {
-		vss = rss
-	}
+
+	vss = combineVSS(rss, privateCommit, goRuntimeRetainedBytes())
 	return rss, vss, true
+}
+
+func goRuntimeRetainedBytes() uint64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	if m.Sys > m.HeapReleased {
+		return m.Sys - m.HeapReleased
+	}
+	return m.Sys
+}
+
+func combineVSS(rss uint64, parts ...uint64) uint64 {
+	v := rss
+	for _, p := range parts {
+		if p > v {
+			v = p
+		}
+	}
+	return v
 }
 
 func parseProcKBField(data []byte, key string) uint64 {
@@ -103,14 +130,14 @@ func parseProcKBField(data []byte, key string) uint64 {
 
 func sanitizeVirtualSize(rss, vms uint64) uint64 {
 	if vms == 0 {
-		return rss
+		return 0
 	}
 	if rss == 0 {
 		return vms
 	}
 	const inflateSlack = 256 << 20
 	if vms > rss+inflateSlack && vms >= rss*4 {
-		return rss
+		return 0
 	}
 	if vms < rss {
 		return rss

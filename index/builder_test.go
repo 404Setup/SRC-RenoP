@@ -58,7 +58,7 @@ func TestInternStringPartialEvictionKeepsPoolUsable(t *testing.T) {
 	pathInternPool = pb.MapOf[string, string]{}
 	pathInternSize.Store(0)
 	for i := range 100 {
-		internString("seed/" + string('a'+i%26) + "/" + string('0'+i%10))
+		internString("seed/" + string(rune('a'+i%26)) + "/" + string(rune('0'+i%10)))
 	}
 	pathInternSize.Store(50000)
 
