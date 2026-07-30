@@ -39,16 +39,14 @@ func processMemoryBytes() (rss, vss uint64) {
 		}
 	})
 	if selfProcess == nil {
-		ret := goRuntimeRetainedBytes()
-		return ret, ret
+		return goMemStatsFallback()
 	}
 	mi, err := selfProcess.MemoryInfo()
 	if err != nil || mi == nil {
-		ret := goRuntimeRetainedBytes()
-		return ret, ret
+		return goMemStatsFallback()
 	}
 	rss = mi.RSS
-	vss = combineVSS(rss, sanitizeVirtualSize(rss, mi.VMS), goRuntimeRetainedBytes())
+	vss = privateOrRSS(rss, sanitizeVirtualSize(rss, mi.VMS))
 	return rss, vss
 }
 
@@ -60,26 +58,43 @@ func processMemoryFromProcSelf() (rss, vss uint64, ok bool) {
 	rss = parseProcKBField(status, "VmRSS")
 	swap := parseProcKBField(status, "VmSwap")
 
-	var privateCommit uint64
+	var private uint64
 	if rollup, err := os.ReadFile("/proc/self/smaps_rollup"); err == nil {
-		privateCommit = parseProcKBField(rollup, "Private_Dirty") +
+		private = parseProcKBField(rollup, "Private_Dirty") +
 			parseProcKBField(rollup, "Private_Clean") +
 			parseProcKBField(rollup, "Swap")
-		anon := parseProcKBField(rollup, "Anonymous") + parseProcKBField(rollup, "Swap")
-		if anon > privateCommit {
-			privateCommit = anon
-		}
 	}
-	if privateCommit == 0 {
-		privateCommit = rss + swap
+	if private == 0 {
+		private = rss + swap
 	}
 
-	if rss == 0 && privateCommit == 0 {
+	if rss == 0 && private == 0 {
 		return 0, 0, false
 	}
-
-	vss = combineVSS(rss, privateCommit, goRuntimeRetainedBytes())
+	vss = privateOrRSS(rss, private)
 	return rss, vss, true
+}
+
+func privateOrRSS(rss, private uint64) uint64 {
+	if private < rss {
+		return rss
+	}
+	return private
+}
+
+func goMemStatsFallback() (rss, vss uint64) {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	rss = m.HeapInuse
+	if m.Sys > m.HeapReleased {
+		vss = m.Sys - m.HeapReleased
+	} else {
+		vss = m.Sys
+	}
+	if vss < rss {
+		vss = rss
+	}
+	return rss, vss
 }
 
 func goRuntimeRetainedBytes() uint64 {
@@ -89,16 +104,6 @@ func goRuntimeRetainedBytes() uint64 {
 		return m.Sys - m.HeapReleased
 	}
 	return m.Sys
-}
-
-func combineVSS(rss uint64, parts ...uint64) uint64 {
-	v := rss
-	for _, p := range parts {
-		if p > v {
-			v = p
-		}
-	}
-	return v
 }
 
 func parseProcKBField(data []byte, key string) uint64 {

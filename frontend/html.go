@@ -15,6 +15,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"html"
+	"io"
 	"strings"
 	"sync"
 
@@ -59,27 +60,49 @@ func readAsset(path string) ([]byte, error) {
 
 func GetAssetsHash() string {
 	onceHash.Do(func() {
+		// Hash cache-busting entrypoints via Open+Copy (streaming). Warm the
+		// HTTP embed cache for js/css in the same pass so ServeJs does not
+		// re-read the bundle — one buffer per served asset, not two.
 		hasher := sha256.New()
-		var walk func(string)
-		walk = func(path string) {
-			entries, err := Asset.ReadDir(path)
+		type entry struct {
+			embedPath  string
+			publicPath string // empty = hash only (not cached for HTTP)
+		}
+		for _, e := range []entry{
+			{embedPath: assetRoot + "/index.html"},
+			{embedPath: assetRoot + "/dist/js/main.js", publicPath: "js/main.js"},
+			{embedPath: assetRoot + "/dist/css/style.css", publicPath: "css/style.css"},
+		} {
+			f, err := Asset.Open(e.embedPath)
 			if err != nil {
-				return
+				continue
 			}
-			for _, entry := range entries {
-				entryPath := path + "/" + entry.Name()
-				if entry.IsDir() {
-					walk(entryPath)
-				} else {
-					data, err := Asset.ReadFile(entryPath)
-					if err == nil {
-						hasher.Write(unsafeConvert.BytePointer(entryPath))
-						hasher.Write(data)
-					}
+			hasher.Write(unsafeConvert.BytePointer(e.embedPath))
+			if e.publicPath != "" {
+				// Need body for HTTP cache: tee into a single buffer while hashing.
+				data, err := io.ReadAll(f)
+				_ = f.Close()
+				if err != nil {
+					continue
 				}
+				hasher.Write(data)
+				cacheEmbeddedFile(e.publicPath, data)
+			} else {
+				_, _ = io.Copy(hasher, f)
+				_ = f.Close()
 			}
 		}
-		walk(assetRoot)
+		// Include svg names so logo changes still bust the index cache without
+		// reading full image payloads when unnecessary.
+		if entries, err := Asset.ReadDir(assetRoot + "/svg"); err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+				name := entry.Name()
+				hasher.Write(unsafeConvert.BytePointer(name))
+			}
+		}
 		assetsHash = hex.EncodeToString(hasher.Sum(nil))[:16]
 	})
 	return assetsHash

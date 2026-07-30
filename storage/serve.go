@@ -87,74 +87,83 @@ func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, c
 			c.Status(fiber.StatusPartialContent)
 			return c.SendStream(rc, int(end-start+1))
 		}
-		if fileSize > 0 && fileSize <= 128*1024 {
+		if state.Inner.FileCache != nil && fileSize > 0 && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
 			rc, _, err := DownloadFromS3(s3Key)
 			if err == nil {
-				defer rc.Close()
-				data, readErr := io.ReadAll(rc)
-				if readErr == nil {
-					if state.Inner.FileCache != nil && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
-						var etagVal, lmVal string
-						if etagHeader != nil {
-							etagVal = *etagHeader
-						}
-						if lastModifiedHeader != nil {
-							lmVal = *lastModifiedHeader
-						}
-						state.Inner.FileCache.Set(pathStr, encodeCacheEntry(etagVal, lmVal, data))
+				data, readErr := io.ReadAll(io.LimitReader(rc, fileSize+1))
+				_ = rc.Close()
+				if readErr == nil && int64(len(data)) == fileSize {
+					var etagVal, lmVal string
+					if etagHeader != nil {
+						etagVal = *etagHeader
 					}
-					reqRange := c.Get(fiber.HeaderRange)
-					if reqRange == "" {
-						return c.Send(data)
+					if lastModifiedHeader != nil {
+						lmVal = *lastModifiedHeader
 					}
-					start, end, ok := utils.ParseRange(reqRange, uint64(fileSize))
-					if !ok {
-						c.Set(fiber.HeaderContentRange, "bytes */"+strconv.FormatInt(fileSize, 10))
-						return c.Status(fiber.StatusRequestedRangeNotSatisfiable).SendString("")
-					}
-					c.Set(fiber.HeaderContentRange, "bytes "+strconv.FormatUint(start, 10)+"-"+strconv.FormatUint(end, 10)+"/"+strconv.FormatInt(fileSize, 10))
-					c.Set(fiber.HeaderAcceptRanges, "bytes")
-					c.Status(fiber.StatusPartialContent)
-					return c.Send(data[start : end+1])
+					state.Inner.FileCache.Set(pathStr, encodeCacheEntry(etagVal, lmVal, data))
+					return c.Send(data)
 				}
 			}
 		}
 		rc, _, err := DownloadFromS3(s3Key)
 		if err == nil {
-			return c.SendStream(rc, int(fileSize))
+			if fileSize > 0 {
+				return c.SendStream(rc, int(fileSize))
+			}
+			return c.SendStream(rc)
 		}
 	}
 
-	if fileSize > 0 && fileSize <= 128*1024 {
+	if state.Inner.FileCache != nil && fileSize > 0 && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
 		data, err := os.ReadFile(localFilePath)
-		if err == nil {
-			if state.Inner.FileCache != nil && fileSize <= 32*1024 && isCacheableMetadata(pathStr) {
-				var etagVal, lmVal string
-				if etagHeader != nil {
-					etagVal = *etagHeader
-				}
-				if lastModifiedHeader != nil {
-					lmVal = *lastModifiedHeader
-				}
-				state.Inner.FileCache.Set(pathStr, encodeCacheEntry(etagVal, lmVal, data))
+		if err == nil && int64(len(data)) == fileSize {
+			var etagVal, lmVal string
+			if etagHeader != nil {
+				etagVal = *etagHeader
 			}
-			reqRange := c.Get(fiber.HeaderRange)
-			if reqRange == "" {
-				return c.Send(data)
+			if lastModifiedHeader != nil {
+				lmVal = *lastModifiedHeader
 			}
-			start, end, ok := utils.ParseRange(reqRange, uint64(fileSize))
-			if !ok {
-				c.Set(fiber.HeaderContentRange, "bytes */"+strconv.FormatInt(fileSize, 10))
-				return c.Status(fiber.StatusRequestedRangeNotSatisfiable).SendString("")
-			}
-			c.Set(fiber.HeaderContentRange, "bytes "+strconv.FormatUint(start, 10)+"-"+strconv.FormatUint(end, 10)+"/"+strconv.FormatInt(fileSize, 10))
-			c.Set(fiber.HeaderAcceptRanges, "bytes")
-			c.Status(fiber.StatusPartialContent)
-			return c.Send(data[start : end+1])
+			state.Inner.FileCache.Set(pathStr, encodeCacheEntry(etagVal, lmVal, data))
+			return c.Send(data)
 		}
 	}
 
-	return c.SendFile(localFilePath)
+	f, err := os.Open(localFilePath)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Not found")
+	}
+	if fileSize <= 0 {
+		if st, stErr := f.Stat(); stErr == nil {
+			fileSize = st.Size()
+		}
+	}
+	if reqRange := c.Get(fiber.HeaderRange); reqRange != "" && fileSize > 0 {
+		start, end, ok := utils.ParseRange(reqRange, uint64(fileSize))
+		if !ok {
+			_ = f.Close()
+			c.Set(fiber.HeaderContentRange, "bytes */"+strconv.FormatInt(fileSize, 10))
+			return c.Status(fiber.StatusRequestedRangeNotSatisfiable).SendString("")
+		}
+		c.Set(fiber.HeaderContentRange, "bytes "+strconv.FormatUint(start, 10)+"-"+strconv.FormatUint(end, 10)+"/"+strconv.FormatInt(fileSize, 10))
+		c.Set(fiber.HeaderAcceptRanges, "bytes")
+		c.Status(fiber.StatusPartialContent)
+		length := int64(end - start + 1)
+		return c.SendStream(&rangeReadCloser{
+			Reader: io.NewSectionReader(f, int64(start), length),
+			Closer: f,
+		}, int(length))
+	}
+	if fileSize > 0 {
+		return c.SendStream(f, int(fileSize))
+	}
+	return c.SendStream(f)
+}
+
+// rangeReadCloser pairs a SectionReader with the underlying *os.File closer.
+type rangeReadCloser struct {
+	io.Reader
+	io.Closer
 }
 
 func isCacheableMetadata(pathStr string) bool {

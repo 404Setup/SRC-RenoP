@@ -1,3 +1,5 @@
+//go:build linux
+
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
@@ -8,26 +10,26 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-package frontend
+package utils
 
-import (
-	"github.com/gofiber/fiber/v3"
+import "testing"
 
-	"renop/core"
-)
-
-func SetupFrontendRoutes(app fiber.Router, state *core.AppState) {
-	app.Get("/", func(c fiber.Ctx) error { return ServeIndex(c, state) })
-	app.Get("/index.html", func(c fiber.Ctx) error { return ServeIndex(c, state) })
-	app.Get("/assets/*", ServeAsset)
-	app.Get("/js/*", ServeJs)
-	app.Get("/css/*", ServeCss)
-	app.Get("/svg/*", ServeSvg)
-	app.Get("/api/status/hash", GetHash)
+func TestLinuxSoftMemoryLimitDoesNotPanic(t *testing.T) {
+	if limit, ok := linuxSoftMemoryLimit(); ok {
+		if limit < 64<<20 {
+			t.Fatalf("limit too small: %d", limit)
+		}
+		t.Logf("soft memory limit = %d MiB", limit>>20)
+	} else {
+		t.Log("no soft memory limit available on this host")
+	}
 }
 
-func GetHash(c fiber.Ctx) error {
-	h := GetAssetsHash()
-	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
-	return c.SendString(`"` + h + `"`)
+func TestInitLinuxMemoryTuningIdempotent(t *testing.T) {
+	InitLinuxMemoryTuning()
+	InitLinuxMemoryTuning()
+}
+
+func TestReleaseMemoryToOSLinux(t *testing.T) {
+	ReleaseMemoryToOS()
 }

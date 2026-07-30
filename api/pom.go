@@ -143,26 +143,20 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 
 	err = state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		var metadata config.Metadata
-		var content []byte
-		var rErr error
-
+		var src io.ReadCloser
 		if storage.IsS3Enabled(metadataPath) {
 			s3Key := filepath.ToSlash(metadataPath)
 			s3Key = strings.TrimPrefix(s3Key, "./")
 			s3Key = strings.TrimPrefix(s3Key, "/")
-			rc, _, downloadErr := storage.DownloadFromS3(s3Key)
-			if downloadErr == nil {
-				content, rErr = io.ReadAll(rc)
-				rc.Close()
-			} else {
-				rErr = downloadErr
+			if rc, _, downloadErr := storage.DownloadFromS3(s3Key); downloadErr == nil {
+				src = rc
 			}
-		} else {
-			content, rErr = os.ReadFile(metadataPath)
+		} else if f, openErr := os.Open(metadataPath); openErr == nil {
+			src = f
 		}
-
-		if rErr == nil {
-			_ = xml.Unmarshal(content, &metadata)
+		if src != nil {
+			_ = xml.NewDecoder(src).Decode(&metadata)
+			_ = src.Close()
 		}
 
 		metadata.GroupId = &pomDetails.GroupId

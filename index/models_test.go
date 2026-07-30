@@ -153,4 +153,36 @@ func TestFileIndexReadJSONFromStreamsEntries(t *testing.T) {
 	if !idx.IsNotFound("storage/releases/missing.jar") {
 		t.Fatal("streamed negative-cache entry was not restored")
 	}
+	if idx.TotalFileBytes() != 42 {
+		t.Fatalf("TotalFileBytes after stream = %d, want 42", idx.TotalFileBytes())
+	}
+}
+
+func TestFileIndexTotalFileBytes(t *testing.T) {
+	idx := NewFileIndex()
+	if idx.TotalFileBytes() != 0 {
+		t.Fatalf("empty index TotalFileBytes = %d", idx.TotalFileBytes())
+	}
+	idx.InsertFile("a.jar", FileInfo{Size: 100, ModTime: 1})
+	idx.InsertFile("b.jar", FileInfo{Size: 250, ModTime: 1})
+	if got := idx.TotalFileBytes(); got != 350 {
+		t.Fatalf("after insert TotalFileBytes = %d, want 350", got)
+	}
+	idx.InsertFile("a.jar", FileInfo{Size: 50, ModTime: 2})
+	if got := idx.TotalFileBytes(); got != 300 {
+		t.Fatalf("after resize TotalFileBytes = %d, want 300", got)
+	}
+	idx.RemoveFile("b.jar")
+	if got := idx.TotalFileBytes(); got != 50 {
+		t.Fatalf("after remove TotalFileBytes = %d, want 50", got)
+	}
+	idx.InsertDir("dir")
+	idx.InsertFile("dir/nested.jar", FileInfo{Size: 20, ModTime: 1})
+	if got := idx.TotalFileBytes(); got != 70 {
+		t.Fatalf("with nested TotalFileBytes = %d, want 70", got)
+	}
+	idx.RemoveDir("dir")
+	if got := idx.TotalFileBytes(); got != 50 {
+		t.Fatalf("after RemoveDir TotalFileBytes = %d, want 50", got)
+	}
 }

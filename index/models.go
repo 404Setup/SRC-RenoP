@@ -185,6 +185,7 @@ type FileIndex struct {
 	ChildrenMutex sync.RWMutex                            `json:"-"`
 	FilesCount    atomic.Uint64                           `json:"-"`
 	DirsCount     atomic.Uint64                           `json:"-"`
+	TotalBytes    atomic.Int64                            `json:"-"` // sum of FileInfo.Size; O(1) disk usage
 	NotFound      atomic.Pointer[pb.MapOf[string, int64]] `json:"-"`
 	NotFoundCount atomic.Uint64                           `json:"-"`
 	IsDirty       atomic.Bool                             `json:"-"`
@@ -328,6 +329,7 @@ func NewFileIndexCustom(isSync bool) *FileIndex {
 	}
 	idx.FilesCount.Store(0)
 	idx.DirsCount.Store(0)
+	idx.TotalBytes.Store(0)
 	idx.NotFoundCount.Store(0)
 	idx.IsDirty.Store(false)
 
@@ -341,6 +343,48 @@ func NewFileIndexCustom(isSync bool) *FileIndex {
 	return idx
 }
 
+// putFile stores or replaces a file entry and maintains FilesCount / TotalBytes.
+func (idx *FileIndex) putFile(pathSlash string, info FileInfo) {
+	old, loaded := idx.Files.LoadOrStore(pathSlash, info)
+	if !loaded {
+		idx.FilesCount.Add(1)
+		if info.Size != 0 {
+			idx.TotalBytes.Add(info.Size)
+		}
+		idx.IsDirty.Store(true)
+		idx.addChild(pathSlash)
+		return
+	}
+	if old.Size != info.Size {
+		idx.TotalBytes.Add(info.Size - old.Size)
+	}
+	idx.Files.Store(pathSlash, info)
+	idx.addChild(pathSlash)
+}
+
+// deleteFile removes a file entry and maintains FilesCount / TotalBytes.
+func (idx *FileIndex) deleteFile(pathSlash string) bool {
+	old, loaded := idx.Files.LoadAndDelete(pathSlash)
+	if !loaded {
+		return false
+	}
+	idx.FilesCount.Add(^uint64(0))
+	if old.Size != 0 {
+		idx.TotalBytes.Add(-old.Size)
+	}
+	idx.removeChild(pathSlash)
+	return true
+}
+
+// TotalFileBytes returns the sum of indexed file sizes (clamped to zero).
+func (idx *FileIndex) TotalFileBytes() uint64 {
+	n := idx.TotalBytes.Load()
+	if n <= 0 {
+		return 0
+	}
+	return uint64(n)
+}
+
 func (idx *FileIndex) consumerLoop() {
 	for {
 		select {
@@ -348,14 +392,7 @@ func (idx *FileIndex) consumerLoop() {
 			pathSlash := filepath.ToSlash(op.Path)
 			switch op.Type {
 			case OpInsertFile:
-				if _, loaded := idx.Files.LoadOrStore(pathSlash, op.Info); !loaded {
-					idx.FilesCount.Add(1)
-					idx.IsDirty.Store(true)
-					idx.addChild(pathSlash)
-				} else {
-					idx.Files.Store(pathSlash, op.Info)
-					idx.addChild(pathSlash)
-				}
+				idx.putFile(pathSlash, op.Info)
 				idx.clearNotFound(pathSlash)
 			case OpInsertDir:
 				if _, loaded := idx.Dirs.LoadOrStore(pathSlash, true); !loaded {
@@ -365,10 +402,8 @@ func (idx *FileIndex) consumerLoop() {
 				}
 				idx.clearNotFound(pathSlash)
 			case OpRemoveFile:
-				if _, loaded := idx.Files.LoadAndDelete(pathSlash); loaded {
-					idx.FilesCount.Add(^uint64(0))
+				if idx.deleteFile(pathSlash) {
 					idx.IsDirty.Store(true)
-					idx.removeChild(pathSlash)
 				}
 				idx.clearNotFound(pathSlash)
 			case OpRemoveDir:
@@ -495,14 +530,7 @@ func (idx *FileIndex) InsertFile(pathStr string, info ...FileInfo) {
 		fileInfo = info[0]
 	}
 	if idx.isSync {
-		if _, loaded := idx.Files.LoadOrStore(pathStr, fileInfo); !loaded {
-			idx.FilesCount.Add(1)
-			idx.IsDirty.Store(true)
-			idx.addChild(pathStr)
-		} else {
-			idx.Files.Store(pathStr, fileInfo)
-			idx.addChild(pathStr)
-		}
+		idx.putFile(pathStr, fileInfo)
 		idx.clearNotFound(pathStr)
 		return
 	}
@@ -526,10 +554,8 @@ func (idx *FileIndex) InsertDir(pathStr string) {
 func (idx *FileIndex) RemoveFile(pathStr string) {
 	pathStr = toSlashFast(pathStr)
 	if idx.isSync {
-		if _, loaded := idx.Files.LoadAndDelete(pathStr); loaded {
-			idx.FilesCount.Add(^uint64(0))
+		if idx.deleteFile(pathStr) {
 			idx.IsDirty.Store(true)
-			idx.removeChild(pathStr)
 		}
 		idx.clearNotFound(pathStr)
 		return
@@ -570,10 +596,7 @@ func (idx *FileIndex) removeDescendants(dirPath string) {
 	children := idx.GetChildren(dirCleaned)
 	for _, child := range children {
 		childPath := dirCleaned + "/" + child
-		if _, loaded := idx.Files.LoadAndDelete(childPath); loaded {
-			idx.FilesCount.Add(^uint64(0))
-			idx.removeChild(childPath)
-		}
+		_ = idx.deleteFile(childPath)
 		if _, loaded := idx.Dirs.LoadAndDelete(childPath); loaded {
 			idx.DirsCount.Add(^uint64(0))
 			idx.removeDescendants(childPath)
@@ -881,9 +904,7 @@ func (idx *FileIndex) UnmarshalJSON(data []byte) error {
 					size = info.Size()
 					modTime = info.ModTime().UnixNano()
 				}
-				idx.Files.Store(fileSlash, FileInfo{Size: size, ModTime: modTime})
-				idx.FilesCount.Add(1)
-				idx.addChild(fileSlash)
+				idx.putFile(fileSlash, FileInfo{Size: size, ModTime: modTime})
 			}
 		} else if raw.Files[0] == '{' {
 			var fileMap map[string]FileInfo
@@ -891,10 +912,7 @@ func (idx *FileIndex) UnmarshalJSON(data []byte) error {
 				return err
 			}
 			for file, info := range fileMap {
-				fileSlash := filepath.ToSlash(file)
-				idx.Files.Store(fileSlash, info)
-				idx.FilesCount.Add(1)
-				idx.addChild(fileSlash)
+				idx.putFile(filepath.ToSlash(file), info)
 			}
 		}
 	}

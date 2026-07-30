@@ -42,6 +42,7 @@ type ServerConfig struct {
 	Port                 uint16       `json:"port" yaml:"port"`
 	SslEnabled           bool         `json:"ssl_enabled" yaml:"ssl_enabled"`
 	EnableCompression    bool         `json:"enable_compression" yaml:"enable_compression"`
+
 	// DebugMode enables manager-only memory profile dump APIs. Requires process restart to activate.
 	DebugMode bool `json:"debug_mode" yaml:"debug_mode"`
 }

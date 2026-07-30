@@ -13,8 +13,10 @@ package status
 import (
 	"math"
 	"testing"
+	"time"
 
 	"renop/core"
+	"renop/index"
 )
 
 func TestMaxStatusSnapshotsConstant(t *testing.T) {
@@ -80,6 +82,27 @@ func TestDiskStats5MinuteCacheAndStorageDirty(t *testing.T) {
 	renop3, _, _ := UpdateDiskStats(state)
 	if renop3 == 0 {
 		t.Fatalf("expected valid renopUsed after MarkStorageUpdated")
+	}
+}
+
+func TestDiskStatsUsesFileIndexTotals(t *testing.T) {
+	state := core.NewAppState()
+	idx := index.NewFileIndex()
+	idx.InsertFile("storage/releases/a.jar", index.FileInfo{Size: 1000, ModTime: 1})
+	idx.InsertFile("storage/releases/b.jar", index.FileInfo{Size: 2345, ModTime: 1})
+	state.Inner.FileIndex = idx
+
+	lastDiskUpdateMutex.Lock()
+	lastDiskUpdate = time.Time{}
+	lastDiskUpdateMutex.Unlock()
+	storageDirty.Store(true)
+
+	renopUsed, _, diskTotal := UpdateDiskStats(state)
+	if diskTotal == 0 {
+		t.Fatal("expected non-zero diskTotal")
+	}
+	if renopUsed < 3345 {
+		t.Fatalf("renopUsed=%d, want at least index total 3345", renopUsed)
 	}
 }
 

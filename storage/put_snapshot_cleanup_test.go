@@ -18,7 +18,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -28,9 +30,25 @@ import (
 	"renop/utils"
 )
 
+func removeAllWithRetry(path string) {
+	var last error
+	for i := range 40 {
+		last = os.RemoveAll(path)
+		if last == nil {
+			return
+		}
+		d := min(time.Duration(5*(i+1))*time.Millisecond, 100*time.Millisecond)
+		time.Sleep(d)
+	}
+	_ = last
+}
+
 func setupSnapshotPutApp(t *testing.T) (*fiber.App, *core.AppState, string, *config.Repository) {
 	t.Helper()
 	storagePath := t.TempDir()
+	if runtime.GOOS == "windows" {
+		t.Cleanup(func() { removeAllWithRetry(storagePath) })
+	}
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
 	InitS3(&cfg)

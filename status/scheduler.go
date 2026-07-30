@@ -79,22 +79,42 @@ func MarkStorageUpdated() {
 	storageDirty.Store(true)
 }
 
-// processMemoryWithFallback returns RSS and VSS in bytes, with runtime.MemStats fallback.
+// walkStorageBytes is the slow fallback when no file index is available.
+func walkStorageBytes(storagePath string) uint64 {
+	var total uint64
+	fi, err := os.Stat(storagePath)
+	if err != nil {
+		return 0
+	}
+	if !fi.IsDir() {
+		return uint64(fi.Size())
+	}
+	_ = filepath.WalkDir(storagePath, func(_ string, d os.DirEntry, err error) error {
+		if err != nil || d == nil || d.IsDir() {
+			return nil
+		}
+		if info, infoErr := d.Info(); infoErr == nil {
+			total += uint64(info.Size())
+		}
+		return nil
+	})
+	return total
+}
+
 func processMemoryWithFallback() (rss, vss uint64) {
 	rss, vss = processMemoryBytes()
-	if rss == 0 {
+	if rss == 0 && vss == 0 {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
+		rss = m.HeapInuse
 		if m.Sys > m.HeapReleased {
-			rss = m.Sys - m.HeapReleased
+			vss = m.Sys - m.HeapReleased
 		} else {
-			rss = m.Alloc
+			vss = m.Sys
 		}
 	}
-	if vss == 0 {
-		var m runtime.MemStats
-		runtime.ReadMemStats(&m)
-		vss = max(m.Sys, rss)
+	if vss < rss {
+		vss = rss
 	}
 	return rss, vss
 }
@@ -179,22 +199,11 @@ func UpdateDiskStats(state *core.AppState) (renopUsed, diskUsed, diskTotal uint6
 	}
 
 	if storageDirty.Swap(false) || cachedStorageSize == 0 {
-		var totalStorageBytes uint64
-		if fi, err := os.Stat(storagePath); err == nil {
-			if fi.IsDir() {
-				_ = filepath.WalkDir(storagePath, func(p string, d os.DirEntry, err error) error {
-					if err == nil && !d.IsDir() {
-						if info, err := d.Info(); err == nil {
-							totalStorageBytes += uint64(info.Size())
-						}
-					}
-					return nil
-				})
-			} else {
-				totalStorageBytes = uint64(fi.Size())
-			}
+		if state != nil && state.Inner.FileIndex != nil {
+			cachedStorageSize = state.Inner.FileIndex.TotalFileBytes()
+		} else {
+			cachedStorageSize = walkStorageBytes(storagePath)
 		}
-		cachedStorageSize = totalStorageBytes
 	}
 
 	if usage, err := disk.Usage(targetDir); err == nil && usage.Total > 0 {

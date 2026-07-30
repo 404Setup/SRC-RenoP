@@ -14,7 +14,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -53,14 +52,7 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 	defer status.MarkStorageUpdated()
 	if IsS3Enabled != nil && IsS3Enabled(repo) && UploadStreamToS3 != nil {
 		s3Key := utils.GetS3Key(localFilePath)
-		ext := strings.ToLower(filepath.Ext(localFilePath))
-		contentType := mime.TypeByExtension(ext)
-		if ext == ".pom" {
-			contentType = "application/xml"
-		}
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
+		contentType := utils.ContentTypeByExt(filepath.Ext(localFilePath))
 		err := UploadStreamToS3(repo, s3Key, bytes.NewReader(data), int64(len(data)), contentType)
 		if err == nil {
 			state.Inner.FileIndex.EnsureParentDirs(localFilePath)

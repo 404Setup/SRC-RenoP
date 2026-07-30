@@ -11,7 +11,6 @@
 package storage
 
 import (
-	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,16 +28,7 @@ import (
 )
 
 func setArtifactContentType(c fiber.Ctx, path string) {
-	ext := strings.ToLower(filepath.Ext(path))
-	contentType := mime.TypeByExtension(ext)
-	if ext == ".pom" || ext == ".xml" {
-		contentType = "text/xml; charset=utf-8"
-	} else if ext == ".json" {
-		contentType = "application/json; charset=utf-8"
-	} else if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-	c.Set(fiber.HeaderContentType, contentType)
+	c.Set(fiber.HeaderContentType, utils.ContentTypeByExt(filepath.Ext(path)))
 }
 
 func CheckIndexAndCacheConfig(repoName string, path string, repo *config.Repository) (bool, uint64) {

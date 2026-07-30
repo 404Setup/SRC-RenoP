@@ -24,6 +24,9 @@ var (
 	procSetProcessWorkingSetSize = modKernel32.NewProc("SetProcessWorkingSetSize")
 )
 
+// InitLinuxMemoryTuning is a no-op on Windows.
+func InitLinuxMemoryTuning() {}
+
 // TrimProcessWorkingSet requests Windows kernel to trim unreferenced physical pages from process Working Set.
 func TrimProcessWorkingSet() {
 	// This is a very poor approach, intended to solve the persistently difficult-to-solve

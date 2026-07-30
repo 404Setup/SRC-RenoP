@@ -13,11 +13,12 @@ package frontend
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"mime"
 	"path/filepath"
 	"sync"
 
 	"github.com/gofiber/fiber/v3"
+
+	"renop/utils"
 )
 
 var (
@@ -30,6 +31,20 @@ type embeddedFile struct {
 	contentType string
 }
 
+// cacheEmbeddedFile stores an embed payload under its public URL path so later
+// ServeEmbeddedFile hits avoid a second embed.FS.ReadFile of large bundles.
+func cacheEmbeddedFile(publicPath string, data []byte) *embeddedFile {
+	hasher := sha256.New()
+	_, _ = hasher.Write(data)
+	candidate := &embeddedFile{
+		data:        data,
+		etag:        `W/"` + hex.EncodeToString(hasher.Sum(nil))[:16] + `"`,
+		contentType: utils.ContentTypeByExt(filepath.Ext(publicPath)),
+	}
+	actual, _ := embeddedFileCache.LoadOrStore(publicPath, candidate)
+	return actual.(*embeddedFile)
+}
+
 func ServeEmbeddedFile(c fiber.Ctx, path string) error {
 	var file *embeddedFile
 	if cached, ok := embeddedFileCache.Load(path); ok {
@@ -39,21 +54,7 @@ func ServeEmbeddedFile(c fiber.Ctx, path string) error {
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).SendString("Not found")
 		}
-
-		ext := filepath.Ext(path)
-		contentType := mime.TypeByExtension(ext)
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
-		hasher := sha256.New()
-		_, _ = hasher.Write(data)
-		candidate := &embeddedFile{
-			data:        data,
-			etag:        `W/"` + hex.EncodeToString(hasher.Sum(nil))[:16] + `"`,
-			contentType: contentType,
-		}
-		actual, _ := embeddedFileCache.LoadOrStore(path, candidate)
-		file = actual.(*embeddedFile)
+		file = cacheEmbeddedFile(path, data)
 	}
 
 	if file == nil {

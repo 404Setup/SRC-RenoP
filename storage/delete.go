@@ -107,92 +107,91 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 
 			if state.Inner.FileIndex.HasFile(metadataPath) {
 				_ = state.Inner.FileIndex.UpdateMetadataCallback(func() error {
-					var contentBytes []byte
-					var err error
+					var (
+						src io.ReadCloser
+						err error
+					)
+					if IsS3Enabled(metadataPath) {
+						src, _, err = DownloadFromS3(utils.GetS3Key(metadataPath))
+					} else {
+						src, err = os.Open(metadataPath)
+					}
+					if err != nil {
+						return nil
+					}
+					var metadata config.Metadata
+					decErr := xml.NewDecoder(src).Decode(&metadata)
+					_ = src.Close()
+					if decErr != nil {
+						return nil
+					}
+					var newVersions []string
+					found := false
+					if metadata.Versioning != nil && metadata.Versioning.Versions != nil {
+						for _, v := range metadata.Versioning.Versions.Version {
+							if v == version {
+								found = true
+							} else {
+								newVersions = append(newVersions, v)
+							}
+						}
+					}
+
+					if !found {
+						return nil
+					}
+					if len(newVersions) == 0 {
+						deleteFileHelper(metadataPath)
+						state.Inner.FileIndex.RemoveFile(metadataPath)
+						state.InvalidateFileCache(metadataPath)
+						for _, ext := range []string{".md5", ".sha1", ".sha256", ".sha512"} {
+							toDel := metadataPath + ext
+							deleteFileHelper(toDel)
+							state.Inner.FileIndex.RemoveFile(toDel)
+							state.InvalidateFileCache(toDel)
+						}
+						return nil
+					}
+					metadata.Versioning.Versions.Version = newVersions
+					sortedVersions := make([]string, len(newVersions))
+					copy(sortedVersions, newVersions)
+					slices.SortFunc(sortedVersions, utils.CompareVersions)
+					latest := sortedVersions[len(sortedVersions)-1]
+					metadata.Versioning.Latest = &latest
+					metadata.Versioning.Release = &latest
+					lastUpdated := time.Now().UTC().Format("20060102150405")
+					metadata.Versioning.LastUpdated = &lastUpdated
+
+					updatedXML, wErr := xml.Marshal(metadata)
+					if wErr != nil {
+						return wErr
+					}
+
 					if IsS3Enabled(metadataPath) {
 						s3Key := utils.GetS3Key(metadataPath)
-						rc, _, downloadErr := DownloadFromS3(s3Key)
-						if downloadErr == nil {
-							contentBytes, err = io.ReadAll(rc)
-							rc.Close()
-						} else {
-							err = downloadErr
-						}
+						err = UploadStreamToS3(s3Key, bytes.NewReader(updatedXML), int64(len(updatedXML)), "application/xml")
 					} else {
-						contentBytes, err = os.ReadFile(metadataPath)
+						tmpMetaPath := metadataPath + ".tmp"
+						err = os.WriteFile(tmpMetaPath, updatedXML, 0644)
+						if err == nil {
+							err = utils.SafeRename(tmpMetaPath, metadataPath)
+							if err != nil {
+								_ = os.Remove(tmpMetaPath)
+							}
+						}
 					}
 
 					if err == nil {
-						var metadata config.Metadata
-						if err := xml.Unmarshal(contentBytes, &metadata); err == nil {
-							var newVersions []string
-							found := false
-							if metadata.Versioning != nil && metadata.Versioning.Versions != nil {
-								for _, v := range metadata.Versioning.Versions.Version {
-									if v == version {
-										found = true
-									} else {
-										newVersions = append(newVersions, v)
-									}
-								}
-							}
+						state.InvalidateFileCache(metadataPath)
+						md5Hash := utils.MD5(updatedXML)
+						sha1Hash := utils.SHA1(updatedXML)
+						sha256Hash := utils.SHA256(updatedXML)
+						sha512Hash := utils.SHA512(updatedXML)
 
-							if found {
-								if len(newVersions) == 0 {
-									deleteFileHelper(metadataPath)
-									state.Inner.FileIndex.RemoveFile(metadataPath)
-									state.InvalidateFileCache(metadataPath)
-									for _, ext := range []string{".md5", ".sha1", ".sha256", ".sha512"} {
-										toDel := metadataPath + ext
-										deleteFileHelper(toDel)
-										state.Inner.FileIndex.RemoveFile(toDel)
-										state.InvalidateFileCache(toDel)
-									}
-								} else {
-									metadata.Versioning.Versions.Version = newVersions
-									sortedVersions := make([]string, len(newVersions))
-									copy(sortedVersions, newVersions)
-									slices.SortFunc(sortedVersions, utils.CompareVersions)
-									latest := sortedVersions[len(sortedVersions)-1]
-									metadata.Versioning.Latest = &latest
-									metadata.Versioning.Release = &latest
-									lastUpdated := time.Now().UTC().Format("20060102150405")
-									metadata.Versioning.LastUpdated = &lastUpdated
-
-									updatedXML, wErr := xml.Marshal(metadata)
-									if wErr != nil {
-										return wErr
-									}
-
-									if IsS3Enabled(metadataPath) {
-										s3Key := utils.GetS3Key(metadataPath)
-										err = UploadStreamToS3(s3Key, bytes.NewReader(updatedXML), int64(len(updatedXML)), "application/xml")
-									} else {
-										tmpMetaPath := metadataPath + ".tmp"
-										err = os.WriteFile(tmpMetaPath, updatedXML, 0644)
-										if err == nil {
-											err = utils.SafeRename(tmpMetaPath, metadataPath)
-											if err != nil {
-												_ = os.Remove(tmpMetaPath)
-											}
-										}
-									}
-
-									if err == nil {
-										state.InvalidateFileCache(metadataPath)
-										md5Hash := utils.MD5(updatedXML)
-										sha1Hash := utils.SHA1(updatedXML)
-										sha256Hash := utils.SHA256(updatedXML)
-										sha512Hash := utils.SHA512(updatedXML)
-
-										_ = SaveAndUploadChecksum(state, metadataPath, ".md5", md5Hash)
-										_ = SaveAndUploadChecksum(state, metadataPath, ".sha1", sha1Hash)
-										_ = SaveAndUploadChecksum(state, metadataPath, ".sha256", sha256Hash)
-										_ = SaveAndUploadChecksum(state, metadataPath, ".sha512", sha512Hash)
-									}
-								}
-							}
-						}
+						_ = SaveAndUploadChecksum(state, metadataPath, ".md5", md5Hash)
+						_ = SaveAndUploadChecksum(state, metadataPath, ".sha1", sha1Hash)
+						_ = SaveAndUploadChecksum(state, metadataPath, ".sha256", sha256Hash)
+						_ = SaveAndUploadChecksum(state, metadataPath, ".sha512", sha512Hash)
 					}
 					return nil
 				})

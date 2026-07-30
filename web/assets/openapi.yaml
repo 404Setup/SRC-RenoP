@@ -607,6 +607,37 @@ components:
           items:
             $ref: "#/components/schemas/StatusSnapshot"
 
+    RuntimeMemoryBreakdown:
+      type: object
+      description: >
+        Protobuf message RuntimeMemoryBreakdown (application/x-protobuf).
+        Debug snapshot of MemStats vs process RSS; not a pprof flame graph.
+      properties:
+        note: { type: string }
+        process_rss: { type: integer, format: int64 }
+        process_vss: { type: integer, format: int64 }
+        go_retained: { type: integer, format: int64 }
+        heap_inuse: { type: integer, format: int64 }
+        heap_alloc: { type: integer, format: int64 }
+        heap_sys: { type: integer, format: int64 }
+        heap_idle: { type: integer, format: int64 }
+        heap_released: { type: integer, format: int64 }
+        heap_objects: { type: integer, format: int64 }
+        stack_inuse: { type: integer, format: int64 }
+        stack_sys: { type: integer, format: int64 }
+        mspan_inuse: { type: integer, format: int64 }
+        mspan_sys: { type: integer, format: int64 }
+        mcache_inuse: { type: integer, format: int64 }
+        mcache_sys: { type: integer, format: int64 }
+        buck_hash_sys: { type: integer, format: int64 }
+        gc_sys: { type: integer, format: int64 }
+        other_sys: { type: integer, format: int64 }
+        sys: { type: integer, format: int64 }
+        off_heap_runtime_estimate: { type: integer, format: int64 }
+        rss_minus_go_retained: { type: integer, format: int64 }
+        num_goroutine: { type: integer, format: int64 }
+        num_cpu: { type: integer, format: int32 }
+
     # --- Settings ---
     RebuildIndexRequest:
       type: object
@@ -1412,6 +1443,33 @@ paths:
               schema:
                 type: string
                 format: binary
+        "403":
+          description: Not a manager, or debug mode inactive
+
+  /api/debug/memory/runtime:
+    get:
+      tags: [ debug ]
+      summary: Runtime memory breakdown (stack / off-heap / process RSS)
+      description: >
+        Manager-only. Requires server.debug_mode. Returns RuntimeMemoryBreakdown protobuf.
+        Explains stack and off-heap totals that heap/allocs pprof flames cannot attribute.
+        Optional ?gc=1 runs GC before sampling (default off).
+      operationId: getDebugMemoryRuntime
+      parameters:
+        - name: gc
+          in: query
+          schema:
+            type: string
+            enum: ["0", "1"]
+            default: "0"
+          description: Set to 1 to run GC before sampling
+      responses:
+        "200":
+          description: RuntimeMemoryBreakdown protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/RuntimeMemoryBreakdown"
         "403":
           description: Not a manager, or debug mode inactive
 

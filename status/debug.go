@@ -11,8 +11,8 @@
 package status
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"runtime"
 	"runtime/pprof"
 	"strconv"
@@ -22,7 +22,9 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"renop/auth"
+	"renop/pb"
 	"renop/token"
+	"renop/utils/protohttp"
 )
 
 // debugModeActive is latched at process start from server.debug_mode.
@@ -46,6 +48,7 @@ func SetupDebugRoutes(api fiber.Router) {
 	dbg.Get("/memory/heap", dumpHeapProfile)
 	dbg.Get("/memory/allocs", dumpAllocsProfile)
 	dbg.Get("/memory/goroutine", dumpGoroutineProfile)
+	dbg.Get("/memory/runtime", dumpRuntimeMemory)
 }
 
 func requireDebugManager(c fiber.Ctx) error {
@@ -86,20 +89,72 @@ func dumpGoroutineProfile(c fiber.Ctx) error {
 	return writePprof(c, "goroutine", "renop-goroutine.pprof", 0)
 }
 
+func dumpRuntimeMemory(c fiber.Ctx) error {
+	if err := requireDebugManager(c); err != nil {
+		return err
+	}
+	if c.Query("gc", "0") == "1" {
+		runtime.GC()
+	}
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	rss, vss := processMemoryBytes()
+
+	goFromOS := m.Sys
+	if m.Sys > m.HeapReleased {
+		goFromOS = m.Sys - m.HeapReleased
+	}
+	offHeapRuntime := uint64(0)
+	if m.Sys > m.HeapInuse {
+		offHeapRuntime = m.Sys - m.HeapInuse
+	}
+
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return protohttp.Write(c, &pb.RuntimeMemoryBreakdown{
+		Note: "heap/allocs pprof flames only cover heap objects (≈ heap_inuse). " +
+			"stack_* and *_sys / other_sys have no allocation call stacks in standard pprof. " +
+			"process_rss may exceed go_retained: binary text, cgo, mmap, and kernel accounting.",
+		ProcessRss:             rss,
+		ProcessVss:             vss,
+		GoRetained:             goFromOS,
+		HeapInuse:              m.HeapInuse,
+		HeapAlloc:              m.HeapAlloc,
+		HeapSys:                m.HeapSys,
+		HeapIdle:               m.HeapIdle,
+		HeapReleased:           m.HeapReleased,
+		HeapObjects:            m.HeapObjects,
+		StackInuse:             m.StackInuse,
+		StackSys:               m.StackSys,
+		MspanInuse:             m.MSpanInuse,
+		MspanSys:               m.MSpanSys,
+		McacheInuse:            m.MCacheInuse,
+		McacheSys:              m.MCacheSys,
+		BuckHashSys:            m.BuckHashSys,
+		GcSys:                  m.GCSys,
+		OtherSys:               m.OtherSys,
+		Sys:                    m.Sys,
+		OffHeapRuntimeEstimate: offHeapRuntime,
+		RssMinusGoRetained:     int64(rss) - int64(goFromOS),
+		NumGoroutine:           uint64(runtime.NumGoroutine()),
+		NumCpu:                 int32(runtime.NumCPU()),
+	})
+}
+
 func writePprof(c fiber.Ctx, name, filename string, debug int) error {
 	p := pprof.Lookup(name)
 	if p == nil {
 		return fiber.NewError(fiber.StatusNotFound, "profile not found: "+name)
 	}
-	var buf bytes.Buffer
-	if err := p.WriteTo(&buf, debug); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
+	pr, pw := io.Pipe()
+	go func() {
+		err := p.WriteTo(pw, debug)
+		_ = pw.CloseWithError(err)
+	}()
 	c.Set("Content-Type", "application/octet-stream")
 	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	c.Set("X-Content-Type-Options", "nosniff")
 	c.Set("Cache-Control", "no-store")
 	c.Set("X-Renop-Profile", name)
 	c.Set("X-Renop-Profile-Time", strconv.FormatInt(time.Now().Unix(), 10))
-	return c.Send(buf.Bytes())
+	return c.SendStream(pr)
 }

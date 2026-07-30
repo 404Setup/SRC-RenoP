@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && !linux
 
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
@@ -16,6 +16,8 @@ import (
 	"runtime"
 	"runtime/debug"
 )
+
+func InitLinuxMemoryTuning() {}
 
 func TrimProcessWorkingSet() {}
 

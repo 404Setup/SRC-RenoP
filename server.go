@@ -34,6 +34,7 @@ import (
 	"renop/token"
 	"renop/updater"
 	"renop/upload"
+	"renop/utils"
 )
 
 func init() {
@@ -44,11 +45,11 @@ func main() {
 	if os.Getenv("GOGC") == "" {
 		debug.SetGCPercent(40)
 	}
+	utils.InitLinuxMemoryTuning()
 
 	state, context := bootstrap.Initialize()
 	bootstrap.StartServices(state, context)
 	cfg := state.Inner.Config.Load().(*config.Config)
-	// Latch debug dump APIs for this process; settings changes require restart.
 	status.InitDebugMode(cfg.Server.DebugMode)
 
 	concurrency := int(cfg.Server.MaxActiveRequests)

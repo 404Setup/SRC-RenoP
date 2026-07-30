@@ -93,9 +93,7 @@ message InstanceStatus {
   string version = 1;
   bool development = 2;
   int64 uptime = 3;
-  // used_memory is process RSS in bytes (private working set on Windows; VmRSS on Linux).
   uint64 used_memory = 4;
-  // total_memory is system physical memory in bytes.
   uint64 total_memory = 5;
   uint64 renop_used_disk = 6;
   uint64 disk_used = 7;
@@ -123,6 +121,33 @@ message StatusSnapshot {
 
 message StatusSnapshotList {
   repeated StatusSnapshot snapshots = 1;
+}
+
+message RuntimeMemoryBreakdown {
+  string note = 1;
+  uint64 process_rss = 2;
+  uint64 process_vss = 3;
+  uint64 go_retained = 4;
+  uint64 heap_inuse = 5;
+  uint64 heap_alloc = 6;
+  uint64 heap_sys = 7;
+  uint64 heap_idle = 8;
+  uint64 heap_released = 9;
+  uint64 heap_objects = 10;
+  uint64 stack_inuse = 11;
+  uint64 stack_sys = 12;
+  uint64 mspan_inuse = 13;
+  uint64 mspan_sys = 14;
+  uint64 mcache_inuse = 15;
+  uint64 mcache_sys = 16;
+  uint64 buck_hash_sys = 17;
+  uint64 gc_sys = 18;
+  uint64 other_sys = 19;
+  uint64 sys = 20;
+  uint64 off_heap_runtime_estimate = 21;
+  int64 rss_minus_go_retained = 22;
+  uint64 num_goroutine = 23;
+  int32 num_cpu = 24;
 }
 
 message MirrorCredentials {

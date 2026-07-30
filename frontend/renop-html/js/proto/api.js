@@ -5956,6 +5956,1286 @@ export const renop = $root.renop = (() => {
                 return StatusSnapshotList;
             })();
 
+            v1.RuntimeMemoryBreakdown = (function() {
+
+                /**
+                 * Properties of a RuntimeMemoryBreakdown.
+                 * @typedef {Object} renop.api.v1.RuntimeMemoryBreakdown.$Properties
+                 * @property {string|null} [note] RuntimeMemoryBreakdown note
+                 * @property {number|Long|null} [process_rss] RuntimeMemoryBreakdown process_rss
+                 * @property {number|Long|null} [process_vss] RuntimeMemoryBreakdown process_vss
+                 * @property {number|Long|null} [go_retained] RuntimeMemoryBreakdown go_retained
+                 * @property {number|Long|null} [heap_inuse] RuntimeMemoryBreakdown heap_inuse
+                 * @property {number|Long|null} [heap_alloc] RuntimeMemoryBreakdown heap_alloc
+                 * @property {number|Long|null} [heap_sys] RuntimeMemoryBreakdown heap_sys
+                 * @property {number|Long|null} [heap_idle] RuntimeMemoryBreakdown heap_idle
+                 * @property {number|Long|null} [heap_released] RuntimeMemoryBreakdown heap_released
+                 * @property {number|Long|null} [heap_objects] RuntimeMemoryBreakdown heap_objects
+                 * @property {number|Long|null} [stack_inuse] RuntimeMemoryBreakdown stack_inuse
+                 * @property {number|Long|null} [stack_sys] RuntimeMemoryBreakdown stack_sys
+                 * @property {number|Long|null} [mspan_inuse] RuntimeMemoryBreakdown mspan_inuse
+                 * @property {number|Long|null} [mspan_sys] RuntimeMemoryBreakdown mspan_sys
+                 * @property {number|Long|null} [mcache_inuse] RuntimeMemoryBreakdown mcache_inuse
+                 * @property {number|Long|null} [mcache_sys] RuntimeMemoryBreakdown mcache_sys
+                 * @property {number|Long|null} [buck_hash_sys] RuntimeMemoryBreakdown buck_hash_sys
+                 * @property {number|Long|null} [gc_sys] RuntimeMemoryBreakdown gc_sys
+                 * @property {number|Long|null} [other_sys] RuntimeMemoryBreakdown other_sys
+                 * @property {number|Long|null} [sys] RuntimeMemoryBreakdown sys
+                 * @property {number|Long|null} [off_heap_runtime_estimate] RuntimeMemoryBreakdown off_heap_runtime_estimate
+                 * @property {number|Long|null} [rss_minus_go_retained] RuntimeMemoryBreakdown rss_minus_go_retained
+                 * @property {number|Long|null} [num_goroutine] RuntimeMemoryBreakdown num_goroutine
+                 * @property {number|null} [num_cpu] RuntimeMemoryBreakdown num_cpu
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a RuntimeMemoryBreakdown.
+                 * @memberof renop.api.v1
+                 * @interface IRuntimeMemoryBreakdown
+                 * @augments renop.api.v1.RuntimeMemoryBreakdown.$Properties
+                 * @deprecated Use renop.api.v1.RuntimeMemoryBreakdown.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a RuntimeMemoryBreakdown.
+                 * @typedef {renop.api.v1.RuntimeMemoryBreakdown.$Properties} renop.api.v1.RuntimeMemoryBreakdown.$Shape
+                 */
+
+                /**
+                 * Constructs a new RuntimeMemoryBreakdown.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a RuntimeMemoryBreakdown.
+                 * @constructor
+                 * @param {renop.api.v1.RuntimeMemoryBreakdown.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const RuntimeMemoryBreakdown = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * RuntimeMemoryBreakdown note.
+                 * @member {string} note
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.note = "";
+
+                /**
+                 * RuntimeMemoryBreakdown process_rss.
+                 * @member {number|Long} process_rss
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.process_rss = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown process_vss.
+                 * @member {number|Long} process_vss
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.process_vss = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown go_retained.
+                 * @member {number|Long} go_retained
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.go_retained = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown heap_inuse.
+                 * @member {number|Long} heap_inuse
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.heap_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown heap_alloc.
+                 * @member {number|Long} heap_alloc
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.heap_alloc = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown heap_sys.
+                 * @member {number|Long} heap_sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.heap_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown heap_idle.
+                 * @member {number|Long} heap_idle
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.heap_idle = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown heap_released.
+                 * @member {number|Long} heap_released
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.heap_released = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown heap_objects.
+                 * @member {number|Long} heap_objects
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.heap_objects = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown stack_inuse.
+                 * @member {number|Long} stack_inuse
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.stack_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown stack_sys.
+                 * @member {number|Long} stack_sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.stack_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown mspan_inuse.
+                 * @member {number|Long} mspan_inuse
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.mspan_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown mspan_sys.
+                 * @member {number|Long} mspan_sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.mspan_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown mcache_inuse.
+                 * @member {number|Long} mcache_inuse
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.mcache_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown mcache_sys.
+                 * @member {number|Long} mcache_sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.mcache_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown buck_hash_sys.
+                 * @member {number|Long} buck_hash_sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.buck_hash_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown gc_sys.
+                 * @member {number|Long} gc_sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.gc_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown other_sys.
+                 * @member {number|Long} other_sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.other_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown sys.
+                 * @member {number|Long} sys
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown off_heap_runtime_estimate.
+                 * @member {number|Long} off_heap_runtime_estimate
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.off_heap_runtime_estimate = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown rss_minus_go_retained.
+                 * @member {number|Long} rss_minus_go_retained
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.rss_minus_go_retained = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown num_goroutine.
+                 * @member {number|Long} num_goroutine
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.num_goroutine = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                /**
+                 * RuntimeMemoryBreakdown num_cpu.
+                 * @member {number} num_cpu
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 */
+                RuntimeMemoryBreakdown.prototype.num_cpu = 0;
+
+                /**
+                 * Creates a new RuntimeMemoryBreakdown instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {renop.api.v1.RuntimeMemoryBreakdown.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.RuntimeMemoryBreakdown} RuntimeMemoryBreakdown instance
+                 * @type {{
+                 *   (properties: renop.api.v1.RuntimeMemoryBreakdown.$Shape): renop.api.v1.RuntimeMemoryBreakdown & renop.api.v1.RuntimeMemoryBreakdown.$Shape;
+                 *   (properties?: renop.api.v1.RuntimeMemoryBreakdown.$Properties): renop.api.v1.RuntimeMemoryBreakdown;
+                 * }}
+                 */
+                RuntimeMemoryBreakdown.create = function(properties) {
+                    return new RuntimeMemoryBreakdown(properties);
+                };
+
+                /**
+                 * Encodes the specified RuntimeMemoryBreakdown message. Does not implicitly {@link renop.api.v1.RuntimeMemoryBreakdown.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {renop.api.v1.RuntimeMemoryBreakdown.$Properties} message RuntimeMemoryBreakdown message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RuntimeMemoryBreakdown.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.note != null && $Object.hasOwnProperty.call(message, "note") && message.note !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.note);
+                    if (message.process_rss != null && $Object.hasOwnProperty.call(message, "process_rss") && (typeof message.process_rss === "object" ? message.process_rss.low || message.process_rss.high : message.process_rss !== 0))
+                        writer.uint32(/* id 2, wireType 0 =*/16).uint64(message.process_rss);
+                    if (message.process_vss != null && $Object.hasOwnProperty.call(message, "process_vss") && (typeof message.process_vss === "object" ? message.process_vss.low || message.process_vss.high : message.process_vss !== 0))
+                        writer.uint32(/* id 3, wireType 0 =*/24).uint64(message.process_vss);
+                    if (message.go_retained != null && $Object.hasOwnProperty.call(message, "go_retained") && (typeof message.go_retained === "object" ? message.go_retained.low || message.go_retained.high : message.go_retained !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).uint64(message.go_retained);
+                    if (message.heap_inuse != null && $Object.hasOwnProperty.call(message, "heap_inuse") && (typeof message.heap_inuse === "object" ? message.heap_inuse.low || message.heap_inuse.high : message.heap_inuse !== 0))
+                        writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.heap_inuse);
+                    if (message.heap_alloc != null && $Object.hasOwnProperty.call(message, "heap_alloc") && (typeof message.heap_alloc === "object" ? message.heap_alloc.low || message.heap_alloc.high : message.heap_alloc !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).uint64(message.heap_alloc);
+                    if (message.heap_sys != null && $Object.hasOwnProperty.call(message, "heap_sys") && (typeof message.heap_sys === "object" ? message.heap_sys.low || message.heap_sys.high : message.heap_sys !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).uint64(message.heap_sys);
+                    if (message.heap_idle != null && $Object.hasOwnProperty.call(message, "heap_idle") && (typeof message.heap_idle === "object" ? message.heap_idle.low || message.heap_idle.high : message.heap_idle !== 0))
+                        writer.uint32(/* id 8, wireType 0 =*/64).uint64(message.heap_idle);
+                    if (message.heap_released != null && $Object.hasOwnProperty.call(message, "heap_released") && (typeof message.heap_released === "object" ? message.heap_released.low || message.heap_released.high : message.heap_released !== 0))
+                        writer.uint32(/* id 9, wireType 0 =*/72).uint64(message.heap_released);
+                    if (message.heap_objects != null && $Object.hasOwnProperty.call(message, "heap_objects") && (typeof message.heap_objects === "object" ? message.heap_objects.low || message.heap_objects.high : message.heap_objects !== 0))
+                        writer.uint32(/* id 10, wireType 0 =*/80).uint64(message.heap_objects);
+                    if (message.stack_inuse != null && $Object.hasOwnProperty.call(message, "stack_inuse") && (typeof message.stack_inuse === "object" ? message.stack_inuse.low || message.stack_inuse.high : message.stack_inuse !== 0))
+                        writer.uint32(/* id 11, wireType 0 =*/88).uint64(message.stack_inuse);
+                    if (message.stack_sys != null && $Object.hasOwnProperty.call(message, "stack_sys") && (typeof message.stack_sys === "object" ? message.stack_sys.low || message.stack_sys.high : message.stack_sys !== 0))
+                        writer.uint32(/* id 12, wireType 0 =*/96).uint64(message.stack_sys);
+                    if (message.mspan_inuse != null && $Object.hasOwnProperty.call(message, "mspan_inuse") && (typeof message.mspan_inuse === "object" ? message.mspan_inuse.low || message.mspan_inuse.high : message.mspan_inuse !== 0))
+                        writer.uint32(/* id 13, wireType 0 =*/104).uint64(message.mspan_inuse);
+                    if (message.mspan_sys != null && $Object.hasOwnProperty.call(message, "mspan_sys") && (typeof message.mspan_sys === "object" ? message.mspan_sys.low || message.mspan_sys.high : message.mspan_sys !== 0))
+                        writer.uint32(/* id 14, wireType 0 =*/112).uint64(message.mspan_sys);
+                    if (message.mcache_inuse != null && $Object.hasOwnProperty.call(message, "mcache_inuse") && (typeof message.mcache_inuse === "object" ? message.mcache_inuse.low || message.mcache_inuse.high : message.mcache_inuse !== 0))
+                        writer.uint32(/* id 15, wireType 0 =*/120).uint64(message.mcache_inuse);
+                    if (message.mcache_sys != null && $Object.hasOwnProperty.call(message, "mcache_sys") && (typeof message.mcache_sys === "object" ? message.mcache_sys.low || message.mcache_sys.high : message.mcache_sys !== 0))
+                        writer.uint32(/* id 16, wireType 0 =*/128).uint64(message.mcache_sys);
+                    if (message.buck_hash_sys != null && $Object.hasOwnProperty.call(message, "buck_hash_sys") && (typeof message.buck_hash_sys === "object" ? message.buck_hash_sys.low || message.buck_hash_sys.high : message.buck_hash_sys !== 0))
+                        writer.uint32(/* id 17, wireType 0 =*/136).uint64(message.buck_hash_sys);
+                    if (message.gc_sys != null && $Object.hasOwnProperty.call(message, "gc_sys") && (typeof message.gc_sys === "object" ? message.gc_sys.low || message.gc_sys.high : message.gc_sys !== 0))
+                        writer.uint32(/* id 18, wireType 0 =*/144).uint64(message.gc_sys);
+                    if (message.other_sys != null && $Object.hasOwnProperty.call(message, "other_sys") && (typeof message.other_sys === "object" ? message.other_sys.low || message.other_sys.high : message.other_sys !== 0))
+                        writer.uint32(/* id 19, wireType 0 =*/152).uint64(message.other_sys);
+                    if (message.sys != null && $Object.hasOwnProperty.call(message, "sys") && (typeof message.sys === "object" ? message.sys.low || message.sys.high : message.sys !== 0))
+                        writer.uint32(/* id 20, wireType 0 =*/160).uint64(message.sys);
+                    if (message.off_heap_runtime_estimate != null && $Object.hasOwnProperty.call(message, "off_heap_runtime_estimate") && (typeof message.off_heap_runtime_estimate === "object" ? message.off_heap_runtime_estimate.low || message.off_heap_runtime_estimate.high : message.off_heap_runtime_estimate !== 0))
+                        writer.uint32(/* id 21, wireType 0 =*/168).uint64(message.off_heap_runtime_estimate);
+                    if (message.rss_minus_go_retained != null && $Object.hasOwnProperty.call(message, "rss_minus_go_retained") && (typeof message.rss_minus_go_retained === "object" ? message.rss_minus_go_retained.low || message.rss_minus_go_retained.high : message.rss_minus_go_retained !== 0))
+                        writer.uint32(/* id 22, wireType 0 =*/176).int64(message.rss_minus_go_retained);
+                    if (message.num_goroutine != null && $Object.hasOwnProperty.call(message, "num_goroutine") && (typeof message.num_goroutine === "object" ? message.num_goroutine.low || message.num_goroutine.high : message.num_goroutine !== 0))
+                        writer.uint32(/* id 23, wireType 0 =*/184).uint64(message.num_goroutine);
+                    if (message.num_cpu != null && $Object.hasOwnProperty.call(message, "num_cpu") && message.num_cpu !== 0)
+                        writer.uint32(/* id 24, wireType 0 =*/192).int32(message.num_cpu);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified RuntimeMemoryBreakdown message, length delimited. Does not implicitly {@link renop.api.v1.RuntimeMemoryBreakdown.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {renop.api.v1.RuntimeMemoryBreakdown.$Properties} message RuntimeMemoryBreakdown message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RuntimeMemoryBreakdown.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a RuntimeMemoryBreakdown message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.RuntimeMemoryBreakdown & renop.api.v1.RuntimeMemoryBreakdown.$Shape} RuntimeMemoryBreakdown
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RuntimeMemoryBreakdown.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RuntimeMemoryBreakdown(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.note = value;
+                                else
+                                    delete message.note;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.process_rss = value;
+                                else
+                                    delete message.process_rss;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.process_vss = value;
+                                else
+                                    delete message.process_vss;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.go_retained = value;
+                                else
+                                    delete message.go_retained;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.heap_inuse = value;
+                                else
+                                    delete message.heap_inuse;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.heap_alloc = value;
+                                else
+                                    delete message.heap_alloc;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.heap_sys = value;
+                                else
+                                    delete message.heap_sys;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.heap_idle = value;
+                                else
+                                    delete message.heap_idle;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.heap_released = value;
+                                else
+                                    delete message.heap_released;
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.heap_objects = value;
+                                else
+                                    delete message.heap_objects;
+                                continue;
+                            }
+                        case 11: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.stack_inuse = value;
+                                else
+                                    delete message.stack_inuse;
+                                continue;
+                            }
+                        case 12: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.stack_sys = value;
+                                else
+                                    delete message.stack_sys;
+                                continue;
+                            }
+                        case 13: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.mspan_inuse = value;
+                                else
+                                    delete message.mspan_inuse;
+                                continue;
+                            }
+                        case 14: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.mspan_sys = value;
+                                else
+                                    delete message.mspan_sys;
+                                continue;
+                            }
+                        case 15: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.mcache_inuse = value;
+                                else
+                                    delete message.mcache_inuse;
+                                continue;
+                            }
+                        case 16: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.mcache_sys = value;
+                                else
+                                    delete message.mcache_sys;
+                                continue;
+                            }
+                        case 17: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.buck_hash_sys = value;
+                                else
+                                    delete message.buck_hash_sys;
+                                continue;
+                            }
+                        case 18: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.gc_sys = value;
+                                else
+                                    delete message.gc_sys;
+                                continue;
+                            }
+                        case 19: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.other_sys = value;
+                                else
+                                    delete message.other_sys;
+                                continue;
+                            }
+                        case 20: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.sys = value;
+                                else
+                                    delete message.sys;
+                                continue;
+                            }
+                        case 21: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.off_heap_runtime_estimate = value;
+                                else
+                                    delete message.off_heap_runtime_estimate;
+                                continue;
+                            }
+                        case 22: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.rss_minus_go_retained = value;
+                                else
+                                    delete message.rss_minus_go_retained;
+                                continue;
+                            }
+                        case 23: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.num_goroutine = value;
+                                else
+                                    delete message.num_goroutine;
+                                continue;
+                            }
+                        case 24: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.num_cpu = value;
+                                else
+                                    delete message.num_cpu;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a RuntimeMemoryBreakdown message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.RuntimeMemoryBreakdown & renop.api.v1.RuntimeMemoryBreakdown.$Shape} RuntimeMemoryBreakdown
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RuntimeMemoryBreakdown.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a RuntimeMemoryBreakdown message.
+                 * @function verify
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                RuntimeMemoryBreakdown.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.note != null && $Object.hasOwnProperty.call(message, "note"))
+                        if (!$util.isString(message.note))
+                            return "note: string expected";
+                    if (message.process_rss != null && $Object.hasOwnProperty.call(message, "process_rss"))
+                        if (!$util.isInteger(message.process_rss) && !(message.process_rss && $util.isInteger(message.process_rss.low) && $util.isInteger(message.process_rss.high)))
+                            return "process_rss: integer|Long expected";
+                    if (message.process_vss != null && $Object.hasOwnProperty.call(message, "process_vss"))
+                        if (!$util.isInteger(message.process_vss) && !(message.process_vss && $util.isInteger(message.process_vss.low) && $util.isInteger(message.process_vss.high)))
+                            return "process_vss: integer|Long expected";
+                    if (message.go_retained != null && $Object.hasOwnProperty.call(message, "go_retained"))
+                        if (!$util.isInteger(message.go_retained) && !(message.go_retained && $util.isInteger(message.go_retained.low) && $util.isInteger(message.go_retained.high)))
+                            return "go_retained: integer|Long expected";
+                    if (message.heap_inuse != null && $Object.hasOwnProperty.call(message, "heap_inuse"))
+                        if (!$util.isInteger(message.heap_inuse) && !(message.heap_inuse && $util.isInteger(message.heap_inuse.low) && $util.isInteger(message.heap_inuse.high)))
+                            return "heap_inuse: integer|Long expected";
+                    if (message.heap_alloc != null && $Object.hasOwnProperty.call(message, "heap_alloc"))
+                        if (!$util.isInteger(message.heap_alloc) && !(message.heap_alloc && $util.isInteger(message.heap_alloc.low) && $util.isInteger(message.heap_alloc.high)))
+                            return "heap_alloc: integer|Long expected";
+                    if (message.heap_sys != null && $Object.hasOwnProperty.call(message, "heap_sys"))
+                        if (!$util.isInteger(message.heap_sys) && !(message.heap_sys && $util.isInteger(message.heap_sys.low) && $util.isInteger(message.heap_sys.high)))
+                            return "heap_sys: integer|Long expected";
+                    if (message.heap_idle != null && $Object.hasOwnProperty.call(message, "heap_idle"))
+                        if (!$util.isInteger(message.heap_idle) && !(message.heap_idle && $util.isInteger(message.heap_idle.low) && $util.isInteger(message.heap_idle.high)))
+                            return "heap_idle: integer|Long expected";
+                    if (message.heap_released != null && $Object.hasOwnProperty.call(message, "heap_released"))
+                        if (!$util.isInteger(message.heap_released) && !(message.heap_released && $util.isInteger(message.heap_released.low) && $util.isInteger(message.heap_released.high)))
+                            return "heap_released: integer|Long expected";
+                    if (message.heap_objects != null && $Object.hasOwnProperty.call(message, "heap_objects"))
+                        if (!$util.isInteger(message.heap_objects) && !(message.heap_objects && $util.isInteger(message.heap_objects.low) && $util.isInteger(message.heap_objects.high)))
+                            return "heap_objects: integer|Long expected";
+                    if (message.stack_inuse != null && $Object.hasOwnProperty.call(message, "stack_inuse"))
+                        if (!$util.isInteger(message.stack_inuse) && !(message.stack_inuse && $util.isInteger(message.stack_inuse.low) && $util.isInteger(message.stack_inuse.high)))
+                            return "stack_inuse: integer|Long expected";
+                    if (message.stack_sys != null && $Object.hasOwnProperty.call(message, "stack_sys"))
+                        if (!$util.isInteger(message.stack_sys) && !(message.stack_sys && $util.isInteger(message.stack_sys.low) && $util.isInteger(message.stack_sys.high)))
+                            return "stack_sys: integer|Long expected";
+                    if (message.mspan_inuse != null && $Object.hasOwnProperty.call(message, "mspan_inuse"))
+                        if (!$util.isInteger(message.mspan_inuse) && !(message.mspan_inuse && $util.isInteger(message.mspan_inuse.low) && $util.isInteger(message.mspan_inuse.high)))
+                            return "mspan_inuse: integer|Long expected";
+                    if (message.mspan_sys != null && $Object.hasOwnProperty.call(message, "mspan_sys"))
+                        if (!$util.isInteger(message.mspan_sys) && !(message.mspan_sys && $util.isInteger(message.mspan_sys.low) && $util.isInteger(message.mspan_sys.high)))
+                            return "mspan_sys: integer|Long expected";
+                    if (message.mcache_inuse != null && $Object.hasOwnProperty.call(message, "mcache_inuse"))
+                        if (!$util.isInteger(message.mcache_inuse) && !(message.mcache_inuse && $util.isInteger(message.mcache_inuse.low) && $util.isInteger(message.mcache_inuse.high)))
+                            return "mcache_inuse: integer|Long expected";
+                    if (message.mcache_sys != null && $Object.hasOwnProperty.call(message, "mcache_sys"))
+                        if (!$util.isInteger(message.mcache_sys) && !(message.mcache_sys && $util.isInteger(message.mcache_sys.low) && $util.isInteger(message.mcache_sys.high)))
+                            return "mcache_sys: integer|Long expected";
+                    if (message.buck_hash_sys != null && $Object.hasOwnProperty.call(message, "buck_hash_sys"))
+                        if (!$util.isInteger(message.buck_hash_sys) && !(message.buck_hash_sys && $util.isInteger(message.buck_hash_sys.low) && $util.isInteger(message.buck_hash_sys.high)))
+                            return "buck_hash_sys: integer|Long expected";
+                    if (message.gc_sys != null && $Object.hasOwnProperty.call(message, "gc_sys"))
+                        if (!$util.isInteger(message.gc_sys) && !(message.gc_sys && $util.isInteger(message.gc_sys.low) && $util.isInteger(message.gc_sys.high)))
+                            return "gc_sys: integer|Long expected";
+                    if (message.other_sys != null && $Object.hasOwnProperty.call(message, "other_sys"))
+                        if (!$util.isInteger(message.other_sys) && !(message.other_sys && $util.isInteger(message.other_sys.low) && $util.isInteger(message.other_sys.high)))
+                            return "other_sys: integer|Long expected";
+                    if (message.sys != null && $Object.hasOwnProperty.call(message, "sys"))
+                        if (!$util.isInteger(message.sys) && !(message.sys && $util.isInteger(message.sys.low) && $util.isInteger(message.sys.high)))
+                            return "sys: integer|Long expected";
+                    if (message.off_heap_runtime_estimate != null && $Object.hasOwnProperty.call(message, "off_heap_runtime_estimate"))
+                        if (!$util.isInteger(message.off_heap_runtime_estimate) && !(message.off_heap_runtime_estimate && $util.isInteger(message.off_heap_runtime_estimate.low) && $util.isInteger(message.off_heap_runtime_estimate.high)))
+                            return "off_heap_runtime_estimate: integer|Long expected";
+                    if (message.rss_minus_go_retained != null && $Object.hasOwnProperty.call(message, "rss_minus_go_retained"))
+                        if (!$util.isInteger(message.rss_minus_go_retained) && !(message.rss_minus_go_retained && $util.isInteger(message.rss_minus_go_retained.low) && $util.isInteger(message.rss_minus_go_retained.high)))
+                            return "rss_minus_go_retained: integer|Long expected";
+                    if (message.num_goroutine != null && $Object.hasOwnProperty.call(message, "num_goroutine"))
+                        if (!$util.isInteger(message.num_goroutine) && !(message.num_goroutine && $util.isInteger(message.num_goroutine.low) && $util.isInteger(message.num_goroutine.high)))
+                            return "num_goroutine: integer|Long expected";
+                    if (message.num_cpu != null && $Object.hasOwnProperty.call(message, "num_cpu"))
+                        if (!$util.isInteger(message.num_cpu))
+                            return "num_cpu: integer expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a RuntimeMemoryBreakdown message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.RuntimeMemoryBreakdown} RuntimeMemoryBreakdown
+                 */
+                RuntimeMemoryBreakdown.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.RuntimeMemoryBreakdown)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.RuntimeMemoryBreakdown: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.RuntimeMemoryBreakdown();
+                    if (object.note != null)
+                        if (typeof object.note !== "string" || object.note.length)
+                            message.note = $String(object.note);
+                    if (object.process_rss != null)
+                        if (typeof object.process_rss === "object" ? object.process_rss.low || object.process_rss.high : $Number(object.process_rss) !== 0)
+                            if ($util.Long)
+                                message.process_rss = $util.Long.fromValue(object.process_rss, true);
+                            else if (typeof object.process_rss === "string")
+                                message.process_rss = $parseInt(object.process_rss, 10);
+                            else if (typeof object.process_rss === "number")
+                                message.process_rss = object.process_rss;
+                            else if (typeof object.process_rss === "object")
+                                message.process_rss = new $util.LongBits(object.process_rss.low >>> 0, object.process_rss.high >>> 0).toNumber(true);
+                    if (object.process_vss != null)
+                        if (typeof object.process_vss === "object" ? object.process_vss.low || object.process_vss.high : $Number(object.process_vss) !== 0)
+                            if ($util.Long)
+                                message.process_vss = $util.Long.fromValue(object.process_vss, true);
+                            else if (typeof object.process_vss === "string")
+                                message.process_vss = $parseInt(object.process_vss, 10);
+                            else if (typeof object.process_vss === "number")
+                                message.process_vss = object.process_vss;
+                            else if (typeof object.process_vss === "object")
+                                message.process_vss = new $util.LongBits(object.process_vss.low >>> 0, object.process_vss.high >>> 0).toNumber(true);
+                    if (object.go_retained != null)
+                        if (typeof object.go_retained === "object" ? object.go_retained.low || object.go_retained.high : $Number(object.go_retained) !== 0)
+                            if ($util.Long)
+                                message.go_retained = $util.Long.fromValue(object.go_retained, true);
+                            else if (typeof object.go_retained === "string")
+                                message.go_retained = $parseInt(object.go_retained, 10);
+                            else if (typeof object.go_retained === "number")
+                                message.go_retained = object.go_retained;
+                            else if (typeof object.go_retained === "object")
+                                message.go_retained = new $util.LongBits(object.go_retained.low >>> 0, object.go_retained.high >>> 0).toNumber(true);
+                    if (object.heap_inuse != null)
+                        if (typeof object.heap_inuse === "object" ? object.heap_inuse.low || object.heap_inuse.high : $Number(object.heap_inuse) !== 0)
+                            if ($util.Long)
+                                message.heap_inuse = $util.Long.fromValue(object.heap_inuse, true);
+                            else if (typeof object.heap_inuse === "string")
+                                message.heap_inuse = $parseInt(object.heap_inuse, 10);
+                            else if (typeof object.heap_inuse === "number")
+                                message.heap_inuse = object.heap_inuse;
+                            else if (typeof object.heap_inuse === "object")
+                                message.heap_inuse = new $util.LongBits(object.heap_inuse.low >>> 0, object.heap_inuse.high >>> 0).toNumber(true);
+                    if (object.heap_alloc != null)
+                        if (typeof object.heap_alloc === "object" ? object.heap_alloc.low || object.heap_alloc.high : $Number(object.heap_alloc) !== 0)
+                            if ($util.Long)
+                                message.heap_alloc = $util.Long.fromValue(object.heap_alloc, true);
+                            else if (typeof object.heap_alloc === "string")
+                                message.heap_alloc = $parseInt(object.heap_alloc, 10);
+                            else if (typeof object.heap_alloc === "number")
+                                message.heap_alloc = object.heap_alloc;
+                            else if (typeof object.heap_alloc === "object")
+                                message.heap_alloc = new $util.LongBits(object.heap_alloc.low >>> 0, object.heap_alloc.high >>> 0).toNumber(true);
+                    if (object.heap_sys != null)
+                        if (typeof object.heap_sys === "object" ? object.heap_sys.low || object.heap_sys.high : $Number(object.heap_sys) !== 0)
+                            if ($util.Long)
+                                message.heap_sys = $util.Long.fromValue(object.heap_sys, true);
+                            else if (typeof object.heap_sys === "string")
+                                message.heap_sys = $parseInt(object.heap_sys, 10);
+                            else if (typeof object.heap_sys === "number")
+                                message.heap_sys = object.heap_sys;
+                            else if (typeof object.heap_sys === "object")
+                                message.heap_sys = new $util.LongBits(object.heap_sys.low >>> 0, object.heap_sys.high >>> 0).toNumber(true);
+                    if (object.heap_idle != null)
+                        if (typeof object.heap_idle === "object" ? object.heap_idle.low || object.heap_idle.high : $Number(object.heap_idle) !== 0)
+                            if ($util.Long)
+                                message.heap_idle = $util.Long.fromValue(object.heap_idle, true);
+                            else if (typeof object.heap_idle === "string")
+                                message.heap_idle = $parseInt(object.heap_idle, 10);
+                            else if (typeof object.heap_idle === "number")
+                                message.heap_idle = object.heap_idle;
+                            else if (typeof object.heap_idle === "object")
+                                message.heap_idle = new $util.LongBits(object.heap_idle.low >>> 0, object.heap_idle.high >>> 0).toNumber(true);
+                    if (object.heap_released != null)
+                        if (typeof object.heap_released === "object" ? object.heap_released.low || object.heap_released.high : $Number(object.heap_released) !== 0)
+                            if ($util.Long)
+                                message.heap_released = $util.Long.fromValue(object.heap_released, true);
+                            else if (typeof object.heap_released === "string")
+                                message.heap_released = $parseInt(object.heap_released, 10);
+                            else if (typeof object.heap_released === "number")
+                                message.heap_released = object.heap_released;
+                            else if (typeof object.heap_released === "object")
+                                message.heap_released = new $util.LongBits(object.heap_released.low >>> 0, object.heap_released.high >>> 0).toNumber(true);
+                    if (object.heap_objects != null)
+                        if (typeof object.heap_objects === "object" ? object.heap_objects.low || object.heap_objects.high : $Number(object.heap_objects) !== 0)
+                            if ($util.Long)
+                                message.heap_objects = $util.Long.fromValue(object.heap_objects, true);
+                            else if (typeof object.heap_objects === "string")
+                                message.heap_objects = $parseInt(object.heap_objects, 10);
+                            else if (typeof object.heap_objects === "number")
+                                message.heap_objects = object.heap_objects;
+                            else if (typeof object.heap_objects === "object")
+                                message.heap_objects = new $util.LongBits(object.heap_objects.low >>> 0, object.heap_objects.high >>> 0).toNumber(true);
+                    if (object.stack_inuse != null)
+                        if (typeof object.stack_inuse === "object" ? object.stack_inuse.low || object.stack_inuse.high : $Number(object.stack_inuse) !== 0)
+                            if ($util.Long)
+                                message.stack_inuse = $util.Long.fromValue(object.stack_inuse, true);
+                            else if (typeof object.stack_inuse === "string")
+                                message.stack_inuse = $parseInt(object.stack_inuse, 10);
+                            else if (typeof object.stack_inuse === "number")
+                                message.stack_inuse = object.stack_inuse;
+                            else if (typeof object.stack_inuse === "object")
+                                message.stack_inuse = new $util.LongBits(object.stack_inuse.low >>> 0, object.stack_inuse.high >>> 0).toNumber(true);
+                    if (object.stack_sys != null)
+                        if (typeof object.stack_sys === "object" ? object.stack_sys.low || object.stack_sys.high : $Number(object.stack_sys) !== 0)
+                            if ($util.Long)
+                                message.stack_sys = $util.Long.fromValue(object.stack_sys, true);
+                            else if (typeof object.stack_sys === "string")
+                                message.stack_sys = $parseInt(object.stack_sys, 10);
+                            else if (typeof object.stack_sys === "number")
+                                message.stack_sys = object.stack_sys;
+                            else if (typeof object.stack_sys === "object")
+                                message.stack_sys = new $util.LongBits(object.stack_sys.low >>> 0, object.stack_sys.high >>> 0).toNumber(true);
+                    if (object.mspan_inuse != null)
+                        if (typeof object.mspan_inuse === "object" ? object.mspan_inuse.low || object.mspan_inuse.high : $Number(object.mspan_inuse) !== 0)
+                            if ($util.Long)
+                                message.mspan_inuse = $util.Long.fromValue(object.mspan_inuse, true);
+                            else if (typeof object.mspan_inuse === "string")
+                                message.mspan_inuse = $parseInt(object.mspan_inuse, 10);
+                            else if (typeof object.mspan_inuse === "number")
+                                message.mspan_inuse = object.mspan_inuse;
+                            else if (typeof object.mspan_inuse === "object")
+                                message.mspan_inuse = new $util.LongBits(object.mspan_inuse.low >>> 0, object.mspan_inuse.high >>> 0).toNumber(true);
+                    if (object.mspan_sys != null)
+                        if (typeof object.mspan_sys === "object" ? object.mspan_sys.low || object.mspan_sys.high : $Number(object.mspan_sys) !== 0)
+                            if ($util.Long)
+                                message.mspan_sys = $util.Long.fromValue(object.mspan_sys, true);
+                            else if (typeof object.mspan_sys === "string")
+                                message.mspan_sys = $parseInt(object.mspan_sys, 10);
+                            else if (typeof object.mspan_sys === "number")
+                                message.mspan_sys = object.mspan_sys;
+                            else if (typeof object.mspan_sys === "object")
+                                message.mspan_sys = new $util.LongBits(object.mspan_sys.low >>> 0, object.mspan_sys.high >>> 0).toNumber(true);
+                    if (object.mcache_inuse != null)
+                        if (typeof object.mcache_inuse === "object" ? object.mcache_inuse.low || object.mcache_inuse.high : $Number(object.mcache_inuse) !== 0)
+                            if ($util.Long)
+                                message.mcache_inuse = $util.Long.fromValue(object.mcache_inuse, true);
+                            else if (typeof object.mcache_inuse === "string")
+                                message.mcache_inuse = $parseInt(object.mcache_inuse, 10);
+                            else if (typeof object.mcache_inuse === "number")
+                                message.mcache_inuse = object.mcache_inuse;
+                            else if (typeof object.mcache_inuse === "object")
+                                message.mcache_inuse = new $util.LongBits(object.mcache_inuse.low >>> 0, object.mcache_inuse.high >>> 0).toNumber(true);
+                    if (object.mcache_sys != null)
+                        if (typeof object.mcache_sys === "object" ? object.mcache_sys.low || object.mcache_sys.high : $Number(object.mcache_sys) !== 0)
+                            if ($util.Long)
+                                message.mcache_sys = $util.Long.fromValue(object.mcache_sys, true);
+                            else if (typeof object.mcache_sys === "string")
+                                message.mcache_sys = $parseInt(object.mcache_sys, 10);
+                            else if (typeof object.mcache_sys === "number")
+                                message.mcache_sys = object.mcache_sys;
+                            else if (typeof object.mcache_sys === "object")
+                                message.mcache_sys = new $util.LongBits(object.mcache_sys.low >>> 0, object.mcache_sys.high >>> 0).toNumber(true);
+                    if (object.buck_hash_sys != null)
+                        if (typeof object.buck_hash_sys === "object" ? object.buck_hash_sys.low || object.buck_hash_sys.high : $Number(object.buck_hash_sys) !== 0)
+                            if ($util.Long)
+                                message.buck_hash_sys = $util.Long.fromValue(object.buck_hash_sys, true);
+                            else if (typeof object.buck_hash_sys === "string")
+                                message.buck_hash_sys = $parseInt(object.buck_hash_sys, 10);
+                            else if (typeof object.buck_hash_sys === "number")
+                                message.buck_hash_sys = object.buck_hash_sys;
+                            else if (typeof object.buck_hash_sys === "object")
+                                message.buck_hash_sys = new $util.LongBits(object.buck_hash_sys.low >>> 0, object.buck_hash_sys.high >>> 0).toNumber(true);
+                    if (object.gc_sys != null)
+                        if (typeof object.gc_sys === "object" ? object.gc_sys.low || object.gc_sys.high : $Number(object.gc_sys) !== 0)
+                            if ($util.Long)
+                                message.gc_sys = $util.Long.fromValue(object.gc_sys, true);
+                            else if (typeof object.gc_sys === "string")
+                                message.gc_sys = $parseInt(object.gc_sys, 10);
+                            else if (typeof object.gc_sys === "number")
+                                message.gc_sys = object.gc_sys;
+                            else if (typeof object.gc_sys === "object")
+                                message.gc_sys = new $util.LongBits(object.gc_sys.low >>> 0, object.gc_sys.high >>> 0).toNumber(true);
+                    if (object.other_sys != null)
+                        if (typeof object.other_sys === "object" ? object.other_sys.low || object.other_sys.high : $Number(object.other_sys) !== 0)
+                            if ($util.Long)
+                                message.other_sys = $util.Long.fromValue(object.other_sys, true);
+                            else if (typeof object.other_sys === "string")
+                                message.other_sys = $parseInt(object.other_sys, 10);
+                            else if (typeof object.other_sys === "number")
+                                message.other_sys = object.other_sys;
+                            else if (typeof object.other_sys === "object")
+                                message.other_sys = new $util.LongBits(object.other_sys.low >>> 0, object.other_sys.high >>> 0).toNumber(true);
+                    if (object.sys != null)
+                        if (typeof object.sys === "object" ? object.sys.low || object.sys.high : $Number(object.sys) !== 0)
+                            if ($util.Long)
+                                message.sys = $util.Long.fromValue(object.sys, true);
+                            else if (typeof object.sys === "string")
+                                message.sys = $parseInt(object.sys, 10);
+                            else if (typeof object.sys === "number")
+                                message.sys = object.sys;
+                            else if (typeof object.sys === "object")
+                                message.sys = new $util.LongBits(object.sys.low >>> 0, object.sys.high >>> 0).toNumber(true);
+                    if (object.off_heap_runtime_estimate != null)
+                        if (typeof object.off_heap_runtime_estimate === "object" ? object.off_heap_runtime_estimate.low || object.off_heap_runtime_estimate.high : $Number(object.off_heap_runtime_estimate) !== 0)
+                            if ($util.Long)
+                                message.off_heap_runtime_estimate = $util.Long.fromValue(object.off_heap_runtime_estimate, true);
+                            else if (typeof object.off_heap_runtime_estimate === "string")
+                                message.off_heap_runtime_estimate = $parseInt(object.off_heap_runtime_estimate, 10);
+                            else if (typeof object.off_heap_runtime_estimate === "number")
+                                message.off_heap_runtime_estimate = object.off_heap_runtime_estimate;
+                            else if (typeof object.off_heap_runtime_estimate === "object")
+                                message.off_heap_runtime_estimate = new $util.LongBits(object.off_heap_runtime_estimate.low >>> 0, object.off_heap_runtime_estimate.high >>> 0).toNumber(true);
+                    if (object.rss_minus_go_retained != null)
+                        if (typeof object.rss_minus_go_retained === "object" ? object.rss_minus_go_retained.low || object.rss_minus_go_retained.high : $Number(object.rss_minus_go_retained) !== 0)
+                            if ($util.Long)
+                                message.rss_minus_go_retained = $util.Long.fromValue(object.rss_minus_go_retained, false);
+                            else if (typeof object.rss_minus_go_retained === "string")
+                                message.rss_minus_go_retained = $parseInt(object.rss_minus_go_retained, 10);
+                            else if (typeof object.rss_minus_go_retained === "number")
+                                message.rss_minus_go_retained = object.rss_minus_go_retained;
+                            else if (typeof object.rss_minus_go_retained === "object")
+                                message.rss_minus_go_retained = new $util.LongBits(object.rss_minus_go_retained.low >>> 0, object.rss_minus_go_retained.high >>> 0).toNumber();
+                    if (object.num_goroutine != null)
+                        if (typeof object.num_goroutine === "object" ? object.num_goroutine.low || object.num_goroutine.high : $Number(object.num_goroutine) !== 0)
+                            if ($util.Long)
+                                message.num_goroutine = $util.Long.fromValue(object.num_goroutine, true);
+                            else if (typeof object.num_goroutine === "string")
+                                message.num_goroutine = $parseInt(object.num_goroutine, 10);
+                            else if (typeof object.num_goroutine === "number")
+                                message.num_goroutine = object.num_goroutine;
+                            else if (typeof object.num_goroutine === "object")
+                                message.num_goroutine = new $util.LongBits(object.num_goroutine.low >>> 0, object.num_goroutine.high >>> 0).toNumber(true);
+                    if (object.num_cpu != null)
+                        if ($Number(object.num_cpu) !== 0)
+                            message.num_cpu = object.num_cpu | 0;
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a RuntimeMemoryBreakdown message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {renop.api.v1.RuntimeMemoryBreakdown} message RuntimeMemoryBreakdown
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                RuntimeMemoryBreakdown.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.note = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.process_rss = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.process_rss = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.process_vss = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.process_vss = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.go_retained = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.go_retained = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.heap_inuse = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.heap_inuse = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.heap_alloc = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.heap_alloc = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.heap_sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.heap_sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.heap_idle = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.heap_idle = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.heap_released = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.heap_released = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.heap_objects = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.heap_objects = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.stack_inuse = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.stack_inuse = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.stack_sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.stack_sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.mspan_inuse = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.mspan_inuse = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.mspan_sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.mspan_sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.mcache_inuse = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.mcache_inuse = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.mcache_sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.mcache_sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.buck_hash_sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.buck_hash_sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.gc_sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.gc_sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.other_sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.other_sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.sys = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.sys = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.off_heap_runtime_estimate = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.off_heap_runtime_estimate = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.rss_minus_go_retained = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.rss_minus_go_retained = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, true);
+                            object.num_goroutine = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.num_goroutine = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.num_cpu = 0;
+                    }
+                    if (message.note != null && $Object.hasOwnProperty.call(message, "note"))
+                        object.note = message.note;
+                    if (message.process_rss != null && $Object.hasOwnProperty.call(message, "process_rss"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.process_rss = typeof message.process_rss === "number" ? $BigInt(message.process_rss) : $util.Long.fromBits(message.process_rss.low >>> 0, message.process_rss.high >>> 0, true).toBigInt();
+                        else if (typeof message.process_rss === "number")
+                            object.process_rss = options.longs === $String ? $String(message.process_rss) : message.process_rss;
+                        else
+                            object.process_rss = options.longs === $String ? $util.Long.prototype.toString.call(message.process_rss) : options.longs === $Number ? new $util.LongBits(message.process_rss.low >>> 0, message.process_rss.high >>> 0).toNumber(true) : message.process_rss;
+                    if (message.process_vss != null && $Object.hasOwnProperty.call(message, "process_vss"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.process_vss = typeof message.process_vss === "number" ? $BigInt(message.process_vss) : $util.Long.fromBits(message.process_vss.low >>> 0, message.process_vss.high >>> 0, true).toBigInt();
+                        else if (typeof message.process_vss === "number")
+                            object.process_vss = options.longs === $String ? $String(message.process_vss) : message.process_vss;
+                        else
+                            object.process_vss = options.longs === $String ? $util.Long.prototype.toString.call(message.process_vss) : options.longs === $Number ? new $util.LongBits(message.process_vss.low >>> 0, message.process_vss.high >>> 0).toNumber(true) : message.process_vss;
+                    if (message.go_retained != null && $Object.hasOwnProperty.call(message, "go_retained"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.go_retained = typeof message.go_retained === "number" ? $BigInt(message.go_retained) : $util.Long.fromBits(message.go_retained.low >>> 0, message.go_retained.high >>> 0, true).toBigInt();
+                        else if (typeof message.go_retained === "number")
+                            object.go_retained = options.longs === $String ? $String(message.go_retained) : message.go_retained;
+                        else
+                            object.go_retained = options.longs === $String ? $util.Long.prototype.toString.call(message.go_retained) : options.longs === $Number ? new $util.LongBits(message.go_retained.low >>> 0, message.go_retained.high >>> 0).toNumber(true) : message.go_retained;
+                    if (message.heap_inuse != null && $Object.hasOwnProperty.call(message, "heap_inuse"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.heap_inuse = typeof message.heap_inuse === "number" ? $BigInt(message.heap_inuse) : $util.Long.fromBits(message.heap_inuse.low >>> 0, message.heap_inuse.high >>> 0, true).toBigInt();
+                        else if (typeof message.heap_inuse === "number")
+                            object.heap_inuse = options.longs === $String ? $String(message.heap_inuse) : message.heap_inuse;
+                        else
+                            object.heap_inuse = options.longs === $String ? $util.Long.prototype.toString.call(message.heap_inuse) : options.longs === $Number ? new $util.LongBits(message.heap_inuse.low >>> 0, message.heap_inuse.high >>> 0).toNumber(true) : message.heap_inuse;
+                    if (message.heap_alloc != null && $Object.hasOwnProperty.call(message, "heap_alloc"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.heap_alloc = typeof message.heap_alloc === "number" ? $BigInt(message.heap_alloc) : $util.Long.fromBits(message.heap_alloc.low >>> 0, message.heap_alloc.high >>> 0, true).toBigInt();
+                        else if (typeof message.heap_alloc === "number")
+                            object.heap_alloc = options.longs === $String ? $String(message.heap_alloc) : message.heap_alloc;
+                        else
+                            object.heap_alloc = options.longs === $String ? $util.Long.prototype.toString.call(message.heap_alloc) : options.longs === $Number ? new $util.LongBits(message.heap_alloc.low >>> 0, message.heap_alloc.high >>> 0).toNumber(true) : message.heap_alloc;
+                    if (message.heap_sys != null && $Object.hasOwnProperty.call(message, "heap_sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.heap_sys = typeof message.heap_sys === "number" ? $BigInt(message.heap_sys) : $util.Long.fromBits(message.heap_sys.low >>> 0, message.heap_sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.heap_sys === "number")
+                            object.heap_sys = options.longs === $String ? $String(message.heap_sys) : message.heap_sys;
+                        else
+                            object.heap_sys = options.longs === $String ? $util.Long.prototype.toString.call(message.heap_sys) : options.longs === $Number ? new $util.LongBits(message.heap_sys.low >>> 0, message.heap_sys.high >>> 0).toNumber(true) : message.heap_sys;
+                    if (message.heap_idle != null && $Object.hasOwnProperty.call(message, "heap_idle"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.heap_idle = typeof message.heap_idle === "number" ? $BigInt(message.heap_idle) : $util.Long.fromBits(message.heap_idle.low >>> 0, message.heap_idle.high >>> 0, true).toBigInt();
+                        else if (typeof message.heap_idle === "number")
+                            object.heap_idle = options.longs === $String ? $String(message.heap_idle) : message.heap_idle;
+                        else
+                            object.heap_idle = options.longs === $String ? $util.Long.prototype.toString.call(message.heap_idle) : options.longs === $Number ? new $util.LongBits(message.heap_idle.low >>> 0, message.heap_idle.high >>> 0).toNumber(true) : message.heap_idle;
+                    if (message.heap_released != null && $Object.hasOwnProperty.call(message, "heap_released"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.heap_released = typeof message.heap_released === "number" ? $BigInt(message.heap_released) : $util.Long.fromBits(message.heap_released.low >>> 0, message.heap_released.high >>> 0, true).toBigInt();
+                        else if (typeof message.heap_released === "number")
+                            object.heap_released = options.longs === $String ? $String(message.heap_released) : message.heap_released;
+                        else
+                            object.heap_released = options.longs === $String ? $util.Long.prototype.toString.call(message.heap_released) : options.longs === $Number ? new $util.LongBits(message.heap_released.low >>> 0, message.heap_released.high >>> 0).toNumber(true) : message.heap_released;
+                    if (message.heap_objects != null && $Object.hasOwnProperty.call(message, "heap_objects"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.heap_objects = typeof message.heap_objects === "number" ? $BigInt(message.heap_objects) : $util.Long.fromBits(message.heap_objects.low >>> 0, message.heap_objects.high >>> 0, true).toBigInt();
+                        else if (typeof message.heap_objects === "number")
+                            object.heap_objects = options.longs === $String ? $String(message.heap_objects) : message.heap_objects;
+                        else
+                            object.heap_objects = options.longs === $String ? $util.Long.prototype.toString.call(message.heap_objects) : options.longs === $Number ? new $util.LongBits(message.heap_objects.low >>> 0, message.heap_objects.high >>> 0).toNumber(true) : message.heap_objects;
+                    if (message.stack_inuse != null && $Object.hasOwnProperty.call(message, "stack_inuse"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.stack_inuse = typeof message.stack_inuse === "number" ? $BigInt(message.stack_inuse) : $util.Long.fromBits(message.stack_inuse.low >>> 0, message.stack_inuse.high >>> 0, true).toBigInt();
+                        else if (typeof message.stack_inuse === "number")
+                            object.stack_inuse = options.longs === $String ? $String(message.stack_inuse) : message.stack_inuse;
+                        else
+                            object.stack_inuse = options.longs === $String ? $util.Long.prototype.toString.call(message.stack_inuse) : options.longs === $Number ? new $util.LongBits(message.stack_inuse.low >>> 0, message.stack_inuse.high >>> 0).toNumber(true) : message.stack_inuse;
+                    if (message.stack_sys != null && $Object.hasOwnProperty.call(message, "stack_sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.stack_sys = typeof message.stack_sys === "number" ? $BigInt(message.stack_sys) : $util.Long.fromBits(message.stack_sys.low >>> 0, message.stack_sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.stack_sys === "number")
+                            object.stack_sys = options.longs === $String ? $String(message.stack_sys) : message.stack_sys;
+                        else
+                            object.stack_sys = options.longs === $String ? $util.Long.prototype.toString.call(message.stack_sys) : options.longs === $Number ? new $util.LongBits(message.stack_sys.low >>> 0, message.stack_sys.high >>> 0).toNumber(true) : message.stack_sys;
+                    if (message.mspan_inuse != null && $Object.hasOwnProperty.call(message, "mspan_inuse"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.mspan_inuse = typeof message.mspan_inuse === "number" ? $BigInt(message.mspan_inuse) : $util.Long.fromBits(message.mspan_inuse.low >>> 0, message.mspan_inuse.high >>> 0, true).toBigInt();
+                        else if (typeof message.mspan_inuse === "number")
+                            object.mspan_inuse = options.longs === $String ? $String(message.mspan_inuse) : message.mspan_inuse;
+                        else
+                            object.mspan_inuse = options.longs === $String ? $util.Long.prototype.toString.call(message.mspan_inuse) : options.longs === $Number ? new $util.LongBits(message.mspan_inuse.low >>> 0, message.mspan_inuse.high >>> 0).toNumber(true) : message.mspan_inuse;
+                    if (message.mspan_sys != null && $Object.hasOwnProperty.call(message, "mspan_sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.mspan_sys = typeof message.mspan_sys === "number" ? $BigInt(message.mspan_sys) : $util.Long.fromBits(message.mspan_sys.low >>> 0, message.mspan_sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.mspan_sys === "number")
+                            object.mspan_sys = options.longs === $String ? $String(message.mspan_sys) : message.mspan_sys;
+                        else
+                            object.mspan_sys = options.longs === $String ? $util.Long.prototype.toString.call(message.mspan_sys) : options.longs === $Number ? new $util.LongBits(message.mspan_sys.low >>> 0, message.mspan_sys.high >>> 0).toNumber(true) : message.mspan_sys;
+                    if (message.mcache_inuse != null && $Object.hasOwnProperty.call(message, "mcache_inuse"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.mcache_inuse = typeof message.mcache_inuse === "number" ? $BigInt(message.mcache_inuse) : $util.Long.fromBits(message.mcache_inuse.low >>> 0, message.mcache_inuse.high >>> 0, true).toBigInt();
+                        else if (typeof message.mcache_inuse === "number")
+                            object.mcache_inuse = options.longs === $String ? $String(message.mcache_inuse) : message.mcache_inuse;
+                        else
+                            object.mcache_inuse = options.longs === $String ? $util.Long.prototype.toString.call(message.mcache_inuse) : options.longs === $Number ? new $util.LongBits(message.mcache_inuse.low >>> 0, message.mcache_inuse.high >>> 0).toNumber(true) : message.mcache_inuse;
+                    if (message.mcache_sys != null && $Object.hasOwnProperty.call(message, "mcache_sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.mcache_sys = typeof message.mcache_sys === "number" ? $BigInt(message.mcache_sys) : $util.Long.fromBits(message.mcache_sys.low >>> 0, message.mcache_sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.mcache_sys === "number")
+                            object.mcache_sys = options.longs === $String ? $String(message.mcache_sys) : message.mcache_sys;
+                        else
+                            object.mcache_sys = options.longs === $String ? $util.Long.prototype.toString.call(message.mcache_sys) : options.longs === $Number ? new $util.LongBits(message.mcache_sys.low >>> 0, message.mcache_sys.high >>> 0).toNumber(true) : message.mcache_sys;
+                    if (message.buck_hash_sys != null && $Object.hasOwnProperty.call(message, "buck_hash_sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.buck_hash_sys = typeof message.buck_hash_sys === "number" ? $BigInt(message.buck_hash_sys) : $util.Long.fromBits(message.buck_hash_sys.low >>> 0, message.buck_hash_sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.buck_hash_sys === "number")
+                            object.buck_hash_sys = options.longs === $String ? $String(message.buck_hash_sys) : message.buck_hash_sys;
+                        else
+                            object.buck_hash_sys = options.longs === $String ? $util.Long.prototype.toString.call(message.buck_hash_sys) : options.longs === $Number ? new $util.LongBits(message.buck_hash_sys.low >>> 0, message.buck_hash_sys.high >>> 0).toNumber(true) : message.buck_hash_sys;
+                    if (message.gc_sys != null && $Object.hasOwnProperty.call(message, "gc_sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.gc_sys = typeof message.gc_sys === "number" ? $BigInt(message.gc_sys) : $util.Long.fromBits(message.gc_sys.low >>> 0, message.gc_sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.gc_sys === "number")
+                            object.gc_sys = options.longs === $String ? $String(message.gc_sys) : message.gc_sys;
+                        else
+                            object.gc_sys = options.longs === $String ? $util.Long.prototype.toString.call(message.gc_sys) : options.longs === $Number ? new $util.LongBits(message.gc_sys.low >>> 0, message.gc_sys.high >>> 0).toNumber(true) : message.gc_sys;
+                    if (message.other_sys != null && $Object.hasOwnProperty.call(message, "other_sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.other_sys = typeof message.other_sys === "number" ? $BigInt(message.other_sys) : $util.Long.fromBits(message.other_sys.low >>> 0, message.other_sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.other_sys === "number")
+                            object.other_sys = options.longs === $String ? $String(message.other_sys) : message.other_sys;
+                        else
+                            object.other_sys = options.longs === $String ? $util.Long.prototype.toString.call(message.other_sys) : options.longs === $Number ? new $util.LongBits(message.other_sys.low >>> 0, message.other_sys.high >>> 0).toNumber(true) : message.other_sys;
+                    if (message.sys != null && $Object.hasOwnProperty.call(message, "sys"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.sys = typeof message.sys === "number" ? $BigInt(message.sys) : $util.Long.fromBits(message.sys.low >>> 0, message.sys.high >>> 0, true).toBigInt();
+                        else if (typeof message.sys === "number")
+                            object.sys = options.longs === $String ? $String(message.sys) : message.sys;
+                        else
+                            object.sys = options.longs === $String ? $util.Long.prototype.toString.call(message.sys) : options.longs === $Number ? new $util.LongBits(message.sys.low >>> 0, message.sys.high >>> 0).toNumber(true) : message.sys;
+                    if (message.off_heap_runtime_estimate != null && $Object.hasOwnProperty.call(message, "off_heap_runtime_estimate"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.off_heap_runtime_estimate = typeof message.off_heap_runtime_estimate === "number" ? $BigInt(message.off_heap_runtime_estimate) : $util.Long.fromBits(message.off_heap_runtime_estimate.low >>> 0, message.off_heap_runtime_estimate.high >>> 0, true).toBigInt();
+                        else if (typeof message.off_heap_runtime_estimate === "number")
+                            object.off_heap_runtime_estimate = options.longs === $String ? $String(message.off_heap_runtime_estimate) : message.off_heap_runtime_estimate;
+                        else
+                            object.off_heap_runtime_estimate = options.longs === $String ? $util.Long.prototype.toString.call(message.off_heap_runtime_estimate) : options.longs === $Number ? new $util.LongBits(message.off_heap_runtime_estimate.low >>> 0, message.off_heap_runtime_estimate.high >>> 0).toNumber(true) : message.off_heap_runtime_estimate;
+                    if (message.rss_minus_go_retained != null && $Object.hasOwnProperty.call(message, "rss_minus_go_retained"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.rss_minus_go_retained = typeof message.rss_minus_go_retained === "number" ? $BigInt(message.rss_minus_go_retained) : $util.Long.fromBits(message.rss_minus_go_retained.low >>> 0, message.rss_minus_go_retained.high >>> 0, false).toBigInt();
+                        else if (typeof message.rss_minus_go_retained === "number")
+                            object.rss_minus_go_retained = options.longs === $String ? $String(message.rss_minus_go_retained) : message.rss_minus_go_retained;
+                        else
+                            object.rss_minus_go_retained = options.longs === $String ? $util.Long.prototype.toString.call(message.rss_minus_go_retained) : options.longs === $Number ? new $util.LongBits(message.rss_minus_go_retained.low >>> 0, message.rss_minus_go_retained.high >>> 0).toNumber() : message.rss_minus_go_retained;
+                    if (message.num_goroutine != null && $Object.hasOwnProperty.call(message, "num_goroutine"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.num_goroutine = typeof message.num_goroutine === "number" ? $BigInt(message.num_goroutine) : $util.Long.fromBits(message.num_goroutine.low >>> 0, message.num_goroutine.high >>> 0, true).toBigInt();
+                        else if (typeof message.num_goroutine === "number")
+                            object.num_goroutine = options.longs === $String ? $String(message.num_goroutine) : message.num_goroutine;
+                        else
+                            object.num_goroutine = options.longs === $String ? $util.Long.prototype.toString.call(message.num_goroutine) : options.longs === $Number ? new $util.LongBits(message.num_goroutine.low >>> 0, message.num_goroutine.high >>> 0).toNumber(true) : message.num_goroutine;
+                    if (message.num_cpu != null && $Object.hasOwnProperty.call(message, "num_cpu"))
+                        object.num_cpu = message.num_cpu;
+                    return object;
+                };
+
+                /**
+                 * Converts this RuntimeMemoryBreakdown to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                RuntimeMemoryBreakdown.prototype.toJSON = function() {
+                    return RuntimeMemoryBreakdown.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for RuntimeMemoryBreakdown
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.RuntimeMemoryBreakdown
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                RuntimeMemoryBreakdown.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.RuntimeMemoryBreakdown";
+                };
+
+                return RuntimeMemoryBreakdown;
+            })();
+
             v1.MirrorCredentials = (function() {
 
                 /**

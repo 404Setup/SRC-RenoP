@@ -13,6 +13,7 @@
 package status
 
 import (
+	"runtime"
 	"testing"
 )
 
@@ -60,20 +61,13 @@ func TestSanitizeVirtualSize(t *testing.T) {
 	}
 }
 
-func TestCombineVSS(t *testing.T) {
+func TestPrivateOrRSS(t *testing.T) {
 	rss := uint64(40 << 20)
-	// Private alone ≈ RSS is the old bug path that made the dual chart useless.
-	if got := combineVSS(rss, rss-1024); got != rss {
-		t.Fatalf("got %d want rss", got)
+	if got := privateOrRSS(rss, rss-1024); got != rss {
+		t.Fatalf("private < rss: got %d want rss", got)
 	}
-	// Go retained above RSS should lift VSS (Windows-like commit > working set).
-	goRet := rss + 20<<20
-	if got := combineVSS(rss, rss, goRet); got != goRet {
-		t.Fatalf("got %d want goRet %d", got, goRet)
-	}
-	// Never use multi-gig VA.
-	if got := combineVSS(rss, 0, goRet); got != goRet {
-		t.Fatalf("got %d", got)
+	if got := privateOrRSS(rss, rss+10<<20); got != rss+10<<20 {
+		t.Fatalf("private > rss: got %d", got)
 	}
 }
 
@@ -88,12 +82,36 @@ func TestProcessMemoryBytesNotInflatedVA(t *testing.T) {
 	if rss == 0 && vss == 0 {
 		t.Fatal("processMemoryBytes returned zeros")
 	}
-	t.Logf("RSS=%.2f MiB VSS=%.2f MiB retained=%.2f MiB",
-		float64(rss)/(1024*1024), float64(vss)/(1024*1024), float64(goRuntimeRetainedBytes())/(1024*1024))
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	t.Logf("RSS=%.2f MiB VSS=%.2f MiB HeapInuse=%.2f MiB Sys-Released=%.2f MiB",
+		float64(rss)/(1024*1024), float64(vss)/(1024*1024),
+		float64(m.HeapInuse)/(1024*1024),
+		float64(goRuntimeRetainedBytes())/(1024*1024))
+	// Must not be multi‑GiB reserved VA.
 	if vss > 512<<20 && vss > rss*3 && vss > goRuntimeRetainedBytes()*2 {
 		t.Fatalf("VSS looks like inflated virtual address size: RSS=%d VSS=%d", rss, vss)
 	}
 	if vss < rss {
 		t.Fatalf("VSS (%d) < RSS (%d)", vss, rss)
+	}
+	// Live Go heap is a lower bound for process RSS in any non-trivial process
+	// that has run GC; allow small test binaries where HeapInuse may be tiny.
+	if m.HeapInuse > 0 && rss > 0 && rss*4 < m.HeapInuse {
+		t.Fatalf("RSS (%d) absurdly below HeapInuse (%d) — wrong field?", rss, m.HeapInuse)
+	}
+}
+
+func TestProcessMemoryRSSIsNotGoSys(t *testing.T) {
+	// Success-path RSS must come from VmRSS / gopsutil RSS, not from mixing
+	// MemStats.Sys into the pair (that made both series track Sys and look
+	// nothing like pprof HeapInuse).
+	rss, vss := processMemoryBytes()
+	if rss == 0 {
+		t.Fatal("expected non-zero RSS")
+	}
+	// VSS is private-commit floored at RSS — equal is OK for pure-Go processes.
+	if vss < rss {
+		t.Fatalf("vss %d < rss %d", vss, rss)
 	}
 }

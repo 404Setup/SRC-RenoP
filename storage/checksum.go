@@ -48,17 +48,18 @@ func handleChecksumFallback(c fiber.Ctx, localFilePath string, state *core.AppSt
 					c.Set(fiber.HeaderContentType, "text/plain")
 					c.Set("Content-Security-Policy", "default-src 'none'; sandbox")
 					if IsS3Enabled(localFilePath) {
-						rc, _, err := DownloadFromS3(utils.GetS3Key(localFilePath))
+						rc, info, err := DownloadFromS3(utils.GetS3Key(localFilePath))
 						if err == nil {
-							defer rc.Close()
-							data, _ := io.ReadAll(rc)
-							return true, c.Send(data)
+							if info.Size > 0 {
+								return true, c.SendStream(rc, int(info.Size))
+							}
+							return true, c.SendStream(rc)
 						}
-					} else {
-						data, err := os.ReadFile(localFilePath)
-						if err == nil {
-							return true, c.Send(data)
+					} else if f, err := os.Open(localFilePath); err == nil {
+						if st, stErr := f.Stat(); stErr == nil {
+							return true, c.SendStream(f, int(st.Size()))
 						}
+						return true, c.SendStream(f)
 					}
 				}
 				return false, nil

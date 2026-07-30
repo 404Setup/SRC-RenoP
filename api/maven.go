@@ -60,37 +60,29 @@ func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Me
 		return cachedMeta, nil
 	}
 
-	var contentBytes []byte
+	var r io.ReadCloser
 	var err error
-
 	if storage.IsS3Enabled(localFilePath) {
 		s3Key := utils.GetS3Key(localFilePath)
-		rc, _, downloadErr := storage.DownloadFromS3(s3Key)
-		if downloadErr != nil {
+		r, _, err = storage.DownloadFromS3(s3Key)
+		if err != nil {
 			return nil, fiber.ErrNotFound
 		}
-		contentBytes, err = io.ReadAll(io.LimitReader(rc, maxMetadataSize+1))
-		_ = rc.Close()
-		if err != nil {
-			return nil, fiber.ErrInternalServerError
-		}
 	} else {
-		file, openErr := os.Open(localFilePath)
-		if openErr != nil {
-			return nil, fiber.ErrInternalServerError
-		}
-		contentBytes, err = io.ReadAll(io.LimitReader(file, maxMetadataSize+1))
-		_ = file.Close()
+		r, err = os.Open(localFilePath)
 		if err != nil {
 			return nil, fiber.ErrInternalServerError
 		}
 	}
-	if len(contentBytes) > maxMetadataSize {
+	// Stream decode with a hard cap so a huge metadata cannot inflate memory.
+	limited := &io.LimitedReader{R: r, N: int64(maxMetadataSize) + 1}
+	var metadata config.Metadata
+	decErr := xml.NewDecoder(limited).Decode(&metadata)
+	_ = r.Close()
+	if limited.N <= 0 {
 		return nil, fiber.ErrRequestEntityTooLarge
 	}
-
-	var metadata config.Metadata
-	if err := xml.Unmarshal(contentBytes, &metadata); err != nil {
+	if decErr != nil {
 		return nil, fiber.ErrInternalServerError
 	}
 
