@@ -9,7 +9,7 @@
  */
 
 import {getCurrentLang, t} from '../i18n.js';
-import {clear, el} from '@renop/ui';
+import {clear, el, registerTabContainer, updateTabIndicator} from '@renop/ui';
 import {
     detectPlatform,
     fetchPreviewReleases,
@@ -26,6 +26,7 @@ import {makeCustomSelect} from '../components/custom-select.js';
 
 const STORAGE_OS = 'renop_web_os';
 const STORAGE_ARCH = 'renop_web_arch';
+const STABLE_PAGE_SIZE = 5;
 
 /**
  * Load saved OS/arch from localStorage, falling back to auto-detection.
@@ -83,6 +84,7 @@ function createCustomField(label, options, value, onChange) {
  * @param {() => void} [opts.onDownload]
  * @param {string} opts.statusId
  * @param {boolean} [opts.disabled]
+ * @param {number} [opts.index=0]
  * @returns {HTMLElement}
  */
 function releaseCard({
@@ -94,8 +96,14 @@ function releaseCard({
                          onDownload,
                          statusId,
                          disabled = false,
+                         index = 0,
                      }) {
-    const card = el('article', {class: 'card release-card'});
+    const card = el('article', {
+        class: 'card release-card release-card-enter',
+        style: {
+            animationDelay: `${index * 60}ms`,
+        },
+    });
     const header = el('div', {class: 'release-header'},
         el('div', {},
             el('h3', {class: 'release-title'},
@@ -162,6 +170,8 @@ export async function renderDownload({root}) {
     document.title = `RenoP — ${t('download.title')}`;
 
     let channel = 'stable';
+    let currentPage = 1;
+    let cachedReleases = null;
     let listRequestId = 0;
     const platform = loadSavedPlatform();
     let os = platform.os;
@@ -170,9 +180,8 @@ export async function renderDownload({root}) {
     const hero = el('header', {class: 'page-hero'},
         el('h1', {}, t('download.title')),
     );
-    root.appendChild(hero);
 
-    const tabs = el('div', {class: 'tabs-container'},
+    const tabsContainer = el('div', {class: 'tabs-container'},
         el('div', {class: 'tabs'},
             el('button', {
                 type: 'button',
@@ -186,13 +195,16 @@ export async function renderDownload({root}) {
             }, t('download.preview')),
         ),
     );
-    root.appendChild(tabs);
+
+    const tabsEl = tabsContainer.querySelector('.tabs');
+    registerTabContainer(tabsEl);
 
     const osField = createCustomField(t('download.os'), PLATFORMS.os, os, (v) => {
         os = v;
         arch = archField.select.setOptions(getArchOptionsForOs(os), arch);
         savePlatform(os, arch);
         ensurePlatform();
+        renderPageContent();
     });
     const archField = createCustomField(
         t('download.arch'),
@@ -202,6 +214,7 @@ export async function renderDownload({root}) {
             arch = v;
             savePlatform(os, arch);
             ensurePlatform();
+            renderPageContent();
         },
     );
 
@@ -209,18 +222,23 @@ export async function renderDownload({root}) {
         osField.field,
         archField.field,
     );
-    root.appendChild(toolbar);
 
     const platformWarn = el('p', {
         class: 'platform-required',
         style: {display: 'none'},
     }, t('download.platformRequired'));
-    root.appendChild(platformWarn);
 
-    const list = el('div', {class: 'download-list'},
-        el('p', {class: 'download-loading'}, t('download.loading')),
-    );
+    const list = el('div', {class: 'download-list'});
+    const paginationWrapper = el('div', {class: 'download-pagination-wrapper'});
+
+    root.appendChild(hero);
+    root.appendChild(tabsContainer);
+    root.appendChild(toolbar);
+    root.appendChild(platformWarn);
     root.appendChild(list);
+    root.appendChild(paginationWrapper);
+
+    requestAnimationFrame(() => updateTabIndicator(tabsEl));
 
     /**
      * @returns {boolean}
@@ -236,18 +254,27 @@ export async function renderDownload({root}) {
      * @returns {void}
      */
     function setActiveTab(nextChannel) {
+        if (channel === nextChannel) return;
         channel = nextChannel;
-        tabs.querySelectorAll('.tab').forEach((b) => {
+        currentPage = 1;
+        cachedReleases = null;
+
+        tabsEl.querySelectorAll('.tab').forEach((b) => {
             b.classList.toggle('active', b.getAttribute('data-channel') === nextChannel);
         });
+        updateTabIndicator(tabsEl);
+
+        list.classList.remove('is-switching');
+        void list.offsetWidth;
+        list.classList.add('is-switching');
+
+        void fetchAndRender();
     }
 
-    tabs.querySelectorAll('.tab').forEach((btn) => {
+    tabsEl.querySelectorAll('.tab').forEach((btn) => {
         btn.addEventListener('click', () => {
             const next = btn.getAttribute('data-channel');
-            if (!next || next === channel) return;
-            setActiveTab(next);
-            void refreshList();
+            if (next) setActiveTab(next);
         });
     });
 
@@ -270,82 +297,148 @@ export async function renderDownload({root}) {
         setStatus(statusId, t('download.ready'), 'ok');
     }
 
+    function animateAndRenderPage() {
+        list.classList.remove('is-switching');
+        void list.offsetWidth;
+        list.classList.add('is-switching');
+        renderPageContent();
+    }
+
+    function renderPageContent() {
+        clear(list);
+        clear(paginationWrapper);
+
+        const releases = cachedReleases || [];
+        if (!releases.length) {
+            list.appendChild(el('p', {class: 'download-empty animate-fade-in'}, t('download.noReleases')));
+            return;
+        }
+
+        const isStable = channel === 'stable';
+        const pageSize = STABLE_PAGE_SIZE;
+        const totalPages = Math.ceil(releases.length / pageSize) || 1;
+
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * pageSize;
+        const pageReleases = releases.slice(startIdx, startIdx + pageSize);
+
+        pageReleases.forEach((rel, index) => {
+            const globalIndex = startIdx + index;
+            const statusId = `status-${channel}-${globalIndex}`;
+            if (isStable) {
+                list.appendChild(
+                    releaseCard({
+                        title: rel.tag || rel.name,
+                        badge: t('download.stableBadge'),
+                        date: formatDate(rel.publishedAt, getCurrentLang()),
+                        body: rel.body,
+                        statusId,
+                        index,
+                        onDownload: () => downloadPackage('stable', {
+                            version: rel.id || rel.tag,
+                            tag: rel.tag,
+                            targets: rel.targets,
+                        }, statusId),
+                    }),
+                );
+            } else {
+                const target = findTargetForPlatform(rel.targets, os, arch);
+                const isAvailable = globalIndex === 0 && Boolean(target?.file);
+                list.appendChild(
+                    releaseCard({
+                        title: rel.name || t('download.latestPreview'),
+                        badge: t('download.previewBadge'),
+                        badgeClass: 'release-badge--preview',
+                        date: formatDate(rel.publishedAt, getCurrentLang()),
+                        body: rel.body,
+                        statusId,
+                        index,
+                        disabled: !isAvailable,
+                        onDownload: () => downloadPackage('nightly', {
+                            version: rel.version,
+                            tag: rel.tag,
+                            targets: rel.targets,
+                        }, statusId),
+                    }),
+                );
+            }
+        });
+
+        if (totalPages > 1) {
+            const prevBtn = el('button', {
+                type: 'button',
+                class: `pill-btn pill-btn--soft pill-btn--sm${currentPage <= 1 ? ' pill-btn--disabled' : ''}`,
+                disabled: currentPage <= 1,
+                onClick: () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        animateAndRenderPage();
+                    }
+                },
+            }, t('download.prev'));
+
+            const pageInfo = el('span', {class: 'download-page-info'},
+                t('download.page', {page: currentPage, total: totalPages})
+            );
+
+            const nextBtn = el('button', {
+                type: 'button',
+                class: `pill-btn pill-btn--soft pill-btn--sm${currentPage >= totalPages ? ' pill-btn--disabled' : ''}`,
+                disabled: currentPage >= totalPages,
+                onClick: () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        animateAndRenderPage();
+                    }
+                },
+            }, t('download.next'));
+
+            paginationWrapper.appendChild(
+                el('div', {class: 'download-pagination'},
+                    prevBtn,
+                    pageInfo,
+                    nextBtn,
+                )
+            );
+        }
+    }
+
     /**
      * @returns {Promise<void>}
      */
-    async function refreshList() {
+    async function fetchAndRender() {
         const requestId = ++listRequestId;
         const requestedChannel = channel;
 
         clear(list);
-        list.appendChild(el('p', {class: 'download-loading'}, t('download.loading')));
+        clear(paginationWrapper);
+        list.appendChild(el('p', {class: 'download-loading animate-fade-in'}, t('download.loading')));
 
         try {
+            let releases = [];
             if (requestedChannel === 'stable') {
-                const releases = await fetchStableReleases();
-                if (requestId !== listRequestId || channel !== 'stable') return;
-                clear(list);
-                if (!releases?.length) {
-                    list.appendChild(el('p', {class: 'download-empty'}, t('download.noReleases')));
-                    return;
-                }
-                releases.forEach((rel, index) => {
-                    const statusId = `status-stable-${index}`;
-                    list.appendChild(
-                        releaseCard({
-                            title: rel.tag || rel.name,
-                            badge: t('download.stableBadge'),
-                            date: formatDate(rel.publishedAt, getCurrentLang()),
-                            body: rel.body,
-                            statusId,
-                            onDownload: () => downloadPackage('stable', {
-                                version: rel.id || rel.tag,
-                                tag: rel.tag,
-                                targets: rel.targets,
-                            }, statusId),
-                        }),
-                    );
-                });
+                releases = await fetchStableReleases();
             } else {
-                const previews = await fetchPreviewReleases();
-                if (requestId !== listRequestId || channel !== 'preview') return;
-                clear(list);
-                if (!previews?.length) {
-                    list.appendChild(el('p', {class: 'download-empty'}, t('download.noReleases')));
-                    return;
-                }
-                previews.forEach((prev, index) => {
-                    const statusId = `status-preview-${index}`;
-                    const target = findTargetForPlatform(prev.targets, os, arch);
-                    const isAvailable = index === 0 && Boolean(target?.file);
-                    list.appendChild(
-                        releaseCard({
-                            title: prev.name || t('download.latestPreview'),
-                            badge: t('download.previewBadge'),
-                            badgeClass: 'release-badge--preview',
-                            date: formatDate(prev.publishedAt, getCurrentLang()),
-                            body: prev.body,
-                            statusId,
-                            disabled: !isAvailable,
-                            onDownload: () => downloadPackage('nightly', {
-                                version: prev.version,
-                                tag: prev.tag,
-                                targets: prev.targets,
-                            }, statusId),
-                        }),
-                    );
-                });
+                releases = await fetchPreviewReleases();
             }
+
+            if (requestId !== listRequestId || channel !== requestedChannel) return;
+
+            cachedReleases = releases || [];
+            renderPageContent();
         } catch (err) {
             if (requestId !== listRequestId) return;
             console.error(err);
             clear(list);
-            list.appendChild(el('p', {class: 'download-error'}, t('download.loadError')));
+            clear(paginationWrapper);
+            list.appendChild(el('p', {class: 'download-error animate-fade-in'}, t('download.loadError')));
         }
     }
 
     ensurePlatform();
-    await refreshList();
+    await fetchAndRender();
 
     return () => {
         listRequestId += 1;
@@ -353,3 +446,4 @@ export async function renderDownload({root}) {
         archField.select.destroy();
     };
 }
+

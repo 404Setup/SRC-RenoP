@@ -140,24 +140,30 @@ html.dark .release-badge--preview {
     color: var(--success-color);
 }
 
+.download-pagination-wrapper {
+    margin-top: 1.5rem;
+}
+
 .download-pagination {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 0.75rem;
-    margin-top: 1.5rem;
     flex-wrap: wrap;
+    animation: downloadItemFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .download-page-info {
     font-size: 0.88rem;
+    font-weight: 600;
     color: var(--muted);
     min-width: 6rem;
     text-align: center;
 }
 
 .download-loading,
-.download-error {
+.download-error,
+.download-empty {
     padding: 2.5rem 1rem;
     text-align: center;
     color: var(--muted);
@@ -172,3 +178,40 @@ html.dark .release-badge--preview {
     color: #ef4444;
     margin: 0 0 0.75rem;
 }
+
+/* Animations for component entrance and channel switching */
+@keyframes downloadItemFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.release-card-enter {
+    animation: downloadItemFadeIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: opacity, transform;
+}
+
+@keyframes downloadContentSwitch {
+    0% {
+        opacity: 0.35;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.download-list.is-switching {
+    animation: downloadContentSwitch 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+    animation: downloadItemFadeIn 0.28s ease-out forwards;
+}
+
