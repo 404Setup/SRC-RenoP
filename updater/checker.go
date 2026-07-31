@@ -503,28 +503,17 @@ func fetchChannelInfo(ctx context.Context, ch Channel) (*ChannelInfo, error) {
 		}
 		return nil, fmt.Errorf("official update check failed: %w", err)
 	}
-	if strings.TrimSpace(info.Version) == "" && len(info.Releases) > 0 {
-		info.Version = info.Releases[0].Version
-		info.Commit = info.Releases[0].Commit
-		info.Channel = info.Releases[0].Channel
-		info.Development = info.Releases[0].Development
-		info.PublishedAt = info.Releases[0].PublishedAt
-		info.Changelog = info.Releases[0].Changelog
-	}
-	if strings.TrimSpace(info.Version) == "" {
-		return nil, errors.New("official info.json missing version")
+	if len(info.Releases) == 0 || strings.TrimSpace(info.Releases[0].Version) == "" {
+		return nil, errors.New("official info.json missing releases")
 	}
 	return &info, nil
 }
 
 func findTarget(info *ChannelInfo, goos, goarch string) *ChannelInfoTarget {
-	if info == nil {
+	if info == nil || len(info.Releases) == 0 {
 		return nil
 	}
-	targets := info.Targets
-	if len(targets) == 0 && len(info.Releases) > 0 {
-		targets = info.Releases[0].Targets
-	}
+	targets := info.Releases[0].Targets
 	goos = strings.ToLower(goos)
 	goarch = strings.ToLower(goarch)
 	for i := range targets {
@@ -553,6 +542,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 		return nil, err
 	}
 
+	latestRel := &info.Releases[0]
 	target := findTarget(info, runtime.GOOS, runtime.GOARCH)
 
 	downloadURL := ""
@@ -561,21 +551,18 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 		if target.DownloadURL != "" {
 			downloadURL = target.DownloadURL
 		} else {
-			downloadURL = packageURL(ChannelRelease, info.Version, target.File)
+			downloadURL = packageURL(ChannelRelease, latestRel.Version, target.File)
 		}
 		size = target.Size
 	}
 
-	relNotes := info.Changelog
-	if relNotes == "" && len(info.Releases) > 0 {
-		relNotes = info.Releases[0].Changelog
-	}
-	relDate := info.PublishedAt
-	commitSha := strings.TrimSpace(info.Commit)
+	relNotes := latestRel.Changelog
+	relDate := latestRel.PublishedAt
+	commitSha := strings.TrimSpace(latestRel.Commit)
 
 	if relNotes == "" {
 		var rel GithubReleaseResponse
-		tagCandidates := []string{info.Version, "v" + strings.TrimPrefix(info.Version, "v")}
+		tagCandidates := []string{latestRel.Version, "v" + strings.TrimPrefix(latestRel.Version, "v")}
 		for _, tag := range tagCandidates {
 			url := "https://api.github.com/repos/404Setup/SRC-RenoP/releases/tags/" + tag
 			if _, err := doGitHubJSON(checkCtx, url, &rel); err == nil {
@@ -596,7 +583,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 		}
 		if relNotes == "" {
 			if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/releases/latest", &rel); err == nil {
-				if normalizeVersionID(rel.TagName) == normalizeVersionID(info.Version) {
+				if normalizeVersionID(rel.TagName) == normalizeVersionID(latestRel.Version) {
 					relNotes = rel.Body
 					if relNotes == "" {
 						relNotes = rel.Name
@@ -610,9 +597,9 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 
 	var commits []GithubCommitResponse
 	currN := normalizeVersionID(version.Version)
-	remoteN := normalizeVersionID(info.Version)
+	remoteN := normalizeVersionID(latestRel.Version)
 	needCommitOrder := target != nil &&
-		!versionsMatch(version.Version, info.Version, commitSha) &&
+		!versionsMatch(version.Version, latestRel.Version, commitSha) &&
 		!(looksLikeSemver(currN) && looksLikeSemver(remoteN)) &&
 		findReleaseIndex(info.Releases, version.Version) < 0
 
@@ -623,9 +610,9 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
 		}
 	}
-	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
+	hasUpdate := decideHasUpdate(version.Version, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
 
-	latestVersion := info.Version
+	latestVersion := latestRel.Version
 	if !strings.HasPrefix(latestVersion, "v") && looksLikeSemver(latestVersion) {
 		latestVersion = "v" + latestVersion
 	}
@@ -680,6 +667,7 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 		return nil, err
 	}
 
+	latestRel := &info.Releases[0]
 	target := findTarget(info, runtime.GOOS, runtime.GOARCH)
 
 	downloadURL := ""
@@ -688,23 +676,20 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 		if target.DownloadURL != "" {
 			downloadURL = target.DownloadURL
 		} else {
-			downloadURL = packageURL(ChannelNightly, info.Version, target.File)
+			downloadURL = packageURL(ChannelNightly, latestRel.Version, target.File)
 		}
 		size = target.Size
 	}
 
-	commitSha := strings.TrimSpace(info.Commit)
+	commitSha := strings.TrimSpace(latestRel.Commit)
 
 	var commits []GithubCommitResponse
-	releaseNotes := info.Changelog
-	if releaseNotes == "" && len(info.Releases) > 0 {
-		releaseNotes = info.Releases[0].Changelog
-	}
-	commitDate := info.PublishedAt
+	releaseNotes := latestRel.Changelog
+	commitDate := latestRel.PublishedAt
 	currentExistsOutside := false
 
 	needCommitOrder := target != nil &&
-		!versionsMatch(version.Version, info.Version, commitSha) &&
+		!versionsMatch(version.Version, latestRel.Version, commitSha) &&
 		findReleaseIndex(info.Releases, version.Version) < 0
 
 	if releaseNotes == "" || needCommitOrder {
@@ -722,9 +707,9 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	const maxNotes = 4 << 10
 	releaseNotes = clipString(releaseNotes, maxNotes)
 
-	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
+	hasUpdate := decideHasUpdate(version.Version, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
 
-	latestVersion := info.Version
+	latestVersion := latestRel.Version
 	if !strings.HasPrefix(latestVersion, "nightly-") {
 		latestVersion = "nightly-" + normalizeVersionID(latestVersion)
 	}

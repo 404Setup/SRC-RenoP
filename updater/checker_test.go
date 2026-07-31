@@ -107,7 +107,7 @@ func TestClipStringSmallDoesNotRetainFullBacking(t *testing.T) {
 
 func TestDoJSONGetDoesNotRetainResponseBuffer(t *testing.T) {
 	padding := strings.Repeat("x", 500<<10)
-	payload := `{"version":"1.2.3","commit":"` + padding + `"}`
+	payload := `{"releases":[{"version":"1.2.3","commit":"` + padding + `"}]}`
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -120,8 +120,8 @@ func TestDoJSONGetDoesNotRetainResponseBuffer(t *testing.T) {
 	if err != nil || status != 200 {
 		t.Fatalf("doJSONGet failed: status=%d, err=%v", status, err)
 	}
-	if info.Version != "1.2.3" {
-		t.Fatalf("version=%q", info.Version)
+	if len(info.Releases) == 0 || info.Releases[0].Version != "1.2.3" {
+		t.Fatalf("version=%v", info.Releases)
 	}
 
 	runtime.GC()
@@ -374,10 +374,14 @@ func TestVersionsMatch(t *testing.T) {
 
 func TestFindTarget(t *testing.T) {
 	info := &ChannelInfo{
-		Version: "abc1234",
-		Targets: []ChannelInfoTarget{
-			{OS: "linux", Arch: "amd64", File: "renop-abc1234-linux-amd64.zip", Size: 10},
-			{OS: "windows", Arch: "amd64", File: "renop-abc1234-windows-amd64.zip", Size: 20},
+		Releases: []ChannelInfoRelease{
+			{
+				Version: "abc1234",
+				Targets: []ChannelInfoTarget{
+					{OS: "linux", Arch: "amd64", File: "renop-abc1234-linux-amd64.zip", Size: 10},
+					{OS: "windows", Arch: "amd64", File: "renop-abc1234-windows-amd64.zip", Size: 20},
+				},
+			},
 		},
 	}
 	got := findTarget(info, "linux", "amd64")
@@ -387,26 +391,17 @@ func TestFindTarget(t *testing.T) {
 	if findTarget(info, "openbsd", "arm64") != nil {
 		t.Fatal("missing platform should be nil")
 	}
-	info2 := &ChannelInfo{Targets: []ChannelInfoTarget{
-		{File: "renop-x-freebsd-arm64.zip", Size: 3},
-	}}
-	if findTarget(info2, "freebsd", "arm64") == nil {
-		t.Fatal("filename fallback failed")
-	}
-	info3 := &ChannelInfo{
-		Version: "abc1234",
+	info2 := &ChannelInfo{
 		Releases: []ChannelInfoRelease{
 			{
-				Version: "abc1234",
 				Targets: []ChannelInfoTarget{
-					{OS: "darwin", Arch: "arm64", File: "renop-abc1234-darwin-arm64.zip", Size: 50},
+					{File: "renop-x-freebsd-arm64.zip", Size: 3},
 				},
 			},
 		},
 	}
-	got3 := findTarget(info3, "darwin", "arm64")
-	if got3 == nil || got3.Size != 50 {
-		t.Fatalf("releases target fallback failed: %+v", got3)
+	if findTarget(info2, "freebsd", "arm64") == nil {
+		t.Fatal("filename fallback failed")
 	}
 }
 
@@ -455,21 +450,25 @@ func TestResolveCheckChannelFromConfig(t *testing.T) {
 
 func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 	info := &ChannelInfo{
-		Version: "1.2.3",
-		Commit:  "newsha1full00000000000000000000000000000",
-		Targets: []ChannelInfoTarget{
-			{OS: "linux", Arch: "mips64", File: "only-mips.zip", Size: 1},
+		Releases: []ChannelInfoRelease{
+			{
+				Version: "1.2.3",
+				Commit:  "newsha1full00000000000000000000000000000",
+				Targets: []ChannelInfoTarget{
+					{OS: "linux", Arch: "mips64", File: "only-mips.zip", Size: 1},
+				},
+			},
 		},
 	}
 	target := findTarget(info, "windows", "amd64")
-	if decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, nil, false) {
+	if decideHasUpdate("0.0.1", info.Releases[0].Version, info.Releases[0].Commit, target, nil, nil, false) {
 		t.Fatal("must not report update when platform package is missing")
 	}
-	info.Targets = append(info.Targets, ChannelInfoTarget{
+	info.Releases[0].Targets = append(info.Releases[0].Targets, ChannelInfoTarget{
 		OS: "windows", Arch: "amd64", File: "win.zip", Size: 2,
 	})
 	target = findTarget(info, "windows", "amd64")
-	if !decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, nil, false) {
+	if !decideHasUpdate("0.0.1", info.Releases[0].Version, info.Releases[0].Commit, target, nil, nil, false) {
 		t.Fatal("must report update when platform package exists and version differs")
 	}
 }

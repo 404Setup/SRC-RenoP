@@ -380,13 +380,7 @@ foreach ($t in $targets) {
 }
 
 $info = [ordered]@{
-    version      = $Version
-    commit       = $Commit
-    channel      = $Channel
-    development  = ($Channel -eq 'nightly')
-    published_at = $publishedAt
-    changelog    = $Changelog
-    releases     = $updatedReleases
+    releases = $updatedReleases
 }
 $infoJson = $info | ConvertTo-Json -Depth 8
 $infoLocal = Join-Path $DistDir 'info.json'
