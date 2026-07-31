@@ -75,7 +75,6 @@ export default {
     "docs.toggleCategories": "Показать или скрыть категории",
 
     "download.title": "Скачать",
-    "download.lead": "",
     "download.stable": "Стабильная",
     "download.preview": "Предпросмотр",
     "download.os": "ОС",
@@ -98,6 +97,7 @@ export default {
     "download.latestPreview": "Последний preview",
     "download.previewBadge": "Nightly",
     "download.stableBadge": "Release",
+    "download.buildUnavailable": "Сборка недоступна для этого предпросмотра",
 
     "contributors.title": "Участники",
     "contributors.lead": "Контрибьюторы RenoP на GitHub.",

@@ -107,12 +107,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: '*'
           path: dist
           merge-multiple: true
+      - name: Generate changelog
+        id: changelog
+        shell: pwsh
+        env:
+          COMMIT: ${{ needs.metadata.outputs.commit }}
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'changelog.md'
+          pwsh -NoProfile -File ./.github/scripts/generate-changelog.ps1 `
+              -Commit $env:COMMIT `
+              -OutFile $out
+          "path=$out" >> $env:GITHUB_OUTPUT
       - name: Publish packages
         shell: pwsh
         env:
@@ -129,10 +142,11 @@ jobs:
               -Channel $channel `
               -DistDir ./dist `
               -Version $env:VERSION `
-              -Commit $env:COMMIT
+              -Commit $env:COMMIT `
+              -ChangelogFile "${{ steps.changelog.outputs.path }}"
 
   release:
-    name: Publish GitHub release notes
+    name: Publish GitHub release notes and assets
     needs: [metadata, build, publish]
     if: needs.metadata.outputs.release == 'true' && needs.metadata.outputs.skip != 'true'
     runs-on: ubuntu-latest
@@ -141,6 +155,12 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '*'
+          path: dist
+          merge-multiple: true
       - name: Build changelog from commits
         id: changelog
         shell: pwsh
@@ -163,3 +183,4 @@ jobs:
           target_commitish: ${{ needs.metadata.outputs.commit }}
           generate_release_notes: false
           body_path: ${{ steps.changelog.outputs.path }}
+          files: dist/*.zip

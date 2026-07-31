@@ -21,6 +21,12 @@
 .PARAMETER Commit
     Full git commit SHA embedded in info.json
 
+.PARAMETER Changelog
+    Release notes or commit messages content embedded in info.json
+
+.PARAMETER ChangelogFile
+    Path to file containing changelog text
+
 .PARAMETER BaseUrl
     Update host origin (default https://mvnc.pkg.one)
 #>
@@ -37,6 +43,10 @@ param(
     [string]$Version,
 
     [string]$Commit = '',
+
+    [string]$Changelog = '',
+
+    [string]$ChangelogFile = '',
 
     [string]$BaseUrl = 'https://mvnc.pkg.one'
 )
@@ -57,6 +67,21 @@ $Version = $Version.Trim()
 if ([string]::IsNullOrWhiteSpace($Version)) {
     throw 'Version must not be empty'
 }
+
+if ([string]::IsNullOrWhiteSpace($Changelog) -and -not [string]::IsNullOrWhiteSpace($ChangelogFile) -and (Test-Path -LiteralPath $ChangelogFile)) {
+    $Changelog = Get-Content -LiteralPath $ChangelogFile -Raw -Encoding utf8
+}
+if ([string]::IsNullOrWhiteSpace($Changelog)) {
+    $genScript = Join-Path $PSScriptRoot 'generate-changelog.ps1'
+    if (Test-Path -LiteralPath $genScript) {
+        try {
+            $Changelog = & pwsh -NoProfile -File $genScript -Commit (if ($Commit) { $Commit } else { 'HEAD' })
+        } catch {
+            Write-Warning "Could not auto-generate changelog: $($_.Exception.Message)"
+        }
+    }
+}
+$Changelog = if ($null -ne $Changelog) { $Changelog.Trim() } else { '' }
 
 $channelRoot = "update/renop/$Channel"
 $infoPath = "$channelRoot/info.json"
@@ -130,7 +155,7 @@ function Remove-VersionTree {
     param([Parameter(Mandatory = $true)][string]$Ver)
     if ([string]::IsNullOrWhiteSpace($Ver)) { return }
     $dirUrl = "$BaseUrl/$channelRoot/$Ver"
-    Write-Host "Deleting previous package tree: $dirUrl"
+    Write-Host "Deleting previous package tree from mvnc: $dirUrl"
     try {
         Invoke-MvncRequest -Method DELETE -Uri $dirUrl -OkStatus @(200, 204, 404) | Out-Null
     } catch {
@@ -189,24 +214,163 @@ foreach ($zip in $zipFiles) {
         $size = [int64]$zip.Length
     }
     $targets.Add([ordered]@{
-        os     = $os
-        arch   = $arch
-        file   = $name
-        sha256 = $sha
-        size   = $size
-        path   = $zip.FullName
+        os           = $os
+        arch         = $arch
+        file         = $name
+        sha256       = $sha
+        size         = $size
+        download_url = "$BaseUrl/$channelRoot/$Version/$name"
+        path         = $zip.FullName
     })
 }
 
 Write-Host "Publishing channel=$Channel version=$Version packages=$($targets.Count) base=$BaseUrl"
 
+$publishedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+
+$currentReleaseTargets = @(
+    foreach ($t in $targets) {
+        [ordered]@{
+            os           = $t.os
+            arch         = $t.arch
+            file         = $t.file
+            sha256       = $t.sha256
+            size         = $t.size
+            download_url = $t.download_url
+        }
+    }
+)
+
+$currentRelease = [ordered]@{
+    version      = $Version
+    commit       = $Commit
+    channel      = $Channel
+    development  = ($Channel -eq 'nightly')
+    published_at = $publishedAt
+    changelog    = $Changelog
+    targets      = $currentReleaseTargets
+}
+
 $remoteInfo = Get-RemoteInfo
+
+$existingReleases = [System.Collections.Generic.List[object]]::new()
 if ($null -ne $remoteInfo) {
-    $oldVersion = [string]$remoteInfo.version
-    if (-not [string]::IsNullOrWhiteSpace($oldVersion)) {
-        Remove-VersionTree -Ver $oldVersion
+    if ($remoteInfo.releases -and $remoteInfo.releases.Count -gt 0) {
+        foreach ($r in $remoteInfo.releases) {
+            $existingReleases.Add($r)
+        }
+    } elseif ($remoteInfo.version) {
+        $oldTargets = @()
+        if ($remoteInfo.targets) {
+            foreach ($ot in $remoteInfo.targets) {
+                $oldTargets += [ordered]@{
+                    os           = [string]$ot.os
+                    arch         = [string]$ot.arch
+                    file         = [string]$ot.file
+                    sha256       = [string]$ot.sha256
+                    size         = [int64]$ot.size
+                    download_url = [string]$ot.download_url
+                }
+            }
+        }
+        $existingReleases.Add([ordered]@{
+            version      = [string]$remoteInfo.version
+            commit       = [string]$remoteInfo.commit
+            channel      = [string]$remoteInfo.channel
+            development  = [bool]$remoteInfo.development
+            published_at = [string]$remoteInfo.published_at
+            changelog    = [string]$remoteInfo.changelog
+            targets      = $oldTargets
+        })
     }
 }
+
+$filtered = [System.Collections.Generic.List[object]]::new()
+foreach ($r in $existingReleases) {
+    if ([string]$r.version -ne $Version) {
+        $filtered.Add($r)
+    }
+}
+
+$updatedReleases = [System.Collections.Generic.List[object]]::new()
+$updatedReleases.Add($currentRelease)
+foreach ($r in $filtered) {
+    $updatedReleases.Add($r)
+}
+
+if ($Channel -eq 'nightly') {
+    if ($updatedReleases.Count -gt 10) {
+        $updatedReleases = [System.Collections.Generic.List[object]]($updatedReleases.GetRange(0, 10))
+    }
+    for ($i = 1; $i -lt $updatedReleases.Count; $i++) {
+        $rel = $updatedReleases[$i]
+        $relTargets = [System.Collections.Generic.List[object]]::new()
+        if ($rel.targets) {
+            foreach ($t in $rel.targets) {
+                $relTargets.Add([ordered]@{
+                    os           = [string]$t.os
+                    arch         = [string]$t.arch
+                    file         = [string]$t.file
+                    sha256       = [string]$t.sha256
+                    size         = [int64]$t.size
+                    download_url = ''
+                })
+            }
+        }
+        $rel.targets = $relTargets
+    }
+} else {
+    for ($i = 0; $i -lt $updatedReleases.Count; $i++) {
+        $rel = $updatedReleases[$i]
+        $ver = [string]$rel.version
+        $tag = if ($ver.StartsWith('v')) { $ver } else { "v$ver" }
+        $relTargets = [System.Collections.Generic.List[object]]::new()
+        if ($rel.targets) {
+            foreach ($t in $rel.targets) {
+                $file = [string]$t.file
+                $dl = if ($i -le 1) {
+                    "$BaseUrl/$channelRoot/$ver/$file"
+                } else {
+                    "https://github.com/404Setup/SRC-RenoP/releases/download/$tag/$file"
+                }
+                $relTargets.Add([ordered]@{
+                    os           = [string]$t.os
+                    arch         = [string]$t.arch
+                    file         = $file
+                    sha256       = [string]$t.sha256
+                    size         = [int64]$t.size
+                    download_url = $dl
+                })
+            }
+        }
+        $rel.targets = $relTargets
+    }
+}
+
+$allowedMvncVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+if ($Channel -eq 'nightly') {
+    $allowedMvncVersions.Add($Version) | Out-Null
+} else {
+    $allowedMvncVersions.Add($Version) | Out-Null
+    if ($updatedReleases.Count -gt 1) {
+        $allowedMvncVersions.Add([string]$updatedReleases[1].version) | Out-Null
+    }
+}
+
+$previousMvncVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($r in $existingReleases) {
+    if ($r.version) { $previousMvncVersions.Add([string]$r.version) | Out-Null }
+}
+if ($remoteInfo -and $remoteInfo.version) {
+    $previousMvncVersions.Add([string]$remoteInfo.version) | Out-Null
+}
+
+foreach ($oldVer in $previousMvncVersions) {
+    if (-not $allowedMvncVersions.Contains($oldVer)) {
+        Remove-VersionTree -Ver $oldVer
+    }
+}
+
 Remove-VersionTree -Ver $Version
 
 foreach ($t in $targets) {
@@ -215,27 +379,17 @@ foreach ($t in $targets) {
     Invoke-MvncRequest -Method PUT -Uri $dest -InFile $t.path -ContentType 'application/zip' -OkStatus @(200, 201, 204) | Out-Null
 }
 
-$publishedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-$infoTargets = @(
-    foreach ($t in $targets) {
-        [ordered]@{
-            os     = $t.os
-            arch   = $t.arch
-            file   = $t.file
-            sha256 = $t.sha256
-            size   = $t.size
-        }
-    }
-)
 $info = [ordered]@{
     version      = $Version
     commit       = $Commit
     channel      = $Channel
     development  = ($Channel -eq 'nightly')
     published_at = $publishedAt
-    targets      = $infoTargets
+    changelog    = $Changelog
+    targets      = $currentReleaseTargets
+    releases     = $updatedReleases
 }
-$infoJson = $info | ConvertTo-Json -Depth 6
+$infoJson = $info | ConvertTo-Json -Depth 8
 $infoLocal = Join-Path $DistDir 'info.json'
 [System.IO.File]::WriteAllText($infoLocal, $infoJson, [System.Text.UTF8Encoding]::new($false))
 Write-Host "PUT info.json -> $infoUrl"

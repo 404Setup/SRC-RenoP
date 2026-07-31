@@ -93,22 +93,36 @@ type CheckResult struct {
 	IsRelease          bool   `json:"is_release"`
 }
 
-// ChannelInfo is the hosted update/renop/{channel}/info.json document.
-type ChannelInfo struct {
+// ChannelInfoRelease represents information about a single release or preview build.
+type ChannelInfoRelease struct {
 	Version     string              `json:"version"`
 	Commit      string              `json:"commit"`
-	Channel     string              `json:"channel"`
-	Development bool                `json:"development"`
+	Channel     string              `json:"channel,omitempty"`
+	Development bool                `json:"development,omitempty"`
 	PublishedAt string              `json:"published_at"`
+	Changelog   string              `json:"changelog,omitempty"`
 	Targets     []ChannelInfoTarget `json:"targets"`
 }
 
+// ChannelInfo is the hosted update/renop/{channel}/info.json document.
+type ChannelInfo struct {
+	Version     string               `json:"version"`
+	Commit      string               `json:"commit"`
+	Channel     string               `json:"channel"`
+	Development bool                 `json:"development"`
+	PublishedAt string               `json:"published_at"`
+	Changelog   string               `json:"changelog,omitempty"`
+	Targets     []ChannelInfoTarget  `json:"targets"`
+	Releases    []ChannelInfoRelease `json:"releases,omitempty"`
+}
+
 type ChannelInfoTarget struct {
-	OS     string `json:"os"`
-	Arch   string `json:"arch"`
-	File   string `json:"file"`
-	SHA256 string `json:"sha256"`
-	Size   int64  `json:"size"`
+	OS          string `json:"os"`
+	Arch        string `json:"arch"`
+	File        string `json:"file"`
+	SHA256      string `json:"sha256"`
+	Size        int64  `json:"size"`
+	DownloadURL string `json:"download_url,omitempty"`
 }
 
 type GithubReleaseResponse struct {

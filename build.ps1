@@ -67,6 +67,8 @@ $displayVersion = if ($Version -match '^(?i:[0-9a-f]{40}|[0-9a-f]{64})$') {
 $safeVersion = $displayVersion -replace '[^A-Za-z0-9._-]', '_'
 
 $allTargets = @(
+    @{ GOOS = 'darwin'; GOARCH = 'amd64' },
+    @{ GOOS = 'darwin'; GOARCH = 'arm64' },
     @{ GOOS = 'freebsd'; GOARCH = 'amd64' },
     @{ GOOS = 'freebsd'; GOARCH = 'arm64' },
     @{ GOOS = 'linux'; GOARCH = 'amd64' },
@@ -85,6 +87,8 @@ $allTargets = @(
 switch ($Mode) {
     's' {
         $targets = @(
+            @{ GOOS = 'darwin'; GOARCH = 'amd64' },
+            @{ GOOS = 'darwin'; GOARCH = 'arm64' },
             @{ GOOS = 'linux'; GOARCH = 'amd64' },
             @{ GOOS = 'linux'; GOARCH = 'arm64' },
             @{ GOOS = 'windows'; GOARCH = 'amd64' }

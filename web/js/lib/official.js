@@ -20,6 +20,7 @@ const GH_HEADERS = {
 export const PLATFORMS = {
     os: [
         {value: 'windows', label: 'Windows'},
+        {value: 'darwin', label: 'macOS'},
         {value: 'linux', label: 'Linux'},
         {value: 'freebsd', label: 'FreeBSD'},
         {value: 'netbsd', label: 'NetBSD'},
@@ -40,6 +41,7 @@ export const PLATFORMS = {
  */
 export const PLATFORM_MATRIX = {
     windows: ['amd64', 'arm64'],
+    darwin: ['amd64', 'arm64'],
     linux: ['amd64', 'arm64', 'mips64', 'mips64le', 'riscv64'],
     freebsd: ['amd64', 'arm64'],
     netbsd: ['amd64', 'arm64'],
@@ -79,7 +81,7 @@ export function normalizePlatform(os, arch) {
 }
 
 /**
- * Infer OS/arch from the browser; macOS maps to linux (no native mac packages).
+ * Infer OS/arch from the browser.
  * @returns {{ os: string, arch: string }}
  */
 export function detectPlatform() {
@@ -87,12 +89,10 @@ export function detectPlatform() {
     const platform = navigator.platform || '';
     let os = 'linux';
     if (/Win/i.test(platform) || /Windows/i.test(ua)) os = 'windows';
+    else if (/Mac|iPhone|iPad/i.test(platform) || /Mac OS/i.test(ua)) os = 'darwin';
     else if (/FreeBSD/i.test(ua)) os = 'freebsd';
     else if (/NetBSD/i.test(ua)) os = 'netbsd';
     else if (/OpenBSD/i.test(ua)) os = 'openbsd';
-    else if (/Mac|iPhone|iPad/i.test(platform) || /Mac OS/i.test(ua)) {
-        os = 'linux';
-    }
 
     let arch = 'amd64';
     const uaArch = navigator.userAgentData?.architecture || '';
@@ -116,15 +116,40 @@ export function channelInfoUrl(channel) {
  * @param {'stable'|'nightly'|string} channel
  * @param {string} version
  * @param {string} file
+ * @param {string} [targetUrl]
  * @returns {string}
  */
-export function packageDownloadUrl(channel, version, file) {
+export function packageDownloadUrl(channel, version, file, targetUrl) {
+    if (targetUrl) return targetUrl;
     const seg = channel === 'nightly' || channel === 'preview' ? 'nightly' : 'stable';
     return `${OFFICIAL_UPDATE_BASE}/${seg}/${encodeURIComponent(version)}/${encodeURIComponent(file)}`;
 }
 
+function parseTarget(t) {
+    return {
+        os: String(t.os || ''),
+        arch: String(t.arch || ''),
+        file: String(t.file || ''),
+        sha256: String(t.sha256 || ''),
+        size: Number(t.size) || 0,
+        downloadUrl: String(t.download_url || t.downloadUrl || ''),
+    };
+}
+
+function parseReleaseItem(r, channelDefault) {
+    return {
+        version: String(r.version || ''),
+        commit: String(r.commit || ''),
+        channel: String(r.channel || channelDefault),
+        development: Boolean(r.development),
+        publishedAt: String(r.published_at || r.publishedAt || ''),
+        changelog: String(r.changelog || ''),
+        targets: Array.isArray(r.targets) ? r.targets.map(parseTarget) : [],
+    };
+}
+
 /**
- * Fetch hosted channel metadata (version, commit, per-platform packages).
+ * Fetch hosted channel metadata (version, commit, per-platform packages, releases list).
  * @param {'stable'|'nightly'|string} channel
  * @returns {Promise<{
  *   version: string,
@@ -132,7 +157,9 @@ export function packageDownloadUrl(channel, version, file) {
  *   channel: string,
  *   development: boolean,
  *   publishedAt: string,
- *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number }>
+ *   changelog: string,
+ *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, downloadUrl: string }>,
+ *   releases: Array<{ version: string, commit: string, channel: string, development: boolean, publishedAt: string, changelog: string, targets: Array }>
  * }>}
  */
 export async function fetchChannelInfo(channel) {
@@ -140,29 +167,27 @@ export async function fetchChannelInfo(channel) {
     if (!res.ok) throw new Error(`Official update source HTTP ${res.status}`);
     const data = await res.json();
     if (!data?.version) throw new Error('Invalid channel info.json');
+    const releases = Array.isArray(data.releases) && data.releases.length > 0
+        ? data.releases.map((r) => parseReleaseItem(r, channel))
+        : [parseReleaseItem(data, channel)];
+
     return {
         version: String(data.version),
         commit: String(data.commit || ''),
         channel: String(data.channel || channel),
         development: Boolean(data.development),
         publishedAt: String(data.published_at || data.publishedAt || ''),
-        targets: Array.isArray(data.targets)
-            ? data.targets.map((t) => ({
-                os: String(t.os || ''),
-                arch: String(t.arch || ''),
-                file: String(t.file || ''),
-                sha256: String(t.sha256 || ''),
-                size: Number(t.size) || 0,
-            }))
-            : [],
+        changelog: String(data.changelog || ''),
+        targets: Array.isArray(data.targets) ? data.targets.map(parseTarget) : [],
+        releases,
     };
 }
 
 /**
- * @param {Array<{ os?: string, arch?: string, file?: string }>|null|undefined} targets
+ * @param {Array<{ os?: string, arch?: string, file?: string, downloadUrl?: string }>|null|undefined} targets
  * @param {string} os
  * @param {string} arch
- * @returns {{ os?: string, arch?: string, file?: string, sha256?: string, size?: number }|null}
+ * @returns {{ os?: string, arch?: string, file?: string, sha256?: string, size?: number, downloadUrl?: string }|null}
  */
 export function findTargetForPlatform(targets, os, arch) {
     if (!targets?.length || !os || !arch) return null;
@@ -198,92 +223,93 @@ export function isWebOnlyCommit(subject) {
 }
 
 /**
- * Stable channel card: packages from official host, notes from matching GitHub release.
- * @returns {Promise<{
+ * Fetch all stable releases from info.json.
+ * @returns {Promise<Array<{
  *   id: string,
  *   tag: string,
  *   name: string,
  *   body: string,
  *   publishedAt: string,
  *   commitSha: string,
- *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number }>
- * }>}
+ *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, downloadUrl: string }>
+ * }>>}
  */
-export async function fetchStableRelease() {
+export async function fetchStableReleases() {
     const info = await fetchChannelInfo('stable');
-    let body = '';
-    let publishedAt = info.publishedAt;
-    const tags = [info.version, info.version.startsWith('v') ? info.version : `v${info.version}`];
-    for (const tag of tags) {
-        try {
-            const res = await fetch(
-                `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${encodeURIComponent(tag)}`,
-                {headers: GH_HEADERS},
-            );
-            if (!res.ok) continue;
-            const rel = await res.json();
-            body = rel.body || rel.name || '';
-            publishedAt = rel.published_at || rel.created_at || publishedAt;
-            break;
-        } catch {
-            /* ignore */
-        }
-    }
-    return {
-        id: info.version,
-        tag: info.version.startsWith('v') ? info.version : `v${info.version}`,
-        name: info.version,
-        body,
-        publishedAt,
-        commitSha: info.commit,
-        targets: info.targets,
-    };
+    return info.releases.map((rel, index) => {
+        const ver = rel.version;
+        const tag = ver.startsWith('v') ? ver : `v${ver}`;
+        const targets = (rel.targets || []).map((t) => {
+            let downloadUrl = t.downloadUrl;
+            if (!downloadUrl) {
+                if (index <= 1) {
+                    downloadUrl = packageDownloadUrl('stable', ver, t.file);
+                } else {
+                    downloadUrl = `https://github.com/${GITHUB_REPO}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(t.file)}`;
+                }
+            }
+            return {...t, downloadUrl};
+        });
+        return {
+            id: ver,
+            tag,
+            name: ver,
+            body: rel.changelog || '',
+            publishedAt: rel.publishedAt,
+            commitSha: rel.commit,
+            targets,
+        };
+    });
 }
 
 /**
- * Nightly/preview card: packages from official host, subject from GitHub commit.
- * @returns {Promise<{
+ * Stable channel latest card.
+ */
+export async function fetchStableRelease() {
+    const list = await fetchStableReleases();
+    return list[0];
+}
+
+/**
+ * Fetch up to 10 preview releases from info.json.
+ * @returns {Promise<Array<{
+ *   id: string,
  *   tag: string,
  *   name: string,
  *   body: string,
  *   publishedAt: string,
  *   commitSha: string,
  *   version: string,
- *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number }>
- * }>}
+ *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, downloadUrl: string }>,
+ *   isLatest: boolean
+ * }>>}
+ */
+export async function fetchPreviewReleases() {
+    const info = await fetchChannelInfo('nightly');
+    const items = info.releases.slice(0, 10);
+    return items.map((rel, index) => {
+        const short = (rel.commit || rel.version || '').slice(0, 7) || rel.version;
+        const name = rel.version.startsWith('nightly-') ? rel.version : `nightly-${short}`;
+        return {
+            id: rel.version,
+            tag: name,
+            name,
+            body: rel.changelog || '',
+            publishedAt: rel.publishedAt,
+            commitSha: rel.commit,
+            version: rel.version,
+            targets: rel.targets,
+            isLatest: index === 0,
+        };
+    });
+}
+
+/**
+ * Preview channel latest card.
  */
 export async function fetchPreviewInfo() {
-    const info = await fetchChannelInfo('nightly');
-    let body = '';
-    let publishedAt = info.publishedAt;
-    if (info.commit) {
-        try {
-            const res = await fetch(
-                `https://api.github.com/repos/${GITHUB_REPO}/commits/${encodeURIComponent(info.commit)}`,
-                {headers: GH_HEADERS},
-            );
-            if (res.ok) {
-                const c = await res.json();
-                body = commitSubject(c.commit?.message);
-                publishedAt =
-                    c.commit?.committer?.date ||
-                    c.commit?.author?.date ||
-                    publishedAt;
-            }
-        } catch {
-            /* ignore */
-        }
-    }
-    const short = (info.commit || info.version || '').slice(0, 7) || info.version;
-    return {
-        tag: `nightly-${short}`,
-        name: `nightly-${short}`,
-        body,
-        publishedAt,
-        commitSha: info.commit,
-        version: info.version,
-        targets: info.targets,
-    };
+    const list = await fetchPreviewReleases();
+    return list[0];
 }
 
 /**

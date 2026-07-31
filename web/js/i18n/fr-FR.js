@@ -75,7 +75,6 @@ export default {
     "docs.toggleCategories": "Afficher ou masquer les catégories",
 
     "download.title": "Télécharger",
-    "download.lead": "",
     "download.stable": "Stable",
     "download.preview": "Aperçu",
     "download.os": "OS",
@@ -98,6 +97,7 @@ export default {
     "download.latestPreview": "Dernier aperçu",
     "download.previewBadge": "Nightly",
     "download.stableBadge": "Release",
+    "download.buildUnavailable": "Build non disponible pour cette préversion",
 
     "contributors.title": "Contributeurs",
     "contributors.lead": "Contributeurs GitHub du dépôt RenoP.",

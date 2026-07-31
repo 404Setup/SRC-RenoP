@@ -75,7 +75,6 @@ export default {
     "docs.toggleCategories": "展开或收起分类",
 
     "download.title": "下载",
-    "download.lead": "",
     "download.stable": "正式版",
     "download.preview": "预览版",
     "download.os": "操作系统",
@@ -98,6 +97,7 @@ export default {
     "download.latestPreview": "最新预览版",
     "download.previewBadge": "Nightly",
     "download.stableBadge": "正式版",
+    "download.buildUnavailable": "该预览版暂无可下载的构建",
 
     "contributors.title": "贡献者",
     "contributors.lead": "RenoP 仓库的 GitHub 贡献者。",

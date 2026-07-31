@@ -26,10 +26,10 @@ description: Télécharger le binaire RenoP
 Go, PowerShell 7, Node.js.
 
 ```powershell
-pwsh ./build.ps1                 # matrice complète → dist/
-pwsh ./build.ps1 s               # Linux amd64/arm64, Windows amd64
-pwsh ./build.ps1 c               # plateforme courante
-pwsh ./build.ps1 c nb            # plateforme courante, sans zip
+pwsh ./build.ps1
+pwsh ./build.ps1 s
+pwsh ./build.ps1 c
+pwsh ./build.ps1 c nb
 ```
 
 Voir le `README.md` du dépôt.

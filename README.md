@@ -66,10 +66,10 @@ Most settings can also be changed from the management UI. Restart the server aft
 Building from source requires **Go**, **PowerShell 7**, and **Node.js** (for the frontend Rolldown bundle).
 
 ```powershell
-pwsh ./build.ps1                 # full target matrix, packaged in dist/
-pwsh ./build.ps1 s               # Linux amd64/arm64 and Windows amd64
-pwsh ./build.ps1 c               # current platform only
-pwsh ./build.ps1 c nb            # current platform, no archive
+pwsh ./build.ps1
+pwsh ./build.ps1 s
+pwsh ./build.ps1 c
+pwsh ./build.ps1 c nb
 pwsh ./build.ps1 -Version v1.2.3 -Development false
 ```
 

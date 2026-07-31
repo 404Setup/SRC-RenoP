@@ -423,7 +423,20 @@ func versionsMatch(curr, remoteVersion, remoteCommit string) bool {
 	return false
 }
 
-func decideHasUpdate(current, remoteVersion, remoteCommit string, target *ChannelInfoTarget, commits []GithubCommitResponse, currentExistsOutside bool) bool {
+func findReleaseIndex(releases []ChannelInfoRelease, currentVersion string) int {
+	curr := normalizeVersionID(currentVersion)
+	if curr == "" || curr == "dev" {
+		return -1
+	}
+	for i, r := range releases {
+		if versionsMatch(currentVersion, r.Version, r.Commit) {
+			return i
+		}
+	}
+	return -1
+}
+
+func decideHasUpdate(current, remoteVersion, remoteCommit string, target *ChannelInfoTarget, infoReleases []ChannelInfoRelease, commits []GithubCommitResponse, currentExistsOutside bool) bool {
 	if target == nil {
 		return false
 	}
@@ -436,6 +449,16 @@ func decideHasUpdate(current, remoteVersion, remoteCommit string, target *Channe
 
 	if looksLikeSemver(currN) && looksLikeSemver(remoteN) {
 		return utils.CompareVersions(remoteN, currN) > 0
+	}
+
+	if len(infoReleases) > 0 {
+		idx := findReleaseIndex(infoReleases, current)
+		if idx > 0 {
+			return true
+		}
+		if idx == 0 {
+			return false
+		}
 	}
 
 	remoteID := strings.TrimSpace(remoteCommit)
@@ -523,39 +546,49 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 	downloadURL := ""
 	var size int64
 	if target != nil {
-		downloadURL = packageURL(ChannelRelease, info.Version, target.File)
+		if target.DownloadURL != "" {
+			downloadURL = target.DownloadURL
+		} else {
+			downloadURL = packageURL(ChannelRelease, info.Version, target.File)
+		}
 		size = target.Size
 	}
 
-	relNotes := ""
+	relNotes := info.Changelog
+	if relNotes == "" && len(info.Releases) > 0 {
+		relNotes = info.Releases[0].Changelog
+	}
 	relDate := info.PublishedAt
 	commitSha := strings.TrimSpace(info.Commit)
-	var rel GithubReleaseResponse
-	tagCandidates := []string{info.Version, "v" + strings.TrimPrefix(info.Version, "v")}
-	for _, tag := range tagCandidates {
-		url := "https://api.github.com/repos/404Setup/SRC-RenoP/releases/tags/" + tag
-		if _, err := doGitHubJSON(checkCtx, url, &rel); err == nil {
-			relNotes = rel.Body
-			if relNotes == "" {
-				relNotes = rel.Name
-			}
-			if rel.PublishedAt != "" {
-				relDate = rel.PublishedAt
-			} else if rel.CreatedAt != "" {
-				relDate = rel.CreatedAt
-			}
-			if rel.TargetCommitish != "" {
-				commitSha = rel.TargetCommitish
-			}
-			break
-		}
-	}
+
 	if relNotes == "" {
-		if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/releases/latest", &rel); err == nil {
-			if normalizeVersionID(rel.TagName) == normalizeVersionID(info.Version) {
+		var rel GithubReleaseResponse
+		tagCandidates := []string{info.Version, "v" + strings.TrimPrefix(info.Version, "v")}
+		for _, tag := range tagCandidates {
+			url := "https://api.github.com/repos/404Setup/SRC-RenoP/releases/tags/" + tag
+			if _, err := doGitHubJSON(checkCtx, url, &rel); err == nil {
 				relNotes = rel.Body
 				if relNotes == "" {
 					relNotes = rel.Name
+				}
+				if rel.PublishedAt != "" {
+					relDate = rel.PublishedAt
+				} else if rel.CreatedAt != "" {
+					relDate = rel.CreatedAt
+				}
+				if rel.TargetCommitish != "" {
+					commitSha = rel.TargetCommitish
+				}
+				break
+			}
+		}
+		if relNotes == "" {
+			if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/releases/latest", &rel); err == nil {
+				if normalizeVersionID(rel.TagName) == normalizeVersionID(info.Version) {
+					relNotes = rel.Body
+					if relNotes == "" {
+						relNotes = rel.Name
+					}
 				}
 			}
 		}
@@ -568,7 +601,9 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 	remoteN := normalizeVersionID(info.Version)
 	needCommitOrder := target != nil &&
 		!versionsMatch(version.Version, info.Version, commitSha) &&
-		!(looksLikeSemver(currN) && looksLikeSemver(remoteN))
+		!(looksLikeSemver(currN) && looksLikeSemver(remoteN)) &&
+		findReleaseIndex(info.Releases, version.Version) < 0
+
 	currentExistsOutside := false
 	if needCommitOrder {
 		_, _ = doGitHubJSON(checkCtx, githubRepoAPI+"/commits?sha=main&per_page=30", &commits)
@@ -576,7 +611,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
 		}
 	}
-	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits, currentExistsOutside)
+	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
 
 	latestVersion := info.Version
 	if !strings.HasPrefix(latestVersion, "v") && looksLikeSemver(latestVersion) {
@@ -638,28 +673,44 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 	downloadURL := ""
 	var size int64
 	if target != nil {
-		downloadURL = packageURL(ChannelNightly, info.Version, target.File)
+		if target.DownloadURL != "" {
+			downloadURL = target.DownloadURL
+		} else {
+			downloadURL = packageURL(ChannelNightly, info.Version, target.File)
+		}
 		size = target.Size
 	}
 
 	commitSha := strings.TrimSpace(info.Commit)
 
 	var commits []GithubCommitResponse
-	releaseNotes := ""
+	releaseNotes := info.Changelog
+	if releaseNotes == "" && len(info.Releases) > 0 {
+		releaseNotes = info.Releases[0].Changelog
+	}
 	commitDate := info.PublishedAt
 	currentExistsOutside := false
-	if _, err := doGitHubJSON(checkCtx, githubRepoAPI+"/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
-		_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
-		var noteDate string
-		releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha, currentExistsOutside)
-		if noteDate != "" {
-			commitDate = noteDate
+
+	needCommitOrder := target != nil &&
+		!versionsMatch(version.Version, info.Version, commitSha) &&
+		findReleaseIndex(info.Releases, version.Version) < 0
+
+	if releaseNotes == "" || needCommitOrder {
+		if _, err := doGitHubJSON(checkCtx, githubRepoAPI+"/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
+			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
+			if releaseNotes == "" {
+				var noteDate string
+				releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha, currentExistsOutside)
+				if noteDate != "" {
+					commitDate = noteDate
+				}
+			}
 		}
 	}
 	const maxNotes = 4 << 10
 	releaseNotes = clipString(releaseNotes, maxNotes)
 
-	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, commits, currentExistsOutside)
+	hasUpdate := decideHasUpdate(version.Version, info.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
 
 	latestVersion := info.Version
 	if !strings.HasPrefix(latestVersion, "nightly-") {

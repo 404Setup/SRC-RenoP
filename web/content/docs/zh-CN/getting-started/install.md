@@ -26,10 +26,10 @@ description: 下载 RenoP 二进制
 需要 Go、PowerShell 7、Node.js。
 
 ```powershell
-pwsh ./build.ps1                 # 完整矩阵 → dist/
-pwsh ./build.ps1 s               # Linux amd64/arm64、Windows amd64
-pwsh ./build.ps1 c               # 当前平台
-pwsh ./build.ps1 c nb            # 当前平台，不打 zip
+pwsh ./build.ps1
+pwsh ./build.ps1 s
+pwsh ./build.ps1 c
+pwsh ./build.ps1 c nb
 ```
 
 详见仓库 `README.md`。

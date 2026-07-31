@@ -26,10 +26,10 @@ description: Скачать бинарник RenoP
 Нужны Go, PowerShell 7, Node.js.
 
 ```powershell
-pwsh ./build.ps1                 # полная матрица → dist/
-pwsh ./build.ps1 s               # Linux amd64/arm64, Windows amd64
-pwsh ./build.ps1 c               # текущая платформа
-pwsh ./build.ps1 c nb            # текущая платформа, без zip
+pwsh ./build.ps1
+pwsh ./build.ps1 s
+pwsh ./build.ps1 c
+pwsh ./build.ps1 c nb
 ```
 
 Подробности — в `README.md` репозитория.

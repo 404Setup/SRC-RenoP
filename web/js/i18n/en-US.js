@@ -75,7 +75,6 @@ export default {
     "docs.toggleCategories": "Toggle categories",
 
     "download.title": "Download",
-    "download.lead": "",
     "download.stable": "Stable",
     "download.preview": "Preview",
     "download.os": "OS",
@@ -98,6 +97,7 @@ export default {
     "download.latestPreview": "Latest preview",
     "download.previewBadge": "Nightly",
     "download.stableBadge": "Release",
+    "download.buildUnavailable": "Build unavailable for this preview",
 
     "contributors.title": "Contributors",
     "contributors.lead": "GitHub contributors to the RenoP repository.",

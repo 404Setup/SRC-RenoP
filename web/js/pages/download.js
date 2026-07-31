@@ -9,11 +9,11 @@
  */
 
 import {getCurrentLang, t} from '../i18n.js';
-import {clear, el} from '../lib/dom.js';
+import {clear, el} from '@renop/ui';
 import {
     detectPlatform,
-    fetchPreviewInfo,
-    fetchStableRelease,
+    fetchPreviewReleases,
+    fetchStableReleases,
     findTargetForPlatform,
     formatDate,
     getArchOptionsForOs,
@@ -80,8 +80,9 @@ function createCustomField(label, options, value, onChange) {
  * @param {string} [opts.badgeClass]
  * @param {string} [opts.date]
  * @param {string} [opts.body]
- * @param {() => void} opts.onDownload
+ * @param {() => void} [opts.onDownload]
  * @param {string} opts.statusId
+ * @param {boolean} [opts.disabled]
  * @returns {HTMLElement}
  */
 function releaseCard({
@@ -92,6 +93,7 @@ function releaseCard({
                          body,
                          onDownload,
                          statusId,
+                         disabled = false,
                      }) {
     const card = el('article', {class: 'card release-card'});
     const header = el('div', {class: 'release-header'},
@@ -113,14 +115,25 @@ function releaseCard({
     }, body || '');
     card.appendChild(changelog);
 
-    const actions = el('div', {class: 'release-actions'},
-        el('button', {
-            type: 'button',
-            class: 'pill-btn pill-btn--primary',
-            onClick: onDownload,
-        }, t('download.downloadBtn')),
-        el('span', {class: 'release-status', id: statusId}, ''),
-    );
+    const actions = el('div', {class: 'release-actions'});
+    if (disabled) {
+        actions.appendChild(
+            el('button', {
+                type: 'button',
+                class: 'pill-btn pill-btn--disabled',
+                disabled: true,
+            }, t('download.buildUnavailable')),
+        );
+    } else {
+        actions.appendChild(
+            el('button', {
+                type: 'button',
+                class: 'pill-btn pill-btn--primary',
+                onClick: onDownload,
+            }, t('download.downloadBtn')),
+        );
+    }
+    actions.appendChild(el('span', {class: 'release-status', id: statusId}, ''));
     card.appendChild(actions);
     return card;
 }
@@ -149,7 +162,6 @@ export async function renderDownload({root}) {
     document.title = `RenoP — ${t('download.title')}`;
 
     let channel = 'stable';
-    /** Monotonic id so an older in-flight fetch cannot overwrite a newer tab switch. */
     let listRequestId = 0;
     const platform = loadSavedPlatform();
     let os = platform.os;
@@ -158,8 +170,6 @@ export async function renderDownload({root}) {
     const hero = el('header', {class: 'page-hero'},
         el('h1', {}, t('download.title')),
     );
-    const lead = t('download.lead');
-    if (lead) hero.appendChild(el('p', {}, lead));
     root.appendChild(hero);
 
     const tabs = el('div', {class: 'tabs-container'},
@@ -251,11 +261,11 @@ export async function renderDownload({root}) {
         if (!ensurePlatform()) return;
         const version = release.version || release.tag || '';
         const target = findTargetForPlatform(release.targets, os, arch);
-        if (!target?.file || !version) {
+        if (!target?.file || (!target.downloadUrl && !version)) {
             setStatus(statusId, t('download.noAsset'), 'error');
             return;
         }
-        const url = packageDownloadUrl(channelKey, version, target.file);
+        const url = packageDownloadUrl(channelKey, version, target.file, target.downloadUrl);
         triggerBrowserDownload(url, target.file);
         setStatus(statusId, t('download.ready'), 'ok');
     }
@@ -272,42 +282,59 @@ export async function renderDownload({root}) {
 
         try {
             if (requestedChannel === 'stable') {
-                const release = await fetchStableRelease();
+                const releases = await fetchStableReleases();
                 if (requestId !== listRequestId || channel !== 'stable') return;
                 clear(list);
-                list.appendChild(
-                    releaseCard({
-                        title: release.tag || release.name,
-                        badge: t('download.stableBadge'),
-                        date: formatDate(release.publishedAt, getCurrentLang()),
-                        body: release.body,
-                        statusId: 'status-stable',
-                        onDownload: () => downloadPackage('stable', {
-                            version: release.id || release.tag,
-                            tag: release.tag,
-                            targets: release.targets,
-                        }, 'status-stable'),
-                    }),
-                );
+                if (!releases?.length) {
+                    list.appendChild(el('p', {class: 'download-empty'}, t('download.noReleases')));
+                    return;
+                }
+                releases.forEach((rel, index) => {
+                    const statusId = `status-stable-${index}`;
+                    list.appendChild(
+                        releaseCard({
+                            title: rel.tag || rel.name,
+                            badge: t('download.stableBadge'),
+                            date: formatDate(rel.publishedAt, getCurrentLang()),
+                            body: rel.body,
+                            statusId,
+                            onDownload: () => downloadPackage('stable', {
+                                version: rel.id || rel.tag,
+                                tag: rel.tag,
+                                targets: rel.targets,
+                            }, statusId),
+                        }),
+                    );
+                });
             } else {
-                const preview = await fetchPreviewInfo();
+                const previews = await fetchPreviewReleases();
                 if (requestId !== listRequestId || channel !== 'preview') return;
                 clear(list);
-                list.appendChild(
-                    releaseCard({
-                        title: preview.name || t('download.latestPreview'),
-                        badge: t('download.previewBadge'),
-                        badgeClass: 'release-badge--preview',
-                        date: formatDate(preview.publishedAt, getCurrentLang()),
-                        body: preview.body,
-                        statusId: 'status-preview',
-                        onDownload: () => downloadPackage('nightly', {
-                            version: preview.version,
-                            tag: preview.tag,
-                            targets: preview.targets,
-                        }, 'status-preview'),
-                    }),
-                );
+                if (!previews?.length) {
+                    list.appendChild(el('p', {class: 'download-empty'}, t('download.noReleases')));
+                    return;
+                }
+                previews.forEach((prev, index) => {
+                    const statusId = `status-preview-${index}`;
+                    const target = findTargetForPlatform(prev.targets, os, arch);
+                    const isAvailable = index === 0 && Boolean(target?.file);
+                    list.appendChild(
+                        releaseCard({
+                            title: prev.name || t('download.latestPreview'),
+                            badge: t('download.previewBadge'),
+                            badgeClass: 'release-badge--preview',
+                            date: formatDate(prev.publishedAt, getCurrentLang()),
+                            body: prev.body,
+                            statusId,
+                            disabled: !isAvailable,
+                            onDownload: () => downloadPackage('nightly', {
+                                version: prev.version,
+                                tag: prev.tag,
+                                targets: prev.targets,
+                            }, statusId),
+                        }),
+                    );
+                });
             }
         } catch (err) {
             if (requestId !== listRequestId) return;

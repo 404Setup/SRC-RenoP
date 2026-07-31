@@ -447,14 +447,14 @@ func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 		},
 	}
 	target := findTarget(info, "windows", "amd64")
-	if decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, false) {
+	if decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, nil, false) {
 		t.Fatal("must not report update when platform package is missing")
 	}
 	info.Targets = append(info.Targets, ChannelInfoTarget{
 		OS: "windows", Arch: "amd64", File: "win.zip", Size: 2,
 	})
 	target = findTarget(info, "windows", "amd64")
-	if !decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, false) {
+	if !decideHasUpdate("0.0.1", info.Version, info.Commit, target, nil, nil, false) {
 		t.Fatal("must report update when platform package exists and version differs")
 	}
 }
@@ -462,16 +462,16 @@ func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 func TestDecideHasUpdateSemver(t *testing.T) {
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	if decideHasUpdate("1.2.3", "1.2.3", "", target, nil, false) {
+	if decideHasUpdate("1.2.3", "1.2.3", "", target, nil, nil, false) {
 		t.Fatal("same semver is not an update")
 	}
-	if !decideHasUpdate("1.2.3", "1.3.0", "", target, nil, false) {
+	if !decideHasUpdate("1.2.3", "1.3.0", "", target, nil, nil, false) {
 		t.Fatal("newer semver is an update")
 	}
-	if decideHasUpdate("1.3.0", "1.2.3", "", target, nil, false) {
+	if decideHasUpdate("1.3.0", "1.2.3", "", target, nil, nil, false) {
 		t.Fatal("older semver must not be treated as an update")
 	}
-	if decideHasUpdate("v1.3.0", "1.2.9", "", target, nil, false) {
+	if decideHasUpdate("v1.3.0", "1.2.9", "", target, nil, nil, false) {
 		t.Fatal("older semver with v-prefix must not be an update")
 	}
 }
@@ -489,15 +489,15 @@ func TestDecideHasUpdateNightlyAheadOfStable(t *testing.T) {
 	}
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	if decideHasUpdate("nightly-"+nightlyAhead[:7], "0.0.1", stableCommit, target, commits, false) {
+	if decideHasUpdate("nightly-"+nightlyAhead[:7], "0.0.1", stableCommit, target, nil, commits, false) {
 		t.Fatal("older stable must not be an update over a newer nightly")
 	}
-	if decideHasUpdate(nightlyAhead[:7], "v0.0.1", stableCommit, target, commits, false) {
+	if decideHasUpdate(nightlyAhead[:7], "v0.0.1", stableCommit, target, nil, commits, false) {
 		t.Fatal("short sha nightly ahead of stable must not report update")
 	}
 
 	const olderNightly = "dddddddddddddddddddddddddddddddddddddddd"
-	if !decideHasUpdate("nightly-"+olderNightly[:7], "0.0.2", stableCommit, target, commits, false) {
+	if !decideHasUpdate("nightly-"+olderNightly[:7], "0.0.2", stableCommit, target, nil, commits, false) {
 		t.Fatal("stable newer than running nightly should be an update")
 	}
 }
@@ -515,21 +515,36 @@ func TestDecideHasUpdateNightlyAheadOfPackage(t *testing.T) {
 	}
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	if decideHasUpdate("nightly-"+curr[:7], pkg[:7], pkg, target, commits, false) {
+	if decideHasUpdate("nightly-"+curr[:7], pkg[:7], pkg, target, nil, commits, false) {
 		t.Fatal("current ahead of nightly package must not report update")
 	}
-	if !decideHasUpdate("nightly-"+older[:7], pkg[:7], pkg, target, commits, false) {
+	if !decideHasUpdate("nightly-"+older[:7], pkg[:7], pkg, target, nil, commits, false) {
 		t.Fatal("package ahead of current must report update")
 	}
-	if decideHasUpdate("nightly-"+pkg[:7], pkg[:7], pkg, target, commits, false) {
+	if decideHasUpdate("nightly-"+pkg[:7], pkg[:7], pkg, target, nil, commits, false) {
 		t.Fatal("same package commit is not an update")
 	}
 }
 
 func TestDecideHasUpdateCommitLikeWithoutGraph(t *testing.T) {
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
-	if decideHasUpdate("f306a38", "0.0.1", "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", target, nil, false) {
+	if decideHasUpdate("f306a38", "0.0.1", "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", target, nil, nil, false) {
 		t.Fatal("commit-like current without graph must not assume stable is newer")
+	}
+}
+
+func TestDecideHasUpdateWithInfoReleases(t *testing.T) {
+	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
+	releases := []ChannelInfoRelease{
+		{Version: "nightly-b2", Commit: "sha2"},
+		{Version: "nightly-b1", Commit: "sha1"},
+	}
+
+	if !decideHasUpdate("nightly-b1", "nightly-b2", "sha2", target, releases, nil, false) {
+		t.Fatal("older release in infoReleases must report hasUpdate=true without GitHub API")
+	}
+	if decideHasUpdate("nightly-b2", "nightly-b2", "sha2", target, releases, nil, false) {
+		t.Fatal("same latest release in infoReleases must report hasUpdate=false")
 	}
 }
 
@@ -595,16 +610,16 @@ func TestDecideHasUpdateCurrentOutsideCommitWindow(t *testing.T) {
 	}
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 
-	if decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, commits, false) {
+	if decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, nil, commits, false) {
 		t.Fatal("outside window without existence proof must not report update")
 	}
-	if !decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, commits, true) {
+	if !decideHasUpdate("nightly-eeeeeee", pkg[:7], pkg, target, nil, commits, true) {
 		t.Fatal("stale nightly confirmed on GitHub must report update")
 	}
-	if !decideHasUpdate("eeeeeee", "0.0.2", pkg, target, commits, true) {
+	if !decideHasUpdate("eeeeeee", "0.0.2", pkg, target, nil, commits, true) {
 		t.Fatal("stale short-sha confirmed on GitHub must report update vs release package")
 	}
-	if decideHasUpdate("eeeeeee", "0.0.2", pkg, target, nil, true) {
+	if decideHasUpdate("eeeeeee", "0.0.2", pkg, target, nil, nil, true) {
 		t.Fatal("commit-like current without graph must not assume update")
 	}
 }

@@ -26,10 +26,10 @@ description: RenoP バイナリの入手
 Go、PowerShell 7、Node.js が必要。
 
 ```powershell
-pwsh ./build.ps1                 # 全マトリクス → dist/
-pwsh ./build.ps1 s               # Linux amd64/arm64、Windows amd64
-pwsh ./build.ps1 c               # 現在のプラットフォーム
-pwsh ./build.ps1 c nb            # 現在のプラットフォーム、zip なし
+pwsh ./build.ps1
+pwsh ./build.ps1 s
+pwsh ./build.ps1 c
+pwsh ./build.ps1 c nb
 ```
 
 詳細はリポジトリの `README.md`。

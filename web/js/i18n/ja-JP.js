@@ -75,7 +75,6 @@ export default {
     "docs.toggleCategories": "カテゴリを開閉",
 
     "download.title": "ダウンロード",
-    "download.lead": "",
     "download.stable": "安定版",
     "download.preview": "プレビュー",
     "download.os": "OS",
@@ -98,6 +97,7 @@ export default {
     "download.latestPreview": "最新プレビュー",
     "download.previewBadge": "Nightly",
     "download.stableBadge": "Release",
+    "download.buildUnavailable": "このプレビューのビルドは利用できません",
 
     "contributors.title": "コントリビューター",
     "contributors.lead": "RenoP リポジトリの GitHub コントリビューター。",
