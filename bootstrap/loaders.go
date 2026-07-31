@@ -13,6 +13,7 @@ package bootstrap
 import (
 	"bufio"
 	"bytes"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -29,7 +30,7 @@ import (
 )
 
 func LoadConfig(configPath string) *config.Config {
-	data, err := os.ReadFile(configPath)
+	file, err := os.Open(configPath)
 	var cfg config.Config
 
 	if err != nil {
@@ -41,7 +42,8 @@ func LoadConfig(configPath string) *config.Config {
 			_ = os.WriteFile(configPath, yamlData, 0644)
 		}
 	} else {
-		err = yaml.Unmarshal(data, &cfg)
+		defer file.Close()
+		err = yaml.NewDecoder(bufio.NewReader(file)).Decode(&cfg)
 		if err != nil {
 			log.Printf("Failed to parse config file: %v", err)
 			cfg = config.DefaultConfig()
@@ -54,15 +56,19 @@ func LoadConfig(configPath string) *config.Config {
 }
 
 func LoadTokens(tokensPath string) map[string]*core.AccessToken {
-	data, err := os.ReadFile(tokensPath)
+	file, err := os.Open(tokensPath)
 	if err != nil {
 		return make(map[string]*core.AccessToken)
 	}
+	defer file.Close()
 
 	var tokens map[string]*core.AccessToken
-	err = yaml.Unmarshal(data, &tokens)
+	err = yaml.NewDecoder(bufio.NewReader(file)).Decode(&tokens)
 	if err != nil {
 		log.Printf("Failed to parse tokens file: %v", err)
+		return make(map[string]*core.AccessToken)
+	}
+	if tokens == nil {
 		return make(map[string]*core.AccessToken)
 	}
 
@@ -86,13 +92,14 @@ func LoadFileIndex(indexPath string) *index.FileIndex {
 }
 
 func LoadMaven(path string) config.MavenSettings {
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return config.DefaultMavenSettings()
 	}
+	defer file.Close()
 
 	var mavenSettings config.MavenSettings
-	err = yaml.Unmarshal(data, &mavenSettings)
+	err = yaml.NewDecoder(bufio.NewReader(file)).Decode(&mavenSettings)
 	if err != nil {
 		log.Printf("Failed to parse maven file: %v", err)
 		return config.DefaultMavenSettings()
@@ -102,19 +109,28 @@ func LoadMaven(path string) config.MavenSettings {
 }
 
 func LoadSessions(path string) (sessions []core.SessionDbDto, rewrite bool) {
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		if legacy := legacySessionsJSONPath(path); legacy != "" {
-			if legacyData, lerr := os.ReadFile(legacy); lerr == nil {
+			if legacyFile, lerr := os.Open(legacy); lerr == nil {
+				defer legacyFile.Close()
 				log.Printf("Migrating sessions from legacy %s → %s", legacy, path)
-				return parseSessionsJSON(legacyData), true
+				return parseSessionsJSONReader(bufio.NewReader(legacyFile)), true
 			}
 		}
 		return []core.SessionDbDto{}, false
 	}
+	defer file.Close()
 
-	if isLegacySessionsJSON(data) {
-		return parseSessionsJSON(data), true
+	br := bufio.NewReader(file)
+	if isLegacySessionsJSONReader(br) {
+		return parseSessionsJSONReader(br), true
+	}
+
+	data, err := io.ReadAll(br)
+	if err != nil {
+		log.Printf("Failed to read sessions file %s: %v", path, err)
+		return []core.SessionDbDto{}, false
 	}
 
 	var store pb.SessionStore
@@ -126,14 +142,23 @@ func LoadSessions(path string) (sessions []core.SessionDbDto, rewrite bool) {
 	return pb.ToSessionDbDtos(&store), false
 }
 
-func isLegacySessionsJSON(data []byte) bool {
-	trimmed := bytes.TrimSpace(data)
-	return len(trimmed) > 0 && trimmed[0] == '['
+func isLegacySessionsJSONReader(br *bufio.Reader) bool {
+	for i := 1; i <= 4096; i *= 2 {
+		peekBytes, err := br.Peek(i)
+		trimmed := bytes.TrimSpace(peekBytes)
+		if len(trimmed) > 0 {
+			return trimmed[0] == '['
+		}
+		if err != nil {
+			break
+		}
+	}
+	return false
 }
 
-func parseSessionsJSON(data []byte) []core.SessionDbDto {
+func parseSessionsJSONReader(r io.Reader) []core.SessionDbDto {
 	var sessions []core.SessionDbDto
-	if err := json.Unmarshal(data, &sessions); err != nil {
+	if err := json.NewDecoder(r).Decode(&sessions); err != nil {
 		log.Printf("Failed to parse legacy sessions JSON: %v", err)
 		return []core.SessionDbDto{}
 	}

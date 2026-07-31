@@ -74,7 +74,6 @@ func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Me
 			return nil, fiber.ErrInternalServerError
 		}
 	}
-	// Stream decode with a hard cap so a huge metadata cannot inflate memory.
 	limited := &io.LimitedReader{R: r, N: int64(maxMetadataSize) + 1}
 	var metadata config.Metadata
 	decErr := xml.NewDecoder(limited).Decode(&metadata)
