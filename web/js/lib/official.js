@@ -166,19 +166,25 @@ export async function fetchChannelInfo(channel) {
     const res = await fetch(channelInfoUrl(channel), {mode: 'cors', credentials: 'omit'});
     if (!res.ok) throw new Error(`Official update source HTTP ${res.status}`);
     const data = await res.json();
-    if (!data?.version) throw new Error('Invalid channel info.json');
     const releases = Array.isArray(data.releases) && data.releases.length > 0
         ? data.releases.map((r) => parseReleaseItem(r, channel))
         : [parseReleaseItem(data, channel)];
+    const first = releases[0] || {};
+    const version = String(data.version || first.version || '');
+    if (!version) throw new Error('Invalid channel info.json');
+
+    const targets = Array.isArray(data.targets) && data.targets.length > 0
+        ? data.targets.map(parseTarget)
+        : (first.targets || []);
 
     return {
-        version: String(data.version),
-        commit: String(data.commit || ''),
-        channel: String(data.channel || channel),
-        development: Boolean(data.development),
-        publishedAt: String(data.published_at || data.publishedAt || ''),
-        changelog: String(data.changelog || ''),
-        targets: Array.isArray(data.targets) ? data.targets.map(parseTarget) : [],
+        version,
+        commit: String(data.commit || first.commit || ''),
+        channel: String(data.channel || first.channel || channel),
+        development: Boolean(data.development ?? first.development),
+        publishedAt: String(data.published_at || data.publishedAt || first.publishedAt || ''),
+        changelog: String(data.changelog || first.changelog || ''),
+        targets,
         releases,
     };
 }

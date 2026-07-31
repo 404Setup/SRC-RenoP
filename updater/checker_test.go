@@ -393,6 +393,21 @@ func TestFindTarget(t *testing.T) {
 	if findTarget(info2, "freebsd", "arm64") == nil {
 		t.Fatal("filename fallback failed")
 	}
+	info3 := &ChannelInfo{
+		Version: "abc1234",
+		Releases: []ChannelInfoRelease{
+			{
+				Version: "abc1234",
+				Targets: []ChannelInfoTarget{
+					{OS: "darwin", Arch: "arm64", File: "renop-abc1234-darwin-arm64.zip", Size: 50},
+				},
+			},
+		},
+	}
+	got3 := findTarget(info3, "darwin", "arm64")
+	if got3 == nil || got3.Size != 50 {
+		t.Fatalf("releases target fallback failed: %+v", got3)
+	}
 }
 
 func TestPackageURL(t *testing.T) {

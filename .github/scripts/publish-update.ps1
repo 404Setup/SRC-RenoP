@@ -386,7 +386,6 @@ $info = [ordered]@{
     development  = ($Channel -eq 'nightly')
     published_at = $publishedAt
     changelog    = $Changelog
-    targets      = $currentReleaseTargets
     releases     = $updatedReleases
 }
 $infoJson = $info | ConvertTo-Json -Depth 8

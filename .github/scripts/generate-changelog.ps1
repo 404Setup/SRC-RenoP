@@ -92,13 +92,21 @@ function Get-GitLogRaw {
     return [string]$lines
 }
 
-$prev = Find-PreviousReleaseRef -Head $Commit
-if ($prev) {
-    Write-Host "Changelog range: ${prev}..${Commit}"
-    $raw = Get-GitLogRaw -GitArgs @('log', '--format=%B%x1e', "${prev}..${Commit}")
+$headSubject = (& git log -1 --format='%s' $Commit 2>$null)
+$isReleaseCommit = -not [string]::IsNullOrWhiteSpace($headSubject) -and $headSubject.Trim().StartsWith('[release]', [StringComparison]::OrdinalIgnoreCase)
+
+if ($isReleaseCommit) {
+    $prev = Find-PreviousReleaseRef -Head $Commit
+    if ($prev) {
+        Write-Host "Changelog range: ${prev}..${Commit}"
+        $raw = Get-GitLogRaw -GitArgs @('log', '--format=%B%x1e', "${prev}..${Commit}")
+    } else {
+        Write-Host "Changelog range: full history through ${Commit} (no previous release found)"
+        $raw = Get-GitLogRaw -GitArgs @('log', '--format=%B%x1e', $Commit)
+    }
 } else {
-    Write-Host "Changelog range: full history through ${Commit} (no previous release found)"
-    $raw = Get-GitLogRaw -GitArgs @('log', '--format=%B%x1e', $Commit)
+    Write-Host "Changelog range: single commit ${Commit} (nightly build)"
+    $raw = Get-GitLogRaw -GitArgs @('log', '-1', '--format=%B%x1e', $Commit)
 }
 
 $entries = [System.Collections.Generic.List[string]]::new()

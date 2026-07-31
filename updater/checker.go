@@ -503,6 +503,14 @@ func fetchChannelInfo(ctx context.Context, ch Channel) (*ChannelInfo, error) {
 		}
 		return nil, fmt.Errorf("official update check failed: %w", err)
 	}
+	if strings.TrimSpace(info.Version) == "" && len(info.Releases) > 0 {
+		info.Version = info.Releases[0].Version
+		info.Commit = info.Releases[0].Commit
+		info.Channel = info.Releases[0].Channel
+		info.Development = info.Releases[0].Development
+		info.PublishedAt = info.Releases[0].PublishedAt
+		info.Changelog = info.Releases[0].Changelog
+	}
 	if strings.TrimSpace(info.Version) == "" {
 		return nil, errors.New("official info.json missing version")
 	}
@@ -513,17 +521,21 @@ func findTarget(info *ChannelInfo, goos, goarch string) *ChannelInfoTarget {
 	if info == nil {
 		return nil
 	}
+	targets := info.Targets
+	if len(targets) == 0 && len(info.Releases) > 0 {
+		targets = info.Releases[0].Targets
+	}
 	goos = strings.ToLower(goos)
 	goarch = strings.ToLower(goarch)
-	for i := range info.Targets {
-		t := &info.Targets[i]
+	for i := range targets {
+		t := &targets[i]
 		if strings.EqualFold(t.OS, goos) && strings.EqualFold(t.Arch, goarch) {
 			return t
 		}
 	}
 	marker := goos + "-" + goarch
-	for i := range info.Targets {
-		t := &info.Targets[i]
+	for i := range targets {
+		t := &targets[i]
 		name := strings.ToLower(t.File)
 		if strings.Contains(name, marker) {
 			return t
