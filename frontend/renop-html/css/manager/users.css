@@ -575,8 +575,13 @@ html.dark .permission-badge.badge-none {
     flex-shrink: 0;
     margin: 0;
     padding: 1.4rem 3.5rem 1.1rem 1.75rem;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--card-bg);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    background: transparent;
+}
+
+html.dark .token-form-card--roles .modal-header,
+html:not(.light) .token-form-card--roles .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .token-form-title {

@@ -41,14 +41,22 @@
 
 .modal-footer {
     flex-shrink: 0;
-    padding: 0.75rem 1.35rem;
+    padding: 0.85rem 1.45rem;
     margin-top: 0;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--card-bg);
+    border-top: 1px solid rgba(0, 0, 0, 0.07);
+    background-color: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.65rem;
+}
+
+html.dark .modal-footer,
+html:not(.light) .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(0, 0, 0, 0.25);
 }
 
 .modal-footer--center {
@@ -56,23 +64,55 @@
 }
 
 .modal-content input[type="text"],
-.modal-content input[type="password"] {
+.modal-content input[type="password"],
+.modal-content select,
+.modal-content textarea {
     width: 100%;
     padding: 0.65rem 0.85rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--bg-color);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: var(--text-color);
     font-size: 0.925rem;
     box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+html.dark .modal-content input[type="text"],
+html.dark .modal-content input[type="password"],
+html.dark .modal-content select,
+html.dark .modal-content textarea,
+html:not(.light) .modal-content input[type="text"],
+html:not(.light) .modal-content input[type="password"],
+html:not(.light) .modal-content select,
+html:not(.light) .modal-content textarea {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(0, 0, 0, 0.25);
+    color: var(--text-color);
 }
 
 .modal-content input[type="text"]:focus,
-.modal-content input[type="password"]:focus {
+.modal-content input[type="password"]:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
     outline: none;
     border-color: var(--link-hover-color);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 15%, transparent);
+    background-color: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 20%, transparent);
+}
+
+html.dark .modal-content input[type="text"]:focus,
+html.dark .modal-content input[type="password"]:focus,
+html.dark .modal-content select:focus,
+html.dark .modal-content textarea:focus,
+html:not(.light) .modal-content input[type="text"]:focus,
+html:not(.light) .modal-content input[type="password"]:focus,
+html:not(.light) .modal-content select:focus,
+html:not(.light) .modal-content textarea:focus {
+    background-color: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 25%, transparent);
 }
 
 .modal-content label {
@@ -140,10 +180,19 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.35rem 0.75rem;
-    padding: 0.6rem 0.85rem;
-    background-color: var(--bg-secondary, rgba(255, 255, 255, 0.05));
-    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    background-color: rgba(0, 0, 0, 0.03);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 10px;
     font-size: 0.85rem;
+}
+
+html.dark .modal-meta-grid,
+html:not(.light) .modal-meta-grid {
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .modal-meta-grid > div {
@@ -181,11 +230,20 @@
 .modal-notes-box {
     max-height: 110px;
     overflow-y: auto;
-    padding: 0.6rem 0.75rem;
-    border-radius: 6px;
-    background-color: var(--bg-tertiary, rgba(0, 0, 0, 0.2));
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     font-size: 0.84rem;
     line-height: 1.45;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+html.dark .modal-notes-box,
+html:not(.light) .modal-notes-box {
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }

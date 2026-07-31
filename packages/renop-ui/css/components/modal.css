@@ -27,8 +27,8 @@
     width: 100%;
     height: 100%;
     background-color: var(--modal-overlay);
-    backdrop-filter: blur(8px) saturate(180%);
-    -webkit-backdrop-filter: blur(8px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
     z-index: -1;
     animation: backdropFadeIn 0.25s ease-out forwards;
 }
@@ -36,10 +36,16 @@
 .modal-content {
     position: relative;
     z-index: 1001;
-    background-color: var(--card-bg);
-    border-radius: 16px;
-    border: 1px solid var(--modal-border);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.91) 0%, rgba(245, 247, 250, 0.83) 100%);
+    backdrop-filter: blur(36px) saturate(210%) contrast(105%);
+    -webkit-backdrop-filter: blur(36px) saturate(210%) contrast(105%);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 
+        0 32px 64px -12px rgba(0, 0, 0, 0.22),
+        0 12px 24px -8px rgba(0, 0, 0, 0.08),
+        inset 0 1.5px 1px 0 rgba(255, 255, 255, 1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
     padding: 0;
     width: 100%;
     max-width: 500px;
@@ -54,30 +60,58 @@
 
 .modal-content.modal-glass,
 .modal-glass .modal-content {
-    background-color: color-mix(in srgb, var(--card-bg) 75%, transparent);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
-    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px color-mix(in srgb, var(--border-color) 40%, transparent);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.93) 0%, rgba(240, 244, 250, 0.85) 100%);
+    backdrop-filter: blur(40px) saturate(220%) contrast(106%);
+    -webkit-backdrop-filter: blur(40px) saturate(220%) contrast(106%);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 
+        0 36px 72px -12px rgba(0, 0, 0, 0.25),
+        0 16px 32px -8px rgba(0, 0, 0, 0.1),
+        inset 0 2px 1.5px 0 rgba(255, 255, 255, 1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+html.dark .modal-content,
+html:not(.light) .modal-content {
+    background: linear-gradient(135deg, rgba(24, 32, 47, 0.91) 0%, rgba(15, 23, 42, 0.85) 100%);
+    backdrop-filter: blur(36px) saturate(210%) contrast(108%);
+    -webkit-backdrop-filter: blur(36px) saturate(210%) contrast(108%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 
+        0 36px 72px -12px rgba(0, 0, 0, 0.65),
+        0 16px 32px -8px rgba(0, 0, 0, 0.4),
+        inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 html.dark .modal-content.modal-glass,
 html.dark .modal-glass .modal-content,
 html:not(.light) .modal-content.modal-glass,
 html:not(.light) .modal-glass .modal-content {
-    background-color: rgba(31, 41, 55, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, rgba(26, 35, 52, 0.93) 0%, rgba(15, 23, 42, 0.88) 100%);
+    backdrop-filter: blur(40px) saturate(220%) contrast(110%);
+    -webkit-backdrop-filter: blur(40px) saturate(220%) contrast(110%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 
+        0 40px 80px -12px rgba(0, 0, 0, 0.72),
+        0 20px 40px -8px rgba(0, 0, 0, 0.45),
+        inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.42),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .modal-content.modal-glass .modal-footer,
 .modal-glass .modal-content .modal-footer {
-    background-color: color-mix(in srgb, var(--card-bg) 50%, transparent);
-    border-top: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
+    background-color: rgba(255, 255, 255, 0.5);
+    border-top: 1px solid rgba(0, 0, 0, 0.07);
 }
 
+html.dark .modal-content.modal-glass .modal-footer,
+html.dark .modal-glass .modal-content .modal-footer,
+html:not(.light) .modal-content.modal-glass .modal-footer,
+html:not(.light) .modal-glass .modal-content .modal-footer {
+    background-color: rgba(0, 0, 0, 0.35);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
 
 .close-btn {
     position: absolute;
@@ -108,9 +142,16 @@ html:not(.light) .modal-glass .modal-content {
 
 .modal-header {
     flex-shrink: 0;
-    padding: 1rem 1.35rem 0.75rem 1.35rem;
+    padding: 1.15rem 1.45rem 0.85rem 1.45rem;
     margin-bottom: 0;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    background: transparent;
+}
+
+html.dark .modal-header,
+html:not(.light) .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
 }
 
 .modal-title {
@@ -133,7 +174,7 @@ html:not(.light) .modal-glass .modal-content {
 .modal-body {
     flex: 0 1 auto;
     overflow-y: auto;
-    padding: 1rem 1.35rem;
+    padding: 1.15rem 1.45rem;
 }
 
 @keyframes modalFadeIn {
@@ -166,16 +207,16 @@ html:not(.light) .modal-glass .modal-content {
     }
     to {
         opacity: 1;
-        backdrop-filter: blur(8px) saturate(180%);
-        -webkit-backdrop-filter: blur(8px) saturate(180%);
+        backdrop-filter: blur(12px) saturate(160%);
+        -webkit-backdrop-filter: blur(12px) saturate(160%);
     }
 }
 
 @keyframes backdropFadeOut {
     from {
         opacity: 1;
-        backdrop-filter: blur(8px) saturate(180%);
-        -webkit-backdrop-filter: blur(8px) saturate(180%);
+        backdrop-filter: blur(12px) saturate(160%);
+        -webkit-backdrop-filter: blur(12px) saturate(160%);
     }
     to {
         opacity: 0;
@@ -183,3 +224,4 @@ html:not(.light) .modal-glass .modal-content {
         -webkit-backdrop-filter: blur(0) saturate(100%);
     }
 }
+
