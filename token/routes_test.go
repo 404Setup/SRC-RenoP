@@ -23,6 +23,7 @@ import (
 
 	"renop/config"
 	"renop/core"
+	"renop/database"
 )
 
 func TestUpsertToken(t *testing.T) {
@@ -122,4 +123,61 @@ func TestUpsertToken(t *testing.T) {
 	respDup, err := app.Test(reqDup)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusConflict, respDup.StatusCode)
+}
+
+func TestFindAllTokensWithDB(t *testing.T) {
+	dbFile := t.TempDir() + "/test_tokens.db"
+	cfg := config.DatabaseConfig{
+		Enabled:      true,
+		Driver:       "sqlite3",
+		Dsn:          dbFile,
+		MaxOpenConns: 5,
+		MaxIdleConns: 5,
+	}
+
+	db, err := database.InitDB(cfg)
+	assert.NoError(t, err)
+	defer db.Close()
+
+	state := core.NewAppState()
+	state.Inner.DB = db
+
+	tok1 := &core.AccessToken{
+		Identifier:      core.AccessTokenIdentifier{Type: core.Persistent, Value: 1},
+		Name:            "user1",
+		EncryptedSecret: "sec1",
+		CreatedAt:       "2026-08-01T00:00:00Z",
+		Description:     "User 1",
+		Permissions:     []string{"base"},
+	}
+	tok2 := &core.AccessToken{
+		Identifier:      core.AccessTokenIdentifier{Type: core.Persistent, Value: 2},
+		Name:            "user2",
+		EncryptedSecret: "sec2",
+		CreatedAt:       "2026-08-01T00:00:00Z",
+		Description:     "User 2",
+		Permissions:     []string{"admin"},
+	}
+	assert.NoError(t, db.SaveToken(tok1))
+	assert.NoError(t, db.SaveToken(tok2))
+
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", &config.User{
+			Username: "admin",
+			Roles:    []string{"admin"},
+		})
+		return c.Next()
+	})
+
+	opChan := make(chan TokenOp, 10)
+	SetupTokenRoutes(app, state, opChan)
+
+	req := httptest.NewRequest(http.MethodGet, "/tokens", nil)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	tokens := state.GetAllTokens()
+	assert.Len(t, tokens, 2)
 }

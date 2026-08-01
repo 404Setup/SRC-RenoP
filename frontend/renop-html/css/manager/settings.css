@@ -583,6 +583,59 @@ input[type="number"].cfg-input {
     max-width: 140px;
 }
 
+.cfg-dsn-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    will-change: height;
+}
+
+.cfg-dsn-container .cfg-field-row {
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+
+.cfg-field-row--entering {
+    animation: cfgFieldEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--field-index, 0) * 35ms);
+}
+
+.cfg-field-row--leaving {
+    animation: cfgFieldLeave 0.15s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes cfgFieldEnter {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes cfgFieldLeave {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cfg-dsn-container {
+        transition: none !important;
+    }
+    .cfg-field-row--entering,
+    .cfg-field-row--leaving {
+        animation: none !important;
+    }
+}
+
 .cfg-toggle {
     position: relative;
     display: inline-flex;

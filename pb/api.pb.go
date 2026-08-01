@@ -2207,6 +2207,7 @@ type ServerConfig struct {
 	CdnIpHeader       string                 `protobuf:"bytes,11,opt,name=cdn_ip_header,json=cdnIpHeader,proto3" json:"cdn_ip_header,omitempty"`
 	CorsOrigins       []string               `protobuf:"bytes,12,rep,name=cors_origins,json=corsOrigins,proto3" json:"cors_origins,omitempty"`
 	DebugMode         bool                   `protobuf:"varint,13,opt,name=debug_mode,json=debugMode,proto3" json:"debug_mode,omitempty"`
+	Database          *DatabaseConfig        `protobuf:"bytes,14,opt,name=database,proto3" json:"database,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -2332,6 +2333,13 @@ func (x *ServerConfig) GetDebugMode() bool {
 	return false
 }
 
+func (x *ServerConfig) GetDatabase() *DatabaseConfig {
+	if x != nil {
+		return x.Database
+	}
+	return nil
+}
+
 type StorageConfig struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	StoragePath          string                 `protobuf:"bytes,1,opt,name=storage_path,json=storagePath,proto3" json:"storage_path,omitempty"`
@@ -2454,6 +2462,90 @@ func (x *UpdaterConfig) GetMode() string {
 	return ""
 }
 
+type DatabaseConfig struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Enabled            bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Driver             string                 `protobuf:"bytes,2,opt,name=driver,proto3" json:"driver,omitempty"`
+	Dsn                string                 `protobuf:"bytes,3,opt,name=dsn,proto3" json:"dsn,omitempty"`
+	MaxOpenConns       int32                  `protobuf:"varint,4,opt,name=max_open_conns,json=maxOpenConns,proto3" json:"max_open_conns,omitempty"`
+	MaxIdleConns       int32                  `protobuf:"varint,5,opt,name=max_idle_conns,json=maxIdleConns,proto3" json:"max_idle_conns,omitempty"`
+	ConnMaxLifetimeSec int32                  `protobuf:"varint,6,opt,name=conn_max_lifetime_sec,json=connMaxLifetimeSec,proto3" json:"conn_max_lifetime_sec,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *DatabaseConfig) Reset() {
+	*x = DatabaseConfig{}
+	mi := &file_api_v1_api_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DatabaseConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DatabaseConfig) ProtoMessage() {}
+
+func (x *DatabaseConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DatabaseConfig.ProtoReflect.Descriptor instead.
+func (*DatabaseConfig) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *DatabaseConfig) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *DatabaseConfig) GetDriver() string {
+	if x != nil {
+		return x.Driver
+	}
+	return ""
+}
+
+func (x *DatabaseConfig) GetDsn() string {
+	if x != nil {
+		return x.Dsn
+	}
+	return ""
+}
+
+func (x *DatabaseConfig) GetMaxOpenConns() int32 {
+	if x != nil {
+		return x.MaxOpenConns
+	}
+	return 0
+}
+
+func (x *DatabaseConfig) GetMaxIdleConns() int32 {
+	if x != nil {
+		return x.MaxIdleConns
+	}
+	return 0
+}
+
+func (x *DatabaseConfig) GetConnMaxLifetimeSec() int32 {
+	if x != nil {
+		return x.ConnMaxLifetimeSec
+	}
+	return 0
+}
+
 // Index domain has no writable configuration fields.
 type IndexDomainSettings struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2463,7 +2555,7 @@ type IndexDomainSettings struct {
 
 func (x *IndexDomainSettings) Reset() {
 	*x = IndexDomainSettings{}
-	mi := &file_api_v1_api_proto_msgTypes[30]
+	mi := &file_api_v1_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2475,7 +2567,7 @@ func (x *IndexDomainSettings) String() string {
 func (*IndexDomainSettings) ProtoMessage() {}
 
 func (x *IndexDomainSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[30]
+	mi := &file_api_v1_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2488,7 +2580,7 @@ func (x *IndexDomainSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IndexDomainSettings.ProtoReflect.Descriptor instead.
 func (*IndexDomainSettings) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{30}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{31}
 }
 
 // ChunkedUploadInitRequest starts a concurrent multi-part upload session.
@@ -2509,7 +2601,7 @@ type ChunkedUploadInitRequest struct {
 
 func (x *ChunkedUploadInitRequest) Reset() {
 	*x = ChunkedUploadInitRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[31]
+	mi := &file_api_v1_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2521,7 +2613,7 @@ func (x *ChunkedUploadInitRequest) String() string {
 func (*ChunkedUploadInitRequest) ProtoMessage() {}
 
 func (x *ChunkedUploadInitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[31]
+	mi := &file_api_v1_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2534,7 +2626,7 @@ func (x *ChunkedUploadInitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadInitRequest.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadInitRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{31}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ChunkedUploadInitRequest) GetPurpose() string {
@@ -2591,7 +2683,7 @@ type ChunkedUploadInitResponse struct {
 
 func (x *ChunkedUploadInitResponse) Reset() {
 	*x = ChunkedUploadInitResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[32]
+	mi := &file_api_v1_api_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2603,7 +2695,7 @@ func (x *ChunkedUploadInitResponse) String() string {
 func (*ChunkedUploadInitResponse) ProtoMessage() {}
 
 func (x *ChunkedUploadInitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[32]
+	mi := &file_api_v1_api_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2616,7 +2708,7 @@ func (x *ChunkedUploadInitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadInitResponse.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadInitResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{32}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ChunkedUploadInitResponse) GetUploadId() string {
@@ -2661,7 +2753,7 @@ type ChunkedUploadCompleteResponse struct {
 
 func (x *ChunkedUploadCompleteResponse) Reset() {
 	*x = ChunkedUploadCompleteResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[33]
+	mi := &file_api_v1_api_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2673,7 +2765,7 @@ func (x *ChunkedUploadCompleteResponse) String() string {
 func (*ChunkedUploadCompleteResponse) ProtoMessage() {}
 
 func (x *ChunkedUploadCompleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[33]
+	mi := &file_api_v1_api_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2686,7 +2778,7 @@ func (x *ChunkedUploadCompleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadCompleteResponse.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadCompleteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{33}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ChunkedUploadCompleteResponse) GetStatus() string {
@@ -2720,7 +2812,7 @@ type ErrorMessage struct {
 
 func (x *ErrorMessage) Reset() {
 	*x = ErrorMessage{}
-	mi := &file_api_v1_api_proto_msgTypes[34]
+	mi := &file_api_v1_api_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2732,7 +2824,7 @@ func (x *ErrorMessage) String() string {
 func (*ErrorMessage) ProtoMessage() {}
 
 func (x *ErrorMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[34]
+	mi := &file_api_v1_api_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2745,7 +2837,7 @@ func (x *ErrorMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorMessage.ProtoReflect.Descriptor instead.
 func (*ErrorMessage) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{34}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ErrorMessage) GetError() string {
@@ -2986,7 +3078,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x11organization_logo\x18\x05 \x01(\tR\x10organizationLogo\x12%\n" +
 	"\x0ebackground_url\x18\x06 \x01(\tR\rbackgroundUrl\x12\x1f\n" +
 	"\vicp_license\x18\a \x01(\tR\n" +
-	"icpLicense\"\xd2\x03\n" +
+	"icpLicense\"\x8c\x04\n" +
 	"\fServerConfig\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x1f\n" +
@@ -3004,7 +3096,8 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\rcdn_ip_header\x18\v \x01(\tR\vcdnIpHeader\x12!\n" +
 	"\fcors_origins\x18\f \x03(\tR\vcorsOrigins\x12\x1d\n" +
 	"\n" +
-	"debug_mode\x18\r \x01(\bR\tdebugMode\"\xc9\x01\n" +
+	"debug_mode\x18\r \x01(\bR\tdebugMode\x128\n" +
+	"\bdatabase\x18\x0e \x01(\v2\x1c.renop.api.v1.DatabaseConfigR\bdatabase\"\xc9\x01\n" +
 	"\rStorageConfig\x12!\n" +
 	"\fstorage_path\x18\x01 \x01(\tR\vstoragePath\x124\n" +
 	"\x16enable_javadoc_preview\x18\x02 \x01(\bR\x14enableJavadocPreview\x120\n" +
@@ -3012,7 +3105,14 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x13max_javadoc_size_mb\x18\x04 \x01(\x03R\x10maxJavadocSizeMb\"=\n" +
 	"\rUpdaterConfig\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12\x12\n" +
-	"\x04mode\x18\x02 \x01(\tR\x04mode\"\x15\n" +
+	"\x04mode\x18\x02 \x01(\tR\x04mode\"\xd3\x01\n" +
+	"\x0eDatabaseConfig\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
+	"\x06driver\x18\x02 \x01(\tR\x06driver\x12\x10\n" +
+	"\x03dsn\x18\x03 \x01(\tR\x03dsn\x12$\n" +
+	"\x0emax_open_conns\x18\x04 \x01(\x05R\fmaxOpenConns\x12$\n" +
+	"\x0emax_idle_conns\x18\x05 \x01(\x05R\fmaxIdleConns\x121\n" +
+	"\x15conn_max_lifetime_sec\x18\x06 \x01(\x05R\x12connMaxLifetimeSec\"\x15\n" +
 	"\x13IndexDomainSettings\"\xc6\x01\n" +
 	"\x18ChunkedUploadInitRequest\x12\x18\n" +
 	"\apurpose\x18\x01 \x01(\tR\apurpose\x12\x1a\n" +
@@ -3049,7 +3149,7 @@ func file_api_v1_api_proto_rawDescGZIP() []byte {
 	return file_api_v1_api_proto_rawDescData
 }
 
-var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_api_v1_api_proto_goTypes = []any{
 	(*AccessTokenIdentifier)(nil),         // 0: renop.api.v1.AccessTokenIdentifier
 	(*AccessTokenDto)(nil),                // 1: renop.api.v1.AccessTokenDto
@@ -3081,12 +3181,13 @@ var file_api_v1_api_proto_goTypes = []any{
 	(*ServerConfig)(nil),                  // 27: renop.api.v1.ServerConfig
 	(*StorageConfig)(nil),                 // 28: renop.api.v1.StorageConfig
 	(*UpdaterConfig)(nil),                 // 29: renop.api.v1.UpdaterConfig
-	(*IndexDomainSettings)(nil),           // 30: renop.api.v1.IndexDomainSettings
-	(*ChunkedUploadInitRequest)(nil),      // 31: renop.api.v1.ChunkedUploadInitRequest
-	(*ChunkedUploadInitResponse)(nil),     // 32: renop.api.v1.ChunkedUploadInitResponse
-	(*ChunkedUploadCompleteResponse)(nil), // 33: renop.api.v1.ChunkedUploadCompleteResponse
-	(*ErrorMessage)(nil),                  // 34: renop.api.v1.ErrorMessage
-	nil,                                   // 35: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	(*DatabaseConfig)(nil),                // 30: renop.api.v1.DatabaseConfig
+	(*IndexDomainSettings)(nil),           // 31: renop.api.v1.IndexDomainSettings
+	(*ChunkedUploadInitRequest)(nil),      // 32: renop.api.v1.ChunkedUploadInitRequest
+	(*ChunkedUploadInitResponse)(nil),     // 33: renop.api.v1.ChunkedUploadInitResponse
+	(*ChunkedUploadCompleteResponse)(nil), // 34: renop.api.v1.ChunkedUploadCompleteResponse
+	(*ErrorMessage)(nil),                  // 35: renop.api.v1.ErrorMessage
+	nil,                                   // 36: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
 }
 var file_api_v1_api_proto_depIdxs = []int32{
 	0,  // 0: renop.api.v1.AccessTokenDto.identifier:type_name -> renop.api.v1.AccessTokenIdentifier
@@ -3101,15 +3202,16 @@ var file_api_v1_api_proto_depIdxs = []int32{
 	16, // 9: renop.api.v1.Mirror.authorization:type_name -> renop.api.v1.MirrorCredentials
 	17, // 10: renop.api.v1.Repository.mirrors:type_name -> renop.api.v1.Mirror
 	18, // 11: renop.api.v1.Repository.s3:type_name -> renop.api.v1.S3Config
-	35, // 12: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	36, // 12: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
 	21, // 13: renop.api.v1.FileDetails.files:type_name -> renop.api.v1.FileDetails
 	22, // 14: renop.api.v1.RepoDetailsResponse.mirrors:type_name -> renop.api.v1.RepoMirrorInfo
-	19, // 15: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	30, // 15: renop.api.v1.ServerConfig.database:type_name -> renop.api.v1.DatabaseConfig
+	19, // 16: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_api_proto_init() }
@@ -3125,7 +3227,7 @@ func file_api_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_api_proto_rawDesc), len(file_api_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   36,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -177,8 +177,8 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 		token.AutoRegisterAdmin(state, opChan)
 	}
 
-	accessToken, ok := state.Inner.TokenRepository.Load(strings.ToLower(body.Name))
-	if ok {
+	accessToken := state.GetTokenByName(strings.ToLower(body.Name))
+	if accessToken != nil {
 		if accessToken.ExpiresAt != nil {
 			if time.Now().UnixMilli() > *accessToken.ExpiresAt {
 				return nil, fiber.ErrForbidden
@@ -230,8 +230,7 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 		}
 		session.LastActive.Store(now)
 
-		state.Inner.Sessions.Store(sessionToken, session)
-		state.MarkSessionsDirty()
+		state.SaveSession(session, sessionToken)
 
 		setSessionCookie(c, sessionToken, int(core.SessionIdleTimeoutMillis/1000))
 		details := CreateSessionDetails(user, "")

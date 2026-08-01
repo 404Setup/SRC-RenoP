@@ -33,6 +33,9 @@ run/
 *.bin
 *.log
 *.pprof
+*.db
+*.db-shm
+*.db-wal
 
 **/node_modules/
 
@@ -47,6 +50,7 @@ dist/
 renop-html-minified/
 data/
 
+packages/purego
 !**/package.json
 !**/pnpm-lock.yaml
 !**/pnpm-workspace.yaml

@@ -35,6 +35,7 @@ export const FrontendConfig = v1.FrontendConfig;
 export const ServerConfig = v1.ServerConfig;
 export const StorageConfig = v1.StorageConfig;
 export const UpdaterConfig = v1.UpdaterConfig;
+export const DatabaseConfig = v1.DatabaseConfig;
 export const IndexDomainSettings = v1.IndexDomainSettings;
 export const ChunkedUploadInitRequest = v1.ChunkedUploadInitRequest;
 export const ChunkedUploadInitResponse = v1.ChunkedUploadInitResponse;

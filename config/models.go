@@ -26,6 +26,7 @@ type Config struct {
 	Maven                MavenSettings  `json:"-" yaml:"-"`
 	Server               ServerConfig   `json:"server" yaml:"server"`
 	Updater              UpdaterConfig  `json:"updater" yaml:"updater"`
+	Database             DatabaseConfig `json:"database" yaml:"database"`
 }
 
 func (c *Config) setDefaults() {
@@ -42,6 +43,7 @@ func (c *Config) setDefaults() {
 	c.Maven.setDefaults()
 	c.Server.setDefaults()
 	c.Updater.setDefaults()
+	c.Database.setDefaults()
 }
 
 func (c *Config) UnmarshalJSON(data []byte) error {
@@ -52,6 +54,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	c.Updater.setDefaults()
+	c.Database.setDefaults()
 	return nil
 }
 
@@ -63,6 +66,7 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 		return err
 	}
 	c.Updater.setDefaults()
+	c.Database.setDefaults()
 	return nil
 }
 
@@ -113,5 +117,6 @@ func (c *Config) DeepCopy() *Config {
 		Maven:                c.Maven.DeepCopy(),
 		Server:               c.Server.DeepCopy(),
 		Updater:              c.Updater.DeepCopy(),
+		Database:             c.Database,
 	}
 }

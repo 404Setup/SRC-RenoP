@@ -81,21 +81,28 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			clonedToken := cloneAccessToken(op.Token)
 			clonedToken.Name = safeName
 
-			for _, t := range clonedToken.Tokens {
-				state.Inner.TokenIndex.Store(t, clonedToken)
-			}
-			if oldVal, loaded := state.Inner.TokenRepository.LoadOrStore(safeName, clonedToken); !loaded {
-				state.Inner.TokensCount.Add(1)
+			if db := state.GetDB(); db != nil {
+				if existing, _ := db.GetTokenByName(safeName); existing == nil {
+					state.Inner.TokensCount.Add(1)
+				}
+				_ = db.SaveToken(clonedToken)
 			} else {
-				state.Inner.TokenRepository.Store(safeName, clonedToken)
-				if oldToken := oldVal; true {
-					newTokens := make(map[string]bool)
-					for _, t := range clonedToken.Tokens {
-						newTokens[t] = true
-					}
-					for _, t := range oldToken.Tokens {
-						if !newTokens[t] {
-							state.Inner.TokenIndex.Delete(t)
+				for _, t := range clonedToken.Tokens {
+					state.Inner.TokenIndex.Store(t, clonedToken)
+				}
+				if oldVal, loaded := state.Inner.TokenRepository.LoadOrStore(safeName, clonedToken); !loaded {
+					state.Inner.TokensCount.Add(1)
+				} else {
+					state.Inner.TokenRepository.Store(safeName, clonedToken)
+					if oldToken := oldVal; true {
+						newTokens := make(map[string]bool)
+						for _, t := range clonedToken.Tokens {
+							newTokens[t] = true
+						}
+						for _, t := range oldToken.Tokens {
+							if !newTokens[t] {
+								state.Inner.TokenIndex.Delete(t)
+							}
 						}
 					}
 				}
@@ -106,19 +113,28 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			}
 		case OpTokenDelete:
 			safeName := strings.Clone(op.Name)
-			if oldVal, loaded := state.Inner.TokenRepository.LoadAndDelete(safeName); loaded {
-				for _, t := range oldVal.Tokens {
-					state.Inner.TokenIndex.Delete(t)
+			if db := state.GetDB(); db != nil {
+				if existing, _ := db.GetTokenByName(safeName); existing != nil {
+					_ = db.DeleteToken(safeName)
+					state.Inner.TokensCount.Add(^uint64(0))
+					saveOrClearCache(state, opChan)
 				}
-				state.Inner.TokensCount.Add(^uint64(0))
-				saveOrClearCache(state, opChan)
+			} else {
+				if oldVal, loaded := state.Inner.TokenRepository.LoadAndDelete(safeName); loaded {
+					for _, t := range oldVal.Tokens {
+						state.Inner.TokenIndex.Delete(t)
+					}
+					state.Inner.TokensCount.Add(^uint64(0))
+					saveOrClearCache(state, opChan)
+				}
 			}
 			if op.ErrChan != nil {
 				op.ErrChan <- nil
 			}
 		case OpTokenUpdate:
 			safeName := strings.Clone(op.Name)
-			if val, ok := state.Inner.TokenRepository.Load(safeName); ok {
+			val := state.GetTokenByName(safeName)
+			if val != nil {
 				token := val
 				tCopy := *token
 				op.UpdateFn(&tCopy)
@@ -126,17 +142,21 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				clonedToken := cloneAccessToken(&tCopy)
 				clonedToken.Name = safeName
 
-				for _, t := range clonedToken.Tokens {
-					state.Inner.TokenIndex.Store(t, clonedToken)
-				}
-				state.Inner.TokenRepository.Store(safeName, clonedToken)
-				newTokens := make(map[string]bool)
-				for _, t := range clonedToken.Tokens {
-					newTokens[t] = true
-				}
-				for _, t := range token.Tokens {
-					if !newTokens[t] {
-						state.Inner.TokenIndex.Delete(t)
+				if db := state.GetDB(); db != nil {
+					_ = db.SaveToken(clonedToken)
+				} else {
+					for _, t := range clonedToken.Tokens {
+						state.Inner.TokenIndex.Store(t, clonedToken)
+					}
+					state.Inner.TokenRepository.Store(safeName, clonedToken)
+					newTokens := make(map[string]bool)
+					for _, t := range clonedToken.Tokens {
+						newTokens[t] = true
+					}
+					for _, t := range token.Tokens {
+						if !newTokens[t] {
+							state.Inner.TokenIndex.Delete(t)
+						}
 					}
 				}
 				saveOrClearCache(state, opChan)
@@ -149,40 +169,43 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				}
 			}
 		case OpTokenRename:
-			// Atomically rename: store new key first, then delete old key,
-			// and update all sessions referencing the old username.
 			oldName := strings.Clone(op.Name)
 			newName := strings.Clone(op.NewName)
 			clonedToken := cloneAccessToken(op.Token)
 			clonedToken.Name = newName
 
-			if val, ok := state.Inner.TokenRepository.Load(oldName); ok {
-				if _, exists := state.Inner.TokenRepository.Load(newName); exists && newName != oldName {
+			val := state.GetTokenByName(oldName)
+			if val != nil {
+				if existing := state.GetTokenByName(newName); existing != nil && newName != oldName {
 					if op.ErrChan != nil {
 						op.ErrChan <- errors.New("token name already exists")
 					}
 					continue
 				}
 				oldToken := val
-				state.Inner.TokenRepository.Store(newName, clonedToken)
-				for _, t := range clonedToken.Tokens {
-					state.Inner.TokenIndex.Store(t, clonedToken)
-				}
-				state.Inner.TokenRepository.Delete(oldName)
-				for _, t := range oldToken.Tokens {
-					state.Inner.TokenIndex.Delete(t)
-				}
-				for _, t := range clonedToken.Tokens {
-					state.Inner.TokenIndex.Store(t, clonedToken)
-				}
-				if op.State != nil {
-					op.State.Inner.Sessions.Range(func(key string, session *core.Session) bool {
-						if session.Username == oldName {
-							session.Username = newName
-							op.State.Inner.SessionsIsDirty.Store(true)
-						}
-						return true
-					})
+				if db := state.GetDB(); db != nil {
+					_ = db.RenameToken(oldName, newName, clonedToken)
+				} else {
+					state.Inner.TokenRepository.Store(newName, clonedToken)
+					for _, t := range clonedToken.Tokens {
+						state.Inner.TokenIndex.Store(t, clonedToken)
+					}
+					state.Inner.TokenRepository.Delete(oldName)
+					for _, t := range oldToken.Tokens {
+						state.Inner.TokenIndex.Delete(t)
+					}
+					for _, t := range clonedToken.Tokens {
+						state.Inner.TokenIndex.Store(t, clonedToken)
+					}
+					if op.State != nil {
+						op.State.Inner.Sessions.Range(func(key string, session *core.Session) bool {
+							if session.Username == oldName {
+								session.Username = newName
+								op.State.Inner.SessionsIsDirty.Store(true)
+							}
+							return true
+						})
+					}
 				}
 				saveOrClearCache(state, opChan)
 				if op.ErrChan != nil {
@@ -205,9 +228,12 @@ func saveOrClearCache(state *core.AppState, opChan <-chan TokenOp) {
 }
 
 func saveTokensSync(state *core.AppState) {
-	tokensPath := os.Getenv("RENOP_TOKENS")
-	if tokensPath == "" {
-		tokensPath = "tokens.yaml"
+	if state == nil || state.Inner == nil {
+		return
+	}
+	if state.GetDB() != nil {
+		state.ClearAuthCache()
+		return
 	}
 
 	snapshot := make(map[string]*core.AccessToken)
@@ -215,6 +241,11 @@ func saveTokensSync(state *core.AppState) {
 		snapshot[strings.Clone(key)] = value
 		return true
 	})
+
+	tokensPath := os.Getenv("RENOP_TOKENS")
+	if tokensPath == "" {
+		tokensPath = "tokens.yaml"
+	}
 
 	yamlData, err := yaml.Marshal(snapshot)
 	if err == nil {

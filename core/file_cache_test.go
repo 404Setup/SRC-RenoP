@@ -31,7 +31,6 @@ func TestFileByteCacheGetSetDelete(t *testing.T) {
 	if string(got) != "hello" {
 		t.Fatalf("got %q", got)
 	}
-	// Defensive copy: mutating result must not change cache.
 	got[0] = 'H'
 	got2, _ := c.Get("a")
 	if string(got2) != "hello" {
@@ -54,7 +53,6 @@ func TestFileByteCacheEvictsToMaxBytes(t *testing.T) {
 	if n == 0 {
 		t.Fatal("expected at least one entry retained")
 	}
-	// Oversized value is ignored.
 	_ = c.Set("big", make([]byte, 200))
 	if _, err := c.Get("big"); err != ErrFileCacheMiss {
 		t.Fatalf("expected oversized entry to be skipped")
@@ -66,7 +64,6 @@ func TestFileByteCacheSameSizeSetReusesBuffer(t *testing.T) {
 	v1 := bytes.Repeat([]byte("a"), 1024)
 	v2 := bytes.Repeat([]byte("b"), 1024)
 	_ = c.Set("k", v1)
-	// Same length update should keep a single live entry of that size.
 	_ = c.Set("k", v2)
 	got, err := c.Get("k")
 	if err != nil {
@@ -88,11 +85,11 @@ func TestFileByteCacheConcurrentGetSet(t *testing.T) {
 	c := NewFileByteCache(4 << 20)
 	val := bytes.Repeat([]byte{1}, 512)
 	var wg sync.WaitGroup
-	for g := 0; g < 8; g++ {
+	for g := range 8 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			for i := 0; i < 200; i++ {
+			for i := range 200 {
 				k := string(rune('a'+id%26)) + string(rune('0'+i%10))
 				_ = c.Set(k, val)
 				_, _ = c.Get(k)

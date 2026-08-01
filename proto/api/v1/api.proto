@@ -247,7 +247,7 @@ message ServerConfig {
   bool ssl_enabled = 3;
   string ssl_cert_path = 4;
   string ssl_key_path = 5;
-   repeated string domains = 6;
+  repeated string domains = 6;
   bool enable_compression = 7;
   uint32 file_cache_size_mb = 8;
   uint32 max_active_requests = 9;
@@ -255,6 +255,7 @@ message ServerConfig {
   string cdn_ip_header = 11;
   repeated string cors_origins = 12;
   bool debug_mode = 13;
+  DatabaseConfig database = 14;
 }
 
 message StorageConfig {
@@ -269,6 +270,15 @@ message UpdaterConfig {
   string channel = 1;
   // "manual" | "auto_check" | "auto_install" | "safe_install"
   string mode = 2;
+}
+
+message DatabaseConfig {
+  bool enabled = 1;
+  string driver = 2;
+  string dsn = 3;
+  int32 max_open_conns = 4;
+  int32 max_idle_conns = 5;
+  int32 conn_max_lifetime_sec = 6;
 }
 
 // Index domain has no writable configuration fields.

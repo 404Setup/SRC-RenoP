@@ -524,6 +524,39 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	}
 }
 
+func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {
+	cfg := config.DefaultConfig()
+	app, appState := setupSettingsTestApp(t, &cfg)
+
+	var got pb.ServerConfig
+	respGet := protoGET(t, app, "/domain/server", &got)
+	if respGet.StatusCode != http.StatusOK {
+		t.Fatalf("expected GET 200, got %d", respGet.StatusCode)
+	}
+	if got.Database == nil || got.Database.Driver != "sqlite3" {
+		t.Fatalf("expected embedded database driver sqlite3, got %v", got.Database)
+	}
+
+	updateServer := got
+	updateServer.Database = &pb.DatabaseConfig{
+		Enabled:            true,
+		Driver:             "sqlite3",
+		Dsn:                "new_renop.db",
+		MaxOpenConns:       50,
+		MaxIdleConns:       10,
+		ConnMaxLifetimeSec: 600,
+	}
+	respPut := protoPUT(t, app, "/domain/server", &updateServer)
+	if respPut.StatusCode != http.StatusOK {
+		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
+	}
+
+	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	if updatedCfg.Database.Dsn != "new_renop.db" || updatedCfg.Database.MaxOpenConns != 50 {
+		t.Fatalf("expected Dsn new_renop.db and MaxOpenConns 50, got Dsn=%s MaxOpenConns=%d", updatedCfg.Database.Dsn, updatedCfg.Database.MaxOpenConns)
+	}
+}
+
 func TestStoragePathChangeRebuildsIndex(t *testing.T) {
 	oldDir := t.TempDir()
 	newDir := t.TempDir()

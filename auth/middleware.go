@@ -43,24 +43,27 @@ var GuestUser = &config.User{
 }
 
 func ValidateAndRenewSession(state *core.AppState, sessionId string) string {
-	if val, ok := state.Inner.Sessions.Load(sessionId); ok {
-		session := val
-
-		now := time.Now().UnixMilli()
-		if now-session.LastActive.Load() > core.SessionIdleTimeoutMillis {
-			state.RevokeSession(sessionId)
-			return ""
-		}
-
-		if now-session.LastActive.Load() > core.SessionRenewalIntervalMillis {
-			session.LastActive.Store(now)
-			state.Inner.SessionsIsDirty.Store(true)
-		}
-
-		return session.Username
+	session := state.GetSession(sessionId)
+	if session == nil {
+		return ""
 	}
 
-	return ""
+	now := time.Now().UnixMilli()
+	if now-session.LastActive.Load() > core.SessionIdleTimeoutMillis {
+		state.RevokeSession(sessionId)
+		return ""
+	}
+
+	if now-session.LastActive.Load() > core.SessionRenewalIntervalMillis {
+		session.LastActive.Store(now)
+		if db := state.GetDB(); db != nil {
+			_ = db.UpdateSessionLastActive(sessionId, now)
+		} else {
+			state.Inner.SessionsIsDirty.Store(true)
+		}
+	}
+
+	return session.Username
 }
 
 func isManagerPermissions(permissions []string) bool {
@@ -136,13 +139,13 @@ func extractAuthHeader(c fiber.Ctx, state *core.AppState) string {
 		return authHeader
 	}
 	if cookieVal := c.Cookies(sessionCookieName); cookieVal != "" {
-		if _, ok := state.Inner.Sessions.Load(cookieVal); ok {
+		if state.GetSession(cookieVal) != nil {
 			return "Session " + cookieVal
 		}
 	}
 	if c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead {
 		if queryToken := c.Query("token"); queryToken != "" {
-			if _, ok := state.Inner.Sessions.Load(queryToken); ok {
+			if state.GetSession(queryToken) != nil {
 				return "Session " + queryToken
 			}
 			return "Bearer " + queryToken
@@ -167,8 +170,8 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 	username := strings.ToLower(decodedStr[:idx])
 	password := decodedStr[idx+1:]
 
-	accessToken, ok := state.Inner.TokenRepository.Load(username)
-	if !ok {
+	accessToken := state.GetTokenByName(username)
+	if accessToken == nil {
 		return nil, nil
 	}
 
@@ -215,8 +218,8 @@ func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*c
 
 	c.Locals("current_session_id", sessionId)
 
-	accessToken, ok := state.Inner.TokenRepository.Load(username)
-	if !ok {
+	accessToken := state.GetTokenByName(username)
+	if accessToken == nil {
 		return nil, nil
 	}
 
@@ -236,8 +239,8 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 		username := strings.ToLower(bearerAuth[:idx])
 		secret := bearerAuth[idx+1:]
 
-		accessToken, ok := state.Inner.TokenRepository.Load(username)
-		if !ok {
+		accessToken := state.GetTokenByName(username)
+		if accessToken == nil {
 			return nil, nil
 		}
 
@@ -268,12 +271,11 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 			return buildSynthUser(accessToken), nil
 		}
 	} else {
-		val, ok := state.Inner.TokenIndex.Load(bearerAuth)
-		if !ok {
+		matchedUser := state.GetTokenBySecret(bearerAuth)
+		if matchedUser == nil {
 			return nil, nil
 		}
 
-		matchedUser := val
 		if matchedUser.ExpiresAt != nil && time.Now().UnixMilli() > *matchedUser.ExpiresAt {
 			return nil, nil
 		}

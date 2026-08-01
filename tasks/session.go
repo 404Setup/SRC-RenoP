@@ -87,8 +87,12 @@ func StartSessionSaver(state *core.AppState, path string) {
 			}
 
 			now := time.Now().UnixMilli()
-			var toRemove []string
+			if db := state.GetDB(); db != nil {
+				_ = db.DeleteExpiredSessions(now - core.SessionIdleTimeoutMillis)
+				continue
+			}
 
+			var toRemove []string
 			state.Inner.Sessions.Range(func(key string, value *core.Session) bool {
 				token := key
 				session := value

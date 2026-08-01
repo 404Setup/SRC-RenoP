@@ -17,6 +17,7 @@ import {createCallout, createIcon, createIndexCard, createSkeleton, createTab} f
 import {logout} from './auth.js';
 import {restartApp} from './dashboard.js';
 import {
+    DatabaseConfig,
     FrontendConfig,
     IndexDomainSettings,
     RebuildIndexRequest,
@@ -481,6 +482,20 @@ function renderServerSettings(container, data) {
     );
     const netFields = netSection.querySelector('.cfg-fields');
 
+    const hostInput = buildInput('text', data.host || '0.0.0.0', '0.0.0.0', e => {
+        currentConfig.host = e.target.value;
+        enableSave();
+    });
+    netFields.appendChild(createFieldRow(t('settings.serverHost'), t('settings.serverHostHint'), hostInput));
+
+    const portInput = buildInput('number', data.port || 3000, '3000', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 1 || n > 65535) return;
+        currentConfig.port = Math.trunc(n);
+        enableSave();
+    });
+    netFields.appendChild(createFieldRow(t('settings.serverPort'), t('settings.serverPortHint'), portInput));
+
     const domainsValue = Array.isArray(data.domains) ? data.domains.join(', ') : '';
     const domainsInput = buildInput('text', domainsValue, 'e.g. mvnc.pkg.one, repo.example.com', e => {
         const raw = e.target.value.trim();
@@ -521,7 +536,322 @@ function renderServerSettings(container, data) {
     wrap.appendChild(perfSection);
     wrap.appendChild(debugSection);
     wrap.appendChild(netSection);
+
+    // Database section embedded in Server Settings
+    if (!currentConfig.database) {
+        currentConfig.database = data.database || {
+            enabled: true,
+            driver: 'sqlite3',
+            dsn: 'renop.db',
+            max_open_conns: 25,
+            max_idle_conns: 25,
+            conn_max_lifetime_sec: 300,
+        };
+    }
+
+    const dbSection = createSection(
+        createIcon('storage'),
+        t('settings.databaseTitle'),
+        t('settings.databaseSubtitle')
+    );
+    const dbFields = dbSection.querySelector('.cfg-fields');
+
+    dbFields.appendChild(createToggleRow(
+        t('settings.dbEnabled'),
+        t('settings.dbEnabledDesc'),
+        currentConfig.database.enabled === true,
+        checked => {
+            currentConfig.database.enabled = checked;
+            enableSave();
+        }
+    ));
+
+    const driverOptions = [
+        {value: 'sqlite3', label: 'SQLite (sqlite3)'},
+        {value: 'mysql', label: 'MySQL'}
+    ];
+
+    const dsnContainer = el('div', {class: 'cfg-dsn-container'});
+    let dsnAnimTimer1 = null;
+    let dsnAnimTimer2 = null;
+
+    function buildDsnFields(driver) {
+        const fragment = document.createDocumentFragment();
+        if (driver === 'mysql') {
+            const mysqlParts = parseMysqlDsn(currentConfig.database.dsn);
+
+            const updateMysql = () => {
+                currentConfig.database.dsn = formatMysqlDsn(mysqlParts);
+                enableSave();
+            };
+
+            const hostInput = buildInput('text', mysqlParts.host, '127.0.0.1', e => {
+                mysqlParts.host = e.target.value;
+                updateMysql();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbHost'), t('settings.dbHostHint'), hostInput));
+
+            const portInput = buildInput('number', mysqlParts.port, '3306', e => {
+                mysqlParts.port = e.target.value;
+                updateMysql();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbPort'), t('settings.dbPortHint'), portInput));
+
+            const userInput = buildInput('text', mysqlParts.user, 'root', e => {
+                mysqlParts.user = e.target.value;
+                updateMysql();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbUser'), t('settings.dbUserHint'), userInput));
+
+            const passInput = buildInput('password', mysqlParts.password, '••••••••', e => {
+                mysqlParts.password = e.target.value;
+                updateMysql();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbPassword'), t('settings.dbPasswordHint'), passInput));
+
+            const dbNameInput = buildInput('text', mysqlParts.database, 'renop', e => {
+                mysqlParts.database = e.target.value;
+                updateMysql();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbName'), t('settings.dbNameHint'), dbNameInput));
+
+            const paramsInput = buildInput('text', mysqlParts.params, 'charset=utf8mb4&parseTime=True&loc=Local', e => {
+                mysqlParts.params = e.target.value;
+                updateMysql();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbParams'), t('settings.dbParamsHint'), paramsInput));
+        } else {
+            // sqlite3
+            const dsnInput = buildInput('text', currentConfig.database.dsn || 'renop.db', 'renop.db', e => {
+                currentConfig.database.dsn = e.target.value;
+                enableSave();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbDsn'), t('settings.dbDsnHint'), dsnInput));
+        }
+        return fragment;
+    }
+
+    function updateDsnUI(driver, animate = false) {
+        if (dsnAnimTimer1) clearTimeout(dsnAnimTimer1);
+        if (dsnAnimTimer2) clearTimeout(dsnAnimTimer2);
+        dsnAnimTimer1 = null;
+        dsnAnimTimer2 = null;
+
+        if (!animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            dsnContainer.innerHTML = '';
+            dsnContainer.style.height = '';
+            dsnContainer.style.transition = '';
+            dsnContainer.style.overflow = '';
+            dsnContainer.appendChild(buildDsnFields(driver));
+            return;
+        }
+
+        const oldRows = Array.from(dsnContainer.children);
+        const startHeight = dsnContainer.getBoundingClientRect().height;
+
+        oldRows.forEach(row => {
+            row.classList.remove('cfg-field-row--entering');
+            row.classList.add('cfg-field-row--leaving');
+        });
+
+        if (startHeight > 0) {
+            dsnContainer.style.height = `${startHeight}px`;
+            dsnContainer.style.overflow = 'hidden';
+        }
+
+        dsnAnimTimer1 = setTimeout(() => {
+            dsnContainer.innerHTML = '';
+            const fragment = buildDsnFields(driver);
+            const newRows = Array.from(fragment.children);
+
+            newRows.forEach((row, idx) => {
+                row.style.setProperty('--field-index', idx);
+                row.classList.add('cfg-field-row--entering');
+            });
+
+            dsnContainer.appendChild(fragment);
+
+            dsnContainer.style.height = 'auto';
+            const targetHeight = dsnContainer.getBoundingClientRect().height;
+            dsnContainer.style.height = `${startHeight}px`;
+
+            void dsnContainer.offsetHeight; // force reflow
+
+            dsnContainer.style.transition = 'height 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+            dsnContainer.style.height = `${targetHeight}px`;
+
+            dsnAnimTimer2 = setTimeout(() => {
+                dsnContainer.style.height = '';
+                dsnContainer.style.transition = '';
+                dsnContainer.style.overflow = '';
+                newRows.forEach(row => row.classList.remove('cfg-field-row--entering'));
+                dsnAnimTimer1 = null;
+                dsnAnimTimer2 = null;
+            }, 360);
+        }, 120);
+    }
+
+    const driverSelect = makeCustomSelect(driverOptions, currentConfig.database.driver || 'sqlite3', val => {
+        currentConfig.database.driver = val;
+        if (val === 'mysql' && (!currentConfig.database.dsn || !currentConfig.database.dsn.includes('tcp('))) {
+            currentConfig.database.dsn = formatMysqlDsn(parseMysqlDsn(''));
+        } else if (val === 'sqlite3' && (!currentConfig.database.dsn || currentConfig.database.dsn.includes('tcp('))) {
+            currentConfig.database.dsn = 'renop.db';
+        }
+        updateDsnUI(val, true);
+        enableSave();
+    });
+    dbFields.appendChild(createFieldRow(t('settings.dbDriver'), t('settings.dbDriverHint'), driverSelect));
+    dbFields.appendChild(dsnContainer);
+
+    updateDsnUI(currentConfig.database.driver || 'sqlite3');
+
+    const maxOpenInput = buildInput('number', currentConfig.database.max_open_conns || 25, '25', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 1) return;
+        currentConfig.database.max_open_conns = Math.trunc(n);
+        enableSave();
+    });
+    dbFields.appendChild(createFieldRow(t('settings.dbMaxOpenConns'), t('settings.dbMaxOpenConnsHint'), maxOpenInput));
+
+    const maxIdleInput = buildInput('number', currentConfig.database.max_idle_conns || 25, '25', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 1) return;
+        currentConfig.database.max_idle_conns = Math.trunc(n);
+        enableSave();
+    });
+    dbFields.appendChild(createFieldRow(t('settings.dbMaxIdleConns'), t('settings.dbMaxIdleConnsHint'), maxIdleInput));
+
+    const lifetimeInput = buildInput('number', currentConfig.database.conn_max_lifetime_sec || 300, '300', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 1) return;
+        currentConfig.database.conn_max_lifetime_sec = Math.trunc(n);
+        enableSave();
+    });
+    dbFields.appendChild(createFieldRow(t('settings.dbConnMaxLifetime'), t('settings.dbConnMaxLifetimeHint'), lifetimeInput));
+
+    wrap.appendChild(dbSection);
     container.appendChild(wrap);
+}
+
+/**
+ * Parses a MySQL DSN string into components (user, password, host, port, database, params).
+ * @param {string} dsnStr - MySQL DSN string.
+ * @returns {object} Parsed components.
+ */
+function parseMysqlDsn(dsnStr) {
+    const defaults = {
+        user: 'root',
+        password: '',
+        host: '127.0.0.1',
+        port: '3306',
+        database: 'renop',
+        params: 'charset=utf8mb4&parseTime=True&loc=Local',
+    };
+    if (!dsnStr || typeof dsnStr !== 'string') return defaults;
+    const str = dsnStr.trim();
+    if (!str) return defaults;
+
+    let user = '';
+    let password = '';
+    let host = '127.0.0.1';
+    let port = '3306';
+    let database = '';
+    let params = '';
+
+    let rest = str;
+
+    const atIdx = rest.indexOf('@');
+    if (atIdx !== -1) {
+        const userPass = rest.substring(0, atIdx);
+        rest = rest.substring(atIdx + 1);
+        const colonIdx = userPass.indexOf(':');
+        if (colonIdx !== -1) {
+            user = userPass.substring(0, colonIdx);
+            password = userPass.substring(colonIdx + 1);
+        } else {
+            user = userPass;
+        }
+    }
+
+    const qIdx = rest.indexOf('?');
+    if (qIdx !== -1) {
+        params = rest.substring(qIdx + 1);
+        rest = rest.substring(0, qIdx);
+    }
+
+    const slashIdx = rest.indexOf('/');
+    if (slashIdx !== -1) {
+        database = rest.substring(slashIdx + 1);
+        const protoAddr = rest.substring(0, slashIdx);
+        if (protoAddr) {
+            const openParen = protoAddr.indexOf('(');
+            const closeParen = protoAddr.lastIndexOf(')');
+            if (openParen !== -1 && closeParen > openParen) {
+                const addr = protoAddr.substring(openParen + 1, closeParen);
+                const colonIdx = addr.lastIndexOf(':');
+                if (colonIdx !== -1) {
+                    host = addr.substring(0, colonIdx);
+                    port = addr.substring(colonIdx + 1);
+                } else {
+                    host = addr;
+                }
+            } else {
+                const colonIdx = protoAddr.lastIndexOf(':');
+                if (colonIdx !== -1) {
+                    host = protoAddr.substring(0, colonIdx);
+                    port = protoAddr.substring(colonIdx + 1);
+                } else {
+                    host = protoAddr;
+                }
+            }
+        }
+    } else {
+        database = rest;
+    }
+
+    return {
+        user: user || 'root',
+        password: password || '',
+        host: host || '127.0.0.1',
+        port: port || '3306',
+        database: database || 'renop',
+        params: params || '',
+    };
+}
+
+/**
+ * Formats MySQL components into a standard MySQL DSN string.
+ * @param {object} parts - MySQL components (user, password, host, port, database, params).
+ * @returns {string} DSN string.
+ */
+function formatMysqlDsn(parts) {
+    const u = (parts.user || '').trim();
+    const p = parts.password || '';
+    const h = (parts.host || '127.0.0.1').trim();
+    const port = (parts.port || '3306').trim();
+    const db = (parts.database || '').trim();
+    const params = (parts.params || '').trim();
+
+    let userPass = u;
+    if (p) {
+        userPass += ':' + p;
+    }
+
+    let addr = h;
+    if (port) {
+        addr += ':' + port;
+    }
+
+    let dsn = '';
+    if (userPass) {
+        dsn += userPass + '@';
+    }
+    dsn += 'tcp(' + addr + ')/' + db;
+    if (params) {
+        dsn += '?' + params;
+    }
+    return dsn;
 }
 
 /**

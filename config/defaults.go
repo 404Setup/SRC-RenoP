@@ -166,5 +166,6 @@ func DefaultConfig() Config {
 		Maven:                DefaultMavenSettings(),
 		Server:               DefaultServerConfig(),
 		Updater:              DefaultUpdaterConfig(),
+		Database:             DefaultDatabaseConfig(),
 	}
 }

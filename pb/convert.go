@@ -212,7 +212,7 @@ func ApplyFrontendConfig(dst *config.FrontendConfig, src *FrontendConfig) {
 	dst.CachedIndexHtml = cached
 }
 
-func FromServerConfig(s config.ServerConfig) *ServerConfig {
+func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig) *ServerConfig {
 	return &ServerConfig{
 		Host:              s.Host,
 		Port:              uint32(s.Port),
@@ -227,30 +227,34 @@ func FromServerConfig(s config.ServerConfig) *ServerConfig {
 		CdnIpHeader:       s.CdnIpHeader,
 		CorsOrigins:       append([]string(nil), s.CorsOrigins...),
 		DebugMode:         s.DebugMode,
+		Database:          FromDatabaseConfig(d),
 	}
 }
 
 // ApplyServerConfig writes protobuf fields onto dst and re-parses trusted proxies.
-func ApplyServerConfig(dst *config.ServerConfig, src *ServerConfig) {
-	if dst == nil || src == nil {
+func ApplyServerConfig(dstServer *config.ServerConfig, dstDb *config.DatabaseConfig, src *ServerConfig) {
+	if dstServer == nil || src == nil {
 		return
 	}
 	port := min(src.Port, 0xFFFF)
-	dst.Host = src.Host
-	dst.Port = uint16(port)
-	dst.SslEnabled = src.SslEnabled
-	dst.SslCertPath = src.SslCertPath
-	dst.SslKeyPath = src.SslKeyPath
-	dst.Domains = append([]string(nil), src.Domains...)
-	dst.EnableCompression = src.EnableCompression
-	dst.FileCacheSizeMb = src.FileCacheSizeMb
-	dst.MaxActiveRequests = src.MaxActiveRequests
-	dst.TrustedProxies = append([]string(nil), src.TrustedProxies...)
-	dst.CdnIpHeader = src.CdnIpHeader
-	dst.CorsOrigins = append([]string(nil), src.CorsOrigins...)
-	dst.DebugMode = src.DebugMode
-	dst.NormalizePublicNames()
-	dst.ParseTrustedProxies()
+	dstServer.Host = src.Host
+	dstServer.Port = uint16(port)
+	dstServer.SslEnabled = src.SslEnabled
+	dstServer.SslCertPath = src.SslCertPath
+	dstServer.SslKeyPath = src.SslKeyPath
+	dstServer.Domains = append([]string(nil), src.Domains...)
+	dstServer.EnableCompression = src.EnableCompression
+	dstServer.FileCacheSizeMb = src.FileCacheSizeMb
+	dstServer.MaxActiveRequests = src.MaxActiveRequests
+	dstServer.TrustedProxies = append([]string(nil), src.TrustedProxies...)
+	dstServer.CdnIpHeader = src.CdnIpHeader
+	dstServer.CorsOrigins = append([]string(nil), src.CorsOrigins...)
+	dstServer.DebugMode = src.DebugMode
+	dstServer.NormalizePublicNames()
+	dstServer.ParseTrustedProxies()
+	if dstDb != nil && src.Database != nil {
+		ApplyDatabaseConfig(dstDb, src.Database)
+	}
 }
 
 func FromStorageConfig(c *config.Config) *StorageConfig {
@@ -290,6 +294,36 @@ func ApplyUpdaterConfig(dst *config.UpdaterConfig, src *UpdaterConfig) {
 	}
 	dst.Channel = src.Channel
 	dst.Mode = src.Mode
+}
+
+func FromDatabaseConfig(d config.DatabaseConfig) *DatabaseConfig {
+	return &DatabaseConfig{
+		Enabled:            d.Enabled,
+		Driver:             d.Driver,
+		Dsn:                d.Dsn,
+		MaxOpenConns:       int32(d.MaxOpenConns),
+		MaxIdleConns:       int32(d.MaxIdleConns),
+		ConnMaxLifetimeSec: int32(d.ConnMaxLifetimeSec),
+	}
+}
+
+// ApplyDatabaseConfig writes protobuf fields onto dst.
+func ApplyDatabaseConfig(dst *config.DatabaseConfig, src *DatabaseConfig) {
+	if dst == nil || src == nil {
+		return
+	}
+	dst.Enabled = src.Enabled
+	dst.Driver = src.Driver
+	dst.Dsn = src.Dsn
+	if src.MaxOpenConns > 0 {
+		dst.MaxOpenConns = int(src.MaxOpenConns)
+	}
+	if src.MaxIdleConns > 0 {
+		dst.MaxIdleConns = int(src.MaxIdleConns)
+	}
+	if src.ConnMaxLifetimeSec > 0 {
+		dst.ConnMaxLifetimeSec = int(src.ConnMaxLifetimeSec)
+	}
 }
 
 func ToMirrorCredentials(c *MirrorCredentials) *config.MirrorCredentials {

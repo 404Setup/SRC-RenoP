@@ -99,12 +99,12 @@ func CompareVersionsNew(a, b string) int {
 	isSep := func(c byte) bool { return c == '-' || c == '.' || c == '_' }
 
 	aPartsCount, bPartsCount := 0, 0
-	for i := 0; i < aLen; i++ {
+	for i := range aLen {
 		if !isSep(a[i]) && (i == 0 || isSep(a[i-1])) {
 			aPartsCount++
 		}
 	}
-	for i := 0; i < bLen; i++ {
+	for i := range bLen {
 		if !isSep(b[i]) && (i == 0 || isSep(b[i-1])) {
 			bPartsCount++
 		}

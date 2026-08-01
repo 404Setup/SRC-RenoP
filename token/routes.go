@@ -67,26 +67,22 @@ func FindAllTokens(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
-	var tokens []core.AccessTokenDto
+	rawTokens := state.GetAllTokens()
+	tokens := make([]core.AccessTokenDto, 0, len(rawTokens))
 
-	state.Inner.TokenRepository.Range(func(key string, value *core.AccessToken) bool {
-		name := key
-		token := value
-
+	for _, token := range rawTokens {
+		if token == nil {
+			continue
+		}
 		tokens = append(tokens, core.AccessTokenDto{
 			Identifier:  token.Identifier,
-			Name:        name,
+			Name:        token.Name,
 			CreatedAt:   token.CreatedAt,
 			Description: token.Description,
 			ExpiresAt:   token.ExpiresAt,
 			Tokens:      token.Tokens,
 			Permissions: token.Permissions,
 		})
-		return true
-	})
-
-	if tokens == nil {
-		tokens = []core.AccessTokenDto{}
 	}
 
 	return protohttp.Write(c, pb.FromAccessTokenList(tokens))

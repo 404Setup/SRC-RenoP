@@ -11770,6 +11770,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [cdn_ip_header] ServerConfig cdn_ip_header
                  * @property {Array.<string>|null} [cors_origins] ServerConfig cors_origins
                  * @property {boolean|null} [debug_mode] ServerConfig debug_mode
+                 * @property {renop.api.v1.DatabaseConfig.$Properties|null} [database] ServerConfig database
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -11909,6 +11910,14 @@ export const renop = $root.renop = (() => {
                 ServerConfig.prototype.debug_mode = false;
 
                 /**
+                 * ServerConfig database.
+                 * @member {renop.api.v1.DatabaseConfig.$Properties|null|undefined} database
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.database = null;
+
+                /**
                  * Creates a new ServerConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.ServerConfig
@@ -11969,6 +11978,8 @@ export const renop = $root.renop = (() => {
                             writer.uint32(/* id 12, wireType 2 =*/98).string(message.cors_origins[i]);
                     if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode") && message.debug_mode !== false)
                         writer.uint32(/* id 13, wireType 0 =*/104).bool(message.debug_mode);
+                    if (message.database != null && $Object.hasOwnProperty.call(message, "database"))
+                        $root.renop.api.v1.DatabaseConfig.encode(message.database, writer.uint32(/* id 14, wireType 2 =*/114).fork(), _depth + 1).ldelim();
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -12130,6 +12141,12 @@ export const renop = $root.renop = (() => {
                                     delete message.debug_mode;
                                 continue;
                             }
+                        case 14: {
+                                if (wireType !== 2)
+                                    break;
+                                message.database = $root.renop.api.v1.DatabaseConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.database);
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -12224,6 +12241,11 @@ export const renop = $root.renop = (() => {
                     if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode"))
                         if (typeof message.debug_mode !== "boolean")
                             return "debug_mode: boolean expected";
+                    if (message.database != null && $Object.hasOwnProperty.call(message, "database")) {
+                        let error = $root.renop.api.v1.DatabaseConfig.verify(message.database, _depth + 1);
+                        if (error)
+                            return "database." + error;
+                    }
                     return null;
                 };
 
@@ -12296,6 +12318,11 @@ export const renop = $root.renop = (() => {
                     if (object.debug_mode != null)
                         if (object.debug_mode)
                             message.debug_mode = $Boolean(object.debug_mode);
+                    if (object.database != null) {
+                        if (!$util.isObject(object.database))
+                            throw $TypeError(".renop.api.v1.ServerConfig.database: object expected");
+                        message.database = $root.renop.api.v1.DatabaseConfig.fromObject(object.database, _depth + 1);
+                    }
                     return message;
                 };
 
@@ -12332,6 +12359,7 @@ export const renop = $root.renop = (() => {
                         object.max_active_requests = 0;
                         object.cdn_ip_header = "";
                         object.debug_mode = false;
+                        object.database = null;
                     }
                     if (message.host != null && $Object.hasOwnProperty.call(message, "host"))
                         object.host = message.host;
@@ -12368,6 +12396,8 @@ export const renop = $root.renop = (() => {
                     }
                     if (message.debug_mode != null && $Object.hasOwnProperty.call(message, "debug_mode"))
                         object.debug_mode = message.debug_mode;
+                    if (message.database != null && $Object.hasOwnProperty.call(message, "database"))
+                        object.database = $root.renop.api.v1.DatabaseConfig.toObject(message.database, options, _depth + 1);
                     return object;
                 };
 
@@ -13051,6 +13081,412 @@ export const renop = $root.renop = (() => {
                 };
 
                 return UpdaterConfig;
+            })();
+
+            v1.DatabaseConfig = (function() {
+
+                /**
+                 * Properties of a DatabaseConfig.
+                 * @typedef {Object} renop.api.v1.DatabaseConfig.$Properties
+                 * @property {boolean|null} [enabled] DatabaseConfig enabled
+                 * @property {string|null} [driver] DatabaseConfig driver
+                 * @property {string|null} [dsn] DatabaseConfig dsn
+                 * @property {number|null} [max_open_conns] DatabaseConfig max_open_conns
+                 * @property {number|null} [max_idle_conns] DatabaseConfig max_idle_conns
+                 * @property {number|null} [conn_max_lifetime_sec] DatabaseConfig conn_max_lifetime_sec
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a DatabaseConfig.
+                 * @memberof renop.api.v1
+                 * @interface IDatabaseConfig
+                 * @augments renop.api.v1.DatabaseConfig.$Properties
+                 * @deprecated Use renop.api.v1.DatabaseConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a DatabaseConfig.
+                 * @typedef {renop.api.v1.DatabaseConfig.$Properties} renop.api.v1.DatabaseConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new DatabaseConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a DatabaseConfig.
+                 * @constructor
+                 * @param {renop.api.v1.DatabaseConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const DatabaseConfig = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * DatabaseConfig enabled.
+                 * @member {boolean} enabled
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @instance
+                 */
+                DatabaseConfig.prototype.enabled = false;
+
+                /**
+                 * DatabaseConfig driver.
+                 * @member {string} driver
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @instance
+                 */
+                DatabaseConfig.prototype.driver = "";
+
+                /**
+                 * DatabaseConfig dsn.
+                 * @member {string} dsn
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @instance
+                 */
+                DatabaseConfig.prototype.dsn = "";
+
+                /**
+                 * DatabaseConfig max_open_conns.
+                 * @member {number} max_open_conns
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @instance
+                 */
+                DatabaseConfig.prototype.max_open_conns = 0;
+
+                /**
+                 * DatabaseConfig max_idle_conns.
+                 * @member {number} max_idle_conns
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @instance
+                 */
+                DatabaseConfig.prototype.max_idle_conns = 0;
+
+                /**
+                 * DatabaseConfig conn_max_lifetime_sec.
+                 * @member {number} conn_max_lifetime_sec
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @instance
+                 */
+                DatabaseConfig.prototype.conn_max_lifetime_sec = 0;
+
+                /**
+                 * Creates a new DatabaseConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {renop.api.v1.DatabaseConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.DatabaseConfig} DatabaseConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.DatabaseConfig.$Shape): renop.api.v1.DatabaseConfig & renop.api.v1.DatabaseConfig.$Shape;
+                 *   (properties?: renop.api.v1.DatabaseConfig.$Properties): renop.api.v1.DatabaseConfig;
+                 * }}
+                 */
+                DatabaseConfig.create = function(properties) {
+                    return new DatabaseConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified DatabaseConfig message. Does not implicitly {@link renop.api.v1.DatabaseConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {renop.api.v1.DatabaseConfig.$Properties} message DatabaseConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                DatabaseConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.enabled != null && $Object.hasOwnProperty.call(message, "enabled") && message.enabled !== false)
+                        writer.uint32(/* id 1, wireType 0 =*/8).bool(message.enabled);
+                    if (message.driver != null && $Object.hasOwnProperty.call(message, "driver") && message.driver !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.driver);
+                    if (message.dsn != null && $Object.hasOwnProperty.call(message, "dsn") && message.dsn !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.dsn);
+                    if (message.max_open_conns != null && $Object.hasOwnProperty.call(message, "max_open_conns") && message.max_open_conns !== 0)
+                        writer.uint32(/* id 4, wireType 0 =*/32).int32(message.max_open_conns);
+                    if (message.max_idle_conns != null && $Object.hasOwnProperty.call(message, "max_idle_conns") && message.max_idle_conns !== 0)
+                        writer.uint32(/* id 5, wireType 0 =*/40).int32(message.max_idle_conns);
+                    if (message.conn_max_lifetime_sec != null && $Object.hasOwnProperty.call(message, "conn_max_lifetime_sec") && message.conn_max_lifetime_sec !== 0)
+                        writer.uint32(/* id 6, wireType 0 =*/48).int32(message.conn_max_lifetime_sec);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified DatabaseConfig message, length delimited. Does not implicitly {@link renop.api.v1.DatabaseConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {renop.api.v1.DatabaseConfig.$Properties} message DatabaseConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                DatabaseConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a DatabaseConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.DatabaseConfig & renop.api.v1.DatabaseConfig.$Shape} DatabaseConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                DatabaseConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.DatabaseConfig(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.enabled = value;
+                                else
+                                    delete message.enabled;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.driver = value;
+                                else
+                                    delete message.driver;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.dsn = value;
+                                else
+                                    delete message.dsn;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.max_open_conns = value;
+                                else
+                                    delete message.max_open_conns;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.max_idle_conns = value;
+                                else
+                                    delete message.max_idle_conns;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.conn_max_lifetime_sec = value;
+                                else
+                                    delete message.conn_max_lifetime_sec;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a DatabaseConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.DatabaseConfig & renop.api.v1.DatabaseConfig.$Shape} DatabaseConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                DatabaseConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a DatabaseConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                DatabaseConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.enabled != null && $Object.hasOwnProperty.call(message, "enabled"))
+                        if (typeof message.enabled !== "boolean")
+                            return "enabled: boolean expected";
+                    if (message.driver != null && $Object.hasOwnProperty.call(message, "driver"))
+                        if (!$util.isString(message.driver))
+                            return "driver: string expected";
+                    if (message.dsn != null && $Object.hasOwnProperty.call(message, "dsn"))
+                        if (!$util.isString(message.dsn))
+                            return "dsn: string expected";
+                    if (message.max_open_conns != null && $Object.hasOwnProperty.call(message, "max_open_conns"))
+                        if (!$util.isInteger(message.max_open_conns))
+                            return "max_open_conns: integer expected";
+                    if (message.max_idle_conns != null && $Object.hasOwnProperty.call(message, "max_idle_conns"))
+                        if (!$util.isInteger(message.max_idle_conns))
+                            return "max_idle_conns: integer expected";
+                    if (message.conn_max_lifetime_sec != null && $Object.hasOwnProperty.call(message, "conn_max_lifetime_sec"))
+                        if (!$util.isInteger(message.conn_max_lifetime_sec))
+                            return "conn_max_lifetime_sec: integer expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a DatabaseConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.DatabaseConfig} DatabaseConfig
+                 */
+                DatabaseConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.DatabaseConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.DatabaseConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.DatabaseConfig();
+                    if (object.enabled != null)
+                        if (object.enabled)
+                            message.enabled = $Boolean(object.enabled);
+                    if (object.driver != null)
+                        if (typeof object.driver !== "string" || object.driver.length)
+                            message.driver = $String(object.driver);
+                    if (object.dsn != null)
+                        if (typeof object.dsn !== "string" || object.dsn.length)
+                            message.dsn = $String(object.dsn);
+                    if (object.max_open_conns != null)
+                        if ($Number(object.max_open_conns) !== 0)
+                            message.max_open_conns = object.max_open_conns | 0;
+                    if (object.max_idle_conns != null)
+                        if ($Number(object.max_idle_conns) !== 0)
+                            message.max_idle_conns = object.max_idle_conns | 0;
+                    if (object.conn_max_lifetime_sec != null)
+                        if ($Number(object.conn_max_lifetime_sec) !== 0)
+                            message.conn_max_lifetime_sec = object.conn_max_lifetime_sec | 0;
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a DatabaseConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {renop.api.v1.DatabaseConfig} message DatabaseConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                DatabaseConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.enabled = false;
+                        object.driver = "";
+                        object.dsn = "";
+                        object.max_open_conns = 0;
+                        object.max_idle_conns = 0;
+                        object.conn_max_lifetime_sec = 0;
+                    }
+                    if (message.enabled != null && $Object.hasOwnProperty.call(message, "enabled"))
+                        object.enabled = message.enabled;
+                    if (message.driver != null && $Object.hasOwnProperty.call(message, "driver"))
+                        object.driver = message.driver;
+                    if (message.dsn != null && $Object.hasOwnProperty.call(message, "dsn"))
+                        object.dsn = message.dsn;
+                    if (message.max_open_conns != null && $Object.hasOwnProperty.call(message, "max_open_conns"))
+                        object.max_open_conns = message.max_open_conns;
+                    if (message.max_idle_conns != null && $Object.hasOwnProperty.call(message, "max_idle_conns"))
+                        object.max_idle_conns = message.max_idle_conns;
+                    if (message.conn_max_lifetime_sec != null && $Object.hasOwnProperty.call(message, "conn_max_lifetime_sec"))
+                        object.conn_max_lifetime_sec = message.conn_max_lifetime_sec;
+                    return object;
+                };
+
+                /**
+                 * Converts this DatabaseConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                DatabaseConfig.prototype.toJSON = function() {
+                    return DatabaseConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for DatabaseConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.DatabaseConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                DatabaseConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.DatabaseConfig";
+                };
+
+                return DatabaseConfig;
             })();
 
             v1.IndexDomainSettings = (function() {

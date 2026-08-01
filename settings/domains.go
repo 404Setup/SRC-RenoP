@@ -55,7 +55,7 @@ func GetDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	case "frontend":
 		return protohttp.Write(c, pb.FromFrontendConfig(cfg.Frontend))
 	case "server":
-		return protohttp.Write(c, pb.FromServerConfig(cfg.Server))
+		return protohttp.Write(c, pb.FromServerConfig(cfg.Server, cfg.Database))
 	case "storage":
 		return protohttp.Write(c, pb.FromStorageConfig(cfg))
 	case "updater":
@@ -108,6 +108,15 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		if msg.MaxActiveRequests == 0 {
 			return c.Status(fiber.StatusBadRequest).SendString("Max active requests must be positive")
 		}
+		if msg.Database != nil {
+			driver := strings.ToLower(strings.TrimSpace(msg.Database.Driver))
+			if driver != "sqlite3" && driver != "sqlite" && driver != "mysql" {
+				return c.Status(fiber.StatusBadRequest).SendString("Invalid database driver")
+			}
+			if strings.TrimSpace(msg.Database.Dsn) == "" {
+				return c.Status(fiber.StatusBadRequest).SendString("Database DSN must not be empty")
+			}
+		}
 		serverMsg = msg
 
 	case "storage":
@@ -155,7 +164,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			pb.ApplyFrontendConfig(&newConfig.Frontend, frontendMsg)
 			newConfig.Frontend = newConfig.Frontend.DeepCopy()
 		case "server":
-			pb.ApplyServerConfig(&newConfig.Server, serverMsg)
+			pb.ApplyServerConfig(&newConfig.Server, &newConfig.Database, serverMsg)
 			newConfig.Server = newConfig.Server.DeepCopy()
 		case "storage":
 			oldPath := oldConfig.StoragePath

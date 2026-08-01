@@ -11,6 +11,7 @@
 package core
 
 import (
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -42,6 +43,24 @@ type StatusSnapshot struct {
 	OpenFiles   uint64 `json:"open_files"`
 }
 
+type StateDB interface {
+	GetTokenByName(name string) (*AccessToken, error)
+	GetTokenBySecret(secret string) (*AccessToken, error)
+	GetAllTokens() ([]*AccessToken, error)
+	SaveToken(token *AccessToken) error
+	DeleteToken(name string) error
+	RenameToken(oldName, newName string, token *AccessToken) error
+	GetSession(sessionToken string) (*Session, error)
+	SaveSession(session *Session, sessionToken string) error
+	UpdateSessionLastActive(sessionToken string, lastActive int64) error
+	DeleteSession(sessionToken string) error
+	DeleteSessionsByUsername(username string) error
+	ListUserSessions(username, currentSessionToken string) ([]SessionDto, error)
+	DeleteExpiredSessions(minActiveTimestamp int64) error
+	DeleteUserSessionByPublicID(username, publicID, currentSessionToken string) (token string, revoked bool, wasCurrent bool, err error)
+	DeleteOtherUserSessions(username, keepSessionToken string) (tokens []string, err error)
+}
+
 type AppStateInner struct {
 	Config             *atomic.Value
 	ConfigWriteLock    sync.Mutex
@@ -57,6 +76,7 @@ type AppStateInner struct {
 	AuthCacheWriteLock sync.Mutex
 	Sessions           pb.MapOf[string, *Session]
 	SessionsIsDirty    atomic.Bool
+	DB                 any
 
 	// SessionsFlush, when set, schedules an immediate persist of the session store.
 	// Used after logout/revocation so deleted sessions cannot reappear after restart.
@@ -91,6 +111,92 @@ func NewAppState() *AppState {
 	}
 }
 
+func (state *AppState) GetDB() StateDB {
+	if state == nil || state.Inner == nil || state.Inner.DB == nil {
+		return nil
+	}
+	if sdb, ok := state.Inner.DB.(StateDB); ok {
+		return sdb
+	}
+	return nil
+}
+
+func (state *AppState) GetTokenByName(name string) *AccessToken {
+	if state == nil || state.Inner == nil || name == "" {
+		return nil
+	}
+	if db := state.GetDB(); db != nil {
+		tok, err := db.GetTokenByName(name)
+		if err == nil {
+			return tok
+		}
+	}
+	tok, _ := state.Inner.TokenRepository.Load(strings.ToLower(name))
+	return tok
+}
+
+func (state *AppState) GetTokenBySecret(secret string) *AccessToken {
+	if state == nil || state.Inner == nil || secret == "" {
+		return nil
+	}
+	if db := state.GetDB(); db != nil {
+		tok, err := db.GetTokenBySecret(secret)
+		if err == nil {
+			return tok
+		}
+	}
+	tok, _ := state.Inner.TokenIndex.Load(secret)
+	return tok
+}
+
+func (state *AppState) GetAllTokens() []*AccessToken {
+	if state == nil || state.Inner == nil {
+		return []*AccessToken{}
+	}
+	if db := state.GetDB(); db != nil {
+		toks, err := db.GetAllTokens()
+		if err == nil && toks != nil {
+			return toks
+		}
+		return []*AccessToken{}
+	}
+	var tokens []*AccessToken
+	state.Inner.TokenRepository.Range(func(key string, value *AccessToken) bool {
+		tokens = append(tokens, value)
+		return true
+	})
+	if tokens == nil {
+		return []*AccessToken{}
+	}
+	return tokens
+}
+
+func (state *AppState) GetSession(sessionToken string) *Session {
+	if state == nil || state.Inner == nil || sessionToken == "" {
+		return nil
+	}
+	if db := state.GetDB(); db != nil {
+		sess, err := db.GetSession(sessionToken)
+		if err == nil {
+			return sess
+		}
+	}
+	sess, _ := state.Inner.Sessions.Load(sessionToken)
+	return sess
+}
+
+func (state *AppState) SaveSession(session *Session, sessionToken string) {
+	if state == nil || state.Inner == nil || session == nil || sessionToken == "" {
+		return
+	}
+	if db := state.GetDB(); db != nil {
+		_ = db.SaveSession(session, sessionToken)
+		return
+	}
+	state.Inner.Sessions.Store(sessionToken, session)
+	state.MarkSessionsDirty()
+}
+
 // MarkSessionsDirty marks the session map for persistence and optionally flushes immediately.
 func (state *AppState) MarkSessionsDirty() {
 	if state == nil || state.Inner == nil {
@@ -108,10 +214,14 @@ func (state *AppState) RevokeSession(sessionToken string) bool {
 	if state == nil || state.Inner == nil || sessionToken == "" {
 		return false
 	}
+	state.DeleteAuthCache("Session " + sessionToken)
+	if db := state.GetDB(); db != nil {
+		_ = db.DeleteSession(sessionToken)
+		return true
+	}
 	if _, loaded := state.Inner.Sessions.LoadAndDelete(sessionToken); !loaded {
 		return false
 	}
-	state.DeleteAuthCache("Session " + sessionToken)
 	state.MarkSessionsDirty()
 	return true
 }
@@ -138,6 +248,13 @@ func (state *AppState) ListUserSessions(username, currentSessionToken string) []
 	if state == nil || state.Inner == nil || username == "" {
 		return []SessionDto{}
 	}
+	if db := state.GetDB(); db != nil {
+		sessions, err := db.ListUserSessions(username, currentSessionToken)
+		if err == nil && sessions != nil {
+			return sessions
+		}
+		return []SessionDto{}
+	}
 	var sessions []SessionDto
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
 		if value != nil && value.Username == username {
@@ -156,6 +273,15 @@ func (state *AppState) ListUserSessions(username, currentSessionToken string) []
 func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSessionToken string) (revoked bool, wasCurrent bool) {
 	if state == nil || state.Inner == nil || username == "" || publicID == "" {
 		return false, false
+	}
+	if db := state.GetDB(); db != nil {
+		token, revoked, wasCurrent, err := db.DeleteUserSessionByPublicID(username, publicID, currentSessionToken)
+		if err == nil {
+			if revoked && token != "" {
+				state.DeleteAuthCache("Session " + token)
+			}
+			return revoked, wasCurrent
+		}
 	}
 	var toRemove string
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
@@ -177,6 +303,15 @@ func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSe
 func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string) int {
 	if state == nil || state.Inner == nil || username == "" {
 		return 0
+	}
+	if db := state.GetDB(); db != nil {
+		deletedTokens, err := db.DeleteOtherUserSessions(username, keepSessionToken)
+		if err == nil {
+			for _, t := range deletedTokens {
+				state.DeleteAuthCache("Session " + t)
+			}
+			return len(deletedTokens)
+		}
 	}
 	var toRemove []string
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {

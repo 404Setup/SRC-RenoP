@@ -11,6 +11,7 @@
 package bootstrap
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +21,7 @@ import (
 
 	"renop/config"
 	"renop/core"
+	"renop/database"
 	"renop/index"
 	"renop/javadocs"
 	"renop/status"
@@ -48,16 +50,19 @@ func Initialize() (*core.AppState, BootstrapContext) {
 		}
 	}
 
+	dbInstance, dbErr := database.InitDB(cfg.Database)
+	if dbErr != nil {
+		log.Printf("Warning: Database initialization error: %v", dbErr)
+	}
+
 	tokensPath := os.Getenv("RENOP_TOKENS")
 	if tokensPath == "" {
 		tokensPath = "tokens.yaml"
 	}
 
-	tokenMap := LoadTokens(tokensPath)
-	usersList := make([]*core.AccessToken, 0, len(tokenMap))
-	for k, v := range tokenMap {
-		v.Name = strings.ToLower(k)
-		usersList = append(usersList, v)
+	sessionsPath := os.Getenv("RENOP_SESSIONS")
+	if sessionsPath == "" {
+		sessionsPath = "sessions.bin"
 	}
 
 	indexPath := os.Getenv("RENOP_INDEX")
@@ -66,15 +71,9 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	}
 	fileIndex := LoadFileIndex(indexPath)
 
-	sessionsPath := os.Getenv("RENOP_SESSIONS")
-	if sessionsPath == "" {
-		sessionsPath = "sessions.bin"
-	}
-
-	sessionsDb, migrateSessions := LoadSessions(sessionsPath)
-
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)
+	state.Inner.DB = dbInstance
 	storage.InitS3(cfg)
 	javadocs.InitJavadocs(cfg)
 
@@ -87,36 +86,60 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	}
 	state.Inner.ProxyClientSemaphore = make(chan struct{}, concurrencyLimit)
 
-	for _, v := range usersList {
-		if v == nil {
-			continue
+	var initialTokensCount uint64
+	if dbInstance != nil {
+		count, err := dbInstance.CountTokens()
+		if err == nil && count > 0 {
+			initialTokensCount = count
+		} else {
+			fileTokens := LoadTokens(tokensPath)
+			if len(fileTokens) > 0 {
+				log.Printf("Migrating %d tokens from %s into database", len(fileTokens), tokensPath)
+				if err := dbInstance.MigrateTokens(fileTokens); err == nil {
+					initialTokensCount = uint64(len(fileTokens))
+				}
+			}
 		}
-		v.Name = strings.ToLower(v.Name)
-		state.Inner.TokenRepository.Store(v.Name, v)
-		for _, t := range v.Tokens {
-			state.Inner.TokenIndex.Store(t, v)
-		}
-	}
-	state.Inner.TokensCount.Store(uint64(len(usersList)))
 
-	for _, sessionDto := range sessionsDb {
-		session := &core.Session{
-			PublicId:  sessionDto.PublicId,
-			Username:  strings.ToLower(sessionDto.Username),
-			Ip:        sessionDto.Ip,
-			UserAgent: sessionDto.UserAgent,
-			CreatedAt: sessionDto.CreatedAt,
+		fileSessions, _ := LoadSessions(sessionsPath)
+		if len(fileSessions) > 0 {
+			log.Printf("Migrating %d sessions into database", len(fileSessions))
+			_ = dbInstance.MigrateSessions(fileSessions)
 		}
-		session.LastActive.Store(sessionDto.LastActive)
-		state.Inner.Sessions.Store(sessionDto.SessionToken, session)
+	} else {
+		tokenMap := LoadTokens(tokensPath)
+		initialTokensCount = uint64(len(tokenMap))
+		for k, v := range tokenMap {
+			if v == nil {
+				continue
+			}
+			v.Name = strings.ToLower(k)
+			state.Inner.TokenRepository.Store(v.Name, v)
+			for _, t := range v.Tokens {
+				state.Inner.TokenIndex.Store(t, v)
+			}
+		}
+
+		sessionsDb, migrateSessions := LoadSessions(sessionsPath)
+		for _, sessionDto := range sessionsDb {
+			session := &core.Session{
+				PublicId:  sessionDto.PublicId,
+				Username:  strings.ToLower(sessionDto.Username),
+				Ip:        sessionDto.Ip,
+				UserAgent: sessionDto.UserAgent,
+				CreatedAt: sessionDto.CreatedAt,
+			}
+			session.LastActive.Store(sessionDto.LastActive)
+			state.Inner.Sessions.Store(sessionDto.SessionToken, session)
+		}
+		if migrateSessions {
+			state.Inner.SessionsIsDirty.Store(true)
+		}
 	}
-	if migrateSessions {
-		state.Inner.SessionsIsDirty.Store(true)
-	}
+	state.Inner.TokensCount.Store(initialTokensCount)
 
 	state.Inner.FileIndex = fileIndex
 
-	// Lightweight size-capped map (starts empty — no bigcache shard preallocation).
 	state.Inner.FileCache = core.NewFileByteCache(int(cfg.Server.FileCacheSizeMb) << 20)
 
 	bootstrapCtx := BootstrapContext{
