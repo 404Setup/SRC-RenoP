@@ -344,10 +344,8 @@ func elfIdentityForGOARCH(goarch string) (machine elf.Machine, class elf.Class, 
 		return elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB, true
 	case "riscv64":
 		return elf.EM_RISCV, elf.ELFCLASS64, elf.ELFDATA2LSB, true
-	case "mips64":
-		return elf.EM_MIPS, elf.ELFCLASS64, elf.ELFDATA2MSB, true
-	case "mips64le":
-		return elf.EM_MIPS, elf.ELFCLASS64, elf.ELFDATA2LSB, true
+	case "loong64":
+		return elf.EM_LOONGARCH, elf.ELFCLASS64, elf.ELFDATA2LSB, true
 	default:
 		return 0, 0, 0, false
 	}

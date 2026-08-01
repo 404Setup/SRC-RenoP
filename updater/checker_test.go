@@ -452,7 +452,7 @@ func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 				Version: "1.2.3",
 				Commit:  "newsha1full00000000000000000000000000000",
 				Targets: []ChannelInfoTarget{
-					{OS: "linux", Arch: "mips64", File: "only-mips.zip", Size: 1},
+					{OS: "linux", Arch: "loong64", File: "only-loong64.zip", Size: 1},
 				},
 			},
 		},

@@ -111,13 +111,11 @@ func TestValidateELF_KnownArchMatch(t *testing.T) {
 	assertELF(t, "amd64", elf.EM_X86_64, elf.ELFDATA2LSB, false)
 	assertELF(t, "arm64", elf.EM_AARCH64, elf.ELFDATA2LSB, false)
 	assertELF(t, "riscv64", elf.EM_RISCV, elf.ELFDATA2LSB, false)
-	assertELF(t, "mips64", elf.EM_MIPS, elf.ELFDATA2MSB, false)
-	assertELF(t, "mips64le", elf.EM_MIPS, elf.ELFDATA2LSB, false)
+	assertELF(t, "loong64", elf.EM_LOONGARCH, elf.ELFDATA2LSB, false)
 }
 
 func TestValidateELF_KnownArchMismatch(t *testing.T) {
-	assertELF(t, "mips64", elf.EM_MIPS, elf.ELFDATA2LSB, true)
-	assertELF(t, "mips64le", elf.EM_MIPS, elf.ELFDATA2MSB, true)
+	assertELF(t, "loong64", elf.EM_LOONGARCH, elf.ELFDATA2LSB, true)
 	assertELF(t, "amd64", elf.EM_AARCH64, elf.ELFDATA2LSB, true)
 }
 
@@ -147,10 +145,7 @@ func TestArchiveMatchesPlatform(t *testing.T) {
 	assertArchiveMatch(t, "renop-abc-linux-arm64.zip", "linux", "amd64", false)
 	assertArchiveMatch(t, "renop-abc-windows-amd64.zip", "windows", "amd64", true)
 	assertArchiveMatch(t, "renop-abc-windows-arm64.zip", "windows", "amd64", false)
-	assertArchiveMatch(t, "renop-abc-linux-mips64.zip", "linux", "mips64", true)
-	assertArchiveMatch(t, "renop-abc-linux-mips64le.zip", "linux", "mips64", false)
-	assertArchiveMatch(t, "renop-abc-linux-mips64le.zip", "linux", "mips64le", true)
-	assertArchiveMatch(t, "renop-abc-linux-mips64.zip", "linux", "mips64le", false)
+	assertArchiveMatch(t, "renop-abc-linux-loong64.zip", "linux", "loong64", true)
 	assertArchiveMatch(t, "artifacts/renop-1-freebsd-arm64.zip", "freebsd", "arm64", true)
 	assertArchiveMatch(t, "renop-1-dragonfly-amd64.zip", "dragonfly", "amd64", true)
 	assertArchiveMatch(t, "not-a-platform.zip", "linux", "amd64", false)
@@ -274,8 +269,8 @@ func TestExtractExecutableFromZip_NightlyNested(t *testing.T) {
 		"README.md": []byte("y"),
 	})
 
-	wrongName := "renop-aaa-linux-mips64.zip"
-	if runtime.GOOS == "linux" && runtime.GOARCH == "mips64" {
+	wrongName := "renop-aaa-linux-loong64.zip"
+	if runtime.GOOS == "linux" && runtime.GOARCH == "loong64" {
 		wrongName = "renop-aaa-windows-amd64.zip"
 	}
 	rightName := "renop-nightly-" + runtime.GOOS + "-" + runtime.GOARCH + ".zip"
@@ -312,10 +307,10 @@ func TestExtractExecutableFromZip_NightlyMissingPlatform(t *testing.T) {
 		"renop": []byte("junk"),
 	})
 	outer := writeZip(t, map[string][]byte{
-		"renop-nightly-openbsd-mips64.zip": junk,
-		"renop-nightly-netbsd-riscv64.zip": junk,
+		"renop-nightly-openbsd-loong64.zip": junk,
+		"renop-nightly-netbsd-riscv64.zip":  junk,
 	})
-	if archiveMatchesPlatform("renop-nightly-openbsd-mips64.zip", runtime.GOOS, runtime.GOARCH) ||
+	if archiveMatchesPlatform("renop-nightly-openbsd-loong64.zip", runtime.GOOS, runtime.GOARCH) ||
 		archiveMatchesPlatform("renop-nightly-netbsd-riscv64.zip", runtime.GOOS, runtime.GOARCH) {
 		t.Skip("host matches fixture platform")
 	}

@@ -29,8 +29,7 @@ export const PLATFORMS = {
     arch: [
         {value: 'amd64', label: 'amd64 (x86_64)'},
         {value: 'arm64', label: 'arm64 (aarch64)'},
-        {value: 'mips64', label: 'mips64'},
-        {value: 'mips64le', label: 'mips64le'},
+        {value: 'loong64', label: 'loong64'},
         {value: 'riscv64', label: 'riscv64'},
     ],
 };
@@ -42,9 +41,9 @@ export const PLATFORMS = {
 export const PLATFORM_MATRIX = {
     windows: ['amd64', 'arm64'],
     darwin: ['amd64', 'arm64'],
-    linux: ['amd64', 'arm64', 'mips64', 'mips64le', 'riscv64'],
+    linux: ['amd64', 'arm64', 'loong64', 'riscv64'],
     freebsd: ['amd64', 'arm64'],
-    netbsd: ['amd64', 'arm64'],
+    netbsd: ['amd64'],
     openbsd: ['amd64', 'arm64'],
 };
 
