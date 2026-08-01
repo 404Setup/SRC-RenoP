@@ -12,13 +12,14 @@ environment variables.
 
 ## Files
 
-| File                | Environment variable | Purpose                                                             |
-|---------------------|----------------------|---------------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | Listen address, TLS, frontend branding, storage path, updater       |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Repositories, mirrors, per-repository S3                            |
-| `tokens.yaml`       | `RENOP_TOKENS`       | Users, roles, upload tokens                                         |
-| `index.json`        | `RENOP_INDEX`        | Artifact index cache                                                |
-| `sessions.bin`      | `RENOP_SESSIONS`     | Browser login sessions (legacy `sessions.json` is migrated on load) |
+| File                | Environment variable | Purpose                                                                 |
+|---------------------|----------------------|-------------------------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | Listen address, TLS, frontend branding, storage path, database, updater |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | Repositories, mirrors, per-repository S3                                |
+| `tokens.yaml`       | `RENOP_TOKENS`       | Users, roles, upload tokens (automatically migrated to DB at startup)   |
+| `renop.db`          | —                    | Embedded SQLite database (stores user tokens and sessions)              |
+| `index.json`        | `RENOP_INDEX`        | Artifact index cache                                                    |
+| `sessions.bin`      | `RENOP_SESSIONS`     | Browser login sessions (automatically migrated to DB at startup)        |
 
 Runtime-related:
 
@@ -28,9 +29,14 @@ Runtime-related:
 
 ## `config.yaml` structure
 
-### `storage_path`
+### Global Storage & Javadoc Settings
 
-Root directory for local artifact storage. The default relative path is `storage`.
+| Key                      | Default   | Description                                         |
+|--------------------------|-----------|-----------------------------------------------------|
+| `storage_path`           | `storage` | Root directory for local artifact storage           |
+| `enable_javadoc_preview` | `true`    | Whether online Javadoc preview is enabled           |
+| `javadoc_extract_path`   | `""`      | Javadoc extraction path (empty uses default cache)  |
+| `max_javadoc_size_mb`    | `48`      | Maximum file size limit for Javadoc extraction (MB) |
 
 ### `server`
 
@@ -48,6 +54,7 @@ Root directory for local artifact storage. The default relative path is `storage
 | `max_active_requests` | `512`             | Maximum concurrent requests (overload returns 503)                                |
 | `trusted_proxies`     | `[]`              | Additional reverse-proxy CIDR/IP ranges (loopback is always trusted)              |
 | `cdn_ip_header`       | `X-Forwarded-For` | Header used for client IP behind a trusted proxy (for example `CF-Connecting-IP`) |
+| `debug_mode`          | `false`           | Enable debug profile dump APIs under `/api/debug` (requires restart)              |
 
 #### CORS (`server.cors_origins`)
 
@@ -66,6 +73,19 @@ Legacy configurations that use the singular form `domain: example.com` still loa
 `domains: [example.com]`.
 
 Restart the process after changing `host`, `port`, or TLS settings.
+
+### `database`
+
+Database connection parameters for storing accounts and sessions:
+
+| Key                     | Default    | Description                                   |
+|-------------------------|------------|-----------------------------------------------|
+| `enabled`               | `true`     | Enable embedded/external database persistence |
+| `driver`                | `sqlite3`  | Database driver name (`sqlite3` or `mysql`)   |
+| `dsn`                   | `renop.db` | Database DSN or file path (e.g. `renop.db`)   |
+| `max_open_conns`        | `25`       | Maximum open connections                      |
+| `max_idle_conns`        | `25`       | Maximum idle connections                      |
+| `conn_max_lifetime_sec` | `300`      | Maximum connection lifetime in seconds        |
 
 ### `frontend`
 

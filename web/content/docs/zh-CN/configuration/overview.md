@@ -11,13 +11,14 @@ description: 配置文件、服务端设置与环境变量
 
 ## 文件
 
-| 文件                | 环境变量             | 用途                                               |
-|---------------------|----------------------|----------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | 监听、TLS、前端品牌、存储路径、更新器              |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | 仓库、镜像、按仓库 S3                              |
-| `tokens.yaml`       | `RENOP_TOKENS`       | 用户、角色、上传 Token                             |
-| `index.json`        | `RENOP_INDEX`        | 制品索引缓存                                       |
-| `sessions.bin`      | `RENOP_SESSIONS`     | 浏览器登录会话（加载时会迁移旧版 `sessions.json`） |
+| 文件                | 环境变量             | 用途                                                 |
+|---------------------|----------------------|------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | 监听、TLS、前端品牌、存储路径、数据库、更新器        |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | 仓库、镜像、按仓库 S3                                |
+| `tokens.yaml`       | `RENOP_TOKENS`       | 用户、角色、上传 Token（启动时自动迁移至数据库）     |
+| `renop.db`          | —                    | 内嵌 SQLite 数据库（存储用户 Token 与 Session 会话） |
+| `index.json`        | `RENOP_INDEX`        | 制品索引缓存                                         |
+| `sessions.bin`      | `RENOP_SESSIONS`     | 浏览器登录会话（加载时自动迁移至数据库）             |
 
 运行时相关：
 
@@ -27,9 +28,14 @@ description: 配置文件、服务端设置与环境变量
 
 ## `config.yaml` 结构
 
-### `storage_path`
+### 全局存储与 Javadoc 配置
 
-本地制品存储的根目录。默认相对路径为 `storage`。
+| 键                       | 默认      | 说明                                     |
+|--------------------------|-----------|------------------------------------------|
+| `storage_path`           | `storage` | 本地制品存储的根目录                     |
+| `enable_javadoc_preview` | `true`    | 是否启用 Javadoc 在线预览功能            |
+| `javadoc_extract_path`   | `""`      | Javadoc 解压提取目录（留空使用默认缓存） |
+| `max_javadoc_size_mb`    | `48`      | Javadoc 解压文件最大体积限制（MB）       |
 
 ### `server`
 
@@ -47,6 +53,7 @@ description: 配置文件、服务端设置与环境变量
 | `max_active_requests` | `512`             | 并发请求上限（超限返回 503）                                |
 | `trusted_proxies`     | `[]`              | 额外可信反向代理的 CIDR/IP（环回地址始终可信）              |
 | `cdn_ip_header`       | `X-Forwarded-For` | 经可信代理后读取客户端 IP 的请求头（如 `CF-Connecting-IP`） |
+| `debug_mode`          | `false`           | 是否启用调试分析 API（在 `/api/debug` 下，需重启生效）      |
 
 #### CORS（`server.cors_origins`）
 
@@ -63,6 +70,19 @@ description: 配置文件、服务端设置与环境变量
 旧配置中的单数形式 `domain: example.com` 仍可加载，并会迁移为 `domains: [example.com]`。
 
 修改 `host`、`port` 或 TLS 相关配置后，需要重启进程。
+
+### `database`
+
+存储账户 Token 与浏览器 Session 的数据库连接参数：
+
+| 键                      | 默认       | 说明                                    |
+|-------------------------|------------|-----------------------------------------|
+| `enabled`               | `true`     | 是否启用内嵌/外部数据库持久化           |
+| `driver`                | `sqlite3`  | 数据库驱动名称（`sqlite3` 或 `mysql`）  |
+| `dsn`                   | `renop.db` | 数据库连接串（SQLite 路径或 MySQL DSN） |
+| `max_open_conns`        | `25`       | 最大打开连接数                          |
+| `max_idle_conns`        | `25`       | 最大空闲连接数                          |
+| `conn_max_lifetime_sec` | `300`      | 连接最大复用生存时间（秒）              |
 
 ### `frontend`
 

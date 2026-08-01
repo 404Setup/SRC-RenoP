@@ -8,7 +8,8 @@ category: API
 
 プレフィックス: `/api/auth`
 
-アカウントは `tokens.yaml` に保存されます（`RENOP_TOKENS` で上書き）。権限は文字列のリストです。
+初期のアカウントおよびトークン設定は `tokens.yaml`（`RENOP_TOKENS`）経由で提供できます。プロセス起動時にデータは自動的に組み込み
+SQLite データベース（既定は `renop.db`）へ移行・永続化されます。権限は文字列のリストです。
 
 ## 権限
 
@@ -54,7 +55,8 @@ category: API
 | 403        | アカウント期限切れ               |
 | 400        | 本文が読めない                   |
 
-セッション id は `renop_session` Cookie にのみ設定されます。ログイン応答の `session_token` は空です。ブラウザは Cookie を使い、スクリプトは同じ id を `Authorization: Session …` で送れます。
+セッション id は `renop_session` Cookie にのみ設定されます。ログイン応答の `session_token` は空です。ブラウザは Cookie
+を使い、スクリプトは同じ id を `Authorization: Session …` で送れます。
 
 ## 現在のユーザー
 
@@ -117,30 +119,33 @@ Basic の secret にはアカウントパスワードまたはアップロード
 
 ### `GET /api/auth/profile/sessions`
 
-現在のユーザーの **ブラウザログインセッション** を一覧します。Basic / Bearer はセッションを **作成せず**、ここには出ません。セッション秘密（Cookie 値）は **返されません**。
+現在のユーザーの **ブラウザログインセッション** を一覧します。Basic / Bearer はセッションを **作成せず**
+、ここには出ません。セッション秘密（Cookie 値）は **返されません**。
 
 応答: `application/x-protobuf`、`SessionList`
 
-| フィールド（`sessions[]`） | 意味 |
-|----------------------------|------|
-| `public_id` | 取り消し API 用の不透明 ID（Cookie 秘密ではない） |
-| `username` | アカウント名 |
-| `ip` | 最後に見えたクライアント IP |
-| `user_agent` | ログイン時の端末 / User-Agent |
-| `created_at` | 作成（Unix ms） |
-| `last_active` | 最終アクティブ（Unix ms） |
-| `expires_at` | アイドル期限: `last_active` + タイムアウト（通常 7 日、Unix ms） |
-| `current` | このリクエストのセッションなら `true` |
+| フィールド（`sessions[]`） | 意味                                                             |
+|----------------------------|------------------------------------------------------------------|
+| `public_id`                | 取り消し API 用の不透明 ID（Cookie 秘密ではない）                |
+| `username`                 | アカウント名                                                     |
+| `ip`                       | 最後に見えたクライアント IP                                      |
+| `user_agent`               | ログイン時の端末 / User-Agent                                    |
+| `created_at`               | 作成（Unix ms）                                                  |
+| `last_active`              | 最終アクティブ（Unix ms）                                        |
+| `expires_at`               | アイドル期限: `last_active` + タイムアウト（通常 7 日、Unix ms） |
+| `current`                  | このリクエストのセッションなら `true`                            |
 
 ### `POST /api/auth/profile/sessions/revoke-others`
 
-現在のユーザーについて、**このリクエストのセッション以外** のブラウザセッションをすべて取り消します。応答: `StatusOk` protobuf（`status: success`）。
+現在のユーザーについて、 **このリクエストのセッション以外** のブラウザセッションをすべて取り消します。応答: `StatusOk`
+protobuf（`status: success`）。
 
 呼び出し元が Basic/Bearer（ブラウザセッションなし）の場合、そのユーザーのブラウザセッションはすべて取り消されます。
 
 ### `DELETE /api/auth/profile/sessions/:session_id`
 
-`public_id` で **自分の** セッションを 1 つ削除。応答: `StatusOk` protobuf。存在しない id は no-op。現在のセッションを取り消すと Cookie がクリアされます。
+`public_id` で **自分の** セッションを 1 つ削除。応答: `StatusOk` protobuf。存在しない id は no-op。現在のセッションを取り消すと
+Cookie がクリアされます。
 
 ## マネージャーのセッション管理
 
@@ -152,7 +157,8 @@ Basic の secret にはアカウントパスワードまたはアップロード
 
 ### `POST /api/tokens/:name/sessions/revoke-all`
 
-そのユーザーのブラウザセッションをすべて取り消し。マネージャーが **自分** を対象にした場合、このリクエストのセッションは残します。応答: `StatusOk` protobuf。
+そのユーザーのブラウザセッションをすべて取り消し。マネージャーが **自分**
+を対象にした場合、このリクエストのセッションは残します。応答: `StatusOk` protobuf。
 
 ### `DELETE /api/tokens/:name/sessions/:session_id`
 

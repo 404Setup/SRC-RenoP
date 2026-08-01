@@ -72,20 +72,33 @@ Réponse : message protobuf du domaine (Content-Type `application/x-protobuf`).
 
 **server** → `ServerConfig`
 
-| Champ                 | Type            |
-|-----------------------|-----------------|
-| `host`                | string          |
-| `port`                | uint32          |
-| `ssl_enabled`         | bool            |
-| `ssl_cert_path`       | string          |
-| `ssl_key_path`        | string          |
-| `domains`             | repeated string |
-| `enable_compression`  | bool            |
-| `file_cache_size_mb`  | uint32          |
-| `max_active_requests` | uint32          |
-| `trusted_proxies`     | repeated string |
-| `cdn_ip_header`       | string          |
-| `cors_origins`        | repeated string |
+| Champ                 | Type            | Description                                  |
+|-----------------------|-----------------|----------------------------------------------|
+| `host`                | string          | Adresse IP d'écoute                          |
+| `port`                | uint32          | Port d'écoute                                |
+| `ssl_enabled`         | bool            | Activer TLS                                  |
+| `ssl_cert_path`       | string          | Chemin du certificat TLS                     |
+| `ssl_key_path`        | string          | Chemin de la clé privée TLS                  |
+| `domains`             | repeated string | Noms d'hôte publics de l'instance            |
+| `enable_compression`  | bool            | Activer la compression des réponses HTTP     |
+| `file_cache_size_mb`  | uint32          | Limite du cache fichiers en mémoire (Mo)     |
+| `max_active_requests` | uint32          | Limite de requêtes actives concurrentes      |
+| `trusted_proxies`     | repeated string | Liste des proxies de confiance CIDR/IP       |
+| `cdn_ip_header`       | string          | Nom de l'en-tête IP client                   |
+| `cors_origins`        | repeated string | Liste des origines CORS autorisées           |
+| `debug_mode`          | bool            | Activer les API de profilage de débogage     |
+| `database`            | DatabaseConfig  | Paramètres de connexion à la base de données |
+
+**DatabaseConfig**:
+
+| Champ                   | Type   | Description                                       |
+|-------------------------|--------|---------------------------------------------------|
+| `enabled`               | bool   | Activer la persistance en base de données         |
+| `driver`                | string | Pilote de base de données (`sqlite3` ou `mysql`)  |
+| `dsn`                   | string | DSN ou chemin de base de données (ex. `renop.db`) |
+| `max_open_conns`        | int32  | Nombre maximal de connexions ouvertes             |
+| `max_idle_conns`        | int32  | Nombre maximal de connexions inactives            |
+| `conn_max_lifetime_sec` | int32  | Durée de vie maximale des connexions en secondes  |
 
 **storage** → `StorageConfig`
 

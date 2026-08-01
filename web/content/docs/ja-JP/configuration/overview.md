@@ -13,11 +13,12 @@ description: 設定ファイル、サーバー設定、環境変数
 
 | ファイル            | 環境変数             | 用途                                                                |
 |---------------------|----------------------|---------------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | 待ち受け、TLS、フロントブランド、ストレージパス、updater            |
+| `config.yaml`       | `RENOP_CONFIG`       | 待ち受け、TLS、フロントブランド、ストレージパス、データベース、updater|
 | `repositories.yaml` | `RENOP_REPOSITORIES` | リポジトリ、ミラー、リポジトリ単位の S3                             |
-| `tokens.yaml`       | `RENOP_TOKENS`       | ユーザー、ロール、アップロードトークン                              |
+| `tokens.yaml`       | `RENOP_TOKENS`       | ユーザー、ロール、アップロードトークン（起動時に自動でDBに移行）     |
+| `renop.db`          | —                    | 組み込み SQLite データベース（トークンとセッションを保存）           |
 | `index.json`        | `RENOP_INDEX`        | 成果物インデックスキャッシュ                                        |
-| `sessions.bin`      | `RENOP_SESSIONS`     | ブラウザログインセッション（読み込み時に旧 `sessions.json` を移行） |
+| `sessions.bin`      | `RENOP_SESSIONS`     | ブラウザログインセッション（起動時に自動でDBに移行）                 |
 
 実行時に関連する変数:
 
@@ -27,9 +28,14 @@ description: 設定ファイル、サーバー設定、環境変数
 
 ## `config.yaml` の構造
 
-### `storage_path`
+### グローバルストレージと Javadoc 設定
 
-ローカル成果物ストレージのルートディレクトリです。既定の相対パスは `storage` です。
+| キー                     | 既定       | 説明                                                            |
+|--------------------------|------------|-----------------------------------------------------------------|
+| `storage_path`           | `storage`  | ローカル成果物ストレージのルートディレクトリ                    |
+| `enable_javadoc_preview` | `true`     | オンライン Javadoc プレビューを有効にするか                     |
+| `javadoc_extract_path`   | `""`       | Javadoc 展開パス（空の場合は既定のキャッシュを使用）            |
+| `max_javadoc_size_mb`    | `48`       | Javadoc 展開の最大ファイルサイズ制限（MB）                      |
 
 ### `server`
 
@@ -47,6 +53,7 @@ description: 設定ファイル、サーバー設定、環境変数
 | `max_active_requests` | `512`             | 同時リクエスト上限（超過時は 503）                                               |
 | `trusted_proxies`     | `[]`              | 追加のリバースプロキシ CIDR/IP（ループバックは常に信頼）                         |
 | `cdn_ip_header`       | `X-Forwarded-For` | 信頼できるプロキシ背後でクライアント IP を読むヘッダー（例: `CF-Connecting-IP`） |
+| `debug_mode`          | `false`           | `/api/debug` 配下のデバッグ分析 API を有効化（再起動が必要）                     |
 
 #### CORS（`server.cors_origins`）
 
@@ -64,6 +71,19 @@ description: 設定ファイル、サーバー設定、環境変数
 単数形のレガシー設定 `domain: example.com` も読み込み可能で、`domains: [example.com]` へ移行されます。
 
 `host`、`port`、または TLS 関連の設定を変更したあとは、プロセスを再起動してください。
+
+### `database`
+
+アカウントおよびセッションのデータベース接続設定:
+
+| キー                     | 既定       | 説明                                                            |
+|--------------------------|------------|-----------------------------------------------------------------|
+| `enabled`                | `true`     | 組み込み / 外部データベースの永続化を有効にするか               |
+| `driver`                 | `sqlite3`  | データベースドライバー名（`sqlite3` または `mysql`）           |
+| `dsn`                    | `renop.db` | データベース DSN またはファイルパス（例: `renop.db`）           |
+| `max_open_conns`        | `25`       | 最大オープン接続数                                              |
+| `max_idle_conns`        | `25`       | 最大アイドル接続数                                              |
+| `conn_max_lifetime_sec` | `300`      | 接続の最大生存期間（秒）                                        |
 
 ### `frontend`
 

@@ -72,20 +72,33 @@ Response: protobuf message for that domain (Content-Type `application/x-protobuf
 
 **server** → `ServerConfig`
 
-| Field                 | Type            |
-|-----------------------|-----------------|
-| `host`                | string          |
-| `port`                | uint32          |
-| `ssl_enabled`         | bool            |
-| `ssl_cert_path`       | string          |
-| `ssl_key_path`        | string          |
-| `domains`             | repeated string |
-| `enable_compression`  | bool            |
-| `file_cache_size_mb`  | uint32          |
-| `max_active_requests` | uint32          |
-| `trusted_proxies`     | repeated string |
-| `cdn_ip_header`       | string          |
-| `cors_origins`        | repeated string |
+| Field                 | Type            | Description                      |
+|-----------------------|-----------------|----------------------------------|
+| `host`                | string          | Listen IP address                |
+| `port`                | uint32          | Listen port                      |
+| `ssl_enabled`         | bool            | Enable TLS                       |
+| `ssl_cert_path`       | string          | TLS certificate path             |
+| `ssl_key_path`        | string          | TLS key path                     |
+| `domains`             | repeated string | Public instance hostnames        |
+| `enable_compression`  | bool            | Enable HTTP response compression |
+| `file_cache_size_mb`  | uint32          | In-memory file cache limit (MB)  |
+| `max_active_requests` | uint32          | Max concurrent active requests   |
+| `trusted_proxies`     | repeated string | Trusted proxy CIDR/IP list       |
+| `cdn_ip_header`       | string          | Client IP header name            |
+| `cors_origins`        | repeated string | CORS origins allow list          |
+| `debug_mode`          | bool            | Enable debug profiling endpoints |
+| `database`            | DatabaseConfig  | Database connection settings     |
+
+**DatabaseConfig**:
+
+| Field                   | Type   | Description                            |
+|-------------------------|--------|----------------------------------------|
+| `enabled`               | bool   | Enable database persistence            |
+| `driver`                | string | Database driver (`sqlite3` or `mysql`) |
+| `dsn`                   | string | Database DSN or path (e.g. `renop.db`) |
+| `max_open_conns`        | int32  | Maximum open connections               |
+| `max_idle_conns`        | int32  | Maximum idle connections               |
+| `conn_max_lifetime_sec` | int32  | Maximum connection lifetime in seconds |
 
 **storage** → `StorageConfig`
 

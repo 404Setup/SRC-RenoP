@@ -716,6 +716,30 @@ components:
         debug_mode:
           type: boolean
           description: Persist debug mode; restart required to activate dump APIs
+        database:
+          $ref: "#/components/schemas/DatabaseConfig"
+
+    DatabaseConfig:
+      type: object
+      description: Protobuf message DatabaseConfig (application/x-protobuf).
+      properties:
+        enabled:
+          type: boolean
+        driver:
+          type: string
+          example: "sqlite3"
+        dsn:
+          type: string
+          example: "renop.db"
+        max_open_conns:
+          type: integer
+          format: int32
+        max_idle_conns:
+          type: integer
+          format: int32
+        conn_max_lifetime_sec:
+          type: integer
+          format: int32
 
     StorageConfig:
       type: object

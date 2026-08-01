@@ -8,7 +8,8 @@ category: API
 
 前缀：`/api/auth`
 
-账户保存在 `tokens.yaml`（可用 `RENOP_TOKENS` 覆盖）。权限为字符串列表。
+账户与令牌配置可通过 `tokens.yaml`（环境变量 `RENOP_TOKENS`）提供初始数据。系统启动时会将配置自动迁移并持久化至内嵌 SQLite
+数据库（默认 `renop.db`）。权限为字符串列表。
 
 ## 权限
 

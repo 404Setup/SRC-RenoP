@@ -72,20 +72,33 @@ category: API
 
 **server** → `ServerConfig`
 
-| Поле                  | Тип             |
-|-----------------------|-----------------|
-| `host`                | string          |
-| `port`                | uint32          |
-| `ssl_enabled`         | bool            |
-| `ssl_cert_path`       | string          |
-| `ssl_key_path`        | string          |
-| `domains`             | repeated string |
-| `enable_compression`  | bool            |
-| `file_cache_size_mb`  | uint32          |
-| `max_active_requests` | uint32          |
-| `trusted_proxies`     | repeated string |
-| `cdn_ip_header`       | string          |
-| `cors_origins`        | repeated string |
+| Поле                  | Тип             | Описание                              |
+|-----------------------|-----------------|---------------------------------------|
+| `host`                | string          | IP-адрес прослушивания                |
+| `port`                | uint32          | Порт прослушивания                    |
+| `ssl_enabled`         | bool            | Включить TLS                          |
+| `ssl_cert_path`       | string          | Путь к сертификату TLS                |
+| `ssl_key_path`        | string          | Путь к закрытому ключу TLS            |
+| `domains`             | repeated string | Список публичных имен хостов          |
+| `enable_compression`  | bool            | Включить сжатие HTTP-ответов          |
+| `file_cache_size_mb`  | uint32          | Лимит файлового кэша в памяти (МБ)    |
+| `max_active_requests` | uint32          | Лимит активных одновременных запросов |
+| `trusted_proxies`     | repeated string | Список доверенных прокси (CIDR/IP)    |
+| `cdn_ip_header`       | string          | Имя заголовка IP клиента              |
+| `cors_origins`        | repeated string | Список разрешённых origins CORS       |
+| `debug_mode`          | bool            | Включить API отладки и профилирования |
+| `database`            | DatabaseConfig  | Настройки подключения к базе данных   |
+
+**DatabaseConfig**:
+
+| Поле                    | Тип    | Описание                                         |
+|-------------------------|--------|--------------------------------------------------|
+| `enabled`               | bool   | Включить персистентность базы данных             |
+| `driver`                | string | Драйвер базы данных (`sqlite3` или `mysql`)      |
+| `dsn`                   | string | DSN или путь к базе данных (например `renop.db`) |
+| `max_open_conns`        | int32  | Максимальное количество открытых соединений      |
+| `max_idle_conns`        | int32  | Максимальное количество свободных соединений     |
+| `conn_max_lifetime_sec` | int32  | Максимальное время жизни соединения в секундах   |
 
 **storage** → `StorageConfig`
 

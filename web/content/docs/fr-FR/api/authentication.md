@@ -8,7 +8,9 @@ category: API
 
 Préfixe : `/api/auth`
 
-Les comptes vivent dans `tokens.yaml` (surcharge via `RENOP_TOKENS`). Les permissions sont une liste de chaînes.
+La configuration initiale des comptes et des jetons peut être fournie via `tokens.yaml` (`RENOP_TOKENS`). Au démarrage
+du processus, les données sont automatiquement migrées et persistées dans une base de données SQLite intégrée
+(`renop.db` par défaut). Les permissions sont une liste de chaînes.
 
 ## Permissions
 
@@ -54,7 +56,9 @@ En cas de succès : `SessionDetails` (protobuf) et cookie :
 | 403    | Compte expiré               |
 | 400    | Corps illisible             |
 
-L’identifiant de session n’est posé que dans le cookie `renop_session`. Le champ `session_token` de la réponse de login est vide ; les navigateurs s’appuient sur le cookie, les scripts peuvent renvoyer le même id en `Authorization: Session …`.
+L’identifiant de session n’est posé que dans le cookie `renop_session`. Le champ `session_token` de la réponse de login
+est vide ; les navigateurs s’appuient sur le cookie, les scripts peuvent renvoyer le même id en
+`Authorization: Session …`.
 
 ## Utilisateur courant
 
@@ -117,34 +121,38 @@ Le secret Basic peut être le mot de passe du compte ou le jeton d’upload, sel
 
 ### `GET /api/auth/profile/sessions`
 
-Liste les **sessions de connexion navigateur** de l’utilisateur courant. Basic et Bearer ne créent **pas** de sessions et n’apparaissent jamais ici. Le secret de session (valeur du cookie) n’est **jamais** renvoyé.
+Liste les **sessions de connexion navigateur** de l’utilisateur courant. Basic et Bearer ne créent **pas** de sessions
+et n’apparaissent jamais ici. Le secret de session (valeur du cookie) n’est **jamais** renvoyé.
 
 Réponse : `application/x-protobuf`, `SessionList`
 
-| Champ (`sessions[]`) | Signification |
-|----------------------|---------------|
-| `public_id` | Id opaque pour les API de révocation (pas le secret cookie) |
-| `username` | Nom du compte |
-| `ip` | Dernière IP client vue |
-| `user_agent` | Appareil / User-Agent à la connexion |
-| `created_at` | Création (Unix ms) |
-| `last_active` | Dernière activité (Unix ms) |
-| `expires_at` | Expiration d’inactivité : `last_active` + délai (typ. 7 jours, Unix ms) |
-| `current` | `true` si c’est la session de cette requête |
+| Champ (`sessions[]`) | Signification                                                           |
+|----------------------|-------------------------------------------------------------------------|
+| `public_id`          | Id opaque pour les API de révocation (pas le secret cookie)             |
+| `username`           | Nom du compte                                                           |
+| `ip`                 | Dernière IP client vue                                                  |
+| `user_agent`         | Appareil / User-Agent à la connexion                                    |
+| `created_at`         | Création (Unix ms)                                                      |
+| `last_active`        | Dernière activité (Unix ms)                                             |
+| `expires_at`         | Expiration d’inactivité : `last_active` + délai (typ. 7 jours, Unix ms) |
+| `current`            | `true` si c’est la session de cette requête                             |
 
 ### `POST /api/auth/profile/sessions/revoke-others`
 
-Révoque toutes les sessions navigateur de l’utilisateur **sauf** celle de cette requête. Réponse : `StatusOk` protobuf (`status: success`).
+Révoque toutes les sessions navigateur de l’utilisateur **sauf** celle de cette requête. Réponse : `StatusOk` protobuf
+(`status: success`).
 
 Si l’appelant utilise Basic/Bearer (pas de session navigateur), toutes ses sessions navigateur sont révoquées.
 
 ### `DELETE /api/auth/profile/sessions/:session_id`
 
-Supprime **une de vos** sessions par `public_id`. Réponse : `StatusOk` protobuf. Id manquant = no-op. Révoquer la session courante efface le cookie.
+Supprime **une de vos** sessions par `public_id`. Réponse : `StatusOk` protobuf. Id manquant = no-op. Révoquer la
+session courante efface le cookie.
 
 ## Gestion des sessions (manager)
 
-Les managers (`admin` / `manager`) peuvent inspecter et révoquer les sessions navigateur de **n’importe quel** compte sous `/api/tokens`.
+Les managers (`admin` / `manager`) peuvent inspecter et révoquer les sessions navigateur de **n’importe quel** compte
+sous `/api/tokens`.
 
 ### `GET /api/tokens/:name/sessions`
 
@@ -152,7 +160,8 @@ Les managers (`admin` / `manager`) peuvent inspecter et révoquer les sessions n
 
 ### `POST /api/tokens/:name/sessions/revoke-all`
 
-Révoque toutes les sessions navigateur de cet utilisateur. Si le manager cible **son propre** compte, la session de cette requête est conservée. Réponse : `StatusOk` protobuf.
+Révoque toutes les sessions navigateur de cet utilisateur. Si le manager cible **son propre** compte, la session de
+cette requête est conservée. Réponse : `StatusOk` protobuf.
 
 ### `DELETE /api/tokens/:name/sessions/:session_id`
 

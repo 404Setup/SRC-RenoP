@@ -12,13 +12,14 @@ peuvent être redéfinis par des variables d’environnement.
 
 ## Fichiers
 
-| Fichier             | Variable d’environnement | Rôle                                                                                |
-|---------------------|--------------------------|-------------------------------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`           | Adresse d’écoute, TLS, marque frontend, chemin de stockage, updater                 |
-| `repositories.yaml` | `RENOP_REPOSITORIES`     | Dépôts, miroirs, S3 par dépôt                                                       |
-| `tokens.yaml`       | `RENOP_TOKENS`           | Utilisateurs, rôles, jetons d’upload                                                |
-| `index.json`        | `RENOP_INDEX`            | Cache d’index des artefacts                                                         |
-| `sessions.bin`      | `RENOP_SESSIONS`         | Sessions de connexion navigateur (l’ancien `sessions.json` est migré au chargement) |
+| Fichier             | Variable d’environnement | Rôle                                                                                 |
+|---------------------|--------------------------|--------------------------------------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`           | Adresse d’écoute, TLS, marque frontend, chemin de stockage, base de données, updater |
+| `repositories.yaml` | `RENOP_REPOSITORIES`     | Dépôts, miroirs, S3 par dépôt                                                        |
+| `tokens.yaml`       | `RENOP_TOKENS`           | Utilisateurs, rôles, jetons d’upload (migré automatiquement en BDD au démarrage)     |
+| `renop.db`          | —                        | Base de données SQLite intégrée (stocke les jetons et sessions utilisateur)          |
+| `index.json`        | `RENOP_INDEX`            | Cache d’index des artefacts                                                          |
+| `sessions.bin`      | `RENOP_SESSIONS`         | Sessions de connexion navigateur (migré automatiquement en BDD au démarrage)         |
 
 Lié à l’exécution :
 
@@ -28,9 +29,14 @@ Lié à l’exécution :
 
 ## Structure de `config.yaml`
 
-### `storage_path`
+### Paramètres globaux de stockage et Javadoc
 
-Répertoire racine du stockage local des artefacts. Le chemin relatif par défaut est `storage`.
+| Clé                      | Défaut    | Description                                                    |
+|--------------------------|-----------|----------------------------------------------------------------|
+| `storage_path`           | `storage` | Répertoire racine du stockage local des artefacts              |
+| `enable_javadoc_preview` | `true`    | Indique si la prévisualisation en ligne Javadoc est activée    |
+| `javadoc_extract_path`   | `""`      | Chemin d'extraction Javadoc (vide utilise le cache par défaut) |
+| `max_javadoc_size_mb`    | `48`      | Limite de taille maximale d'extraction Javadoc (Mo)            |
 
 ### `server`
 
@@ -48,6 +54,7 @@ Répertoire racine du stockage local des artefacts. Le chemin relatif par défau
 | `max_active_requests` | `512`             | Nombre maximal de requêtes concurrentes (surcharge → 503)                       |
 | `trusted_proxies`     | `[]`              | CIDR/IP de reverse proxies supplémentaires (loopback toujours de confiance)     |
 | `cdn_ip_header`       | `X-Forwarded-For` | En-tête d’IP client derrière un proxy de confiance (par ex. `CF-Connecting-IP`) |
+| `debug_mode`          | `false`           | Activer les API de profilage de débogage sous `/api/debug` (redémarrage requis) |
 
 #### CORS (`server.cors_origins`)
 
@@ -66,6 +73,19 @@ Les configurations héritées utilisant la forme singulière `domain: example.co
 `domains: [example.com]`.
 
 Redémarrez le processus après modification de `host`, `port` ou des paramètres TLS.
+
+### `database`
+
+Paramètres de connexion à la base de données pour le stockage des comptes et des sessions :
+
+| Clé                     | Défaut     | Description                                                   |
+|-------------------------|------------|---------------------------------------------------------------|
+| `enabled`               | `true`     | Activer la persistance en base de données intégrée ou externe |
+| `driver`                | `sqlite3`  | Nom du pilote de base de données (`sqlite3` ou `mysql`)       |
+| `dsn`                   | `renop.db` | DSN ou chemin de fichier de base de données (ex. `renop.db`)  |
+| `max_open_conns`        | `25`       | Nombre maximal de connexions ouvertes                         |
+| `max_idle_conns`        | `25`       | Nombre maximal de connexions inactives                        |
+| `conn_max_lifetime_sec` | `300`      | Durée de vie maximale des connexions en secondes              |
 
 ### `frontend`
 

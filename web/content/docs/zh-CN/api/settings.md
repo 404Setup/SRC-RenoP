@@ -71,20 +71,33 @@ category: API
 
 **server** → `ServerConfig`
 
-| 字段                  | 类型            |
-|-----------------------|-----------------|
-| `host`                | string          |
-| `port`                | uint32          |
-| `ssl_enabled`         | bool            |
-| `ssl_cert_path`       | string          |
-| `ssl_key_path`        | string          |
-| `domains`             | repeated string |
-| `enable_compression`  | bool            |
-| `file_cache_size_mb`  | uint32          |
-| `max_active_requests` | uint32          |
-| `trusted_proxies`     | repeated string |
-| `cdn_ip_header`       | string          |
-| `cors_origins`        | repeated string |
+| 字段                  | 类型            | 说明                   |
+|-----------------------|-----------------|------------------------|
+| `host`                | string          | 监听 IP 地址           |
+| `port`                | uint32          | 监听端口               |
+| `ssl_enabled`         | bool            | 是否启用 TLS           |
+| `ssl_cert_path`       | string          | TLS 证书文件路径       |
+| `ssl_key_path`        | string          | TLS 私钥文件路径       |
+| `domains`             | repeated string | 本实例对外域名列表     |
+| `enable_compression`  | bool            | 是否启用 HTTP 响应压缩 |
+| `file_cache_size_mb`  | uint32          | 文件内存缓存上限（MB） |
+| `max_active_requests` | uint32          | 并发请求上限           |
+| `trusted_proxies`     | repeated string | 可信代理 CIDR/IP 列表  |
+| `cdn_ip_header`       | string          | 客户端 IP 请求头名称   |
+| `cors_origins`        | repeated string | CORS 允许来源列表      |
+| `debug_mode`          | bool            | 是否启用调试分析 API   |
+| `database`            | DatabaseConfig  | 数据库连接配置         |
+
+**DatabaseConfig**：
+
+| 字段                    | 类型   | 说明                                 |
+|-------------------------|--------|--------------------------------------|
+| `enabled`               | bool   | 是否启用数据库持久化                 |
+| `driver`                | string | 数据库驱动（`sqlite3` 或 `mysql`）   |
+| `dsn`                   | string | 数据库 DSN/文件路径（如 `renop.db`） |
+| `max_open_conns`        | int32  | 最大打开连接数                       |
+| `max_idle_conns`        | int32  | 最大空闲连接数                       |
+| `conn_max_lifetime_sec` | int32  | 连接最大复用时间（秒）               |
 
 **storage** → `StorageConfig`
 

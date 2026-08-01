@@ -71,20 +71,33 @@ category: API
 
 **server** → `ServerConfig`
 
-| フィールド            | 型              |
-|-----------------------|-----------------|
-| `host`                | string          |
-| `port`                | uint32          |
-| `ssl_enabled`         | bool            |
-| `ssl_cert_path`       | string          |
-| `ssl_key_path`        | string          |
-| `domains`             | repeated string |
-| `enable_compression`  | bool            |
-| `file_cache_size_mb`  | uint32          |
-| `max_active_requests` | uint32          |
-| `trusted_proxies`     | repeated string |
-| `cdn_ip_header`       | string          |
-| `cors_origins`        | repeated string |
+| フィールド            | 型              | 説明                                               |
+|-----------------------|-----------------|----------------------------------------------------|
+| `host`                | string          | 待ち受け IP アドレス                               |
+| `port`                | uint32          | 待ち受けポート                                     |
+| `ssl_enabled`         | bool            | TLS を有効にするか                                 |
+| `ssl_cert_path`       | string          | TLS 証明書ファイルパス                             |
+| `ssl_key_path`        | string          | TLS 秘密鍵ファイルパス                             |
+| `domains`             | repeated string | このインスタンスの公開ホスト名リスト               |
+| `enable_compression`  | bool            | HTTP 応答圧縮を有効にするか                        |
+| `file_cache_size_mb`  | uint32          | メモリ上のファイルキャッシュ上限（MB）             |
+| `max_active_requests` | uint32          | アクティブな同時リクエスト数上限                   |
+| `trusted_proxies`     | repeated string | 信頼できるプロキシの CIDR/IP リスト                |
+| `cdn_ip_header`       | string          | クライアント IP ヘッダー名                         |
+| `cors_origins`        | repeated string | 許可する CORS オリジンリスト                       |
+| `debug_mode`          | bool            | デバッグプロファイリング API を有効化するか        |
+| `database`            | DatabaseConfig  | データベース接続設定                               |
+
+**DatabaseConfig**:
+
+| フィールド               | 型     | 説明                                               |
+|--------------------------|--------|----------------------------------------------------|
+| `enabled`                | bool   | データベースの永続化を有効にするか                 |
+| `driver`                 | string | データベースドライバー（`sqlite3` または `mysql`）  |
+| `dsn`                    | string | データベース DSN またはパス（例: `renop.db`）      |
+| `max_open_conns`         | int32  | 最大オープン接続数                                 |
+| `max_idle_conns`         | int32  | 最大アイドル接続数                                 |
+| `conn_max_lifetime_sec`  | int32  | 接続の最大生存期間（秒）                           |
 
 **storage** → `StorageConfig`
 

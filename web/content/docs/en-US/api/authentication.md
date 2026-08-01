@@ -8,7 +8,9 @@ category: API
 
 Prefix: `/api/auth`
 
-Accounts live in `tokens.yaml` (override with `RENOP_TOKENS`). Permissions are a list of strings.
+Initial account and token configuration can be provided via `tokens.yaml` (`RENOP_TOKENS`). On process startup, data is
+automatically migrated and persisted into an embedded SQLite database (`renop.db` by default). Permissions are a list of
+strings.
 
 ## Permissions
 
@@ -54,7 +56,8 @@ On success: `SessionDetails` (protobuf) and cookie:
 | 403    | Account expired            |
 | 400    | Unreadable body            |
 
-The session id is set only on the `renop_session` cookie. The `session_token` field in the login response is empty; browsers use the cookie, and scripts may resend the same id as `Authorization: Session …`.
+The session id is set only on the `renop_session` cookie. The `session_token` field in the login response is empty;
+browsers use the cookie, and scripts may resend the same id as `Authorization: Session …`.
 
 ## Current user
 
@@ -117,30 +120,33 @@ Either the account password or the upload token may be used as the Basic secret,
 
 ### `GET /api/auth/profile/sessions`
 
-Lists **browser login sessions** for the current user. Basic and Bearer authentication do **not** create sessions and never appear here. The session secret (cookie value) is **never** returned.
+Lists **browser login sessions** for the current user. Basic and Bearer authentication do **not** create sessions and
+never appear here. The session secret (cookie value) is **never** returned.
 
 Response: `application/x-protobuf`, `SessionList`
 
-| Field (each `sessions[]`) | Meaning |
-|---------------------------|---------|
-| `public_id` | Opaque id for revoke APIs (not the cookie secret) |
-| `username` | Account name |
-| `ip` | Last seen client IP |
-| `user_agent` | Device / User-Agent string from login |
-| `created_at` | Created (Unix ms) |
-| `last_active` | Last activity (Unix ms) |
-| `expires_at` | Idle expiry: `last_active` + idle timeout (typically 7 days, Unix ms) |
-| `current` | `true` when this session is making the request |
+| Field (each `sessions[]`) | Meaning                                                               |
+|---------------------------|-----------------------------------------------------------------------|
+| `public_id`               | Opaque id for revoke APIs (not the cookie secret)                     |
+| `username`                | Account name                                                          |
+| `ip`                      | Last seen client IP                                                   |
+| `user_agent`              | Device / User-Agent string from login                                 |
+| `created_at`              | Created (Unix ms)                                                     |
+| `last_active`             | Last activity (Unix ms)                                               |
+| `expires_at`              | Idle expiry: `last_active` + idle timeout (typically 7 days, Unix ms) |
+| `current`                 | `true` when this session is making the request                        |
 
 ### `POST /api/auth/profile/sessions/revoke-others`
 
-Revokes every browser session for the current user **except** the session making this request. Response: `StatusOk` protobuf (`status: success`).
+Revokes every browser session for the current user **except** the session making this request. Response: `StatusOk`
+protobuf (`status: success`).
 
 If the caller is authenticated with Basic/Bearer (no browser session), all of their browser sessions are revoked.
 
 ### `DELETE /api/auth/profile/sessions/:session_id`
 
-Drop one of **your** sessions by `public_id`. Response: `StatusOk` protobuf. Missing id is a no-op. Revoking the current session clears the cookie.
+Drop one of **your** sessions by `public_id`. Response: `StatusOk` protobuf. Missing id is a no-op. Revoking the current
+session clears the cookie.
 
 ## Manager session management
 
@@ -152,7 +158,8 @@ Managers (`admin` / `manager`) can inspect and revoke **any** account’s browse
 
 ### `POST /api/tokens/:name/sessions/revoke-all`
 
-Revoke all browser sessions for that user. When the manager targets **their own** account, the session making this request is kept so they are not locked out mid-request. Response: `StatusOk` protobuf.
+Revoke all browser sessions for that user. When the manager targets **their own** account, the session making this
+request is kept so they are not locked out mid-request. Response: `StatusOk` protobuf.
 
 ### `DELETE /api/tokens/:name/sessions/:session_id`
 
