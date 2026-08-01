@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/bnema/purego-sqlite/driver"
 	_ "github.com/go-sql-driver/mysql"
+	_ "modernc.org/sqlite"
 
 	"renop/config"
 	"renop/core"

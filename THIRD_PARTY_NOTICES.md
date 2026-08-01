@@ -30,8 +30,6 @@ redistributed by RenoP. Reposilite is available under its own license (Apache-2.
 | `github.com/3JoB/unsafeConvert`     | v1.6.0                             | Apache-2.0                                 | Authors of unsafeConvert                                                                                       |
 | `github.com/allegro/bigcache/v3`    | v3.1.0                             | Apache-2.0                                 | Copyright (c) 2019 Allegro                                                                                     |
 | `github.com/andybalholm/brotli`     | v1.2.2                             | MIT                                        | Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors                                                      |
-| `github.com/bnema/purego`           | v0.11.0-bnema.4                    | BSD-3-Clause                               | Copyright (c) 2022 Ebitengine Authors                                                                          |
-| `github.com/bnema/purego-sqlite`    | v0.1.4                             | MIT                                        | Copyright (c) 2024 bnema                                                                                       |
 | `github.com/cespare/xxhash/v2`      | v2.3.0                             | MIT                                        | Copyright (c) 2016 Caleb Spare                                                                                 |
 | `github.com/dustin/go-humanize`     | v1.0.1                             | MIT                                        | Copyright (c) 2005-2008 Dustin Sallings                                                                        |
 | `github.com/fsnotify/fsnotify`      | v1.10.1                            | BSD-3-Clause                               | Copyright © 2012 The Go Authors; Copyright © fsnotify Authors                                                  |
@@ -108,7 +106,7 @@ marketing site and documentation, not the server binary.
 | `rolldown`                                               | 1.2.0   | MIT          | JS/CSS bundler (build-time)                |
 | `lightningcss`                                           | 1.33.0  | **MPL-2.0**  | CSS transformer (build-time)               |
 | `protobufjs`                                             | 8.7.1   | BSD-3-Clause | Frontend protobuf runtime / codegen        |
-| `protobufjs-cli`                                         | (dev)   | BSD-3-Clause | Frontend protobuf codegen (dev)            |
+| `protobufjs-cli`                                         | 2.6.1   | BSD-3-Clause | Frontend protobuf codegen (dev)            |
 | `marked`                                                 | 15.0.12 | MIT          | Markdown rendering on the official website |
 
 ---
