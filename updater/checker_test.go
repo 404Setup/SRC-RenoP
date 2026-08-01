@@ -48,7 +48,7 @@ func TestDoJSONGetRejectsOversizedContentLength(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	var dst map[string]any
-	_, err := doJSONGet(context.Background(), ts.URL, "application/json", &dst)
+	_, err := doJSONGet(context.Background(), nil, ts.URL, "application/json", &dst)
 	if err == nil {
 		t.Fatal("expected error for oversized Content-Length")
 	}
@@ -65,7 +65,7 @@ func TestDoGitHubJSONOK(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	var rel GithubReleaseResponse
-	status, err := doGitHubJSON(context.Background(), ts.URL, &rel)
+	status, err := doGitHubJSON(context.Background(), nil, ts.URL, &rel)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestDoJSONGetDoesNotRetainResponseBuffer(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	var info ChannelInfo
-	status, err := doJSONGet(context.Background(), ts.URL, "application/json", &info)
+	status, err := doJSONGet(context.Background(), nil, ts.URL, "application/json", &info)
 	if err != nil || status != 200 {
 		t.Fatalf("doJSONGet failed: status=%d, err=%v", status, err)
 	}
@@ -136,20 +136,17 @@ func TestCheckUpdateClosesIdleConnsAndFreesMemory(t *testing.T) {
 	}))
 	t.Cleanup(ts.Close)
 
-	before := currentCheckHTTPClient()
+	client := newCheckHTTPClient()
 	var info ChannelInfo
-	status, err := doJSONGet(context.Background(), ts.URL, "application/json", &info)
+	status, err := doJSONGet(context.Background(), client, ts.URL, "application/json", &info)
 	if err != nil || status != 200 {
 		t.Fatalf("status=%d err=%v", status, err)
 	}
 
-	recycleCheckHTTPClient()
-	after := currentCheckHTTPClient()
-	if after == nil {
-		t.Fatal("expected a live check HTTP client after recycle")
-	}
-	if before != nil && after == before {
-		t.Fatal("expected check HTTP client to be replaced after recycle")
+	client.CloseIdleConnections()
+	if tr, ok := client.Transport.(*http.Transport); ok {
+		tr.CloseIdleConnections()
+		client.Transport = nil
 	}
 	utils.ReleaseMemoryToOS()
 }
@@ -657,7 +654,7 @@ func TestGithubCommitExistsStatusMapping(t *testing.T) {
 				tc.code, exists, checked, tc.wantExists, tc.wantChecked)
 		}
 	}
-	if exists, checked := githubCommitExists(context.Background(), ""); exists || checked {
+	if exists, checked := githubCommitExists(context.Background(), nil, ""); exists || checked {
 		t.Fatalf("empty sha must not probe: exists=%v checked=%v", exists, checked)
 	}
 }

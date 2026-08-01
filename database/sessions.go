@@ -289,4 +289,3 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 	}
 	return tokens, nil
 }
-

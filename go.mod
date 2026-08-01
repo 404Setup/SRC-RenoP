@@ -21,7 +21,6 @@ require (
 	golang.org/x/sys v0.47.0
 	golang.org/x/time v0.15.0
 	google.golang.org/protobuf v1.36.11
-	modernc.org/sqlite v1.55.0
 )
 
 require (
@@ -43,11 +42,9 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/shoenig/go-m1cpu v0.2.2 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
@@ -61,9 +58,4 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.74.4 // indirect
-	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.11.0 // indirect
 )
-
-replace github.com/bnema/purego => ./packages/purego

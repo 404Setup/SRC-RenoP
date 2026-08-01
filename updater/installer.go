@@ -14,6 +14,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"crypto/tls"
 	"debug/elf"
 	"debug/macho"
 	"debug/pe"
@@ -22,6 +23,7 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -466,9 +468,44 @@ func SetReadyToRestart(binaryPath, latestVersion string) {
 	})
 }
 
-var downloadHTTPClient = utils.OutboundClient(0)
+func newDownloadHTTPClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout: 15 * time.Second,
+			}).DialContext,
+			TLSClientConfig: &tls.Config{
+				ClientSessionCache: nil,
+				MinVersion:         tls.VersionTLS12,
+			},
+			ForceAttemptHTTP2:     false,
+			TLSNextProto:          map[string]func(string, *tls.Conn) http.RoundTripper{},
+			DisableCompression:    true,
+			DisableKeepAlives:     true,
+			MaxIdleConns:          0,
+			MaxIdleConnsPerHost:   0,
+			MaxConnsPerHost:       2,
+			IdleConnTimeout:       time.Second,
+			TLSHandshakeTimeout:   15 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+		Timeout: 0,
+	}
+}
 
 func DownloadAndExtract(ctx context.Context, downloadUrl string) (string, error) {
+	client := newDownloadHTTPClient()
+	defer func() {
+		client.CloseIdleConnections()
+		if tr, ok := client.Transport.(*http.Transport); ok {
+			tr.CloseIdleConnections()
+			client.Transport = nil
+		}
+		utils.ReleaseMemoryToOS()
+	}()
+
 	zipTempFile, err := os.CreateTemp("", "renop-download-*.zip")
 	if err != nil {
 		return "", err
@@ -486,7 +523,7 @@ func DownloadAndExtract(ctx context.Context, downloadUrl string) (string, error)
 	req.Header.Set("User-Agent", "RenoP-Updater")
 	req.Close = true
 
-	resp, err := downloadHTTPClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}

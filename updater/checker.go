@@ -19,7 +19,6 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -29,14 +28,6 @@ import (
 )
 
 const maxRemoteJSONBody = 1 << 20
-
-// checkHTTPClient is recycled after every CheckUpdate so TLS/conn state from one-shot
-// HTTPS does not pin heap across checks (especially visible as RSS growth on Linux/Unix).
-var checkHTTPClient atomic.Pointer[http.Client]
-
-func init() {
-	checkHTTPClient.Store(newCheckHTTPClient())
-}
 
 func newCheckHTTPClient() *http.Client {
 	return &http.Client{
@@ -69,48 +60,24 @@ func newCheckTransport() *http.Transport {
 	}
 }
 
-// recycleCheckHTTPClient closes the previous client transport and installs a fresh one
-// so the old TLS buffers / conn maps become unreachable for GC + FreeOSMemory.
-func recycleCheckHTTPClient() {
-	old := checkHTTPClient.Swap(newCheckHTTPClient())
-	if old == nil {
-		return
-	}
-	old.CloseIdleConnections()
-	if tr, ok := old.Transport.(*http.Transport); ok {
-		tr.CloseIdleConnections()
-		// Drop transport reference on the abandoned client (helps GC).
-		old.Transport = nil
-	}
-}
-
-func currentCheckHTTPClient() *http.Client {
-	if c := checkHTTPClient.Load(); c != nil {
-		return c
-	}
-	c := newCheckHTTPClient()
-	if checkHTTPClient.CompareAndSwap(nil, c) {
-		return c
-	}
-	return checkHTTPClient.Load()
-}
-
 func CheckUpdate(ctx context.Context, channel Channel) (*CheckResult, error) {
-	// Always recycle the one-shot HTTPS client and return scavenged heap to the OS.
-	// Windows also trims the working set inside ReleaseMemoryToOS; Linux/Unix rely on
-	// FreeOSMemory (MADV_DONTNEED) after the transport is unreachable.
+	client := newCheckHTTPClient()
 	defer func() {
-		recycleCheckHTTPClient()
+		client.CloseIdleConnections()
+		if tr, ok := client.Transport.(*http.Transport); ok {
+			tr.CloseIdleConnections()
+			client.Transport = nil
+		}
 		utils.ReleaseMemoryToOS()
 	}()
 
 	if channel == ChannelNightly {
-		return checkNightly(ctx)
+		return checkNightly(ctx, client)
 	}
-	return checkRelease(ctx)
+	return checkRelease(ctx, client)
 }
 
-func doJSONGet(ctx context.Context, url string, accept string, dst any) (statusCode int, err error) {
+func doJSONGet(ctx context.Context, client *http.Client, url string, accept string, dst any) (statusCode int, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return 0, err
@@ -121,7 +88,18 @@ func doJSONGet(ctx context.Context, url string, accept string, dst any) (statusC
 	}
 	req.Close = true
 
-	resp, err := currentCheckHTTPClient().Do(req)
+	if client == nil {
+		client = newCheckHTTPClient()
+		defer func() {
+			client.CloseIdleConnections()
+			if tr, ok := client.Transport.(*http.Transport); ok {
+				tr.CloseIdleConnections()
+				client.Transport = nil
+			}
+		}()
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return 0, err
 	}
@@ -149,8 +127,8 @@ func doJSONGet(ctx context.Context, url string, accept string, dst any) (statusC
 	return statusCode, nil
 }
 
-func doGitHubJSON(ctx context.Context, url string, dst any) (statusCode int, err error) {
-	return doJSONGet(ctx, url, "application/vnd.github.v3+json", dst)
+func doGitHubJSON(ctx context.Context, client *http.Client, url string, dst any) (statusCode int, err error) {
+	return doJSONGet(ctx, client, url, "application/vnd.github.v3+json", dst)
 }
 
 func clipString(s string, max int) string {
@@ -252,7 +230,7 @@ func commitDateAt(commits []GithubCommitResponse, i int) string {
 	return c.Commit.Author.Date
 }
 
-func githubCommitExists(ctx context.Context, sha string) (exists bool, checked bool) {
+func githubCommitExists(ctx context.Context, client *http.Client, sha string) (exists bool, checked bool) {
 	sha = strings.TrimSpace(sha)
 	if sha == "" {
 		return false, false
@@ -266,7 +244,18 @@ func githubCommitExists(ctx context.Context, sha string) (exists bool, checked b
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Close = true
 
-	resp, err := currentCheckHTTPClient().Do(req)
+	if client == nil {
+		client = newCheckHTTPClient()
+		defer func() {
+			client.CloseIdleConnections()
+			if tr, ok := client.Transport.(*http.Transport); ok {
+				tr.CloseIdleConnections()
+				client.Transport = nil
+			}
+		}()
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false, false
 	}
@@ -286,7 +275,7 @@ func mapGithubCommitStatus(statusCode int) (exists bool, checked bool) {
 	}
 }
 
-func resolveCurrentCommit(ctx context.Context, current string, commits []GithubCommitResponse) (idx int, existsOutside bool, verified bool) {
+func resolveCurrentCommit(ctx context.Context, client *http.Client, current string, commits []GithubCommitResponse) (idx int, existsOutside bool, verified bool) {
 	curr := normalizeVersionID(current)
 	if curr == "" || curr == "dev" {
 		return -1, false, true
@@ -298,7 +287,7 @@ func resolveCurrentCommit(ctx context.Context, current string, commits []GithubC
 	if !looksLikeCommitID(curr) {
 		return -1, false, true
 	}
-	exists, checked := githubCommitExists(ctx, curr)
+	exists, checked := githubCommitExists(ctx, client, curr)
 	if !checked {
 		return -1, false, false
 	}
@@ -491,9 +480,9 @@ func packageURL(ch Channel, version, file string) string {
 	return OfficialUpdateBase + "/" + OfficialChannelPath(ch) + "/" + version + "/" + file
 }
 
-func fetchChannelInfo(ctx context.Context, ch Channel) (*ChannelInfo, error) {
+func fetchChannelInfo(ctx context.Context, client *http.Client, ch Channel) (*ChannelInfo, error) {
 	var info ChannelInfo
-	status, err := doJSONGet(ctx, infoJSONURL(ch), "application/json", &info)
+	status, err := doJSONGet(ctx, client, infoJSONURL(ch), "application/json", &info)
 	if err != nil {
 		if status == http.StatusNotFound {
 			return nil, fmt.Errorf("official %s channel has no info.json yet", OfficialChannelPath(ch))
@@ -533,11 +522,11 @@ func findTarget(info *ChannelInfo, goos, goarch string) *ChannelInfoTarget {
 	return nil
 }
 
-func checkRelease(ctx context.Context) (*CheckResult, error) {
+func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error) {
 	checkCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
-	info, err := fetchChannelInfo(checkCtx, ChannelRelease)
+	info, err := fetchChannelInfo(checkCtx, client, ChannelRelease)
 	if err != nil {
 		return nil, err
 	}
@@ -565,7 +554,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 		tagCandidates := []string{latestRel.Version, "v" + strings.TrimPrefix(latestRel.Version, "v")}
 		for _, tag := range tagCandidates {
 			url := "https://api.github.com/repos/404Setup/SRC-RenoP/releases/tags/" + tag
-			if _, err := doGitHubJSON(checkCtx, url, &rel); err == nil {
+			if _, err := doGitHubJSON(checkCtx, client, url, &rel); err == nil {
 				relNotes = rel.Body
 				if relNotes == "" {
 					relNotes = rel.Name
@@ -582,7 +571,7 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 			}
 		}
 		if relNotes == "" {
-			if _, err := doGitHubJSON(checkCtx, "https://api.github.com/repos/404Setup/SRC-RenoP/releases/latest", &rel); err == nil {
+			if _, err := doGitHubJSON(checkCtx, client, "https://api.github.com/repos/404Setup/SRC-RenoP/releases/latest", &rel); err == nil {
 				if normalizeVersionID(rel.TagName) == normalizeVersionID(latestRel.Version) {
 					relNotes = rel.Body
 					if relNotes == "" {
@@ -605,9 +594,9 @@ func checkRelease(ctx context.Context) (*CheckResult, error) {
 
 	currentExistsOutside := false
 	if needCommitOrder {
-		_, _ = doGitHubJSON(checkCtx, githubRepoAPI+"/commits?sha=main&per_page=30", &commits)
+		_, _ = doGitHubJSON(checkCtx, client, githubRepoAPI+"/commits?sha=main&per_page=30", &commits)
 		if len(commits) > 0 {
-			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
+			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, client, version.Version, commits)
 		}
 	}
 	hasUpdate := decideHasUpdate(version.Version, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
@@ -658,11 +647,11 @@ func looksLikeSemver(s string) bool {
 	return true
 }
 
-func checkNightly(ctx context.Context) (*CheckResult, error) {
+func checkNightly(ctx context.Context, client *http.Client) (*CheckResult, error) {
 	checkCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
-	info, err := fetchChannelInfo(checkCtx, ChannelNightly)
+	info, err := fetchChannelInfo(checkCtx, client, ChannelNightly)
 	if err != nil {
 		return nil, err
 	}
@@ -693,8 +682,8 @@ func checkNightly(ctx context.Context) (*CheckResult, error) {
 		findReleaseIndex(info.Releases, version.Version) < 0
 
 	if releaseNotes == "" || needCommitOrder {
-		if _, err := doGitHubJSON(checkCtx, githubRepoAPI+"/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
-			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, version.Version, commits)
+		if _, err := doGitHubJSON(checkCtx, client, githubRepoAPI+"/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
+			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, client, version.Version, commits)
 			if releaseNotes == "" {
 				var noteDate string
 				releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha, currentExistsOutside)

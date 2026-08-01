@@ -24,45 +24,56 @@ redistributed by RenoP. Reposilite is available under its own license (Apache-2.
 
 ### A. Go modules linked into the RenoP server binary
 
-| Module                              | Version  | SPDX                                       | Copyright / notices                                                                                            |
-|-------------------------------------|----------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| `github.com/3JoB/unsafeConvert`     | v1.6.0   | Apache-2.0                                 | Authors of unsafeConvert                                                                                       |
-| `github.com/andybalholm/brotli`     | v1.2.2   | MIT                                        | Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors                                                      |
-| `github.com/cespare/xxhash/v2`      | v2.3.0   | MIT                                        | Copyright (c) 2016 Caleb Spare                                                                                 |
-| `github.com/dustin/go-humanize`     | v1.0.1   | MIT                                        | Copyright (c) 2005-2008 Dustin Sallings                                                                        |
-| `github.com/fsnotify/fsnotify`      | v1.10.1  | BSD-3-Clause                               | Copyright © 2012 The Go Authors; Copyright © fsnotify Authors                                                  |
-| `github.com/go-ole/go-ole`          | v1.3.0   | MIT                                        | Copyright © 2013-2017 Yasuhiro Matsumoto                                                                       |
-| `github.com/goccy/go-json`          | v0.10.6  | MIT                                        | Copyright (c) 2020 Masaaki Goshima                                                                             |
-| `github.com/gofiber/fiber/v3`       | v3.4.0   | MIT                                        | Copyright (c) 2019-present Fenny and Contributors                                                              |
-| `github.com/gofiber/schema`         | v1.8.3   | BSD-3-Clause                               | Copyright (c) 2023 The Gorilla Authors                                                                         |
-| `github.com/gofiber/utils/v2`       | v2.4.0   | MIT                                        | Copyright (c) 2020-present Fenny and Contributors                                                              |
-| `github.com/google/uuid`            | v1.6.0   | BSD-3-Clause                               | Copyright (c) 2009, 2014 Google Inc.                                                                           |
-| `github.com/klauspost/compress`     | v1.19.1  | BSD-3-Clause (+ Apache-2.0 for some files) | Copyright (c) 2012 The Go Authors; Copyright (c) 2019 Klaus Post                                               |
-| `github.com/klauspost/cpuid/v2`     | v2.4.0   | MIT                                        | Copyright (c) 2015 Klaus Post                                                                                  |
-| `github.com/klauspost/crc32`        | v1.3.0   | BSD-3-Clause                               | Copyright (c) 2012 The Go Authors                                                                              |
-| `github.com/llxisdsh/pb`            | v1.5.25  | MIT                                        | Copyright (c) 2025 llxisdsh                                                                                    |
-| `github.com/mattn/go-colorable`     | v0.1.15  | MIT                                        | Copyright (c) 2016 Yasuhiro Matsumoto                                                                          |
-| `github.com/mattn/go-isatty`        | v0.0.24  | MIT                                        | Copyright (c) Yasuhiro MATSUMOTO                                                                               |
-| `github.com/minio/crc64nvme`        | v1.1.1   | Apache-2.0                                 | Copyright (c) 2025 Minio Inc.                                                                                  |
-| `github.com/minio/md5-simd`         | v1.1.2   | Apache-2.0                                 | Copyright (c) 2020 MinIO Inc.                                                                                  |
-| `github.com/minio/minio-go/v7`      | v7.2.1   | Apache-2.0                                 | See [Apache NOTICE excerpts](#apache-notice-excerpts)                                                          |
-| `github.com/philhofer/fwd`          | v1.2.0   | MIT                                        | Copyright (c) 2014-2015 Philip Hofer                                                                           |
-| `github.com/rs/xid`                 | v1.6.0   | MIT                                        | Copyright (c) 2015 Olivier Poitrey                                                                             |
-| `github.com/shirou/gopsutil/v3`     | v3.24.5  | BSD-3-Clause                               | Copyright (c) 2014 WAKAYAMA Shirou                                                                             |
-| `github.com/tinylib/msgp`           | v1.6.4   | MIT                                        | Copyright (c) 2014 Philip Hofer; portions Copyright (c) 2009 The Go Authors                                    |
-| `github.com/valyala/bytebufferpool` | v1.0.0   | MIT                                        | Copyright (c) 2016 Aliaksandr Valialkin, VertaMedia                                                            |
-| `github.com/valyala/fasthttp`       | v1.72.0  | MIT                                        | Copyright (c) 2015-present Aliaksandr Valialkin, VertaMedia, Kirill Danshin, Erik Dubbelboer, FastHTTP Authors |
-| `github.com/yusufpapurcu/wmi`       | v1.2.4   | MIT                                        | Copyright (c) 2013 Stack Exchange                                                                              |
-| `github.com/zeebo/xxh3`             | v1.1.0   | BSD-2-Clause                               | Copyright (c) 2012-2014 Yann Collet; Copyright (c) 2019 Jeff Wendling                                          |
-| `go.yaml.in/yaml/v3`                | v3.0.5   | MIT AND Apache-2.0                         | Copyright (c) 2006-2011 Kirill Simonov (libyaml ports); Copyright (c) 2011-2019 Canonical Ltd                  |
-| `golang.org/x/crypto`               | v0.54.0  | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `golang.org/x/net`                  | v0.57.0  | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `golang.org/x/sync`                 | v0.22.0  | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `golang.org/x/sys`                  | v0.47.0  | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `golang.org/x/text`                 | v0.40.0  | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `golang.org/x/time`                 | v0.15.0  | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `google.golang.org/protobuf`        | v1.36.11 | BSD-3-Clause                               | Copyright (c) 2018 The Go Authors                                                                              |
-| `gopkg.in/ini.v1`                   | v1.67.3  | Apache-2.0                                 | Copyright 2014– Unknwon and contributors                                                                       |
+| Module                              | Version                            | SPDX                                       | Copyright / notices                                                                                            |
+|-------------------------------------|------------------------------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| `filippo.io/edwards25519`           | v1.2.0                             | BSD-3-Clause                               | Copyright (c) 2019 The Go Authors                                                                              |
+| `github.com/3JoB/unsafeConvert`     | v1.6.0                             | Apache-2.0                                 | Authors of unsafeConvert                                                                                       |
+| `github.com/allegro/bigcache/v3`    | v3.1.0                             | Apache-2.0                                 | Copyright (c) 2019 Allegro                                                                                     |
+| `github.com/andybalholm/brotli`     | v1.2.2                             | MIT                                        | Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors                                                      |
+| `github.com/bnema/purego`           | v0.11.0-bnema.4                    | BSD-3-Clause                               | Copyright (c) 2022 Ebitengine Authors                                                                          |
+| `github.com/bnema/purego-sqlite`    | v0.1.4                             | MIT                                        | Copyright (c) 2024 bnema                                                                                       |
+| `github.com/cespare/xxhash/v2`      | v2.3.0                             | MIT                                        | Copyright (c) 2016 Caleb Spare                                                                                 |
+| `github.com/dustin/go-humanize`     | v1.0.1                             | MIT                                        | Copyright (c) 2005-2008 Dustin Sallings                                                                        |
+| `github.com/fsnotify/fsnotify`      | v1.10.1                            | BSD-3-Clause                               | Copyright © 2012 The Go Authors; Copyright © fsnotify Authors                                                  |
+| `github.com/go-ole/go-ole`          | v1.3.0                             | MIT                                        | Copyright © 2013-2017 Yasuhiro Matsumoto                                                                       |
+| `github.com/go-sql-driver/mysql`    | v1.10.0                            | **MPL-2.0**                                | Copyright (c) 2013 The Go-MySQL-Driver Authors                                                                 |
+| `github.com/goccy/go-json`          | v0.10.6                            | MIT                                        | Copyright (c) 2020 Masaaki Goshima                                                                             |
+| `github.com/gofiber/fiber/v3`       | v3.4.0                             | MIT                                        | Copyright (c) 2019-present Fenny and Contributors                                                              |
+| `github.com/gofiber/schema`         | v1.8.3                             | BSD-3-Clause                               | Copyright (c) 2023 The Gorilla Authors                                                                         |
+| `github.com/gofiber/utils/v2`       | v2.4.1                             | MIT                                        | Copyright (c) 2020-present Fenny and Contributors                                                              |
+| `github.com/google/uuid`            | v1.6.0                             | BSD-3-Clause                               | Copyright (c) 2009, 2014 Google Inc.                                                                           |
+| `github.com/klauspost/compress`     | v1.19.1                            | BSD-3-Clause (+ Apache-2.0 for some files) | Copyright (c) 2012 The Go Authors; Copyright (c) 2019 Klaus Post                                               |
+| `github.com/klauspost/cpuid/v2`     | v2.4.0                             | MIT                                        | Copyright (c) 2015 Klaus Post                                                                                  |
+| `github.com/klauspost/crc32`        | v1.3.0                             | BSD-3-Clause                               | Copyright (c) 2012 The Go Authors                                                                              |
+| `github.com/llxisdsh/pb`            | v1.5.25                            | MIT                                        | Copyright (c) 2025 llxisdsh                                                                                    |
+| `github.com/mattn/go-colorable`     | v0.1.15                            | MIT                                        | Copyright (c) 2016 Yasuhiro Matsumoto                                                                          |
+| `github.com/mattn/go-isatty`        | v0.0.24                            | MIT                                        | Copyright (c) Yasuhiro MATSUMOTO                                                                               |
+| `github.com/minio/crc64nvme`        | v1.1.1                             | Apache-2.0                                 | Copyright (c) 2025 Minio Inc.                                                                                  |
+| `github.com/minio/md5-simd`         | v1.1.2                             | Apache-2.0                                 | Copyright (c) 2020 MinIO Inc.                                                                                  |
+| `github.com/minio/minio-go/v7`      | v7.2.1                             | Apache-2.0                                 | See [Apache NOTICE excerpts](#apache-notice-excerpts)                                                          |
+| `github.com/ncruces/go-strftime`    | v1.0.0                             | MIT                                        | Copyright (c) 2022 Nuno Cruces                                                                                 |
+| `github.com/philhofer/fwd`          | v1.2.0                             | MIT                                        | Copyright (c) 2014-2015 Philip Hofer                                                                           |
+| `github.com/remyoudompheng/bigfft`  | v0.0.0-20230129092748-24d4a6f8daec | BSD-2-Clause                               | Copyright (c) 2012 Rémi Oudompheng                                                                             |
+| `github.com/rs/xid`                 | v1.6.0                             | MIT                                        | Copyright (c) 2015 Olivier Poitrey                                                                             |
+| `github.com/shirou/gopsutil/v3`     | v3.24.5                            | BSD-3-Clause                               | Copyright (c) 2014 WAKAYAMA Shirou                                                                             |
+| `github.com/tinylib/msgp`           | v1.6.4                             | MIT                                        | Copyright (c) 2014 Philip Hofer; portions Copyright (c) 2009 The Go Authors                                    |
+| `github.com/valyala/bytebufferpool` | v1.0.0                             | MIT                                        | Copyright (c) 2016 Aliaksandr Valialkin, VertaMedia                                                            |
+| `github.com/valyala/fasthttp`       | v1.73.0                            | MIT                                        | Copyright (c) 2015-present Aliaksandr Valialkin, VertaMedia, Kirill Danshin, Erik Dubbelboer, FastHTTP Authors |
+| `github.com/yusufpapurcu/wmi`       | v1.2.4                             | MIT                                        | Copyright (c) 2013 Stack Exchange                                                                              |
+| `github.com/zeebo/xxh3`             | v1.1.0                             | BSD-2-Clause                               | Copyright (c) 2012-2014 Yann Collet; Copyright (c) 2019 Jeff Wendling                                          |
+| `go.yaml.in/yaml/v3`                | v3.0.5                             | MIT AND Apache-2.0                         | Copyright (c) 2006-2011 Kirill Simonov (libyaml ports); Copyright (c) 2011-2019 Canonical Ltd                  |
+| `golang.org/x/crypto`               | v0.54.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
+| `golang.org/x/net`                  | v0.57.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
+| `golang.org/x/sync`                 | v0.22.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
+| `golang.org/x/sys`                  | v0.47.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
+| `golang.org/x/text`                 | v0.40.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
+| `golang.org/x/time`                 | v0.15.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
+| `google.golang.org/protobuf`        | v1.36.11                           | BSD-3-Clause                               | Copyright (c) 2018 The Go Authors                                                                              |
+| `gopkg.in/ini.v1`                   | v1.67.3                            | Apache-2.0                                 | Copyright 2014– Unknwon and contributors                                                                       |
+| `modernc.org/libc`                  | v1.74.4                            | BSD-3-Clause                               | Copyright (c) 2017 The Libc Authors                                                                            |
+| `modernc.org/mathutil`              | v1.7.1                             | BSD-3-Clause                               | Copyright (c) 2017 The Mathutil Authors                                                                        |
+| `modernc.org/memory`                | v1.11.0                            | BSD-3-Clause                               | Copyright (c) 2017 The Memory Authors                                                                          |
+| `modernc.org/sqlite`                | v1.55.0                            | BSD-3-Clause                               | Copyright (c) 2017 The Sqlite Authors                                                                          |
 
 Platform-specific transitive modules (via `gopsutil` and related code), which may be compiled into some targets:
 
@@ -110,6 +121,7 @@ The following third-party works are under **MPL-2.0** (file-level copyleft). Ren
 these components is available from their upstream repositories (and, for Go modules, via the Go module proxy /
 `go.mod` versions listed above):
 
+- `github.com/go-sql-driver/mysql` (database driver for MySQL)
 - `github.com/shoenig/go-m1cpu` (may be linked on some platforms via gopsutil)
 - `lightningcss` (CSS build tool; not linked as a Go library)
 
