@@ -402,6 +402,54 @@ func TestFindTarget(t *testing.T) {
 	}
 }
 
+func TestMatchAMD64TargetForLevel(t *testing.T) {
+	targets := []ChannelInfoTarget{
+		{OS: "linux", Arch: "amd64", File: "renop-linux-amd64.zip", Size: 1},
+		{OS: "linux", Arch: "amd64v2", File: "renop-linux-amd64v2.zip", Size: 2},
+		{OS: "linux", Arch: "amd64v3", File: "renop-linux-amd64v3.zip", Size: 3},
+		{OS: "linux", Arch: "amd64v4", File: "renop-linux-amd64v4.zip", Size: 4},
+	}
+
+	t4 := matchAMD64TargetForLevel(targets, "linux", 4)
+	if t4 == nil || t4.Size != 4 {
+		t.Fatalf("expected v4 target, got %+v", t4)
+	}
+
+	t3 := matchAMD64TargetForLevel(targets, "linux", 3)
+	if t3 == nil || t3.Size != 3 {
+		t.Fatalf("expected v3 target, got %+v", t3)
+	}
+
+	t2 := matchAMD64TargetForLevel(targets, "linux", 2)
+	if t2 == nil || t2.Size != 2 {
+		t.Fatalf("expected v2 target, got %+v", t2)
+	}
+
+	t1 := matchAMD64TargetForLevel(targets, "linux", 1)
+	if t1 == nil || t1.Size != 1 {
+		t.Fatalf("expected v1 target, got %+v", t1)
+	}
+
+	targetsPartial := []ChannelInfoTarget{
+		{OS: "linux", Arch: "amd64", File: "renop-linux-amd64.zip", Size: 10},
+		{OS: "linux", Arch: "amd64v2", File: "renop-linux-amd64v2.zip", Size: 20},
+	}
+
+	infoPartial := &ChannelInfo{Releases: []ChannelInfoRelease{{Targets: targetsPartial}}}
+
+	l4 := matchAMD64TargetForLevel(targetsPartial, "linux", 4)
+	if l4 != nil {
+		t.Fatalf("expected nil for level 4 when unavailable, got %+v", l4)
+	}
+
+	l2 := matchAMD64TargetForLevel(targetsPartial, "linux", 2)
+	if l2 == nil || l2.Size != 20 {
+		t.Fatalf("expected level 2 target, got %+v", l2)
+	}
+
+	_ = infoPartial
+}
+
 func TestPackageURL(t *testing.T) {
 	u := packageURL(ChannelNightly, "abc1234", "renop-abc1234-linux-amd64.zip")
 	want := OfficialUpdateBase + "/nightly/abc1234/renop-abc1234-linux-amd64.zip"

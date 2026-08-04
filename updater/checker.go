@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/klauspost/cpuid/v2"
 
 	"renop/utils"
 	"renop/version"
@@ -498,6 +499,65 @@ func fetchChannelInfo(ctx context.Context, client *http.Client, ch Channel) (*Ch
 	return &info, nil
 }
 
+func getHostAMD64Level() int {
+	if runtime.GOARCH != "amd64" {
+		return 0
+	}
+	lvl := cpuid.CPU.X64Level()
+	if lvl < 1 {
+		return 1
+	}
+	if lvl > 4 {
+		return 4
+	}
+	return lvl
+}
+
+func matchAMD64TargetForLevel(targets []ChannelInfoTarget, goos string, level int) *ChannelInfoTarget {
+	targetArch := "amd64"
+	if level > 1 {
+		targetArch = fmt.Sprintf("amd64v%d", level)
+	}
+
+	for i := range targets {
+		t := &targets[i]
+		if strings.EqualFold(t.OS, goos) {
+			if level == 1 {
+				if strings.EqualFold(t.Arch, "amd64") || strings.EqualFold(t.Arch, "amd64v1") {
+					return t
+				}
+			} else {
+				if strings.EqualFold(t.Arch, targetArch) {
+					return t
+				}
+			}
+		}
+	}
+
+	for i := range targets {
+		t := &targets[i]
+		if !strings.EqualFold(t.OS, goos) {
+			continue
+		}
+		name := strings.ToLower(t.File)
+		if level == 1 {
+			if strings.Contains(name, goos+"-amd64v1") ||
+				(strings.Contains(name, goos+"-amd64") &&
+					!strings.Contains(name, "amd64v2") &&
+					!strings.Contains(name, "amd64v3") &&
+					!strings.Contains(name, "amd64v4")) {
+				return t
+			}
+		} else {
+			if strings.Contains(name, goos+"-"+targetArch) {
+				return t
+			}
+		}
+	}
+
+	return nil
+}
+
 func findTarget(info *ChannelInfo, goos, goarch string) *ChannelInfoTarget {
 	if info == nil || len(info.Releases) == 0 {
 		return nil
@@ -505,6 +565,17 @@ func findTarget(info *ChannelInfo, goos, goarch string) *ChannelInfoTarget {
 	targets := info.Releases[0].Targets
 	goos = strings.ToLower(goos)
 	goarch = strings.ToLower(goarch)
+
+	if goarch == "amd64" {
+		level := getHostAMD64Level()
+		for l := level; l >= 1; l-- {
+			if t := matchAMD64TargetForLevel(targets, goos, l); t != nil {
+				return t
+			}
+		}
+		return nil
+	}
+
 	for i := range targets {
 		t := &targets[i]
 		if strings.EqualFold(t.OS, goos) && strings.EqualFold(t.Arch, goarch) {

@@ -115,7 +115,7 @@ func TestValidateELF_KnownArchMatch(t *testing.T) {
 }
 
 func TestValidateELF_KnownArchMismatch(t *testing.T) {
-	assertELF(t, "loong64", elf.EM_LOONGARCH, elf.ELFDATA2LSB, true)
+	assertELF(t, "loong64", elf.EM_X86_64, elf.ELFDATA2LSB, true)
 	assertELF(t, "amd64", elf.EM_AARCH64, elf.ELFDATA2LSB, true)
 }
 

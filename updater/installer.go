@@ -81,20 +81,34 @@ func targetExecutableName() string {
 
 func archiveMatchesPlatform(name, goos, goarch string) bool {
 	nameLower := strings.ToLower(filepath.ToSlash(name))
-	marker := strings.ToLower(goos) + "-" + strings.ToLower(goarch)
+	goos = strings.ToLower(goos)
+	goarch = strings.ToLower(goarch)
 
-	for _, src := range []string{filepath.Base(nameLower), nameLower} {
-		idx := strings.Index(src, marker)
-		if idx < 0 {
-			continue
+	markers := []string{goos + "-" + goarch}
+	if goarch == "amd64" {
+		markers = []string{
+			goos + "-amd64v4",
+			goos + "-amd64v3",
+			goos + "-amd64v2",
+			goos + "-amd64v1",
+			goos + "-amd64",
 		}
-		end := idx + len(marker)
-		if end >= len(src) {
-			return true
-		}
-		switch src[end] {
-		case '.', '-', '_', '/', '\\':
-			return true
+	}
+
+	for _, marker := range markers {
+		for _, src := range []string{filepath.Base(nameLower), nameLower} {
+			idx := strings.Index(src, marker)
+			if idx < 0 {
+				continue
+			}
+			end := idx + len(marker)
+			if end >= len(src) {
+				return true
+			}
+			switch src[end] {
+			case '.', '-', '_', '/', '\\':
+				return true
+			}
 		}
 	}
 	return false

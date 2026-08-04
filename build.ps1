@@ -68,17 +68,35 @@ $safeVersion = $displayVersion -replace '[^A-Za-z0-9._-]', '_'
 
 $allTargets = @(
     @{ GOOS = 'darwin'; GOARCH = 'amd64' },
+    @{ GOOS = 'darwin'; GOARCH = 'amd64v2' },
+    @{ GOOS = 'darwin'; GOARCH = 'amd64v3' },
+    @{ GOOS = 'darwin'; GOARCH = 'amd64v4' },
     @{ GOOS = 'darwin'; GOARCH = 'arm64' },
     @{ GOOS = 'freebsd'; GOARCH = 'amd64' },
+    @{ GOOS = 'freebsd'; GOARCH = 'amd64v2' },
+    @{ GOOS = 'freebsd'; GOARCH = 'amd64v3' },
+    @{ GOOS = 'freebsd'; GOARCH = 'amd64v4' },
     @{ GOOS = 'freebsd'; GOARCH = 'arm64' },
     @{ GOOS = 'linux'; GOARCH = 'amd64' },
+    @{ GOOS = 'linux'; GOARCH = 'amd64v2' },
+    @{ GOOS = 'linux'; GOARCH = 'amd64v3' },
+    @{ GOOS = 'linux'; GOARCH = 'amd64v4' },
     @{ GOOS = 'linux'; GOARCH = 'arm64' },
     @{ GOOS = 'linux'; GOARCH = 'loong64' },
     @{ GOOS = 'linux'; GOARCH = 'riscv64' },
     @{ GOOS = 'netbsd'; GOARCH = 'amd64' },
+    @{ GOOS = 'netbsd'; GOARCH = 'amd64v2' },
+    @{ GOOS = 'netbsd'; GOARCH = 'amd64v3' },
+    @{ GOOS = 'netbsd'; GOARCH = 'amd64v4' },
     @{ GOOS = 'openbsd'; GOARCH = 'amd64' },
+    @{ GOOS = 'openbsd'; GOARCH = 'amd64v2' },
+    @{ GOOS = 'openbsd'; GOARCH = 'amd64v3' },
+    @{ GOOS = 'openbsd'; GOARCH = 'amd64v4' },
     @{ GOOS = 'openbsd'; GOARCH = 'arm64' },
     @{ GOOS = 'windows'; GOARCH = 'amd64' },
+    @{ GOOS = 'windows'; GOARCH = 'amd64v2' },
+    @{ GOOS = 'windows'; GOARCH = 'amd64v3' },
+    @{ GOOS = 'windows'; GOARCH = 'amd64v4' },
     @{ GOOS = 'windows'; GOARCH = 'arm64' }
 )
 
@@ -86,10 +104,19 @@ switch ($Mode) {
     's' {
         $targets = @(
             @{ GOOS = 'darwin'; GOARCH = 'amd64' },
+            @{ GOOS = 'darwin'; GOARCH = 'amd64v2' },
+            @{ GOOS = 'darwin'; GOARCH = 'amd64v3' },
+            @{ GOOS = 'darwin'; GOARCH = 'amd64v4' },
             @{ GOOS = 'darwin'; GOARCH = 'arm64' },
             @{ GOOS = 'linux'; GOARCH = 'amd64' },
+            @{ GOOS = 'linux'; GOARCH = 'amd64v2' },
+            @{ GOOS = 'linux'; GOARCH = 'amd64v3' },
+            @{ GOOS = 'linux'; GOARCH = 'amd64v4' },
             @{ GOOS = 'linux'; GOARCH = 'arm64' },
-            @{ GOOS = 'windows'; GOARCH = 'amd64' }
+            @{ GOOS = 'windows'; GOARCH = 'amd64' },
+            @{ GOOS = 'windows'; GOARCH = 'amd64v2' },
+            @{ GOOS = 'windows'; GOARCH = 'amd64v3' },
+            @{ GOOS = 'windows'; GOARCH = 'amd64v4' }
         )
     }
     'c' {
@@ -102,7 +129,8 @@ switch ($Mode) {
 
 $availablePlatforms = @(& go tool dist list)
 $unsupportedTargets = @($targets | Where-Object {
-    $platform = "$($_.GOOS)/$($_.GOARCH)"
+    $baseArch = $_.GOARCH -replace 'v[0-9]+$', ''
+    $platform = "$($_.GOOS)/$baseArch"
     $availablePlatforms -notcontains $platform
 } | ForEach-Object { "$($_.GOOS)/$($_.GOARCH)" })
 if ($unsupportedTargets.Count -gt 0) {
@@ -123,6 +151,8 @@ $hadGoos = Test-Path Env:GOOS
 $originalGoos = $env:GOOS
 $hadGoarch = Test-Path Env:GOARCH
 $originalGoarch = $env:GOARCH
+$hadGoamd64 = Test-Path Env:GOAMD64
+$originalGoamd64 = $env:GOAMD64
 
 function Invoke-ProtobufGenerate {
     Write-Host 'Generating protobuf (Go)...'
@@ -219,8 +249,21 @@ try {
             New-Item -ItemType Directory -Path $stage -Force | Out-Null
         }
 
+        $actualGoarch = $goarch
+        $goamd64 = $null
+        if ($goarch -match '^(amd64)(v[1-4])?$') {
+            $actualGoarch = 'amd64'
+            $goamd64 = if ($Matches[2]) { $Matches[2] } else { 'v1' }
+        }
+
         $env:GOOS = $goos
-        $env:GOARCH = $goarch
+        $env:GOARCH = $actualGoarch
+        if ($goamd64) {
+            $env:GOAMD64 = $goamd64
+        } else {
+            Remove-Item Env:GOAMD64 -ErrorAction SilentlyContinue
+        }
+
         $ldflags = "-s -w -X=renop/version.Version=$displayVersion -X=renop/version.Development=$developmentValue"
         $destinationDescription = if ($noBundle) { $binaryPath } else { $archivePath }
         Write-Host "Building $goos/$goarch -> $destinationDescription"
@@ -269,6 +312,7 @@ finally {
     if ($hadCgo) { $env:CGO_ENABLED = $originalCgo } else { Remove-Item Env:CGO_ENABLED -ErrorAction SilentlyContinue }
     if ($hadGoos) { $env:GOOS = $originalGoos } else { Remove-Item Env:GOOS -ErrorAction SilentlyContinue }
     if ($hadGoarch) { $env:GOARCH = $originalGoarch } else { Remove-Item Env:GOARCH -ErrorAction SilentlyContinue }
+    if ($hadGoamd64) { $env:GOAMD64 = $originalGoamd64 } else { Remove-Item Env:GOAMD64 -ErrorAction SilentlyContinue }
 }
 
 $finalDirectory = if ($noBundle) { $invocationDirectory } else { $dist }

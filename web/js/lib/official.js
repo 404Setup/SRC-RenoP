@@ -27,7 +27,10 @@ export const PLATFORMS = {
         {value: 'openbsd', label: 'OpenBSD'},
     ],
     arch: [
-        {value: 'amd64', label: 'amd64 (x86_64)'},
+        {value: 'amd64', label: 'amd64 (v1 / x86_64)'},
+        {value: 'amd64v2', label: 'amd64 (v2 / x86_64)'},
+        {value: 'amd64v3', label: 'amd64 (v3 / x86_64)'},
+        {value: 'amd64v4', label: 'amd64 (v4 / x86_64)'},
         {value: 'arm64', label: 'arm64 (aarch64)'},
         {value: 'loong64', label: 'loong64'},
         {value: 'riscv64', label: 'riscv64'},
@@ -39,12 +42,12 @@ export const PLATFORMS = {
  * @type {Record<string, string[]>}
  */
 export const PLATFORM_MATRIX = {
-    windows: ['amd64', 'arm64'],
-    darwin: ['amd64', 'arm64'],
-    linux: ['amd64', 'arm64', 'loong64', 'riscv64'],
-    freebsd: ['amd64', 'arm64'],
-    netbsd: ['amd64'],
-    openbsd: ['amd64', 'arm64'],
+    windows: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
+    darwin: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
+    linux: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64', 'loong64', 'riscv64'],
+    freebsd: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
+    netbsd: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4'],
+    openbsd: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
 };
 
 /**
@@ -193,6 +196,42 @@ export function findTargetForPlatform(targets, os, arch) {
     if (!targets?.length || !os || !arch) return null;
     const o = os.toLowerCase();
     const a = arch.toLowerCase();
+
+    if (a.startsWith('amd64')) {
+        let level = 1;
+        if (a === 'amd64v4') level = 4;
+        else if (a === 'amd64v3') level = 3;
+        else if (a === 'amd64v2') level = 2;
+
+        for (let l = level; l >= 1; l--) {
+            const targetArch = l === 1 ? 'amd64' : `amd64v${l}`;
+            for (const t of targets) {
+                const tOS = String(t.os || '').toLowerCase();
+                const tArch = String(t.arch || '').toLowerCase();
+                if (tOS === o) {
+                    if (l === 1) {
+                        if (tArch === 'amd64' || tArch === 'amd64v1') return t;
+                    } else {
+                        if (tArch === targetArch) return t;
+                    }
+                }
+            }
+            for (const t of targets) {
+                const tOS = String(t.os || '').toLowerCase();
+                if (tOS !== o) continue;
+                const file = String(t.file || '').toLowerCase();
+                if (l === 1) {
+                    if (file.includes(`${o}-amd64v1`) || (file.includes(`${o}-amd64`) && !file.includes('amd64v2') && !file.includes('amd64v3') && !file.includes('amd64v4'))) {
+                        return t;
+                    }
+                } else {
+                    if (file.includes(`${o}-${targetArch}`)) return t;
+                }
+            }
+        }
+        return null;
+    }
+
     for (const t of targets) {
         if (String(t.os || '').toLowerCase() === o && String(t.arch || '').toLowerCase() === a) {
             return t;
