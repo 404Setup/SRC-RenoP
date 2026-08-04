@@ -10,12 +10,27 @@
 
 package database
 
-import "database/sql"
+import (
+	"database/sql"
+	"strings"
+)
 
 type SQLiteDialect struct{}
 
 func (d *SQLiteDialect) Name() string {
 	return "sqlite3"
+}
+
+func execIgnoreDuplicateColumn(db *sql.DB, query string) error {
+	_, err := db.Exec(query)
+	if err != nil {
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "duplicate column") || strings.Contains(errStr, "already exists") {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func (d *SQLiteDialect) InitTables(db *sql.DB) error {
@@ -41,7 +56,8 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		ip VARCHAR(255) NOT NULL,
 		user_agent TEXT NOT NULL,
 		created_at BIGINT NOT NULL,
-		last_active BIGINT NOT NULL
+		last_active BIGINT NOT NULL,
+		login_method VARCHAR(64) NOT NULL DEFAULT 'password'
 	);`
 
 	fidoTable := `
@@ -71,10 +87,11 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
 
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);")
@@ -93,8 +110,8 @@ func (d *SQLiteDialect) UpsertTokenQuery() string {
 }
 
 func (d *SQLiteDialect) UpsertSessionQuery() string {
-	return `INSERT INTO sessions (session_token, public_id, username, ip, user_agent, created_at, last_active)
-	VALUES (?, ?, ?, ?, ?, ?, ?)
+	return `INSERT INTO sessions (session_token, public_id, username, ip, user_agent, created_at, last_active, login_method)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(session_token) DO UPDATE SET
-	public_id=excluded.public_id, username=excluded.username, ip=excluded.ip, user_agent=excluded.user_agent, created_at=excluded.created_at, last_active=excluded.last_active`
+	public_id=excluded.public_id, username=excluded.username, ip=excluded.ip, user_agent=excluded.user_agent, created_at=excluded.created_at, last_active=excluded.last_active, login_method=excluded.login_method`
 }

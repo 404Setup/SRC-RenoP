@@ -126,6 +126,8 @@ func openAndPing(driver, dsn string, cfg config.DatabaseConfig) (*sql.DB, error)
 			"PRAGMA cache_size = -8192;",
 			"PRAGMA temp_store = MEMORY;",
 			"PRAGMA mmap_size = 268435456;",
+			"PRAGMA trusted_schema = OFF;",
+			"PRAGMA cell_size_check = ON;",
 		}
 		for _, pragma := range pragmas {
 			if _, err := sqlDB.Exec(pragma); err != nil {

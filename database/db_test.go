@@ -107,11 +107,12 @@ func TestInitDB_SQLite(t *testing.T) {
 	t.Run("Session Operations with TTL Cache", func(t *testing.T) {
 		now := time.Now().UnixMilli()
 		sess1 := &core.Session{
-			PublicId:  "pub1",
-			Username:  "admin",
-			Ip:        "127.0.0.1",
-			UserAgent: "Mozilla/5.0",
-			CreatedAt: now,
+			PublicId:    "pub1",
+			Username:    "admin",
+			Ip:          "127.0.0.1",
+			UserAgent:   "Mozilla/5.0",
+			CreatedAt:   now,
+			LoginMethod: "fido",
 		}
 		sess1.LastActive.Store(now)
 
@@ -122,11 +123,13 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.NoError(t, err)
 		require.NotNil(t, fetchedSess)
 		assert.Equal(t, "admin", fetchedSess.Username)
+		assert.Equal(t, "fido", fetchedSess.LoginMethod)
 
 		userSessions, err := db.ListUserSessions("admin", "token_abc")
 		assert.NoError(t, err)
 		assert.Len(t, userSessions, 1)
 		assert.True(t, userSessions[0].Current)
+		assert.Equal(t, "fido", userSessions[0].LoginMethod)
 
 		err = db.DeleteSession("token_abc")
 		assert.NoError(t, err)
@@ -136,9 +139,9 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.Nil(t, fetchedDeletedSess)
 
 		// Test DeleteUserSessionByPublicID and DeleteOtherUserSessions
-		sess2 := &core.Session{PublicId: "pub2", Username: "user1", Ip: "127.0.0.1", CreatedAt: now}
+		sess2 := &core.Session{PublicId: "pub2", Username: "user1", Ip: "127.0.0.1", CreatedAt: now, LoginMethod: "password"}
 		sess2.LastActive.Store(now)
-		sess3 := &core.Session{PublicId: "pub3", Username: "user1", Ip: "127.0.0.1", CreatedAt: now}
+		sess3 := &core.Session{PublicId: "pub3", Username: "user1", Ip: "127.0.0.1", CreatedAt: now, LoginMethod: "fido"}
 		sess3.LastActive.Store(now)
 
 		require.NoError(t, db.SaveSession(sess2, "token_pub2"))
@@ -154,11 +157,13 @@ func TestInitDB_SQLite(t *testing.T) {
 		activeSesses, err := db.GetActiveSessions(now - 1000)
 		assert.NoError(t, err)
 		assert.Len(t, activeSesses, 1)
+		assert.Equal(t, "fido", activeSesses[0].LoginMethod)
 
 		require.NoError(t, db.UpdateSessionsUsername("user1", "user2"))
 		user2Sessions, err := db.ListUserSessions("user2", "")
 		assert.NoError(t, err)
 		assert.Len(t, user2Sessions, 1)
+		assert.Equal(t, "fido", user2Sessions[0].LoginMethod)
 
 		deletedTokens, err := db.DeleteOtherUserSessions("user2", "token_pub3")
 		assert.NoError(t, err)
@@ -167,6 +172,22 @@ func TestInitDB_SQLite(t *testing.T) {
 		deletedTokens, err = db.DeleteOtherUserSessions("user2", "")
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"token_pub3"}, deletedTokens)
+	})
+
+	t.Run("SQL Security Bounds & Validation", func(t *testing.T) {
+		overLengthToken := string(make([]byte, 600))
+		overLengthUsername := string(make([]byte, 300))
+
+		sess, err := db.GetSession(overLengthToken)
+		assert.NoError(t, err)
+		assert.Nil(t, sess)
+
+		err = db.SaveSession(&core.Session{PublicId: "p", Username: "u"}, overLengthToken)
+		assert.NoError(t, err)
+
+		sesses, err := db.ListUserSessions(overLengthUsername, "")
+		assert.NoError(t, err)
+		assert.Empty(t, sesses)
 	})
 
 	t.Run("SQL LIKE Wildcard Safety and Negative Caching", func(t *testing.T) {

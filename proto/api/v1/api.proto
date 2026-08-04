@@ -60,6 +60,8 @@ message SessionDto {
   int64 expires_at = 7;
   // True when this session is the one making the request
   bool current = 8;
+  // Login method used to create this session (e.g. "password", "fido")
+  string login_method = 9;
 }
 
 message SessionList {

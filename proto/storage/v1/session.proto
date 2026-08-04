@@ -12,6 +12,7 @@ message StoredSession {
   string user_agent = 5;
   int64 created_at = 6;
   int64 last_active = 7;
+  string login_method = 8;
 }
 
 message SessionStore {

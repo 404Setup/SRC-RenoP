@@ -89,15 +89,20 @@ func FromAccessTokenList(tokens []core.AccessTokenDto) *AccessTokenList {
 }
 
 func FromSessionDto(s core.SessionDto) *SessionDto {
+	lm := s.LoginMethod
+	if lm == "" {
+		lm = "password"
+	}
 	return &SessionDto{
-		PublicId:   s.PublicId,
-		Username:   s.Username,
-		Ip:         s.Ip,
-		UserAgent:  s.UserAgent,
-		CreatedAt:  s.CreatedAt,
-		LastActive: s.LastActive,
-		ExpiresAt:  s.ExpiresAt,
-		Current:    s.Current,
+		PublicId:    s.PublicId,
+		Username:    s.Username,
+		Ip:          s.Ip,
+		UserAgent:   s.UserAgent,
+		CreatedAt:   s.CreatedAt,
+		LastActive:  s.LastActive,
+		ExpiresAt:   s.ExpiresAt,
+		Current:     s.Current,
+		LoginMethod: lm,
 	}
 }
 
@@ -414,6 +419,10 @@ func FromSessionDbDtos(dtos []core.SessionDbDto) *SessionStore {
 	}
 	for i := range dtos {
 		d := &dtos[i]
+		lm := d.LoginMethod
+		if lm == "" {
+			lm = "password"
+		}
 		store.Sessions = append(store.Sessions, &StoredSession{
 			PublicId:     d.PublicId,
 			SessionToken: d.SessionToken,
@@ -422,6 +431,7 @@ func FromSessionDbDtos(dtos []core.SessionDbDto) *SessionStore {
 			UserAgent:    d.UserAgent,
 			CreatedAt:    d.CreatedAt,
 			LastActive:   d.LastActive,
+			LoginMethod:  lm,
 		})
 	}
 	return store
@@ -437,6 +447,10 @@ func ToSessionDbDtos(store *SessionStore) []core.SessionDbDto {
 		if s == nil {
 			continue
 		}
+		lm := s.LoginMethod
+		if lm == "" {
+			lm = "password"
+		}
 		out = append(out, core.SessionDbDto{
 			PublicId:     s.PublicId,
 			SessionToken: s.SessionToken,
@@ -445,6 +459,7 @@ func ToSessionDbDtos(store *SessionStore) []core.SessionDbDto {
 			UserAgent:    s.UserAgent,
 			CreatedAt:    s.CreatedAt,
 			LastActive:   s.LastActive,
+			LoginMethod:  lm,
 		})
 	}
 	return out

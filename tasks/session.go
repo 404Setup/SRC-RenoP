@@ -38,6 +38,10 @@ func StartSessionSaver(state *core.AppState, path string) {
 		state.Inner.Sessions.Range(func(key string, value *core.Session) bool {
 			token := key
 			session := value
+			lm := session.LoginMethod
+			if lm == "" {
+				lm = "password"
+			}
 			dtos = append(dtos, core.SessionDbDto{
 				PublicId:     session.PublicId,
 				SessionToken: token,
@@ -46,6 +50,7 @@ func StartSessionSaver(state *core.AppState, path string) {
 				UserAgent:    session.UserAgent,
 				CreatedAt:    session.CreatedAt,
 				LastActive:   session.LastActive.Load(),
+				LoginMethod:  lm,
 			})
 			return true
 		})

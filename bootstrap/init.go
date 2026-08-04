@@ -110,12 +110,17 @@ func Initialize() (*core.AppState, BootstrapContext) {
 		activeDbSessions, err := dbInstance.GetActiveSessions(time.Now().UnixMilli() - core.SessionIdleTimeoutMillis)
 		if err == nil {
 			for _, sessionDto := range activeDbSessions {
+				lm := sessionDto.LoginMethod
+				if lm == "" {
+					lm = "password"
+				}
 				session := &core.Session{
-					PublicId:  sessionDto.PublicId,
-					Username:  strings.ToLower(sessionDto.Username),
-					Ip:        sessionDto.Ip,
-					UserAgent: sessionDto.UserAgent,
-					CreatedAt: sessionDto.CreatedAt,
+					PublicId:    sessionDto.PublicId,
+					Username:    strings.ToLower(sessionDto.Username),
+					Ip:          sessionDto.Ip,
+					UserAgent:   sessionDto.UserAgent,
+					CreatedAt:   sessionDto.CreatedAt,
+					LoginMethod: lm,
 				}
 				session.LastActive.Store(sessionDto.LastActive)
 				state.Inner.Sessions.Store(sessionDto.SessionToken, session)
@@ -137,12 +142,17 @@ func Initialize() (*core.AppState, BootstrapContext) {
 
 		sessionsDb, migrateSessions := LoadSessions(sessionsPath)
 		for _, sessionDto := range sessionsDb {
+			lm := sessionDto.LoginMethod
+			if lm == "" {
+				lm = "password"
+			}
 			session := &core.Session{
-				PublicId:  sessionDto.PublicId,
-				Username:  strings.ToLower(sessionDto.Username),
-				Ip:        sessionDto.Ip,
-				UserAgent: sessionDto.UserAgent,
-				CreatedAt: sessionDto.CreatedAt,
+				PublicId:    sessionDto.PublicId,
+				Username:    strings.ToLower(sessionDto.Username),
+				Ip:          sessionDto.Ip,
+				UserAgent:   sessionDto.UserAgent,
+				CreatedAt:   sessionDto.CreatedAt,
+				LoginMethod: lm,
 			}
 			session.LastActive.Store(sessionDto.LastActive)
 			state.Inner.Sessions.Store(sessionDto.SessionToken, session)

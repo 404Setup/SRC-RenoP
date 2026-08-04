@@ -23,6 +23,7 @@ import (
 const (
 	maxSessionTokenLen = 512
 	maxUsernameLen     = 255
+	maxPublicIdLen     = 255
 )
 
 func (db *DB) GetSession(sessionToken string) (*core.Session, error) {
@@ -37,13 +38,13 @@ func (db *DB) GetSession(sessionToken string) (*core.Session, error) {
 		return sess, nil
 	}
 
-	query := `SELECT public_id, username, ip, user_agent, created_at, last_active FROM sessions WHERE session_token = ?`
+	query := `SELECT public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE session_token = ?`
 	row := db.SqlDB.QueryRow(query, sessionToken)
 
-	var publicId, username, ip, userAgent string
+	var publicId, username, ip, userAgent, loginMethod string
 	var createdAt, lastActive int64
 
-	err := row.Scan(&publicId, &username, &ip, &userAgent, &createdAt, &lastActive)
+	err := row.Scan(&publicId, &username, &ip, &userAgent, &createdAt, &lastActive, &loginMethod)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			db.sessionCache.Set(sessionToken, nil, 30*time.Second)
@@ -52,12 +53,17 @@ func (db *DB) GetSession(sessionToken string) (*core.Session, error) {
 		return nil, fmt.Errorf("failed to query session (%s...): %w", safePrefix(sessionToken, 8), err)
 	}
 
+	if loginMethod == "" {
+		loginMethod = "password"
+	}
+
 	session := &core.Session{
-		PublicId:  publicId,
-		Username:  strings.ToLower(username),
-		Ip:        ip,
-		UserAgent: userAgent,
-		CreatedAt: createdAt,
+		PublicId:    publicId,
+		Username:    strings.ToLower(username),
+		Ip:          ip,
+		UserAgent:   userAgent,
+		CreatedAt:   createdAt,
+		LoginMethod: loginMethod,
 	}
 	session.LastActive.Store(lastActive)
 
@@ -69,12 +75,20 @@ func (db *DB) SaveSession(session *core.Session, sessionToken string) error {
 	if db == nil || db.SqlDB == nil || session == nil || sessionToken == "" {
 		return nil
 	}
+	if len(sessionToken) > maxSessionTokenLen || len(session.Username) > maxUsernameLen || len(session.PublicId) > maxPublicIdLen {
+		return nil
+	}
 
 	lastActive := session.LastActive.Load()
+	loginMethod := session.LoginMethod
+	if loginMethod == "" {
+		loginMethod = "password"
+	}
+
 	query := db.Dialect.UpsertSessionQuery()
-	_, err := db.SqlDB.Exec(query, sessionToken, session.PublicId, strings.ToLower(session.Username), session.Ip, session.UserAgent, session.CreatedAt, lastActive)
+	_, err := db.SqlDB.Exec(query, sessionToken, session.PublicId, strings.ToLower(session.Username), session.Ip, session.UserAgent, session.CreatedAt, lastActive, loginMethod)
 	if err != nil {
-		return fmt.Errorf("failed to save session (%s): %w", sessionToken, err)
+		return fmt.Errorf("failed to save session (%s): %w", safePrefix(sessionToken, 8), err)
 	}
 
 	db.sessionCache.Set(sessionToken, session, 15*time.Minute)
@@ -104,10 +118,13 @@ func (db *DB) DeleteSession(sessionToken string) error {
 	if db == nil || db.SqlDB == nil || sessionToken == "" {
 		return nil
 	}
+	if len(sessionToken) > maxSessionTokenLen {
+		return nil
+	}
 
 	_, err := db.SqlDB.Exec(`DELETE FROM sessions WHERE session_token = ?`, sessionToken)
 	if err != nil {
-		return fmt.Errorf("failed to delete session (%s): %w", sessionToken, err)
+		return fmt.Errorf("failed to delete session (%s): %w", safePrefix(sessionToken, 8), err)
 	}
 
 	db.sessionCache.Delete(sessionToken)
@@ -138,9 +155,12 @@ func (db *DB) ListUserSessions(username, currentSessionToken string) ([]core.Ses
 	if db == nil || db.SqlDB == nil || username == "" {
 		return []core.SessionDto{}, nil
 	}
+	if len(username) > maxUsernameLen || (currentSessionToken != "" && len(currentSessionToken) > maxSessionTokenLen) {
+		return []core.SessionDto{}, nil
+	}
 
 	lowerName := strings.ToLower(username)
-	query := `SELECT session_token, public_id, username, ip, user_agent, created_at, last_active FROM sessions WHERE username = ?`
+	query := `SELECT session_token, public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE username = ?`
 	rows, err := db.SqlDB.Query(query, lowerName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list user sessions (%s): %w", lowerName, err)
@@ -149,22 +169,27 @@ func (db *DB) ListUserSessions(username, currentSessionToken string) ([]core.Ses
 
 	var sessions []core.SessionDto
 	for rows.Next() {
-		var token, publicId, u, ip, userAgent string
+		var token, publicId, u, ip, userAgent, loginMethod string
 		var createdAt, lastActive int64
 
-		if err := rows.Scan(&token, &publicId, &u, &ip, &userAgent, &createdAt, &lastActive); err != nil {
+		if err := rows.Scan(&token, &publicId, &u, &ip, &userAgent, &createdAt, &lastActive, &loginMethod); err != nil {
 			return nil, fmt.Errorf("failed to scan session row: %w", err)
 		}
 
+		if loginMethod == "" {
+			loginMethod = "password"
+		}
+
 		sessions = append(sessions, core.SessionDto{
-			PublicId:   publicId,
-			Username:   strings.ToLower(u),
-			Ip:         ip,
-			UserAgent:  userAgent,
-			CreatedAt:  createdAt,
-			LastActive: lastActive,
-			ExpiresAt:  lastActive + core.SessionIdleTimeoutMillis,
-			Current:    token != "" && token == currentSessionToken,
+			PublicId:    publicId,
+			Username:    strings.ToLower(u),
+			Ip:          ip,
+			UserAgent:   userAgent,
+			CreatedAt:   createdAt,
+			LastActive:  lastActive,
+			ExpiresAt:   lastActive + core.SessionIdleTimeoutMillis,
+			Current:     token != "" && token == currentSessionToken,
+			LoginMethod: loginMethod,
 		})
 	}
 
@@ -205,7 +230,14 @@ func (db *DB) MigrateSessions(sessions []core.SessionDbDto) error {
 
 	query := db.Dialect.UpsertSessionQuery()
 	for _, dto := range sessions {
-		if _, err := tx.Exec(query, dto.SessionToken, dto.PublicId, strings.ToLower(dto.Username), dto.Ip, dto.UserAgent, dto.CreatedAt, dto.LastActive); err != nil {
+		if len(dto.SessionToken) > maxSessionTokenLen || len(dto.Username) > maxUsernameLen {
+			continue
+		}
+		lm := dto.LoginMethod
+		if lm == "" {
+			lm = "password"
+		}
+		if _, err := tx.Exec(query, dto.SessionToken, dto.PublicId, strings.ToLower(dto.Username), dto.Ip, dto.UserAgent, dto.CreatedAt, dto.LastActive, lm); err != nil {
 			return err
 		}
 	}
@@ -217,7 +249,7 @@ func (db *DB) DeleteUserSessionByPublicID(username, publicID, currentSessionToke
 	if db == nil || db.SqlDB == nil || username == "" || publicID == "" {
 		return "", false, false, nil
 	}
-	if len(username) > maxUsernameLen {
+	if len(username) > maxUsernameLen || len(publicID) > maxPublicIdLen {
 		return "", false, false, nil
 	}
 
@@ -242,7 +274,7 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 	if db == nil || db.SqlDB == nil || username == "" {
 		return nil, nil
 	}
-	if len(username) > maxUsernameLen {
+	if len(username) > maxUsernameLen || (keepSessionToken != "" && len(keepSessionToken) > maxSessionTokenLen) {
 		return nil, nil
 	}
 
@@ -295,7 +327,7 @@ func (db *DB) GetActiveSessions(minActiveTimestamp int64) ([]core.SessionDbDto, 
 		return []core.SessionDbDto{}, nil
 	}
 
-	query := `SELECT session_token, public_id, username, ip, user_agent, created_at, last_active FROM sessions WHERE last_active >= ?`
+	query := `SELECT session_token, public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE last_active >= ?`
 	rows, err := db.SqlDB.Query(query, minActiveTimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query active sessions: %w", err)
@@ -304,11 +336,15 @@ func (db *DB) GetActiveSessions(minActiveTimestamp int64) ([]core.SessionDbDto, 
 
 	var sessions []core.SessionDbDto
 	for rows.Next() {
-		var token, publicId, username, ip, userAgent string
+		var token, publicId, username, ip, userAgent, loginMethod string
 		var createdAt, lastActive int64
 
-		if err := rows.Scan(&token, &publicId, &username, &ip, &userAgent, &createdAt, &lastActive); err != nil {
+		if err := rows.Scan(&token, &publicId, &username, &ip, &userAgent, &createdAt, &lastActive, &loginMethod); err != nil {
 			return nil, fmt.Errorf("failed to scan active session row: %w", err)
+		}
+
+		if loginMethod == "" {
+			loginMethod = "password"
 		}
 
 		sessions = append(sessions, core.SessionDbDto{
@@ -319,6 +355,7 @@ func (db *DB) GetActiveSessions(minActiveTimestamp int64) ([]core.SessionDbDto, 
 			UserAgent:    userAgent,
 			CreatedAt:    createdAt,
 			LastActive:   lastActive,
+			LoginMethod:  loginMethod,
 		})
 	}
 
@@ -335,6 +372,9 @@ func (db *DB) GetActiveSessions(minActiveTimestamp int64) ([]core.SessionDbDto, 
 
 func (db *DB) UpdateSessionsUsername(oldUsername, newUsername string) error {
 	if db == nil || db.SqlDB == nil || oldUsername == "" || newUsername == "" {
+		return nil
+	}
+	if len(oldUsername) > maxUsernameLen || len(newUsername) > maxUsernameLen {
 		return nil
 	}
 

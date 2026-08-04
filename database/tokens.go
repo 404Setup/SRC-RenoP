@@ -149,6 +149,9 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	if db == nil || db.SqlDB == nil || token == nil {
 		return nil
 	}
+	if len(token.Name) > maxTokenNameLen {
+		return nil
+	}
 
 	token.Name = strings.ToLower(token.Name)
 	name := token.Name
@@ -175,7 +178,10 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 }
 
 func (db *DB) DeleteToken(name string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SqlDB == nil || name == "" {
+		return nil
+	}
+	if len(name) > maxTokenNameLen {
 		return nil
 	}
 
@@ -194,7 +200,10 @@ func (db *DB) DeleteToken(name string) error {
 }
 
 func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SqlDB == nil || oldName == "" || newName == "" {
+		return nil
+	}
+	if len(oldName) > maxTokenNameLen || len(newName) > maxTokenNameLen {
 		return nil
 	}
 

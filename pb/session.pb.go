@@ -30,6 +30,7 @@ type StoredSession struct {
 	UserAgent     string                 `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
 	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	LastActive    int64                  `protobuf:"varint,7,opt,name=last_active,json=lastActive,proto3" json:"last_active,omitempty"`
+	LoginMethod   string                 `protobuf:"bytes,8,opt,name=login_method,json=loginMethod,proto3" json:"login_method,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,6 +114,13 @@ func (x *StoredSession) GetLastActive() int64 {
 	return 0
 }
 
+func (x *StoredSession) GetLoginMethod() string {
+	if x != nil {
+		return x.LoginMethod
+	}
+	return ""
+}
+
 type SessionStore struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FormatVersion uint32                 `protobuf:"varint,1,opt,name=format_version,json=formatVersion,proto3" json:"format_version,omitempty"`
@@ -169,7 +177,7 @@ var File_storage_v1_session_proto protoreflect.FileDescriptor
 
 const file_storage_v1_session_proto_rawDesc = "" +
 	"\n" +
-	"\x18storage/v1/session.proto\x12\x10renop.storage.v1\"\xdc\x01\n" +
+	"\x18storage/v1/session.proto\x12\x10renop.storage.v1\"\xff\x01\n" +
 	"\rStoredSession\x12\x1b\n" +
 	"\tpublic_id\x18\x01 \x01(\tR\bpublicId\x12#\n" +
 	"\rsession_token\x18\x02 \x01(\tR\fsessionToken\x12\x1a\n" +
@@ -180,7 +188,8 @@ const file_storage_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x1f\n" +
 	"\vlast_active\x18\a \x01(\x03R\n" +
-	"lastActive\"r\n" +
+	"lastActive\x12!\n" +
+	"\flogin_method\x18\b \x01(\tR\vloginMethod\"r\n" +
 	"\fSessionStore\x12%\n" +
 	"\x0eformat_version\x18\x01 \x01(\rR\rformatVersion\x12;\n" +
 	"\bsessions\x18\x02 \x03(\v2\x1f.renop.storage.v1.StoredSessionR\bsessionsB\n" +

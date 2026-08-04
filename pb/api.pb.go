@@ -455,7 +455,9 @@ type SessionDto struct {
 	// Unix milliseconds — last_active + idle timeout (typically 7 days)
 	ExpiresAt int64 `protobuf:"varint,7,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	// True when this session is the one making the request
-	Current       bool `protobuf:"varint,8,opt,name=current,proto3" json:"current,omitempty"`
+	Current bool `protobuf:"varint,8,opt,name=current,proto3" json:"current,omitempty"`
+	// Login method used to create this session (e.g. "password", "fido")
+	LoginMethod   string `protobuf:"bytes,9,opt,name=login_method,json=loginMethod,proto3" json:"login_method,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -544,6 +546,13 @@ func (x *SessionDto) GetCurrent() bool {
 		return x.Current
 	}
 	return false
+}
+
+func (x *SessionDto) GetLoginMethod() string {
+	if x != nil {
+		return x.LoginMethod
+	}
+	return ""
 }
 
 type SessionList struct {
@@ -3374,7 +3383,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\rsession_token\x18\x04 \x01(\tR\fsessionToken\":\n" +
 	"\fLoginRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
-	"\x06secret\x18\x02 \x01(\tR\x06secret\"\xed\x01\n" +
+	"\x06secret\x18\x02 \x01(\tR\x06secret\"\x90\x02\n" +
 	"\n" +
 	"SessionDto\x12\x1b\n" +
 	"\tpublic_id\x18\x01 \x01(\tR\bpublicId\x12\x1a\n" +
@@ -3388,7 +3397,8 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"lastActive\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\a \x01(\x03R\texpiresAt\x12\x18\n" +
-	"\acurrent\x18\b \x01(\bR\acurrent\"C\n" +
+	"\acurrent\x18\b \x01(\bR\acurrent\x12!\n" +
+	"\flogin_method\x18\t \x01(\tR\vloginMethod\"C\n" +
 	"\vSessionList\x124\n" +
 	"\bsessions\x18\x01 \x03(\v2\x18.renop.api.v1.SessionDtoR\bsessions\"\"\n" +
 	"\bStatusOk\x12\x16\n" +

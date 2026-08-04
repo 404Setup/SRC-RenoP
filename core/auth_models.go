@@ -70,12 +70,13 @@ type LoginRequest struct {
 }
 
 type Session struct {
-	PublicId   string
-	Username   string
-	Ip         string
-	UserAgent  string
-	CreatedAt  int64
-	LastActive atomic.Int64
+	PublicId    string
+	Username    string
+	Ip          string
+	UserAgent   string
+	CreatedAt   int64
+	LastActive  atomic.Int64
+	LoginMethod string
 }
 
 type SessionDbDto struct {
@@ -86,17 +87,19 @@ type SessionDbDto struct {
 	UserAgent    string `json:"user_agent"`
 	CreatedAt    int64  `json:"created_at"`
 	LastActive   int64  `json:"last_active"`
+	LoginMethod  string `json:"login_method"`
 }
 
 type SessionDto struct {
-	PublicId   string `json:"public_id"`
-	Username   string `json:"username"`
-	Ip         string `json:"ip"`
-	UserAgent  string `json:"user_agent"`
-	CreatedAt  int64  `json:"created_at"`
-	LastActive int64  `json:"last_active"`
-	ExpiresAt  int64  `json:"expires_at"`
-	Current    bool   `json:"current"`
+	PublicId    string `json:"public_id"`
+	Username    string `json:"username"`
+	Ip          string `json:"ip"`
+	UserAgent   string `json:"user_agent"`
+	CreatedAt   int64  `json:"created_at"`
+	LastActive  int64  `json:"last_active"`
+	ExpiresAt   int64  `json:"expires_at"`
+	Current     bool   `json:"current"`
+	LoginMethod string `json:"login_method"`
 }
 
 type CurrentSessionId struct {

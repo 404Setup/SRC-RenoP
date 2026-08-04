@@ -43,6 +43,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		user_agent TEXT NOT NULL,
 		created_at BIGINT NOT NULL,
 		last_active BIGINT NOT NULL,
+		login_method VARCHAR(64) NOT NULL DEFAULT 'password',
 		INDEX idx_sessions_username (username),
 		INDEX idx_sessions_last_active (last_active)
 	);`
@@ -76,10 +77,11 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
-	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
+	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
 
 	return nil
 }
@@ -93,8 +95,8 @@ func (d *MySQLDialect) UpsertTokenQuery() string {
 }
 
 func (d *MySQLDialect) UpsertSessionQuery() string {
-	return `INSERT INTO sessions (session_token, public_id, username, ip, user_agent, created_at, last_active)
-	VALUES (?, ?, ?, ?, ?, ?, ?)
+	return `INSERT INTO sessions (session_token, public_id, username, ip, user_agent, created_at, last_active, login_method)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	ON DUPLICATE KEY UPDATE
-	public_id=VALUES(public_id), username=VALUES(username), ip=VALUES(ip), user_agent=VALUES(user_agent), created_at=VALUES(created_at), last_active=VALUES(last_active)`
+	public_id=VALUES(public_id), username=VALUES(username), ip=VALUES(ip), user_agent=VALUES(user_agent), created_at=VALUES(created_at), last_active=VALUES(last_active), login_method=VALUES(login_method)`
 }

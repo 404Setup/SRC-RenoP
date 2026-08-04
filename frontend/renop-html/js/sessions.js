@@ -29,7 +29,32 @@ import {logout} from './auth.js';
  * @property {number} last_active
  * @property {number} expires_at
  * @property {boolean} current
+ * @property {string} [login_method]
  */
+
+/**
+ * Resolve display text for login method.
+ * @param {string} [method]
+ * @returns {string}
+ */
+function formatLoginMethod(method) {
+    if (method === 'fido') {
+        return t('sessions.methodFido');
+    }
+    return t('sessions.methodPassword');
+}
+
+/**
+ * Shorten public id to an 8-character identification string.
+ * @param {string} [publicId]
+ * @returns {string}
+ */
+function shortSessionId(publicId) {
+    const id = (publicId || '').trim();
+    if (!id) return '—';
+    if (id.length <= 8) return id;
+    return id.slice(0, 8);
+}
 
 /**
  * @typedef {object} SessionsDialogOptions
@@ -393,7 +418,9 @@ export function openSessionsDialog(options = {mode: 'self'}) {
         const table = el('table', {class: 'sessions-table'});
         const thead = el('thead', {},
             el('tr', {},
+                el('th', {class: 'sessions-col-id'}, t('sessions.colId')),
                 el('th', {}, t('sessions.colDevice')),
+                el('th', {class: 'sessions-col-method'}, t('sessions.colMethod')),
                 el('th', {}, t('sessions.colIp')),
                 el('th', {}, t('sessions.colLastActive')),
                 el('th', {}, t('sessions.colExpires')),
@@ -414,6 +441,9 @@ export function openSessionsDialog(options = {mode: 'self'}) {
      * @returns {HTMLTableRowElement}
      */
     function buildRow(session) {
+        const idSpan = el('span', {title: session.public_id || ''}, shortSessionId(session.public_id));
+        const idCell = el('td', {class: 'sessions-mono sessions-col-id'}, idSpan);
+
         const deviceCell = el('td', {class: 'sessions-device-cell'});
         const deviceMain = el('div', {class: 'sessions-device-main'}, shortDevice(session.user_agent));
         deviceMain.title = session.user_agent || '';
@@ -423,6 +453,8 @@ export function openSessionsDialog(options = {mode: 'self'}) {
             badgeHost.appendChild(createBadge(t('sessions.currentBadge'), 'admin'));
         }
         deviceCell.appendChild(badgeHost);
+
+        const methodCell = el('td', {class: 'sessions-col-method'}, formatLoginMethod(session.login_method));
 
         const revokeBtn = createButton('', {
             class: 'table-action-btn delete-btn sessions-revoke-btn',
@@ -462,7 +494,9 @@ export function openSessionsDialog(options = {mode: 'self'}) {
         const row = /** @type {HTMLTableRowElement} */ (el('tr', {
                 class: session.current ? 'sessions-row sessions-row--current' : 'sessions-row',
             },
+            idCell,
             deviceCell,
+            methodCell,
             el('td', {class: 'sessions-mono sessions-col-ip'}, session.ip || '—'),
             el('td', {class: 'sessions-col-last-active'}, formatDateTime(session.last_active)),
             el('td', {class: 'sessions-col-expires'}, formatDateTime(session.expires_at)),
@@ -479,6 +513,11 @@ export function openSessionsDialog(options = {mode: 'self'}) {
      */
     function updateRow(session, row) {
         row.classList.toggle('sessions-row--current', !!session.current);
+        const idCell = row.querySelector('.sessions-col-id span');
+        if (idCell) {
+            idCell.textContent = shortSessionId(session.public_id);
+            idCell.title = session.public_id || '';
+        }
         const deviceMain = row.querySelector('.sessions-device-main');
         if (deviceMain) {
             deviceMain.textContent = shortDevice(session.user_agent);
@@ -491,6 +530,8 @@ export function openSessionsDialog(options = {mode: 'self'}) {
                 badgeHost.appendChild(createBadge(t('sessions.currentBadge'), 'admin'));
             }
         }
+        const methodCell = row.querySelector('.sessions-col-method');
+        if (methodCell) methodCell.textContent = formatLoginMethod(session.login_method);
         const ipCell = row.querySelector('.sessions-col-ip');
         if (ipCell) ipCell.textContent = session.ip || '—';
         const lastCell = row.querySelector('.sessions-col-last-active');

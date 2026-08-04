@@ -2366,6 +2366,7 @@ export const renop = $root.renop = (() => {
                  * @property {number|Long|null} [last_active] SessionDto last_active
                  * @property {number|Long|null} [expires_at] SessionDto expires_at
                  * @property {boolean|null} [current] SessionDto current
+                 * @property {string|null} [login_method] SessionDto login_method
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -2462,6 +2463,14 @@ export const renop = $root.renop = (() => {
                 SessionDto.prototype.current = false;
 
                 /**
+                 * SessionDto login_method.
+                 * @member {string} login_method
+                 * @memberof renop.api.v1.SessionDto
+                 * @instance
+                 */
+                SessionDto.prototype.login_method = "";
+
+                /**
                  * Creates a new SessionDto instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.SessionDto
@@ -2509,6 +2518,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 7, wireType 0 =*/56).int64(message.expires_at);
                     if (message.current != null && $Object.hasOwnProperty.call(message, "current") && message.current !== false)
                         writer.uint32(/* id 8, wireType 0 =*/64).bool(message.current);
+                    if (message.login_method != null && $Object.hasOwnProperty.call(message, "login_method") && message.login_method !== "")
+                        writer.uint32(/* id 9, wireType 2 =*/74).string(message.login_method);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -2628,6 +2639,15 @@ export const renop = $root.renop = (() => {
                                     delete message.current;
                                 continue;
                             }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.login_method = value;
+                                else
+                                    delete message.login_method;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -2695,6 +2715,9 @@ export const renop = $root.renop = (() => {
                     if (message.current != null && $Object.hasOwnProperty.call(message, "current"))
                         if (typeof message.current !== "boolean")
                             return "current: boolean expected";
+                    if (message.login_method != null && $Object.hasOwnProperty.call(message, "login_method"))
+                        if (!$util.isString(message.login_method))
+                            return "login_method: string expected";
                     return null;
                 };
 
@@ -2761,6 +2784,9 @@ export const renop = $root.renop = (() => {
                     if (object.current != null)
                         if (object.current)
                             message.current = $Boolean(object.current);
+                    if (object.login_method != null)
+                        if (typeof object.login_method !== "string" || object.login_method.length)
+                            message.login_method = $String(object.login_method);
                     return message;
                 };
 
@@ -2802,6 +2828,7 @@ export const renop = $root.renop = (() => {
                         } else
                             object.expires_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                         object.current = false;
+                        object.login_method = "";
                     }
                     if (message.public_id != null && $Object.hasOwnProperty.call(message, "public_id"))
                         object.public_id = message.public_id;
@@ -2834,6 +2861,8 @@ export const renop = $root.renop = (() => {
                             object.expires_at = options.longs === $String ? $util.Long.prototype.toString.call(message.expires_at) : options.longs === $Number ? new $util.LongBits(message.expires_at.low >>> 0, message.expires_at.high >>> 0).toNumber() : message.expires_at;
                     if (message.current != null && $Object.hasOwnProperty.call(message, "current"))
                         object.current = message.current;
+                    if (message.login_method != null && $Object.hasOwnProperty.call(message, "login_method"))
+                        object.login_method = message.login_method;
                     return object;
                 };
 

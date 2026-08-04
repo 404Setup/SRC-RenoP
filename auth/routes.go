@@ -223,11 +223,12 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 		now := time.Now().UnixMilli()
 
 		session := &core.Session{
-			PublicId:  publicId,
-			Username:  user.Username,
-			Ip:        utils.Intern(ip),
-			UserAgent: utils.Intern(userAgent),
-			CreatedAt: now,
+			PublicId:    publicId,
+			Username:    user.Username,
+			Ip:          utils.Intern(ip),
+			UserAgent:   utils.Intern(userAgent),
+			CreatedAt:   now,
+			LoginMethod: "password",
 		}
 		session.LastActive.Store(now)
 

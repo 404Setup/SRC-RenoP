@@ -624,11 +624,12 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 	now := time.Now().UnixMilli()
 
 	session := &core.Session{
-		PublicId:  publicId,
-		Username:  authenticatedUser.Username,
-		Ip:        utils.Intern(ip),
-		UserAgent: utils.Intern(userAgent),
-		CreatedAt: now,
+		PublicId:    publicId,
+		Username:    authenticatedUser.Username,
+		Ip:          utils.Intern(ip),
+		UserAgent:   utils.Intern(userAgent),
+		CreatedAt:   now,
+		LoginMethod: "fido",
 	}
 	session.LastActive.Store(now)
 
