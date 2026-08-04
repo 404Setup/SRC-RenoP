@@ -17,6 +17,7 @@ import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthEr
 import {openSessionsDialog} from './sessions.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 import {FidoDeviceList, GenerateTokenResponse, StatusOk, UpdatePasswordRequest} from './proto/index.js';
+import {closeModalWithAnim} from './app-ui.js';
 
 export async function loadProfileFidoDevices() {
     const listEl = document.getElementById('profile-fido-list');
@@ -319,16 +320,12 @@ export function openProfileFidoDialog() {
 
     if (closeBtn && !closeBtn.dataset.listenerAttached) {
         closeBtn.dataset.listenerAttached = 'true';
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+        closeBtn.addEventListener('click', () => closeModalWithAnim(modal));
     }
 
     if (backdrop && !backdrop.dataset.listenerAttached) {
         backdrop.dataset.listenerAttached = 'true';
-        backdrop.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+        backdrop.addEventListener('click', () => closeModalWithAnim(modal));
     }
 
     modal.style.display = 'flex';

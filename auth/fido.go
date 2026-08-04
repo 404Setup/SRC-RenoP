@@ -533,9 +533,7 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 	if sessionUsername != "" {
 		fidoUser := buildFidoUser(sessionUsername, state)
 		matchedCred, err = w.ValidateLogin(fidoUser, *sessionData, parsedResponse)
-		if err != nil {
-			matchedCred, err = w.ValidateDiscoverableLogin(userHandler, *sessionData, parsedResponse)
-		} else {
+		if err == nil {
 			accessToken := state.GetTokenByName(sessionUsername)
 			if accessToken != nil {
 				authenticatedUser = buildSynthUser(accessToken)

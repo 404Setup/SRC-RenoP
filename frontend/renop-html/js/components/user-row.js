@@ -163,7 +163,7 @@ export function createUserRow(token, options = {}) {
 
     const fidoBtn = createButton('', {
         class: 'table-action-btn fido-btn',
-        icon: 'ssl',
+        icon: 'fileKey',
         title: t('users.fidoDevices') || 'FIDO Devices',
         onClick: () => options.onFido && options.onFido(token)
     });

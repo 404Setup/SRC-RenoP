@@ -17,6 +17,7 @@ import {makeCustomSelect} from './cfg-ui.js';
 import {logout} from './auth.js';
 import {AccessTokenList, FidoDeviceList, GenerateTokenResponse} from './proto/index.js';
 import {openSessionsDialog} from './sessions.js';
+import {closeModalWithAnim} from './app-ui.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -313,9 +314,13 @@ export async function openUserFidoDialog(username) {
 
     if (closeBtn && !closeBtn.dataset.listenerAttached) {
         closeBtn.dataset.listenerAttached = 'true';
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+        closeBtn.addEventListener('click', () => closeModalWithAnim(modal));
+    }
+
+    const backdrop = document.getElementById('user-fido-backdrop');
+    if (backdrop && !backdrop.dataset.listenerAttached) {
+        backdrop.dataset.listenerAttached = 'true';
+        backdrop.addEventListener('click', () => closeModalWithAnim(modal));
     }
 
     modal.style.display = 'flex';
