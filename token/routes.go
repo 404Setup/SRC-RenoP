@@ -95,8 +95,7 @@ func FindToken(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
-	if val, ok := state.Inner.TokenRepository.Load(name); ok {
-		token := val
+	if token := state.GetTokenByName(name); token != nil {
 		dto := core.AccessTokenDto{
 			Identifier:  token.Identifier,
 			Name:        name,
@@ -124,7 +123,8 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		return c.Status(fiber.StatusBadRequest).SendString("Bad request")
 	}
 
-	_, isExisting := state.Inner.TokenRepository.Load(name)
+	origToken := state.GetTokenByName(name)
+	isExisting := origToken != nil
 	isNew := !isExisting
 
 	if createReq.IsCreate && isExisting {
@@ -136,7 +136,7 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		targetName = strings.Clone(strings.ToLower(*createReq.NewName))
 	}
 	if targetName != name {
-		if _, exists := state.Inner.TokenRepository.Load(targetName); exists {
+		if state.GetTokenByName(targetName) != nil {
 			return c.Status(fiber.StatusConflict).SendString("Token name already exists")
 		}
 	}
@@ -176,11 +176,9 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 			Permissions:     []string{},
 		}
 	} else {
-		val, ok := state.Inner.TokenRepository.Load(name)
-		if !ok {
+		if origToken == nil {
 			return c.Status(fiber.StatusNotFound).SendString("Not found")
 		}
-		origToken := val
 		tCopy := *origToken
 		token = &tCopy
 	}
@@ -245,7 +243,7 @@ func DeleteToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
-	if _, ok := state.Inner.TokenRepository.Load(name); !ok {
+	if state.GetTokenByName(name) == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
@@ -283,7 +281,7 @@ func ListUserSessions(c fiber.Ctx, state *core.AppState) error {
 	if name == "" {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
-	if _, ok := state.Inner.TokenRepository.Load(name); !ok {
+	if state.GetTokenByName(name) == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 

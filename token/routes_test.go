@@ -137,7 +137,7 @@ func TestFindAllTokensWithDB(t *testing.T) {
 
 	db, err := database.InitDB(cfg)
 	assert.NoError(t, err)
-	defer db.Close()
+	t.Cleanup(func() { db.Close() })
 
 	state := core.NewAppState()
 	state.Inner.DB = db

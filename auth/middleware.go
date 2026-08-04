@@ -390,3 +390,14 @@ func GetUser(c fiber.Ctx) *config.User {
 	}
 	return GuestUser
 }
+
+func RequireManager(c fiber.Ctx) error {
+	user := GetUser(c)
+	if !isManager(user) {
+		if user.Username == "guest" {
+			return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
+		}
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	return c.Next()
+}

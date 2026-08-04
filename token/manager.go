@@ -113,6 +113,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			}
 		case OpTokenDelete:
 			safeName := strings.Clone(op.Name)
+			state.DeleteFidoDevicesByUsername(safeName)
 			if db := state.GetDB(); db != nil {
 				if existing, _ := db.GetTokenByName(safeName); existing != nil {
 					_ = db.DeleteToken(safeName)

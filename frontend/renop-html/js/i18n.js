@@ -215,11 +215,6 @@ const ERROR_KEY_MAP = {
     'Password must be between 6 and 72 bytes': 'error.passwordLength',
     'Failed to update token': 'error.failedUpdateToken',
     'Invalid mode. Expected \'full\' or \'diff\'': 'error.invalidRebuildMode',
-    'URL must be http or https': 'error.urlScheme',
-    'Invalid URL': 'error.invalidUrl',
-    'Could not resolve host': 'error.resolveHost',
-    'URL points to an internal or private IP': 'error.internalIp',
-    'Failed to access background URL or returned non-success status': 'error.accessBgUrl',
     'Failed to read chunk': 'error.readChunk',
     'Background image exceeds 5 MiB': 'error.bgExceedsSize',
     'Background URL must be a valid WebP image': 'error.bgMustBeWebp',
@@ -233,12 +228,49 @@ const ERROR_KEY_MAP = {
     'No update package file uploaded': 'error.noUpdatePackageUploaded',
     'Uploaded file must be a .zip package': 'error.mustBeZipPackage',
     'Executable binary does not match current system or architecture': 'error.incompatibleBinary',
-    'Target executable not found in update package': 'error.targetExeNotFound'
+    'Target executable not found in update package': 'error.targetExeNotFound',
+    'WebAuthn initialization failed': 'error.webauthnInitFailed',
+    'Failed to begin registration': 'error.fidoBeginRegFailed',
+    'Invalid or expired session': 'error.invalidOrExpiredSession',
+    'Invalid credential payload': 'error.invalidCredentialPayload',
+    'Failed to parse creation response': 'error.fidoParseCreationFailed',
+    'Registration failed': 'error.fidoRegFailed',
+    'Failed to begin FIDO login': 'error.fidoBeginLoginFailed',
+    'Invalid or expired login session': 'error.invalidOrExpiredLoginSession',
+    'Failed to parse assertion response': 'error.fidoParseAssertionFailed',
+    'FIDO credential not found': 'error.fidoCredNotFound',
+    'FIDO authentication failed': 'error.fidoAuthFailed',
+    'An error occurred during FIDO login': 'error.fidoLoginError',
+    'Invalid FIDO credential': 'error.invalidFidoCred',
+    'Failed to delete FIDO device': 'error.fidoDeleteFailed',
+    'Error loading FIDO devices': 'error.fidoLoadFailed',
+    'Bad path': 'error.badPath',
+    'Insufficient storage': 'error.insufficientStorage',
+    'Session not found': 'error.sessionNotFound',
+    'This is an invalid domain': 'error.invalidDomain',
+    'This is an invalid domain.': 'error.invalidDomain',
+    'Invalid domain': 'error.invalidDomain',
+    'Invalid domain.': 'error.invalidDomain',
+    'Invalid database driver': 'error.invalidDbDriver',
+    'Database DSN must not be empty': 'error.dbDsnEmpty',
+    'Port must be between 1 and 65535': 'error.invalidPort',
+    'Max active requests must be positive': 'error.maxActiveRequestsPositive',
+    'Storage path must not be empty': 'error.storagePathEmpty',
+    'Invalid channel': 'error.invalidChannel',
+    'Invalid mode': 'error.invalidMode',
+    'Invalid visibility. Expected PUBLIC, HIDDEN, or PRIVATE': 'error.invalidVisibility',
+    'Invalid URL': 'error.invalidUrl',
+    'URL must be http or https': 'error.urlMustBeHttpOrHttps',
+    'URL must not contain credentials': 'error.urlNoCredentials',
+    'Invalid URL host': 'error.invalidUrlHost',
+    'Could not resolve host': 'error.couldNotResolveHost',
+    'URL points to an internal or private IP': 'error.urlInternalIp',
+    'Failed to access background URL or returned non-success status': 'error.failedAccessBackgroundUrl'
 };
 
 /**
  * Match and translate backend error messages or system messages.
- * Handles JSON error payloads, known phrase maps, and `prefix: rest` splitting.
+ * Handles JSON error payloads, known phrase maps, trailing punctuation, and `prefix: rest` splitting.
  * @param {string} errorText - Raw error text from API or UI.
  * @returns {string} Localized message, or the original text when unmapped.
  */
@@ -258,13 +290,27 @@ export function translateError(errorText) {
         }
     }
 
-    if (ERROR_KEY_MAP[trimmed]) {
-        return t(ERROR_KEY_MAP[trimmed]);
-    }
+    const tryTranslateSingle = (str) => {
+        if (!str) return str;
+        const clean = str.trim();
+        if (ERROR_KEY_MAP[clean]) return t(ERROR_KEY_MAP[clean]);
 
-    const directTranslation = t(trimmed);
-    if (directTranslation !== trimmed) {
-        return directTranslation;
+        const stripped = clean.replace(/[\.\:]+$/, '').trim();
+        if (ERROR_KEY_MAP[stripped]) return t(ERROR_KEY_MAP[stripped]);
+
+        const direct = t(clean);
+        if (direct !== clean) return direct;
+
+        const strippedDirect = t(stripped);
+        if (strippedDirect !== stripped) return strippedDirect;
+
+        return clean;
+    };
+
+    const directRes = tryTranslateSingle(trimmed);
+    const trimmedStripped = trimmed.replace(/[\.\:]+$/, '').trim();
+    if (directRes !== trimmed && directRes !== trimmedStripped) {
+        return directRes;
     }
 
     const prefixSplitter = ': ';
@@ -273,15 +319,15 @@ export function translateError(errorText) {
         const prefix = parts[0].trim();
         const rest = parts.slice(1).join(prefixSplitter).trim();
 
-        const translatedPrefix = ERROR_KEY_MAP[prefix] ? t(ERROR_KEY_MAP[prefix]) : t(prefix);
-        const translatedRest = ERROR_KEY_MAP[rest] ? t(ERROR_KEY_MAP[rest]) : t(rest);
+        const translatedPrefix = tryTranslateSingle(prefix);
+        const translatedRest = tryTranslateSingle(rest);
 
         if (translatedPrefix !== prefix || translatedRest !== rest) {
             return `${translatedPrefix}: ${translatedRest}`;
         }
     }
 
-    return trimmed;
+    return directRes;
 }
 
 /**
@@ -402,7 +448,8 @@ export function initI18n() {
 
     const setupLanguageModal = () => {
         const langGrid = document.getElementById('language-grid');
-        let closeModal = () => {};
+        let closeModal = () => {
+        };
 
         if (langGrid && langGrid.children.length === 0) {
             getAvailableLanguages().forEach(code => {

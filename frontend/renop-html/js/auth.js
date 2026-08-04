@@ -8,13 +8,14 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {fetchProto, getAuthHeaders, postProto} from './api.js';
+import {decodeProtoResponse, fetchProto, getAuthHeaders, postProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {closeModalWithAnim, updateTabIndicator} from './app-ui.js';
 import {loadDirectory} from './browser.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
+import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
@@ -340,6 +341,118 @@ export async function logout(reason) {
     loadDirectory(window.location.pathname);
 }
 
+export async function fidoLogin() {
+    loginError.style.display = 'none';
+
+    if (!window.PublicKeyCredential) {
+        loginError.textContent = t('login.fidoUnsupported') || 'FIDO/WebAuthn is not supported by your browser.';
+        loginError.style.display = 'block';
+        return;
+    }
+
+    const usernameInput = document.getElementById('username');
+    const name = usernameInput ? usernameInput.value.trim() : '';
+
+    try {
+        const beginRes = await fetch('/api/auth/fido/login/begin', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: name})
+        });
+
+        if (!beginRes.ok) {
+            const errText = await beginRes.text();
+            const translatedErr = window.translateError ? window.translateError(errText) : errText;
+            loginError.textContent = translatedErr || t('login.fidoFailed') || 'FIDO login failed';
+            loginError.style.display = 'block';
+            return;
+        }
+
+        const {session_id, options} = await beginRes.json();
+        if (!options || !options.publicKey) {
+            loginError.textContent = t('login.fidoFailed') || 'FIDO login failed';
+            loginError.style.display = 'block';
+            return;
+        }
+
+        const publicKey = options.publicKey;
+        publicKey.challenge = base64urlToBuffer(publicKey.challenge);
+
+        if (Array.isArray(publicKey.allowCredentials)) {
+            publicKey.allowCredentials = publicKey.allowCredentials.map(c => ({
+                ...c,
+                id: base64urlToBuffer(c.id)
+            }));
+        }
+
+        const assertion = await navigator.credentials.get({publicKey});
+        if (!assertion) {
+            loginError.textContent = t('login.fidoFailed') || 'FIDO login failed';
+            loginError.style.display = 'block';
+            return;
+        }
+
+        const credentialJSON = {
+            id: assertion.id,
+            rawId: bufferToBase64url(assertion.rawId),
+            type: assertion.type,
+            response: {
+                authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+                clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+                signature: bufferToBase64url(assertion.response.signature),
+                userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null,
+            }
+        };
+
+        const finishRes = await fetch('/api/auth/fido/login/finish', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/x-protobuf'
+            },
+            body: JSON.stringify({
+                session_id,
+                credential: credentialJSON
+            })
+        });
+
+        if (finishRes.ok) {
+            const sessionData = await decodeProtoResponse(finishRes, SessionDetails);
+            const permissions = (sessionData && sessionData.permissions) || [];
+            const routes = (sessionData && sessionData.routes) || [];
+            const isManager = isManagerFromSession(permissions);
+
+            const serverName = sessionData && sessionData.access_token && sessionData.access_token.name
+                ? sessionData.access_token.name
+                : name;
+
+            if (serverName) {
+                localStorage.setItem('username', serverName);
+            }
+
+            updateAuthUI(true, serverName, isManager, permissions, routes);
+            closeModalWithAnim(loginModal, () => {
+                loginForm.reset();
+            });
+
+            showAlert(t('login.welcomeBack', {name: serverName}), 'success');
+            loadDirectory(window.location.pathname);
+        } else {
+            const errText = await finishRes.text();
+            const translatedErr = window.translateError ? window.translateError(errText) : errText;
+            loginError.textContent = translatedErr || (window.translateError ? window.translateError('Invalid FIDO credential') : 'Invalid FIDO credential');
+            loginError.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('FIDO Login error:', error);
+        const errMsg = error && (error.message || error.name || String(error));
+        const translatedMsg = errMsg && window.translateError ? window.translateError(errMsg) : errMsg;
+        loginError.textContent = translatedMsg || (window.translateError ? window.translateError('An error occurred during FIDO login') : 'An error occurred during FIDO login');
+        loginError.style.display = 'block';
+    }
+}
+
 if (loginBtn) {
     loginBtn.addEventListener('click', () => {
         loginModal.style.display = 'flex';
@@ -362,6 +475,14 @@ if (loginForm) {
         const name = document.getElementById('username').value;
         const secret = document.getElementById('password').value;
         login(name, secret);
+    });
+}
+
+const btnFidoLogin = document.getElementById('btn-fido-login');
+if (btnFidoLogin) {
+    btnFidoLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        fidoLogin();
     });
 }
 

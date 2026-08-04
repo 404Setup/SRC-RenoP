@@ -44,16 +44,33 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		last_active BIGINT NOT NULL
 	);`
 
+	fidoTable := `
+	CREATE TABLE IF NOT EXISTS fido_devices (
+		id VARCHAR(255) PRIMARY KEY,
+		username VARCHAR(255) NOT NULL,
+		name VARCHAR(255) NOT NULL,
+		credential_id BLOB NOT NULL,
+		public_key BLOB NOT NULL,
+		attestation_type VARCHAR(64) NOT NULL,
+		aaguid BLOB NOT NULL,
+		sign_count INT NOT NULL,
+		created_at BIGINT NOT NULL
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
 	if _, err := db.Exec(sessionsTable); err != nil {
 		return err
 	}
+	if _, err := db.Exec(fidoTable); err != nil {
+		return err
+	}
 
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;")
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);")
 	return nil
 }
 

@@ -55,13 +55,36 @@ export class RenopAlert extends HTMLElement {
         this.className = `alert alert-${type}`;
         this.innerHTML = '';
 
-        const textSpan = el('span', {}, message);
+        // Status Icon
+        const iconWrap = el('div', {class: 'alert-icon'});
+        let iconName = 'info';
+        if (type === 'success') iconName = 'success';
+        else if (type === 'error' || type === 'danger') iconName = 'alertCircle';
+        else if (type === 'warning') iconName = 'warning';
+        iconWrap.appendChild(createIcon(iconName));
+
+        // Content
+        const contentWrap = el('div', {class: 'alert-content'});
+        const textSpan = el('span', {class: 'alert-message'}, message);
+        contentWrap.appendChild(textSpan);
+
+        // Close button
         const closeBtn = el('button', {class: 'alert-close', ariaLabel: t('modal.close') || 'Close'});
         closeBtn.appendChild(createIcon('close'));
-        closeBtn.onclick = () => this.dismiss();
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.dismiss();
+        };
 
-        this.appendChild(textSpan);
+        // Progress bar indicator
+        const progressWrap = el('div', {class: 'alert-progress'});
+        const progressBar = el('div', {class: 'alert-progress-bar'});
+        progressWrap.appendChild(progressBar);
+
+        this.appendChild(iconWrap);
+        this.appendChild(contentWrap);
         this.appendChild(closeBtn);
+        this.appendChild(progressWrap);
     }
 
     /**
@@ -69,12 +92,13 @@ export class RenopAlert extends HTMLElement {
      * @returns {void}
      */
     dismiss() {
+        if (this.classList.contains('alert-leaving')) return;
         this.classList.add('alert-leaving');
         setTimeout(() => {
             if (this.parentNode) {
                 this.parentNode.removeChild(this);
             }
-        }, 300);
+        }, 350);
     }
 }
 

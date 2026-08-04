@@ -59,6 +59,11 @@ type StateDB interface {
 	DeleteExpiredSessions(minActiveTimestamp int64) error
 	DeleteUserSessionByPublicID(username, publicID, currentSessionToken string) (token string, revoked bool, wasCurrent bool, err error)
 	DeleteOtherUserSessions(username, keepSessionToken string) (tokens []string, err error)
+	ListFidoDevices(username string) ([]*FidoDevice, error)
+	GetFidoDeviceByCredentialID(credentialID []byte) (*FidoDevice, error)
+	SaveFidoDevice(device *FidoDevice) error
+	DeleteFidoDevice(username, deviceID string) error
+	DeleteFidoDevicesByUsername(username string) error
 }
 
 type AppStateInner struct {
@@ -76,6 +81,8 @@ type AppStateInner struct {
 	AuthCacheWriteLock sync.Mutex
 	Sessions           pb.MapOf[string, *Session]
 	SessionsIsDirty    atomic.Bool
+	FidoDevices        pb.MapOf[string, []*FidoDevice]
+	FidoWriteLock      sync.Mutex
 	DB                 any
 
 	// SessionsFlush, when set, schedules an immediate persist of the session store.
@@ -332,4 +339,108 @@ func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string
 // RevokeAllUserSessions removes every browser session for username.
 func (state *AppState) RevokeAllUserSessions(username string) int {
 	return state.RevokeOtherUserSessions(username, "")
+}
+
+func (state *AppState) ListFidoDevices(username string) []*FidoDevice {
+	if state == nil || state.Inner == nil || username == "" {
+		return []*FidoDevice{}
+	}
+	lowerName := strings.ToLower(username)
+	if db := state.GetDB(); db != nil {
+		devs, err := db.ListFidoDevices(lowerName)
+		if err == nil && devs != nil {
+			return devs
+		}
+		return []*FidoDevice{}
+	}
+	devs, _ := state.Inner.FidoDevices.Load(lowerName)
+	if devs == nil {
+		return []*FidoDevice{}
+	}
+	return devs
+}
+
+func (state *AppState) GetFidoDeviceByCredentialID(credentialID []byte) *FidoDevice {
+	if state == nil || state.Inner == nil || len(credentialID) == 0 {
+		return nil
+	}
+	if db := state.GetDB(); db != nil {
+		dev, err := db.GetFidoDeviceByCredentialID(credentialID)
+		if err == nil && dev != nil {
+			return dev
+		}
+	}
+	var matched *FidoDevice
+	state.Inner.FidoDevices.Range(func(key string, devices []*FidoDevice) bool {
+		for _, d := range devices {
+			if string(d.CredentialID) == string(credentialID) {
+				matched = d
+				return false
+			}
+		}
+		return true
+	})
+	return matched
+}
+
+func (state *AppState) SaveFidoDevice(device *FidoDevice) {
+	if state == nil || state.Inner == nil || device == nil || device.Username == "" {
+		return
+	}
+	lowerName := strings.ToLower(device.Username)
+	device.Username = lowerName
+	if db := state.GetDB(); db != nil {
+		_ = db.SaveFidoDevice(device)
+		return
+	}
+	state.Inner.FidoWriteLock.Lock()
+	defer state.Inner.FidoWriteLock.Unlock()
+	devs, _ := state.Inner.FidoDevices.Load(lowerName)
+	newDevs := append([]*FidoDevice{}, devs...)
+	newDevs = append(newDevs, device)
+	state.Inner.FidoDevices.Store(lowerName, newDevs)
+}
+
+func (state *AppState) DeleteFidoDevice(username, deviceID string) bool {
+	if state == nil || state.Inner == nil || username == "" || deviceID == "" {
+		return false
+	}
+	lowerName := strings.ToLower(username)
+	if db := state.GetDB(); db != nil {
+		err := db.DeleteFidoDevice(lowerName, deviceID)
+		return err == nil
+	}
+	state.Inner.FidoWriteLock.Lock()
+	defer state.Inner.FidoWriteLock.Unlock()
+	devs, _ := state.Inner.FidoDevices.Load(lowerName)
+	if devs == nil {
+		return false
+	}
+	var updated []*FidoDevice
+	found := false
+	for _, d := range devs {
+		if d.ID == deviceID {
+			found = true
+		} else {
+			updated = append(updated, d)
+		}
+	}
+	if found {
+		state.Inner.FidoDevices.Store(lowerName, updated)
+	}
+	return found
+}
+
+func (state *AppState) DeleteFidoDevicesByUsername(username string) {
+	if state == nil || state.Inner == nil || username == "" {
+		return
+	}
+	lowerName := strings.ToLower(username)
+	if db := state.GetDB(); db != nil {
+		_ = db.DeleteFidoDevicesByUsername(lowerName)
+		return
+	}
+	state.Inner.FidoWriteLock.Lock()
+	defer state.Inner.FidoWriteLock.Unlock()
+	state.Inner.FidoDevices.Delete(lowerName)
 }

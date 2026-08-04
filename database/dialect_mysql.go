@@ -47,10 +47,27 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		INDEX idx_sessions_last_active (last_active)
 	);`
 
+	fidoTable := `
+	CREATE TABLE IF NOT EXISTS fido_devices (
+		id VARCHAR(255) PRIMARY KEY,
+		username VARCHAR(255) NOT NULL,
+		name VARCHAR(255) NOT NULL,
+		credential_id VARBINARY(512) NOT NULL,
+		public_key BLOB NOT NULL,
+		attestation_type VARCHAR(64) NOT NULL,
+		aaguid VARBINARY(64) NOT NULL,
+		sign_count INT NOT NULL,
+		created_at BIGINT NOT NULL,
+		INDEX idx_fido_username (username)
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
 	if _, err := db.Exec(sessionsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(fidoTable); err != nil {
 		return err
 	}
 

@@ -84,6 +84,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Get("/profile/sessions", func(c fiber.Ctx) error { return ListSessions(c, state) })
 	auth.Post("/profile/sessions/revoke-others", func(c fiber.Ctx) error { return RevokeOtherSessions(c, state) })
 	auth.Delete("/profile/sessions/:session_id", func(c fiber.Ctx) error { return DeleteSession(c, state) })
+	SetupFidoRoutes(auth, state)
 }
 
 func CreateSessionDetails(user *config.User, sessionToken string) core.SessionDetails {

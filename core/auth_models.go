@@ -24,6 +24,25 @@ type AccessTokenPermission struct {
 	Shortcut   string `json:"shortcut"`
 }
 
+type FidoDevice struct {
+	ID              string `json:"id"`
+	Username        string `json:"username"`
+	Name            string `json:"name"`
+	AttestationType string `json:"attestation_type"`
+	CredentialID    []byte `json:"credential_id"`
+	PublicKey       []byte `json:"public_key"`
+	AAGUID          []byte `json:"aaguid"`
+	SignCount       uint32 `json:"sign_count"`
+	CreatedAt       int64  `json:"created_at"`
+}
+
+type FidoDeviceDto struct {
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	Name      string `json:"name"`
+	CreatedAt int64  `json:"created_at"`
+}
+
 type RoutePermission struct {
 	Identifier string `json:"identifier"`
 	Shortcut   string `json:"shortcut"`

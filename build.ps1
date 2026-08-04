@@ -127,9 +127,9 @@ switch ($Mode) {
     default { $targets = $allTargets }
 }
 
-$availablePlatforms = @(& go tool dist list)
+$availablePlatforms = @(& go tool dist list | ForEach-Object { $_.Trim() })
 $unsupportedTargets = @($targets | Where-Object {
-    $baseArch = $_.GOARCH -replace 'v[0-9]+$', ''
+    $baseArch = if ($_.GOARCH -match '^(amd64)(v[1-4])?$') { 'amd64' } else { $_.GOARCH }
     $platform = "$($_.GOOS)/$baseArch"
     $availablePlatforms -notcontains $platform
 } | ForEach-Object { "$($_.GOOS)/$($_.GOARCH)" })

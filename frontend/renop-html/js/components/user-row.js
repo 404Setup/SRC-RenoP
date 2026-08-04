@@ -161,6 +161,14 @@ export function createUserRow(token, options = {}) {
         }
     }, new Date(token.created_at).toLocaleDateString());
 
+    const fidoBtn = createButton('', {
+        class: 'table-action-btn fido-btn',
+        icon: 'ssl',
+        title: t('users.fidoDevices') || 'FIDO Devices',
+        onClick: () => options.onFido && options.onFido(token)
+    });
+    fidoBtn.appendChild(el('span', {class: 'btn-text'}, t('users.fidoDevices') || 'FIDO Devices'));
+
     const sessionsBtn = createButton('', {
         class: 'table-action-btn sessions-btn',
         icon: 'ssl',
@@ -194,7 +202,7 @@ export function createUserRow(token, options = {}) {
     });
     resetBtn.appendChild(el('span', {class: 'btn-text'}, t('users.reset')));
 
-    const actionsWrap = el('div', {class: 'users-actions'}, sessionsBtn, resetBtn, editBtn, deleteBtn);
+    const actionsWrap = el('div', {class: 'users-actions'}, fidoBtn, sessionsBtn, resetBtn, editBtn, deleteBtn);
     const actionsTd = el('td', {class: 'users-actions-cell'}, actionsWrap);
 
     row.append(nameTd, permsTd, tokensTd, dateTd, actionsTd);
