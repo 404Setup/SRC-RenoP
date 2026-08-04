@@ -62,6 +62,7 @@ type StateDB interface {
 	ListFidoDevices(username string) ([]*FidoDevice, error)
 	GetFidoDeviceByCredentialID(credentialID []byte) (*FidoDevice, error)
 	SaveFidoDevice(device *FidoDevice) error
+	UpdateFidoSignCount(credentialID []byte, signCount uint32) error
 	DeleteFidoDevice(username, deviceID string) error
 	DeleteFidoDevicesByUsername(username string) error
 }
@@ -444,3 +445,24 @@ func (state *AppState) DeleteFidoDevicesByUsername(username string) {
 	defer state.Inner.FidoWriteLock.Unlock()
 	state.Inner.FidoDevices.Delete(lowerName)
 }
+
+func (state *AppState) UpdateFidoSignCount(credentialID []byte, signCount uint32) {
+	if state == nil || state.Inner == nil || len(credentialID) == 0 {
+		return
+	}
+	if db := state.GetDB(); db != nil {
+		_ = db.UpdateFidoSignCount(credentialID, signCount)
+	}
+	state.Inner.FidoWriteLock.Lock()
+	defer state.Inner.FidoWriteLock.Unlock()
+	state.Inner.FidoDevices.Range(func(key string, devices []*FidoDevice) bool {
+		for _, d := range devices {
+			if string(d.CredentialID) == string(credentialID) {
+				d.SignCount = signCount
+				return false
+			}
+		}
+		return true
+	})
+}
+

@@ -187,4 +187,43 @@ func TestInitDB_SQLite(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, noSess)
 	})
+
+	t.Run("FIDO Device Operations in Database", func(t *testing.T) {
+		dev := &core.FidoDevice{
+			ID:              "dev-db-1",
+			Username:        "dbuser",
+			Name:            "DB YubiKey",
+			CredentialID:    []byte("cred-db-123"),
+			PublicKey:       []byte("pub-db-456"),
+			AttestationType: "none",
+			AAGUID:          []byte("0000000000000000"),
+			SignCount:       5,
+			CreatedAt:       1700000000000,
+		}
+
+		require.NoError(t, db.SaveFidoDevice(dev))
+
+		devs, err := db.ListFidoDevices("dbuser")
+		require.NoError(t, err)
+		require.Len(t, devs, 1)
+		assert.Equal(t, "dev-db-1", devs[0].ID)
+		assert.Equal(t, uint32(5), devs[0].SignCount)
+
+		matched, err := db.GetFidoDeviceByCredentialID([]byte("cred-db-123"))
+		require.NoError(t, err)
+		require.NotNil(t, matched)
+		assert.Equal(t, "dbuser", matched.Username)
+
+		require.NoError(t, db.UpdateFidoSignCount([]byte("cred-db-123"), 10))
+
+		updated, err := db.GetFidoDeviceByCredentialID([]byte("cred-db-123"))
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, uint32(10), updated.SignCount)
+
+		require.NoError(t, db.DeleteFidoDevice("dbuser", "dev-db-1"))
+		emptyDevs, err := db.ListFidoDevices("dbuser")
+		require.NoError(t, err)
+		assert.Empty(t, emptyDevs)
+	})
 }

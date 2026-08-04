@@ -85,6 +85,7 @@ type fidoSessionEntry struct {
 
 var (
 	fidoSessionMap sync.Map
+	cleanFidoOnce  sync.Once
 )
 
 func storeFidoSession(sessionID string, sessionData *webauthn.SessionData, username string) {
@@ -93,17 +94,22 @@ func storeFidoSession(sessionID string, sessionData *webauthn.SessionData, usern
 		username:    username,
 		createdAt:   time.Now(),
 	})
-	go func() {
-		now := time.Now()
-		fidoSessionMap.Range(func(key, val any) bool {
-			if entry, ok := val.(*fidoSessionEntry); ok {
-				if now.Sub(entry.createdAt) > 10*time.Minute {
-					fidoSessionMap.Delete(key)
-				}
+	cleanFidoOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(5 * time.Minute)
+			for range ticker.C {
+				now := time.Now()
+				fidoSessionMap.Range(func(key, val any) bool {
+					if entry, ok := val.(*fidoSessionEntry); ok {
+						if now.Sub(entry.createdAt) > 10*time.Minute {
+							fidoSessionMap.Delete(key)
+						}
+					}
+					return true
+				})
 			}
-			return true
-		})
-	}()
+		}()
+	})
 }
 
 func getFidoSession(sessionID string) (*webauthn.SessionData, string, bool) {
@@ -506,11 +512,15 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	var authenticatedUser *config.User
+	var matchedCred *webauthn.Credential
 
 	userHandler := func(rawID, userHandle []byte) (webauthn.User, error) {
 		matchedDevice := state.GetFidoDeviceByCredentialID(rawID)
 		if matchedDevice == nil {
 			return nil, errors.New("FIDO credential not found")
+		}
+		if len(userHandle) > 0 && !strings.EqualFold(string(userHandle), matchedDevice.Username) {
+			return nil, errors.New("FIDO user handle mismatch")
 		}
 		targetUsername := matchedDevice.Username
 		accessToken := state.GetTokenByName(targetUsername)
@@ -522,9 +532,9 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 
 	if sessionUsername != "" {
 		fidoUser := buildFidoUser(sessionUsername, state)
-		_, err = w.ValidateLogin(fidoUser, *sessionData, parsedResponse)
+		matchedCred, err = w.ValidateLogin(fidoUser, *sessionData, parsedResponse)
 		if err != nil {
-			_, err = w.ValidateDiscoverableLogin(userHandler, *sessionData, parsedResponse)
+			matchedCred, err = w.ValidateDiscoverableLogin(userHandler, *sessionData, parsedResponse)
 		} else {
 			accessToken := state.GetTokenByName(sessionUsername)
 			if accessToken != nil {
@@ -532,12 +542,14 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 			}
 		}
 	} else {
-		_, err = w.ValidateDiscoverableLogin(userHandler, *sessionData, parsedResponse)
+		matchedCred, err = w.ValidateDiscoverableLogin(userHandler, *sessionData, parsedResponse)
 	}
 
-	if err != nil || authenticatedUser == nil {
+	if err != nil || authenticatedUser == nil || matchedCred == nil {
 		return c.Status(fiber.StatusUnauthorized).SendString("FIDO authentication failed")
 	}
+
+	state.UpdateFidoSignCount(matchedCred.ID, matchedCred.Authenticator.SignCount)
 
 	sessionToken := uuid.NewString()
 	publicId := uuid.NewString()

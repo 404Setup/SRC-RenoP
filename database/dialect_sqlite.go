@@ -71,6 +71,7 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);")
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);")
 	return nil
 }
 

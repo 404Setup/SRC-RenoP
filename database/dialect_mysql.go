@@ -58,7 +58,8 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		aaguid VARBINARY(64) NOT NULL,
 		sign_count INT NOT NULL,
 		created_at BIGINT NOT NULL,
-		INDEX idx_fido_username (username)
+		INDEX idx_fido_username (username),
+		INDEX idx_fido_credential_id (credential_id)
 	);`
 
 	if _, err := db.Exec(tokensTable); err != nil {

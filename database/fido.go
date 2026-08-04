@@ -115,3 +115,18 @@ func (db *DB) DeleteFidoDevicesByUsername(username string) error {
 
 	return nil
 }
+
+func (db *DB) UpdateFidoSignCount(credentialID []byte, signCount uint32) error {
+	if db == nil || db.SqlDB == nil || len(credentialID) == 0 {
+		return nil
+	}
+
+	query := `UPDATE fido_devices SET sign_count = ? WHERE credential_id = ?`
+	_, err := db.SqlDB.Exec(query, signCount, credentialID)
+	if err != nil {
+		return fmt.Errorf("failed to update fido sign count: %w", err)
+	}
+
+	return nil
+}
+

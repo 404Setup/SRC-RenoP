@@ -78,6 +78,13 @@ func TestFidoBeginEndpoints(t *testing.T) {
 		matched := state.GetFidoDeviceByCredentialID([]byte("cred-123"))
 		if assert.NotNil(t, matched) {
 			assert.Equal(t, "user1", matched.Username)
+			assert.Equal(t, uint32(0), matched.SignCount)
+		}
+
+		state.UpdateFidoSignCount([]byte("cred-123"), 42)
+		updated := state.GetFidoDeviceByCredentialID([]byte("cred-123"))
+		if assert.NotNil(t, updated) {
+			assert.Equal(t, uint32(42), updated.SignCount)
 		}
 
 		deleted := state.DeleteFidoDevice("user1", "dev-1")
