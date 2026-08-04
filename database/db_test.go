@@ -150,11 +150,21 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.True(t, revoked)
 		assert.True(t, wasCurrent)
 
-		deletedTokens, err := db.DeleteOtherUserSessions("user1", "token_pub3")
+		// Test GetActiveSessions and UpdateSessionsUsername
+		activeSesses, err := db.GetActiveSessions(now - 1000)
+		assert.NoError(t, err)
+		assert.Len(t, activeSesses, 1)
+
+		require.NoError(t, db.UpdateSessionsUsername("user1", "user2"))
+		user2Sessions, err := db.ListUserSessions("user2", "")
+		assert.NoError(t, err)
+		assert.Len(t, user2Sessions, 1)
+
+		deletedTokens, err := db.DeleteOtherUserSessions("user2", "token_pub3")
 		assert.NoError(t, err)
 		assert.Empty(t, deletedTokens)
 
-		deletedTokens, err = db.DeleteOtherUserSessions("user1", "")
+		deletedTokens, err = db.DeleteOtherUserSessions("user2", "")
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"token_pub3"}, deletedTokens)
 	})

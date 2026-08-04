@@ -289,3 +289,69 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 	}
 	return tokens, nil
 }
+
+func (db *DB) GetActiveSessions(minActiveTimestamp int64) ([]core.SessionDbDto, error) {
+	if db == nil || db.SqlDB == nil {
+		return []core.SessionDbDto{}, nil
+	}
+
+	query := `SELECT session_token, public_id, username, ip, user_agent, created_at, last_active FROM sessions WHERE last_active >= ?`
+	rows, err := db.SqlDB.Query(query, minActiveTimestamp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query active sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []core.SessionDbDto
+	for rows.Next() {
+		var token, publicId, username, ip, userAgent string
+		var createdAt, lastActive int64
+
+		if err := rows.Scan(&token, &publicId, &username, &ip, &userAgent, &createdAt, &lastActive); err != nil {
+			return nil, fmt.Errorf("failed to scan active session row: %w", err)
+		}
+
+		sessions = append(sessions, core.SessionDbDto{
+			PublicId:     publicId,
+			SessionToken: token,
+			Username:     strings.ToLower(username),
+			Ip:           ip,
+			UserAgent:    userAgent,
+			CreatedAt:    createdAt,
+			LastActive:   lastActive,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if sessions == nil {
+		return []core.SessionDbDto{}, nil
+	}
+
+	return sessions, nil
+}
+
+func (db *DB) UpdateSessionsUsername(oldUsername, newUsername string) error {
+	if db == nil || db.SqlDB == nil || oldUsername == "" || newUsername == "" {
+		return nil
+	}
+
+	lowerOld := strings.ToLower(oldUsername)
+	lowerNew := strings.ToLower(newUsername)
+
+	_, err := db.SqlDB.Exec(`UPDATE sessions SET username = ? WHERE username = ?`, lowerNew, lowerOld)
+	if err != nil {
+		return fmt.Errorf("failed to update session username (%s -> %s): %w", lowerOld, lowerNew, err)
+	}
+
+	db.sessionCache.DeleteFunc(func(_ string, sess *core.Session) bool {
+		if sess != nil && strings.EqualFold(sess.Username, lowerOld) {
+			sess.Username = lowerNew
+		}
+		return false
+	})
+	return nil
+}
+

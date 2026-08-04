@@ -106,6 +106,21 @@ func Initialize() (*core.AppState, BootstrapContext) {
 			log.Printf("Migrating %d sessions into database", len(fileSessions))
 			_ = dbInstance.MigrateSessions(fileSessions)
 		}
+
+		activeDbSessions, err := dbInstance.GetActiveSessions(time.Now().UnixMilli() - core.SessionIdleTimeoutMillis)
+		if err == nil {
+			for _, sessionDto := range activeDbSessions {
+				session := &core.Session{
+					PublicId:  sessionDto.PublicId,
+					Username:  strings.ToLower(sessionDto.Username),
+					Ip:        sessionDto.Ip,
+					UserAgent: sessionDto.UserAgent,
+					CreatedAt: sessionDto.CreatedAt,
+				}
+				session.LastActive.Store(sessionDto.LastActive)
+				state.Inner.Sessions.Store(sessionDto.SessionToken, session)
+			}
+		}
 	} else {
 		tokenMap := LoadTokens(tokensPath)
 		initialTokensCount = uint64(len(tokenMap))

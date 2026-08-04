@@ -145,7 +145,7 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 
 	if authHeader == "" {
 		if cookie := c.Cookies("renop_session"); cookie != "" {
-			if _, ok := state.Inner.Sessions.Load(cookie); ok {
+			if state.GetSession(cookie) != nil {
 				authHeader = "Session " + cookie
 			}
 		}
@@ -154,7 +154,7 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 			if queryToken == "" {
 				return false
 			}
-			if _, ok := state.Inner.Sessions.Load(queryToken); ok {
+			if state.GetSession(queryToken) != nil {
 				authHeader = "Session " + queryToken
 			} else {
 				authHeader = "Bearer " + queryToken
@@ -169,8 +169,8 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 	switch {
 	case strings.HasPrefix(authHeader, "Session "):
 		sessionId := strings.TrimPrefix(authHeader, "Session ")
-		val, ok := state.Inner.Sessions.Load(sessionId)
-		if !ok {
+		val := state.GetSession(sessionId)
+		if val == nil {
 			return false
 		}
 		if time.Now().UnixMilli()-val.LastActive.Load() > core.SessionIdleTimeoutMillis {

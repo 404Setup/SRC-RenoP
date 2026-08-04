@@ -32,8 +32,8 @@ type FidoDevice struct {
 	CredentialID    []byte `json:"credential_id"`
 	PublicKey       []byte `json:"public_key"`
 	AAGUID          []byte `json:"aaguid"`
-	SignCount       uint32 `json:"sign_count"`
 	CreatedAt       int64  `json:"created_at"`
+	SignCount       uint32 `json:"sign_count"`
 	UserPresent     bool   `json:"user_present"`
 	UserVerified    bool   `json:"user_verified"`
 	BackupEligible  bool   `json:"backup_eligible"`

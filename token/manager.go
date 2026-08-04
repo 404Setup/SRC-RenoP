@@ -199,13 +199,16 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 						state.Inner.TokenIndex.Store(t, clonedToken)
 					}
 					if op.State != nil {
+						if db := op.State.GetDB(); db != nil {
+							_ = db.UpdateSessionsUsername(oldName, newName)
+						}
 						op.State.Inner.Sessions.Range(func(key string, session *core.Session) bool {
-							if session.Username == oldName {
+							if strings.EqualFold(session.Username, oldName) {
 								session.Username = newName
-								op.State.Inner.SessionsIsDirty.Store(true)
 							}
 							return true
 						})
+						op.State.MarkSessionsDirty()
 					}
 				}
 				saveOrClearCache(state, opChan)

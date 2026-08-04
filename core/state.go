@@ -59,6 +59,8 @@ type StateDB interface {
 	DeleteExpiredSessions(minActiveTimestamp int64) error
 	DeleteUserSessionByPublicID(username, publicID, currentSessionToken string) (token string, revoked bool, wasCurrent bool, err error)
 	DeleteOtherUserSessions(username, keepSessionToken string) (tokens []string, err error)
+	GetActiveSessions(minActiveTimestamp int64) ([]SessionDbDto, error)
+	UpdateSessionsUsername(oldUsername, newUsername string) error
 	ListFidoDevices(username string) ([]*FidoDevice, error)
 	GetFidoDeviceByCredentialID(credentialID []byte) (*FidoDevice, error)
 	SaveFidoDevice(device *FidoDevice) error
@@ -186,7 +188,7 @@ func (state *AppState) GetSession(sessionToken string) *Session {
 	}
 	if db := state.GetDB(); db != nil {
 		sess, err := db.GetSession(sessionToken)
-		if err == nil {
+		if err == nil && sess != nil {
 			return sess
 		}
 	}
@@ -198,11 +200,10 @@ func (state *AppState) SaveSession(session *Session, sessionToken string) {
 	if state == nil || state.Inner == nil || session == nil || sessionToken == "" {
 		return
 	}
+	state.Inner.Sessions.Store(sessionToken, session)
 	if db := state.GetDB(); db != nil {
 		_ = db.SaveSession(session, sessionToken)
-		return
 	}
-	state.Inner.Sessions.Store(sessionToken, session)
 	state.MarkSessionsDirty()
 }
 
@@ -224,12 +225,9 @@ func (state *AppState) RevokeSession(sessionToken string) bool {
 		return false
 	}
 	state.DeleteAuthCache("Session " + sessionToken)
+	state.Inner.Sessions.Delete(sessionToken)
 	if db := state.GetDB(); db != nil {
 		_ = db.DeleteSession(sessionToken)
-		return true
-	}
-	if _, loaded := state.Inner.Sessions.LoadAndDelete(sessionToken); !loaded {
-		return false
 	}
 	state.MarkSessionsDirty()
 	return true
@@ -288,6 +286,8 @@ func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSe
 		if err == nil {
 			if revoked && token != "" {
 				state.DeleteAuthCache("Session " + token)
+				state.Inner.Sessions.Delete(token)
+				state.MarkSessionsDirty()
 			}
 			return revoked, wasCurrent
 		}
@@ -318,7 +318,9 @@ func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string
 		if err == nil {
 			for _, t := range deletedTokens {
 				state.DeleteAuthCache("Session " + t)
+				state.Inner.Sessions.Delete(t)
 			}
+			state.MarkSessionsDirty()
 			return len(deletedTokens)
 		}
 	}

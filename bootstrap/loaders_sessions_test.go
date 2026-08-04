@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
@@ -108,3 +109,48 @@ func TestLoadSessionsMissing(t *testing.T) {
 	assert.False(t, rewrite)
 	assert.Empty(t, sessions)
 }
+
+func TestInitializeDatabaseSessions(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "test.db")
+	t.Setenv("RENOP_CONFIG", filepath.Join(dir, "nonexistent.yaml"))
+	t.Setenv("RENOP_REPOSITORIES", filepath.Join(dir, "repos.yaml"))
+	t.Setenv("RENOP_TOKENS", filepath.Join(dir, "tokens.yaml"))
+	t.Setenv("RENOP_SESSIONS", filepath.Join(dir, "sessions.bin"))
+	t.Setenv("RENOP_INDEX", filepath.Join(dir, "index.json"))
+
+	state, _ := Initialize()
+	require.NotNil(t, state)
+
+	// Save session
+	now := time.Now().UnixMilli()
+	sess := &core.Session{
+		PublicId:  "pub-db-test",
+		Username:  "dbuser",
+		Ip:        "127.0.0.1",
+		UserAgent: "TestUA",
+		CreatedAt: now,
+	}
+	sess.LastActive.Store(now)
+
+	token := "session-token-123"
+	state.SaveSession(sess, token)
+
+	// Verify GetSession returns the session
+	fetched := state.GetSession(token)
+	require.NotNil(t, fetched)
+	assert.Equal(t, "dbuser", fetched.Username)
+	assert.Equal(t, "pub-db-test", fetched.PublicId)
+
+	// Verify ListUserSessions
+	list := state.ListUserSessions("dbuser", token)
+	require.Len(t, list, 1)
+	assert.True(t, list[0].Current)
+
+	// Revoke session
+	revoked := state.RevokeSession(token)
+	assert.True(t, revoked)
+	assert.Nil(t, state.GetSession(token))
+	_ = dbPath
+}
+

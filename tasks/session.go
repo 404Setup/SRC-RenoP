@@ -89,7 +89,6 @@ func StartSessionSaver(state *core.AppState, path string) {
 			now := time.Now().UnixMilli()
 			if db := state.GetDB(); db != nil {
 				_ = db.DeleteExpiredSessions(now - core.SessionIdleTimeoutMillis)
-				continue
 			}
 
 			var toRemove []string
