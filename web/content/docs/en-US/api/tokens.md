@@ -40,20 +40,12 @@ Password hashes are never returned. The `tokens` array holds plaintext upload to
 
 ## `GET /api/tokens/:name`
 
-Single account as **JSON**. Names are case-insensitive (stored lowercased). Missing → 404.
+Single account as **protobuf** `AccessTokenDto` (`application/x-protobuf`). Names are case-insensitive (stored
+lowercased). Missing → 404.
 
 ## `PUT /api/tokens/:name`
 
-Create or update.
-
-```json
-{
-  "permissions": ["manager", "canview:releases", "canupdate:releases"],
-  "secret": "optional-password",
-  "new_name": "optional-rename",
-  "is_create": true
-}
-```
+Create or update. Body: `application/x-protobuf`, `CreateAccessTokenRequest` (also accepts JSON).
 
 | Field         | Meaning                                                                                  |
 |---------------|------------------------------------------------------------------------------------------|
@@ -62,12 +54,12 @@ Create or update.
 | `new_name`    | Rename; target conflict → 409                                                            |
 | `permissions` | Replaces the permission list only when provided                                          |
 
-Response:
+Response: `application/x-protobuf`, `CreateAccessTokenResponse`
 
-```json
-{
-  "access_token": {"…": "AccessTokenDto"},
-  "secret": "present only when generated or supplied this request"
+```protobuf
+message CreateAccessTokenResponse {
+  AccessTokenDto access_token = 1;
+  string secret = 2; // present only when generated or supplied this request
 }
 ```
 
@@ -77,11 +69,10 @@ Save `secret` immediately after create — plaintext passwords are not recoverab
 
 Delete account. `204`. Missing → 404.
 
-## Browser sessions (manager)
+## Browser sessions and FIDO devices (manager)
 
-Managers can list and revoke **browser login sessions** for any account. Basic/Bearer credentials are not sessions.
-Session secrets are never returned. See also self-service endpoints under `/api/auth/profile/sessions`
-in [Authentication](./authentication.md).
+Managers can list and revoke **browser login sessions** and **FIDO security key devices** for any account. Basic/Bearer
+credentials are not sessions. Session secrets are never returned.
 
 ### `GET /api/tokens/:name/sessions`
 
@@ -96,12 +87,17 @@ request is kept. Response: `StatusOk` protobuf.
 
 Revoke one session by `public_id`. Response: `StatusOk` protobuf. Missing id is a no-op.
 
+### `GET /api/auth/users/:username/fido`
+
+Manager endpoint to list registered FIDO devices for the specified user. Response: `FidoDeviceList` protobuf.
+
+### `DELETE /api/auth/users/:username/fido/:device_id`
+
+Manager endpoint to delete a registered FIDO device for the specified user. Response: `StatusOk` protobuf.
+
 ## `POST /api/tokens/:name/token`
 
-Admin re-issues the upload token for a user (replaces the old one).
-
-```json
-{"token": "<uuid>"}
-```
+Admin re-issues the upload token for a user (replaces the old one). Response: `GenerateTokenResponse` protobuf
+(`token: "<uuid>"`).
 
 Same idea as `/api/auth/profile/token`, but for another user.

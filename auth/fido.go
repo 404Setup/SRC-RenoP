@@ -404,7 +404,7 @@ func GetProfileFidoDevices(c fiber.Ctx, state *core.AppState) error {
 			CreatedAt: d.CreatedAt,
 		})
 	}
-	return c.JSON(dtos)
+	return protohttp.Write(c, pb.FromFidoDeviceList(dtos))
 }
 
 func DeleteProfileFidoDevice(c fiber.Ctx, state *core.AppState) error {
@@ -416,7 +416,7 @@ func DeleteProfileFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	deviceID := c.Params("device_id")
 
 	state.DeleteFidoDevice(user.Username, deviceID)
-	return c.JSON(fiber.Map{"status": "success"})
+	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
 func GetUserFidoDevices(c fiber.Ctx, state *core.AppState) error {
@@ -431,7 +431,7 @@ func GetUserFidoDevices(c fiber.Ctx, state *core.AppState) error {
 			CreatedAt: d.CreatedAt,
 		})
 	}
-	return c.JSON(dtos)
+	return protohttp.Write(c, pb.FromFidoDeviceList(dtos))
 }
 
 func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
@@ -439,7 +439,7 @@ func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	deviceID := c.Params("device_id")
 
 	state.DeleteFidoDevice(username, deviceID)
-	return c.JSON(fiber.Map{"status": "success"})
+	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
 func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {

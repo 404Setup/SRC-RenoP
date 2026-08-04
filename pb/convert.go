@@ -449,3 +449,29 @@ func ToSessionDbDtos(store *SessionStore) []core.SessionDbDto {
 	}
 	return out
 }
+
+func FromFidoDeviceDto(d core.FidoDeviceDto) *FidoDeviceDto {
+	return &FidoDeviceDto{
+		Id:        d.ID,
+		Username:  d.Username,
+		Name:      d.Name,
+		CreatedAt: d.CreatedAt,
+	}
+}
+
+func FromFidoDeviceList(devs []core.FidoDeviceDto) *FidoDeviceList {
+	out := &FidoDeviceList{
+		Devices: make([]*FidoDeviceDto, 0, len(devs)),
+	}
+	for _, d := range devs {
+		out.Devices = append(out.Devices, FromFidoDeviceDto(d))
+	}
+	return out
+}
+
+func FromCreateAccessTokenResponse(res core.CreateAccessTokenResponse) *CreateAccessTokenResponse {
+	return &CreateAccessTokenResponse{
+		AccessToken: FromAccessTokenDto(res.AccessToken),
+		Secret:      res.Secret,
+	}
+}

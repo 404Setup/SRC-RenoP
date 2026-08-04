@@ -129,4 +129,3 @@ func (db *DB) UpdateFidoSignCount(credentialID []byte, signCount uint32) error {
 
 	return nil
 }
-

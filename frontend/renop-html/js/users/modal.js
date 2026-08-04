@@ -10,9 +10,9 @@
 
 import {t} from '../i18n.js';
 import {showAlert} from '../alert.js';
-import {fetchProto, getAuthHeaders} from '../api.js';
+import {fetchProto, putProto} from '../api.js';
 import {el} from '../cfg-ui.js';
-import {MavenRepositoriesResponse} from '../proto/index.js';
+import {CreateAccessTokenRequest, CreateAccessTokenResponse, MavenRepositoriesResponse} from '../proto/index.js';
 import {
     createEmptyState,
     createRepoRow as buildRepoRow,
@@ -241,16 +241,12 @@ async function handleUserSubmit(e, dialog) {
     if (secret) payload.secret = secret;
 
     try {
-        const headers = getAuthHeaders();
-        headers['Content-Type'] = 'application/json';
-        const response = await fetch(`/api/tokens/${targetName}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify(payload)
-        });
+        const {
+            response,
+            data
+        } = await putProto(`/api/tokens/${targetName}`, CreateAccessTokenRequest, payload, CreateAccessTokenResponse);
 
-        if (response.ok) {
-            const data = await response.json();
+        if (response.ok && data) {
             const generatedSecret = (data.secret && data.secret !== secret) ? data.secret : null;
 
             dialog.close(true);

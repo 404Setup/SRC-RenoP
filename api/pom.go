@@ -27,9 +27,11 @@ import (
 	"renop/auth"
 	"renop/config"
 	"renop/core"
+	"renop/pb"
 	"renop/status"
 	"renop/storage"
 	"renop/utils"
+	"renop/utils/protohttp"
 )
 
 func ResolveBasePath(state *core.AppState, repoName string, path string) (string, error) {
@@ -63,9 +65,16 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
+	var pomMsg pb.PomDetails
 	var pomDetails PomDetails
-	if err := c.Bind().JSON(&pomDetails); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	if err := protohttp.Read(c, &pomMsg); err == nil && pomMsg.ArtifactId != "" {
+		pomDetails.GroupId = pomMsg.GroupId
+		pomDetails.ArtifactId = pomMsg.ArtifactId
+		pomDetails.Version = pomMsg.Version
+	} else {
+		if err := c.Bind().JSON(&pomDetails); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		}
 	}
 
 	if !strings.HasSuffix(path, ".pom") {

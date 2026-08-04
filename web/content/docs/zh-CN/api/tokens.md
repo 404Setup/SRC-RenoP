@@ -40,20 +40,11 @@ category: API
 
 ## `GET /api/tokens/:name`
 
-单个账户， **JSON**。名称不区分大小写（小写存储）。不存在 → 404。
+单个账户， **protobuf** `AccessTokenDto` (`application/x-protobuf`)。名称不区分大小写（小写存储）。不存在 → 404。
 
 ## `PUT /api/tokens/:name`
 
-创建或更新。
-
-```json
-{
-  "permissions": ["manager", "canview:releases", "canupdate:releases"],
-  "secret": "optional-password",
-  "new_name": "optional-rename",
-  "is_create": true
-}
-```
+创建或更新。正文：`application/x-protobuf`，`CreateAccessTokenRequest`（兼用于 JSON 兼容输入）。
 
 | 字段          | 含义                                             |
 |---------------|--------------------------------------------------|
@@ -62,12 +53,12 @@ category: API
 | `new_name`    | 重命名；目标冲突 → 409                           |
 | `permissions` | 仅在提供时替换权限列表                           |
 
-响应：
+响应：`application/x-protobuf`，`CreateAccessTokenResponse`
 
-```json
-{
-  "access_token": {"…": "AccessTokenDto"},
-  "secret": "present only when generated or supplied this request"
+```protobuf
+message CreateAccessTokenResponse {
+  AccessTokenDto access_token = 1;
+  string secret = 2; // 仅在本次请求生成或提供时存在
 }
 ```
 
@@ -77,10 +68,9 @@ category: API
 
 删除账户。`204`。不存在 → 404。
 
-## 浏览器会话（管理员）
+## 浏览器会话与 FIDO 设备（管理员）
 
-管理员可列出并撤销任意账户的 **浏览器登录会话**。Basic/Bearer 不是会话。Session
-密钥永不返回。自助接口见 [认证](./authentication.md) 中的 `/api/auth/profile/sessions`。
+管理员可列出并撤销任意账户的 **浏览器登录会话** 与 **FIDO 安全密钥设备**。Basic/Bearer 不是会话。Session 密钥永不返回。
 
 ### `GET /api/tokens/:name/sessions`
 
@@ -94,12 +84,16 @@ category: API
 
 按 `public_id` 撤销一个会话。响应：`StatusOk` protobuf。缺失 id 为 no-op。
 
+### `GET /api/auth/users/:username/fido`
+
+管理员查看指定用户已绑定的 FIDO 设备列表。响应：`FidoDeviceList` protobuf。
+
+### `DELETE /api/auth/users/:username/fido/:device_id`
+
+管理员删除指定用户的指定 FIDO 设备。响应：`StatusOk` protobuf。
+
 ## `POST /api/tokens/:name/token`
 
-管理员为用户重新签发上传令牌（替换旧值）。
-
-```json
-{"token": "<uuid>"}
-```
+管理员为用户重新签发上传令牌（替换旧值）。响应：`GenerateTokenResponse` protobuf (`token: "<uuid>"`).
 
 与 `/api/auth/profile/token` 思路相同，但面向其他用户。

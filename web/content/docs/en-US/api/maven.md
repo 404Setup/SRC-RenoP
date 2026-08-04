@@ -57,7 +57,7 @@ Stats and mirror summary. Response: `RepoDetailsResponse`.
 
 No read access → **403** (unlike details, which often use 404).
 
-## Version queries (JSON)
+## Version queries (Protobuf)
 
 Path should point at a coordinate directory that has `maven-metadata.xml` (groupId/artifactId).
 
@@ -68,29 +68,31 @@ Path should point at a coordinate directory that has `maven-metadata.xml` (group
 | `filter` | —       | Version substring filter |
 | `sorted` | `true`  | Sort results             |
 
-```json
-{
-  "is_snapshot": false,
-  "versions": ["1.0.0", "1.1.0"]
+Response: `application/x-protobuf`, `VersionsResponse`
+
+```protobuf
+message VersionsResponse {
+  bool is_snapshot = 1;
+  repeated string versions = 2;
 }
 ```
 
 ### `GET /api/maven/latest/version/:repo_name/*`
 
-Same query params; add `type=raw` for a bare version string.
+Same query params; add `type=raw` for a bare version string (`text/plain`).
 
-Otherwise:
+Default response: `application/x-protobuf`, `LatestVersionResponse`
 
-```json
-{
-  "is_snapshot": false,
-  "version": "1.1.0"
+```protobuf
+message LatestVersionResponse {
+  bool is_snapshot = 1;
+  string version = 2;
 }
 ```
 
 ### `GET /api/maven/latest/details/:repo_name/*`
 
-`FileDetails` for the latest matching artifact (**JSON**, not protobuf).
+`FileDetails` for the latest matching artifact (`application/x-protobuf`).
 
 | Query        | Default | Meaning        |
 |--------------|---------|----------------|
@@ -123,13 +125,13 @@ SVG badge with the latest version. `Content-Type: image/svg+xml`.
 
 ### `POST /api/maven/generate/pom/:repo_name/*`
 
-Requires write access to the repository.
+Requires write access to the repository. Body: `application/x-protobuf`, `PomDetails` (also accepts JSON).
 
-```json
-{
-  "group_id": "com.example",
-  "artifact_id": "demo",
-  "version": "1.0.0"
+```protobuf
+message PomDetails {
+  string group_id = 1;
+  string artifact_id = 2;
+  string version = 3;
 }
 ```
 

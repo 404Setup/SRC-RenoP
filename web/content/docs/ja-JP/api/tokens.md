@@ -40,20 +40,12 @@ category: API
 
 ## `GET /api/tokens/:name`
 
-単一アカウントを **JSON** で。名前は大文字小文字を区別しません（小文字で保存）。不存在 → 404。
+単一アカウントを **protobuf** `AccessTokenDto` (`application/x-protobuf`)
+で。名前は大文字小文字を区別しません（小文字で保存）。不存在 → 404。
 
 ## `PUT /api/tokens/:name`
 
-作成または更新。
-
-```json
-{
-  "permissions": ["manager", "canview:releases", "canupdate:releases"],
-  "secret": "optional-password",
-  "new_name": "optional-rename",
-  "is_create": true
-}
-```
+作成または更新。ボディ: `application/x-protobuf`、`CreateAccessTokenRequest`（JSON も受付可）。
 
 | フィールド    | 意味                                                                               |
 |---------------|------------------------------------------------------------------------------------|
@@ -62,12 +54,12 @@ category: API
 | `new_name`    | リネーム。先が競合 → 409                                                           |
 | `permissions` | 指定時のみ権限リストを置換                                                         |
 
-レスポンス:
+レスポンス: `application/x-protobuf`、`CreateAccessTokenResponse`
 
-```json
-{
-  "access_token": {"…": "AccessTokenDto"},
-  "secret": "present only when generated or supplied this request"
+```protobuf
+message CreateAccessTokenResponse {
+  AccessTokenDto access_token = 1;
+  string secret = 2; // 本リクエストで生成または指定された場合のみ存在
 }
 ```
 
@@ -77,11 +69,10 @@ category: API
 
 アカウント削除。`204`。不存在 → 404。
 
-## ブラウザセッション（マネージャー）
+## ブラウザセッションと FIDO デバイス（マネージャー）
 
-マネージャーは任意アカウントの **ブラウザログインセッション** を一覧・取り消しできます。Basic/Bearer
-はセッションではありません。セッション秘密は返りません。セルフサービスは [認証](./authentication.md) の
-`/api/auth/profile/sessions` も参照。
+マネージャーは任意アカウントの **ブラウザログインセッション** と **FIDO セキュリティキーデバイス**
+を一覧・取り消しできます。Basic/Bearer はセッションではありません。セッション秘密は返りません。
 
 ### `GET /api/tokens/:name/sessions`
 
@@ -96,12 +87,16 @@ category: API
 
 `public_id` で 1 セッションを取り消し。応答: `StatusOk` protobuf。存在しない id は no-op。
 
+### `GET /api/auth/users/:username/fido`
+
+マネージャーが指定ユーザーの登録済み FIDO デバイス一覧を取得します。応答: `FidoDeviceList` protobuf。
+
+### `DELETE /api/auth/users/:username/fido/:device_id`
+
+マネージャーが指定ユーザーの指定 FIDO デバイスを削除します。応答: `StatusOk` protobuf。
+
 ## `POST /api/tokens/:name/token`
 
-管理者が別ユーザーのアップロードトークンを再発行（旧値を置換）。
-
-```json
-{"token": "<uuid>"}
-```
+管理者が別ユーザーのアップロードトークンを再発行（旧値を置換）。応答: `GenerateTokenResponse` protobuf (`token: "<uuid>"`).
 
 `/api/auth/profile/token` と同じ考え方ですが、対象は他ユーザーです。

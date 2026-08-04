@@ -90,25 +90,18 @@ Tous ces points d’accès exigent un utilisateur connecté.
 
 ### `PUT /api/auth/profile/password`
 
-JSON :
+Corps : `application/x-protobuf`, `UpdatePasswordRequest` (accepte aussi JSON) :
 
-```json
-{"new_password": "6–72 bytes"}
-```
+| Champ          | Type   | Contrainte  |
+|----------------|--------|-------------|
+| `new_password` | string | 6–72 octets |
 
-```json
-{"status": "success"}
-```
-
-Longueur invalide → 400.
+Réponse : `StatusOk` protobuf (`status: success`). Longueur invalide → 400.
 
 ### `POST /api/auth/profile/token`
 
-Régénère le jeton d’upload (un par utilisateur ; l’ancienne valeur est remplacée).
-
-```json
-{"token": "<uuid>"}
-```
+Régénère le jeton d’upload (un par utilisateur ; l’ancienne valeur est remplacée). Réponse : `GenerateTokenResponse`
+protobuf (`token: "<uuid>"`).
 
 Maven / curl :
 
@@ -118,6 +111,39 @@ curl -u admin:UPLOAD_TOKEN -T my.jar \
 ```
 
 Le secret Basic peut être le mot de passe du compte ou le jeton d’upload, selon la configuration.
+
+### `GET /api/auth/profile/fido`
+
+Liste les clés de sécurité FIDO/WebAuthn enregistrées pour l’utilisateur courant.
+
+Réponse : `application/x-protobuf`, `FidoDeviceList`
+
+| Champ (`devices[]`) | Signification              |
+|---------------------|----------------------------|
+| `id`                | ID unique de l’appareil    |
+| `username`          | Nom de compte              |
+| `name`              | Libellé personnalisé       |
+| `created_at`        | Date de création (Unix ms) |
+
+### `POST /api/auth/profile/fido/register/begin`
+
+Démarre une session d’enregistrement FIDO. Renvoie `session_id` et les options de création `options`.
+
+### `POST /api/auth/profile/fido/register/finish`
+
+Termine l’enregistrement FIDO avec `session_id`, `name` et le JSON `credential`.
+
+### `DELETE /api/auth/profile/fido/:device_id`
+
+Supprime l’une de vos clés FIDO par `device_id`. Réponse : `StatusOk` protobuf.
+
+### `POST /api/auth/fido/login/begin`
+
+Démarre une connexion sans mot de passe FIDO. `username` optionnel.
+
+### `POST /api/auth/fido/login/finish`
+
+Termine l’authentification FIDO, émet le cookie `renop_session` et renvoie `SessionDetails` protobuf.
 
 ### `GET /api/auth/profile/sessions`
 

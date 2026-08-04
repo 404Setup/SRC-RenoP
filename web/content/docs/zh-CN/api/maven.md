@@ -56,7 +56,7 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 无读权限 → **403**（与 details 常用 404 不同）。
 
-## 版本查询（JSON）
+## 版本查询（Protobuf）
 
 路径应指向含 `maven-metadata.xml` 的坐标目录（groupId/artifactId）。
 
@@ -67,29 +67,31 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 | `filter` | —      | 版本子串过滤 |
 | `sorted` | `true` | 排序结果     |
 
-```json
-{
-  "is_snapshot": false,
-  "versions": ["1.0.0", "1.1.0"]
+响应：`application/x-protobuf`，`VersionsResponse`
+
+```protobuf
+message VersionsResponse {
+  bool is_snapshot = 1;
+  repeated string versions = 2;
 }
 ```
 
 ### `GET /api/maven/latest/version/:repo_name/*`
 
-相同查询参数；加 `type=raw` 返回纯版本字符串。
+相同查询参数；加 `type=raw` 返回纯版本字符串（`text/plain`）。
 
-否则：
+默认响应：`application/x-protobuf`，`LatestVersionResponse`
 
-```json
-{
-  "is_snapshot": false,
-  "version": "1.1.0"
+```protobuf
+message LatestVersionResponse {
+  bool is_snapshot = 1;
+  string version = 2;
 }
 ```
 
 ### `GET /api/maven/latest/details/:repo_name/*`
 
-最新匹配制品的 `FileDetails`（ **JSON**，非 protobuf）。
+最新匹配制品的 `FileDetails`（ `application/x-protobuf` ）。
 
 | 查询         | 默认  | 含义       |
 |--------------|-------|------------|
@@ -122,13 +124,13 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 ### `POST /api/maven/generate/pom/:repo_name/*`
 
-需要对仓库的写权限。
+需要对仓库的写权限。正文：`application/x-protobuf`，`PomDetails`（兼用于 JSON 兼容输入）。
 
-```json
-{
-  "group_id": "com.example",
-  "artifact_id": "demo",
-  "version": "1.0.0"
+```protobuf
+message PomDetails {
+  string group_id = 1;
+  string artifact_id = 2;
+  string version = 3;
 }
 ```
 

@@ -57,7 +57,7 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 読み取り不可 → **403**（details は多くの場合 404 を使う点が異なる）。
 
-## バージョン照会（JSON）
+## バージョン照会（Protobuf）
 
 パスは `maven-metadata.xml` がある座標ディレクトリ（groupId/artifactId）を指す必要があります。
 
@@ -68,29 +68,31 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 | `filter` | —          | バージョン部分文字列フィルタ |
 | `sorted` | `true`     | 結果をソート                 |
 
-```json
-{
-  "is_snapshot": false,
-  "versions": ["1.0.0", "1.1.0"]
+レスポンス: `application/x-protobuf`、`VersionsResponse`
+
+```protobuf
+message VersionsResponse {
+  bool is_snapshot = 1;
+  repeated string versions = 2;
 }
 ```
 
 ### `GET /api/maven/latest/version/:repo_name/*`
 
-同じクエリパラメータ。`type=raw` で素のバージョン文字列。
+同じクエリパラメータ。`type=raw` で素のバージョン文字列（`text/plain`）。
 
-それ以外:
+デフォルトレスポンス: `application/x-protobuf`、`LatestVersionResponse`
 
-```json
-{
-  "is_snapshot": false,
-  "version": "1.1.0"
+```protobuf
+message LatestVersionResponse {
+  bool is_snapshot = 1;
+  string version = 2;
 }
 ```
 
 ### `GET /api/maven/latest/details/:repo_name/*`
 
-最新一致成果物の `FileDetails`（ **JSON**、protobuf ではない）。
+最新一致成果物の `FileDetails`（`application/x-protobuf`）。
 
 | クエリ       | デフォルト | 意味               |
 |--------------|------------|--------------------|
@@ -123,13 +125,13 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 ### `POST /api/maven/generate/pom/:repo_name/*`
 
-リポジトリへの書き込み権限が必要です。
+リポジトリへの書き込み権限が必要です。ボディ: `application/x-protobuf`、`PomDetails`（JSON も受付可）。
 
-```json
-{
-  "group_id": "com.example",
-  "artifact_id": "demo",
-  "version": "1.0.0"
+```protobuf
+message PomDetails {
+  string group_id = 1;
+  string artifact_id = 2;
+  string version = 3;
 }
 ```
 

@@ -57,7 +57,7 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 Нет доступа на чтение → **403** (в отличие от details, где часто 404).
 
-## Запросы версий (JSON)
+## Запросы версий (Protobuf)
 
 Путь должен указывать на координатный каталог с `maven-metadata.xml` (groupId/artifactId).
 
@@ -68,29 +68,31 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 | `filter` | —            | Подстрочный фильтр версий |
 | `sorted` | `true`       | Сортировать результаты    |
 
-```json
-{
-  "is_snapshot": false,
-  "versions": ["1.0.0", "1.1.0"]
+Ответ: `application/x-protobuf`, `VersionsResponse`
+
+```protobuf
+message VersionsResponse {
+  bool is_snapshot = 1;
+  repeated string versions = 2;
 }
 ```
 
 ### `GET /api/maven/latest/version/:repo_name/*`
 
-Те же query; добавьте `type=raw` для голой строки версии.
+Те же query; добавьте `type=raw` для голой строки версии (`text/plain`).
 
-Иначе:
+Дефолтный ответ: `application/x-protobuf`, `LatestVersionResponse`
 
-```json
-{
-  "is_snapshot": false,
-  "version": "1.1.0"
+```protobuf
+message LatestVersionResponse {
+  bool is_snapshot = 1;
+  string version = 2;
 }
 ```
 
 ### `GET /api/maven/latest/details/:repo_name/*`
 
-`FileDetails` для последнего подходящего артефакта (**JSON**, не protobuf).
+`FileDetails` для последнего подходящего артефакта (`application/x-protobuf`).
 
 | Query        | По умолчанию | Смысл         |
 |--------------|--------------|---------------|
@@ -123,13 +125,13 @@ SVG-badge с последней версией. `Content-Type: image/svg+xml`.
 
 ### `POST /api/maven/generate/pom/:repo_name/*`
 
-Требуется право записи в репозиторий.
+Требуется право записи в репозиторий. Тело: `application/x-protobuf`, `PomDetails` (также JSON).
 
-```json
-{
-  "group_id": "com.example",
-  "artifact_id": "demo",
-  "version": "1.0.0"
+```protobuf
+message PomDetails {
+  string group_id = 1;
+  string artifact_id = 2;
+  string version = 3;
 }
 ```
 

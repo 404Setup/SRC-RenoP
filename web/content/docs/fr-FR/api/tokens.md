@@ -43,20 +43,12 @@ existent. Forbidden → 403.
 
 ## `GET /api/tokens/:name`
 
-Un compte en **JSON**. Noms insensibles à la casse (stockés en minuscules). Absent → 404.
+Un compte en **protobuf** `AccessTokenDto` (`application/x-protobuf`). Noms insensibles à la casse (stockés en
+minuscules). Absent → 404.
 
 ## `PUT /api/tokens/:name`
 
-Créer ou mettre à jour.
-
-```json
-{
-  "permissions": ["manager", "canview:releases", "canupdate:releases"],
-  "secret": "optional-password",
-  "new_name": "optional-rename",
-  "is_create": true
-}
-```
+Créer ou mettre à jour. Corps : `application/x-protobuf`, `CreateAccessTokenRequest` (accepte aussi JSON).
 
 | Champ         | Signification                                                                                            |
 |---------------|----------------------------------------------------------------------------------------------------------|
@@ -65,12 +57,12 @@ Créer ou mettre à jour.
 | `new_name`    | Renommer ; conflit → 409                                                                                 |
 | `permissions` | Remplace la liste de permissions uniquement si fourni                                                    |
 
-Réponse :
+Réponse : `application/x-protobuf`, `CreateAccessTokenResponse`
 
-```json
-{
-  "access_token": {"…": "AccessTokenDto"},
-  "secret": "present only when generated or supplied this request"
+```protobuf
+message CreateAccessTokenResponse {
+  AccessTokenDto access_token = 1;
+  string secret = 2; // présent uniquement si généré ou fourni dans cette requête
 }
 ```
 
@@ -80,11 +72,10 @@ Enregistrez `secret` immédiatement après création — les mots de passe en cl
 
 Supprime le compte. `204`. Absent → 404.
 
-## Sessions navigateur (manager)
+## Sessions navigateur et appareils FIDO (manager)
 
-Les managers peuvent lister et révoquer les **sessions de connexion navigateur** de n’importe quel compte. Basic/Bearer
-ne sont pas des sessions. Les secrets de session ne sont jamais renvoyés. Voir aussi `/api/auth/profile/sessions`
-dans [Authentification](./authentication.md).
+Les managers peuvent lister et révoquer les **sessions de connexion navigateur** et les **clés de sécurité FIDO** de
+n’importe quel compte. Basic/Bearer ne sont pas des sessions. Les secrets de session ne sont jamais renvoyés.
 
 ### `GET /api/tokens/:name/sessions`
 
@@ -99,12 +90,17 @@ cette requête est conservée. Réponse : `StatusOk` protobuf.
 
 Révoque une session par `public_id`. Réponse : `StatusOk` protobuf. Id manquant = no-op.
 
+### `GET /api/auth/users/:username/fido`
+
+Point d’accès manager pour lister les appareils FIDO d’un utilisateur. Réponse : `FidoDeviceList` protobuf.
+
+### `DELETE /api/auth/users/:username/fido/:device_id`
+
+Point d’accès manager pour supprimer un appareil FIDO d’un utilisateur. Réponse : `StatusOk` protobuf.
+
 ## `POST /api/tokens/:name/token`
 
-L’admin réémet le jeton d’upload d’un utilisateur (remplace l’ancien).
-
-```json
-{"token": "<uuid>"}
-```
+L’admin réémet le jeton d’upload d’un utilisateur (remplace l’ancien). Réponse : `GenerateTokenResponse` protobuf
+(`token: "<uuid>"`).
 
 Même idée que `/api/auth/profile/token`, mais pour un autre utilisateur.

@@ -38,9 +38,14 @@ func UpdatePassword(c fiber.Ctx, opChan chan<- token.TokenOp) error {
 	}
 	user := userInt.(*config.User)
 
-	var req UpdatePasswordRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	var req pb.UpdatePasswordRequest
+	if err := protohttp.Read(c, &req); err != nil || req.NewPassword == "" {
+		var jsonReq UpdatePasswordRequest
+		if jsonErr := c.Bind().JSON(&jsonReq); jsonErr == nil && jsonReq.NewPassword != "" {
+			req.NewPassword = jsonReq.NewPassword
+		} else if req.NewPassword == "" {
+			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		}
 	}
 	if len(req.NewPassword) < 6 || len(req.NewPassword) > 72 {
 		return c.Status(fiber.StatusBadRequest).SendString("Password must be between 6 and 72 bytes")
@@ -60,7 +65,7 @@ func UpdatePassword(c fiber.Ctx, opChan chan<- token.TokenOp) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
 
-	return c.JSON(StatusResponse{Status: "success"})
+	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
 type TokenResponse struct {
@@ -84,7 +89,7 @@ func GenerateUploadToken(c fiber.Ctx, opChan chan<- token.TokenOp) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
 
-	return c.JSON(TokenResponse{Token: newToken})
+	return protohttp.Write(c, &pb.GenerateTokenResponse{Token: newToken})
 }
 
 func currentSessionToken(c fiber.Ctx) string {

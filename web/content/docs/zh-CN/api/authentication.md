@@ -88,25 +88,17 @@ category: API
 
 ### `PUT /api/auth/profile/password`
 
-JSON：
+正文：`application/x-protobuf`，`UpdatePasswordRequest`（兼用于 JSON 兼容输入）：
 
-```json
-{"new_password": "6–72 bytes"}
-```
+| 字段           | 类型   | 约束      |
+|----------------|--------|-----------|
+| `new_password` | string | 6–72 字节 |
 
-```json
-{"status": "success"}
-```
-
-长度无效 → 400。
+响应：`StatusOk` protobuf（`status: success`）。长度无效 → 400。
 
 ### `POST /api/auth/profile/token`
 
-重新生成上传令牌（每用户一个；旧值被替换）。
-
-```json
-{"token": "<uuid>"}
-```
+重新生成上传令牌（每用户一个；旧值被替换）。响应：`GenerateTokenResponse` protobuf (`token: "<uuid>"`).
 
 Maven / curl：
 
@@ -116,6 +108,39 @@ curl -u admin:UPLOAD_TOKEN -T my.jar \
 ```
 
 Basic 的 secret 可用账户密码或上传令牌，取决于账户配置。
+
+### `GET /api/auth/profile/fido`
+
+列出当前用户已绑定的 FIDO/WebAuthn 安全密钥设备。
+
+响应：`application/x-protobuf`，`FidoDeviceList`
+
+| 字段（`devices[]` 每项） | 含义                  |
+|--------------------------|-----------------------|
+| `id`                     | 设备唯一 ID           |
+| `username`               | 账户名                |
+| `name`                   | 设备自定义名称        |
+| `created_at`             | 创建时间（Unix 毫秒） |
+
+### `POST /api/auth/profile/fido/register/begin`
+
+发起 FIDO 设备注册会话。返回 `session_id` 与 WebAuthn 注册凭证选项 `options`。
+
+### `POST /api/auth/profile/fido/register/finish`
+
+完成 FIDO 设备注册。传入 `session_id`、`name` 以及浏览器生成的凭证 `credential` JSON。
+
+### `DELETE /api/auth/profile/fido/:device_id`
+
+按 `device_id` 删除自己的一个 FIDO 安全密钥。响应：`StatusOk` protobuf。
+
+### `POST /api/auth/fido/login/begin`
+
+发起 FIDO 免密 / 无密码登录流程。可选传入 `username`。
+
+### `POST /api/auth/fido/login/finish`
+
+完成 FIDO 登录校验。认证成功后颁发浏览器 `renop_session` Cookie 并返回 `SessionDetails` protobuf。
 
 ### `GET /api/auth/profile/sessions`
 

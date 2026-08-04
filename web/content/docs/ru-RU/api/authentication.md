@@ -89,25 +89,18 @@ Write UI (панель загрузки в браузере, кнопки уда
 
 ### `PUT /api/auth/profile/password`
 
-JSON:
+Тело: `application/x-protobuf`, `UpdatePasswordRequest` (также JSON):
 
-```json
-{"new_password": "6–72 bytes"}
-```
+| Поле           | Тип    | Ограничение |
+|----------------|--------|-------------|
+| `new_password` | string | 6–72 байт   |
 
-```json
-{"status": "success"}
-```
-
-Неверная длина → 400.
+Ответ: `StatusOk` protobuf (`status: success`). Неверная длина → 400.
 
 ### `POST /api/auth/profile/token`
 
-Перегенерировать upload-токен (один на пользователя; старое значение заменяется).
-
-```json
-{"token": "<uuid>"}
-```
+Перегенерировать upload-токен (один на пользователя; старое значение заменяется). Ответ: `GenerateTokenResponse`
+protobuf (`token: "<uuid>"`).
 
 Maven / curl:
 
@@ -117,6 +110,39 @@ curl -u admin:UPLOAD_TOKEN -T my.jar \
 ```
 
 В качестве Basic secret можно использовать пароль учётной записи или upload-токен — в зависимости от настройки.
+
+### `GET /api/auth/profile/fido`
+
+Список зарегистрированных FIDO/WebAuthn устройств безопасности текущего пользователя.
+
+Ответ: `application/x-protobuf`, `FidoDeviceList`
+
+| Поле (`devices[]`) | Смысл                             |
+|--------------------|-----------------------------------|
+| `id`               | Уникальный ID устройства          |
+| `username`         | Имя учётной записи                |
+| `name`             | Пользовательская метка устройства |
+| `created_at`       | Время создания (Unix мс)          |
+
+### `POST /api/auth/profile/fido/register/begin`
+
+Начать регистрацию FIDO-устройства. Возвращает `session_id` и WebAuthn `options`.
+
+### `POST /api/auth/profile/fido/register/finish`
+
+Завершить регистрацию FIDO, отправив `session_id`, `name` и JSON сертификата `credential`.
+
+### `DELETE /api/auth/profile/fido/:device_id`
+
+Удалить одно из своих FIDO-устройств по `device_id`. Ответ: `StatusOk` protobuf.
+
+### `POST /api/auth/fido/login/begin`
+
+Начать беспарольный FIDO-вход. Необязательное `username`.
+
+### `POST /api/auth/fido/login/finish`
+
+Завершить FIDO-аутентификацию. Выдаёт cookie `renop_session` и возвращает `SessionDetails` protobuf.
 
 ### `GET /api/auth/profile/sessions`
 

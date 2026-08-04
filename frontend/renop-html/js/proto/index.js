@@ -41,6 +41,15 @@ export const ChunkedUploadInitRequest = v1.ChunkedUploadInitRequest;
 export const ChunkedUploadInitResponse = v1.ChunkedUploadInitResponse;
 export const ChunkedUploadCompleteResponse = v1.ChunkedUploadCompleteResponse;
 export const ErrorMessage = v1.ErrorMessage;
+export const FidoDeviceDto = v1.FidoDeviceDto;
+export const FidoDeviceList = v1.FidoDeviceList;
+export const UpdatePasswordRequest = v1.UpdatePasswordRequest;
+export const GenerateTokenResponse = v1.GenerateTokenResponse;
+export const CreateAccessTokenRequest = v1.CreateAccessTokenRequest;
+export const CreateAccessTokenResponse = v1.CreateAccessTokenResponse;
+export const VersionsResponse = v1.VersionsResponse;
+export const LatestVersionResponse = v1.LatestVersionResponse;
+export const PomDetails = v1.PomDetails;
 
 /** Options so decoded objects keep snake_case and numeric 64-bit fields. */
 export const protoObjectOptions = {

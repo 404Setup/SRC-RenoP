@@ -317,3 +317,51 @@ message ChunkedUploadCompleteResponse {
 message ErrorMessage {
   string error = 1;
 }
+
+message FidoDeviceDto {
+  string id = 1;
+  string username = 2;
+  string name = 3;
+  int64 created_at = 4;
+}
+
+message FidoDeviceList {
+  repeated FidoDeviceDto devices = 1;
+}
+
+message UpdatePasswordRequest {
+  string new_password = 1;
+}
+
+message GenerateTokenResponse {
+  string token = 1;
+}
+
+message CreateAccessTokenRequest {
+  repeated string permissions = 1;
+  optional string new_name = 2;
+  optional string secret = 3;
+  bool is_create = 4;
+}
+
+message CreateAccessTokenResponse {
+  AccessTokenDto access_token = 1;
+  string secret = 2;
+}
+
+message VersionsResponse {
+  bool is_snapshot = 1;
+  repeated string versions = 2;
+}
+
+message LatestVersionResponse {
+  bool is_snapshot = 1;
+  string version = 2;
+}
+
+message PomDetails {
+  string group_id = 1;
+  string artifact_id = 2;
+  string version = 3;
+}
+

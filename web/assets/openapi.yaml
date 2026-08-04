@@ -301,6 +301,7 @@ components:
 
     UpdatePasswordRequest:
       type: object
+      description: Protobuf message UpdatePasswordRequest (application/x-protobuf).
       required: [ new_password ]
       properties:
         new_password:
@@ -308,12 +309,44 @@ components:
           minLength: 6
           maxLength: 72
 
-    UploadTokenResponse:
+    GenerateTokenResponse:
       type: object
+      description: Protobuf message GenerateTokenResponse (application/x-protobuf).
       properties:
         token:
           type: string
           format: uuid
+
+    UploadTokenResponse:
+      type: object
+      description: Legacy upload token response alias (see GenerateTokenResponse).
+      properties:
+        token:
+          type: string
+          format: uuid
+
+    FidoDeviceDto:
+      type: object
+      description: Protobuf message FidoDeviceDto (application/x-protobuf).
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: integer
+          format: int64
+
+    FidoDeviceList:
+      type: object
+      description: Protobuf message FidoDeviceList (application/x-protobuf).
+      properties:
+        devices:
+          type: array
+          items:
+            $ref: "#/components/schemas/FidoDeviceDto"
 
     SessionDto:
       type: object
@@ -359,6 +392,7 @@ components:
 
     CreateAccessTokenRequest:
       type: object
+      description: Protobuf message CreateAccessTokenRequest (application/x-protobuf).
       properties:
         permissions:
           type: array
@@ -377,6 +411,7 @@ components:
 
     CreateAccessTokenResponse:
       type: object
+      description: Protobuf message CreateAccessTokenResponse (application/x-protobuf).
       properties:
         access_token:
           $ref: "#/components/schemas/AccessTokenDto"
@@ -461,6 +496,7 @@ components:
 
     VersionsResponse:
       type: object
+      description: Protobuf message VersionsResponse (application/x-protobuf).
       properties:
         is_snapshot:
           type: boolean
@@ -471,6 +507,7 @@ components:
 
     LatestVersionResponse:
       type: object
+      description: Protobuf message LatestVersionResponse (application/x-protobuf).
       properties:
         is_snapshot:
           type: boolean
@@ -479,6 +516,7 @@ components:
 
     PomDetails:
       type: object
+      description: Protobuf message PomDetails (application/x-protobuf).
       properties:
         group_id:
           type: string
@@ -1052,6 +1090,9 @@ paths:
       requestBody:
         required: true
         content:
+          application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/UpdatePasswordRequest"
           application/json:
             schema:
               $ref: "#/components/schemas/UpdatePasswordRequest"
@@ -1059,7 +1100,7 @@ paths:
         "200":
           description: Password updated
           content:
-            application/json:
+            application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/StatusOk"
         "400":
@@ -1079,9 +1120,192 @@ paths:
         "200":
           description: New upload token
           content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/GenerateTokenResponse"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/fido:
+    get:
+      tags: [ auth ]
+      summary: List registered FIDO devices for current user
+      operationId: getAuthProfileFido
+      security:
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+      responses:
+        "200":
+          description: FidoDeviceList protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceList"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/fido/{device_id}:
+    delete:
+      tags: [ auth ]
+      summary: Delete registered FIDO device for current user
+      operationId: deleteAuthProfileFidoDevice
+      security:
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: StatusOk protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/fido/register/begin:
+    post:
+      tags: [ auth ]
+      summary: Begin FIDO device registration
+      description: |
+        Start a FIDO/WebAuthn registration session for the current user.
+        Returns a `session_id` and the WebAuthn registration `options` to pass to the browser credential API.
+      operationId: postAuthProfileFidoRegisterBegin
+      security:
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+      responses:
+        "200":
+          description: Registration session started; returns session_id and WebAuthn options.
+          content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UploadTokenResponse"
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                  options:
+                    type: object
+                    description: WebAuthn PublicKeyCredentialCreationOptions
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/fido/register/finish:
+    post:
+      tags: [ auth ]
+      summary: Finish FIDO device registration
+      description: |
+        Complete FIDO registration by submitting the `session_id`, a human-readable `name` for the device,
+        and the browser-generated `credential` JSON from the WebAuthn API.
+      operationId: postAuthProfileFidoRegisterFinish
+      security:
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ session_id, name, credential ]
+              properties:
+                session_id:
+                  type: string
+                name:
+                  type: string
+                  description: Human-readable label for the device.
+                credential:
+                  type: object
+                  description: Browser-generated PublicKeyCredential JSON.
+      responses:
+        "200":
+          description: Device registered. Returns the new FidoDeviceDto.
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceDto"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/fido/login/begin:
+    post:
+      tags: [ auth ]
+      summary: Begin FIDO passwordless login
+      description: |
+        Start a FIDO passwordless login flow. An optional `username` may be provided to scope the
+        challenge; omit it for usernameless (resident key) flows.
+      operationId: postAuthFidoLoginBegin
+      security: [ ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Optional account name for username-based flows.
+      responses:
+        "200":
+          description: Challenge started; returns session_id and WebAuthn options.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                  options:
+                    type: object
+                    description: WebAuthn PublicKeyCredentialRequestOptions
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+
+  /api/auth/fido/login/finish:
+    post:
+      tags: [ auth ]
+      summary: Finish FIDO passwordless login
+      description: |
+        Complete FIDO authentication. On success, issues the browser `renop_session` cookie
+        and returns a `SessionDetails` protobuf (same shape as POST /api/auth/login).
+      operationId: postAuthFidoLoginFinish
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ session_id, credential ]
+              properties:
+                session_id:
+                  type: string
+                credential:
+                  type: object
+                  description: Browser-generated PublicKeyCredential JSON.
+      responses:
+        "200":
+          description: |
+            Authenticated. Sets `renop_session` cookie and returns SessionDetails protobuf.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: renop_session=…; HttpOnly; SameSite=Lax; Max-Age≈7d
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/SessionDetails"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
         "401":
           $ref: "#/components/responses/PlainUnauthorized"
 
@@ -1192,9 +1416,9 @@ paths:
         - $ref: "#/components/parameters/TokenName"
       responses:
         "200":
-          description: Account as JSON
+          description: Account as protobuf
           content:
-            application/json:
+            application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/AccessTokenDto"
         "403":
@@ -1215,6 +1439,9 @@ paths:
       requestBody:
         required: true
         content:
+          application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/CreateAccessTokenRequest"
           application/json:
             schema:
               $ref: "#/components/schemas/CreateAccessTokenRequest"
@@ -1222,7 +1449,7 @@ paths:
         "200":
           description: Created or updated
           content:
-            application/json:
+            application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/CreateAccessTokenResponse"
         "400":
@@ -1345,13 +1572,70 @@ paths:
         "200":
           description: New upload token
           content:
-            application/json:
+            application/x-protobuf:
               schema:
-                $ref: "#/components/schemas/UploadTokenResponse"
+                $ref: "#/components/schemas/GenerateTokenResponse"
         "403":
           $ref: "#/components/responses/PlainForbidden"
         "404":
           $ref: "#/components/responses/PlainNotFound"
+
+  /api/auth/users/{username}/fido:
+    get:
+      tags: [ tokens ]
+      summary: List registered FIDO devices for a user (manager)
+      operationId: getAuthUserFidoDevices
+      security:
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: FidoDeviceList protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/FidoDeviceList"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/auth/users/{username}/fido/{device_id}:
+    delete:
+      tags: [ tokens ]
+      summary: Delete registered FIDO device for a user (manager)
+      operationId: deleteAuthUserFidoDevice
+      security:
+        - sessionCookie: [ ]
+        - sessionHeader: [ ]
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: StatusOk protobuf
+          content:
+            application/x-protobuf:
+              schema:
+                $ref: "#/components/schemas/StatusOk"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
 
   # ========== Status ==========
   /api/status/health:
@@ -1424,7 +1708,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: ["0", "1"]
+            enum: [ "0", "1" ]
             default: "1"
           description: Set to 0 to skip GC before sampling
       responses:
@@ -1484,7 +1768,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: ["0", "1"]
+            enum: [ "0", "1" ]
             default: "0"
           description: Set to 1 to run GC before sampling
       responses:
@@ -1607,9 +1891,9 @@ paths:
         - $ref: "#/components/parameters/VersionSorted"
       responses:
         "200":
-          description: Version list
+          description: Version list protobuf
           content:
-            application/json:
+            application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/VersionsResponse"
         "404":
@@ -1637,12 +1921,12 @@ paths:
           schema:
             type: string
             enum: [ raw ]
-          description: If raw, response is a plain version string (still JSON-encoded string in some clients — server returns raw text body).
+          description: If raw, response is a plain version string.
       responses:
         "200":
           description: Latest version
           content:
-            application/json:
+            application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/LatestVersionResponse"
             text/plain:
@@ -1657,7 +1941,7 @@ paths:
       tags: [ maven ]
       summary: FileDetails for latest artifact
       operationId: getMavenLatestDetails
-      description: Server route `/api/maven/latest/details/:repo_name/*`. JSON (not protobuf).
+      description: Server route `/api/maven/latest/details/:repo_name/*`. Protobuf message FileDetails.
       security:
         - sessionCookie: [ ]
         - sessionHeader: [ ]
@@ -1678,9 +1962,9 @@ paths:
         - $ref: "#/components/parameters/VersionFilter"
       responses:
         "200":
-          description: FileDetails JSON
+          description: FileDetails protobuf
           content:
-            application/json:
+            application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/FileDetails"
         "404":
@@ -1773,6 +2057,9 @@ paths:
       requestBody:
         required: true
         content:
+          application/x-protobuf:
+            schema:
+              $ref: "#/components/schemas/PomDetails"
           application/json:
             schema:
               $ref: "#/components/schemas/PomDetails"

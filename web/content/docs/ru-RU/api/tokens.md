@@ -40,20 +40,12 @@ category: API
 
 ## `GET /api/tokens/:name`
 
-Одна учётная запись как **JSON**. Имена без учёта регистра (хранятся в нижнем регистре). Нет → 404.
+Одна учётная запись как **protobuf** `AccessTokenDto` (`application/x-protobuf`). Имена без учёта регистра (хранятся в
+нижнем регистре). Нет → 404.
 
 ## `PUT /api/tokens/:name`
 
-Создать или обновить.
-
-```json
-{
-  "permissions": ["manager", "canview:releases", "canupdate:releases"],
-  "secret": "optional-password",
-  "new_name": "optional-rename",
-  "is_create": true
-}
-```
+Создать или обновить. Тело: `application/x-protobuf`, `CreateAccessTokenRequest` (также JSON).
 
 | Поле          | Смысл                                                                                |
 |---------------|--------------------------------------------------------------------------------------|
@@ -62,12 +54,12 @@ category: API
 | `new_name`    | Переименование; конфликт → 409                                                       |
 | `permissions` | Заменяет список прав только если передан                                             |
 
-Ответ:
+Ответ: `application/x-protobuf`, `CreateAccessTokenResponse`
 
-```json
-{
-  "access_token": {"…": "AccessTokenDto"},
-  "secret": "present only when generated or supplied this request"
+```protobuf
+message CreateAccessTokenResponse {
+  AccessTokenDto access_token = 1;
+  string secret = 2; // только когда сгенерирован или указан в этом запросе
 }
 ```
 
@@ -77,10 +69,10 @@ category: API
 
 Удалить учётную запись. `204`. Нет → 404.
 
-## Браузерные сеансы (менеджер)
+## Браузерные сеансы и FIDO-устройства (менеджер)
 
-Менеджеры могут просматривать и отзывать **браузерные сеансы входа** любой учётной записи. Basic/Bearer — не сеансы.
-Секреты сеансов не возвращаются. См. также `/api/auth/profile/sessions` в [Аутентификации](./authentication.md).
+Менеджеры могут просматривать и отзывать **браузерные сеансы входа** и **FIDO security key-устройства** любой учётной
+записи. Basic/Bearer — не сеансы. Секреты сеансов не возвращаются.
 
 ### `GET /api/tokens/:name/sessions`
 
@@ -95,12 +87,17 @@ category: API
 
 Отозвать один сеанс по `public_id`. Ответ: `StatusOk` protobuf. Отсутствующий id — no-op.
 
+### `GET /api/auth/users/:username/fido`
+
+Менеджер получает список зарегистрированных FIDO-устройств указанного пользователя. Ответ: `FidoDeviceList` protobuf.
+
+### `DELETE /api/auth/users/:username/fido/:device_id`
+
+Менеджер удаляет указанное FIDO-устройство указанного пользователя. Ответ: `StatusOk` protobuf.
+
 ## `POST /api/tokens/:name/token`
 
-Админ перевыпускает upload-токен пользователя (заменяет старый).
-
-```json
-{"token": "<uuid>"}
-```
+Админ перевыпускает upload-токен пользователя (заменяет старый). Ответ: `GenerateTokenResponse` protobuf
+(`token: "<uuid>"`).
 
 Та же идея, что `/api/auth/profile/token`, но для другого пользователя.

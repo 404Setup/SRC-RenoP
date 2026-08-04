@@ -58,7 +58,7 @@ Statistiques et résumé des miroirs. Réponse : `RepoDetailsResponse`.
 
 Pas d’accès en lecture → **403** (contrairement à details, souvent en 404).
 
-## Requêtes de versions (JSON)
+## Requêtes de versions (Protobuf)
 
 Le chemin doit pointer vers un répertoire de coordonnées avec `maven-metadata.xml` (groupId/artifactId).
 
@@ -69,29 +69,31 @@ Le chemin doit pointer vers un répertoire de coordonnées avec `maven-metadata.
 | `filter` | —      | Filtre sous-chaîne de version |
 | `sorted` | `true` | Trier les résultats           |
 
-```json
-{
-  "is_snapshot": false,
-  "versions": ["1.0.0", "1.1.0"]
+Réponse : `application/x-protobuf`, `VersionsResponse`
+
+```protobuf
+message VersionsResponse {
+  bool is_snapshot = 1;
+  repeated string versions = 2;
 }
 ```
 
 ### `GET /api/maven/latest/version/:repo_name/*`
 
-Mêmes query ; ajoutez `type=raw` pour une chaîne de version brute.
+Mêmes query ; ajoutez `type=raw` pour une chaîne de version brute (`text/plain`).
 
-Sinon :
+Réponse par défaut : `application/x-protobuf`, `LatestVersionResponse`
 
-```json
-{
-  "is_snapshot": false,
-  "version": "1.1.0"
+```protobuf
+message LatestVersionResponse {
+  bool is_snapshot = 1;
+  string version = 2;
 }
 ```
 
 ### `GET /api/maven/latest/details/:repo_name/*`
 
-`FileDetails` pour le dernier artefact correspondant (**JSON**, pas protobuf).
+`FileDetails` pour le dernier artefact correspondant (`application/x-protobuf`).
 
 | Query        | Défaut | Signification     |
 |--------------|--------|-------------------|
@@ -125,13 +127,13 @@ Badge SVG avec la dernière version. `Content-Type: image/svg+xml`.
 
 ### `POST /api/maven/generate/pom/:repo_name/*`
 
-Nécessite un accès en écriture au dépôt.
+Nécessite un accès en écriture au dépôt. Corps : `application/x-protobuf`, `PomDetails` (accepte aussi JSON).
 
-```json
-{
-  "group_id": "com.example",
-  "artifact_id": "demo",
-  "version": "1.0.0"
+```protobuf
+message PomDetails {
+  string group_id = 1;
+  string artifact_id = 2;
+  string version = 3;
 }
 ```
 

@@ -15,7 +15,7 @@ import {createUserRow, createUsersSkeletonRow} from './components.js';
 import {editToken as openEditModal, initUsersModal, setTokensRefreshHandler} from './users/modal.js';
 import {makeCustomSelect} from './cfg-ui.js';
 import {logout} from './auth.js';
-import {AccessTokenList} from './proto/index.js';
+import {AccessTokenList, FidoDeviceList, GenerateTokenResponse} from './proto/index.js';
 import {openSessionsDialog} from './sessions.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
@@ -245,12 +245,15 @@ export async function openUserFidoDialog(username) {
     const loadDevices = async () => {
         list.innerHTML = `<div style="padding: 1rem; text-align: center; opacity: 0.6;">Loading...</div>`;
         try {
-            const response = await apiRequest(`/api/auth/users/${encodeURIComponent(username)}/fido`);
-            if (!response.ok) {
+            const {
+                response,
+                data
+            } = await fetchProto(`/api/auth/users/${encodeURIComponent(username)}/fido`, FidoDeviceList);
+            if (!response.ok || !data) {
                 list.innerHTML = `<div style="padding: 1rem; text-align: center; color: #ef4444;">Failed to load FIDO devices</div>`;
                 return;
             }
-            const devices = await response.json();
+            const devices = data.devices || [];
             list.innerHTML = '';
             if (!Array.isArray(devices) || devices.length === 0) {
                 list.innerHTML = `<div style="padding: 1.5rem; text-align: center; opacity: 0.6; font-size: 0.9rem;">${t('common.none') || 'No FIDO devices registered for this user'}</div>`;
@@ -261,7 +264,7 @@ export async function openUserFidoDialog(username) {
                 const item = document.createElement('div');
                 item.className = 'fido-device-item';
                 item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; margin-bottom: 0.5rem; background: var(--card-bg, #ffffff);';
-                
+
                 const info = document.createElement('div');
                 info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
                 const nameEl = document.createElement('span');
@@ -279,7 +282,10 @@ export async function openUserFidoDialog(username) {
                 delBtn.style.cssText = 'padding: 4px 10px; font-size: 0.8rem;';
                 delBtn.textContent = t('common.delete') || 'Delete';
                 delBtn.addEventListener('click', async () => {
-                    const confirmMsg = t('users.confirmDeleteUserFido', {user: username, name: dev.name}) || `Are you sure you want to delete FIDO device "${dev.name}" for user "${username}"?`;
+                    const confirmMsg = t('users.confirmDeleteUserFido', {
+                        user: username,
+                        name: dev.name
+                    }) || `Are you sure you want to delete FIDO device "${dev.name}" for user "${username}"?`;
                     if (await window.showConfirm(confirmMsg)) {
                         try {
                             const delRes = await apiRequest(`/api/auth/users/${encodeURIComponent(username)}/fido/${dev.id}`, {method: 'DELETE'});
@@ -608,10 +614,8 @@ export async function regenerateUserToken(name) {
     if (!(await window.showConfirm(t('users.confirmRegenToken', {name})))) return;
 
     try {
-        const headers = getAuthHeaders();
-        const response = await fetch(`/api/tokens/${name}/token`, {method: 'POST', headers});
-        if (response.ok) {
-            const data = await response.json();
+        const {response, data} = await fetchProto(`/api/tokens/${name}/token`, GenerateTokenResponse, {method: 'POST'});
+        if (response.ok && data) {
             const row = Array.from(document.querySelectorAll('#tokens-table-body tr')).find(r => r.dataset.userName === name);
             if (row) {
                 row.classList.add('user-row--reset-flash');

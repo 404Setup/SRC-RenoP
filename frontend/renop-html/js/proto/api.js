@@ -15089,6 +15089,2741 @@ export const renop = $root.renop = (() => {
                 return ErrorMessage;
             })();
 
+            v1.FidoDeviceDto = (function() {
+
+                /**
+                 * Properties of a FidoDeviceDto.
+                 * @typedef {Object} renop.api.v1.FidoDeviceDto.$Properties
+                 * @property {string|null} [id] FidoDeviceDto id
+                 * @property {string|null} [username] FidoDeviceDto username
+                 * @property {string|null} [name] FidoDeviceDto name
+                 * @property {number|Long|null} [created_at] FidoDeviceDto created_at
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a FidoDeviceDto.
+                 * @memberof renop.api.v1
+                 * @interface IFidoDeviceDto
+                 * @augments renop.api.v1.FidoDeviceDto.$Properties
+                 * @deprecated Use renop.api.v1.FidoDeviceDto.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a FidoDeviceDto.
+                 * @typedef {renop.api.v1.FidoDeviceDto.$Properties} renop.api.v1.FidoDeviceDto.$Shape
+                 */
+
+                /**
+                 * Constructs a new FidoDeviceDto.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a FidoDeviceDto.
+                 * @constructor
+                 * @param {renop.api.v1.FidoDeviceDto.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const FidoDeviceDto = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * FidoDeviceDto id.
+                 * @member {string} id
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @instance
+                 */
+                FidoDeviceDto.prototype.id = "";
+
+                /**
+                 * FidoDeviceDto username.
+                 * @member {string} username
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @instance
+                 */
+                FidoDeviceDto.prototype.username = "";
+
+                /**
+                 * FidoDeviceDto name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @instance
+                 */
+                FidoDeviceDto.prototype.name = "";
+
+                /**
+                 * FidoDeviceDto created_at.
+                 * @member {number|Long} created_at
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @instance
+                 */
+                FidoDeviceDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new FidoDeviceDto instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceDto.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.FidoDeviceDto} FidoDeviceDto instance
+                 * @type {{
+                 *   (properties: renop.api.v1.FidoDeviceDto.$Shape): renop.api.v1.FidoDeviceDto & renop.api.v1.FidoDeviceDto.$Shape;
+                 *   (properties?: renop.api.v1.FidoDeviceDto.$Properties): renop.api.v1.FidoDeviceDto;
+                 * }}
+                 */
+                FidoDeviceDto.create = function(properties) {
+                    return new FidoDeviceDto(properties);
+                };
+
+                /**
+                 * Encodes the specified FidoDeviceDto message. Does not implicitly {@link renop.api.v1.FidoDeviceDto.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceDto.$Properties} message FidoDeviceDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FidoDeviceDto.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id") && message.id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username") && message.username !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.username);
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.name);
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at") && (typeof message.created_at === "object" ? message.created_at.low || message.created_at.high : message.created_at !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).int64(message.created_at);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified FidoDeviceDto message, length delimited. Does not implicitly {@link renop.api.v1.FidoDeviceDto.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceDto.$Properties} message FidoDeviceDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FidoDeviceDto.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a FidoDeviceDto message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.FidoDeviceDto & renop.api.v1.FidoDeviceDto.$Shape} FidoDeviceDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FidoDeviceDto.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FidoDeviceDto(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.id = value;
+                                else
+                                    delete message.id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.username = value;
+                                else
+                                    delete message.username;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.created_at = value;
+                                else
+                                    delete message.created_at;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a FidoDeviceDto message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.FidoDeviceDto & renop.api.v1.FidoDeviceDto.$Shape} FidoDeviceDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FidoDeviceDto.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a FidoDeviceDto message.
+                 * @function verify
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                FidoDeviceDto.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        if (!$util.isString(message.id))
+                            return "id: string expected";
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        if (!$util.isString(message.username))
+                            return "username: string expected";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (!$util.isInteger(message.created_at) && !(message.created_at && $util.isInteger(message.created_at.low) && $util.isInteger(message.created_at.high)))
+                            return "created_at: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a FidoDeviceDto message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.FidoDeviceDto} FidoDeviceDto
+                 */
+                FidoDeviceDto.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.FidoDeviceDto)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.FidoDeviceDto: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.FidoDeviceDto();
+                    if (object.id != null)
+                        if (typeof object.id !== "string" || object.id.length)
+                            message.id = $String(object.id);
+                    if (object.username != null)
+                        if (typeof object.username !== "string" || object.username.length)
+                            message.username = $String(object.username);
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.created_at != null)
+                        if (typeof object.created_at === "object" ? object.created_at.low || object.created_at.high : $Number(object.created_at) !== 0)
+                            if ($util.Long)
+                                message.created_at = $util.Long.fromValue(object.created_at, false);
+                            else if (typeof object.created_at === "string")
+                                message.created_at = $parseInt(object.created_at, 10);
+                            else if (typeof object.created_at === "number")
+                                message.created_at = object.created_at;
+                            else if (typeof object.created_at === "object")
+                                message.created_at = new $util.LongBits(object.created_at.low >>> 0, object.created_at.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a FidoDeviceDto message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceDto} message FidoDeviceDto
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                FidoDeviceDto.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.id = "";
+                        object.username = "";
+                        object.name = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.created_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.created_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        object.id = message.id;
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        object.username = message.username;
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.created_at = typeof message.created_at === "number" ? $BigInt(message.created_at) : $util.Long.fromBits(message.created_at.low >>> 0, message.created_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.created_at === "number")
+                            object.created_at = options.longs === $String ? $String(message.created_at) : message.created_at;
+                        else
+                            object.created_at = options.longs === $String ? $util.Long.prototype.toString.call(message.created_at) : options.longs === $Number ? new $util.LongBits(message.created_at.low >>> 0, message.created_at.high >>> 0).toNumber() : message.created_at;
+                    return object;
+                };
+
+                /**
+                 * Converts this FidoDeviceDto to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                FidoDeviceDto.prototype.toJSON = function() {
+                    return FidoDeviceDto.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for FidoDeviceDto
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.FidoDeviceDto
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                FidoDeviceDto.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.FidoDeviceDto";
+                };
+
+                return FidoDeviceDto;
+            })();
+
+            v1.FidoDeviceList = (function() {
+
+                /**
+                 * Properties of a FidoDeviceList.
+                 * @typedef {Object} renop.api.v1.FidoDeviceList.$Properties
+                 * @property {Array.<renop.api.v1.FidoDeviceDto.$Properties>|null} [devices] FidoDeviceList devices
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a FidoDeviceList.
+                 * @memberof renop.api.v1
+                 * @interface IFidoDeviceList
+                 * @augments renop.api.v1.FidoDeviceList.$Properties
+                 * @deprecated Use renop.api.v1.FidoDeviceList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a FidoDeviceList.
+                 * @typedef {renop.api.v1.FidoDeviceList.$Properties} renop.api.v1.FidoDeviceList.$Shape
+                 */
+
+                /**
+                 * Constructs a new FidoDeviceList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a FidoDeviceList.
+                 * @constructor
+                 * @param {renop.api.v1.FidoDeviceList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const FidoDeviceList = function (properties) {
+                    this.devices = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * FidoDeviceList devices.
+                 * @member {Array.<renop.api.v1.FidoDeviceDto.$Properties>} devices
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @instance
+                 */
+                FidoDeviceList.prototype.devices = $util.emptyArray;
+
+                /**
+                 * Creates a new FidoDeviceList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.FidoDeviceList} FidoDeviceList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.FidoDeviceList.$Shape): renop.api.v1.FidoDeviceList & renop.api.v1.FidoDeviceList.$Shape;
+                 *   (properties?: renop.api.v1.FidoDeviceList.$Properties): renop.api.v1.FidoDeviceList;
+                 * }}
+                 */
+                FidoDeviceList.create = function(properties) {
+                    return new FidoDeviceList(properties);
+                };
+
+                /**
+                 * Encodes the specified FidoDeviceList message. Does not implicitly {@link renop.api.v1.FidoDeviceList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceList.$Properties} message FidoDeviceList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FidoDeviceList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.devices != null && message.devices.length)
+                        for (let i = 0; i < message.devices.length; ++i)
+                            $root.renop.api.v1.FidoDeviceDto.encode(message.devices[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified FidoDeviceList message, length delimited. Does not implicitly {@link renop.api.v1.FidoDeviceList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceList.$Properties} message FidoDeviceList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                FidoDeviceList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a FidoDeviceList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.FidoDeviceList & renop.api.v1.FidoDeviceList.$Shape} FidoDeviceList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FidoDeviceList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FidoDeviceList();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.devices && message.devices.length))
+                                    message.devices = [];
+                                message.devices.push($root.renop.api.v1.FidoDeviceDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a FidoDeviceList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.FidoDeviceList & renop.api.v1.FidoDeviceList.$Shape} FidoDeviceList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                FidoDeviceList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a FidoDeviceList message.
+                 * @function verify
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                FidoDeviceList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.devices != null && $Object.hasOwnProperty.call(message, "devices")) {
+                        if (!$Array.isArray(message.devices))
+                            return "devices: array expected";
+                        for (let i = 0; i < message.devices.length; ++i) {
+                            let error = $root.renop.api.v1.FidoDeviceDto.verify(message.devices[i], _depth + 1);
+                            if (error)
+                                return "devices." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a FidoDeviceList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.FidoDeviceList} FidoDeviceList
+                 */
+                FidoDeviceList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.FidoDeviceList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.FidoDeviceList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.FidoDeviceList();
+                    if (object.devices) {
+                        if (!$Array.isArray(object.devices))
+                            throw $TypeError(".renop.api.v1.FidoDeviceList.devices: array expected");
+                        message.devices = $Array(object.devices.length);
+                        for (let i = 0; i < object.devices.length; ++i) {
+                            if (!$util.isObject(object.devices[i]))
+                                throw $TypeError(".renop.api.v1.FidoDeviceList.devices: object expected");
+                            message.devices[i] = $root.renop.api.v1.FidoDeviceDto.fromObject(object.devices[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a FidoDeviceList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {renop.api.v1.FidoDeviceList} message FidoDeviceList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                FidoDeviceList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.devices = [];
+                    if (message.devices && message.devices.length) {
+                        object.devices = $Array(message.devices.length);
+                        for (let j = 0; j < message.devices.length; ++j)
+                            object.devices[j] = $root.renop.api.v1.FidoDeviceDto.toObject(message.devices[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this FidoDeviceList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                FidoDeviceList.prototype.toJSON = function() {
+                    return FidoDeviceList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for FidoDeviceList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.FidoDeviceList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                FidoDeviceList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.FidoDeviceList";
+                };
+
+                return FidoDeviceList;
+            })();
+
+            v1.UpdatePasswordRequest = (function() {
+
+                /**
+                 * Properties of an UpdatePasswordRequest.
+                 * @typedef {Object} renop.api.v1.UpdatePasswordRequest.$Properties
+                 * @property {string|null} [new_password] UpdatePasswordRequest new_password
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an UpdatePasswordRequest.
+                 * @memberof renop.api.v1
+                 * @interface IUpdatePasswordRequest
+                 * @augments renop.api.v1.UpdatePasswordRequest.$Properties
+                 * @deprecated Use renop.api.v1.UpdatePasswordRequest.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an UpdatePasswordRequest.
+                 * @typedef {renop.api.v1.UpdatePasswordRequest.$Properties} renop.api.v1.UpdatePasswordRequest.$Shape
+                 */
+
+                /**
+                 * Constructs a new UpdatePasswordRequest.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an UpdatePasswordRequest.
+                 * @constructor
+                 * @param {renop.api.v1.UpdatePasswordRequest.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const UpdatePasswordRequest = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * UpdatePasswordRequest new_password.
+                 * @member {string} new_password
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @instance
+                 */
+                UpdatePasswordRequest.prototype.new_password = "";
+
+                /**
+                 * Creates a new UpdatePasswordRequest instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {renop.api.v1.UpdatePasswordRequest.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.UpdatePasswordRequest} UpdatePasswordRequest instance
+                 * @type {{
+                 *   (properties: renop.api.v1.UpdatePasswordRequest.$Shape): renop.api.v1.UpdatePasswordRequest & renop.api.v1.UpdatePasswordRequest.$Shape;
+                 *   (properties?: renop.api.v1.UpdatePasswordRequest.$Properties): renop.api.v1.UpdatePasswordRequest;
+                 * }}
+                 */
+                UpdatePasswordRequest.create = function(properties) {
+                    return new UpdatePasswordRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified UpdatePasswordRequest message. Does not implicitly {@link renop.api.v1.UpdatePasswordRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {renop.api.v1.UpdatePasswordRequest.$Properties} message UpdatePasswordRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UpdatePasswordRequest.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.new_password != null && $Object.hasOwnProperty.call(message, "new_password") && message.new_password !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.new_password);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified UpdatePasswordRequest message, length delimited. Does not implicitly {@link renop.api.v1.UpdatePasswordRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {renop.api.v1.UpdatePasswordRequest.$Properties} message UpdatePasswordRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UpdatePasswordRequest.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an UpdatePasswordRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.UpdatePasswordRequest & renop.api.v1.UpdatePasswordRequest.$Shape} UpdatePasswordRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UpdatePasswordRequest.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UpdatePasswordRequest(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.new_password = value;
+                                else
+                                    delete message.new_password;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an UpdatePasswordRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.UpdatePasswordRequest & renop.api.v1.UpdatePasswordRequest.$Shape} UpdatePasswordRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UpdatePasswordRequest.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an UpdatePasswordRequest message.
+                 * @function verify
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                UpdatePasswordRequest.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.new_password != null && $Object.hasOwnProperty.call(message, "new_password"))
+                        if (!$util.isString(message.new_password))
+                            return "new_password: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an UpdatePasswordRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.UpdatePasswordRequest} UpdatePasswordRequest
+                 */
+                UpdatePasswordRequest.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.UpdatePasswordRequest)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.UpdatePasswordRequest: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.UpdatePasswordRequest();
+                    if (object.new_password != null)
+                        if (typeof object.new_password !== "string" || object.new_password.length)
+                            message.new_password = $String(object.new_password);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an UpdatePasswordRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {renop.api.v1.UpdatePasswordRequest} message UpdatePasswordRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                UpdatePasswordRequest.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults)
+                        object.new_password = "";
+                    if (message.new_password != null && $Object.hasOwnProperty.call(message, "new_password"))
+                        object.new_password = message.new_password;
+                    return object;
+                };
+
+                /**
+                 * Converts this UpdatePasswordRequest to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                UpdatePasswordRequest.prototype.toJSON = function() {
+                    return UpdatePasswordRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for UpdatePasswordRequest
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.UpdatePasswordRequest
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                UpdatePasswordRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.UpdatePasswordRequest";
+                };
+
+                return UpdatePasswordRequest;
+            })();
+
+            v1.GenerateTokenResponse = (function() {
+
+                /**
+                 * Properties of a GenerateTokenResponse.
+                 * @typedef {Object} renop.api.v1.GenerateTokenResponse.$Properties
+                 * @property {string|null} [token] GenerateTokenResponse token
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GenerateTokenResponse.
+                 * @memberof renop.api.v1
+                 * @interface IGenerateTokenResponse
+                 * @augments renop.api.v1.GenerateTokenResponse.$Properties
+                 * @deprecated Use renop.api.v1.GenerateTokenResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GenerateTokenResponse.
+                 * @typedef {renop.api.v1.GenerateTokenResponse.$Properties} renop.api.v1.GenerateTokenResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new GenerateTokenResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GenerateTokenResponse.
+                 * @constructor
+                 * @param {renop.api.v1.GenerateTokenResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GenerateTokenResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GenerateTokenResponse token.
+                 * @member {string} token
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @instance
+                 */
+                GenerateTokenResponse.prototype.token = "";
+
+                /**
+                 * Creates a new GenerateTokenResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {renop.api.v1.GenerateTokenResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GenerateTokenResponse} GenerateTokenResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GenerateTokenResponse.$Shape): renop.api.v1.GenerateTokenResponse & renop.api.v1.GenerateTokenResponse.$Shape;
+                 *   (properties?: renop.api.v1.GenerateTokenResponse.$Properties): renop.api.v1.GenerateTokenResponse;
+                 * }}
+                 */
+                GenerateTokenResponse.create = function(properties) {
+                    return new GenerateTokenResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified GenerateTokenResponse message. Does not implicitly {@link renop.api.v1.GenerateTokenResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {renop.api.v1.GenerateTokenResponse.$Properties} message GenerateTokenResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GenerateTokenResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.token != null && $Object.hasOwnProperty.call(message, "token") && message.token !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.token);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GenerateTokenResponse message, length delimited. Does not implicitly {@link renop.api.v1.GenerateTokenResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {renop.api.v1.GenerateTokenResponse.$Properties} message GenerateTokenResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GenerateTokenResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GenerateTokenResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GenerateTokenResponse & renop.api.v1.GenerateTokenResponse.$Shape} GenerateTokenResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GenerateTokenResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GenerateTokenResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.token = value;
+                                else
+                                    delete message.token;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GenerateTokenResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GenerateTokenResponse & renop.api.v1.GenerateTokenResponse.$Shape} GenerateTokenResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GenerateTokenResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GenerateTokenResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GenerateTokenResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.token != null && $Object.hasOwnProperty.call(message, "token"))
+                        if (!$util.isString(message.token))
+                            return "token: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a GenerateTokenResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GenerateTokenResponse} GenerateTokenResponse
+                 */
+                GenerateTokenResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GenerateTokenResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GenerateTokenResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GenerateTokenResponse();
+                    if (object.token != null)
+                        if (typeof object.token !== "string" || object.token.length)
+                            message.token = $String(object.token);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GenerateTokenResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {renop.api.v1.GenerateTokenResponse} message GenerateTokenResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GenerateTokenResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults)
+                        object.token = "";
+                    if (message.token != null && $Object.hasOwnProperty.call(message, "token"))
+                        object.token = message.token;
+                    return object;
+                };
+
+                /**
+                 * Converts this GenerateTokenResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GenerateTokenResponse.prototype.toJSON = function() {
+                    return GenerateTokenResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GenerateTokenResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GenerateTokenResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GenerateTokenResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GenerateTokenResponse";
+                };
+
+                return GenerateTokenResponse;
+            })();
+
+            v1.CreateAccessTokenRequest = (function() {
+
+                /**
+                 * Properties of a CreateAccessTokenRequest.
+                 * @typedef {Object} renop.api.v1.CreateAccessTokenRequest.$Properties
+                 * @property {Array.<string>|null} [permissions] CreateAccessTokenRequest permissions
+                 * @property {string|null} [new_name] CreateAccessTokenRequest new_name
+                 * @property {string|null} [secret] CreateAccessTokenRequest secret
+                 * @property {boolean|null} [is_create] CreateAccessTokenRequest is_create
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a CreateAccessTokenRequest.
+                 * @memberof renop.api.v1
+                 * @interface ICreateAccessTokenRequest
+                 * @augments renop.api.v1.CreateAccessTokenRequest.$Properties
+                 * @deprecated Use renop.api.v1.CreateAccessTokenRequest.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a CreateAccessTokenRequest.
+                 * @typedef {renop.api.v1.CreateAccessTokenRequest.$Properties} renop.api.v1.CreateAccessTokenRequest.$Shape
+                 */
+
+                /**
+                 * Constructs a new CreateAccessTokenRequest.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a CreateAccessTokenRequest.
+                 * @constructor
+                 * @param {renop.api.v1.CreateAccessTokenRequest.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const CreateAccessTokenRequest = function (properties) {
+                    this.permissions = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * CreateAccessTokenRequest permissions.
+                 * @member {Array.<string>} permissions
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @instance
+                 */
+                CreateAccessTokenRequest.prototype.permissions = $util.emptyArray;
+
+                /**
+                 * CreateAccessTokenRequest new_name.
+                 * @member {string|null|undefined} new_name
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @instance
+                 */
+                CreateAccessTokenRequest.prototype.new_name = null;
+
+                /**
+                 * CreateAccessTokenRequest secret.
+                 * @member {string|null|undefined} secret
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @instance
+                 */
+                CreateAccessTokenRequest.prototype.secret = null;
+
+                /**
+                 * CreateAccessTokenRequest is_create.
+                 * @member {boolean} is_create
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @instance
+                 */
+                CreateAccessTokenRequest.prototype.is_create = false;
+
+                // OneOf field names bound to virtual getters and setters
+                let $oneOfFields;
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(CreateAccessTokenRequest.prototype, "_new_name", {
+                    get: $util.oneOfGetter($oneOfFields = ["new_name"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(CreateAccessTokenRequest.prototype, "_secret", {
+                    get: $util.oneOfGetter($oneOfFields = ["secret"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                /**
+                 * Creates a new CreateAccessTokenRequest instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenRequest.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.CreateAccessTokenRequest} CreateAccessTokenRequest instance
+                 * @type {{
+                 *   (properties: renop.api.v1.CreateAccessTokenRequest.$Shape): renop.api.v1.CreateAccessTokenRequest & renop.api.v1.CreateAccessTokenRequest.$Shape;
+                 *   (properties?: renop.api.v1.CreateAccessTokenRequest.$Properties): renop.api.v1.CreateAccessTokenRequest;
+                 * }}
+                 */
+                CreateAccessTokenRequest.create = function(properties) {
+                    return new CreateAccessTokenRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified CreateAccessTokenRequest message. Does not implicitly {@link renop.api.v1.CreateAccessTokenRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenRequest.$Properties} message CreateAccessTokenRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                CreateAccessTokenRequest.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.permissions != null && message.permissions.length)
+                        for (let i = 0; i < message.permissions.length; ++i)
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.permissions[i]);
+                    if (message.new_name != null && $Object.hasOwnProperty.call(message, "new_name"))
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.new_name);
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret"))
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.secret);
+                    if (message.is_create != null && $Object.hasOwnProperty.call(message, "is_create") && message.is_create !== false)
+                        writer.uint32(/* id 4, wireType 0 =*/32).bool(message.is_create);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified CreateAccessTokenRequest message, length delimited. Does not implicitly {@link renop.api.v1.CreateAccessTokenRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenRequest.$Properties} message CreateAccessTokenRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                CreateAccessTokenRequest.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a CreateAccessTokenRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.CreateAccessTokenRequest & renop.api.v1.CreateAccessTokenRequest.$Shape} CreateAccessTokenRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                CreateAccessTokenRequest.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.CreateAccessTokenRequest(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.permissions && message.permissions.length))
+                                    message.permissions = [];
+                                message.permissions.push(reader.stringVerify());
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                message.new_name = reader.stringVerify();
+                                message._new_name = "new_name";
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                message.secret = reader.stringVerify();
+                                message._secret = "secret";
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.is_create = value;
+                                else
+                                    delete message.is_create;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a CreateAccessTokenRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.CreateAccessTokenRequest & renop.api.v1.CreateAccessTokenRequest.$Shape} CreateAccessTokenRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                CreateAccessTokenRequest.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a CreateAccessTokenRequest message.
+                 * @function verify
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                CreateAccessTokenRequest.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    let properties = {};
+                    if (message.permissions != null && $Object.hasOwnProperty.call(message, "permissions")) {
+                        if (!$Array.isArray(message.permissions))
+                            return "permissions: array expected";
+                        for (let i = 0; i < message.permissions.length; ++i)
+                            if (!$util.isString(message.permissions[i]))
+                                return "permissions: string[] expected";
+                    }
+                    if (message.new_name != null && $Object.hasOwnProperty.call(message, "new_name")) {
+                        properties._new_name = 1;
+                        if (!$util.isString(message.new_name))
+                            return "new_name: string expected";
+                    }
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret")) {
+                        properties._secret = 1;
+                        if (!$util.isString(message.secret))
+                            return "secret: string expected";
+                    }
+                    if (message.is_create != null && $Object.hasOwnProperty.call(message, "is_create"))
+                        if (typeof message.is_create !== "boolean")
+                            return "is_create: boolean expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a CreateAccessTokenRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.CreateAccessTokenRequest} CreateAccessTokenRequest
+                 */
+                CreateAccessTokenRequest.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.CreateAccessTokenRequest)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.CreateAccessTokenRequest: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.CreateAccessTokenRequest();
+                    if (object.permissions) {
+                        if (!$Array.isArray(object.permissions))
+                            throw $TypeError(".renop.api.v1.CreateAccessTokenRequest.permissions: array expected");
+                        message.permissions = $Array(object.permissions.length);
+                        for (let i = 0; i < object.permissions.length; ++i)
+                            message.permissions[i] = $String(object.permissions[i]);
+                    }
+                    if (object.new_name != null)
+                        message.new_name = $String(object.new_name);
+                    if (object.secret != null)
+                        message.secret = $String(object.secret);
+                    if (object.is_create != null)
+                        if (object.is_create)
+                            message.is_create = $Boolean(object.is_create);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a CreateAccessTokenRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenRequest} message CreateAccessTokenRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                CreateAccessTokenRequest.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.permissions = [];
+                    if (options.defaults)
+                        object.is_create = false;
+                    if (message.permissions && message.permissions.length) {
+                        object.permissions = $Array(message.permissions.length);
+                        for (let j = 0; j < message.permissions.length; ++j)
+                            object.permissions[j] = message.permissions[j];
+                    }
+                    if (message.new_name != null && $Object.hasOwnProperty.call(message, "new_name"))
+                        object.new_name = message.new_name;
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret"))
+                        object.secret = message.secret;
+                    if (message.is_create != null && $Object.hasOwnProperty.call(message, "is_create"))
+                        object.is_create = message.is_create;
+                    return object;
+                };
+
+                /**
+                 * Converts this CreateAccessTokenRequest to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                CreateAccessTokenRequest.prototype.toJSON = function() {
+                    return CreateAccessTokenRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for CreateAccessTokenRequest
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                CreateAccessTokenRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.CreateAccessTokenRequest";
+                };
+
+                return CreateAccessTokenRequest;
+            })();
+
+            v1.CreateAccessTokenResponse = (function() {
+
+                /**
+                 * Properties of a CreateAccessTokenResponse.
+                 * @typedef {Object} renop.api.v1.CreateAccessTokenResponse.$Properties
+                 * @property {renop.api.v1.AccessTokenDto.$Properties|null} [access_token] CreateAccessTokenResponse access_token
+                 * @property {string|null} [secret] CreateAccessTokenResponse secret
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a CreateAccessTokenResponse.
+                 * @memberof renop.api.v1
+                 * @interface ICreateAccessTokenResponse
+                 * @augments renop.api.v1.CreateAccessTokenResponse.$Properties
+                 * @deprecated Use renop.api.v1.CreateAccessTokenResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a CreateAccessTokenResponse.
+                 * @typedef {renop.api.v1.CreateAccessTokenResponse.$Properties} renop.api.v1.CreateAccessTokenResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new CreateAccessTokenResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a CreateAccessTokenResponse.
+                 * @constructor
+                 * @param {renop.api.v1.CreateAccessTokenResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const CreateAccessTokenResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * CreateAccessTokenResponse access_token.
+                 * @member {renop.api.v1.AccessTokenDto.$Properties|null|undefined} access_token
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @instance
+                 */
+                CreateAccessTokenResponse.prototype.access_token = null;
+
+                /**
+                 * CreateAccessTokenResponse secret.
+                 * @member {string} secret
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @instance
+                 */
+                CreateAccessTokenResponse.prototype.secret = "";
+
+                /**
+                 * Creates a new CreateAccessTokenResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.CreateAccessTokenResponse} CreateAccessTokenResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.CreateAccessTokenResponse.$Shape): renop.api.v1.CreateAccessTokenResponse & renop.api.v1.CreateAccessTokenResponse.$Shape;
+                 *   (properties?: renop.api.v1.CreateAccessTokenResponse.$Properties): renop.api.v1.CreateAccessTokenResponse;
+                 * }}
+                 */
+                CreateAccessTokenResponse.create = function(properties) {
+                    return new CreateAccessTokenResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified CreateAccessTokenResponse message. Does not implicitly {@link renop.api.v1.CreateAccessTokenResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenResponse.$Properties} message CreateAccessTokenResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                CreateAccessTokenResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.access_token != null && $Object.hasOwnProperty.call(message, "access_token"))
+                        $root.renop.api.v1.AccessTokenDto.encode(message.access_token, writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret") && message.secret !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.secret);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified CreateAccessTokenResponse message, length delimited. Does not implicitly {@link renop.api.v1.CreateAccessTokenResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenResponse.$Properties} message CreateAccessTokenResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                CreateAccessTokenResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a CreateAccessTokenResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.CreateAccessTokenResponse & renop.api.v1.CreateAccessTokenResponse.$Shape} CreateAccessTokenResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                CreateAccessTokenResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.CreateAccessTokenResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                message.access_token = $root.renop.api.v1.AccessTokenDto.decode(reader, reader.uint32(), $undefined, _depth + 1, message.access_token);
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.secret = value;
+                                else
+                                    delete message.secret;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a CreateAccessTokenResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.CreateAccessTokenResponse & renop.api.v1.CreateAccessTokenResponse.$Shape} CreateAccessTokenResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                CreateAccessTokenResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a CreateAccessTokenResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                CreateAccessTokenResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.access_token != null && $Object.hasOwnProperty.call(message, "access_token")) {
+                        let error = $root.renop.api.v1.AccessTokenDto.verify(message.access_token, _depth + 1);
+                        if (error)
+                            return "access_token." + error;
+                    }
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret"))
+                        if (!$util.isString(message.secret))
+                            return "secret: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a CreateAccessTokenResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.CreateAccessTokenResponse} CreateAccessTokenResponse
+                 */
+                CreateAccessTokenResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.CreateAccessTokenResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.CreateAccessTokenResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.CreateAccessTokenResponse();
+                    if (object.access_token != null) {
+                        if (!$util.isObject(object.access_token))
+                            throw $TypeError(".renop.api.v1.CreateAccessTokenResponse.access_token: object expected");
+                        message.access_token = $root.renop.api.v1.AccessTokenDto.fromObject(object.access_token, _depth + 1);
+                    }
+                    if (object.secret != null)
+                        if (typeof object.secret !== "string" || object.secret.length)
+                            message.secret = $String(object.secret);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a CreateAccessTokenResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {renop.api.v1.CreateAccessTokenResponse} message CreateAccessTokenResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                CreateAccessTokenResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.access_token = null;
+                        object.secret = "";
+                    }
+                    if (message.access_token != null && $Object.hasOwnProperty.call(message, "access_token"))
+                        object.access_token = $root.renop.api.v1.AccessTokenDto.toObject(message.access_token, options, _depth + 1);
+                    if (message.secret != null && $Object.hasOwnProperty.call(message, "secret"))
+                        object.secret = message.secret;
+                    return object;
+                };
+
+                /**
+                 * Converts this CreateAccessTokenResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                CreateAccessTokenResponse.prototype.toJSON = function() {
+                    return CreateAccessTokenResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for CreateAccessTokenResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.CreateAccessTokenResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                CreateAccessTokenResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.CreateAccessTokenResponse";
+                };
+
+                return CreateAccessTokenResponse;
+            })();
+
+            v1.VersionsResponse = (function() {
+
+                /**
+                 * Properties of a VersionsResponse.
+                 * @typedef {Object} renop.api.v1.VersionsResponse.$Properties
+                 * @property {boolean|null} [is_snapshot] VersionsResponse is_snapshot
+                 * @property {Array.<string>|null} [versions] VersionsResponse versions
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a VersionsResponse.
+                 * @memberof renop.api.v1
+                 * @interface IVersionsResponse
+                 * @augments renop.api.v1.VersionsResponse.$Properties
+                 * @deprecated Use renop.api.v1.VersionsResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a VersionsResponse.
+                 * @typedef {renop.api.v1.VersionsResponse.$Properties} renop.api.v1.VersionsResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new VersionsResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a VersionsResponse.
+                 * @constructor
+                 * @param {renop.api.v1.VersionsResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const VersionsResponse = function (properties) {
+                    this.versions = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * VersionsResponse is_snapshot.
+                 * @member {boolean} is_snapshot
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @instance
+                 */
+                VersionsResponse.prototype.is_snapshot = false;
+
+                /**
+                 * VersionsResponse versions.
+                 * @member {Array.<string>} versions
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @instance
+                 */
+                VersionsResponse.prototype.versions = $util.emptyArray;
+
+                /**
+                 * Creates a new VersionsResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {renop.api.v1.VersionsResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.VersionsResponse} VersionsResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.VersionsResponse.$Shape): renop.api.v1.VersionsResponse & renop.api.v1.VersionsResponse.$Shape;
+                 *   (properties?: renop.api.v1.VersionsResponse.$Properties): renop.api.v1.VersionsResponse;
+                 * }}
+                 */
+                VersionsResponse.create = function(properties) {
+                    return new VersionsResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified VersionsResponse message. Does not implicitly {@link renop.api.v1.VersionsResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {renop.api.v1.VersionsResponse.$Properties} message VersionsResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                VersionsResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.is_snapshot != null && $Object.hasOwnProperty.call(message, "is_snapshot") && message.is_snapshot !== false)
+                        writer.uint32(/* id 1, wireType 0 =*/8).bool(message.is_snapshot);
+                    if (message.versions != null && message.versions.length)
+                        for (let i = 0; i < message.versions.length; ++i)
+                            writer.uint32(/* id 2, wireType 2 =*/18).string(message.versions[i]);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified VersionsResponse message, length delimited. Does not implicitly {@link renop.api.v1.VersionsResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {renop.api.v1.VersionsResponse.$Properties} message VersionsResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                VersionsResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a VersionsResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.VersionsResponse & renop.api.v1.VersionsResponse.$Shape} VersionsResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                VersionsResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.VersionsResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.is_snapshot = value;
+                                else
+                                    delete message.is_snapshot;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.versions && message.versions.length))
+                                    message.versions = [];
+                                message.versions.push(reader.stringVerify());
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a VersionsResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.VersionsResponse & renop.api.v1.VersionsResponse.$Shape} VersionsResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                VersionsResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a VersionsResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                VersionsResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.is_snapshot != null && $Object.hasOwnProperty.call(message, "is_snapshot"))
+                        if (typeof message.is_snapshot !== "boolean")
+                            return "is_snapshot: boolean expected";
+                    if (message.versions != null && $Object.hasOwnProperty.call(message, "versions")) {
+                        if (!$Array.isArray(message.versions))
+                            return "versions: array expected";
+                        for (let i = 0; i < message.versions.length; ++i)
+                            if (!$util.isString(message.versions[i]))
+                                return "versions: string[] expected";
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a VersionsResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.VersionsResponse} VersionsResponse
+                 */
+                VersionsResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.VersionsResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.VersionsResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.VersionsResponse();
+                    if (object.is_snapshot != null)
+                        if (object.is_snapshot)
+                            message.is_snapshot = $Boolean(object.is_snapshot);
+                    if (object.versions) {
+                        if (!$Array.isArray(object.versions))
+                            throw $TypeError(".renop.api.v1.VersionsResponse.versions: array expected");
+                        message.versions = $Array(object.versions.length);
+                        for (let i = 0; i < object.versions.length; ++i)
+                            message.versions[i] = $String(object.versions[i]);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a VersionsResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {renop.api.v1.VersionsResponse} message VersionsResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                VersionsResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.versions = [];
+                    if (options.defaults)
+                        object.is_snapshot = false;
+                    if (message.is_snapshot != null && $Object.hasOwnProperty.call(message, "is_snapshot"))
+                        object.is_snapshot = message.is_snapshot;
+                    if (message.versions && message.versions.length) {
+                        object.versions = $Array(message.versions.length);
+                        for (let j = 0; j < message.versions.length; ++j)
+                            object.versions[j] = message.versions[j];
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this VersionsResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                VersionsResponse.prototype.toJSON = function() {
+                    return VersionsResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for VersionsResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.VersionsResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                VersionsResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.VersionsResponse";
+                };
+
+                return VersionsResponse;
+            })();
+
+            v1.LatestVersionResponse = (function() {
+
+                /**
+                 * Properties of a LatestVersionResponse.
+                 * @typedef {Object} renop.api.v1.LatestVersionResponse.$Properties
+                 * @property {boolean|null} [is_snapshot] LatestVersionResponse is_snapshot
+                 * @property {string|null} [version] LatestVersionResponse version
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a LatestVersionResponse.
+                 * @memberof renop.api.v1
+                 * @interface ILatestVersionResponse
+                 * @augments renop.api.v1.LatestVersionResponse.$Properties
+                 * @deprecated Use renop.api.v1.LatestVersionResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a LatestVersionResponse.
+                 * @typedef {renop.api.v1.LatestVersionResponse.$Properties} renop.api.v1.LatestVersionResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new LatestVersionResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a LatestVersionResponse.
+                 * @constructor
+                 * @param {renop.api.v1.LatestVersionResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const LatestVersionResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * LatestVersionResponse is_snapshot.
+                 * @member {boolean} is_snapshot
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @instance
+                 */
+                LatestVersionResponse.prototype.is_snapshot = false;
+
+                /**
+                 * LatestVersionResponse version.
+                 * @member {string} version
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @instance
+                 */
+                LatestVersionResponse.prototype.version = "";
+
+                /**
+                 * Creates a new LatestVersionResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {renop.api.v1.LatestVersionResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.LatestVersionResponse} LatestVersionResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.LatestVersionResponse.$Shape): renop.api.v1.LatestVersionResponse & renop.api.v1.LatestVersionResponse.$Shape;
+                 *   (properties?: renop.api.v1.LatestVersionResponse.$Properties): renop.api.v1.LatestVersionResponse;
+                 * }}
+                 */
+                LatestVersionResponse.create = function(properties) {
+                    return new LatestVersionResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified LatestVersionResponse message. Does not implicitly {@link renop.api.v1.LatestVersionResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {renop.api.v1.LatestVersionResponse.$Properties} message LatestVersionResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                LatestVersionResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.is_snapshot != null && $Object.hasOwnProperty.call(message, "is_snapshot") && message.is_snapshot !== false)
+                        writer.uint32(/* id 1, wireType 0 =*/8).bool(message.is_snapshot);
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version") && message.version !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.version);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified LatestVersionResponse message, length delimited. Does not implicitly {@link renop.api.v1.LatestVersionResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {renop.api.v1.LatestVersionResponse.$Properties} message LatestVersionResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                LatestVersionResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a LatestVersionResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.LatestVersionResponse & renop.api.v1.LatestVersionResponse.$Shape} LatestVersionResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                LatestVersionResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.LatestVersionResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.is_snapshot = value;
+                                else
+                                    delete message.is_snapshot;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.version = value;
+                                else
+                                    delete message.version;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a LatestVersionResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.LatestVersionResponse & renop.api.v1.LatestVersionResponse.$Shape} LatestVersionResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                LatestVersionResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a LatestVersionResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                LatestVersionResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.is_snapshot != null && $Object.hasOwnProperty.call(message, "is_snapshot"))
+                        if (typeof message.is_snapshot !== "boolean")
+                            return "is_snapshot: boolean expected";
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
+                        if (!$util.isString(message.version))
+                            return "version: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a LatestVersionResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.LatestVersionResponse} LatestVersionResponse
+                 */
+                LatestVersionResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.LatestVersionResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.LatestVersionResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.LatestVersionResponse();
+                    if (object.is_snapshot != null)
+                        if (object.is_snapshot)
+                            message.is_snapshot = $Boolean(object.is_snapshot);
+                    if (object.version != null)
+                        if (typeof object.version !== "string" || object.version.length)
+                            message.version = $String(object.version);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a LatestVersionResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {renop.api.v1.LatestVersionResponse} message LatestVersionResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                LatestVersionResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.is_snapshot = false;
+                        object.version = "";
+                    }
+                    if (message.is_snapshot != null && $Object.hasOwnProperty.call(message, "is_snapshot"))
+                        object.is_snapshot = message.is_snapshot;
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
+                        object.version = message.version;
+                    return object;
+                };
+
+                /**
+                 * Converts this LatestVersionResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                LatestVersionResponse.prototype.toJSON = function() {
+                    return LatestVersionResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for LatestVersionResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.LatestVersionResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                LatestVersionResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.LatestVersionResponse";
+                };
+
+                return LatestVersionResponse;
+            })();
+
+            v1.PomDetails = (function() {
+
+                /**
+                 * Properties of a PomDetails.
+                 * @typedef {Object} renop.api.v1.PomDetails.$Properties
+                 * @property {string|null} [group_id] PomDetails group_id
+                 * @property {string|null} [artifact_id] PomDetails artifact_id
+                 * @property {string|null} [version] PomDetails version
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a PomDetails.
+                 * @memberof renop.api.v1
+                 * @interface IPomDetails
+                 * @augments renop.api.v1.PomDetails.$Properties
+                 * @deprecated Use renop.api.v1.PomDetails.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a PomDetails.
+                 * @typedef {renop.api.v1.PomDetails.$Properties} renop.api.v1.PomDetails.$Shape
+                 */
+
+                /**
+                 * Constructs a new PomDetails.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a PomDetails.
+                 * @constructor
+                 * @param {renop.api.v1.PomDetails.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const PomDetails = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * PomDetails group_id.
+                 * @member {string} group_id
+                 * @memberof renop.api.v1.PomDetails
+                 * @instance
+                 */
+                PomDetails.prototype.group_id = "";
+
+                /**
+                 * PomDetails artifact_id.
+                 * @member {string} artifact_id
+                 * @memberof renop.api.v1.PomDetails
+                 * @instance
+                 */
+                PomDetails.prototype.artifact_id = "";
+
+                /**
+                 * PomDetails version.
+                 * @member {string} version
+                 * @memberof renop.api.v1.PomDetails
+                 * @instance
+                 */
+                PomDetails.prototype.version = "";
+
+                /**
+                 * Creates a new PomDetails instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {renop.api.v1.PomDetails.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.PomDetails} PomDetails instance
+                 * @type {{
+                 *   (properties: renop.api.v1.PomDetails.$Shape): renop.api.v1.PomDetails & renop.api.v1.PomDetails.$Shape;
+                 *   (properties?: renop.api.v1.PomDetails.$Properties): renop.api.v1.PomDetails;
+                 * }}
+                 */
+                PomDetails.create = function(properties) {
+                    return new PomDetails(properties);
+                };
+
+                /**
+                 * Encodes the specified PomDetails message. Does not implicitly {@link renop.api.v1.PomDetails.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {renop.api.v1.PomDetails.$Properties} message PomDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                PomDetails.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.group_id != null && $Object.hasOwnProperty.call(message, "group_id") && message.group_id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.group_id);
+                    if (message.artifact_id != null && $Object.hasOwnProperty.call(message, "artifact_id") && message.artifact_id !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.artifact_id);
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version") && message.version !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.version);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified PomDetails message, length delimited. Does not implicitly {@link renop.api.v1.PomDetails.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {renop.api.v1.PomDetails.$Properties} message PomDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                PomDetails.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a PomDetails message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.PomDetails & renop.api.v1.PomDetails.$Shape} PomDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                PomDetails.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.PomDetails(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.group_id = value;
+                                else
+                                    delete message.group_id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.artifact_id = value;
+                                else
+                                    delete message.artifact_id;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.version = value;
+                                else
+                                    delete message.version;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a PomDetails message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.PomDetails & renop.api.v1.PomDetails.$Shape} PomDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                PomDetails.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a PomDetails message.
+                 * @function verify
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                PomDetails.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.group_id != null && $Object.hasOwnProperty.call(message, "group_id"))
+                        if (!$util.isString(message.group_id))
+                            return "group_id: string expected";
+                    if (message.artifact_id != null && $Object.hasOwnProperty.call(message, "artifact_id"))
+                        if (!$util.isString(message.artifact_id))
+                            return "artifact_id: string expected";
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
+                        if (!$util.isString(message.version))
+                            return "version: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a PomDetails message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.PomDetails} PomDetails
+                 */
+                PomDetails.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.PomDetails)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.PomDetails: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.PomDetails();
+                    if (object.group_id != null)
+                        if (typeof object.group_id !== "string" || object.group_id.length)
+                            message.group_id = $String(object.group_id);
+                    if (object.artifact_id != null)
+                        if (typeof object.artifact_id !== "string" || object.artifact_id.length)
+                            message.artifact_id = $String(object.artifact_id);
+                    if (object.version != null)
+                        if (typeof object.version !== "string" || object.version.length)
+                            message.version = $String(object.version);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a PomDetails message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {renop.api.v1.PomDetails} message PomDetails
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                PomDetails.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.group_id = "";
+                        object.artifact_id = "";
+                        object.version = "";
+                    }
+                    if (message.group_id != null && $Object.hasOwnProperty.call(message, "group_id"))
+                        object.group_id = message.group_id;
+                    if (message.artifact_id != null && $Object.hasOwnProperty.call(message, "artifact_id"))
+                        object.artifact_id = message.artifact_id;
+                    if (message.version != null && $Object.hasOwnProperty.call(message, "version"))
+                        object.version = message.version;
+                    return object;
+                };
+
+                /**
+                 * Converts this PomDetails to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.PomDetails
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                PomDetails.prototype.toJSON = function() {
+                    return PomDetails.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for PomDetails
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.PomDetails
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                PomDetails.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.PomDetails";
+                };
+
+                return PomDetails;
+            })();
+
             return v1;
         })();
 

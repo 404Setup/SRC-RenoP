@@ -89,25 +89,18 @@ All of these require a logged-in user.
 
 ### `PUT /api/auth/profile/password`
 
-JSON:
+Body: `application/x-protobuf`, `UpdatePasswordRequest` (also accepts JSON):
 
-```json
-{"new_password": "6–72 bytes"}
-```
+| Field          | Type   | Constraint |
+|----------------|--------|------------|
+| `new_password` | string | 6–72 bytes |
 
-```json
-{"status": "success"}
-```
-
-Invalid length → 400.
+Response: `StatusOk` protobuf (`status: success`). Invalid length → 400.
 
 ### `POST /api/auth/profile/token`
 
-Regenerate the upload token (one per user; old value is replaced).
-
-```json
-{"token": "<uuid>"}
-```
+Regenerate the upload token (one per user; old value is replaced). Response: `GenerateTokenResponse` protobuf
+(`token: "<uuid>"`).
 
 Maven / curl:
 
@@ -117,6 +110,39 @@ curl -u admin:UPLOAD_TOKEN -T my.jar \
 ```
 
 Either the account password or the upload token may be used as the Basic secret, depending on account setup.
+
+### `GET /api/auth/profile/fido`
+
+Lists registered FIDO/WebAuthn security key devices for the current user.
+
+Response: `application/x-protobuf`, `FidoDeviceList`
+
+| Field (each `devices[]`) | Meaning                      |
+|--------------------------|------------------------------|
+| `id`                     | Unique device ID             |
+| `username`               | Account name                 |
+| `name`                   | Custom device label          |
+| `created_at`             | Creation timestamp (Unix ms) |
+
+### `POST /api/auth/profile/fido/register/begin`
+
+Start a FIDO registration session. Returns `session_id` and WebAuthn registration `options`.
+
+### `POST /api/auth/profile/fido/register/finish`
+
+Finish FIDO registration by submitting `session_id`, `name`, and browser `credential` JSON.
+
+### `DELETE /api/auth/profile/fido/:device_id`
+
+Delete one of your FIDO security key devices by `device_id`. Response: `StatusOk` protobuf.
+
+### `POST /api/auth/fido/login/begin`
+
+Begin a FIDO passwordless login flow. Optional `username`.
+
+### `POST /api/auth/fido/login/finish`
+
+Complete FIDO authentication. Issues browser `renop_session` Cookie and returns `SessionDetails` protobuf.
 
 ### `GET /api/auth/profile/sessions`
 

@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {apiRequest} from './api.js';
+import {apiRequest, fetchProto, putProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {el} from './cfg-ui.js';
@@ -16,15 +16,16 @@ import {RenopDialog} from './components.js';
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError} from './password-strength.js';
 import {openSessionsDialog} from './sessions.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
+import {FidoDeviceList, GenerateTokenResponse, StatusOk, UpdatePasswordRequest} from './proto/index.js';
 
 export async function loadProfileFidoDevices() {
     const listEl = document.getElementById('profile-fido-list');
     if (!listEl) return;
 
     try {
-        const response = await apiRequest('/api/auth/profile/fido');
-        if (!response.ok) return;
-        const devices = await response.json();
+        const {response, data} = await fetchProto('/api/auth/profile/fido', FidoDeviceList);
+        if (!response.ok || !data) return;
+        const devices = data.devices || [];
 
         listEl.innerHTML = '';
         if (!Array.isArray(devices) || devices.length === 0) {
@@ -36,7 +37,7 @@ export async function loadProfileFidoDevices() {
             const item = document.createElement('div');
             item.className = 'fido-device-item';
             item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; margin-bottom: 0.5rem; background: var(--card-bg, #ffffff);';
-            
+
             const info = document.createElement('div');
             info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
             const nameEl = document.createElement('span');
@@ -210,13 +211,7 @@ export function setupProfile() {
             }
 
             try {
-                const response = await apiRequest('/api/auth/profile/password', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({new_password: newPassword})
-                });
+                const {response} = await putProto('/api/auth/profile/password', UpdatePasswordRequest, {new_password: newPassword}, StatusOk);
 
                 if (response.ok) {
                     showAlert(t('profile.passwordUpdated'), 'success');
@@ -240,12 +235,12 @@ export function setupProfile() {
             }
 
             try {
-                const response = await apiRequest('/api/auth/profile/token', {
-                    method: 'POST'
-                });
+                const {
+                    response,
+                    data
+                } = await fetchProto('/api/auth/profile/token', GenerateTokenResponse, {method: 'POST'});
 
-                if (response.ok) {
-                    const data = await response.json();
+                if (response.ok && data) {
                     const tokenNode = el('div', {class: 'profile-token-reveal', style: {marginTop: '0'}},
                         el('div', {class: 'profile-token-label'}, t('profile.newTokenLabel')),
                         el('div', {class: 'profile-token-value-wrapper'},
@@ -257,7 +252,8 @@ export function setupProfile() {
                                     try {
                                         await navigator.clipboard.writeText(data.token);
                                         showAlert(t('prompt.copied'), 'success');
-                                    } catch (err) {}
+                                    } catch (err) {
+                                    }
                                 }
                             }, data.token)
                         ),

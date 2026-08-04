@@ -7,11 +7,12 @@
 package pb
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -2847,6 +2848,490 @@ func (x *ErrorMessage) GetError() string {
 	return ""
 }
 
+type FidoDeviceDto struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FidoDeviceDto) Reset() {
+	*x = FidoDeviceDto{}
+	mi := &file_api_v1_api_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FidoDeviceDto) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FidoDeviceDto) ProtoMessage() {}
+
+func (x *FidoDeviceDto) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FidoDeviceDto.ProtoReflect.Descriptor instead.
+func (*FidoDeviceDto) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *FidoDeviceDto) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *FidoDeviceDto) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *FidoDeviceDto) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *FidoDeviceDto) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+type FidoDeviceList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Devices       []*FidoDeviceDto       `protobuf:"bytes,1,rep,name=devices,proto3" json:"devices,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FidoDeviceList) Reset() {
+	*x = FidoDeviceList{}
+	mi := &file_api_v1_api_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FidoDeviceList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FidoDeviceList) ProtoMessage() {}
+
+func (x *FidoDeviceList) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FidoDeviceList.ProtoReflect.Descriptor instead.
+func (*FidoDeviceList) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *FidoDeviceList) GetDevices() []*FidoDeviceDto {
+	if x != nil {
+		return x.Devices
+	}
+	return nil
+}
+
+type UpdatePasswordRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NewPassword   string                 `protobuf:"bytes,1,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePasswordRequest) Reset() {
+	*x = UpdatePasswordRequest{}
+	mi := &file_api_v1_api_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePasswordRequest) ProtoMessage() {}
+
+func (x *UpdatePasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePasswordRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePasswordRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *UpdatePasswordRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
+type GenerateTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateTokenResponse) Reset() {
+	*x = GenerateTokenResponse{}
+	mi := &file_api_v1_api_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateTokenResponse) ProtoMessage() {}
+
+func (x *GenerateTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateTokenResponse.ProtoReflect.Descriptor instead.
+func (*GenerateTokenResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *GenerateTokenResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type CreateAccessTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Permissions   []string               `protobuf:"bytes,1,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	NewName       *string                `protobuf:"bytes,2,opt,name=new_name,json=newName,proto3,oneof" json:"new_name,omitempty"`
+	Secret        *string                `protobuf:"bytes,3,opt,name=secret,proto3,oneof" json:"secret,omitempty"`
+	IsCreate      bool                   `protobuf:"varint,4,opt,name=is_create,json=isCreate,proto3" json:"is_create,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAccessTokenRequest) Reset() {
+	*x = CreateAccessTokenRequest{}
+	mi := &file_api_v1_api_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAccessTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAccessTokenRequest) ProtoMessage() {}
+
+func (x *CreateAccessTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAccessTokenRequest.ProtoReflect.Descriptor instead.
+func (*CreateAccessTokenRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *CreateAccessTokenRequest) GetPermissions() []string {
+	if x != nil {
+		return x.Permissions
+	}
+	return nil
+}
+
+func (x *CreateAccessTokenRequest) GetNewName() string {
+	if x != nil && x.NewName != nil {
+		return *x.NewName
+	}
+	return ""
+}
+
+func (x *CreateAccessTokenRequest) GetSecret() string {
+	if x != nil && x.Secret != nil {
+		return *x.Secret
+	}
+	return ""
+}
+
+func (x *CreateAccessTokenRequest) GetIsCreate() bool {
+	if x != nil {
+		return x.IsCreate
+	}
+	return false
+}
+
+type CreateAccessTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   *AccessTokenDto        `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	Secret        string                 `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAccessTokenResponse) Reset() {
+	*x = CreateAccessTokenResponse{}
+	mi := &file_api_v1_api_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAccessTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAccessTokenResponse) ProtoMessage() {}
+
+func (x *CreateAccessTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAccessTokenResponse.ProtoReflect.Descriptor instead.
+func (*CreateAccessTokenResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *CreateAccessTokenResponse) GetAccessToken() *AccessTokenDto {
+	if x != nil {
+		return x.AccessToken
+	}
+	return nil
+}
+
+func (x *CreateAccessTokenResponse) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
+type VersionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsSnapshot    bool                   `protobuf:"varint,1,opt,name=is_snapshot,json=isSnapshot,proto3" json:"is_snapshot,omitempty"`
+	Versions      []string               `protobuf:"bytes,2,rep,name=versions,proto3" json:"versions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VersionsResponse) Reset() {
+	*x = VersionsResponse{}
+	mi := &file_api_v1_api_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VersionsResponse) ProtoMessage() {}
+
+func (x *VersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VersionsResponse.ProtoReflect.Descriptor instead.
+func (*VersionsResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *VersionsResponse) GetIsSnapshot() bool {
+	if x != nil {
+		return x.IsSnapshot
+	}
+	return false
+}
+
+func (x *VersionsResponse) GetVersions() []string {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+type LatestVersionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsSnapshot    bool                   `protobuf:"varint,1,opt,name=is_snapshot,json=isSnapshot,proto3" json:"is_snapshot,omitempty"`
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LatestVersionResponse) Reset() {
+	*x = LatestVersionResponse{}
+	mi := &file_api_v1_api_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LatestVersionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LatestVersionResponse) ProtoMessage() {}
+
+func (x *LatestVersionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LatestVersionResponse.ProtoReflect.Descriptor instead.
+func (*LatestVersionResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *LatestVersionResponse) GetIsSnapshot() bool {
+	if x != nil {
+		return x.IsSnapshot
+	}
+	return false
+}
+
+func (x *LatestVersionResponse) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+type PomDetails struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GroupId       string                 `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	ArtifactId    string                 `protobuf:"bytes,2,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
+	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PomDetails) Reset() {
+	*x = PomDetails{}
+	mi := &file_api_v1_api_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PomDetails) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PomDetails) ProtoMessage() {}
+
+func (x *PomDetails) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PomDetails.ProtoReflect.Descriptor instead.
+func (*PomDetails) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *PomDetails) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+func (x *PomDetails) GetArtifactId() string {
+	if x != nil {
+		return x.ArtifactId
+	}
+	return ""
+}
+
+func (x *PomDetails) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
 var File_api_v1_api_proto protoreflect.FileDescriptor
 
 const file_api_v1_api_proto_rawDesc = "" +
@@ -3134,7 +3619,43 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
 	"\x04path\x18\x03 \x01(\tR\x04path\"$\n" +
 	"\fErrorMessage\x12\x14\n" +
-	"\x05error\x18\x01 \x01(\tR\x05errorB\n" +
+	"\x05error\x18\x01 \x01(\tR\x05error\"n\n" +
+	"\rFidoDeviceDto\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"G\n" +
+	"\x0eFidoDeviceList\x125\n" +
+	"\adevices\x18\x01 \x03(\v2\x1b.renop.api.v1.FidoDeviceDtoR\adevices\":\n" +
+	"\x15UpdatePasswordRequest\x12!\n" +
+	"\fnew_password\x18\x01 \x01(\tR\vnewPassword\"-\n" +
+	"\x15GenerateTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xae\x01\n" +
+	"\x18CreateAccessTokenRequest\x12 \n" +
+	"\vpermissions\x18\x01 \x03(\tR\vpermissions\x12\x1e\n" +
+	"\bnew_name\x18\x02 \x01(\tH\x00R\anewName\x88\x01\x01\x12\x1b\n" +
+	"\x06secret\x18\x03 \x01(\tH\x01R\x06secret\x88\x01\x01\x12\x1b\n" +
+	"\tis_create\x18\x04 \x01(\bR\bisCreateB\v\n" +
+	"\t_new_nameB\t\n" +
+	"\a_secret\"t\n" +
+	"\x19CreateAccessTokenResponse\x12?\n" +
+	"\faccess_token\x18\x01 \x01(\v2\x1c.renop.api.v1.AccessTokenDtoR\vaccessToken\x12\x16\n" +
+	"\x06secret\x18\x02 \x01(\tR\x06secret\"O\n" +
+	"\x10VersionsResponse\x12\x1f\n" +
+	"\vis_snapshot\x18\x01 \x01(\bR\n" +
+	"isSnapshot\x12\x1a\n" +
+	"\bversions\x18\x02 \x03(\tR\bversions\"R\n" +
+	"\x15LatestVersionResponse\x12\x1f\n" +
+	"\vis_snapshot\x18\x01 \x01(\bR\n" +
+	"isSnapshot\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\"b\n" +
+	"\n" +
+	"PomDetails\x12\x19\n" +
+	"\bgroup_id\x18\x01 \x01(\tR\agroupId\x12\x1f\n" +
+	"\vartifact_id\x18\x02 \x01(\tR\n" +
+	"artifactId\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversionB\n" +
 	"Z\brenop/pbb\x06proto3"
 
 var (
@@ -3149,7 +3670,7 @@ func file_api_v1_api_proto_rawDescGZIP() []byte {
 	return file_api_v1_api_proto_rawDescData
 }
 
-var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_api_v1_api_proto_goTypes = []any{
 	(*AccessTokenIdentifier)(nil),         // 0: renop.api.v1.AccessTokenIdentifier
 	(*AccessTokenDto)(nil),                // 1: renop.api.v1.AccessTokenDto
@@ -3187,7 +3708,16 @@ var file_api_v1_api_proto_goTypes = []any{
 	(*ChunkedUploadInitResponse)(nil),     // 33: renop.api.v1.ChunkedUploadInitResponse
 	(*ChunkedUploadCompleteResponse)(nil), // 34: renop.api.v1.ChunkedUploadCompleteResponse
 	(*ErrorMessage)(nil),                  // 35: renop.api.v1.ErrorMessage
-	nil,                                   // 36: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	(*FidoDeviceDto)(nil),                 // 36: renop.api.v1.FidoDeviceDto
+	(*FidoDeviceList)(nil),                // 37: renop.api.v1.FidoDeviceList
+	(*UpdatePasswordRequest)(nil),         // 38: renop.api.v1.UpdatePasswordRequest
+	(*GenerateTokenResponse)(nil),         // 39: renop.api.v1.GenerateTokenResponse
+	(*CreateAccessTokenRequest)(nil),      // 40: renop.api.v1.CreateAccessTokenRequest
+	(*CreateAccessTokenResponse)(nil),     // 41: renop.api.v1.CreateAccessTokenResponse
+	(*VersionsResponse)(nil),              // 42: renop.api.v1.VersionsResponse
+	(*LatestVersionResponse)(nil),         // 43: renop.api.v1.LatestVersionResponse
+	(*PomDetails)(nil),                    // 44: renop.api.v1.PomDetails
+	nil,                                   // 45: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
 }
 var file_api_v1_api_proto_depIdxs = []int32{
 	0,  // 0: renop.api.v1.AccessTokenDto.identifier:type_name -> renop.api.v1.AccessTokenIdentifier
@@ -3202,16 +3732,18 @@ var file_api_v1_api_proto_depIdxs = []int32{
 	16, // 9: renop.api.v1.Mirror.authorization:type_name -> renop.api.v1.MirrorCredentials
 	17, // 10: renop.api.v1.Repository.mirrors:type_name -> renop.api.v1.Mirror
 	18, // 11: renop.api.v1.Repository.s3:type_name -> renop.api.v1.S3Config
-	36, // 12: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	45, // 12: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
 	21, // 13: renop.api.v1.FileDetails.files:type_name -> renop.api.v1.FileDetails
 	22, // 14: renop.api.v1.RepoDetailsResponse.mirrors:type_name -> renop.api.v1.RepoMirrorInfo
 	30, // 15: renop.api.v1.ServerConfig.database:type_name -> renop.api.v1.DatabaseConfig
-	19, // 16: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	36, // 16: renop.api.v1.FidoDeviceList.devices:type_name -> renop.api.v1.FidoDeviceDto
+	1,  // 17: renop.api.v1.CreateAccessTokenResponse.access_token:type_name -> renop.api.v1.AccessTokenDto
+	19, // 18: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_api_proto_init() }
@@ -3221,13 +3753,14 @@ func file_api_v1_api_proto_init() {
 	}
 	file_api_v1_api_proto_msgTypes[1].OneofWrappers = []any{}
 	file_api_v1_api_proto_msgTypes[21].OneofWrappers = []any{}
+	file_api_v1_api_proto_msgTypes[40].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_api_proto_rawDesc), len(file_api_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   37,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

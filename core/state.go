@@ -465,4 +465,3 @@ func (state *AppState) UpdateFidoSignCount(credentialID []byte, signCount uint32
 		return true
 	})
 }
-

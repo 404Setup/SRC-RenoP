@@ -88,25 +88,17 @@ SQLite データベース（既定は `renop.db`）へ移行・永続化され�
 
 ### `PUT /api/auth/profile/password`
 
-JSON:
+リクエスト: `application/x-protobuf`、`UpdatePasswordRequest`（JSON も受付可）:
 
-```json
-{"new_password": "6–72 bytes"}
-```
+| フィールド     | 型     | 制約        |
+|----------------|--------|-------------|
+| `new_password` | string | 6–72 バイト |
 
-```json
-{"status": "success"}
-```
-
-長さが不正 → 400。
+応答: `StatusOk` protobuf（`status: success`）。長さ不正 → 400。
 
 ### `POST /api/auth/profile/token`
 
-アップロードトークンを再生成（ユーザーごとに 1 つ。旧値は置換）。
-
-```json
-{"token": "<uuid>"}
-```
+アップロードトークンを再生成（ユーザーごとに 1 つ。旧値は置換）。応答: `GenerateTokenResponse` protobuf (`token: "<uuid>"`).
 
 Maven / curl:
 
@@ -116,6 +108,39 @@ curl -u admin:UPLOAD_TOKEN -T my.jar \
 ```
 
 Basic の secret にはアカウントパスワードまたはアップロードトークンを使えます（アカウント設定による）。
+
+### `GET /api/auth/profile/fido`
+
+現在のユーザーに登録されている FIDO/WebAuthn セキュリティキーデバイス一覧を取得します。
+
+応答: `application/x-protobuf`、`FidoDeviceList`
+
+| フィールド（`devices[]`） | 意味                    |
+|---------------------------|-------------------------|
+| `id`                      | デバイス固有 ID         |
+| `username`                | アカウント名            |
+| `name`                    | カスタムデバイス名      |
+| `created_at`              | 作成日時（Unix ミリ秒） |
+
+### `POST /api/auth/profile/fido/register/begin`
+
+FIDO デバイス登録を開始します。`session_id` と WebAuthn `options` を返します。
+
+### `POST /api/auth/profile/fido/register/finish`
+
+`session_id`、`name`、およびブラウザで生成された `credential` JSON を送信して FIDO 登録を完了します。
+
+### `DELETE /api/auth/profile/fido/:device_id`
+
+`device_id` で自身の FIDO デバイスを削除します。応答: `StatusOk` protobuf。
+
+### `POST /api/auth/fido/login/begin`
+
+FIDO パスワードレスログインを開始します。`username` は任意。
+
+### `POST /api/auth/fido/login/finish`
+
+FIDO 認証を完了し、ブラウザ `renop_session` Cookie を発行して `SessionDetails` protobuf を返します。
 
 ### `GET /api/auth/profile/sessions`
 

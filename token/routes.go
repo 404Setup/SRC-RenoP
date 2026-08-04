@@ -105,7 +105,7 @@ func FindToken(c fiber.Ctx, state *core.AppState) error {
 			Tokens:      token.Tokens,
 			Permissions: token.Permissions,
 		}
-		return c.JSON(dto)
+		return protohttp.Write(c, pb.FromAccessTokenDto(dto))
 	}
 
 	return c.Status(fiber.StatusNotFound).SendString("Not found")
@@ -118,9 +118,17 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
+	var reqMsg pb.CreateAccessTokenRequest
 	var createReq core.CreateAccessTokenRequest
-	if err := c.Bind().JSON(&createReq); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Bad request")
+	if err := protohttp.Read(c, &reqMsg); err == nil && (len(reqMsg.Permissions) > 0 || reqMsg.NewName != nil || reqMsg.Secret != nil || reqMsg.IsCreate) {
+		createReq.Permissions = reqMsg.Permissions
+		createReq.NewName = reqMsg.NewName
+		createReq.Secret = reqMsg.Secret
+		createReq.IsCreate = reqMsg.IsCreate
+	} else {
+		if err := c.Bind().JSON(&createReq); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Bad request")
+		}
 	}
 
 	origToken := state.GetTokenByName(name)
@@ -233,7 +241,7 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		Secret:      returnedSecret,
 	}
 
-	return c.JSON(res)
+	return protohttp.Write(c, pb.FromCreateAccessTokenResponse(res))
 }
 
 func DeleteToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error {
@@ -342,5 +350,5 @@ func GenerateTokenForUser(c fiber.Ctx, opChan chan<- TokenOp) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	return c.JSON(GenerateTokenResponse{Token: newToken})
+	return protohttp.Write(c, &pb.GenerateTokenResponse{Token: newToken})
 }

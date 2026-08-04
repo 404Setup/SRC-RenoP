@@ -24,8 +24,10 @@ import (
 	"renop/auth"
 	"renop/config"
 	"renop/core"
+	"renop/pb"
 	"renop/storage"
 	"renop/utils"
+	"renop/utils/protohttp"
 )
 
 func FindVersions(c fiber.Ctx, state *core.AppState) error {
@@ -62,12 +64,12 @@ func FindVersions(c fiber.Ctx, state *core.AppState) error {
 
 	isSnapshot, versions := FindVersionsInternal(metadata, filterPtr, sorted)
 
-	res := VersionsResponse{
+	res := &pb.VersionsResponse{
 		IsSnapshot: isSnapshot,
 		Versions:   versions,
 	}
 
-	return c.JSON(res)
+	return protohttp.Write(c, res)
 }
 
 func LatestVersion(c fiber.Ctx, state *core.AppState) error {
@@ -114,12 +116,12 @@ func LatestVersion(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusOK).SendString(version)
 	}
 
-	res := LatestVersionResponse{
+	res := &pb.LatestVersionResponse{
 		IsSnapshot: isSnapshot,
 		Version:    version,
 	}
 
-	return c.JSON(res)
+	return protohttp.Write(c, res)
 }
 
 func isBadPath(str string) bool {
@@ -293,23 +295,23 @@ func LatestDetails(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	var details FileDetails
+	var details pb.FileDetails
 	if isDirectory {
-		details = FileDetails{
-			Type: FileDetailsTypeDirectory,
+		details = pb.FileDetails{
+			Type: string(FileDetailsTypeDirectory),
 			Name: filepath.Base(localFilePath),
 		}
 	} else {
 		modTimeStr := time.Unix(0, modTimeNano).UTC().Format(time.RFC3339Nano)
-		details = FileDetails{
-			Type:             FileDetailsTypeFile,
+		details = pb.FileDetails{
+			Type:             string(FileDetailsTypeFile),
 			Name:             filepath.Base(localFilePath),
 			ContentLength:    &size,
 			LastModifiedTime: &modTimeStr,
 		}
 	}
 
-	return c.JSON(details)
+	return protohttp.Write(c, &details)
 }
 
 func LatestFile(c fiber.Ctx, state *core.AppState) error {
