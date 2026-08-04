@@ -27,7 +27,7 @@ Needs Go, PowerShell 7, Node.js.
 
 ```powershell
 pwsh ./build.ps1                 # full matrix → dist/
-pwsh ./build.ps1 s               # macOS amd64/arm64, Linux amd64/arm64, Windows amd64
+pwsh ./build.ps1 s               # Linux amd64/arm64, Windows amd64/arm64
 pwsh ./build.ps1 c               # current platform
 pwsh ./build.ps1 c nb            # current platform does not package as zip
 ```

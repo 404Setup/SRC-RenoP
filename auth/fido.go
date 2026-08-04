@@ -30,6 +30,7 @@ import (
 	"renop/config"
 	"renop/core"
 	"renop/pb"
+	"renop/token"
 	"renop/utils"
 	"renop/utils/protohttp"
 )
@@ -64,6 +65,12 @@ func buildFidoUser(username string, state *core.AppState) *FidoUser {
 			ID:              d.CredentialID,
 			PublicKey:       d.PublicKey,
 			AttestationType: d.AttestationType,
+			Flags: webauthn.CredentialFlags{
+				UserPresent:    d.UserPresent,
+				UserVerified:   d.UserVerified,
+				BackupEligible: d.BackupEligible,
+				BackupState:    d.BackupState,
+			},
 			Authenticator: webauthn.Authenticator{
 				AAGUID:    d.AAGUID,
 				SignCount: d.SignCount,
@@ -304,7 +311,15 @@ func PostFidoRegisterBegin(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	fidoUser := buildFidoUser(user.Username, state)
-	options, sessionData, err := w.BeginRegistration(fidoUser)
+	options, sessionData, err := w.BeginRegistration(
+		fidoUser,
+		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+			AuthenticatorAttachment: "",
+			ResidentKey:             protocol.ResidentKeyRequirementPreferred,
+			UserVerification:        protocol.VerificationPreferred,
+		}),
+		webauthn.WithConveyancePreference(protocol.PreferNoAttestation),
+	)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to begin registration: " + err.Error())
 	}
@@ -372,6 +387,10 @@ func PostFidoRegisterFinish(c fiber.Ctx, state *core.AppState) error {
 		AAGUID:          credential.Authenticator.AAGUID,
 		SignCount:       credential.Authenticator.SignCount,
 		CreatedAt:       time.Now().UnixMilli(),
+		UserPresent:     credential.Flags.UserPresent,
+		UserVerified:    credential.Flags.UserVerified,
+		BackupEligible:  credential.Flags.BackupEligible,
+		BackupState:     credential.Flags.BackupState,
 	}
 
 	state.SaveFidoDevice(device)
@@ -455,15 +474,17 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 	var options *protocol.CredentialAssertion
 	var sessionData *webauthn.SessionData
 
+	userVerificationOpt := webauthn.WithUserVerification(protocol.VerificationPreferred)
+
 	if reqUsername != "" {
 		fidoUser := buildFidoUser(reqUsername, state)
 		if len(fidoUser.Credentials) > 0 {
-			options, sessionData, err = w.BeginLogin(fidoUser)
+			options, sessionData, err = w.BeginLogin(fidoUser, userVerificationOpt)
 		} else {
-			options, sessionData, err = w.BeginDiscoverableLogin()
+			options, sessionData, err = w.BeginDiscoverableLogin(userVerificationOpt)
 		}
 	} else {
-		options, sessionData, err = w.BeginDiscoverableLogin()
+		options, sessionData, err = w.BeginDiscoverableLogin(userVerificationOpt)
 	}
 
 	if err != nil {
@@ -511,6 +532,14 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to parse assertion response: " + err.Error())
 	}
 
+	incomingBE := parsedResponse.Response.AuthenticatorData.Flags.HasBackupEligible()
+	if incomingBE {
+		if matchedDevice := state.GetFidoDeviceByCredentialID(parsedResponse.RawID); matchedDevice != nil && !matchedDevice.BackupEligible {
+			matchedDevice.BackupEligible = true
+			state.UpdateFidoDeviceState(matchedDevice.CredentialID, matchedDevice.SignCount, matchedDevice.BackupState, true)
+		}
+	}
+
 	var authenticatedUser *config.User
 	var matchedCred *webauthn.Credential
 
@@ -519,35 +548,76 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 		if matchedDevice == nil {
 			return nil, errors.New("FIDO credential not found")
 		}
-		if len(userHandle) > 0 && !strings.EqualFold(string(userHandle), matchedDevice.Username) {
-			return nil, errors.New("FIDO user handle mismatch")
-		}
 		targetUsername := matchedDevice.Username
+		if len(userHandle) > 0 {
+			expectedHandle := strings.ToLower(targetUsername)
+			if !strings.EqualFold(string(userHandle), expectedHandle) && !bytes.Equal(userHandle, []byte(expectedHandle)) {
+				return nil, errors.New("FIDO user handle mismatch")
+			}
+		}
 		accessToken := state.GetTokenByName(targetUsername)
+		if accessToken == nil && state.Inner.TokensCount.Load() == 0 {
+			token.AutoRegisterAdmin(state, nil)
+			accessToken = state.GetTokenByName(targetUsername)
+		}
 		if accessToken != nil {
 			authenticatedUser = buildSynthUser(accessToken)
 		}
 		return buildFidoUser(targetUsername, state), nil
 	}
 
+	var lastErr error
 	if sessionUsername != "" {
 		fidoUser := buildFidoUser(sessionUsername, state)
-		matchedCred, err = w.ValidateLogin(fidoUser, *sessionData, parsedResponse)
-		if err == nil {
-			accessToken := state.GetTokenByName(sessionUsername)
+		if len(fidoUser.Credentials) > 0 {
+			var loginErr error
+			matchedCred, loginErr = w.ValidateLogin(fidoUser, *sessionData, parsedResponse)
+			if loginErr == nil && matchedCred != nil {
+				accessToken := state.GetTokenByName(sessionUsername)
+				if accessToken == nil && state.Inner.TokensCount.Load() == 0 {
+					token.AutoRegisterAdmin(state, nil)
+					accessToken = state.GetTokenByName(sessionUsername)
+				}
+				if accessToken != nil {
+					authenticatedUser = buildSynthUser(accessToken)
+				}
+			} else if loginErr != nil {
+				lastErr = loginErr
+			}
+		}
+	}
+
+	if matchedCred == nil || authenticatedUser == nil {
+		var discErr error
+		matchedCred, discErr = w.ValidateDiscoverableLogin(userHandler, *sessionData, parsedResponse)
+		if discErr != nil && lastErr == nil {
+			lastErr = discErr
+		}
+	}
+
+	if matchedCred != nil && authenticatedUser == nil {
+		matchedDevice := state.GetFidoDeviceByCredentialID(matchedCred.ID)
+		if matchedDevice != nil {
+			accessToken := state.GetTokenByName(matchedDevice.Username)
+			if accessToken == nil && state.Inner.TokensCount.Load() == 0 {
+				token.AutoRegisterAdmin(state, nil)
+				accessToken = state.GetTokenByName(matchedDevice.Username)
+			}
 			if accessToken != nil {
 				authenticatedUser = buildSynthUser(accessToken)
 			}
 		}
-	} else {
-		matchedCred, err = w.ValidateDiscoverableLogin(userHandler, *sessionData, parsedResponse)
 	}
 
-	if err != nil || authenticatedUser == nil || matchedCred == nil {
-		return c.Status(fiber.StatusUnauthorized).SendString("FIDO authentication failed")
+	if authenticatedUser == nil || matchedCred == nil {
+		errMsg := "FIDO authentication failed"
+		if lastErr != nil {
+			errMsg += ": " + lastErr.Error()
+		}
+		return c.Status(fiber.StatusUnauthorized).SendString(errMsg)
 	}
 
-	state.UpdateFidoSignCount(matchedCred.ID, matchedCred.Authenticator.SignCount)
+	state.UpdateFidoDeviceState(matchedCred.ID, matchedCred.Authenticator.SignCount, matchedCred.Flags.BackupState, matchedCred.Flags.BackupEligible)
 
 	sessionToken := uuid.NewString()
 	publicId := uuid.NewString()
@@ -566,5 +636,8 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 
 	setSessionCookie(c, sessionToken, int(core.SessionIdleTimeoutMillis/1000))
 	details := CreateSessionDetails(authenticatedUser, "")
-	return protohttp.Write(c, pb.FromSessionDetails(details))
+	if strings.Contains(c.Get(fiber.HeaderAccept), protohttp.ContentType) {
+		return protohttp.Write(c, pb.FromSessionDetails(details))
+	}
+	return c.JSON(details)
 }

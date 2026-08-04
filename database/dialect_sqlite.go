@@ -54,7 +54,11 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		attestation_type VARCHAR(64) NOT NULL,
 		aaguid BLOB NOT NULL,
 		sign_count INT NOT NULL,
-		created_at BIGINT NOT NULL
+		created_at BIGINT NOT NULL,
+		user_present INT NOT NULL DEFAULT 0,
+		user_verified INT NOT NULL DEFAULT 0,
+		backup_eligible INT NOT NULL DEFAULT 0,
+		backup_state INT NOT NULL DEFAULT 0
 	);`
 
 	if _, err := db.Exec(tokensTable); err != nil {
@@ -66,6 +70,11 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if _, err := db.Exec(fidoTable); err != nil {
 		return err
 	}
+
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
 
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);")

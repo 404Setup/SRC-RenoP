@@ -103,20 +103,12 @@ $allTargets = @(
 switch ($Mode) {
     's' {
         $targets = @(
-            @{ GOOS = 'darwin'; GOARCH = 'amd64' },
-            @{ GOOS = 'darwin'; GOARCH = 'amd64v2' },
-            @{ GOOS = 'darwin'; GOARCH = 'amd64v3' },
-            @{ GOOS = 'darwin'; GOARCH = 'amd64v4' },
-            @{ GOOS = 'darwin'; GOARCH = 'arm64' },
             @{ GOOS = 'linux'; GOARCH = 'amd64' },
-            @{ GOOS = 'linux'; GOARCH = 'amd64v2' },
-            @{ GOOS = 'linux'; GOARCH = 'amd64v3' },
             @{ GOOS = 'linux'; GOARCH = 'amd64v4' },
             @{ GOOS = 'linux'; GOARCH = 'arm64' },
             @{ GOOS = 'windows'; GOARCH = 'amd64' },
-            @{ GOOS = 'windows'; GOARCH = 'amd64v2' },
-            @{ GOOS = 'windows'; GOARCH = 'amd64v3' },
-            @{ GOOS = 'windows'; GOARCH = 'amd64v4' }
+            @{ GOOS = 'windows'; GOARCH = 'amd64v4' },
+            @{ GOOS = 'windows'; GOARCH = 'arm64' }
         )
     }
     'c' {

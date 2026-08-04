@@ -116,6 +116,20 @@ export async function addFidoDevice() {
                 ...c,
                 id: base64urlToBuffer(c.id)
             }));
+            if (publicKey.excludeCredentials.length === 0) {
+                delete publicKey.excludeCredentials;
+            }
+        }
+
+        if (!publicKey.authenticatorSelection) {
+            publicKey.authenticatorSelection = {};
+        }
+        delete publicKey.authenticatorSelection.authenticatorAttachment;
+        if (!publicKey.authenticatorSelection.userVerification) {
+            publicKey.authenticatorSelection.userVerification = 'preferred';
+        }
+        if (!publicKey.authenticatorSelection.residentKey) {
+            publicKey.authenticatorSelection.residentKey = 'preferred';
         }
 
         const credential = await navigator.credentials.create({publicKey});

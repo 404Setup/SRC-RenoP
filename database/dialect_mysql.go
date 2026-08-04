@@ -58,6 +58,10 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		aaguid VARBINARY(64) NOT NULL,
 		sign_count INT NOT NULL,
 		created_at BIGINT NOT NULL,
+		user_present INT NOT NULL DEFAULT 0,
+		user_verified INT NOT NULL DEFAULT 0,
+		backup_eligible INT NOT NULL DEFAULT 0,
+		backup_state INT NOT NULL DEFAULT 0,
 		INDEX idx_fido_username (username),
 		INDEX idx_fido_credential_id (credential_id)
 	);`
@@ -71,6 +75,11 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if _, err := db.Exec(fidoTable); err != nil {
 		return err
 	}
+
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
+	_, _ = db.Exec("ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
 
 	return nil
 }

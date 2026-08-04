@@ -87,6 +87,14 @@ func TestFidoBeginEndpoints(t *testing.T) {
 			assert.Equal(t, uint32(42), updated.SignCount)
 		}
 
+		state.UpdateFidoDeviceState([]byte("cred-123"), 45, true, true)
+		updatedState := state.GetFidoDeviceByCredentialID([]byte("cred-123"))
+		if assert.NotNil(t, updatedState) {
+			assert.Equal(t, uint32(45), updatedState.SignCount)
+			assert.True(t, updatedState.BackupState)
+			assert.True(t, updatedState.BackupEligible)
+		}
+
 		deleted := state.DeleteFidoDevice("user1", "dev-1")
 		assert.True(t, deleted)
 		assert.Empty(t, state.ListFidoDevices("user1"))

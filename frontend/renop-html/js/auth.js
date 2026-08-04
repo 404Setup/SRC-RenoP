@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {decodeProtoResponse, fetchProto, getAuthHeaders, postProto} from './api.js';
+import {fetchProto, getAuthHeaders, postProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {closeModalWithAnim, updateTabIndicator} from './app-ui.js';
@@ -223,7 +223,7 @@ export async function initializeSession() {
     localStorage.removeItem('session-token');
     const wasLoggedIn = !!localStorage.getItem('username');
 
-	try {
+    try {
         const {response, data: sessionData} = await fetchProto('/api/auth/me', SessionDetails);
         if (response.ok) {
             const permissions = (sessionData && sessionData.permissions) || [];
@@ -238,7 +238,7 @@ export async function initializeSession() {
                 localStorage.setItem('username', serverName);
             }
 
-			updateAuthUI(true, serverName, isManager, permissions, routes);
+            updateAuthUI(true, serverName, isManager, permissions, routes);
         } else if (response.status === 403 || response.status === 401) {
             if (wasLoggedIn) {
                 logout('expired');
@@ -281,7 +281,7 @@ export async function login(name, secret) {
             localStorage.removeItem('token-name');
             localStorage.removeItem('token-secret');
             localStorage.setItem('username', name);
-			localStorage.removeItem('session-token');
+            localStorage.removeItem('session-token');
 
             updateAuthUI(true, name, isManager, permissions, routes);
             closeModalWithAnim(loginModal, () => {
@@ -383,6 +383,16 @@ export async function fidoLogin() {
                 ...c,
                 id: base64urlToBuffer(c.id)
             }));
+            if (publicKey.allowCredentials.length === 0) {
+                delete publicKey.allowCredentials;
+            }
+        }
+
+        if (publicKey.authenticatorSelection) {
+            delete publicKey.authenticatorSelection.authenticatorAttachment;
+        }
+        if (!publicKey.userVerification) {
+            publicKey.userVerification = 'preferred';
         }
 
         const assertion = await navigator.credentials.get({publicKey});
@@ -409,7 +419,7 @@ export async function fidoLogin() {
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                Accept: 'application/x-protobuf'
+                'Accept': 'application/json'
             },
             body: JSON.stringify({
                 session_id,
@@ -418,7 +428,7 @@ export async function fidoLogin() {
         });
 
         if (finishRes.ok) {
-            const sessionData = await decodeProtoResponse(finishRes, SessionDetails);
+            const sessionData = await finishRes.json();
             const permissions = (sessionData && sessionData.permissions) || [];
             const routes = (sessionData && sessionData.routes) || [];
             const isManager = isManagerFromSession(permissions);

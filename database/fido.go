@@ -25,7 +25,7 @@ func (db *DB) ListFidoDevices(username string) ([]*core.FidoDevice, error) {
 	}
 
 	lowerName := strings.ToLower(username)
-	query := `SELECT id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at FROM fido_devices WHERE username = ?`
+	query := `SELECT id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state FROM fido_devices WHERE username = ?`
 	rows, err := db.SqlDB.Query(query, lowerName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query fido devices for user (%s): %w", lowerName, err)
@@ -35,9 +35,14 @@ func (db *DB) ListFidoDevices(username string) ([]*core.FidoDevice, error) {
 	var devices []*core.FidoDevice
 	for rows.Next() {
 		dev := &core.FidoDevice{}
-		if err := rows.Scan(&dev.ID, &dev.Username, &dev.Name, &dev.CredentialID, &dev.PublicKey, &dev.AttestationType, &dev.AAGUID, &dev.SignCount, &dev.CreatedAt); err != nil {
+		var userPresent, userVerified, backupEligible, backupState int
+		if err := rows.Scan(&dev.ID, &dev.Username, &dev.Name, &dev.CredentialID, &dev.PublicKey, &dev.AttestationType, &dev.AAGUID, &dev.SignCount, &dev.CreatedAt, &userPresent, &userVerified, &backupEligible, &backupState); err != nil {
 			return nil, fmt.Errorf("failed to scan fido device row: %w", err)
 		}
+		dev.UserPresent = userPresent != 0
+		dev.UserVerified = userVerified != 0
+		dev.BackupEligible = backupEligible != 0
+		dev.BackupState = backupState != 0
 		devices = append(devices, dev)
 	}
 
@@ -57,17 +62,22 @@ func (db *DB) GetFidoDeviceByCredentialID(credentialID []byte) (*core.FidoDevice
 		return nil, nil
 	}
 
-	query := `SELECT id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at FROM fido_devices WHERE credential_id = ?`
+	query := `SELECT id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state FROM fido_devices WHERE credential_id = ?`
 	row := db.SqlDB.QueryRow(query, credentialID)
 
 	dev := &core.FidoDevice{}
-	err := row.Scan(&dev.ID, &dev.Username, &dev.Name, &dev.CredentialID, &dev.PublicKey, &dev.AttestationType, &dev.AAGUID, &dev.SignCount, &dev.CreatedAt)
+	var userPresent, userVerified, backupEligible, backupState int
+	err := row.Scan(&dev.ID, &dev.Username, &dev.Name, &dev.CredentialID, &dev.PublicKey, &dev.AttestationType, &dev.AAGUID, &dev.SignCount, &dev.CreatedAt, &userPresent, &userVerified, &backupEligible, &backupState)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to query fido device by credential id: %w", err)
 	}
+	dev.UserPresent = userPresent != 0
+	dev.UserVerified = userVerified != 0
+	dev.BackupEligible = backupEligible != 0
+	dev.BackupState = backupState != 0
 
 	return dev, nil
 }
@@ -78,9 +88,25 @@ func (db *DB) SaveFidoDevice(device *core.FidoDevice) error {
 	}
 
 	lowerName := strings.ToLower(device.Username)
-	query := `INSERT INTO fido_devices (id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := db.SqlDB.Exec(query, device.ID, lowerName, device.Name, device.CredentialID, device.PublicKey, device.AttestationType, device.AAGUID, device.SignCount, device.CreatedAt)
+	query := `INSERT INTO fido_devices (id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	userPresentInt := 0
+	if device.UserPresent {
+		userPresentInt = 1
+	}
+	userVerifiedInt := 0
+	if device.UserVerified {
+		userVerifiedInt = 1
+	}
+	backupEligibleInt := 0
+	if device.BackupEligible {
+		backupEligibleInt = 1
+	}
+	backupStateInt := 0
+	if device.BackupState {
+		backupStateInt = 1
+	}
+	_, err := db.SqlDB.Exec(query, device.ID, lowerName, device.Name, device.CredentialID, device.PublicKey, device.AttestationType, device.AAGUID, device.SignCount, device.CreatedAt, userPresentInt, userVerifiedInt, backupEligibleInt, backupStateInt)
 	if err != nil {
 		return fmt.Errorf("failed to save fido device (%s): %w", device.ID, err)
 	}
@@ -125,6 +151,29 @@ func (db *DB) UpdateFidoSignCount(credentialID []byte, signCount uint32) error {
 	_, err := db.SqlDB.Exec(query, signCount, credentialID)
 	if err != nil {
 		return fmt.Errorf("failed to update fido sign count: %w", err)
+	}
+
+	return nil
+}
+
+func (db *DB) UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) error {
+	if db == nil || db.SqlDB == nil || len(credentialID) == 0 {
+		return nil
+	}
+
+	backupStateInt := 0
+	if backupState {
+		backupStateInt = 1
+	}
+	backupEligibleInt := 0
+	if backupEligible {
+		backupEligibleInt = 1
+	}
+
+	query := `UPDATE fido_devices SET sign_count = ?, backup_state = ?, backup_eligible = ? WHERE credential_id = ?`
+	_, err := db.SqlDB.Exec(query, signCount, backupStateInt, backupEligibleInt, credentialID)
+	if err != nil {
+		return fmt.Errorf("failed to update fido device state: %w", err)
 	}
 
 	return nil
