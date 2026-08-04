@@ -85,7 +85,7 @@ function createCustomField(label, options, value, onChange) {
  * @param {string} opts.statusId
  * @param {boolean} [opts.disabled]
  * @param {number} [opts.index=0]
- * @returns {HTMLElement}
+ * @returns {{ card: HTMLElement, setDisabled: (disabled: boolean) => void }}
  */
 function releaseCard({
                          title,
@@ -124,26 +124,33 @@ function releaseCard({
     card.appendChild(changelog);
 
     const actions = el('div', {class: 'release-actions'});
-    if (disabled) {
-        actions.appendChild(
-            el('button', {
-                type: 'button',
-                class: 'pill-btn pill-btn--disabled',
-                disabled: true,
-            }, t('download.buildUnavailable')),
-        );
-    } else {
-        actions.appendChild(
-            el('button', {
-                type: 'button',
-                class: 'pill-btn pill-btn--primary',
-                onClick: onDownload,
-            }, t('download.downloadBtn')),
-        );
-    }
+
+    const disabledBtn = el('button', {
+        type: 'button',
+        class: 'pill-btn pill-btn--disabled',
+        disabled: true,
+        style: disabled ? {} : {display: 'none'},
+    }, t('download.buildUnavailable'));
+
+    const primaryBtn = el('button', {
+        type: 'button',
+        class: 'pill-btn pill-btn--primary',
+        style: disabled ? {display: 'none'} : {},
+        onClick: onDownload,
+    }, t('download.downloadBtn'));
+
+    actions.appendChild(disabledBtn);
+    actions.appendChild(primaryBtn);
     actions.appendChild(el('span', {class: 'release-status', id: statusId}, ''));
     card.appendChild(actions);
-    return card;
+
+    return {
+        card,
+        setDisabled(nextDisabled) {
+            disabledBtn.style.display = nextDisabled ? '' : 'none';
+            primaryBtn.style.display = nextDisabled ? 'none' : '';
+        },
+    };
 }
 
 /**
@@ -199,12 +206,28 @@ export async function renderDownload({root}) {
     const tabsEl = tabsContainer.querySelector('.tabs');
     registerTabContainer(tabsEl);
 
+    /** @type {Array<{ card: HTMLElement, release: object, globalIndex: number, setDisabled: (disabled: boolean) => void }>} */
+    let renderedCardControllers = [];
+
+    function updatePlatformState() {
+        const isStable = channel === 'stable';
+        renderedCardControllers.forEach((ctrl) => {
+            if (isStable) {
+                ctrl.setDisabled(false);
+            } else {
+                const target = findTargetForPlatform(ctrl.release.targets, os, arch);
+                const isAvailable = ctrl.globalIndex === 0 && Boolean(target?.file);
+                ctrl.setDisabled(!isAvailable);
+            }
+        });
+    }
+
     const osField = createCustomField(t('download.os'), PLATFORMS.os, os, (v) => {
         os = v;
         arch = archField.select.setOptions(getArchOptionsForOs(os), arch);
         savePlatform(os, arch);
         ensurePlatform();
-        renderPageContent();
+        updatePlatformState();
     });
     const archField = createCustomField(
         t('download.arch'),
@@ -214,7 +237,7 @@ export async function renderDownload({root}) {
             arch = v;
             savePlatform(os, arch);
             ensurePlatform();
-            renderPageContent();
+            updatePlatformState();
         },
     );
 
@@ -307,6 +330,7 @@ export async function renderDownload({root}) {
     function renderPageContent() {
         clear(list);
         clear(paginationWrapper);
+        renderedCardControllers = [];
 
         const releases = cachedReleases || [];
         if (!releases.length) {
@@ -327,43 +351,44 @@ export async function renderDownload({root}) {
         pageReleases.forEach((rel, index) => {
             const globalIndex = startIdx + index;
             const statusId = `status-${channel}-${globalIndex}`;
+            let ctrl;
             if (isStable) {
-                list.appendChild(
-                    releaseCard({
-                        title: rel.tag || rel.name,
-                        badge: t('download.stableBadge'),
-                        date: formatDate(rel.publishedAt, getCurrentLang()),
-                        body: rel.body,
-                        statusId,
-                        index,
-                        onDownload: () => downloadPackage('stable', {
-                            version: rel.id || rel.tag,
-                            tag: rel.tag,
-                            targets: rel.targets,
-                        }, statusId),
-                    }),
-                );
+                ctrl = releaseCard({
+                    title: rel.tag || rel.name,
+                    badge: t('download.stableBadge'),
+                    date: formatDate(rel.publishedAt, getCurrentLang()),
+                    body: rel.body,
+                    statusId,
+                    index,
+                    onDownload: () => downloadPackage('stable', {
+                        version: rel.id || rel.tag,
+                        tag: rel.tag,
+                        targets: rel.targets,
+                    }, statusId),
+                });
             } else {
                 const target = findTargetForPlatform(rel.targets, os, arch);
                 const isAvailable = globalIndex === 0 && Boolean(target?.file);
-                list.appendChild(
-                    releaseCard({
-                        title: rel.name || t('download.latestPreview'),
-                        badge: t('download.previewBadge'),
-                        badgeClass: 'release-badge--preview',
-                        date: formatDate(rel.publishedAt, getCurrentLang()),
-                        body: rel.body,
-                        statusId,
-                        index,
-                        disabled: !isAvailable,
-                        onDownload: () => downloadPackage('nightly', {
-                            version: rel.version,
-                            tag: rel.tag,
-                            targets: rel.targets,
-                        }, statusId),
-                    }),
-                );
+                ctrl = releaseCard({
+                    title: rel.name || t('download.latestPreview'),
+                    badge: t('download.previewBadge'),
+                    badgeClass: 'release-badge--preview',
+                    date: formatDate(rel.publishedAt, getCurrentLang()),
+                    body: rel.body,
+                    statusId,
+                    index,
+                    disabled: !isAvailable,
+                    onDownload: () => downloadPackage('nightly', {
+                        version: rel.version,
+                        tag: rel.tag,
+                        targets: rel.targets,
+                    }, statusId),
+                });
             }
+            ctrl.release = rel;
+            ctrl.globalIndex = globalIndex;
+            renderedCardControllers.push(ctrl);
+            list.appendChild(ctrl.card);
         });
 
         if (totalPages > 1) {
