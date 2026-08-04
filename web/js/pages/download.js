@@ -10,6 +10,7 @@
 
 import {getCurrentLang, t} from '../i18n.js';
 import {clear, el, registerTabContainer, updateTabIndicator} from '@renop/ui';
+import {bindModalChrome} from '@renop/ui/modal';
 import {
     detectPlatform,
     fetchPreviewReleases,
@@ -21,6 +22,7 @@ import {
     packageDownloadUrl,
     PLATFORMS,
     triggerBrowserDownload,
+    X64_VERSIONS,
 } from '../lib/official.js';
 import {makeCustomSelect} from '../components/custom-select.js';
 
@@ -72,6 +74,109 @@ function createCustomField(label, options, value, onChange) {
     const select = makeCustomSelect(options, value, onChange);
     field.appendChild(select.wrap);
     return {field, select};
+}
+
+/**
+ * @param {string} labelText
+ * @param {Array<{value:string,label:string}>} options
+ * @param {string} value
+ * @param {(value: string) => void} onChange
+ * @param {() => void} onInfoClick
+ * @returns {{ field: HTMLElement, select: ReturnType<typeof makeCustomSelect> }}
+ */
+function createX64Field(labelText, options, value, onChange, onInfoClick) {
+    const infoBtn = el('button', {
+        type: 'button',
+        class: 'x64-info-btn',
+        title: t('download.x64InfoTitle'),
+        'aria-label': t('download.x64InfoTitle'),
+        onClick: (e) => {
+            e.stopPropagation();
+            onInfoClick();
+        },
+    }, '?');
+
+    const label = el('label', {class: 'download-field-label'},
+        el('span', {}, labelText),
+        infoBtn,
+    );
+
+    const field = el('div', {class: 'download-field download-field-x64'}, label);
+    const select = makeCustomSelect(options, value, onChange);
+    field.appendChild(select.wrap);
+    return {field, select};
+}
+
+/**
+ * @returns {{ dialogEl: HTMLElement, open: () => void, close: () => void, destroy: () => void }}
+ */
+function createX64InfoDialog() {
+    const backdrop = el('div', {class: 'modal-backdrop', id: 'x64-info-backdrop'});
+    const closeBtn = el('button', {
+        type: 'button',
+        class: 'close-btn',
+        id: 'x64-info-close-btn',
+        'aria-label': t('modal.close'),
+    }, '×');
+
+    const modalBody = el('div', {class: 'modal-body x64-modal-body'},
+        el('div', {class: 'x64-version-list'},
+            el('div', {class: 'x64-version-item'},
+                el('h4', {class: 'x64-version-name'}, 'v1'),
+                el('p', {class: 'x64-version-desc'}, t('download.x64V1Desc')),
+            ),
+            el('div', {class: 'x64-version-item'},
+                el('h4', {class: 'x64-version-name'}, 'v2'),
+                el('p', {class: 'x64-version-desc'}, t('download.x64V2Desc')),
+            ),
+            el('div', {class: 'x64-version-item'},
+                el('h4', {class: 'x64-version-name'}, 'v3'),
+                el('p', {class: 'x64-version-desc'}, t('download.x64V3Desc')),
+            ),
+            el('div', {class: 'x64-version-item'},
+                el('h4', {class: 'x64-version-name'}, 'v4'),
+                el('p', {class: 'x64-version-desc'}, t('download.x64V4Desc')),
+            ),
+        ),
+        el('div', {class: 'x64-advice-box'},
+            el('h4', {class: 'x64-advice-title'}, t('download.x64AdviceTitle')),
+            el('p', {class: 'x64-advice-desc'}, t('download.x64AdviceDesc')),
+        ),
+    );
+
+    const dialogEl = el('div', {
+            id: 'x64-info-modal',
+            class: 'modal x64-info-modal',
+            style: {display: 'none'},
+        },
+        backdrop,
+        el('div', {class: 'modal-content x64-modal-content', style: {maxWidth: '560px'}},
+            closeBtn,
+            el('div', {class: 'modal-header'},
+                el('h3', {class: 'modal-title'}, t('download.x64DialogTitle')),
+                el('p', {class: 'modal-subtitle'}, t('download.x64DialogSubtitle')),
+            ),
+            modalBody,
+        ),
+    );
+
+    document.body.appendChild(dialogEl);
+
+    const chrome = bindModalChrome({
+        modal: dialogEl,
+        closeTriggers: [closeBtn, backdrop],
+        escape: true,
+    });
+
+    return {
+        dialogEl,
+        open: () => chrome?.open(),
+        close: () => chrome?.close(),
+        destroy: () => {
+            chrome?.close();
+            dialogEl.remove();
+        },
+    };
 }
 
 /**
@@ -182,7 +287,15 @@ export async function renderDownload({root}) {
     let listRequestId = 0;
     const platform = loadSavedPlatform();
     let os = platform.os;
-    let arch = platform.arch;
+    let mainArch = platform.arch.startsWith('amd64') ? 'amd64' : platform.arch;
+    let x64Version = platform.arch.startsWith('amd64') ? platform.arch : 'amd64';
+
+    /**
+     * @returns {string}
+     */
+    function getEffectiveArch() {
+        return mainArch === 'amd64' ? x64Version : mainArch;
+    }
 
     const hero = el('header', {class: 'page-hero'},
         el('h1', {}, t('download.title')),
@@ -211,39 +324,69 @@ export async function renderDownload({root}) {
 
     function updatePlatformState() {
         const isStable = channel === 'stable';
+        const effectiveArch = getEffectiveArch();
         renderedCardControllers.forEach((ctrl) => {
             if (isStable) {
                 ctrl.setDisabled(false);
             } else {
-                const target = findTargetForPlatform(ctrl.release.targets, os, arch);
+                const target = findTargetForPlatform(ctrl.release.targets, os, effectiveArch);
                 const isAvailable = ctrl.globalIndex === 0 && Boolean(target?.file);
                 ctrl.setDisabled(!isAvailable);
             }
         });
     }
 
+    const x64Dialog = createX64InfoDialog();
+
     const osField = createCustomField(t('download.os'), PLATFORMS.os, os, (v) => {
         os = v;
-        arch = archField.select.setOptions(getArchOptionsForOs(os), arch);
-        savePlatform(os, arch);
+        mainArch = archField.select.setOptions(getArchOptionsForOs(os), mainArch);
+        syncX64Visibility();
+        savePlatform(os, getEffectiveArch());
         ensurePlatform();
         updatePlatformState();
     });
+
     const archField = createCustomField(
         t('download.arch'),
         getArchOptionsForOs(os),
-        arch,
+        mainArch,
         (v) => {
-            arch = v;
-            savePlatform(os, arch);
+            mainArch = v;
+            syncX64Visibility();
+            savePlatform(os, getEffectiveArch());
             ensurePlatform();
             updatePlatformState();
         },
     );
 
+    const x64Field = createX64Field(
+        t('download.x64Version'),
+        X64_VERSIONS,
+        x64Version,
+        (v) => {
+            x64Version = v;
+            savePlatform(os, getEffectiveArch());
+            ensurePlatform();
+            updatePlatformState();
+        },
+        () => x64Dialog.open(),
+    );
+
+    function syncX64Visibility() {
+        if (mainArch === 'amd64') {
+            x64Field.field.classList.add('is-visible');
+        } else {
+            x64Field.field.classList.remove('is-visible');
+        }
+    }
+
+    syncX64Visibility();
+
     const toolbar = el('div', {class: 'download-toolbar'},
         osField.field,
         archField.field,
+        x64Field.field,
     );
 
     const platformWarn = el('p', {
@@ -267,7 +410,7 @@ export async function renderDownload({root}) {
      * @returns {boolean}
      */
     function ensurePlatform() {
-        const ok = platformSelected(os, arch);
+        const ok = platformSelected(os, getEffectiveArch());
         platformWarn.style.display = ok ? 'none' : 'block';
         return ok;
     }
@@ -310,7 +453,7 @@ export async function renderDownload({root}) {
     function downloadPackage(channelKey, release, statusId) {
         if (!ensurePlatform()) return;
         const version = release.version || release.tag || '';
-        const target = findTargetForPlatform(release.targets, os, arch);
+        const target = findTargetForPlatform(release.targets, os, getEffectiveArch());
         if (!target?.file || (!target.downloadUrl && !version)) {
             setStatus(statusId, t('download.noAsset'), 'error');
             return;
@@ -367,7 +510,7 @@ export async function renderDownload({root}) {
                     }, statusId),
                 });
             } else {
-                const target = findTargetForPlatform(rel.targets, os, arch);
+                const target = findTargetForPlatform(rel.targets, os, getEffectiveArch());
                 const isAvailable = globalIndex === 0 && Boolean(target?.file);
                 ctrl = releaseCard({
                     title: rel.name || t('download.latestPreview'),
@@ -469,6 +612,8 @@ export async function renderDownload({root}) {
         listRequestId += 1;
         osField.select.destroy();
         archField.select.destroy();
+        x64Field.select.destroy();
+        x64Dialog.destroy();
     };
 }
 

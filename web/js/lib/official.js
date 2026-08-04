@@ -27,27 +27,31 @@ export const PLATFORMS = {
         {value: 'openbsd', label: 'OpenBSD'},
     ],
     arch: [
-        {value: 'amd64', label: 'amd64 (v1 / x86_64)'},
-        {value: 'amd64v2', label: 'amd64 (v2 / x86_64)'},
-        {value: 'amd64v3', label: 'amd64 (v3 / x86_64)'},
-        {value: 'amd64v4', label: 'amd64 (v4 / x86_64)'},
+        {value: 'amd64', label: 'amd64 (x86_64)'},
         {value: 'arm64', label: 'arm64 (aarch64)'},
         {value: 'loong64', label: 'loong64'},
         {value: 'riscv64', label: 'riscv64'},
     ],
 };
 
+export const X64_VERSIONS = [
+    {value: 'amd64', label: 'v1'},
+    {value: 'amd64v2', label: 'v2'},
+    {value: 'amd64v3', label: 'v3'},
+    {value: 'amd64v4', label: 'v4'},
+];
+
 /**
- * Supported GOOS → GOARCH list. Keep in sync with `build.ps1` `$allTargets`.
+ * Supported GOOS -> GOARCH list. Keep in sync with `build.ps1` `$allTargets`.
  * @type {Record<string, string[]>}
  */
 export const PLATFORM_MATRIX = {
-    windows: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
-    darwin: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
-    linux: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64', 'loong64', 'riscv64'],
-    freebsd: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
-    netbsd: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4'],
-    openbsd: ['amd64', 'amd64v2', 'amd64v3', 'amd64v4', 'arm64'],
+    windows: ['amd64', 'arm64'],
+    darwin: ['amd64', 'arm64'],
+    linux: ['amd64', 'arm64', 'loong64', 'riscv64'],
+    freebsd: ['amd64', 'arm64'],
+    netbsd: ['amd64'],
+    openbsd: ['amd64', 'arm64'],
 };
 
 /**
@@ -67,7 +71,9 @@ export function getArchOptionsForOs(os) {
  * @returns {boolean}
  */
 export function isPlatformSupported(os, arch) {
-    return Boolean(os && arch && PLATFORM_MATRIX[os]?.includes(arch));
+    if (!os || !arch) return false;
+    const baseArch = arch.startsWith('amd64') ? 'amd64' : arch;
+    return Boolean(PLATFORM_MATRIX[os]?.includes(baseArch));
 }
 
 /**
@@ -78,7 +84,8 @@ export function isPlatformSupported(os, arch) {
 export function normalizePlatform(os, arch) {
     const validOs = PLATFORMS.os.some((o) => o.value === os) ? os : 'linux';
     const arches = PLATFORM_MATRIX[validOs] || PLATFORM_MATRIX.linux;
-    const validArch = arches.includes(arch) ? arch : (arches[0] || 'amd64');
+    const baseArch = arch.startsWith('amd64') ? 'amd64' : arch;
+    const validArch = arches.includes(baseArch) ? arch : (arches[0] || 'amd64');
     return {os: validOs, arch: validArch};
 }
 
