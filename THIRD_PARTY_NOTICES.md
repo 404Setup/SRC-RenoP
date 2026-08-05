@@ -55,7 +55,6 @@ redistributed by RenoP. Reposilite is available under its own license (Apache-2.
 | `github.com/minio/crc64nvme`          | v1.1.1                             | Apache-2.0                                 | Copyright (c) 2025 Minio Inc.                                                                                  |
 | `github.com/minio/md5-simd`           | v1.1.2                             | Apache-2.0                                 | Copyright (c) 2020 MinIO Inc.                                                                                  |
 | `github.com/minio/minio-go/v7`        | v7.2.1                             | Apache-2.0                                 | See [Apache NOTICE excerpts](#apache-notice-excerpts)                                                          |
-| `github.com/mitchellh/mapstructure`   | v1.5.0                             | MIT                                        | Copyright (c) 2013 Mitchell Hashimoto                                                                          |
 | `github.com/ncruces/go-strftime`      | v1.0.0                             | MIT                                        | Copyright (c) 2022 Nuno Cruces                                                                                 |
 | `github.com/philhofer/fwd`            | v1.2.0                             | MIT                                        | Copyright (c) 2014-2015 Philip Hofer                                                                           |
 | `github.com/remyoudompheng/bigfft`    | v0.0.0-20230129092748-24d4a6f8daec | BSD-2-Clause                               | Copyright (c) 2012 Rémi Oudompheng                                                                             |
@@ -70,7 +69,6 @@ redistributed by RenoP. Reposilite is available under its own license (Apache-2.
 | `go.yaml.in/yaml/v3`                  | v3.0.5                             | MIT AND Apache-2.0                         | Copyright (c) 2006-2011 Kirill Simonov (libyaml ports); Copyright (c) 2011-2019 Canonical Ltd                  |
 | `golang.org/x/crypto`                 | v0.54.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/net`                    | v0.57.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `golang.org/x/sync`                   | v0.22.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/sys`                    | v0.47.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/text`                   | v0.40.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/time`                   | v0.15.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
@@ -96,12 +94,14 @@ Platform-specific transitive modules (via `gopsutil` and related code), which ma
 These appear in `go.mod` for the test suite. They are not part of release binaries, but remain third-party software in
 the source tree:
 
-| Module                          | Version | SPDX               | Copyright / notices                                              |
-|---------------------------------|---------|--------------------|------------------------------------------------------------------|
-| `github.com/stretchr/testify`   | v1.11.1 | MIT                | Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors |
-| `github.com/davecgh/go-spew`    | v1.1.1  | ISC                | Copyright (c) 2012-2016 Dave Collins                             |
-| `github.com/pmezard/go-difflib` | v1.0.0  | BSD-3-Clause       | Copyright (c) 2013 Patrick Mezard                                |
-| `gopkg.in/yaml.v3`              | v3.0.1  | MIT AND Apache-2.0 | Same dual-license scheme as `go.yaml.in/yaml/v3`                 |
+| Module                          | Version                            | SPDX               | Copyright / notices                                              |
+|---------------------------------|------------------------------------|--------------------|------------------------------------------------------------------|
+| `github.com/stretchr/testify`   | v1.11.1                            | MIT                | Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors |
+| `github.com/davecgh/go-spew`    | v1.1.1                             | ISC                | Copyright (c) 2012-2016 Dave Collins                             |
+| `github.com/kr/pretty`          | v0.3.1                             | MIT                | Copyright (c) 2012 Keith Rarick                                  |
+| `github.com/pmezard/go-difflib` | v1.0.0                             | BSD-3-Clause       | Copyright (c) 2013 Patrick Mezard                                |
+| `gopkg.in/check.v1`             | v1.0.0-20201130134442-10cb98267c6c | BSD-2-Clause       | Copyright (c) 2010-2013 Gustavo Niemeyer                         |
+| `gopkg.in/yaml.v3`              | v3.0.1                             | MIT AND Apache-2.0 | Same dual-license scheme as `go.yaml.in/yaml/v3`                 |
 
 ### C. Frontend / website dependencies and assets
 
@@ -111,11 +111,11 @@ marketing site and documentation, not the server binary.
 | Package                                                  | Version | SPDX         | Role                                       |
 |----------------------------------------------------------|---------|--------------|--------------------------------------------|
 | [Feather Icons](https://github.com/feathericons/feather) | —       | MIT          | Interface icon design reference / assets   |
-| `rolldown`                                               | 1.2.0   | MIT          | JS/CSS bundler (build-time)                |
+| `rolldown`                                               | 1.2.2   | MIT          | JS/CSS bundler (build-time)                |
 | `lightningcss`                                           | 1.33.0  | **MPL-2.0**  | CSS transformer (build-time)               |
 | `protobufjs`                                             | 8.7.1   | BSD-3-Clause | Frontend protobuf runtime / codegen        |
 | `protobufjs-cli`                                         | 2.6.1   | BSD-3-Clause | Frontend protobuf codegen (dev)            |
-| `marked`                                                 | 15.0.12 | MIT          | Markdown rendering on the official website |
+| `marked`                                                 | 18.0.9  | MIT          | Markdown rendering on the official website |
 
 ---
 
