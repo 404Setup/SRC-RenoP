@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -508,8 +508,6 @@ export default {
     "settings.serverPortHint": "Port d'écoute HTTP (par défaut 3000)",
     "settings.databaseTitle": "Paramètres de base de données",
     "settings.databaseSubtitle": "Configurer les paramètres de connexion SQLite ou MySQL",
-    "settings.dbEnabled": "Activer la base de données",
-    "settings.dbEnabledDesc": "Utiliser la base de données pour les jetons et sessions",
     "settings.dbDriver": "Pilote de base de données",
     "settings.dbDriverHint": "Sélectionner le moteur de base de données (sqlite3 ou mysql)",
     "settings.dbDsn": "Chemin du fichier SQLite",

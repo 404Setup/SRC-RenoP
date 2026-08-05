@@ -41,35 +41,6 @@ func saveLog(state *core.AppState, entry *core.AuditLogEntry) {
 	}
 	if db := state.GetDB(); db != nil {
 		_ = db.SaveAuditLog(entry)
-		return
-	}
-
-	state.Inner.AuditLogLock.Lock()
-	defer state.Inner.AuditLogLock.Unlock()
-
-	cfgVal := state.Inner.Config.Load()
-	maxRows := 10000
-	if cfgVal != nil {
-		if cfg, ok := cfgVal.(*config.Config); ok && cfg.AuditLog.MaxRows > 0 {
-			maxRows = cfg.AuditLog.MaxRows
-		}
-	}
-
-	entry.ID = int64(len(state.Inner.AuditLogsMem) + 1)
-	state.Inner.AuditLogsMem = append(state.Inner.AuditLogsMem, entry)
-
-	if len(state.Inner.AuditLogsMem) > maxRows {
-		drop := len(state.Inner.AuditLogsMem) - maxRows
-		for i := range drop {
-			state.Inner.AuditLogsMem[i] = nil
-		}
-		if cap(state.Inner.AuditLogsMem) > 2*maxRows {
-			kept := make([]*core.AuditLogEntry, maxRows)
-			copy(kept, state.Inner.AuditLogsMem[drop:])
-			state.Inner.AuditLogsMem = kept
-		} else {
-			state.Inner.AuditLogsMem = state.Inner.AuditLogsMem[drop:]
-		}
 	}
 }
 
@@ -85,34 +56,5 @@ func cleanLogs(state *core.AppState) {
 
 	if db := state.GetDB(); db != nil {
 		_ = db.CleanExpiredAuditLogs(cfg.AuditLog.RetentionDays, cfg.AuditLog.MaxRows)
-		return
-	}
-
-	state.Inner.AuditLogLock.Lock()
-	defer state.Inner.AuditLogLock.Unlock()
-
-	if cfg.AuditLog.RetentionDays > 0 {
-		cutoff := time.Now().AddDate(0, 0, -cfg.AuditLog.RetentionDays).UnixMilli()
-		filtered := make([]*core.AuditLogEntry, 0, len(state.Inner.AuditLogsMem))
-		for _, e := range state.Inner.AuditLogsMem {
-			if e.CreatedAt >= cutoff {
-				filtered = append(filtered, e)
-			}
-		}
-		state.Inner.AuditLogsMem = filtered
-	}
-
-	if cfg.AuditLog.MaxRows > 0 && len(state.Inner.AuditLogsMem) > cfg.AuditLog.MaxRows {
-		drop := len(state.Inner.AuditLogsMem) - cfg.AuditLog.MaxRows
-		for i := range drop {
-			state.Inner.AuditLogsMem[i] = nil
-		}
-		if cap(state.Inner.AuditLogsMem) > 2*cfg.AuditLog.MaxRows {
-			kept := make([]*core.AuditLogEntry, cfg.AuditLog.MaxRows)
-			copy(kept, state.Inner.AuditLogsMem[drop:])
-			state.Inner.AuditLogsMem = kept
-		} else {
-			state.Inner.AuditLogsMem = state.Inner.AuditLogsMem[drop:]
-		}
 	}
 }

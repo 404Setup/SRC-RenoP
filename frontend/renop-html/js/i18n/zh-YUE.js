@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -510,8 +510,6 @@ export default {
     "settings.serverPortHint": "HTTP 服務監聽端口 (預設 3000)",
     "settings.databaseTitle": "數據庫配置",
     "settings.databaseSubtitle": "配置 SQLite 或 MySQL 數據庫連接同埋連接池參數",
-    "settings.dbEnabled": "啟用數據庫",
-    "settings.dbEnabledDesc": "使用數據庫存儲 Token 同埋 Session 憑證",
     "settings.dbDriver": "數據庫驅動",
     "settings.dbDriverHint": "選擇數據庫引擎類型 (sqlite3 或 mysql)",
     "settings.dbDsn": "SQLite 文件路徑",

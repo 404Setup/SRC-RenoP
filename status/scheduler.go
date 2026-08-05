@@ -181,7 +181,7 @@ func UpdateDiskStats(state *core.AppState) (renopUsed, diskUsed, diskTotal uint6
 				fixedBytes += uint64(fi.Size())
 			}
 		}
-		files := []string{"config.yaml", "repositories.yaml", "tokens.yaml", "index.json", "sessions.bin", "sessions.json"}
+		files := []string{"config.yaml", "repositories.yaml", "index.json"}
 		for _, f := range files {
 			if fi, err := os.Stat(f); err == nil && !fi.IsDir() {
 				fixedBytes += uint64(fi.Size())

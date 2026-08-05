@@ -19,6 +19,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"renop/config"
 	"renop/core"
@@ -26,7 +27,9 @@ import (
 )
 
 func TestFidoBeginEndpoints(t *testing.T) {
+	db := newTestAuthDB(t)
 	state := core.NewAppState()
+	state.Inner.DB = db
 	cfg := config.DefaultConfig()
 	state.Inner.Config.Store(&cfg)
 
@@ -59,6 +62,11 @@ func TestFidoBeginEndpoints(t *testing.T) {
 	})
 
 	t.Run("FidoDeviceStateOperations", func(t *testing.T) {
+		tok := &core.AccessToken{
+			Name: "user1",
+		}
+		require.NoError(t, db.SaveToken(tok))
+
 		dev := &core.FidoDevice{
 			ID:           "dev-1",
 			Username:     "user1",

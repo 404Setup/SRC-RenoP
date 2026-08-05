@@ -38,7 +38,6 @@ func TestInitDB_SQLite(t *testing.T) {
 	defer os.Remove(dbFile)
 
 	cfg := config.DatabaseConfig{
-		Enabled:      true,
 		Driver:       "sqlite3",
 		Dsn:          dbFile,
 		MaxOpenConns: 5,

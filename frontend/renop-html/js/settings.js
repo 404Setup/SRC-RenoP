@@ -571,7 +571,6 @@ function renderServerSettings(container, data) {
 
     if (!currentConfig.database) {
         currentConfig.database = data.database || {
-            enabled: true,
             driver: 'sqlite3',
             dsn: 'renop.db',
             max_open_conns: 25,
@@ -587,15 +586,6 @@ function renderServerSettings(container, data) {
     );
     const dbFields = dbSection.querySelector('.cfg-fields');
 
-    dbFields.appendChild(createToggleRow(
-        t('settings.dbEnabled'),
-        t('settings.dbEnabledDesc'),
-        currentConfig.database.enabled === true,
-        checked => {
-            currentConfig.database.enabled = checked;
-            enableSave();
-        }
-    ));
 
     const driverOptions = [
         {value: 'sqlite3', label: 'SQLite (sqlite3)'},

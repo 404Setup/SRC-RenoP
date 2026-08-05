@@ -47,6 +47,7 @@ type StateDB interface {
 	GetTokenByName(name string) (*AccessToken, error)
 	GetTokenBySecret(secret string) (*AccessToken, error)
 	GetAllTokens() ([]*AccessToken, error)
+	CountTokens() (uint64, error)
 	SaveToken(token *AccessToken) error
 	DeleteToken(name string) error
 	RenameToken(oldName, newName string, token *AccessToken) error
@@ -77,8 +78,6 @@ type StateDB interface {
 type AppStateInner struct {
 	Config             *atomic.Value
 	ConfigWriteLock    sync.Mutex
-	TokenRepository    pb.MapOf[string, *AccessToken]
-	TokenIndex         pb.MapOf[string, *AccessToken]
 	TokensCount        atomic.Uint64
 	TokenWriteLock     sync.Mutex
 	StatusSnapshots    atomic.Pointer[[]StatusSnapshot]
@@ -88,17 +87,8 @@ type AppStateInner struct {
 	AuthCacheEntries   atomic.Uint64
 	AuthCacheWriteLock sync.Mutex
 	Sessions           pb.MapOf[string, *Session]
-	SessionsIsDirty    atomic.Bool
-	FidoDevices        pb.MapOf[string, []*FidoDevice]
-	FidoWriteLock      sync.Mutex
-	AuditLogsMem       []*AuditLogEntry
-	AuditLogLock       sync.RWMutex
 	AuditLogChan       chan *AuditLogEntry
 	DB                 any
-
-	// SessionsFlush, when set, schedules an immediate persist of the session store.
-	// Used after logout/revocation so deleted sessions cannot reappear after restart.
-	SessionsFlush func()
 
 	FileIndex              *index.FileIndex
 	IndexWatcher           *fsnotify.Watcher
@@ -144,13 +134,14 @@ func (state *AppState) GetTokenByName(name string) *AccessToken {
 	if state == nil || state.Inner == nil || name == "" {
 		return nil
 	}
-	if db := state.GetDB(); db != nil {
-		tok, err := db.GetTokenByName(name)
-		if err == nil {
-			return tok
-		}
+	db := state.GetDB()
+	if db == nil {
+		return nil
 	}
-	tok, _ := state.Inner.TokenRepository.Load(strings.ToLower(name))
+	tok, err := db.GetTokenByName(name)
+	if err != nil {
+		return nil
+	}
 	return tok
 }
 
@@ -158,13 +149,14 @@ func (state *AppState) GetTokenBySecret(secret string) *AccessToken {
 	if state == nil || state.Inner == nil || secret == "" {
 		return nil
 	}
-	if db := state.GetDB(); db != nil {
-		tok, err := db.GetTokenBySecret(secret)
-		if err == nil {
-			return tok
-		}
+	db := state.GetDB()
+	if db == nil {
+		return nil
 	}
-	tok, _ := state.Inner.TokenIndex.Load(secret)
+	tok, err := db.GetTokenBySecret(secret)
+	if err != nil {
+		return nil
+	}
 	return tok
 }
 
@@ -172,35 +164,32 @@ func (state *AppState) GetAllTokens() []*AccessToken {
 	if state == nil || state.Inner == nil {
 		return []*AccessToken{}
 	}
-	if db := state.GetDB(); db != nil {
-		toks, err := db.GetAllTokens()
-		if err == nil && toks != nil {
-			return toks
-		}
+	db := state.GetDB()
+	if db == nil {
 		return []*AccessToken{}
 	}
-	var tokens []*AccessToken
-	state.Inner.TokenRepository.Range(func(key string, value *AccessToken) bool {
-		tokens = append(tokens, value)
-		return true
-	})
-	if tokens == nil {
+	toks, err := db.GetAllTokens()
+	if err != nil || toks == nil {
 		return []*AccessToken{}
 	}
-	return tokens
+	return toks
 }
 
 func (state *AppState) GetSession(sessionToken string) *Session {
 	if state == nil || state.Inner == nil || sessionToken == "" {
 		return nil
 	}
-	if db := state.GetDB(); db != nil {
-		sess, err := db.GetSession(sessionToken)
-		if err == nil && sess != nil {
-			return sess
-		}
+	if sess, ok := state.Inner.Sessions.Load(sessionToken); ok && sess != nil {
+		return sess
 	}
-	sess, _ := state.Inner.Sessions.Load(sessionToken)
+	db := state.GetDB()
+	if db == nil {
+		return nil
+	}
+	sess, err := db.GetSession(sessionToken)
+	if err != nil || sess == nil {
+		return nil
+	}
 	return sess
 }
 
@@ -211,18 +200,6 @@ func (state *AppState) SaveSession(session *Session, sessionToken string) {
 	state.Inner.Sessions.Store(sessionToken, session)
 	if db := state.GetDB(); db != nil {
 		_ = db.SaveSession(session, sessionToken)
-	}
-	state.MarkSessionsDirty()
-}
-
-// MarkSessionsDirty marks the session map for persistence and optionally flushes immediately.
-func (state *AppState) MarkSessionsDirty() {
-	if state == nil || state.Inner == nil {
-		return
-	}
-	state.Inner.SessionsIsDirty.Store(true)
-	if flush := state.Inner.SessionsFlush; flush != nil {
-		flush()
 	}
 }
 
@@ -237,7 +214,6 @@ func (state *AppState) RevokeSession(sessionToken string) bool {
 	if db := state.GetDB(); db != nil {
 		_ = db.DeleteSession(sessionToken)
 	}
-	state.MarkSessionsDirty()
 	return true
 }
 
@@ -265,10 +241,10 @@ func (state *AppState) ListUserSessions(username, currentSessionToken string) []
 	}
 	if db := state.GetDB(); db != nil {
 		sessions, err := db.ListUserSessions(username, currentSessionToken)
-		if err == nil && sessions != nil {
-			return sessions
+		if err != nil || sessions == nil {
+			return []SessionDto{}
 		}
-		return []SessionDto{}
+		return sessions
 	}
 	var sessions []SessionDto
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
@@ -291,14 +267,14 @@ func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSe
 	}
 	if db := state.GetDB(); db != nil {
 		token, revoked, wasCurrent, err := db.DeleteUserSessionByPublicID(username, publicID, currentSessionToken)
-		if err == nil {
-			if revoked && token != "" {
-				state.DeleteAuthCache("Session " + token)
-				state.Inner.Sessions.Delete(token)
-				state.MarkSessionsDirty()
-			}
-			return revoked, wasCurrent
+		if err != nil {
+			return false, false
 		}
+		if revoked && token != "" {
+			state.DeleteAuthCache("Session " + token)
+			state.Inner.Sessions.Delete(token)
+		}
+		return revoked, wasCurrent
 	}
 	var toRemove string
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
@@ -323,14 +299,14 @@ func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string
 	}
 	if db := state.GetDB(); db != nil {
 		deletedTokens, err := db.DeleteOtherUserSessions(username, keepSessionToken)
-		if err == nil {
-			for _, t := range deletedTokens {
-				state.DeleteAuthCache("Session " + t)
-				state.Inner.Sessions.Delete(t)
-			}
-			state.MarkSessionsDirty()
-			return len(deletedTokens)
+		if err != nil {
+			return 0
 		}
+		for _, t := range deletedTokens {
+			state.DeleteAuthCache("Session " + t)
+			state.Inner.Sessions.Delete(t)
+		}
+		return len(deletedTokens)
 	}
 	var toRemove []string
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
@@ -358,15 +334,12 @@ func (state *AppState) ListFidoDevices(username string) []*FidoDevice {
 		return []*FidoDevice{}
 	}
 	lowerName := strings.ToLower(username)
-	if db := state.GetDB(); db != nil {
-		devs, err := db.ListFidoDevices(lowerName)
-		if err == nil && devs != nil {
-			return devs
-		}
+	db := state.GetDB()
+	if db == nil {
 		return []*FidoDevice{}
 	}
-	devs, _ := state.Inner.FidoDevices.Load(lowerName)
-	if devs == nil {
+	devs, err := db.ListFidoDevices(lowerName)
+	if err != nil || devs == nil {
 		return []*FidoDevice{}
 	}
 	return devs
@@ -376,23 +349,15 @@ func (state *AppState) GetFidoDeviceByCredentialID(credentialID []byte) *FidoDev
 	if state == nil || state.Inner == nil || len(credentialID) == 0 {
 		return nil
 	}
-	if db := state.GetDB(); db != nil {
-		dev, err := db.GetFidoDeviceByCredentialID(credentialID)
-		if err == nil && dev != nil {
-			return dev
-		}
+	db := state.GetDB()
+	if db == nil {
+		return nil
 	}
-	var matched *FidoDevice
-	state.Inner.FidoDevices.Range(func(key string, devices []*FidoDevice) bool {
-		for _, d := range devices {
-			if string(d.CredentialID) == string(credentialID) {
-				matched = d
-				return false
-			}
-		}
-		return true
-	})
-	return matched
+	dev, err := db.GetFidoDeviceByCredentialID(credentialID)
+	if err != nil {
+		return nil
+	}
+	return dev
 }
 
 func (state *AppState) SaveFidoDevice(device *FidoDevice) {
@@ -403,14 +368,7 @@ func (state *AppState) SaveFidoDevice(device *FidoDevice) {
 	device.Username = lowerName
 	if db := state.GetDB(); db != nil {
 		_ = db.SaveFidoDevice(device)
-		return
 	}
-	state.Inner.FidoWriteLock.Lock()
-	defer state.Inner.FidoWriteLock.Unlock()
-	devs, _ := state.Inner.FidoDevices.Load(lowerName)
-	newDevs := append([]*FidoDevice{}, devs...)
-	newDevs = append(newDevs, device)
-	state.Inner.FidoDevices.Store(lowerName, newDevs)
 }
 
 func (state *AppState) DeleteFidoDevice(username, deviceID string) bool {
@@ -418,29 +376,12 @@ func (state *AppState) DeleteFidoDevice(username, deviceID string) bool {
 		return false
 	}
 	lowerName := strings.ToLower(username)
-	if db := state.GetDB(); db != nil {
-		err := db.DeleteFidoDevice(lowerName, deviceID)
-		return err == nil
-	}
-	state.Inner.FidoWriteLock.Lock()
-	defer state.Inner.FidoWriteLock.Unlock()
-	devs, _ := state.Inner.FidoDevices.Load(lowerName)
-	if devs == nil {
+	db := state.GetDB()
+	if db == nil {
 		return false
 	}
-	var updated []*FidoDevice
-	found := false
-	for _, d := range devs {
-		if d.ID == deviceID {
-			found = true
-		} else {
-			updated = append(updated, d)
-		}
-	}
-	if found {
-		state.Inner.FidoDevices.Store(lowerName, updated)
-	}
-	return found
+	err := db.DeleteFidoDevice(lowerName, deviceID)
+	return err == nil
 }
 
 func (state *AppState) DeleteFidoDevicesByUsername(username string) {
@@ -450,11 +391,7 @@ func (state *AppState) DeleteFidoDevicesByUsername(username string) {
 	lowerName := strings.ToLower(username)
 	if db := state.GetDB(); db != nil {
 		_ = db.DeleteFidoDevicesByUsername(lowerName)
-		return
 	}
-	state.Inner.FidoWriteLock.Lock()
-	defer state.Inner.FidoWriteLock.Unlock()
-	state.Inner.FidoDevices.Delete(lowerName)
 }
 
 func (state *AppState) UpdateFidoSignCount(credentialID []byte, signCount uint32) {
@@ -464,17 +401,6 @@ func (state *AppState) UpdateFidoSignCount(credentialID []byte, signCount uint32
 	if db := state.GetDB(); db != nil {
 		_ = db.UpdateFidoSignCount(credentialID, signCount)
 	}
-	state.Inner.FidoWriteLock.Lock()
-	defer state.Inner.FidoWriteLock.Unlock()
-	state.Inner.FidoDevices.Range(func(key string, devices []*FidoDevice) bool {
-		for _, d := range devices {
-			if string(d.CredentialID) == string(credentialID) {
-				d.SignCount = signCount
-				return false
-			}
-		}
-		return true
-	})
 }
 
 func (state *AppState) UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) {
@@ -484,17 +410,4 @@ func (state *AppState) UpdateFidoDeviceState(credentialID []byte, signCount uint
 	if db := state.GetDB(); db != nil {
 		_ = db.UpdateFidoDeviceState(credentialID, signCount, backupState, backupEligible)
 	}
-	state.Inner.FidoWriteLock.Lock()
-	defer state.Inner.FidoWriteLock.Unlock()
-	state.Inner.FidoDevices.Range(func(key string, devices []*FidoDevice) bool {
-		for _, d := range devices {
-			if string(d.CredentialID) == string(credentialID) {
-				d.SignCount = signCount
-				d.BackupState = backupState
-				d.BackupEligible = backupEligible
-				return false
-			}
-		}
-		return true
-	})
 }

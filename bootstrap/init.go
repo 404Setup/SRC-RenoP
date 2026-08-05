@@ -14,7 +14,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"go.yaml.in/yaml/v3"
@@ -52,17 +51,10 @@ func Initialize() (*core.AppState, BootstrapContext) {
 
 	dbInstance, dbErr := database.InitDB(cfg.Database)
 	if dbErr != nil {
-		log.Printf("Warning: Database initialization error: %v", dbErr)
+		log.Fatalf("Database initialization failed: %v", dbErr)
 	}
-
-	tokensPath := os.Getenv("RENOP_TOKENS")
-	if tokensPath == "" {
-		tokensPath = "tokens.yaml"
-	}
-
-	sessionsPath := os.Getenv("RENOP_SESSIONS")
-	if sessionsPath == "" {
-		sessionsPath = "sessions.bin"
+	if dbInstance == nil {
+		log.Fatal("Database initialization returned nil — check your database configuration.")
 	}
 
 	indexPath := os.Getenv("RENOP_INDEX")
@@ -86,55 +78,21 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	}
 	state.Inner.ProxyClientSemaphore = make(chan struct{}, concurrencyLimit)
 
-	var initialTokensCount uint64
-	if dbInstance != nil {
-		count, err := dbInstance.CountTokens()
-		if err == nil && count > 0 {
-			initialTokensCount = count
-		}
+	count, err := dbInstance.CountTokens()
+	if err == nil && count > 0 {
+		state.Inner.TokensCount.Store(count)
+	}
 
-		activeDbSessions, err := dbInstance.GetActiveSessions(time.Now().UnixMilli() - core.SessionIdleTimeoutMillis)
-		if err == nil {
-			for _, sessionDto := range activeDbSessions {
-				lm := sessionDto.LoginMethod
-				if lm == "" {
-					lm = "password"
-				}
-				session := &core.Session{
-					PublicId:    sessionDto.PublicId,
-					Username:    strings.ToLower(sessionDto.Username),
-					Ip:          sessionDto.Ip,
-					UserAgent:   sessionDto.UserAgent,
-					CreatedAt:   sessionDto.CreatedAt,
-					LoginMethod: lm,
-				}
-				session.LastActive.Store(sessionDto.LastActive)
-				state.Inner.Sessions.Store(sessionDto.SessionToken, session)
-			}
-		}
-	} else {
-		tokenMap := LoadTokens(tokensPath)
-		initialTokensCount = uint64(len(tokenMap))
-		for k, v := range tokenMap {
-			if v == nil {
-				continue
-			}
-			v.Name = strings.ToLower(k)
-			state.Inner.TokenRepository.Store(v.Name, v)
-			for _, t := range v.Tokens {
-				state.Inner.TokenIndex.Store(t, v)
-			}
-		}
-
-		sessionsDb := LoadSessions(sessionsPath)
-		for _, sessionDto := range sessionsDb {
+	activeSessions, err := dbInstance.GetActiveSessions(time.Now().UnixMilli() - core.SessionIdleTimeoutMillis)
+	if err == nil {
+		for _, sessionDto := range activeSessions {
 			lm := sessionDto.LoginMethod
 			if lm == "" {
 				lm = "password"
 			}
 			session := &core.Session{
 				PublicId:    sessionDto.PublicId,
-				Username:    strings.ToLower(sessionDto.Username),
+				Username:    sessionDto.Username,
 				Ip:          sessionDto.Ip,
 				UserAgent:   sessionDto.UserAgent,
 				CreatedAt:   sessionDto.CreatedAt,
@@ -144,16 +102,14 @@ func Initialize() (*core.AppState, BootstrapContext) {
 			state.Inner.Sessions.Store(sessionDto.SessionToken, session)
 		}
 	}
-	state.Inner.TokensCount.Store(initialTokensCount)
 
 	state.Inner.FileIndex = fileIndex
 
 	state.Inner.FileCache = core.NewFileByteCache(int(cfg.Server.FileCacheSizeMb) << 20)
 
 	bootstrapCtx := BootstrapContext{
-		ConfigPath:   configPath,
-		IndexPath:    indexPath,
-		SessionsPath: sessionsPath,
+		ConfigPath: configPath,
+		IndexPath:  indexPath,
 	}
 
 	return state, bootstrapCtx
@@ -162,7 +118,7 @@ func Initialize() (*core.AppState, BootstrapContext) {
 func StartServices(state *core.AppState, context BootstrapContext) {
 	status.StartStatusSnapshotScheduler(state, 20*time.Second)
 	tasks.StartIndexSaver(state, context.IndexPath)
-	tasks.StartSessionSaver(state, context.SessionsPath)
+	tasks.StartSessionCleaner(state)
 
 	go func() {
 		for {

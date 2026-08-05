@@ -11,59 +11,21 @@
 package bootstrap
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 
 	"renop/core"
-	"renop/pb"
 )
-
-func TestLoadSessionsProtobuf(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "sessions.bin")
-
-	store := pb.FromSessionDbDtos([]core.SessionDbDto{
-		{
-			PublicId:     "pub-1",
-			SessionToken: "tok-1",
-			Username:     "admin",
-			Ip:           "127.0.0.1",
-			UserAgent:    "test-agent",
-			CreatedAt:    100,
-			LastActive:   200,
-		},
-	})
-	bin, err := proto.Marshal(store)
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(path, bin, 0644))
-
-	sessions := LoadSessions(path)
-	require.Len(t, sessions, 1)
-	assert.Equal(t, "pub-1", sessions[0].PublicId)
-	assert.Equal(t, "tok-1", sessions[0].SessionToken)
-	assert.Equal(t, "admin", sessions[0].Username)
-	assert.Equal(t, int64(100), sessions[0].CreatedAt)
-	assert.Equal(t, int64(200), sessions[0].LastActive)
-}
-
-func TestLoadSessionsMissing(t *testing.T) {
-	sessions := LoadSessions(filepath.Join(t.TempDir(), "missing.pb"))
-	assert.Empty(t, sessions)
-}
 
 func TestInitializeDatabaseSessions(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "test.db")
 	t.Setenv("RENOP_CONFIG", filepath.Join(dir, "nonexistent.yaml"))
 	t.Setenv("RENOP_REPOSITORIES", filepath.Join(dir, "repos.yaml"))
-	t.Setenv("RENOP_TOKENS", filepath.Join(dir, "tokens.yaml"))
-	t.Setenv("RENOP_SESSIONS", filepath.Join(dir, "sessions.bin"))
 	t.Setenv("RENOP_INDEX", filepath.Join(dir, "index.json"))
 
 	state, _ := Initialize()

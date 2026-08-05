@@ -17,9 +17,32 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"renop/config"
 	"renop/core"
+	"renop/database"
 )
+
+func newTestAuthDB(t *testing.T) *database.DB {
+	t.Helper()
+	dbFile := t.TempDir() + "/auth_test.db"
+	cfg := config.DatabaseConfig{
+		Driver:       "sqlite3",
+		Dsn:          dbFile,
+		MaxOpenConns: 5,
+		MaxIdleConns: 5,
+	}
+	db, err := database.InitDB(cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { db.Close() })
+	return db
+}
+
+func storeTestToken(t *testing.T, db *database.DB, state *core.AppState, tok *core.AccessToken) {
+	t.Helper()
+	require.NoError(t, db.SaveToken(tok))
+}
 
 func TestExtractAuthHeader_WithOtherCookie(t *testing.T) {
 	app := fiber.New()
@@ -81,10 +104,12 @@ func TestExtractAuthHeader_WithOtherCookie(t *testing.T) {
 }
 
 func TestPostAuthLogout(t *testing.T) {
+	db := newTestAuthDB(t)
 	app := fiber.New()
 	state := core.NewAppState()
+	state.Inner.DB = db
 
-	state.Inner.TokenRepository.Store("admin", &core.AccessToken{
+	storeTestToken(t, db, state, &core.AccessToken{
 		Name:        "admin",
 		Permissions: []string{"admin"},
 	})
@@ -95,7 +120,7 @@ func TestPostAuthLogout(t *testing.T) {
 		Username: "admin",
 	}
 	session.LastActive.Store(time.Now().UnixMilli())
-	state.Inner.Sessions.Store(sessionToken, session)
+	state.SaveSession(session, sessionToken)
 
 	app.Use(AuthMiddleware(state))
 	app.Post("/logout", func(c fiber.Ctx) error {
@@ -113,7 +138,9 @@ func TestPostAuthLogout(t *testing.T) {
 
 	_, ok := state.Inner.Sessions.Load(sessionToken)
 	assert.False(t, ok)
-	assert.True(t, state.Inner.SessionsIsDirty.Load())
+	// Verify session is also removed from DB
+	dbSess, _ := db.GetSession(sessionToken)
+	assert.Nil(t, dbSess)
 }
 
 func TestPostAuthLogoutRevokesCookieEvenWithoutUser(t *testing.T) {
@@ -128,9 +155,6 @@ func TestPostAuthLogoutRevokesCookieEvenWithoutUser(t *testing.T) {
 	session.LastActive.Store(time.Now().UnixMilli())
 	state.Inner.Sessions.Store(sessionToken, session)
 
-	flushed := false
-	state.Inner.SessionsFlush = func() { flushed = true }
-
 	app.Use(AuthMiddleware(state))
 	app.Post("/api/auth/logout", func(c fiber.Ctx) error {
 		return PostAuthLogout(c, state)
@@ -144,14 +168,15 @@ func TestPostAuthLogoutRevokesCookieEvenWithoutUser(t *testing.T) {
 
 	_, ok := state.Inner.Sessions.Load(sessionToken)
 	assert.False(t, ok, "logout must revoke session even when user no longer exists")
-	assert.True(t, state.Inner.SessionsIsDirty.Load())
-	assert.True(t, flushed, "logout should request immediate session persist")
 }
 
 func TestPostAuthLogoutRevokesAuthorizationSessionHeader(t *testing.T) {
+	db := newTestAuthDB(t)
 	app := fiber.New()
 	state := core.NewAppState()
-	state.Inner.TokenRepository.Store("admin", &core.AccessToken{
+	state.Inner.DB = db
+
+	storeTestToken(t, db, state, &core.AccessToken{
 		Name:        "admin",
 		Permissions: []string{"admin"},
 	})
@@ -159,7 +184,7 @@ func TestPostAuthLogoutRevokesAuthorizationSessionHeader(t *testing.T) {
 	sessionToken := "header-session"
 	session := &core.Session{PublicId: "hdr", Username: "admin"}
 	session.LastActive.Store(time.Now().UnixMilli())
-	state.Inner.Sessions.Store(sessionToken, session)
+	state.SaveSession(session, sessionToken)
 
 	app.Use(AuthMiddleware(state))
 	app.Post("/api/auth/logout", func(c fiber.Ctx) error {
@@ -177,14 +202,17 @@ func TestPostAuthLogoutRevokesAuthorizationSessionHeader(t *testing.T) {
 }
 
 func TestRevokedSessionCannotAuthenticate(t *testing.T) {
+	db := newTestAuthDB(t)
 	state := core.NewAppState()
-	state.Inner.TokenRepository.Store("admin", &core.AccessToken{
+	state.Inner.DB = db
+
+	storeTestToken(t, db, state, &core.AccessToken{
 		Name:        "admin",
 		Permissions: []string{"admin"},
 	})
 	session := &core.Session{Username: "admin"}
 	session.LastActive.Store(time.Now().UnixMilli())
-	state.Inner.Sessions.Store("live-token", session)
+	state.SaveSession(session, "live-token")
 
 	app := fiber.New()
 	app.Use(AuthMiddleware(state))
@@ -227,14 +255,17 @@ func TestAuthorizeRequestProtectsAllRestrictedPrefixes(t *testing.T) {
 }
 
 func TestSessionRevocationIsObservedImmediately(t *testing.T) {
+	db := newTestAuthDB(t)
 	state := core.NewAppState()
-	state.Inner.TokenRepository.Store("admin", &core.AccessToken{
+	state.Inner.DB = db
+
+	storeTestToken(t, db, state, &core.AccessToken{
 		Name:        "admin",
 		Permissions: []string{"admin"},
 	})
 	session := &core.Session{Username: "admin"}
 	session.LastActive.Store(time.Now().UnixMilli())
-	state.Inner.Sessions.Store("revocable", session)
+	state.SaveSession(session, "revocable")
 
 	app := fiber.New()
 	app.Use(AuthMiddleware(state))
@@ -255,6 +286,6 @@ func TestSessionRevocationIsObservedImmediately(t *testing.T) {
 	}
 
 	assert.Equal(t, fiber.StatusOK, request())
-	state.Inner.Sessions.Delete("revocable")
+	state.RevokeSession("revocable")
 	assert.Equal(t, fiber.StatusUnauthorized, request())
 }

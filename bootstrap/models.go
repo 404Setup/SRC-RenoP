@@ -11,7 +11,6 @@
 package bootstrap
 
 type BootstrapContext struct {
-	ConfigPath   string
-	IndexPath    string
-	SessionsPath string
+	ConfigPath string
+	IndexPath  string
 }

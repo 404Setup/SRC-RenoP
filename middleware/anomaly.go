@@ -116,8 +116,8 @@ func (i *IPLimiter) GetLimiter(ip string) *rate.Limiter {
 var GlobalIPLimiter = NewIPLimiter(rate.Every(time.Minute/time.Duration(MaxRequestsPerMinute)), MaxRequestsBurst)
 
 func verifyTokenSecret(state *core.AppState, username, secret string) bool {
-	token, ok := state.Inner.TokenRepository.Load(strings.ToLower(username))
-	if !ok {
+	token := state.GetTokenByName(strings.ToLower(username))
+	if token == nil {
 		return false
 	}
 	if token.ExpiresAt != nil && time.Now().UnixMilli() > *token.ExpiresAt {
@@ -189,8 +189,8 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 		if bearer == "" {
 			return false
 		}
-		token, ok := state.Inner.TokenIndex.Load(bearer)
-		if !ok {
+		token := state.GetTokenBySecret(bearer)
+		if token == nil {
 			return false
 		}
 		if token.ExpiresAt != nil && time.Now().UnixMilli() > *token.ExpiresAt {

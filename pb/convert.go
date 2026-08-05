@@ -319,7 +319,6 @@ func ApplyUpdaterConfig(dst *config.UpdaterConfig, src *UpdaterConfig) {
 
 func FromDatabaseConfig(d config.DatabaseConfig) *DatabaseConfig {
 	return &DatabaseConfig{
-		Enabled:            d.Enabled,
 		Driver:             d.Driver,
 		Dsn:                d.Dsn,
 		MaxOpenConns:       int32(d.MaxOpenConns),
@@ -333,7 +332,6 @@ func ApplyDatabaseConfig(dst *config.DatabaseConfig, src *DatabaseConfig) {
 	if dst == nil || src == nil {
 		return
 	}
-	dst.Enabled = src.Enabled
 	dst.Driver = src.Driver
 	dst.Dsn = src.Dsn
 	if src.MaxOpenConns > 0 {

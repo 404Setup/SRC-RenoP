@@ -21,10 +21,41 @@ import (
 
 	"renop/config"
 	"renop/core"
+	"renop/database"
 )
 
+func newTestAuditDB(t *testing.T) *database.DB {
+	t.Helper()
+	dbFile := t.TempDir() + "/audit_test.db"
+	cfg := config.DatabaseConfig{
+		Driver:       "sqlite3",
+		Dsn:          dbFile,
+		MaxOpenConns: 5,
+		MaxIdleConns: 5,
+	}
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	return db
+}
+
+func drainAuditChan(state *core.AppState, db *database.DB) {
+	for len(state.Inner.AuditLogChan) > 0 {
+		e := <-state.Inner.AuditLogChan
+		if e.CreatedAt <= 0 {
+			e.CreatedAt = time.Now().UnixMilli()
+		}
+		_ = db.SaveAuditLog(e)
+	}
+}
+
 func TestAuditLogFlow(t *testing.T) {
+	db := newTestAuditDB(t)
+
 	state := core.NewAppState()
+	state.Inner.DB = db
 	state.Inner.Config.Store(config.DefaultConfig())
 
 	now := time.Now().UnixMilli()
@@ -48,13 +79,8 @@ func TestAuditLogFlow(t *testing.T) {
 		CreatedAt:  now,
 	})
 
-	state.Inner.AuditLogLock.Lock()
-	for len(state.Inner.AuditLogChan) > 0 {
-		e := <-state.Inner.AuditLogChan
-		e.ID = int64(len(state.Inner.AuditLogsMem) + 1)
-		state.Inner.AuditLogsMem = append(state.Inner.AuditLogsMem, e)
-	}
-	state.Inner.AuditLogLock.Unlock()
+	// Drain the async channel into DB synchronously for test determinism
+	drainAuditChan(state, db)
 
 	app := fiber.New()
 	apiGroup := app.Group("/api/auth")
@@ -139,8 +165,10 @@ func TestAuditLogFlow(t *testing.T) {
 
 		var res2 AuditLogListResponse
 		_ = json.NewDecoder(resp2.Body).Decode(&res2)
+		// After clearing, only the LOG_CLEAR entry itself should remain (added by DeleteUserAuditLogs)
 		for _, l := range res2.Logs {
 			assert.NotEqual(t, "LOGIN", l.Action)
+			assert.NotEqual(t, "USER_PERMISSION_UPDATE", l.Action)
 		}
 	})
 }

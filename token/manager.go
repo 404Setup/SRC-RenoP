@@ -12,13 +12,9 @@ package token
 
 import (
 	"errors"
-	"os"
 	"strings"
 
-	"go.yaml.in/yaml/v3"
-
 	"renop/core"
-	"renop/utils"
 )
 
 type TokenOpType int
@@ -86,31 +82,12 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 					state.Inner.TokensCount.Add(1)
 				}
 				_ = db.SaveToken(clonedToken)
-			} else {
-				for _, t := range clonedToken.Tokens {
-					state.Inner.TokenIndex.Store(t, clonedToken)
-				}
-				if oldVal, loaded := state.Inner.TokenRepository.LoadOrStore(safeName, clonedToken); !loaded {
-					state.Inner.TokensCount.Add(1)
-				} else {
-					state.Inner.TokenRepository.Store(safeName, clonedToken)
-					if oldToken := oldVal; true {
-						newTokens := make(map[string]bool)
-						for _, t := range clonedToken.Tokens {
-							newTokens[t] = true
-						}
-						for _, t := range oldToken.Tokens {
-							if !newTokens[t] {
-								state.Inner.TokenIndex.Delete(t)
-							}
-						}
-					}
-				}
 			}
-			saveOrClearCache(state, opChan)
+			state.ClearAuthCache()
 			if op.ErrChan != nil {
 				op.ErrChan <- nil
 			}
+
 		case OpTokenDelete:
 			safeName := strings.Clone(op.Name)
 			state.DeleteFidoDevicesByUsername(safeName)
@@ -118,20 +95,13 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				if existing, _ := db.GetTokenByName(safeName); existing != nil {
 					_ = db.DeleteToken(safeName)
 					state.Inner.TokensCount.Add(^uint64(0))
-					saveOrClearCache(state, opChan)
-				}
-			} else {
-				if oldVal, loaded := state.Inner.TokenRepository.LoadAndDelete(safeName); loaded {
-					for _, t := range oldVal.Tokens {
-						state.Inner.TokenIndex.Delete(t)
-					}
-					state.Inner.TokensCount.Add(^uint64(0))
-					saveOrClearCache(state, opChan)
 				}
 			}
+			state.ClearAuthCache()
 			if op.ErrChan != nil {
 				op.ErrChan <- nil
 			}
+
 		case OpTokenUpdate:
 			safeName := strings.Clone(op.Name)
 			val := state.GetTokenByName(safeName)
@@ -145,22 +115,8 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 
 				if db := state.GetDB(); db != nil {
 					_ = db.SaveToken(clonedToken)
-				} else {
-					for _, t := range clonedToken.Tokens {
-						state.Inner.TokenIndex.Store(t, clonedToken)
-					}
-					state.Inner.TokenRepository.Store(safeName, clonedToken)
-					newTokens := make(map[string]bool)
-					for _, t := range clonedToken.Tokens {
-						newTokens[t] = true
-					}
-					for _, t := range token.Tokens {
-						if !newTokens[t] {
-							state.Inner.TokenIndex.Delete(t)
-						}
-					}
 				}
-				saveOrClearCache(state, opChan)
+				state.ClearAuthCache()
 				if op.ErrChan != nil {
 					op.ErrChan <- nil
 				}
@@ -169,6 +125,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 					op.ErrChan <- errors.New("token not found")
 				}
 			}
+
 		case OpTokenRename:
 			oldName := strings.Clone(op.Name)
 			newName := strings.Clone(op.NewName)
@@ -183,35 +140,19 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 					}
 					continue
 				}
-				oldToken := val
 				if db := state.GetDB(); db != nil {
 					_ = db.RenameToken(oldName, newName, clonedToken)
-				} else {
-					state.Inner.TokenRepository.Store(newName, clonedToken)
-					for _, t := range clonedToken.Tokens {
-						state.Inner.TokenIndex.Store(t, clonedToken)
-					}
-					state.Inner.TokenRepository.Delete(oldName)
-					for _, t := range oldToken.Tokens {
-						state.Inner.TokenIndex.Delete(t)
-					}
-					for _, t := range clonedToken.Tokens {
-						state.Inner.TokenIndex.Store(t, clonedToken)
-					}
 					if op.State != nil {
-						if db := op.State.GetDB(); db != nil {
-							_ = db.UpdateSessionsUsername(oldName, newName)
-						}
+						_ = db.UpdateSessionsUsername(oldName, newName)
 						op.State.Inner.Sessions.Range(func(key string, session *core.Session) bool {
 							if strings.EqualFold(session.Username, oldName) {
 								session.Username = newName
 							}
 							return true
 						})
-						op.State.MarkSessionsDirty()
 					}
 				}
-				saveOrClearCache(state, opChan)
+				state.ClearAuthCache()
 				if op.ErrChan != nil {
 					op.ErrChan <- nil
 				}
@@ -222,42 +163,4 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			}
 		}
 	}
-}
-
-func saveOrClearCache(state *core.AppState, opChan <-chan TokenOp) {
-	state.ClearAuthCache()
-	if len(opChan) == 0 {
-		saveTokensSync(state)
-	}
-}
-
-func saveTokensSync(state *core.AppState) {
-	if state == nil || state.Inner == nil {
-		return
-	}
-	if state.GetDB() != nil {
-		state.ClearAuthCache()
-		return
-	}
-
-	snapshot := make(map[string]*core.AccessToken)
-	state.Inner.TokenRepository.Range(func(key string, value *core.AccessToken) bool {
-		snapshot[strings.Clone(key)] = value
-		return true
-	})
-
-	tokensPath := os.Getenv("RENOP_TOKENS")
-	if tokensPath == "" {
-		tokensPath = "tokens.yaml"
-	}
-
-	yamlData, err := yaml.Marshal(snapshot)
-	if err == nil {
-		tmpPath := tokensPath + ".tmp"
-		if os.WriteFile(tmpPath, yamlData, 0600) == nil {
-			_ = utils.SafeRename(tmpPath, tokensPath)
-		}
-	}
-
-	state.ClearAuthCache()
 }

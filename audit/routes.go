@@ -141,16 +141,6 @@ func DeleteUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 		if err := db.DeleteAuditLogsByUsername(targetUsername); err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 		}
-	} else {
-		state.Inner.AuditLogLock.Lock()
-		filtered := make([]*core.AuditLogEntry, 0, len(state.Inner.AuditLogsMem))
-		for _, e := range state.Inner.AuditLogsMem {
-			if !strings.EqualFold(e.Username, targetUsername) {
-				filtered = append(filtered, e)
-			}
-		}
-		state.Inner.AuditLogsMem = filtered
-		state.Inner.AuditLogLock.Unlock()
 	}
 
 	_, op, authMethod, sessionID, ip := ExtractAuthDetails(c)
@@ -171,26 +161,5 @@ func fetchLogs(state *core.AppState, username string, limit, offset int) ([]*cor
 	if db := state.GetDB(); db != nil {
 		return db.GetAuditLogs(username, limit, offset)
 	}
-
-	state.Inner.AuditLogLock.RLock()
-	defer state.Inner.AuditLogLock.RUnlock()
-
-	var matching []*core.AuditLogEntry
-	lower := strings.ToLower(username)
-	for i := len(state.Inner.AuditLogsMem) - 1; i >= 0; i-- {
-		e := state.Inner.AuditLogsMem[i]
-		if lower == "" || strings.EqualFold(e.Username, lower) {
-			matching = append(matching, e)
-		}
-	}
-
-	total := len(matching)
-	if offset >= total {
-		return []*core.AuditLogEntry{}, total, nil
-	}
-	end := offset + limit
-	if end > total {
-		end = total
-	}
-	return matching[offset:end], total, nil
+	return []*core.AuditLogEntry{}, 0, nil
 }

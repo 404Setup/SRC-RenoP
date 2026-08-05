@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -510,8 +510,6 @@ export default {
     "settings.serverPortHint": "HTTP 서비스 수신 포트 (기본값 3000)",
     "settings.databaseTitle": "데이터베이스 설정",
     "settings.databaseSubtitle": "SQLite 또는 MySQL 데이터베이스 연결 및 풀 매개변수 구성",
-    "settings.dbEnabled": "데이터베이스 활성화",
-    "settings.dbEnabledDesc": "Token 및 Session 자격 증명 저장에 데이터베이스 사용",
     "settings.dbDriver": "데이터베이스 드라이버",
     "settings.dbDriverHint": "엔진 유형 선택 (sqlite3 또는 mysql)",
     "settings.dbDsn": "SQLite 파일 경로",

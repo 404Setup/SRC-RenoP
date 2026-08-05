@@ -12,17 +12,13 @@ package bootstrap
 
 import (
 	"bufio"
-	"io"
 	"log"
 	"os"
 
 	"go.yaml.in/yaml/v3"
-	"google.golang.org/protobuf/proto"
 
 	"renop/config"
-	"renop/core"
 	"renop/index"
-	"renop/pb"
 )
 
 func LoadConfig(configPath string) *config.Config {
@@ -49,26 +45,6 @@ func LoadConfig(configPath string) *config.Config {
 	cfg.Frontend.CachedIndexHtml = []byte{}
 
 	return &cfg
-}
-
-func LoadTokens(tokensPath string) map[string]*core.AccessToken {
-	file, err := os.Open(tokensPath)
-	if err != nil {
-		return make(map[string]*core.AccessToken)
-	}
-	defer file.Close()
-
-	var tokens map[string]*core.AccessToken
-	err = yaml.NewDecoder(bufio.NewReader(file)).Decode(&tokens)
-	if err != nil {
-		log.Printf("Failed to parse tokens file: %v", err)
-		return make(map[string]*core.AccessToken)
-	}
-	if tokens == nil {
-		return make(map[string]*core.AccessToken)
-	}
-
-	return tokens
 }
 
 func LoadFileIndex(indexPath string) *index.FileIndex {
@@ -102,26 +78,4 @@ func LoadMaven(path string) config.MavenSettings {
 	}
 
 	return mavenSettings
-}
-
-func LoadSessions(path string) []core.SessionDbDto {
-	file, err := os.Open(path)
-	if err != nil {
-		return []core.SessionDbDto{}
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(bufio.NewReader(file))
-	if err != nil {
-		log.Printf("Failed to read sessions file %s: %v", path, err)
-		return []core.SessionDbDto{}
-	}
-
-	var store pb.SessionStore
-	if err := proto.Unmarshal(data, &store); err != nil {
-		log.Printf("Failed to parse sessions file %s: %v", path, err)
-		return []core.SessionDbDto{}
-	}
-
-	return pb.ToSessionDbDtos(&store)
 }

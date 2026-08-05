@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -510,8 +510,6 @@ export default {
     "settings.serverPortHint": "HTTP サービス待ち受けポート (デフォルト 3000)",
     "settings.databaseTitle": "データベース設定",
     "settings.databaseSubtitle": "SQLite または MySQL データベース接続とプール設定",
-    "settings.dbEnabled": "データベースを有効化",
-    "settings.dbEnabledDesc": "Token と Session の保存にデータベースを使用",
     "settings.dbDriver": "データベースドライバー",
     "settings.dbDriverHint": "エンジンタイプを選択 (sqlite3 または mysql)",
     "settings.dbDsn": "SQLite ファイルパス",

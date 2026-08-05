@@ -14,7 +14,6 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -26,15 +25,28 @@ import (
 	"renop/database"
 )
 
-func TestUpsertToken(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "tokens_test_*.yaml")
-	if err != nil {
-		t.Fatal(err)
+func newTestDB(t *testing.T) *database.DB {
+	t.Helper()
+	dbFile := t.TempDir() + "/test_tokens.db"
+	cfg := config.DatabaseConfig{
+		Driver:       "sqlite3",
+		Dsn:          dbFile,
+		MaxOpenConns: 5,
+		MaxIdleConns: 5,
 	}
-	defer os.Remove(tmpFile.Name())
-	os.Setenv("RENOP_TOKENS", tmpFile.Name())
+	db, err := database.InitDB(cfg)
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	return db
+}
+
+func TestUpsertToken(t *testing.T) {
+	db := newTestDB(t)
 
 	state := core.NewAppState()
+	state.Inner.DB = db
 	opChan := make(chan TokenOp, 10)
 	go StartTokenConsumer(state, opChan)
 
@@ -61,8 +73,8 @@ func TestUpsertToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	val, ok := state.Inner.TokenRepository.Load("instan")
-	assert.True(t, ok)
+	val := state.GetTokenByName("instan")
+	assert.NotNil(t, val)
 	assert.Equal(t, "instan", val.Name)
 
 	payload2 := core.CreateAccessTokenRequest{
@@ -76,12 +88,8 @@ func TestUpsertToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 
-	count := 0
-	state.Inner.TokenRepository.Range(func(key string, value *core.AccessToken) bool {
-		count++
-		return true
-	})
-	assert.Equal(t, 1, count)
+	allTokens := state.GetAllTokens()
+	assert.Equal(t, 1, len(allTokens))
 
 	newName := "instan2"
 	payload3 := core.CreateAccessTokenRequest{
@@ -96,21 +104,10 @@ func TestUpsertToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp3.StatusCode)
 
-	count = 0
-	var foundInstan, foundInstan2 bool
-	state.Inner.TokenRepository.Range(func(key string, value *core.AccessToken) bool {
-		count++
-		if key == "instan" {
-			foundInstan = true
-		}
-		if key == "instan2" {
-			foundInstan2 = true
-		}
-		return true
-	})
-	assert.Equal(t, 1, count)
-	assert.False(t, foundInstan)
-	assert.True(t, foundInstan2)
+	allTokens = state.GetAllTokens()
+	assert.Equal(t, 1, len(allTokens))
+	assert.Nil(t, state.GetTokenByName("instan"))
+	assert.NotNil(t, state.GetTokenByName("instan2"))
 
 	payloadCreateDup := core.CreateAccessTokenRequest{
 		Permissions: []string{"base"},
@@ -126,18 +123,7 @@ func TestUpsertToken(t *testing.T) {
 }
 
 func TestFindAllTokensWithDB(t *testing.T) {
-	dbFile := t.TempDir() + "/test_tokens.db"
-	cfg := config.DatabaseConfig{
-		Enabled:      true,
-		Driver:       "sqlite3",
-		Dsn:          dbFile,
-		MaxOpenConns: 5,
-		MaxIdleConns: 5,
-	}
-
-	db, err := database.InitDB(cfg)
-	assert.NoError(t, err)
-	t.Cleanup(func() { db.Close() })
+	db := newTestDB(t)
 
 	state := core.NewAppState()
 	state.Inner.DB = db

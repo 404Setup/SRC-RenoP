@@ -20,7 +20,6 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"renop/config"
-	"renop/core"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -54,46 +53,6 @@ func TestLoadConfig(t *testing.T) {
 
 		cfg := LoadConfig(cfgPath)
 		assert.NotNil(t, cfg)
-	})
-}
-
-func TestLoadTokens(t *testing.T) {
-	t.Run("valid tokens file", func(t *testing.T) {
-		dir := t.TempDir()
-		tokensPath := filepath.Join(dir, "tokens.yaml")
-
-		tokensData := map[string]*core.AccessToken{
-			"admin": {
-				Name:            "admin",
-				EncryptedSecret: "secret-123",
-			},
-		}
-		data, err := yaml.Marshal(tokensData)
-		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(tokensPath, data, 0644))
-
-		tokens := LoadTokens(tokensPath)
-		require.Len(t, tokens, 1)
-		assert.Equal(t, "secret-123", tokens["admin"].EncryptedSecret)
-	})
-
-	t.Run("missing tokens file returns empty map", func(t *testing.T) {
-		dir := t.TempDir()
-		tokensPath := filepath.Join(dir, "missing.yaml")
-
-		tokens := LoadTokens(tokensPath)
-		assert.NotNil(t, tokens)
-		assert.Empty(t, tokens)
-	})
-
-	t.Run("invalid tokens file returns empty map", func(t *testing.T) {
-		dir := t.TempDir()
-		tokensPath := filepath.Join(dir, "invalid.yaml")
-		require.NoError(t, os.WriteFile(tokensPath, []byte("invalid: : : yaml"), 0644))
-
-		tokens := LoadTokens(tokensPath)
-		assert.NotNil(t, tokens)
-		assert.Empty(t, tokens)
 	})
 }
 

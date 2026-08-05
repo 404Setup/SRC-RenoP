@@ -58,8 +58,6 @@ func ValidateAndRenewSession(state *core.AppState, sessionId string) string {
 		session.LastActive.Store(now)
 		if db := state.GetDB(); db != nil {
 			_ = db.UpdateSessionLastActive(sessionId, now)
-		} else {
-			state.Inner.SessionsIsDirty.Store(true)
 		}
 	}
 

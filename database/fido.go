@@ -97,6 +97,16 @@ func (db *DB) SaveFidoDevice(device *core.FidoDevice) error {
 		return nil
 	}
 
+	if device.CredentialID == nil {
+		device.CredentialID = []byte{}
+	}
+	if device.PublicKey == nil {
+		device.PublicKey = []byte{}
+	}
+	if device.AAGUID == nil {
+		device.AAGUID = []byte{}
+	}
+
 	lowerName := strings.ToLower(device.Username)
 	query := `INSERT INTO fido_devices (id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`

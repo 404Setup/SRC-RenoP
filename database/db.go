@@ -33,10 +33,6 @@ type DB struct {
 }
 
 func InitDB(cfg config.DatabaseConfig) (*DB, error) {
-	if !cfg.Enabled {
-		return nil, nil
-	}
-
 	driver := strings.TrimSpace(cfg.Driver)
 	if driver == "" {
 		driver = "sqlite3"

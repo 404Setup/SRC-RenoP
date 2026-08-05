@@ -19,18 +19,32 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/protobuf/proto"
 
 	"renop/config"
 	"renop/core"
+	"renop/database"
 	"renop/pb"
 	"renop/token"
 	"renop/utils/protohttp"
 )
 
 func TestPostAuthLogin(t *testing.T) {
+	dbFile := t.TempDir() + "/auth_routes_test.db"
+	dbCfg := config.DatabaseConfig{
+		Driver:       "sqlite3",
+		Dsn:          dbFile,
+		MaxOpenConns: 5,
+		MaxIdleConns: 5,
+	}
+	db, err := database.InitDB(dbCfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { db.Close() })
+
 	state := core.NewAppState()
+	state.Inner.DB = db
 	cfg := config.DefaultConfig()
 	state.Inner.Config.Store(&cfg)
 
@@ -42,7 +56,7 @@ func TestPostAuthLogin(t *testing.T) {
 		EncryptedSecret: string(hash),
 		Permissions:     []string{"admin"},
 	}
-	state.Inner.TokenRepository.Store("admin", admin)
+	require.NoError(t, db.SaveToken(admin))
 	state.Inner.TokensCount.Store(1)
 
 	opChan := make(chan token.TokenOp, 100)

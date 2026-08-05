@@ -11,7 +11,6 @@
 package config
 
 type DatabaseConfig struct {
-	Enabled            bool   `json:"enabled" yaml:"enabled"`
 	Driver             string `json:"driver" yaml:"driver"` // "sqlite3" or "mysql"
 	Dsn                string `json:"dsn" yaml:"dsn"`
 	MaxOpenConns       int    `json:"max_open_conns" yaml:"max_open_conns"`
@@ -21,7 +20,6 @@ type DatabaseConfig struct {
 
 func DefaultDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
-		Enabled:            true,
 		Driver:             "sqlite3",
 		Dsn:                "renop.db",
 		MaxOpenConns:       25,
@@ -31,9 +29,6 @@ func DefaultDatabaseConfig() DatabaseConfig {
 }
 
 func (d *DatabaseConfig) setDefaults() {
-	if !d.Enabled && d.Driver == "" && d.Dsn == "" {
-		d.Enabled = true
-	}
 	if d.Driver == "" {
 		d.Driver = "sqlite3"
 	}
