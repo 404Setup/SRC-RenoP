@@ -25,6 +25,8 @@ import (
 	"renop/version"
 )
 
+var archString = getArchitectureString()
+
 func SetupRoutes(api fiber.Router, state *core.AppState) {
 	api.Get("/status/instance", func(c fiber.Ctx) error { return GetInstanceStatus(c, state) })
 	api.Get("/status/snapshots", func(c fiber.Ctx) error { return GetStatusSnapshots(c, state) })
@@ -34,13 +36,7 @@ func SetupRoutes(api fiber.Router, state *core.AppState) {
 func getArchitectureString() string {
 	arch := runtime.GOARCH
 	if arch == "amd64" {
-		lvl := cpuid.CPU.X64Level()
-		if lvl < 1 {
-			lvl = 1
-		}
-		if lvl > 4 {
-			lvl = 4
-		}
+		lvl := min(max(cpuid.CPU.X64Level(), 1), 4)
 		return fmt.Sprintf("amd64 (v%d)", lvl)
 	}
 	return arch
@@ -97,7 +93,7 @@ func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
 		UsedThreads:      usedThreads,
 		AvailableThreads: availableThreads,
 		TotalThreads:     totalThreads,
-		Architecture:     getArchitectureString(),
+		Architecture:     archString,
 		Os:               runtime.GOOS,
 		LogicalCores:     int32(logicalCores),
 		PhysicalCores:    int32(physicalCores),
