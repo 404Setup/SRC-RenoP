@@ -337,6 +337,11 @@
     line-height: 1.35;
     padding: 0.25rem 0.4rem;
     border-radius: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .docs-toc-list a:hover,

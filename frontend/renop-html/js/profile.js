@@ -27,7 +27,7 @@ export async function loadProfileFidoDevices() {
     listEl.replaceChildren(
         el('div', { class: 'sessions-loading' },
             el('div', { class: 'sessions-loading-spinner', 'aria-hidden': 'true' }),
-            el('span', {}, t('common.loading') || 'Loading...')
+            el('span', {}, t('fido.loading') || t('common.loading') || 'Loading...')
         )
     );
 

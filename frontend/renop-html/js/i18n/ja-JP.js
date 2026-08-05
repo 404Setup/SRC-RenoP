@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -285,6 +285,8 @@ export default {
     "users.confirmClearAuditLogs": "ユーザー \"{user}\" のすべてのアクティビティログを消去してもよろしいですか？",
     "users.auditLogsCleared": "アクティビティログが正常に消去されました",
 
+    "audit.loading": "アクティビティログを読み込み中…",
+    "fido.loading": "FIDOデバイスを読み込み中…",
     "audit.time": "時間",
     "audit.action": "操作",
     "audit.operator": "操作者",
@@ -491,6 +493,7 @@ export default {
     "common.no": "いいえ",
     "common.none": "なし",
     "common.remove": "削除",
+    "common.loading": "読み込み中…",
     "common.error": "エラー",
     "common.close": "閉じる",
     "common.page": "ページ",

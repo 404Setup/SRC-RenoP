@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -285,6 +285,8 @@ export default {
     "users.confirmClearAuditLogs": "사용자 \"{user}\"의 모든 활동 기록을 지우시겠습니까?",
     "users.auditLogsCleared": "활동 기록이 성공적으로 삭제되었습니다",
 
+    "audit.loading": "활동 로그를 불러오는 중…",
+    "fido.loading": "FIDO 장치를 불러오는 중…",
     "audit.time": "시간",
     "audit.action": "작업",
     "audit.operator": "작업자",
@@ -491,6 +493,7 @@ export default {
     "common.no": "아니오",
     "common.none": "없음",
     "common.remove": "제거",
+    "common.loading": "불러오는 중…",
     "common.error": "오류",
     "common.close": "닫기",
     "common.page": "페이지",

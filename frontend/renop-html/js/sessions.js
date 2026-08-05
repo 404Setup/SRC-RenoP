@@ -228,32 +228,88 @@ function enableDragScroll(container) {
     let isDown = false;
     let startX = 0;
     let startScrollLeft = 0;
+    let targetScrollLeft = 0;
     let moved = false;
+    let rafId = null;
+    let lastX = 0;
+    let velocity = 0;
+    let lastTime = 0;
+    let inertiaRaf = null;
+
+    const stopInertia = () => {
+        if (inertiaRaf) {
+            cancelAnimationFrame(inertiaRaf);
+            inertiaRaf = null;
+        }
+    };
+
+    const updateScroll = () => {
+        container.scrollLeft = targetScrollLeft;
+        rafId = null;
+    };
+
+    const requestScroll = () => {
+        if (!rafId) {
+            rafId = requestAnimationFrame(updateScroll);
+        }
+    };
 
     const onMove = (clientX, e) => {
         if (!isDown) return;
+        const now = performance.now();
+        const dt = now - (lastTime || now);
         const dx = clientX - startX;
+        
+        if (dt > 0) {
+            velocity = (clientX - lastX) / dt;
+        }
+        lastX = clientX;
+        lastTime = now;
+
         if (Math.abs(dx) > 3) moved = true;
-        if (moved && e) e.preventDefault();
-        container.scrollLeft = startScrollLeft - dx;
+        if (moved && e && e.cancelable) e.preventDefault();
+
+        targetScrollLeft = startScrollLeft - dx;
+        requestScroll();
     };
 
     const onMouseMove = (e) => onMove(e.clientX, e);
+
+    const applyInertia = () => {
+        if (Math.abs(velocity) < 0.05) {
+            velocity = 0;
+            return;
+        }
+        container.scrollLeft -= velocity * 14;
+        velocity *= 0.90;
+        inertiaRaf = requestAnimationFrame(applyInertia);
+    };
+
     const onMouseUp = () => {
+        if (!isDown) return;
         isDown = false;
         container.classList.remove('is-dragging');
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', onMouseUp);
+
+        if (moved && Math.abs(velocity) > 0.1) {
+            inertiaRaf = requestAnimationFrame(applyInertia);
+        }
     };
 
     container.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
         if (e.target.closest('button, a, input, select, textarea, label')) return;
+        stopInertia();
         isDown = true;
         moved = false;
         container.classList.add('is-dragging');
         startX = e.clientX;
+        lastX = e.clientX;
+        lastTime = performance.now();
+        velocity = 0;
         startScrollLeft = container.scrollLeft;
+        targetScrollLeft = startScrollLeft;
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
     });
@@ -261,19 +317,30 @@ function enableDragScroll(container) {
     container.addEventListener('touchstart', (e) => {
         if (!e.touches[0]) return;
         if (e.target.closest('button, a, input, select, textarea, label')) return;
+        stopInertia();
         isDown = true;
         moved = false;
         container.classList.add('is-dragging');
         startX = e.touches[0].clientX;
+        lastX = e.touches[0].clientX;
+        lastTime = performance.now();
+        velocity = 0;
         startScrollLeft = container.scrollLeft;
+        targetScrollLeft = startScrollLeft;
     }, {passive: true});
+
     container.addEventListener('touchmove', (e) => {
         if (!e.touches[0]) return;
         onMove(e.touches[0].clientX, e);
     }, {passive: false});
+
     const onTouchEnd = () => {
+        if (!isDown) return;
         isDown = false;
         container.classList.remove('is-dragging');
+        if (moved && Math.abs(velocity) > 0.1) {
+            inertiaRaf = requestAnimationFrame(applyInertia);
+        }
     };
     container.addEventListener('touchend', onTouchEnd);
     container.addEventListener('touchcancel', onTouchEnd);
@@ -282,6 +349,7 @@ function enableDragScroll(container) {
         if (container.scrollWidth <= container.clientWidth + 1) return;
         const mostlyVertical = Math.abs(e.deltaY) > Math.abs(e.deltaX);
         if (mostlyVertical && e.deltaY !== 0) {
+            stopInertia();
             container.scrollLeft += e.deltaY;
             e.preventDefault();
         }

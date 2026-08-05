@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -283,6 +283,8 @@ export default {
     "users.confirmClearAuditLogs": "Voulez-vous vraiment effacer tous les journaux d'activité de l'utilisateur \"{user}\" ?",
     "users.auditLogsCleared": "Journaux d'activité effacés avec succès",
 
+    "audit.loading": "Chargement des journaux d'activité…",
+    "fido.loading": "Chargement des appareils FIDO…",
     "audit.time": "Heure",
     "audit.action": "Action",
     "audit.operator": "Opérateur",
@@ -489,6 +491,7 @@ export default {
     "common.no": "Non",
     "common.none": "Aucun",
     "common.remove": "Retirer",
+    "common.loading": "Chargement…",
     "common.error": "Erreur",
     "common.close": "Fermer",
     "common.page": "Page",

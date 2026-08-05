@@ -83,12 +83,12 @@ export async function openAuditLogsDialog(options = {}) {
 
     const container = el('div', {
         class: 'audit-logs-container',
-        style: {minHeight: '320px', display: 'flex', flexDirection: 'column', gap: '12px'}
+        style: {minHeight: 'auto', display: 'flex', flexDirection: 'column', gap: '12px'}
     });
 
     const contentArea = el('div', {
         class: 'audit-logs-list',
-        style: {flex: '1', overflowX: 'hidden', overflowY: 'auto', maxHeight: '420px'}
+        style: {flex: '1', overflowX: 'auto', overflowY: 'auto', maxHeight: '420px'}
     });
     const paginationArea = el('div', {
         class: 'audit-logs-pagination',
@@ -115,7 +115,7 @@ export async function openAuditLogsDialog(options = {}) {
             contentArea.replaceChildren(
                 el('div', {class: 'sessions-loading'},
                     el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
-                    el('span', {}, t('common.loading') || 'Loading activity logs...')
+                    el('span', {}, t('audit.loading') || t('common.loading') || 'Loading activity logs...')
                 )
             );
             paginationArea.innerHTML = '';
@@ -150,11 +150,13 @@ export async function openAuditLogsDialog(options = {}) {
                 contentArea.innerHTML = '';
 
                 if (logs.length === 0) {
+                    container.style.minHeight = 'auto';
                     contentArea.innerHTML = `<div style="padding: 2.5rem; text-align: center; opacity: 0.6; font-size: 0.9rem;">${t('common.none') || 'No activity logs found'}</div>`;
                 } else {
+                    container.style.minHeight = '320px';
                     const table = el('table', {
                             class: 'audit-table',
-                            style: {width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem'}
+                            style: {width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.85rem'}
                         },
                         el('thead', {},
                             el('tr', {
@@ -164,12 +166,12 @@ export async function openAuditLogsDialog(options = {}) {
                                         opacity: '0.7'
                                     }
                                 },
-                                el('th', {style: {padding: '8px 12px'}}, t('audit.time') || 'Time'),
-                                el('th', {style: {padding: '8px 12px'}}, t('audit.action') || 'Action'),
-                                el('th', {style: {padding: '8px 12px'}}, t('audit.operator') || 'Operator'),
+                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.time') || 'Time'),
+                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.action') || 'Action'),
+                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.operator') || 'Operator'),
                                 el('th', {style: {padding: '8px 12px'}}, t('audit.details') || 'Details'),
-                                el('th', {style: {padding: '8px 12px'}}, t('audit.authMethod') || 'Auth Method'),
-                                el('th', {style: {padding: '8px 12px'}}, t('audit.ip') || 'IP')
+                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.authMethod') || 'Auth Method'),
+                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.ip') || 'IP')
                             )
                         )
                     );
@@ -188,15 +190,16 @@ export async function openAuditLogsDialog(options = {}) {
                         );
 
                         const actionBadge = renderActionBadge(log.action);
-                        const actionTd = el('td', {style: {padding: '8px 12px'}}, actionBadge);
+                        const actionTd = el('td', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, actionBadge);
 
                         const displayOp = log.operator === 'Administrator' ? (t('audit.administrator') || 'Administrator') : (log.operator || '-');
-                        const opTd = el('td', {style: {padding: '8px 12px', fontWeight: '500'}}, displayOp);
+                        const opTd = el('td', {style: {padding: '8px 12px', fontWeight: '500', whiteSpace: 'nowrap'}}, displayOp);
 
                         const detailsTd = el('td', {
                             style: {
                                 padding: '8px 12px',
                                 maxWidth: '280px',
+                                minWidth: '160px',
                                 wordBreak: 'break-word'
                             }
                         }, log.details || '-');
@@ -387,7 +390,7 @@ function renderActionBadge(action) {
 
     const badge = document.createElement('span');
     badge.className = 'audit-action-badge';
-    badge.style.cssText = `display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; color: ${color}; background: ${bg};`;
+    badge.style.cssText = `display: inline-block; white-space: nowrap; flex-shrink: 0; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; color: ${color}; background: ${bg};`;
     badge.textContent = t('audit.action.' + action) || action;
     return badge;
 }

@@ -296,7 +296,8 @@ export async function fetchInstanceStatus() {
             document.getElementById('dashboard-threads').textContent = `${data.used_threads}`;
 
             document.getElementById('dashboard-cores').textContent = `${data.logical_cores} / ${data.physical_cores}`;
-            document.getElementById('dashboard-os-arch').textContent = `${data.os} / ${data.architecture}`;
+            const archDisplay = data.architecture || '';
+            document.getElementById('dashboard-os-arch').textContent = `${data.os} / ${archDisplay}`;
             document.getElementById('dashboard-failures').textContent = data.failures_count !== undefined ? data.failures_count : '0';
 
             const updateBtn = document.getElementById('btn-dashboard-update');

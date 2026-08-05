@@ -173,12 +173,33 @@ export function makeCustomSelect(options, current, onChange) {
 
     /**
      * Hide this select's dropdown and clear open state classes.
+     * @param {boolean} [immediate=false]
      * @returns {void}
      */
-    function closeDropdown() {
-        dropdown.style.display = 'none';
+    function closeDropdown(immediate = false) {
         btn.classList.remove('is-open');
         wrap.classList.remove('is-open');
+        if (!dropdown || dropdown.style.display === 'none') return;
+
+        if (immediate) {
+            dropdown.style.display = 'none';
+            dropdown.classList.remove('is-leaving');
+            return;
+        }
+
+        dropdown.classList.add('is-leaving');
+        let finished = false;
+        const onEnd = (e) => {
+            if (finished || (e && e.target !== dropdown)) return;
+            finished = true;
+            dropdown.removeEventListener('animationend', onEnd);
+            if (dropdown.classList.contains('is-leaving')) {
+                dropdown.style.display = 'none';
+                dropdown.classList.remove('is-leaving');
+            }
+        };
+        dropdown.addEventListener('animationend', onEnd);
+        setTimeout(onEnd, 180);
     }
 
     /**
@@ -187,11 +208,15 @@ export function makeCustomSelect(options, current, onChange) {
      */
     function openDropdown() {
         document.querySelectorAll('.custom-select-dropdown').forEach((d) => {
-            if (d !== dropdown) d.style.display = 'none';
+            if (d !== dropdown) {
+                d.style.display = 'none';
+                d.classList.remove('is-leaving');
+            }
         });
         document.querySelectorAll('.custom-select-wrapper, .custom-select-btn').forEach((b) => {
             if (b !== wrap && b !== btn) b.classList.remove('is-open');
         });
+        dropdown.classList.remove('is-leaving');
         dropdown.style.display = 'block';
         btn.classList.add('is-open');
         wrap.classList.add('is-open');

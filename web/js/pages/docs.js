@@ -277,6 +277,7 @@ function buildToc(toc) {
                 el('a', {
                     href: `#${item.id}`,
                     class: item.level >= 3 ? 'toc-h3' : '',
+                    title: item.text,
                 }, item.text),
             ),
         );

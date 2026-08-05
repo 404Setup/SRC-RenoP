@@ -25,12 +25,15 @@
 
 .download-field label,
 .download-field-label {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     font-size: 0.8rem;
     font-weight: 650;
     opacity: 0.75;
+    width: fit-content;
+    max-width: max-content;
+    align-self: flex-start;
 }
 
 .x64-info-btn {
@@ -82,7 +85,7 @@
     opacity: 1;
     transform: translateX(0) scale(1);
     pointer-events: auto;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .download-field .custom-select-wrapper {

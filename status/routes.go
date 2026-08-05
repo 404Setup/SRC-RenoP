@@ -11,10 +11,12 @@
 package status
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/klauspost/cpuid/v2"
 
 	"renop/core"
 	"renop/pb"
@@ -27,6 +29,21 @@ func SetupRoutes(api fiber.Router, state *core.AppState) {
 	api.Get("/status/instance", func(c fiber.Ctx) error { return GetInstanceStatus(c, state) })
 	api.Get("/status/snapshots", func(c fiber.Ctx) error { return GetStatusSnapshots(c, state) })
 	api.Get("/status/health", GetHealth)
+}
+
+func getArchitectureString() string {
+	arch := runtime.GOARCH
+	if arch == "amd64" {
+		lvl := cpuid.CPU.X64Level()
+		if lvl < 1 {
+			lvl = 1
+		}
+		if lvl > 4 {
+			lvl = 4
+		}
+		return fmt.Sprintf("amd64 (v%d)", lvl)
+	}
+	return arch
 }
 
 func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
@@ -80,7 +97,7 @@ func GetInstanceStatus(c fiber.Ctx, state *core.AppState) error {
 		UsedThreads:      usedThreads,
 		AvailableThreads: availableThreads,
 		TotalThreads:     totalThreads,
-		Architecture:     runtime.GOARCH,
+		Architecture:     getArchitectureString(),
 		Os:               runtime.GOOS,
 		LogicalCores:     int32(logicalCores),
 		PhysicalCores:    int32(physicalCores),

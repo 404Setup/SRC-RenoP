@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -330,6 +330,8 @@ export default {
     "users.confirmClearAuditLogs": "确定要清除用户 \"{user}\" 的所有行为日志吗？",
     "users.auditLogsCleared": "行为日志已成功清除",
 
+    "audit.loading": "正在加载行为日志…",
+    "fido.loading": "正在加载 FIDO 设备…",
     "audit.time": "时间",
     "audit.action": "行为",
     "audit.operator": "操作人",
@@ -544,6 +546,7 @@ export default {
     "common.no": "否",
     "common.none": "无",
     "common.remove": "移除",
+    "common.loading": "加载中…",
     "common.error": "错误",
     "common.close": "关闭",
     "common.page": "页",

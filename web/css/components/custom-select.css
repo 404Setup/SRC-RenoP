@@ -102,6 +102,22 @@
     }
 }
 
+.custom-select-dropdown.is-leaving {
+    animation: customSelectSlideOut 0.15s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes customSelectSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+    }
+}
+
 .custom-select-dropdown-item {
     display: flex;
     align-items: center;

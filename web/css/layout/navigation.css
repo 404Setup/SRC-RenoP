@@ -94,23 +94,40 @@
 
 @media (max-width: 800px) {
     .top-nav {
+        display: flex;
         flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
         padding: 0.9rem 1rem 0.55rem 1rem;
         gap: 0.65rem;
     }
 
     .top-nav-left {
-        width: 100%;
-        flex-wrap: wrap;
+        width: auto;
+        flex: 0 1 auto;
+        flex-wrap: nowrap;
         gap: 0.5rem;
     }
 
+    .top-nav-right {
+        order: 2;
+        margin-left: auto;
+    }
+
     .nav-links {
+        order: 3;
         width: 100%;
         overflow-x: auto;
         flex-wrap: nowrap;
+        white-space: nowrap;
         -ms-overflow-style: none;
         scrollbar-width: none;
+        padding-top: 0.25rem;
+    }
+
+    .nav-links a {
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
     }
 
     .nav-links::-webkit-scrollbar {

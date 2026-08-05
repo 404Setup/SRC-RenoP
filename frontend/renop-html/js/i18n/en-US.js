@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -543,6 +543,9 @@ export default {
     "common.no": "No",
     "common.none": "None",
     "common.remove": "Remove",
+    "common.loading": "Loading…",
+    "audit.loading": "Loading activity logs…",
+    "fido.loading": "Loading FIDO devices…",
     "common.error": "Error",
     "common.close": "Close",
     "common.page": "Page",

@@ -338,6 +338,16 @@ html.dark .pill-btn--ghost-danger:hover:not(:disabled) {
     }
 }
 
+.cfg-section-header,
+.cfg-section-header *,
+.cfg-sub-header,
+.cfg-sub-header * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
 .cfg-section-header {
     display: flex;
     align-items: center;
@@ -634,6 +644,14 @@ input[type="number"].cfg-input {
     .cfg-field-row--leaving {
         animation: none !important;
     }
+}
+
+.cfg-toggle,
+.cfg-toggle * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 
 .cfg-toggle {

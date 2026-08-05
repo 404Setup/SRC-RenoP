@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -285,6 +285,8 @@ export default {
     "users.confirmClearAuditLogs": "Вы уверены, что хотите очистить все записи журнала действий для пользователя \"{user}\"?",
     "users.auditLogsCleared": "Журнал действий успешно очищен",
 
+    "audit.loading": "Загрузка журналов действий…",
+    "fido.loading": "Загрузка устройств FIDO…",
     "audit.time": "Время",
     "audit.action": "Действие",
     "audit.operator": "Оператор",
@@ -491,6 +493,7 @@ export default {
     "common.no": "Нет",
     "common.none": "Нет",
     "common.remove": "Удалить",
+    "common.loading": "Загрузка…",
     "common.error": "Ошибка",
     "common.close": "Закрыть",
     "common.page": "Страница",

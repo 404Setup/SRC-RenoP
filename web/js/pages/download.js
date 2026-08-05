@@ -96,7 +96,7 @@ function createX64Field(labelText, options, value, onChange, onInfoClick) {
         },
     }, '?');
 
-    const label = el('label', {class: 'download-field-label'},
+    const label = el('div', {class: 'download-field-label'},
         el('span', {}, labelText),
         infoBtn,
     );

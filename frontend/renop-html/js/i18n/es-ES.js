@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -284,6 +284,8 @@ export default {
     "users.confirmClearAuditLogs": "¿Está seguro de que desea borrar todos los registros de actividad del usuario \"{user}\"?",
     "users.auditLogsCleared": "Registros de actividad borrados correctamente",
 
+    "audit.loading": "Cargando registros de actividad…",
+    "fido.loading": "Cargando dispositivos FIDO…",
     "audit.time": "Hora",
     "audit.action": "Acción",
     "audit.operator": "Operador",
@@ -490,6 +492,7 @@ export default {
     "common.no": "No",
     "common.none": "Ninguno",
     "common.remove": "Quitar",
+    "common.loading": "Cargando…",
     "common.error": "Error",
     "common.close": "Cerrar",
     "common.page": "Página",
