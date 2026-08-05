@@ -11,7 +11,7 @@
 import {t} from '../i18n.js';
 import {showAlert} from '../alert.js';
 import {fetchProto, putProto} from '../api.js';
-import {el} from '../cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {CreateAccessTokenRequest, CreateAccessTokenResponse, MavenRepositoriesResponse} from '../proto/index.js';
 import {
     createEmptyState,

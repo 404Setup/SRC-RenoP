@@ -8,8 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import { t } from '../i18n.js';
-import { el, iconCheck } from '../lib/dom.js';
+import {t} from '../i18n.js';
+import {el, iconCheck} from '@renop/ui/dom';
 
 /**
  * Build a pricing tier card.
@@ -22,22 +22,22 @@ import { el, iconCheck } from '../lib/dom.js';
  * @param {string} [opts.badge] - Optional corner badge text.
  * @returns {HTMLElement}
  */
-function tierCard({ tier, price, desc, features, featured, badge }) {
+function tierCard({tier, price, desc, features, featured, badge}) {
     const card = el('article', {
         class: `card pricing-card${featured ? ' pricing-card--featured' : ''}`,
     });
 
     if (badge) {
-        card.appendChild(el('span', { class: 'pricing-badge' }, badge));
+        card.appendChild(el('span', {class: 'pricing-badge'}, badge));
     }
 
     card.append(
-        el('p', { class: 'pricing-tier' }, tier),
-        el('p', { class: 'pricing-price' }, price, el('span', {}, t('pricing.forever'))),
-        el('p', { class: 'pricing-desc' }, desc),
+        el('p', {class: 'pricing-tier'}, tier),
+        el('p', {class: 'pricing-price'}, price, el('span', {}, t('pricing.forever'))),
+        el('p', {class: 'pricing-desc'}, desc),
     );
 
-    const ul = el('ul', { class: 'pricing-features' });
+    const ul = el('ul', {class: 'pricing-features'});
     for (const f of features) {
         const li = el('li', {});
         li.appendChild(iconCheck());
@@ -62,7 +62,7 @@ function tierCard({ tier, price, desc, features, featured, badge }) {
  * @param {{ root: HTMLElement }} ctx - Route context.
  * @returns {Promise<void>}
  */
-export async function renderPricing({ root }) {
+export async function renderPricing({root}) {
     root.innerHTML = '';
 
     const shared = [
@@ -75,11 +75,11 @@ export async function renderPricing({ root }) {
     ];
 
     root.append(
-        el('header', { class: 'page-hero' },
+        el('header', {class: 'page-hero'},
             el('h1', {}, t('pricing.title')),
             el('p', {}, t('pricing.lead')),
         ),
-        el('div', { class: 'pricing-grid' },
+        el('div', {class: 'pricing-grid'},
             tierCard({
                 tier: t('pricing.personal'),
                 price: t('pricing.free'),
@@ -101,7 +101,7 @@ export async function renderPricing({ root }) {
                 features: [...shared, t('pricing.feat.invoice'), t('pricing.feat.priority')],
             }),
         ),
-        el('div', { class: 'card pricing-note' },
+        el('div', {class: 'card pricing-note'},
             el('p', {}, t('pricing.note')),
             el('p', {}, el('strong', {}, t('pricing.footnote'))),
         ),

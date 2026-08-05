@@ -9,14 +9,14 @@
  */
 
 import {t, translateError} from './i18n.js';
-import {el} from './cfg-ui.js';
-import {createAlert, createFileCard, createDropzone, createIcon, createMetaGrid, RenopDialog} from './components.js';
+import {el} from '@renop/ui/dom';
+import {createAlert, createDropzone, createFileCard, createMetaGrid, RenopDialog} from './components.js';
 import {fetchProto} from './api.js';
 import {
+    renderChunkProgressStrip,
     shouldUseChunkedUpload,
     uploadFileChunked,
     uploadUpdaterSingle,
-    renderChunkProgressStrip,
 } from './chunked-upload.js';
 import {InstanceStatus} from './proto/index.js';
 
@@ -253,12 +253,16 @@ export function showOfflineUpdateModal() {
 
         const disableBtn = () => {
             const btn = getBtn();
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
         };
 
         const enableBtn = () => {
             const btn = getBtn();
-            if (btn) { btn.disabled = false; }
+            if (btn) {
+                btn.disabled = false;
+            }
         };
 
         let spaceCheckPassed = false;
@@ -456,7 +460,8 @@ export function showOfflineUpdateModal() {
                             try {
                                 const errJson = JSON.parse(result.responseText);
                                 if (errJson.error) errText = errJson.error;
-                            } catch (ex) { /* ignore */ }
+                            } catch (ex) { /* ignore */
+                            }
                         }
                         showAlert(errText, 'error');
                         resetProgressUI();

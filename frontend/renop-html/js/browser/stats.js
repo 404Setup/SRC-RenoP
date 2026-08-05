@@ -8,7 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {collapseElement, expandElement, formatBytes, morphElementHeight} from './utils.js';
+import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
+import {formatBytes} from './utils.js';
 import {fetchProto} from '../api.js';
 import {t} from '../i18n.js';
 import {createButton, createMirrorCard} from '../components.js';

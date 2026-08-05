@@ -9,11 +9,13 @@
  */
 
 import {t} from '../i18n.js';
-import {el} from '../cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {createBadge} from './badge.js';
 import {createUserAvatar} from './user-avatar.js';
 import {createButton} from './button.js';
 import {createCodeBadge} from './code-badge.js';
+import {createIcon} from './icon.js';
+import {RenopDialog} from './dialog.js';
 
 /**
  * Create a skeleton placeholder table row for the users list.
@@ -105,9 +107,6 @@ if (!customElements.get('renop-user-row')) {
  * @property {(token: object) => void} [onReset] - Reset-token action handler
  * @property {(token: object) => void} [onSessions] - Sessions action handler
  */
-
-import {createIcon} from './icon.js';
-import {RenopDialog} from './dialog.js';
 
 /**
  * Open a Dialog showing card operations for a specific user.
@@ -237,8 +236,23 @@ export function openUserActionsDialog(token, options = {}) {
         }, createIcon(act.icon, {width: '18', height: '18'}));
 
         const textCol = el('div', {style: {flex: '1', minWidth: '0'}},
-            el('div', {style: {fontWeight: '600', fontSize: '0.9rem', marginBottom: '2px', color: 'var(--text-color, #111827)'}}, act.title),
-            el('div', {style: {fontSize: '0.78rem', opacity: '0.65', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}, act.desc)
+            el('div', {
+                style: {
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    marginBottom: '2px',
+                    color: 'var(--text-color, #111827)'
+                }
+            }, act.title),
+            el('div', {
+                style: {
+                    fontSize: '0.78rem',
+                    opacity: '0.65',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                }
+            }, act.desc)
         );
 
         const chevron = el('div', {style: {opacity: '0.4'}}, createIcon('chevron', {width: '14', height: '14'}));

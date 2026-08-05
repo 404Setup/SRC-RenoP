@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {el} from './dom.js';
+import {el} from '@renop/ui/dom';
 
 /**
  * Short badge label from a locale code (e.g. `zh-CN` → `ZH`).

@@ -10,7 +10,7 @@
 
 import {closeModalWithAnim} from '@renop/ui/modal';
 import {t, translateError} from '../i18n.js';
-import {el} from '../cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {createIcon, ICONS} from './icon.js';
 
 /**

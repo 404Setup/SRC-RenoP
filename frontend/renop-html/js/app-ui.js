@@ -8,21 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {
-    closeModalWithAnim as closeModalWithAnimShared,
-    configureModalInert,
-    updateModalInertState,
-} from '@renop/ui/modal';
-import {enableDragToScroll, smoothScrollToTop,} from '@renop/ui/scroll';
-import {registerTabContainer, updateTabIndicator,} from '@renop/ui/tabs';
-
-export {
-    enableDragToScroll,
-    registerTabContainer,
-    smoothScrollToTop,
-    updateModalInertState,
-    updateTabIndicator,
-};
+import {closeModalWithAnim as closeModalWithAnimShared, configureModalInert,} from '@renop/ui/modal';
 
 const FRONTEND_MODAL_IDS = [
     'create-token-modal',

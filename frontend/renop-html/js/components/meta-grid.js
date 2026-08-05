@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {el} from '../cfg-ui.js';
+import {el} from '@renop/ui/dom';
 
 /**
  * Key/value meta grid host custom element for modals.

@@ -12,14 +12,13 @@ import {t, updatePageTranslations} from './i18n.js';
 import {showAlert} from './alert.js';
 import {fetchProto, getAuthHeaders} from './api.js';
 import {createBreadcrumbLink, createBreadcrumbSep, createFileItem} from './components.js';
+import {lockElementHeight, morphElementHeight} from '@renop/ui/height-anim';
 import {
     applyAdjustments,
     decodePathSegment,
     encodePathSegment,
     formatBytes,
     initUtils,
-    lockElementHeight,
-    morphElementHeight,
 } from './browser/utils.js';
 import {updateSnippets} from './browser/snippets.js';
 import {initUpload, updateUploadZone} from './browser/upload.js';

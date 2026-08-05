@@ -10,7 +10,7 @@
 
 import {t} from './i18n.js';
 import {showAlert} from './alert.js';
-import {el} from './cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {fetchProto, PROTO_CONTENT_TYPE, withCredentials} from './api.js';
 import {SessionList} from './proto/index.js';
 import {RenopDialog} from './components/dialog.js';
@@ -259,7 +259,7 @@ function enableDragScroll(container) {
         const now = performance.now();
         const dt = now - (lastTime || now);
         const dx = clientX - startX;
-        
+
         if (dt > 0) {
             velocity = (clientX - lastX) / dt;
         }

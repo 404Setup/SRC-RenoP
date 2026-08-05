@@ -11,9 +11,9 @@
 import {t} from './i18n.js';
 import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
-import {el} from './cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {RenopDialog} from './components.js';
-import {enableDragToScroll} from './app-ui.js';
+import {enableDragToScroll} from '@renop/ui/scroll';
 
 let currentAuditModal = null;
 
@@ -168,11 +168,31 @@ export async function openAuditLogsDialog(options = {}) {
                                         opacity: '0.7'
                                     }
                                 },
-                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.time') || 'Time'),
-                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.action') || 'Action'),
-                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.operator') || 'Operator'),
+                                el('th', {
+                                    style: {
+                                        padding: '8px 12px',
+                                        whiteSpace: 'nowrap'
+                                    }
+                                }, t('audit.time') || 'Time'),
+                                el('th', {
+                                    style: {
+                                        padding: '8px 12px',
+                                        whiteSpace: 'nowrap'
+                                    }
+                                }, t('audit.action') || 'Action'),
+                                el('th', {
+                                    style: {
+                                        padding: '8px 12px',
+                                        whiteSpace: 'nowrap'
+                                    }
+                                }, t('audit.operator') || 'Operator'),
                                 el('th', {style: {padding: '8px 12px'}}, t('audit.details') || 'Details'),
-                                el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.authMethod') || 'Auth Method'),
+                                el('th', {
+                                    style: {
+                                        padding: '8px 12px',
+                                        whiteSpace: 'nowrap'
+                                    }
+                                }, t('audit.authMethod') || 'Auth Method'),
                                 el('th', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, t('audit.ip') || 'IP')
                             )
                         )
@@ -195,7 +215,13 @@ export async function openAuditLogsDialog(options = {}) {
                         const actionTd = el('td', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, actionBadge);
 
                         const displayOp = log.operator === 'Administrator' ? (t('audit.administrator') || 'Administrator') : (log.operator || '-');
-                        const opTd = el('td', {style: {padding: '8px 12px', fontWeight: '500', whiteSpace: 'nowrap'}}, displayOp);
+                        const opTd = el('td', {
+                            style: {
+                                padding: '8px 12px',
+                                fontWeight: '500',
+                                whiteSpace: 'nowrap'
+                            }
+                        }, displayOp);
 
                         const detailsTd = el('td', {
                             style: {

@@ -8,10 +8,10 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import { t, getDocsLocale } from '../i18n.js';
-import { el, clear } from '../lib/dom.js';
-import { renderMarkdown } from '../lib/markdown.js';
-import { morphElementHeight, prefersReducedMotion } from '@renop/ui/height-anim';
+import {getDocsLocale, t} from '../i18n.js';
+import {clear, el} from '@renop/ui/dom';
+import {renderMarkdown} from '../lib/markdown.js';
+import {morphElementHeight, prefersReducedMotion} from '@renop/ui/height-anim';
 
 let indexCache = null;
 let tocObserver = null;
@@ -26,7 +26,7 @@ let shell = null;
  */
 async function loadIndex() {
     if (indexCache) return indexCache;
-    const res = await fetch('/content/docs-index.json', { cache: 'no-cache' });
+    const res = await fetch('/content/docs-index.json', {cache: 'no-cache'});
     if (!res.ok) throw new Error('docs index missing');
     indexCache = await res.json();
     return indexCache;
@@ -39,11 +39,11 @@ async function loadIndex() {
  * @returns {{ docs: Array<object>, categories: Array<object> }}
  */
 function localeBundle(index, locale) {
-    if (!index) return { docs: [], categories: [] };
+    if (!index) return {docs: [], categories: []};
     if (index.locales) {
-        return index.locales[locale] || index.locales[index.defaultLocale || 'en-US'] || { docs: [], categories: [] };
+        return index.locales[locale] || index.locales[index.defaultLocale || 'en-US'] || {docs: [], categories: []};
     }
-    return { docs: index.docs || [], categories: index.categories || [] };
+    return {docs: index.docs || [], categories: index.categories || []};
 }
 
 /**
@@ -97,7 +97,7 @@ function isMobileDocs() {
  * @param {boolean} [options.animate=true] - When false, snap height/opacity without transition.
  * @returns {void}
  */
-function setSidebarExpanded(sidebar, body, expanded, { animate = true } = {}) {
+function setSidebarExpanded(sidebar, body, expanded, {animate = true} = {}) {
     sidebar.classList.toggle('is-expanded', expanded);
     sidebar.classList.toggle('is-collapsed', !expanded);
     const toggle = sidebar.querySelector('.docs-sidebar-toggle');
@@ -145,7 +145,7 @@ function collapseSidebarIfMobile(sidebar) {
     if (!sidebar.classList.contains('is-expanded')) return;
     const body = sidebar.querySelector('.docs-sidebar-body');
     if (!body) return;
-    setSidebarExpanded(sidebar, body, false, { animate: true });
+    setSidebarExpanded(sidebar, body, false, {animate: true});
 }
 
 /**
@@ -155,7 +155,7 @@ function collapseSidebarIfMobile(sidebar) {
  * @returns {HTMLElement} Sidebar element (stores `_docsMql` / `_docsOnBreakpoint` for cleanup).
  */
 function buildSidebar(categories, activeSlug) {
-    const aside = el('aside', { class: 'card docs-sidebar is-collapsed' });
+    const aside = el('aside', {class: 'card docs-sidebar is-collapsed'});
 
     const toggle = el('button', {
         type: 'button',
@@ -168,16 +168,16 @@ function buildSidebar(categories, activeSlug) {
         'aria-label': t('docs.toggleCategories'),
     });
     toggle.append(
-        el('span', { class: 'docs-sidebar-toggle-label', 'data-i18n': 'docs.categories' }, t('docs.categories')),
+        el('span', {class: 'docs-sidebar-toggle-label', 'data-i18n': 'docs.categories'}, t('docs.categories')),
         (() => {
-            const wrap = el('span', { class: 'docs-sidebar-chevron-wrap' });
+            const wrap = el('span', {class: 'docs-sidebar-chevron-wrap'});
             wrap.appendChild(chevronSvg());
             return wrap;
         })(),
     );
     aside.appendChild(toggle);
 
-    aside.appendChild(el('h2', { class: 'docs-sidebar-heading', 'data-i18n': 'docs.categories' }, t('docs.categories')));
+    aside.appendChild(el('h2', {class: 'docs-sidebar-heading', 'data-i18n': 'docs.categories'}, t('docs.categories')));
 
     const body = el('div', {
         class: 'docs-sidebar-body',
@@ -185,10 +185,10 @@ function buildSidebar(categories, activeSlug) {
     });
 
     for (const cat of categories) {
-        const block = el('div', { class: 'docs-cat' },
-            el('div', { class: 'docs-cat-title' }, cat.name),
+        const block = el('div', {class: 'docs-cat'},
+            el('div', {class: 'docs-cat-title'}, cat.name),
         );
-        const ul = el('ul', { class: 'docs-nav' });
+        const ul = el('ul', {class: 'docs-nav'});
         for (const doc of cat.docs) {
             ul.appendChild(
                 el('li', {},
@@ -207,16 +207,16 @@ function buildSidebar(categories, activeSlug) {
     aside.appendChild(body);
 
     if (isMobileDocs()) {
-        setSidebarExpanded(aside, body, false, { animate: false });
+        setSidebarExpanded(aside, body, false, {animate: false});
     } else {
-        setSidebarExpanded(aside, body, true, { animate: false });
+        setSidebarExpanded(aside, body, true, {animate: false});
         body.style.height = 'auto';
         body.style.opacity = '1';
     }
 
     toggle.addEventListener('click', () => {
         const expanded = !aside.classList.contains('is-expanded');
-        setSidebarExpanded(aside, body, expanded, { animate: true });
+        setSidebarExpanded(aside, body, expanded, {animate: true});
     });
 
     body.addEventListener('click', (e) => {
@@ -229,9 +229,9 @@ function buildSidebar(categories, activeSlug) {
     /** Sync sidebar open/closed state when crossing the mobile breakpoint. */
     const onBreakpoint = () => {
         if (mql.matches) {
-            setSidebarExpanded(aside, body, false, { animate: false });
+            setSidebarExpanded(aside, body, false, {animate: false});
         } else {
-            setSidebarExpanded(aside, body, true, { animate: false });
+            setSidebarExpanded(aside, body, true, {animate: false});
             body.style.height = 'auto';
             body.style.opacity = '1';
         }
@@ -263,14 +263,14 @@ function updateSidebarActive(sidebar, activeSlug) {
  * @returns {HTMLElement}
  */
 function buildToc(toc) {
-    const aside = el('aside', { class: 'card docs-toc' },
-        el('h2', { 'data-i18n': 'docs.onThisPage' }, t('docs.onThisPage')),
+    const aside = el('aside', {class: 'card docs-toc'},
+        el('h2', {'data-i18n': 'docs.onThisPage'}, t('docs.onThisPage')),
     );
     if (!toc.length) {
-        aside.appendChild(el('p', { class: 'muted docs-toc-empty' }, '—'));
+        aside.appendChild(el('p', {class: 'muted docs-toc-empty'}, '—'));
         return aside;
     }
-    const ul = el('ul', { class: 'docs-toc-list' });
+    const ul = el('ul', {class: 'docs-toc-list'});
     for (const item of toc) {
         ul.appendChild(
             el('li', {},
@@ -292,7 +292,7 @@ function buildToc(toc) {
         const targetEl = document.getElementById(targetId) || document.getElementById(decodeURIComponent(targetId));
         if (targetEl) {
             e.preventDefault();
-            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            targetEl.scrollIntoView({behavior: 'smooth', block: 'start'});
             history.pushState(null, '', hash);
         }
     });
@@ -305,13 +305,13 @@ function buildToc(toc) {
  * @returns {HTMLElement}
  */
 function renderDocsIndex(categories) {
-    const wrap = el('div', { class: 'docs-index-list' });
+    const wrap = el('div', {class: 'docs-index-list'});
     if (!categories.length) {
-        wrap.appendChild(el('p', { class: 'docs-empty' }, t('docs.empty')));
+        wrap.appendChild(el('p', {class: 'docs-empty'}, t('docs.empty')));
         return wrap;
     }
     for (const cat of categories) {
-        const card = el('section', { class: 'card docs-index-cat' },
+        const card = el('section', {class: 'card docs-index-cat'},
             el('h2', {}, cat.name),
         );
         const ul = el('ul', {});
@@ -324,7 +324,7 @@ function renderDocsIndex(categories) {
                         'data-docs-slug': doc.slug,
                     }, doc.title),
                     doc.description
-                        ? el('span', { class: 'muted', style: { display: 'block', fontSize: '0.85rem' } }, doc.description)
+                        ? el('span', {class: 'muted', style: {display: 'block', fontSize: '0.85rem'}}, doc.description)
                         : null,
                 ),
             );
@@ -367,7 +367,7 @@ function attachTocObserver(article, tocEl) {
                 });
             }
         },
-        { rootMargin: '-20% 0px -70% 0px', threshold: 0 },
+        {rootMargin: '-20% 0px -70% 0px', threshold: 0},
     );
     article.querySelectorAll('h2[id], h3[id]').forEach((h) => tocObserver.observe(h));
 }
@@ -408,7 +408,7 @@ function applyNodes(container, nodes) {
  * @param {boolean} [options.flash=false] - Play content enter fade after swap.
  * @returns {Promise<void>}
  */
-function replaceWithHeightMorph(container, nodes, { soft = false, flash = false } = {}) {
+function replaceWithHeightMorph(container, nodes, {soft = false, flash = false} = {}) {
     if (!container) return Promise.resolve();
 
     if (!soft || prefersReducedMotion()) {
@@ -421,7 +421,7 @@ function replaceWithHeightMorph(container, nodes, { soft = false, flash = false 
     return morphElementHeight(container, () => {
         applyNodes(container, nodes);
         if (flash) flashContent(container);
-    }, { duration: 340 }).finally(() => {
+    }, {duration: 340}).finally(() => {
         container.classList.remove('is-height-morphing');
     });
 }
@@ -433,10 +433,10 @@ function replaceWithHeightMorph(container, nodes, { soft = false, flash = false 
  * @param {{ soft?: boolean }} [options]
  * @returns {Promise<void>}
  */
-function replaceTocSlot(tocSlot, tocEl, { soft = false } = {}) {
+function replaceTocSlot(tocSlot, tocEl, {soft = false} = {}) {
     if (!tocSlot) return Promise.resolve();
     const nodes = tocEl ? [tocEl] : [];
-    return replaceWithHeightMorph(tocSlot, nodes, { soft, flash: false });
+    return replaceWithHeightMorph(tocSlot, nodes, {soft, flash: false});
 }
 
 /**
@@ -452,17 +452,17 @@ function replaceTocSlot(tocSlot, tocEl, { soft = false } = {}) {
  * @param {boolean} opts.soft - Whether this is a soft in-section navigation.
  * @returns {Promise<void>}
  */
-async function fillContent({ main, tocSlot, layout, slug, categories, bundle, fallbackBundle, soft }) {
+async function fillContent({main, tocSlot, layout, slug, categories, bundle, fallbackBundle, soft}) {
     disconnectTocObserver();
 
     if (!slug) {
         document.title = `RenoP — ${t('docs.title')}`;
         await Promise.all([
             replaceWithHeightMorph(main, [
-                el('h2', { class: 'docs-index-heading', 'data-i18n': 'docs.indexTitle' }, t('docs.indexTitle')),
+                el('h2', {class: 'docs-index-heading', 'data-i18n': 'docs.indexTitle'}, t('docs.indexTitle')),
                 renderDocsIndex(categories),
-            ], { soft, flash: soft }),
-            replaceTocSlot(tocSlot, null, { soft }),
+            ], {soft, flash: soft}),
+            replaceTocSlot(tocSlot, null, {soft}),
         ]);
         return;
     }
@@ -471,31 +471,31 @@ async function fillContent({ main, tocSlot, layout, slug, categories, bundle, fa
     if (!meta) {
         await Promise.all([
             replaceWithHeightMorph(main, [
-                el('p', { class: 'docs-error' }, t('docs.notFound')),
-            ], { soft, flash: soft }),
-            replaceTocSlot(tocSlot, null, { soft }),
+                el('p', {class: 'docs-error'}, t('docs.notFound')),
+            ], {soft, flash: soft}),
+            replaceTocSlot(tocSlot, null, {soft}),
         ]);
         return;
     }
 
     if (!soft || !main.childNodes.length) {
         await replaceWithHeightMorph(main, [
-            el('p', { class: 'docs-loading' }, t('docs.loading')),
-        ], { soft: false });
+            el('p', {class: 'docs-loading'}, t('docs.loading')),
+        ], {soft: false});
         if (tocSlot && !soft) clear(tocSlot);
     }
 
     try {
-        let res = await fetch(`/content/${meta.path}`, { cache: 'no-cache' });
+        let res = await fetch(`/content/${meta.path}`, {cache: 'no-cache'});
         if (!res.ok && meta.locale !== 'en-US') {
             const fb = fallbackBundle.docs.find((d) => d.slug === slug);
-            if (fb) res = await fetch(`/content/${fb.path}`, { cache: 'no-cache' });
+            if (fb) res = await fetch(`/content/${fb.path}`, {cache: 'no-cache'});
         }
         if (!res.ok) throw new Error('missing');
         const raw = await res.text();
-        const { html, toc } = renderMarkdown(raw);
+        const {html, toc} = renderMarkdown(raw);
 
-        const article = el('article', { class: 'card docs-article' });
+        const article = el('article', {class: 'card docs-article'});
         article.innerHTML = html;
         if (!article.querySelector('h1')) {
             article.prepend(el('h1', {}, meta.title));
@@ -506,8 +506,8 @@ async function fillContent({ main, tocSlot, layout, slug, categories, bundle, fa
         const tocEl = buildToc(toc);
 
         await Promise.all([
-            replaceWithHeightMorph(main, [article], { soft, flash: soft }),
-            replaceTocSlot(tocSlot, tocEl, { soft }),
+            replaceWithHeightMorph(main, [article], {soft, flash: soft}),
+            replaceTocSlot(tocSlot, tocEl, {soft}),
         ]);
 
         if (!tocSlot && layout && !layout.querySelector('.docs-toc')) {
@@ -522,16 +522,16 @@ async function fillContent({ main, tocSlot, layout, slug, categories, bundle, fa
             const targetEl = document.getElementById(hashId);
             if (targetEl) {
                 setTimeout(() => {
-                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    targetEl.scrollIntoView({behavior: 'smooth', block: 'start'});
                 }, 60);
             }
         }
     } catch {
         await Promise.all([
             replaceWithHeightMorph(main, [
-                el('p', { class: 'docs-error' }, t('docs.loadError')),
-            ], { soft, flash: soft }),
-            replaceTocSlot(tocSlot, null, { soft }),
+                el('p', {class: 'docs-error'}, t('docs.loadError')),
+            ], {soft, flash: soft}),
+            replaceTocSlot(tocSlot, null, {soft}),
         ]);
     }
 }
@@ -561,7 +561,7 @@ function destroyShell() {
  * @param {boolean} [ctx.soft=false] - Soft navigation flag from the router.
  * @returns {Promise<() => void>} Cleanup that destroys the docs shell.
  */
-export async function renderDocs({ root, params, soft = false }) {
+export async function renderDocs({root, params, soft = false}) {
     const locale = getDocsLocale();
     const fallbackLocale = 'en-US';
     const slug = (params.splat || '').replace(/^\/+|\/+$/g, '');
@@ -573,7 +573,7 @@ export async function renderDocs({ root, params, soft = false }) {
             index = await loadIndex();
         } catch {
             clear(shell.main);
-            shell.main.appendChild(el('p', { class: 'docs-error' }, t('docs.loadError')));
+            shell.main.appendChild(el('p', {class: 'docs-error'}, t('docs.loadError')));
             return () => destroyShell();
         }
 
@@ -607,7 +607,7 @@ export async function renderDocs({ root, params, soft = false }) {
         const navOffset = 16;
         if (Math.abs((window.scrollY || 0) - Math.max(0, top - navOffset)) > 8) {
             try {
-                window.scrollTo({ top: Math.max(0, top - navOffset), behavior: 'smooth' });
+                window.scrollTo({top: Math.max(0, top - navOffset), behavior: 'smooth'});
             } catch {
                 window.scrollTo(0, Math.max(0, top - navOffset));
             }
@@ -620,17 +620,17 @@ export async function renderDocs({ root, params, soft = false }) {
     root.innerHTML = '';
     document.title = `RenoP — ${t('docs.title')}`;
 
-    const hero = el('header', { class: 'page-hero' },
-        el('h1', { 'data-i18n': 'docs.title' }, t('docs.title')),
-        el('p', { 'data-i18n': 'docs.lead' }, t('docs.lead')),
+    const hero = el('header', {class: 'page-hero'},
+        el('h1', {'data-i18n': 'docs.title'}, t('docs.title')),
+        el('p', {'data-i18n': 'docs.lead'}, t('docs.lead')),
     );
     root.appendChild(hero);
 
-    const layout = el('div', { class: 'docs-layout' });
-    const main = el('div', { class: 'docs-content' },
-        el('p', { class: 'docs-loading' }, t('docs.loading')),
+    const layout = el('div', {class: 'docs-layout'});
+    const main = el('div', {class: 'docs-content'},
+        el('p', {class: 'docs-loading'}, t('docs.loading')),
     );
-    const tocSlot = el('div', { class: 'docs-toc-slot' });
+    const tocSlot = el('div', {class: 'docs-toc-slot'});
 
     root.appendChild(layout);
 
@@ -640,7 +640,7 @@ export async function renderDocs({ root, params, soft = false }) {
     } catch {
         clear(main);
         layout.appendChild(main);
-        main.appendChild(el('p', { class: 'docs-error' }, t('docs.loadError')));
+        main.appendChild(el('p', {class: 'docs-error'}, t('docs.loadError')));
         return () => destroyShell();
     }
 

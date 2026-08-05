@@ -9,18 +9,11 @@
  */
 
 import {el} from '@renop/ui/dom';
-import {makeCustomSelect} from '@renop/ui/custom-select';
 import {t} from './i18n.js';
 import {
-    createFieldRow as buildFieldRow,
     createIcon,
-    createToggle,
-    createToggleRow as buildToggleRow
+    createToggle
 } from './components.js';
-
-export {el, makeCustomSelect};
-
-export const makeCfgToggle = createToggle;
 
 /**
  * Creates a config-styled text/password input that fires onChange with the string value on change.
@@ -86,7 +79,7 @@ export function makeInlineToggle(labelText, checked, onChange) {
         }
     });
     wrap.appendChild(el('span', {}, labelText));
-    wrap.appendChild(makeCfgToggle(checked, onChange));
+    wrap.appendChild(createToggle(checked, onChange));
     return wrap;
 }
 
@@ -392,9 +385,6 @@ export function makeTagListInput({
     return container;
 }
 
-export const makeFieldRow = buildFieldRow;
-export const makeToggleRow = buildToggleRow;
-
 
 
 /**
@@ -486,9 +476,6 @@ export function createSection(iconSvg, title, subtitle, options = {}) {
 
     return section;
 }
-
-export const createFieldRow = buildFieldRow;
-export const createToggleRow = buildToggleRow;
 
 /**
  * Smoothly animates the appearance or disappearance of a fields container

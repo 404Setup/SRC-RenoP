@@ -11,7 +11,8 @@
 import {fetchProto, getAuthHeaders, postProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
-import {closeModalWithAnim, updateTabIndicator} from './app-ui.js';
+import {updateTabIndicator} from '@renop/ui/tabs';
+import {closeModalWithAnim} from './app-ui.js';
 import {loadDirectory} from './browser.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';

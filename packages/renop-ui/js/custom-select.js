@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import { el } from './dom.js';
+import {el} from '@renop/ui/dom';
 
 /**
  * Dropdown chevron icon (SVG).
@@ -70,7 +70,7 @@ function checkSvg() {
  * }}
  */
 export function makeCustomSelect(options, current, onChange) {
-    const wrap = el('div', { class: 'custom-select-wrapper' });
+    const wrap = el('div', {class: 'custom-select-wrapper'});
     const btn = el('button', {
         type: 'button',
         class: 'custom-select-btn cfg-input',
@@ -84,9 +84,9 @@ export function makeCustomSelect(options, current, onChange) {
     function normalizeOptions(opts) {
         return (opts || []).map((opt) => {
             if (typeof opt === 'object' && opt !== null) {
-                return { value: opt.value, label: opt.label ?? opt.value };
+                return {value: opt.value, label: opt.label ?? opt.value};
             }
-            return { value: opt, label: opt };
+            return {value: opt, label: opt};
         });
     }
 
@@ -97,14 +97,14 @@ export function makeCustomSelect(options, current, onChange) {
         normalized.find((o) => o.value === currentVal || o.label === currentVal) || normalized[0];
     if (selectedOpt) currentVal = selectedOpt.value;
 
-    const textSpan = el('span', { class: 'custom-select-label' }, selectedOpt ? selectedOpt.label : '');
-    const arrow = el('span', { class: 'custom-select-arrow-wrap' });
+    const textSpan = el('span', {class: 'custom-select-label'}, selectedOpt ? selectedOpt.label : '');
+    const arrow = el('span', {class: 'custom-select-arrow-wrap'});
     arrow.appendChild(chevronSvg());
 
     btn.appendChild(textSpan);
     btn.appendChild(arrow);
 
-    const dropdown = el('div', { class: 'custom-select-dropdown' });
+    const dropdown = el('div', {class: 'custom-select-dropdown'});
     document.body.appendChild(dropdown);
 
     /**
@@ -118,9 +118,9 @@ export function makeCustomSelect(options, current, onChange) {
             const item = el('div', {
                 class: `custom-select-dropdown-item${isSelected ? ' is-selected' : ''}`,
             });
-            item.appendChild(el('span', { class: 'custom-select-item-text' }, opt.label));
+            item.appendChild(el('span', {class: 'custom-select-item-text'}, opt.label));
             if (isSelected) {
-                const check = el('span', { class: 'custom-select-checkmark-wrap' });
+                const check = el('span', {class: 'custom-select-checkmark-wrap'});
                 check.appendChild(checkSvg());
                 item.appendChild(check);
             }
@@ -240,8 +240,8 @@ export function makeCustomSelect(options, current, onChange) {
     const onResize = () => closeDropdown();
 
     document.addEventListener('click', onDocClick);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('scroll', onScroll, {passive: true});
+    window.addEventListener('resize', onResize, {passive: true});
 
     // MutationObserver to clean up dropdown if `wrap` is removed from DOM
     const observer = new MutationObserver(() => {
@@ -249,7 +249,7 @@ export function makeCustomSelect(options, current, onChange) {
             destroy();
         }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, {childList: true, subtree: true});
 
     function destroy() {
         document.removeEventListener('click', onDocClick);

@@ -19,7 +19,8 @@ import {
     uploadFileChunked,
     uploadFileSinglePut,
 } from '../chunked-upload.js';
-import {collapseElement, decodePathSegment, encodePathSegment, encodeRelativePath, expandElement, formatBytes} from './utils.js';
+import {collapseElement, expandElement} from '@renop/ui/height-anim';
+import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {InstanceStatus} from '../proto/index.js';
 
 let pendingFiles = [];

@@ -13,24 +13,24 @@ import {showAlert} from './alert.js';
 import {fetchProto, getAuthHeaders, putProto} from './api.js';
 import {logout} from './auth.js';
 import {MavenRepositoriesResponse, Repository} from './proto/index.js';
+import {el} from '@renop/ui/dom';
+import {makeCustomSelect} from '@renop/ui/custom-select';
 import {
     createButton,
     createCallout,
     createEmptyState,
+    createFieldRow as makeFieldRow,
     createIcon,
     createSkeleton,
-    createSubHeader
+    createSubHeader,
+    createToggleRow as makeToggleRow
 } from './components.js';
 import {
     animateFieldsToggle,
-    el,
     makeCfgInput,
-    makeCustomSelect,
-    makeFieldRow,
     makeInlineNumber,
     makeInlineToggle,
     makeTagListInput,
-    makeToggleRow,
     makeVisibilityBadge
 } from './cfg-ui.js';
 

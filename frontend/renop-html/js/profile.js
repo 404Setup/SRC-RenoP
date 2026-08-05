@@ -11,7 +11,7 @@
 import {apiRequest, fetchProto, putProto} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
-import {el} from './cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {RenopDialog} from './components.js';
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError} from './password-strength.js';
 import {openSessionsDialog} from './sessions.js';
@@ -25,8 +25,8 @@ export async function loadProfileFidoDevices() {
     if (!listEl) return;
 
     listEl.replaceChildren(
-        el('div', { class: 'sessions-loading' },
-            el('div', { class: 'sessions-loading-spinner', 'aria-hidden': 'true' }),
+        el('div', {class: 'sessions-loading'},
+            el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
             el('span', {}, t('fido.loading') || t('common.loading') || 'Loading...')
         )
     );
@@ -338,7 +338,7 @@ export function setupProfile() {
     if (btnAuditLogs && !btnAuditLogs.dataset.listenerAttached) {
         btnAuditLogs.dataset.listenerAttached = 'true';
         btnAuditLogs.addEventListener('click', () => {
-            openAuditLogsDialog({ mode: 'self' });
+            openAuditLogsDialog({mode: 'self'});
         });
     }
 }

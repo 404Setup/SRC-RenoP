@@ -12,15 +12,11 @@ import {initTheme} from '@renop/ui/theme';
 import {cachedIsLoggedIn, cachedIsManager, initializeSession, setSwitchTabHandler} from './auth.js';
 import {initI18n, t} from './i18n.js';
 import {RenopDialog} from './components.js';
-import {el} from './cfg-ui.js';
-import {
-    closeModalWithAnim,
-    enableDragToScroll,
-    registerTabContainer,
-    smoothScrollToTop,
-    updateModalInertState,
-    updateTabIndicator,
-} from './app-ui.js';
+import {el} from '@renop/ui/dom';
+import {updateModalInertState} from '@renop/ui/modal';
+import {enableDragToScroll, smoothScrollToTop} from '@renop/ui/scroll';
+import {registerTabContainer, updateTabIndicator} from '@renop/ui/tabs';
+import {closeModalWithAnim} from './app-ui.js';
 import {fetchInstanceStatus, startDashboardRefresh, stopDashboardRefresh} from './dashboard.js';
 import {initSettings} from './settings.js';
 import {initRepositories} from './repositories.js';
@@ -28,15 +24,6 @@ import {fetchTokens} from './users.js';
 import {populateRoles} from './users/modal.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
-
-export {
-    closeModalWithAnim,
-    enableDragToScroll,
-    registerTabContainer,
-    smoothScrollToTop,
-    updateModalInertState,
-    updateTabIndicator,
-};
 
 initI18n();
 

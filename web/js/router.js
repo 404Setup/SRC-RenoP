@@ -13,7 +13,7 @@
  * Soft-navigates within the same section (e.g. /docs → /docs/...) without remounting.
  */
 
-import { smoothScrollToTop, wait } from './lib/scroll.js';
+import {smoothScrollToTop, wait} from '@renop/ui/scroll';
 
 const routes = [];
 let currentCleanup = null;
@@ -29,7 +29,7 @@ let previousPath = null;
  * @returns {void}
  */
 export function registerRoute(pattern, handler) {
-    routes.push({ pattern, handler });
+    routes.push({pattern, handler});
 }
 
 /**
@@ -44,15 +44,15 @@ function matchRoute(path) {
 
     for (const route of routes) {
         if (route.pattern === p) {
-            return { route, params: {} };
+            return {route, params: {}};
         }
         if (route.pattern.endsWith('/*')) {
             const prefix = route.pattern.slice(0, -2);
             if (p === prefix) {
-                return { route, params: { splat: '' } };
+                return {route, params: {splat: ''}};
             }
             if (p.startsWith(prefix + '/')) {
-                return { route, params: { splat: p.slice(prefix.length + 1) } };
+                return {route, params: {splat: p.slice(prefix.length + 1)}};
             }
         }
     }
@@ -84,7 +84,7 @@ function sectionKey(path) {
  * @param {boolean} [options.replace=false] - Use `history.replaceState` instead of `pushState`.
  * @returns {Promise<void>}
  */
-export function navigate(path, { replace = false } = {}) {
+export function navigate(path, {replace = false} = {}) {
     const url = path.startsWith('/') ? path : '/' + path;
     if (replace) history.replaceState({}, '', url);
     else history.pushState({}, '', url);

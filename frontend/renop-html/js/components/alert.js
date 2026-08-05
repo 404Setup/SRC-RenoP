@@ -9,7 +9,7 @@
  */
 
 import {t} from '../i18n.js';
-import {el} from '../cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {createIcon} from './icon.js';
 
 /**

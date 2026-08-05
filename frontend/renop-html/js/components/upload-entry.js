@@ -9,9 +9,9 @@
  */
 
 import {t} from '../i18n.js';
-import {el} from '../cfg-ui.js';
+import {el} from '@renop/ui/dom';
 import {createIcon} from './icon.js';
-import {getFileTypeInfo, getFileTypeCategory, getCategoryIconName} from './file-item.js';
+import {getCategoryIconName, getFileTypeCategory, getFileTypeInfo} from './file-item.js';
 
 /**
  * Upload queue entry custom element with progress and chunk strip support.

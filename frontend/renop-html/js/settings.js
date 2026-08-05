@@ -10,14 +10,24 @@
 
 import {t} from './i18n.js';
 import {showAlert} from './alert.js';
+import {el} from '@renop/ui/dom';
+import {makeCustomSelect} from '@renop/ui/custom-select';
+import {smoothScrollToTop} from '@renop/ui/scroll';
+import {registerTabContainer, updateTabIndicator} from '@renop/ui/tabs';
 import {fetchProto, postProto, putProto} from './api.js';
-import {registerTabContainer, smoothScrollToTop, updateTabIndicator} from './app-ui.js';
-import {buildInput, createFieldRow, createSection, createToggleRow, el, makeCustomSelect} from './cfg-ui.js';
-import {createCallout, createIcon, createIndexCard, createSkeleton, createTab} from './components.js';
+import {buildInput, createSection} from './cfg-ui.js';
+import {
+    createCallout,
+    createFieldRow,
+    createIcon,
+    createIndexCard,
+    createSkeleton,
+    createTab,
+    createToggleRow
+} from './components.js';
 import {logout} from './auth.js';
 import {restartApp} from './dashboard.js';
 import {
-    DatabaseConfig,
     FrontendConfig,
     IndexDomainSettings,
     RebuildIndexRequest,

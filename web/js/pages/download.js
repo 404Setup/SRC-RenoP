@@ -24,7 +24,7 @@ import {
     triggerBrowserDownload,
     X64_VERSIONS,
 } from '../lib/official.js';
-import {makeCustomSelect} from '../components/custom-select.js';
+import {makeCustomSelect} from '@renop/ui/custom-select';
 
 const STORAGE_OS = 'renop_web_os';
 const STORAGE_ARCH = 'renop_web_arch';
