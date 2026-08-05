@@ -13,6 +13,7 @@ import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
 import {el} from './cfg-ui.js';
 import {RenopDialog} from './components.js';
+import {enableDragToScroll} from './app-ui.js';
 
 let currentAuditModal = null;
 
@@ -90,6 +91,8 @@ export async function openAuditLogsDialog(options = {}) {
         class: 'audit-logs-list',
         style: {flex: '1', overflowX: 'auto', overflowY: 'auto', maxHeight: '420px'}
     });
+    enableDragToScroll(contentArea);
+
     const paginationArea = el('div', {
         class: 'audit-logs-pagination',
         style: {
@@ -149,11 +152,10 @@ export async function openAuditLogsDialog(options = {}) {
                 contentArea.classList.remove('is-busy');
                 contentArea.innerHTML = '';
 
+                container.style.minHeight = 'auto';
                 if (logs.length === 0) {
-                    container.style.minHeight = 'auto';
                     contentArea.innerHTML = `<div style="padding: 2.5rem; text-align: center; opacity: 0.6; font-size: 0.9rem;">${t('common.none') || 'No activity logs found'}</div>`;
                 } else {
-                    container.style.minHeight = '320px';
                     const table = el('table', {
                             class: 'audit-table',
                             style: {width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.85rem'}

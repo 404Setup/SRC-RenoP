@@ -13,7 +13,7 @@ import {showAlert} from './alert.js';
 import {apiRequest, fetchProto, getAuthHeaders} from './api.js';
 import {createUserRow, createUsersSkeletonRow} from './components.js';
 import {editToken as openEditModal, initUsersModal, setTokensRefreshHandler} from './users/modal.js';
-import {makeCustomSelect} from './cfg-ui.js';
+import {el, makeCustomSelect} from './cfg-ui.js';
 import {logout} from './auth.js';
 import {AccessTokenList, FidoDeviceList, GenerateTokenResponse} from './proto/index.js';
 import {openSessionsDialog} from './sessions.js';

@@ -8,6 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {enableDragToScroll} from './scroll.js';
+
 const tabResizeObserver = new ResizeObserver((entries) => {
     const containersToUpdate = new Set();
     for (const entry of entries) {
@@ -67,6 +69,7 @@ export function updateTabIndicator(tabsContainer) {
  */
 export function registerTabContainer(container) {
     if (!container) return;
+    enableDragToScroll(container);
     tabResizeObserver.observe(container);
     container.querySelectorAll('.tab').forEach((tab) => {
         tabResizeObserver.observe(tab);

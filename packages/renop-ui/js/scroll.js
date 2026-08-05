@@ -76,11 +76,31 @@ export function enableDragToScroll(container) {
     let isDragging = false;
     let startX;
     let scrollLeft;
+    let activePointerId = null;
 
-    const stopDragging = () => {
+    const getScrollTarget = () => {
+        if (container.scrollWidth > container.clientWidth + 1) {
+            return container;
+        }
+        const parent = container.closest('.tabs-container') || container.parentElement;
+        if (parent && parent.scrollWidth > parent.clientWidth + 1) {
+            return parent;
+        }
+        return container;
+    };
+
+    const stopDragging = (e) => {
+        if (!isDown) return;
         isDown = false;
-        container.style.cursor = '';
-        container.classList.remove('is-dragging');
+        const scrollTarget = getScrollTarget();
+        scrollTarget.style.cursor = '';
+        scrollTarget.classList.remove('is-dragging');
+        if (e && activePointerId !== null && scrollTarget.releasePointerCapture) {
+            try {
+                scrollTarget.releasePointerCapture(activePointerId);
+            } catch {}
+        }
+        activePointerId = null;
         setTimeout(() => {
             isDragging = false;
         }, 0);
@@ -88,20 +108,30 @@ export function enableDragToScroll(container) {
 
     container.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
-        if (container.scrollWidth <= container.clientWidth) return;
+        const scrollTarget = getScrollTarget();
+        if (scrollTarget.scrollWidth <= scrollTarget.clientWidth + 1) return;
         isDown = true;
         isDragging = false;
-        startX = e.pageX - container.offsetLeft;
-        scrollLeft = container.scrollLeft;
+        startX = e.clientX;
+        scrollLeft = scrollTarget.scrollLeft;
+        activePointerId = e.pointerId;
+        if (scrollTarget.setPointerCapture) {
+            try {
+                scrollTarget.setPointerCapture(e.pointerId);
+            } catch {}
+        }
     });
 
-    container.addEventListener('pointerleave', stopDragging);
+    container.addEventListener('pointerleave', (e) => {
+        if (!activePointerId) stopDragging(e);
+    });
     container.addEventListener('pointerup', stopDragging);
     container.addEventListener('pointercancel', stopDragging);
 
     container.addEventListener('pointermove', (e) => {
         if (!isDown) return;
-        const x = e.pageX - container.offsetLeft;
+        const scrollTarget = getScrollTarget();
+        const x = e.clientX;
         const walk = (x - startX) * 1.5;
         if (Math.abs(walk) > 5) {
             if (!isDragging) {
@@ -110,12 +140,12 @@ export function enableDragToScroll(container) {
                     window.getSelection().removeAllRanges();
                 }
             }
-            container.style.cursor = 'grabbing';
-            container.classList.add('is-dragging');
+            scrollTarget.style.cursor = 'grabbing';
+            scrollTarget.classList.add('is-dragging');
             e.preventDefault();
         }
         if (isDragging) {
-            container.scrollLeft = scrollLeft - walk;
+            scrollTarget.scrollLeft = scrollLeft - walk;
         }
     });
 
