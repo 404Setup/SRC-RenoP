@@ -12,14 +12,10 @@ package bootstrap
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"log"
 	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
@@ -108,76 +104,24 @@ func LoadMaven(path string) config.MavenSettings {
 	return mavenSettings
 }
 
-func LoadSessions(path string) (sessions []core.SessionDbDto, rewrite bool) {
+func LoadSessions(path string) []core.SessionDbDto {
 	file, err := os.Open(path)
 	if err != nil {
-		if legacy := legacySessionsJSONPath(path); legacy != "" {
-			if legacyFile, lerr := os.Open(legacy); lerr == nil {
-				defer legacyFile.Close()
-				log.Printf("Migrating sessions from legacy %s → %s", legacy, path)
-				return parseSessionsJSONReader(bufio.NewReader(legacyFile)), true
-			}
-		}
-		return []core.SessionDbDto{}, false
+		return []core.SessionDbDto{}
 	}
 	defer file.Close()
 
-	br := bufio.NewReader(file)
-	if isLegacySessionsJSONReader(br) {
-		return parseSessionsJSONReader(br), true
-	}
-
-	data, err := io.ReadAll(br)
+	data, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
 		log.Printf("Failed to read sessions file %s: %v", path, err)
-		return []core.SessionDbDto{}, false
+		return []core.SessionDbDto{}
 	}
 
 	var store pb.SessionStore
 	if err := proto.Unmarshal(data, &store); err != nil {
 		log.Printf("Failed to parse sessions file %s: %v", path, err)
-		return []core.SessionDbDto{}, false
-	}
-
-	return pb.ToSessionDbDtos(&store), false
-}
-
-func isLegacySessionsJSONReader(br *bufio.Reader) bool {
-	for i := 1; i <= 4096; i *= 2 {
-		peekBytes, err := br.Peek(i)
-		trimmed := bytes.TrimSpace(peekBytes)
-		if len(trimmed) > 0 {
-			return trimmed[0] == '['
-		}
-		if err != nil {
-			break
-		}
-	}
-	return false
-}
-
-func parseSessionsJSONReader(r io.Reader) []core.SessionDbDto {
-	var sessions []core.SessionDbDto
-	if err := json.NewDecoder(r).Decode(&sessions); err != nil {
-		log.Printf("Failed to parse legacy sessions JSON: %v", err)
 		return []core.SessionDbDto{}
 	}
-	if sessions == nil {
-		return []core.SessionDbDto{}
-	}
-	return sessions
-}
 
-// legacySessionsJSONPath returns sessions.json next to path when path looks like
-// the new default (*.bin) or is explicitly different from sessions.json.
-func legacySessionsJSONPath(path string) string {
-	base := filepath.Base(path)
-	if strings.EqualFold(base, "sessions.json") {
-		return ""
-	}
-	dir := filepath.Dir(path)
-	if dir == "." || dir == "" {
-		return "sessions.json"
-	}
-	return filepath.Join(dir, "sessions.json")
+	return pb.ToSessionDbDtos(&store)
 }

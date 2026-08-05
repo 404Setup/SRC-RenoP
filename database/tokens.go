@@ -312,39 +312,6 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 	return tokens, nil
 }
 
-func (db *DB) MigrateTokens(tokens map[string]*core.AccessToken) error {
-	if db == nil || db.SqlDB == nil || len(tokens) == 0 {
-		return nil
-	}
-
-	tx, err := db.SqlDB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	query := db.Dialect.UpsertTokenQuery()
-	for _, token := range tokens {
-		if token == nil {
-			continue
-		}
-		name := strings.ToLower(token.Name)
-		tokensJson, _ := json.Marshal(token.Tokens)
-		permissionsJson, _ := json.Marshal(token.Permissions)
-
-		var expiresAt sql.NullInt64
-		if token.ExpiresAt != nil {
-			expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
-		}
-
-		if _, err := tx.Exec(query, name, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJson), token.CreatedAt, token.Description, expiresAt, string(permissionsJson)); err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
-}
-
 func escapeJSONLikeSecret(secret string) string {
 	var b strings.Builder
 	b.Grow(len(secret)*2 + 8)

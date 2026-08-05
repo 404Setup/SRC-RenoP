@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -44,8 +43,7 @@ func TestLoadSessionsProtobuf(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(path, bin, 0644))
 
-	sessions, rewrite := LoadSessions(path)
-	assert.False(t, rewrite)
+	sessions := LoadSessions(path)
 	require.Len(t, sessions, 1)
 	assert.Equal(t, "pub-1", sessions[0].PublicId)
 	assert.Equal(t, "tok-1", sessions[0].SessionToken)
@@ -54,59 +52,8 @@ func TestLoadSessionsProtobuf(t *testing.T) {
 	assert.Equal(t, int64(200), sessions[0].LastActive)
 }
 
-func TestLoadSessionsLegacyJSONAtPath(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "sessions.json")
-
-	dtos := []core.SessionDbDto{
-		{
-			PublicId:     "pub-json",
-			SessionToken: "tok-json",
-			Username:     "user",
-			Ip:           "10.0.0.1",
-			UserAgent:    "ua",
-			CreatedAt:    1,
-			LastActive:   2,
-		},
-	}
-	raw, err := json.Marshal(dtos)
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(path, raw, 0644))
-
-	sessions, rewrite := LoadSessions(path)
-	assert.True(t, rewrite)
-	require.Len(t, sessions, 1)
-	assert.Equal(t, "tok-json", sessions[0].SessionToken)
-}
-
-func TestLoadSessionsMigratesSiblingJSON(t *testing.T) {
-	dir := t.TempDir()
-	pbPath := filepath.Join(dir, "sessions.bin")
-	jsonPath := filepath.Join(dir, "sessions.json")
-
-	dtos := []core.SessionDbDto{
-		{
-			PublicId:     "legacy",
-			SessionToken: "legacy-tok",
-			Username:     "migrated",
-			CreatedAt:    9,
-			LastActive:   10,
-		},
-	}
-	raw, err := json.Marshal(dtos)
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(jsonPath, raw, 0644))
-
-	sessions, rewrite := LoadSessions(pbPath)
-	assert.True(t, rewrite)
-	require.Len(t, sessions, 1)
-	assert.Equal(t, "legacy-tok", sessions[0].SessionToken)
-	assert.Equal(t, "migrated", sessions[0].Username)
-}
-
 func TestLoadSessionsMissing(t *testing.T) {
-	sessions, rewrite := LoadSessions(filepath.Join(t.TempDir(), "missing.pb"))
-	assert.False(t, rewrite)
+	sessions := LoadSessions(filepath.Join(t.TempDir(), "missing.pb"))
 	assert.Empty(t, sessions)
 }
 
@@ -153,4 +100,3 @@ func TestInitializeDatabaseSessions(t *testing.T) {
 	assert.Nil(t, state.GetSession(token))
 	_ = dbPath
 }
-

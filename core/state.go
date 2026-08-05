@@ -96,7 +96,6 @@ type AppStateInner struct {
 	AuditLogChan       chan *AuditLogEntry
 	DB                 any
 
-
 	// SessionsFlush, when set, schedules an immediate persist of the session store.
 	// Used after logout/revocation so deleted sessions cannot reappear after restart.
 	SessionsFlush func()

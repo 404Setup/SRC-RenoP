@@ -177,4 +177,3 @@ func DefaultConfig() Config {
 		AuditLog:             DefaultAuditLogConfig(),
 	}
 }
-

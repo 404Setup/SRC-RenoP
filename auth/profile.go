@@ -183,4 +183,3 @@ func RevokeOtherSessions(c fiber.Ctx, state *core.AppState) error {
 
 	return protohttp.Write(c, pb.StatusOkSuccess())
 }
-

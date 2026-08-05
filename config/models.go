@@ -146,4 +146,3 @@ func (c *Config) DeepCopy() *Config {
 		AuditLog:             c.AuditLog,
 	}
 }
-

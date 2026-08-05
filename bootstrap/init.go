@@ -91,20 +91,6 @@ func Initialize() (*core.AppState, BootstrapContext) {
 		count, err := dbInstance.CountTokens()
 		if err == nil && count > 0 {
 			initialTokensCount = count
-		} else {
-			fileTokens := LoadTokens(tokensPath)
-			if len(fileTokens) > 0 {
-				log.Printf("Migrating %d tokens from %s into database", len(fileTokens), tokensPath)
-				if err := dbInstance.MigrateTokens(fileTokens); err == nil {
-					initialTokensCount = uint64(len(fileTokens))
-				}
-			}
-		}
-
-		fileSessions, _ := LoadSessions(sessionsPath)
-		if len(fileSessions) > 0 {
-			log.Printf("Migrating %d sessions into database", len(fileSessions))
-			_ = dbInstance.MigrateSessions(fileSessions)
 		}
 
 		activeDbSessions, err := dbInstance.GetActiveSessions(time.Now().UnixMilli() - core.SessionIdleTimeoutMillis)
@@ -140,7 +126,7 @@ func Initialize() (*core.AppState, BootstrapContext) {
 			}
 		}
 
-		sessionsDb, migrateSessions := LoadSessions(sessionsPath)
+		sessionsDb := LoadSessions(sessionsPath)
 		for _, sessionDto := range sessionsDb {
 			lm := sessionDto.LoginMethod
 			if lm == "" {
@@ -156,9 +142,6 @@ func Initialize() (*core.AppState, BootstrapContext) {
 			}
 			session.LastActive.Store(sessionDto.LastActive)
 			state.Inner.Sessions.Store(sessionDto.SessionToken, session)
-		}
-		if migrateSessions {
-			state.Inner.SessionsIsDirty.Store(true)
 		}
 	}
 	state.Inner.TokensCount.Store(initialTokensCount)

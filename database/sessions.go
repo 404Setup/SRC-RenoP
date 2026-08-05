@@ -230,34 +230,6 @@ func (db *DB) DeleteExpiredSessions(minActiveTimestamp int64) error {
 	return nil
 }
 
-func (db *DB) MigrateSessions(sessions []core.SessionDbDto) error {
-	if db == nil || db.SqlDB == nil || len(sessions) == 0 {
-		return nil
-	}
-
-	tx, err := db.SqlDB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	query := db.Dialect.UpsertSessionQuery()
-	for _, dto := range sessions {
-		if len(dto.SessionToken) > maxSessionTokenLen || len(dto.Username) > maxUsernameLen {
-			continue
-		}
-		lm := dto.LoginMethod
-		if lm == "" {
-			lm = "password"
-		}
-		if _, err := tx.Exec(query, dto.SessionToken, dto.PublicId, strings.ToLower(dto.Username), dto.Ip, dto.UserAgent, dto.CreatedAt, dto.LastActive, lm); err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
-}
-
 func (db *DB) DeleteUserSessionByPublicID(username, publicID, currentSessionToken string) (string, bool, bool, error) {
 	if db == nil || db.SqlDB == nil || username == "" || publicID == "" {
 		return "", false, false, nil
@@ -407,4 +379,3 @@ func (db *DB) UpdateSessionsUsername(oldUsername, newUsername string) error {
 	})
 	return nil
 }
-
