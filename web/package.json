@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.7.0",
-  "description": "RenoP official website (static, no backend)",
+  "packageManager": "pnpm@11.20.0",
+  "description": "RenoP official website",
   "scripts": {
     "build": "node ./build.mjs",
     "build:bundle": "rolldown -c rolldown.config.mjs",
@@ -16,10 +16,10 @@
   },
   "devDependencies": {
     "lightningcss": "^1.33.0",
-    "rolldown": "^1.2.0"
+    "rolldown": "^1.2.2"
   },
   "dependencies": {
     "@renop/ui": "workspace:*",
-    "marked": "^15.0.12"
+    "marked": "^18.0.9"
   }
 }
