@@ -27,7 +27,21 @@ export {
 export {
     clear,
     el,
+    iconCheck,
 } from './dom.js';
+
+export {
+    makeCustomSelect,
+} from './custom-select.js';
+
+export {
+    RenopToggle,
+    createToggle,
+} from './toggle.js';
+
+export {
+    createButton,
+} from './button.js';
 
 export {
     RenopLangCard,
@@ -66,3 +80,4 @@ export {
     syncLangCardsActive,
     translateKey,
 } from './i18n-util.js';
+

@@ -9,6 +9,7 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {makeCustomSelect} from '@renop/ui/custom-select';
 import {t} from './i18n.js';
 import {
     createFieldRow as buildFieldRow,
@@ -17,7 +18,7 @@ import {
     createToggleRow as buildToggleRow
 } from './components.js';
 
-export {el};
+export {el, makeCustomSelect};
 
 export const makeCfgToggle = createToggle;
 
@@ -395,184 +396,6 @@ export const makeFieldRow = buildFieldRow;
 export const makeToggleRow = buildToggleRow;
 
 
-/**
- * Creates a custom dropdown select (portal dropdown on body) with value/label options.
- * Cleans up listeners and dropdown when the wrapper is removed from the DOM.
- * @param {Array<string|{value: *, label?: string}>} options - Option values or `{value, label}` objects.
- * @param {*} current - Currently selected value (or matching label).
- * @param {function(*): void} onChange - Called with the selected option `value` when the user picks an item.
- * @returns {HTMLDivElement} Select wrapper containing the trigger button.
- */
-export function makeCustomSelect(options, current, onChange) {
-    const wrap = el('div', {class: 'custom-select-wrapper'});
-    const btn = el('button', {
-        type: 'button',
-        class: 'custom-select-btn cfg-input',
-    });
-
-    const normalized = options.map(opt => {
-        if (typeof opt === 'object' && opt !== null) {
-            return {value: opt.value, label: opt.label ?? opt.value};
-        }
-        return {value: opt, label: opt};
-    });
-
-    let currentVal = current;
-    let selectedOpt = normalized.find(o => o.value === currentVal || o.label === currentVal) || normalized[0];
-
-    const textSpan = el('span', {class: 'custom-select-label'}, selectedOpt ? selectedOpt.label : '');
-    const arrow = el('span', {class: 'custom-select-arrow-wrap'}, createIcon('chevronDown', {class: 'custom-select-arrow'}));
-
-    btn.appendChild(textSpan);
-    btn.appendChild(arrow);
-
-    const dropdown = el('div', {class: 'custom-select-dropdown'});
-
-    /**
-     * Rebuilds dropdown items and binds selection handlers for the current selection.
-     * @returns {void}
-     */
-    function renderItems() {
-        dropdown.innerHTML = '';
-        normalized.forEach(opt => {
-            const isSelected = selectedOpt && opt.value === selectedOpt.value;
-            const item = el('div', {
-                class: `custom-select-dropdown-item${isSelected ? ' is-selected' : ''}`
-            });
-
-            const itemText = el('span', {class: 'custom-select-item-text'}, opt.label);
-            item.appendChild(itemText);
-
-            if (isSelected) {
-                const check = el('span', {class: 'custom-select-checkmark-wrap'}, createIcon('check', {class: 'custom-select-checkmark'}));
-                item.appendChild(check);
-            }
-
-            item.addEventListener('click', e => {
-                e.stopPropagation();
-                selectedOpt = opt;
-                currentVal = opt.value;
-                textSpan.textContent = opt.label;
-                closeDropdown();
-                renderItems();
-                onChange(opt.value);
-            });
-
-            dropdown.appendChild(item);
-        });
-    }
-
-    renderItems();
-    document.body.appendChild(dropdown);
-
-    /**
-     * Positions the portal dropdown below (or above) the trigger to fit the viewport.
-     * @returns {void}
-     */
-    function positionDropdown() {
-        const rect = btn.getBoundingClientRect();
-        dropdown.style.left = rect.left + 'px';
-        dropdown.style.width = Math.max(rect.width, 160) + 'px';
-
-        dropdown.style.display = 'block';
-        dropdown.style.visibility = 'hidden';
-        const dropH = dropdown.offsetHeight;
-        dropdown.style.visibility = 'visible';
-
-        if (rect.bottom + dropH + 6 > window.innerHeight && rect.top - dropH - 6 > 0) {
-            dropdown.style.top = (rect.top - dropH - 6) + 'px';
-        } else {
-            dropdown.style.top = (rect.bottom + 6) + 'px';
-        }
-    }
-
-    let closeTimeout = null;
-
-    /**
-     * Hides the dropdown with exit animation and clears open state classes.
-     * @returns {void}
-     */
-    function closeDropdown() {
-        if (dropdown.style.display === 'none' || dropdown.classList.contains('is-closing')) return;
-        btn.classList.remove('is-open');
-        wrap.classList.remove('is-open');
-        dropdown.classList.add('is-closing');
-        if (closeTimeout) clearTimeout(closeTimeout);
-        closeTimeout = setTimeout(() => {
-            dropdown.style.display = 'none';
-            dropdown.classList.remove('is-closing');
-            closeTimeout = null;
-        }, 150);
-    }
-
-    /**
-     * Opens this dropdown, closes other custom selects, and repositions against the trigger.
-     * @returns {void}
-     */
-    function openDropdown() {
-        if (closeTimeout) {
-            clearTimeout(closeTimeout);
-            closeTimeout = null;
-        }
-        document.querySelectorAll('.custom-select-dropdown').forEach(d => {
-            if (d !== dropdown) {
-                d.style.display = 'none';
-                d.classList.remove('is-closing');
-            }
-        });
-        document.querySelectorAll('.custom-select-wrapper, .custom-select-btn').forEach(b => {
-            if (b !== wrap && b !== btn) b.classList.remove('is-open');
-        });
-        document.querySelectorAll('.user-dropdown').forEach(d => {
-            if (d.id !== 'adjustments-menu') d.style.display = 'none';
-        });
-
-        dropdown.classList.remove('is-closing');
-        dropdown.style.display = 'block';
-        btn.classList.add('is-open');
-        wrap.classList.add('is-open');
-        positionDropdown();
-    }
-
-    btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const isOpen = dropdown.style.display === 'block' && !dropdown.classList.contains('is-closing');
-        if (isOpen) {
-            closeDropdown();
-        } else {
-            openDropdown();
-        }
-    });
-
-    const onDocClick = (e) => {
-        if (!wrap.contains(e.target) && !dropdown.contains(e.target)) {
-            closeDropdown();
-        }
-    };
-    const onScrollResize = () => {
-        if (dropdown.style.display === 'block') {
-            positionDropdown();
-        }
-    };
-
-    document.addEventListener('click', onDocClick);
-    window.addEventListener('scroll', onScrollResize, {passive: true});
-    window.addEventListener('resize', onScrollResize, {passive: true});
-
-    const observer = new MutationObserver(() => {
-        if (!document.body.contains(wrap)) {
-            dropdown.remove();
-            document.removeEventListener('click', onDocClick);
-            window.removeEventListener('scroll', onScrollResize);
-            window.removeEventListener('resize', onScrollResize);
-            observer.disconnect();
-        }
-    });
-    observer.observe(document.body, {childList: true, subtree: true});
-
-    wrap.appendChild(btn);
-    return wrap;
-}
 
 /**
  * Creates a localized visibility badge pill for a repository visibility level.

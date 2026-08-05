@@ -14,6 +14,9 @@
     "./scroll": "./js/scroll.js",
     "./tabs": "./js/tabs.js",
     "./i18n-util": "./js/i18n-util.js",
+    "./custom-select": "./js/custom-select.js",
+    "./toggle": "./js/toggle.js",
+    "./button": "./js/button.js",
     "./css/tokens.css": "./css/tokens.css",
     "./css/theme.css": "./css/theme.css",
     "./css/base.css": "./css/base.css",
@@ -21,7 +24,8 @@
     "./css/components/lang-card.css": "./css/components/lang-card.css",
     "./css/components/lang-btn.css": "./css/components/lang-btn.css",
     "./css/components/modal.css": "./css/components/modal.css",
-    "./css/components/tabs.css": "./css/components/tabs.css"
+    "./css/components/tabs.css": "./css/components/tabs.css",
+    "./css/components/custom-select.css": "./css/components/custom-select.css"
   },
   "files": [
     "js",
