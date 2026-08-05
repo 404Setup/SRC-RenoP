@@ -18,12 +18,13 @@ import {
     statSync,
     writeFileSync,
 } from 'node:fs';
-import {dirname, join, relative, sep} from 'node:path';
+import {dirname, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {rolldown} from 'rolldown';
-import {bundle} from 'lightningcss';
+import {bundleAsync} from 'lightningcss';
 
 const root = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(root, '..');
 const outDir = join(root, 'dist');
 const contentDocs = join(root, 'content', 'docs');
 
@@ -224,9 +225,17 @@ if (!existsSync(mainJs)) {
 const styleEntry = join(root, 'css', 'style.css');
 const cssDir = join(outDir, 'css');
 ensureDir(cssDir);
-const {code, warnings} = bundle({
+const {code, warnings} = await bundleAsync({
     filename: styleEntry,
     minify: true,
+    resolver: {
+        resolve(specifier, originatingFile) {
+            if (specifier.startsWith('@renop/ui/')) {
+                return join(repoRoot, 'packages/renop-ui', specifier.slice('@renop/ui/'.length));
+            }
+            return resolve(dirname(originatingFile), specifier);
+        },
+    },
 });
 if (warnings && warnings.length) {
     for (const w of warnings) console.warn('CSS warning:', w.message);

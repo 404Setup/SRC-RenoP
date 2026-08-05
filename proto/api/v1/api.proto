@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package renop.api.v1;
 
-option go_package = "renop/pb";
+option go_package = "renop/pkg/pb";
 
 message AccessTokenIdentifier {
   string type = 1;

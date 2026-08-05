@@ -1,4 +1,4 @@
 packages:
   - 'packages/*'
   - 'web'
-  - 'frontend/renop-html'
+  - 'internal/service/frontend/renop-html'

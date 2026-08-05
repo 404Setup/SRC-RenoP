@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -21,21 +21,21 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/valyala/fasthttp"
 
-	"renop/api"
-	"renop/audit"
-	"renop/auth"
-	"renop/bootstrap"
-	"renop/config"
-	"renop/frontend"
-	"renop/javadocs"
-	"renop/middleware"
-	"renop/settings"
-	"renop/status"
-	"renop/storage"
-	"renop/token"
-	"renop/updater"
-	"renop/upload"
-	"renop/utils"
+	"renop/internal/api"
+	"renop/internal/service/audit"
+	"renop/internal/service/auth"
+	"renop/internal/bootstrap"
+	"renop/internal/config"
+	"renop/internal/service/frontend"
+	"renop/internal/service/javadocs"
+	"renop/internal/middleware"
+	"renop/internal/service/settings"
+	"renop/internal/service/status"
+	"renop/internal/service/storage"
+	"renop/internal/service/token"
+	"renop/internal/service/updater"
+	"renop/internal/service/upload"
+	"renop/internal/utils"
 )
 
 func init() {

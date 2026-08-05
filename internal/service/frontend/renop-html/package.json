@@ -1,0 +1,22 @@
+{
+  "name": "renop-html",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "description": "RenoP frontend sources and Rolldown bundle config",
+  "scripts": {
+    "proto": "node ./build.mjs --proto-only",
+    "build": "node ./build.mjs",
+    "build:bundle": "rolldown -c rolldown.config.mjs"
+  },
+  "devDependencies": {
+    "lightningcss": "^1.33.0",
+    "protobufjs-cli": "^2.6.1",
+    "rolldown": "^1.2.0"
+  },
+  "dependencies": {
+    "@renop/ui": "workspace:*",
+    "protobufjs": "^8.7.1"
+  }
+}

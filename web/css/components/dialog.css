@@ -8,4 +8,4 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import url("../../../packages/renop-ui/css/components/modal.css");
+@import url("@renop/ui/css/components/modal.css");

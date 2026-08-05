@@ -1,0 +1,274 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+@import url("@renop/ui/css/components/modal.css");
+
+#renop-confirm-container,
+#renop-prompt-container {
+    z-index: 2100;
+}
+
+.modal,
+.modal *,
+.modal-content,
+.modal-content * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+}
+
+.modal-content button,
+.modal-content label,
+.modal-content .modal-header,
+.modal-content .modal-footer,
+.modal-content .pill-btn,
+.modal-content .action-btn,
+.modal-content .close-btn,
+.modal-content .badge,
+.modal-content .tag,
+.modal-content .modal-meta-grid,
+.modal-content .audit-action-badge,
+.modal-content .fido-device-item,
+.modal-content .sessions-loading {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+.modal-content > form,
+.modal-content > .token-form-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+.modal-header--center {
+    padding-left: 1.75rem !important;
+    padding-right: 1.75rem !important;
+    text-align: center;
+}
+
+.modal-header--center .modal-title {
+    justify-content: center;
+}
+
+.modal-body {
+    margin-bottom: 0;
+}
+
+.modal-footer {
+    flex-shrink: 0;
+    padding: 0.85rem 1.45rem;
+    margin-top: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.07);
+    background-color: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+}
+
+html.dark .modal-footer,
+html:not(.light) .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.modal-footer--center {
+    justify-content: center !important;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="password"],
+.modal-content select,
+.modal-content textarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--text-color);
+    font-size: 0.925rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+html.dark .modal-content input[type="text"],
+html.dark .modal-content input[type="password"],
+html.dark .modal-content select,
+html.dark .modal-content textarea,
+html:not(.light) .modal-content input[type="text"],
+html:not(.light) .modal-content input[type="password"],
+html:not(.light) .modal-content select,
+html:not(.light) .modal-content textarea {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(0, 0, 0, 0.25);
+    color: var(--text-color);
+}
+
+.modal-content input[type="text"]:focus,
+.modal-content input[type="password"]:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
+    outline: none;
+    border-color: var(--link-hover-color);
+    background-color: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 20%, transparent);
+}
+
+html.dark .modal-content input[type="text"]:focus,
+html.dark .modal-content input[type="password"]:focus,
+html.dark .modal-content select:focus,
+html.dark .modal-content textarea:focus,
+html:not(.light) .modal-content input[type="text"]:focus,
+html:not(.light) .modal-content input[type="password"]:focus,
+html:not(.light) .modal-content select:focus,
+html:not(.light) .modal-content textarea:focus {
+    background-color: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 25%, transparent);
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-color);
+    opacity: 0.9;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-content.modal-sm {
+    max-width: 400px;
+}
+
+.modal-content.modal-md {
+    max-width: 520px;
+    width: 90%;
+}
+
+.modal-content.modal-lg {
+    max-width: 720px;
+    width: 90%;
+}
+
+.modal-body-flex {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.modal-message {
+    margin: 0;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    color: var(--text-color);
+}
+
+.modal-message--spaced {
+    margin-bottom: 16px;
+}
+
+.modal-input {
+    width: 100%;
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+
+.modal-input.is-readonly {
+    cursor: pointer;
+}
+
+.modal-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background-color: rgba(0, 0, 0, 0.03);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+
+html.dark .modal-meta-grid,
+html:not(.light) .modal-meta-grid {
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-meta-grid > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.35rem;
+    min-width: 0;
+}
+
+.modal-meta-label {
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.modal-meta-value {
+    color: var(--text-color);
+    word-break: break-word;
+}
+
+.modal-notes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.modal-notes-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.modal-notes-box {
+    max-height: 110px;
+    overflow-y: auto;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 0.84rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+html.dark .modal-notes-box,
+html:not(.light) .modal-notes-box {
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}

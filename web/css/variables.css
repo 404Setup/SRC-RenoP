@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import url("../../packages/renop-ui/css/tokens.css");
+@import url("@renop/ui/css/tokens.css");
 
 html.dark .primary-btn,
 html.dark .pill-btn--primary {

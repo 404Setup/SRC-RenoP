@@ -1,7 +1,7 @@
 {
   "name": "renop",
   "private": true,
-  "packageManager": "pnpm@11.7.0",
+  "packageManager": "pnpm@11.20.0",
   "description": "RenoP monorepo root (workspace for web, frontend, shared UI)",
   "scripts": {
     "build:web": "pnpm --filter renop-web build",

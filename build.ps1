@@ -172,14 +172,14 @@ function Invoke-ProtobufGenerate {
     if ($LASTEXITCODE -ne 0) {
         throw "protoc (Go) failed with exit code $LASTEXITCODE."
     }
-    $generated = Join-Path $repositoryRoot 'pb/api.pb.go'
+    $generated = Join-Path $repositoryRoot 'pkg/pb/api.pb.go'
     if (-not (Test-Path -LiteralPath $generated)) {
         throw "protoc did not produce $generated"
     }
 }
 
 function Build-FrontendAssets {
-    $frontendDir = Join-Path $repositoryRoot 'frontend/renop-html'
+    $frontendDir = Join-Path $repositoryRoot 'internal/service/frontend/renop-html'
     if (-not (Test-Path -LiteralPath (Join-Path $frontendDir 'package.json'))) {
         throw "Frontend package.json not found at $frontendDir"
     }
@@ -256,7 +256,7 @@ try {
             Remove-Item Env:GOAMD64 -ErrorAction SilentlyContinue
         }
 
-        $ldflags = "-s -w -X=renop/version.Version=$displayVersion -X=renop/version.Development=$developmentValue"
+        $ldflags = "-s -w -X=renop/internal/version.Version=$displayVersion -X=renop/internal/version.Development=$developmentValue"
         $destinationDescription = if ($noBundle) { $binaryPath } else { $archivePath }
         Write-Host "Building $goos/$goarch -> $destinationDescription"
         & go build -ldflags $ldflags -o $binaryPath .

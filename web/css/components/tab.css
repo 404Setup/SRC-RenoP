@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-@import url("../../../packages/renop-ui/css/components/tabs.css");
+@import url("@renop/ui/css/components/tabs.css");
 
 .tabs .tab.active {
     background-color: var(--card-bg);
