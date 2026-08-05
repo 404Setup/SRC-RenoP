@@ -45,7 +45,8 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		last_active BIGINT NOT NULL,
 		login_method VARCHAR(64) NOT NULL DEFAULT 'password',
 		INDEX idx_sessions_username (username),
-		INDEX idx_sessions_last_active (last_active)
+		INDEX idx_sessions_last_active (last_active),
+		INDEX idx_sessions_user_public (username, public_id)
 	);`
 
 	fidoTable := `
@@ -79,6 +80,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		ip VARCHAR(255) NOT NULL,
 		created_at BIGINT NOT NULL,
 		INDEX idx_audit_logs_user_time (username, created_at),
+		INDEX idx_audit_logs_user_id (username, id DESC),
 		INDEX idx_audit_logs_created_at (created_at)
 	);`
 

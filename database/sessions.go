@@ -30,7 +30,8 @@ func (db *DB) GetSession(sessionToken string) (*core.Session, error) {
 	if db == nil || db.SqlDB == nil || sessionToken == "" {
 		return nil, nil
 	}
-	if len(sessionToken) > maxSessionTokenLen {
+	sessionToken = SanitizeInputString(sessionToken, maxSessionTokenLen)
+	if sessionToken == "" {
 		return nil, nil
 	}
 
@@ -75,7 +76,10 @@ func (db *DB) SaveSession(session *core.Session, sessionToken string) error {
 	if db == nil || db.SqlDB == nil || session == nil || sessionToken == "" {
 		return nil
 	}
-	if len(sessionToken) > maxSessionTokenLen || len(session.Username) > maxUsernameLen || len(session.PublicId) > maxPublicIdLen {
+	sessionToken = SanitizeInputString(sessionToken, maxSessionTokenLen)
+	session.Username = SanitizeInputString(session.Username, maxUsernameLen)
+	session.PublicId = SanitizeInputString(session.PublicId, maxPublicIdLen)
+	if sessionToken == "" || session.Username == "" || session.PublicId == "" {
 		return nil
 	}
 
@@ -99,12 +103,17 @@ func (db *DB) UpdateSessionLastActive(sessionToken string, lastActive int64) err
 	if db == nil || db.SqlDB == nil || sessionToken == "" {
 		return nil
 	}
-	if len(sessionToken) > maxSessionTokenLen {
+	sessionToken = SanitizeInputString(sessionToken, maxSessionTokenLen)
+	if sessionToken == "" {
 		return nil
 	}
 
 	if sess, ok := db.sessionCache.Get(sessionToken); ok {
+		prevActive := sess.LastActive.Load()
 		sess.LastActive.Store(lastActive)
+		if lastActive-prevActive < 30000 && prevActive > 0 {
+			return nil
+		}
 	}
 
 	_, err := db.SqlDB.Exec(`UPDATE sessions SET last_active = ? WHERE session_token = ?`, lastActive, sessionToken)
@@ -118,7 +127,8 @@ func (db *DB) DeleteSession(sessionToken string) error {
 	if db == nil || db.SqlDB == nil || sessionToken == "" {
 		return nil
 	}
-	if len(sessionToken) > maxSessionTokenLen {
+	sessionToken = SanitizeInputString(sessionToken, maxSessionTokenLen)
+	if sessionToken == "" {
 		return nil
 	}
 
@@ -135,7 +145,8 @@ func (db *DB) DeleteSessionsByUsername(username string) error {
 	if db == nil || db.SqlDB == nil || username == "" {
 		return nil
 	}
-	if len(username) > maxUsernameLen {
+	username = SanitizeInputString(strings.TrimSpace(username), maxUsernameLen)
+	if username == "" {
 		return nil
 	}
 
@@ -155,7 +166,9 @@ func (db *DB) ListUserSessions(username, currentSessionToken string) ([]core.Ses
 	if db == nil || db.SqlDB == nil || username == "" {
 		return []core.SessionDto{}, nil
 	}
-	if len(username) > maxUsernameLen || (currentSessionToken != "" && len(currentSessionToken) > maxSessionTokenLen) {
+	username = SanitizeInputString(username, maxUsernameLen)
+	currentSessionToken = SanitizeInputString(currentSessionToken, maxSessionTokenLen)
+	if username == "" {
 		return []core.SessionDto{}, nil
 	}
 
@@ -167,7 +180,7 @@ func (db *DB) ListUserSessions(username, currentSessionToken string) ([]core.Ses
 	}
 	defer rows.Close()
 
-	var sessions []core.SessionDto
+	sessions := make([]core.SessionDto, 0, 8)
 	for rows.Next() {
 		var token, publicId, u, ip, userAgent, loginMethod string
 		var createdAt, lastActive int64
@@ -295,7 +308,7 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 	}
 	defer rows.Close()
 
-	var tokens []string
+	tokens := make([]string, 0, 8)
 	for rows.Next() {
 		var t string
 		if err := rows.Scan(&t); err == nil {
@@ -334,7 +347,7 @@ func (db *DB) GetActiveSessions(minActiveTimestamp int64) ([]core.SessionDbDto, 
 	}
 	defer rows.Close()
 
-	var sessions []core.SessionDbDto
+	sessions := make([]core.SessionDbDto, 0, 16)
 	for rows.Next() {
 		var token, publicId, username, ip, userAgent, loginMethod string
 		var createdAt, lastActive int64

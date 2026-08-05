@@ -78,20 +78,29 @@ func hashKey(key string) uint32 {
 
 // Get returns a defensive copy of the cached value.
 func (c *FileByteCache) Get(key string) ([]byte, error) {
+	v, err := c.GetReadOnlyView(key)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]byte, len(v))
+	copy(out, v)
+	return out, nil
+}
+
+// GetReadOnlyView returns a read-only view of the cached value slice without allocation.
+// Callers MUST NOT mutate the returned byte slice.
+func (c *FileByteCache) GetReadOnlyView(key string) ([]byte, error) {
 	if c == nil {
 		return nil, ErrFileCacheMiss
 	}
 	s := c.shard(key)
 	s.mu.RLock()
 	v, ok := s.entries[key]
+	s.mu.RUnlock()
 	if !ok {
-		s.mu.RUnlock()
 		return nil, ErrFileCacheMiss
 	}
-	out := make([]byte, len(v))
-	copy(out, v)
-	s.mu.RUnlock()
-	return out, nil
+	return v, nil
 }
 
 // Set stores a copy of value under key, evicting oldest entries until under budget.
@@ -196,7 +205,7 @@ func (c *FileByteCache) evictOneLocked(s *fileCacheShard, protect string) bool {
 		s.order = s.order[1:]
 		if k == protect {
 			s.order = append(s.order, k)
-			if countLiveOrder(s, protect) <= 1 {
+			if len(s.entries) <= 1 {
 				break
 			}
 			continue
@@ -216,19 +225,6 @@ func (c *FileByteCache) evictOneLocked(s *fileCacheShard, protect string) bool {
 		return true
 	}
 	return false
-}
-
-func countLiveOrder(s *fileCacheShard, protect string) int {
-	n := 0
-	for _, k := range s.order {
-		if _, ok := s.entries[k]; ok {
-			n++
-			if k != protect && n > 1 {
-				return n
-			}
-		}
-	}
-	return n
 }
 
 func (s *fileCacheShard) compactOrderLocked() {

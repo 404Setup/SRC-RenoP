@@ -23,6 +23,10 @@ func (db *DB) ListFidoDevices(username string) ([]*core.FidoDevice, error) {
 	if db == nil || db.SqlDB == nil || username == "" {
 		return []*core.FidoDevice{}, nil
 	}
+	username = SanitizeInputString(strings.TrimSpace(username), 255)
+	if username == "" {
+		return []*core.FidoDevice{}, nil
+	}
 
 	lowerName := strings.ToLower(username)
 	query := `SELECT id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state FROM fido_devices WHERE username = ?`
@@ -32,7 +36,7 @@ func (db *DB) ListFidoDevices(username string) ([]*core.FidoDevice, error) {
 	}
 	defer rows.Close()
 
-	var devices []*core.FidoDevice
+	devices := make([]*core.FidoDevice, 0, 4)
 	for rows.Next() {
 		dev := &core.FidoDevice{}
 		var userPresent, userVerified, backupEligible, backupState int
@@ -86,6 +90,12 @@ func (db *DB) SaveFidoDevice(device *core.FidoDevice) error {
 	if db == nil || db.SqlDB == nil || device == nil || device.Username == "" {
 		return nil
 	}
+	device.Username = SanitizeInputString(device.Username, 255)
+	device.ID = SanitizeInputString(device.ID, 255)
+	device.Name = SanitizeInputString(device.Name, 255)
+	if device.Username == "" || device.ID == "" {
+		return nil
+	}
 
 	lowerName := strings.ToLower(device.Username)
 	query := `INSERT INTO fido_devices (id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state)
@@ -118,6 +128,11 @@ func (db *DB) DeleteFidoDevice(username, deviceID string) error {
 	if db == nil || db.SqlDB == nil || username == "" || deviceID == "" {
 		return nil
 	}
+	username = SanitizeInputString(username, 255)
+	deviceID = SanitizeInputString(deviceID, 255)
+	if username == "" || deviceID == "" {
+		return nil
+	}
 
 	lowerName := strings.ToLower(username)
 	_, err := db.SqlDB.Exec(`DELETE FROM fido_devices WHERE username = ? AND id = ?`, lowerName, deviceID)
@@ -130,6 +145,10 @@ func (db *DB) DeleteFidoDevice(username, deviceID string) error {
 
 func (db *DB) DeleteFidoDevicesByUsername(username string) error {
 	if db == nil || db.SqlDB == nil || username == "" {
+		return nil
+	}
+	username = SanitizeInputString(username, 255)
+	if username == "" {
 		return nil
 	}
 

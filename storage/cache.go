@@ -88,7 +88,7 @@ func serveFromCache(c fiber.Ctx, state *core.AppState, pathStr string, contentDi
 		return false, nil
 	}
 
-	cachedBuf, err := state.Inner.FileCache.Get(pathStr)
+	cachedBuf, err := state.Inner.FileCache.GetReadOnlyView(pathStr)
 	if err != nil {
 		return false, nil
 	}

@@ -111,10 +111,12 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);")
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);")
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);")
 	return nil
 }

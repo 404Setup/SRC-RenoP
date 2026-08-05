@@ -257,4 +257,24 @@ func TestInitDB_SQLite(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, emptyDevs)
 	})
+
+	t.Run("Sanitization and Null Byte Injection Defense", func(t *testing.T) {
+		sanitized := database.SanitizeInputString("user\x00name", 255)
+		assert.Equal(t, "username", sanitized)
+
+		sanitizedCtrl := database.SanitizeInputString("user\x07name\x1b\x7f", 255)
+		assert.Equal(t, "username", sanitizedCtrl)
+
+		err := db.SaveAuditLog(&core.AuditLogEntry{
+			Username:   "user\x00name\x07",
+			Operator:   "admin",
+			Action:     "TEST",
+			Details:    "test\x00details\x1b",
+			AuthMethod: "password",
+			SessionID:  "sess1",
+			IP:         "127.0.0.1",
+			CreatedAt:  time.Now().UnixMilli(),
+		})
+		assert.NoError(t, err)
+	})
 }

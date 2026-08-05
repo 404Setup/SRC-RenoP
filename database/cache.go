@@ -261,10 +261,15 @@ func (c *TTLCache[K, V]) EvictExpired() {
 				delete(shard.items, k)
 			}
 		}
+		if len(shard.items) == 0 {
+			shard.items = make(map[K]cacheItem[V])
+		}
 		shard.mu.Unlock()
 		toDelete = toDelete[:0]
 	}
 
-	*ptrSlice = toDelete
-	c.evictPool.Put(ptrSlice)
+	if cap(*ptrSlice) <= 1024 {
+		*ptrSlice = toDelete
+		c.evictPool.Put(ptrSlice)
+	}
 }

@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/3JoB/unsafeConvert"
 	"github.com/goccy/go-json"
 
 	"renop/core"
@@ -30,7 +31,7 @@ const (
 func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, passwordHash, tokensJson, createdAt, description string, expiresAt sql.NullInt64, permissionsJson string) *core.AccessToken {
 	var tokList []string
 	if tokensJson != "" {
-		_ = json.Unmarshal([]byte(tokensJson), &tokList)
+		_ = json.Unmarshal(unsafeConvert.ByteSlice(tokensJson), &tokList)
 	}
 	if tokList == nil {
 		tokList = []string{}
@@ -38,7 +39,7 @@ func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, pas
 
 	var permList []string
 	if permissionsJson != "" {
-		_ = json.Unmarshal([]byte(permissionsJson), &permList)
+		_ = json.Unmarshal(unsafeConvert.ByteSlice(permissionsJson), &permList)
 	}
 	if permList == nil {
 		permList = []string{}
@@ -70,7 +71,8 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 	if db == nil || db.SqlDB == nil || name == "" {
 		return nil, nil
 	}
-	if len(name) > maxTokenNameLen {
+	name = SanitizeInputString(strings.TrimSpace(name), maxTokenNameLen)
+	if name == "" {
 		return nil, nil
 	}
 
@@ -108,7 +110,8 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 	if db == nil || db.SqlDB == nil || secret == "" {
 		return nil, nil
 	}
-	if len(secret) > maxTokenSecretLen {
+	secret = SanitizeInputString(secret, maxTokenSecretLen)
+	if secret == "" {
 		return nil, nil
 	}
 
@@ -116,9 +119,9 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 		return tok, nil
 	}
 
-	escapedSecret := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(secret)
+	escapedSecret := escapeJSONLikeSecret(secret)
 	query := `SELECT name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json FROM tokens WHERE tokens_json LIKE ? ESCAPE '\'`
-	rows, err := db.SqlDB.Query(query, "%"+escapedSecret+"%")
+	rows, err := db.SqlDB.Query(query, "%\""+escapedSecret+"\"%")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query token by secret: %w", err)
 	}
@@ -149,7 +152,9 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	if db == nil || db.SqlDB == nil || token == nil {
 		return nil
 	}
-	if len(token.Name) > maxTokenNameLen {
+	token.Name = SanitizeInputString(strings.TrimSpace(token.Name), maxTokenNameLen)
+	token.Description = SanitizeInputString(token.Description, 2048)
+	if token.Name == "" {
 		return nil
 	}
 
@@ -181,7 +186,8 @@ func (db *DB) DeleteToken(name string) error {
 	if db == nil || db.SqlDB == nil || name == "" {
 		return nil
 	}
-	if len(name) > maxTokenNameLen {
+	name = SanitizeInputString(strings.TrimSpace(name), maxTokenNameLen)
+	if name == "" {
 		return nil
 	}
 
@@ -203,7 +209,9 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	if db == nil || db.SqlDB == nil || oldName == "" || newName == "" {
 		return nil
 	}
-	if len(oldName) > maxTokenNameLen || len(newName) > maxTokenNameLen {
+	oldName = SanitizeInputString(strings.TrimSpace(oldName), maxTokenNameLen)
+	newName = SanitizeInputString(strings.TrimSpace(newName), maxTokenNameLen)
+	if oldName == "" || newName == "" {
 		return nil
 	}
 
@@ -279,7 +287,7 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 	}
 	defer rows.Close()
 
-	var tokens []*core.AccessToken
+	tokens := make([]*core.AccessToken, 0, 16)
 	for rows.Next() {
 		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJson, createdAt, description, permissionsJson string
 		var typeValue int32
@@ -291,6 +299,14 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 
 		tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJson, createdAt, description, expiresAt, permissionsJson)
 		tokens = append(tokens, tok)
+		db.tokenCache.Set(tok.Name, tok, 10*time.Minute)
+		for _, t := range tok.Tokens {
+			db.tokenSecretCache.Set(t, tok, 10*time.Minute)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return tokens, nil
@@ -327,4 +343,25 @@ func (db *DB) MigrateTokens(tokens map[string]*core.AccessToken) error {
 	}
 
 	return tx.Commit()
+}
+
+func escapeJSONLikeSecret(secret string) string {
+	var b strings.Builder
+	b.Grow(len(secret)*2 + 8)
+	for i := 0; i < len(secret); i++ {
+		c := secret[i]
+		switch c {
+		case '\\':
+			b.WriteString(`\\\\`)
+		case '"':
+			b.WriteString(`\\\"`)
+		case '%':
+			b.WriteString(`\%`)
+		case '_':
+			b.WriteString(`\_`)
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
 }

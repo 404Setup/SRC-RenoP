@@ -53,7 +53,8 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 	var err error
 	actualDriver := driver
 
-	if driver == "sqlite3" || driver == "sqlite" {
+	if strings.HasPrefix(driver, "sqlite") {
+		dsn = buildSQLiteDSN(dsn)
 		sqlDB, err = openAndPing("sqlite3", dsn, cfg)
 		if err != nil {
 			actualDriver = "sqlite"
@@ -84,6 +85,17 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 
 	log.Printf("Database initialized successfully (driver: %s, dsn: %s)", actualDriver, sanitizeDSN(dsn))
 	return db, nil
+}
+
+func buildSQLiteDSN(dsn string) string {
+	if strings.Contains(dsn, "_pragma") || strings.Contains(dsn, "mode=") {
+		return dsn
+	}
+	pragmas := "_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=cache_size(-8192)&_pragma=temp_store(MEMORY)&_pragma=mmap_size(268435456)"
+	if strings.Contains(dsn, "?") {
+		return dsn + "&" + pragmas
+	}
+	return dsn + "?" + pragmas
 }
 
 func openAndPing(driver, dsn string, cfg config.DatabaseConfig) (*sql.DB, error) {
@@ -153,6 +165,52 @@ func safePrefix(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+// SanitizeInputString trims null bytes and invalid UTF-8 control characters from SQL inputs.
+func SanitizeInputString(s string, maxLen int) string {
+	if s == "" {
+		return ""
+	}
+	if hasControlBytes(s) {
+		s = sanitizeControlBytes(s)
+	}
+	if maxLen > 0 && len(s) > maxLen {
+		s = truncateUTF8(s, maxLen)
+	}
+	return s
+}
+
+func hasControlBytes(s string) bool {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c < 32 && c != '\t' && c != '\n' && c != '\r') || c == 127 {
+			return true
+		}
+	}
+	return false
+}
+
+func sanitizeControlBytes(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c >= 32 || c == '\t' || c == '\n' || c == '\r') && c != 127 {
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
+}
+
+func truncateUTF8(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	for maxLen > 0 && (s[maxLen]&0xC0) == 0x80 {
+		maxLen--
+	}
+	return s[:maxLen]
 }
 
 func (db *DB) Close() error {

@@ -48,21 +48,9 @@ func HashAndEncode(buffer []byte) string {
 
 func HashFileAndEncode(file *os.File) (string, error) {
 	hasher := sha256.New()
-	buffer := make([]byte, 8192)
-
-	for {
-		n, err := file.Read(buffer)
-		if n > 0 {
-			hasher.Write(buffer[:n])
-		}
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", err
 	}
-
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 

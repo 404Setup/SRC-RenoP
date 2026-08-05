@@ -59,7 +59,17 @@ func saveLog(state *core.AppState, entry *core.AuditLogEntry) {
 	state.Inner.AuditLogsMem = append(state.Inner.AuditLogsMem, entry)
 
 	if len(state.Inner.AuditLogsMem) > maxRows {
-		state.Inner.AuditLogsMem = state.Inner.AuditLogsMem[len(state.Inner.AuditLogsMem)-maxRows:]
+		drop := len(state.Inner.AuditLogsMem) - maxRows
+		for i := range drop {
+			state.Inner.AuditLogsMem[i] = nil
+		}
+		if cap(state.Inner.AuditLogsMem) > 2*maxRows {
+			kept := make([]*core.AuditLogEntry, maxRows)
+			copy(kept, state.Inner.AuditLogsMem[drop:])
+			state.Inner.AuditLogsMem = kept
+		} else {
+			state.Inner.AuditLogsMem = state.Inner.AuditLogsMem[drop:]
+		}
 	}
 }
 
@@ -93,6 +103,16 @@ func cleanLogs(state *core.AppState) {
 	}
 
 	if cfg.AuditLog.MaxRows > 0 && len(state.Inner.AuditLogsMem) > cfg.AuditLog.MaxRows {
-		state.Inner.AuditLogsMem = state.Inner.AuditLogsMem[len(state.Inner.AuditLogsMem)-cfg.AuditLog.MaxRows:]
+		drop := len(state.Inner.AuditLogsMem) - cfg.AuditLog.MaxRows
+		for i := range drop {
+			state.Inner.AuditLogsMem[i] = nil
+		}
+		if cap(state.Inner.AuditLogsMem) > 2*cfg.AuditLog.MaxRows {
+			kept := make([]*core.AuditLogEntry, cfg.AuditLog.MaxRows)
+			copy(kept, state.Inner.AuditLogsMem[drop:])
+			state.Inner.AuditLogsMem = kept
+		} else {
+			state.Inner.AuditLogsMem = state.Inner.AuditLogsMem[drop:]
+		}
 	}
 }

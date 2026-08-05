@@ -24,13 +24,13 @@ func (db *DB) SaveAuditLog(entry *core.AuditLogEntry) error {
 	query := `INSERT INTO audit_logs (username, operator, action, details, auth_method, session_id, ip, created_at)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := db.SqlDB.Exec(query,
-		strings.ToLower(entry.Username),
-		strings.ToLower(entry.Operator),
-		entry.Action,
-		entry.Details,
-		entry.AuthMethod,
-		entry.SessionID,
-		entry.IP,
+		SanitizeInputString(strings.ToLower(entry.Username), 255),
+		SanitizeInputString(strings.ToLower(entry.Operator), 255),
+		SanitizeInputString(entry.Action, 64),
+		SanitizeInputString(entry.Details, 4096),
+		SanitizeInputString(entry.AuthMethod, 64),
+		SanitizeInputString(entry.SessionID, 255),
+		SanitizeInputString(entry.IP, 255),
 		entry.CreatedAt,
 	)
 	return err
@@ -42,12 +42,16 @@ func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLog
 	}
 	if limit <= 0 {
 		limit = 50
+	} else if limit > 500 {
+		limit = 500
 	}
 	if offset < 0 {
 		offset = 0
+	} else if offset > 1000000 {
+		offset = 1000000
 	}
 
-	lowerUser := strings.ToLower(strings.TrimSpace(username))
+	lowerUser := SanitizeInputString(strings.ToLower(strings.TrimSpace(username)), 255)
 	var total int
 	var countQuery string
 	var args []any
@@ -62,6 +66,10 @@ func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLog
 	err := db.SqlDB.QueryRow(countQuery, args...).Scan(&total)
 	if err != nil {
 		return []*core.AuditLogEntry{}, 0, err
+	}
+
+	if total == 0 || offset >= total {
+		return []*core.AuditLogEntry{}, total, nil
 	}
 
 	var selectQuery string
@@ -82,13 +90,22 @@ func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLog
 	}
 	defer rows.Close()
 
-	entries := make([]*core.AuditLogEntry, 0, limit)
+	remaining := total - offset
+	initialCap := min(remaining, limit)
+	if initialCap <= 0 {
+		initialCap = 1
+	}
+	entries := make([]*core.AuditLogEntry, 0, initialCap)
 	for rows.Next() {
 		e := &core.AuditLogEntry{}
 		if err := rows.Scan(&e.ID, &e.Username, &e.Operator, &e.Action, &e.Details, &e.AuthMethod, &e.SessionID, &e.IP, &e.CreatedAt); err != nil {
 			return nil, 0, err
 		}
 		entries = append(entries, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 
 	return entries, total, nil
@@ -98,7 +115,7 @@ func (db *DB) DeleteAuditLogsByUsername(username string) error {
 	if db == nil || db.SqlDB == nil {
 		return nil
 	}
-	lowerUser := strings.ToLower(strings.TrimSpace(username))
+	lowerUser := SanitizeInputString(strings.ToLower(strings.TrimSpace(username)), 255)
 	if lowerUser == "" {
 		return nil
 	}
@@ -112,18 +129,25 @@ func (db *DB) CleanExpiredAuditLogs(retentionDays int, maxRows int) error {
 	}
 	if retentionDays > 0 {
 		cutoff := time.Now().AddDate(0, 0, -retentionDays).UnixMilli()
-		_, _ = db.SqlDB.Exec("DELETE FROM audit_logs WHERE created_at < ?", cutoff)
+		if _, err := db.SqlDB.Exec("DELETE FROM audit_logs WHERE created_at < ?", cutoff); err != nil {
+			return err
+		}
 	}
 
-	if maxRows > 0 {
-		trimQuery := `DELETE FROM audit_logs WHERE id < (
-			SELECT min_id FROM (
-				SELECT MIN(id) AS min_id FROM (
-					SELECT id FROM audit_logs ORDER BY id DESC LIMIT ?
-				) AS t1
-			) AS t2
-		)`
-		_, _ = db.SqlDB.Exec(trimQuery, maxRows)
+	if maxRows > 0 && maxRows < 100000000 {
+		var count int
+		if err := db.SqlDB.QueryRow("SELECT COUNT(*) FROM audit_logs").Scan(&count); err == nil && count > maxRows {
+			trimQuery := `DELETE FROM audit_logs WHERE id < (
+				SELECT min_id FROM (
+					SELECT MIN(id) AS min_id FROM (
+						SELECT id FROM audit_logs ORDER BY id DESC LIMIT ?
+					) AS t1
+				) AS t2
+			)`
+			if _, err := db.SqlDB.Exec(trimQuery, maxRows); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
