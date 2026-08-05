@@ -537,7 +537,38 @@ function renderServerSettings(container, data) {
     wrap.appendChild(debugSection);
     wrap.appendChild(netSection);
 
-    // Database section embedded in Server Settings
+    if (!currentConfig.audit_log) {
+        currentConfig.audit_log = data.audit_log || {
+            retention_days: 14,
+            max_rows: 10000,
+        };
+    }
+
+    const auditSection = createSection(
+        createIcon('fileText'),
+        t('settings.auditLogTitle') || 'Activity Log Settings',
+        t('settings.auditLogSubtitle') || 'Configure log retention duration and maximum row limits.'
+    );
+    const auditFields = auditSection.querySelector('.cfg-fields');
+
+    const retentionInput = buildInput('number', currentConfig.audit_log.retention_days || 14, '14', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 1) return;
+        currentConfig.audit_log.retention_days = Math.trunc(n);
+        enableSave();
+    });
+    auditFields.appendChild(createFieldRow(t('settings.retentionDays') || 'Retention Days', t('settings.retentionDaysHint') || 'Number of days to keep activity logs (default: 14)', retentionInput));
+
+    const maxRowsInput = buildInput('number', currentConfig.audit_log.max_rows || 10000, '10000', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 100) return;
+        currentConfig.audit_log.max_rows = Math.trunc(n);
+        enableSave();
+    });
+    auditFields.appendChild(createFieldRow(t('settings.maxRows') || 'Max Log Entries', t('settings.maxRowsHint') || 'Maximum number of activity log records to retain (default: 10000)', maxRowsInput));
+
+    wrap.appendChild(auditSection);
+
     if (!currentConfig.database) {
         currentConfig.database = data.database || {
             enabled: true,

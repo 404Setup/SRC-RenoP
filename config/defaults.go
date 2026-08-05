@@ -156,6 +156,13 @@ func DefaultFrontendConfig() FrontendConfig {
 	}
 }
 
+func DefaultAuditLogConfig() AuditLogConfig {
+	return AuditLogConfig{
+		RetentionDays: 14,
+		MaxRows:       10000,
+	}
+}
+
 func DefaultConfig() Config {
 	return Config{
 		StoragePath:          "storage",
@@ -167,5 +174,7 @@ func DefaultConfig() Config {
 		Server:               DefaultServerConfig(),
 		Updater:              DefaultUpdaterConfig(),
 		Database:             DefaultDatabaseConfig(),
+		AuditLog:             DefaultAuditLogConfig(),
 	}
 }
+

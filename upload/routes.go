@@ -12,6 +12,7 @@ package upload
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/audit"
 	"renop/auth"
 	"renop/config"
 	"renop/core"
@@ -340,6 +342,18 @@ func completeStorage(c fiber.Ctx, state *core.AppState, mgr *Manager, sess *Sess
 	storageSlash := filepath.ToSlash(cfg.StoragePath)
 	rel = strings.TrimPrefix(rel, storageSlash)
 	rel = strings.TrimPrefix(rel, "/")
+
+	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", sess.RepoName, rel, fileSize)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   username,
+		Operator:   op,
+		Action:     "UPLOAD",
+		Details:    details,
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
 
 	return protohttp.WriteStatus(c, fiber.StatusCreated, &pb.ChunkedUploadCompleteResponse{
 		Status: "created",

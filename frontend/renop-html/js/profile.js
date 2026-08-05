@@ -18,13 +18,22 @@ import {openSessionsDialog} from './sessions.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 import {FidoDeviceList, GenerateTokenResponse, StatusOk, UpdatePasswordRequest} from './proto/index.js';
 import {closeModalWithAnim} from './app-ui.js';
+import {openAuditLogsDialog} from './audit.js';
 
 export async function loadProfileFidoDevices() {
     const listEl = document.getElementById('profile-fido-list');
     if (!listEl) return;
 
+    listEl.replaceChildren(
+        el('div', { class: 'sessions-loading' },
+            el('div', { class: 'sessions-loading-spinner', 'aria-hidden': 'true' }),
+            el('span', {}, t('common.loading') || 'Loading...')
+        )
+    );
+
     try {
         const {response, data} = await fetchProto('/api/auth/profile/fido', FidoDeviceList);
+
         if (!response.ok || !data) return;
         const devices = data.devices || [];
 
@@ -322,6 +331,14 @@ export function setupProfile() {
         btnAddFido.dataset.listenerAttached = 'true';
         btnAddFido.addEventListener('click', () => {
             addFidoDevice();
+        });
+    }
+
+    const btnAuditLogs = document.getElementById('btn-profile-audit-logs');
+    if (btnAuditLogs && !btnAuditLogs.dataset.listenerAttached) {
+        btnAuditLogs.dataset.listenerAttached = 'true';
+        btnAuditLogs.addEventListener('click', () => {
+            openAuditLogsDialog({ mode: 'self' });
         });
     }
 }

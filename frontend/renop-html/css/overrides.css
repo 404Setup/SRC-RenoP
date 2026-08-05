@@ -219,3 +219,20 @@ html.light #breadcrumb-links a.is-current {
     opacity: 1 !important;
     font-weight: 500 !important;
 }
+
+.audit-logs-container {
+    overflow-x: hidden;
+}
+
+.audit-logs-list {
+    overflow-x: hidden;
+    overflow-y: auto;
+    transition: opacity 0.2s ease;
+}
+
+.audit-logs-list.is-busy {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+

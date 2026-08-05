@@ -17,6 +17,20 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+type AuditLogConfig struct {
+	RetentionDays int `json:"retention_days" yaml:"retention_days"`
+	MaxRows       int `json:"max_rows" yaml:"max_rows"`
+}
+
+func (a *AuditLogConfig) setDefaults() {
+	if a.RetentionDays <= 0 {
+		a.RetentionDays = 14
+	}
+	if a.MaxRows <= 0 {
+		a.MaxRows = 10000
+	}
+}
+
 type Config struct {
 	StoragePath          string         `json:"storage_path" yaml:"storage_path"`
 	EnableJavadocPreview bool           `json:"enable_javadoc_preview" yaml:"enable_javadoc_preview"`
@@ -27,6 +41,7 @@ type Config struct {
 	Server               ServerConfig   `json:"server" yaml:"server"`
 	Updater              UpdaterConfig  `json:"updater" yaml:"updater"`
 	Database             DatabaseConfig `json:"database" yaml:"database"`
+	AuditLog             AuditLogConfig `json:"audit_log" yaml:"audit_log"`
 }
 
 func (c *Config) setDefaults() {
@@ -44,6 +59,7 @@ func (c *Config) setDefaults() {
 	c.Server.setDefaults()
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
+	c.AuditLog.setDefaults()
 }
 
 func (c *Config) UnmarshalJSON(data []byte) error {
@@ -55,6 +71,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	}
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
+	c.AuditLog.setDefaults()
 	return nil
 }
 
@@ -67,6 +84,7 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	}
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
+	c.AuditLog.setDefaults()
 	return nil
 }
 
@@ -74,6 +92,7 @@ type SettingsUpdate struct {
 	Frontend *FrontendConfig
 	Maven    *MavenSettings
 	Server   *ServerConfig
+	AuditLog *AuditLogConfig
 }
 
 func (su *SettingsUpdate) UnmarshalJSON(data []byte) error {
@@ -92,6 +111,12 @@ func (su *SettingsUpdate) UnmarshalJSON(data []byte) error {
 		m := DefaultMavenSettings()
 		if err := json.Unmarshal(data, &m); err == nil {
 			su.Maven = &m
+			return nil
+		}
+	} else if _, ok := obj["retention_days"]; ok {
+		a := DefaultAuditLogConfig()
+		if err := json.Unmarshal(data, &a); err == nil {
+			su.AuditLog = &a
 			return nil
 		}
 	} else {
@@ -118,5 +143,7 @@ func (c *Config) DeepCopy() *Config {
 		Server:               c.Server.DeepCopy(),
 		Updater:              c.Updater.DeepCopy(),
 		Database:             c.Database,
+		AuditLog:             c.AuditLog,
 	}
 }
+

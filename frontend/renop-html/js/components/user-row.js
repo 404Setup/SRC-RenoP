@@ -106,6 +106,165 @@ if (!customElements.get('renop-user-row')) {
  * @property {(token: object) => void} [onSessions] - Sessions action handler
  */
 
+import {createIcon} from './icon.js';
+import {RenopDialog} from './dialog.js';
+
+/**
+ * Open a Dialog showing card operations for a specific user.
+ * @param {object} token - User/Token object
+ * @param {UserRowOptions} options - Callback options
+ */
+export function openUserActionsDialog(token, options = {}) {
+    const username = token.name || 'User';
+
+    const cardsGrid = el('div', {
+        class: 'user-action-cards-grid',
+        style: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px',
+            padding: '4px 0'
+        }
+    });
+
+    const actions = [
+        {
+            id: 'audit',
+            icon: 'fileText',
+            iconColor: '#3b82f6',
+            iconBg: 'rgba(59, 130, 246, 0.1)',
+            title: t('users.auditLogs') || 'Activity Logs',
+            desc: t('users.auditLogsDesc') || 'View activity log history for this user',
+            handler: options.onAuditLogs
+        },
+        {
+            id: 'fido',
+            icon: 'fileKey',
+            iconColor: '#10b981',
+            iconBg: 'rgba(16, 185, 129, 0.1)',
+            title: t('users.fidoDevices') || 'FIDO Devices',
+            desc: t('users.fidoDevicesDesc') || 'Manage FIDO security keys and devices',
+            handler: options.onFido
+        },
+        {
+            id: 'sessions',
+            icon: 'ssl',
+            iconColor: '#8b5cf6',
+            iconBg: 'rgba(139, 92, 246, 0.1)',
+            title: t('users.sessions') || 'Sessions',
+            desc: t('users.sessionsDesc') || 'View and revoke active login sessions',
+            handler: options.onSessions
+        },
+        {
+            id: 'reset',
+            icon: 'refresh',
+            iconColor: '#f59e0b',
+            iconBg: 'rgba(245, 158, 11, 0.1)',
+            title: t('users.reset') || 'Reset Token',
+            desc: t('users.resetDesc') || 'Regenerate API access token',
+            handler: options.onReset
+        },
+        {
+            id: 'edit',
+            icon: 'edit',
+            iconColor: '#6366f1',
+            iconBg: 'rgba(99, 102, 241, 0.1)',
+            title: t('common.edit') || 'Edit',
+            desc: t('users.editDesc') || 'Edit user profile and permissions',
+            handler: options.onEdit
+        },
+        {
+            id: 'delete',
+            icon: 'delete',
+            iconColor: '#ef4444',
+            iconBg: 'rgba(239, 68, 68, 0.1)',
+            title: t('common.delete') || 'Delete',
+            desc: t('users.deleteDesc') || 'Delete user account and token',
+            handler: options.onDelete
+        }
+    ];
+
+    let dialogRef = null;
+
+    actions.forEach(act => {
+        const card = el('div', {
+            class: 'user-action-card',
+            style: {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '14px 16px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color, #e5e7eb)',
+                background: 'var(--card-bg, #ffffff)',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease'
+            },
+            onClick: () => {
+                const dialogEl = document.getElementById('user-actions-modal');
+                if (dialogEl && typeof dialogEl.close === 'function') {
+                    dialogEl.close(true);
+                }
+                if (act.handler) {
+                    act.handler(token);
+                }
+            }
+        });
+
+        card.addEventListener('mouseenter', () => {
+            card.style.borderColor = act.iconColor;
+            card.style.transform = 'translateY(-2px)';
+            card.style.boxShadow = `0 4px 12px ${act.iconBg}`;
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.borderColor = 'var(--border-color, #e5e7eb)';
+            card.style.transform = 'none';
+            card.style.boxShadow = 'none';
+        });
+
+        const iconContainer = el('div', {
+            style: {
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                background: act.iconBg,
+                color: act.iconColor,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: '0'
+            }
+        }, createIcon(act.icon, {width: '18', height: '18'}));
+
+        const textCol = el('div', {style: {flex: '1', minWidth: '0'}},
+            el('div', {style: {fontWeight: '600', fontSize: '0.9rem', marginBottom: '2px', color: 'var(--text-color, #111827)'}}, act.title),
+            el('div', {style: {fontSize: '0.78rem', opacity: '0.65', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}, act.desc)
+        );
+
+        const chevron = el('div', {style: {opacity: '0.4'}}, createIcon('chevron', {width: '14', height: '14'}));
+
+        card.append(iconContainer, textCol, chevron);
+        cardsGrid.appendChild(card);
+    });
+
+    const titleText = t('users.userActionsTitle', {user: username}) || `User Actions ("${username}")`;
+
+    dialogRef = RenopDialog.show({
+        id: 'user-actions-modal',
+        maxWidth: '560px',
+        icon: 'settings',
+        title: titleText,
+        body: cardsGrid,
+        footer: [
+            {
+                text: t('common.close') || 'Close',
+                className: 'pill-btn pill-btn--soft pill-btn--sm',
+                onClick: (e, d) => d.close(true)
+            }
+        ]
+    });
+}
+
 /**
  * Build a users-table row for one access token / user.
  * @param {object} token - Token with name, permissions, tokens, created_at
@@ -161,48 +320,15 @@ export function createUserRow(token, options = {}) {
         }
     }, new Date(token.created_at).toLocaleDateString());
 
-    const fidoBtn = createButton('', {
-        class: 'table-action-btn fido-btn',
-        icon: 'fileKey',
-        title: t('users.fidoDevices') || 'FIDO Devices',
-        onClick: () => options.onFido && options.onFido(token)
+    const actionsBtn = createButton('', {
+        class: 'table-action-btn action-btn',
+        icon: 'settings',
+        title: t('users.thActions') || 'Actions',
+        onClick: () => openUserActionsDialog(token, options)
     });
-    fidoBtn.appendChild(el('span', {class: 'btn-text'}, t('users.fidoDevices') || 'FIDO Devices'));
+    actionsBtn.appendChild(el('span', {class: 'btn-text'}, t('users.thActions') || 'Actions'));
 
-    const sessionsBtn = createButton('', {
-        class: 'table-action-btn sessions-btn',
-        icon: 'ssl',
-        title: t('users.sessions'),
-        onClick: () => options.onSessions && options.onSessions(token)
-    });
-    sessionsBtn.appendChild(el('span', {class: 'btn-text'}, t('users.sessions')));
-
-    const editBtn = createButton('', {
-        class: 'table-action-btn edit-btn',
-        icon: 'edit',
-        title: t('common.edit'),
-        onClick: () => options.onEdit && options.onEdit(token)
-    });
-    editBtn.appendChild(el('span', {class: 'btn-text'}, t('common.edit')));
-
-    const deleteBtn = createButton('', {
-        class: 'table-action-btn delete-btn',
-        icon: 'delete',
-        title: t('common.delete'),
-        onClick: () => options.onDelete && options.onDelete(token)
-    });
-    deleteBtn.appendChild(el('span', {class: 'btn-text'}, t('common.delete')));
-
-    const resetBtn = createButton('', {
-        class: 'table-action-btn reset-btn',
-        icon: 'refresh',
-        iconProps: {width: '13', height: '13'},
-        title: t('users.reset'),
-        onClick: () => options.onReset && options.onReset(token)
-    });
-    resetBtn.appendChild(el('span', {class: 'btn-text'}, t('users.reset')));
-
-    const actionsWrap = el('div', {class: 'users-actions'}, fidoBtn, sessionsBtn, resetBtn, editBtn, deleteBtn);
+    const actionsWrap = el('div', {class: 'users-actions'}, actionsBtn);
     const actionsTd = el('td', {class: 'users-actions-cell'}, actionsWrap);
 
     row.append(nameTd, permsTd, tokensTd, dateTd, actionsTd);

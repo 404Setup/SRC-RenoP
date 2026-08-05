@@ -18,6 +18,7 @@ import {logout} from './auth.js';
 import {AccessTokenList, FidoDeviceList, GenerateTokenResponse} from './proto/index.js';
 import {openSessionsDialog} from './sessions.js';
 import {closeModalWithAnim} from './app-ui.js';
+import {openAuditLogsDialog} from './audit.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -244,7 +245,12 @@ export async function openUserFidoDialog(username) {
     }
 
     const loadDevices = async () => {
-        list.innerHTML = `<div style="padding: 1rem; text-align: center; opacity: 0.6;">Loading...</div>`;
+        list.replaceChildren(
+            el('div', { class: 'sessions-loading' },
+                el('div', { class: 'sessions-loading-spinner', 'aria-hidden': 'true' }),
+                el('span', {}, t('common.loading') || 'Loading...')
+            )
+        );
         try {
             const {
                 response,
@@ -341,6 +347,7 @@ function createUserRowElement(token) {
         onReset: (t) => regenerateUserToken(t.name),
         onSessions: (tok) => openSessionsDialog({mode: 'admin', username: tok.name}),
         onFido: (tok) => openUserFidoDialog(tok.name),
+        onAuditLogs: (tok) => openAuditLogsDialog({mode: 'user', username: tok.name}),
     });
 }
 

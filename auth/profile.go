@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"renop/audit"
 	"renop/config"
 	"renop/core"
 	"renop/pb"
@@ -31,7 +32,7 @@ type StatusResponse struct {
 	Status string `json:"status"`
 }
 
-func UpdatePassword(c fiber.Ctx, opChan chan<- token.TokenOp) error {
+func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
 	userInt := c.Locals("user")
 	if userInt == nil {
 		return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
@@ -65,6 +66,17 @@ func UpdatePassword(c fiber.Ctx, opChan chan<- token.TokenOp) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
 
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user.Username,
+		Operator:   op,
+		Action:     "PASSWORD_UPDATE",
+		Details:    "Account password updated",
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
+
 	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
@@ -72,7 +84,7 @@ type TokenResponse struct {
 	Token string `json:"token"`
 }
 
-func GenerateUploadToken(c fiber.Ctx, opChan chan<- token.TokenOp) error {
+func GenerateUploadToken(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
 	userInt := c.Locals("user")
 	if userInt == nil {
 		return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
@@ -88,6 +100,17 @@ func GenerateUploadToken(c fiber.Ctx, opChan chan<- token.TokenOp) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
+
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user.Username,
+		Operator:   op,
+		Action:     "TOKEN_GENERATE",
+		Details:    "New upload token generated",
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
 
 	return protohttp.Write(c, &pb.GenerateTokenResponse{Token: newToken})
 }
@@ -123,6 +146,17 @@ func DeleteSession(c fiber.Ctx, state *core.AppState) error {
 		setSessionCookie(c, "", -1)
 	}
 
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user.Username,
+		Operator:   op,
+		Action:     "SESSION_REVOKE",
+		Details:    "Revoked browser session (" + sessionID + ")",
+		AuthMethod: authMethod,
+		SessionID:  sID,
+		IP:         ip,
+	})
+
 	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
@@ -135,5 +169,18 @@ func RevokeOtherSessions(c fiber.Ctx, state *core.AppState) error {
 	user := userInt.(*config.User)
 
 	state.RevokeOtherUserSessions(user.Username, currentSessionToken(c))
+
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user.Username,
+		Operator:   op,
+		Action:     "SESSION_REVOKE",
+		Details:    "Revoked all other browser sessions",
+		AuthMethod: authMethod,
+		SessionID:  sID,
+		IP:         ip,
+	})
+
 	return protohttp.Write(c, pb.StatusOkSuccess())
 }
+

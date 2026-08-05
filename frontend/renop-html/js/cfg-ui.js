@@ -486,14 +486,23 @@ export function makeCustomSelect(options, current, onChange) {
         }
     }
 
+    let closeTimeout = null;
+
     /**
-     * Hides the dropdown and clears open state classes.
+     * Hides the dropdown with exit animation and clears open state classes.
      * @returns {void}
      */
     function closeDropdown() {
-        dropdown.style.display = 'none';
+        if (dropdown.style.display === 'none' || dropdown.classList.contains('is-closing')) return;
         btn.classList.remove('is-open');
         wrap.classList.remove('is-open');
+        dropdown.classList.add('is-closing');
+        if (closeTimeout) clearTimeout(closeTimeout);
+        closeTimeout = setTimeout(() => {
+            dropdown.style.display = 'none';
+            dropdown.classList.remove('is-closing');
+            closeTimeout = null;
+        }, 150);
     }
 
     /**
@@ -501,8 +510,15 @@ export function makeCustomSelect(options, current, onChange) {
      * @returns {void}
      */
     function openDropdown() {
+        if (closeTimeout) {
+            clearTimeout(closeTimeout);
+            closeTimeout = null;
+        }
         document.querySelectorAll('.custom-select-dropdown').forEach(d => {
-            if (d !== dropdown) d.style.display = 'none';
+            if (d !== dropdown) {
+                d.style.display = 'none';
+                d.classList.remove('is-closing');
+            }
         });
         document.querySelectorAll('.custom-select-wrapper, .custom-select-btn').forEach(b => {
             if (b !== wrap && b !== btn) b.classList.remove('is-open');
@@ -511,6 +527,7 @@ export function makeCustomSelect(options, current, onChange) {
             if (d.id !== 'adjustments-menu') d.style.display = 'none';
         });
 
+        dropdown.classList.remove('is-closing');
         dropdown.style.display = 'block';
         btn.classList.add('is-open');
         wrap.classList.add('is-open');
@@ -519,7 +536,7 @@ export function makeCustomSelect(options, current, onChange) {
 
     btn.addEventListener('click', e => {
         e.stopPropagation();
-        const isOpen = dropdown.style.display === 'block';
+        const isOpen = dropdown.style.display === 'block' && !dropdown.classList.contains('is-closing');
         if (isOpen) {
             closeDropdown();
         } else {
@@ -649,4 +666,79 @@ export function createSection(iconSvg, title, subtitle, options = {}) {
 
 export const createFieldRow = buildFieldRow;
 export const createToggleRow = buildToggleRow;
+
+/**
+ * Smoothly animates the appearance or disappearance of a fields container
+ * matching the database engine DSN transition in Settings (using height + field entering/leaving keyframes).
+ * @param {HTMLElement} container - Fields container element
+ * @param {boolean} show - Target visibility state
+ * @returns {void}
+ */
+export function animateFieldsToggle(container, show) {
+    if (!container) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        container.style.display = show ? '' : 'none';
+        container.style.height = '';
+        container.style.transition = '';
+        container.style.overflow = '';
+        return;
+    }
+
+    const isCurrentlyVisible = container.style.display !== 'none' && container.offsetHeight > 0;
+    if (show === isCurrentlyVisible) return;
+
+    if (container._animTimer1) clearTimeout(container._animTimer1);
+    if (container._animTimer2) clearTimeout(container._animTimer2);
+    container._animTimer1 = null;
+    container._animTimer2 = null;
+
+    if (!show) {
+        const startHeight = container.getBoundingClientRect().height;
+        const rows = Array.from(container.children);
+        rows.forEach(row => {
+            row.classList.remove('cfg-field-row--entering');
+            row.classList.add('cfg-field-row--leaving');
+        });
+
+        container.style.height = `${startHeight}px`;
+        container.style.overflow = 'hidden';
+        void container.offsetHeight;
+
+        container.style.transition = 'height 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+        container.style.height = '0px';
+
+        container._animTimer1 = setTimeout(() => {
+            container.style.display = 'none';
+            container.style.height = '';
+            container.style.transition = '';
+            container.style.overflow = '';
+            rows.forEach(row => row.classList.remove('cfg-field-row--leaving'));
+        }, 300);
+    } else {
+        container.style.display = '';
+        container.style.overflow = 'hidden';
+        container.style.height = 'auto';
+        const targetHeight = container.getBoundingClientRect().height;
+        container.style.height = '0px';
+
+        const rows = Array.from(container.children);
+        rows.forEach((row, idx) => {
+            row.style.setProperty('--field-index', idx);
+            row.classList.remove('cfg-field-row--leaving');
+            row.classList.add('cfg-field-row--entering');
+        });
+
+        void container.offsetHeight;
+
+        container.style.transition = 'height 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+        container.style.height = `${targetHeight}px`;
+
+        container._animTimer1 = setTimeout(() => {
+            container.style.height = '';
+            container.style.transition = '';
+            container.style.overflow = '';
+            rows.forEach(row => row.classList.remove('cfg-field-row--entering'));
+        }, 350);
+    }
+}
 

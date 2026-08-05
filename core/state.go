@@ -68,6 +68,10 @@ type StateDB interface {
 	UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) error
 	DeleteFidoDevice(username, deviceID string) error
 	DeleteFidoDevicesByUsername(username string) error
+	SaveAuditLog(entry *AuditLogEntry) error
+	GetAuditLogs(username string, limit, offset int) ([]*AuditLogEntry, int, error)
+	DeleteAuditLogsByUsername(username string) error
+	CleanExpiredAuditLogs(retentionDays int, maxRows int) error
 }
 
 type AppStateInner struct {
@@ -87,7 +91,11 @@ type AppStateInner struct {
 	SessionsIsDirty    atomic.Bool
 	FidoDevices        pb.MapOf[string, []*FidoDevice]
 	FidoWriteLock      sync.Mutex
+	AuditLogsMem       []*AuditLogEntry
+	AuditLogLock       sync.RWMutex
+	AuditLogChan       chan *AuditLogEntry
 	DB                 any
+
 
 	// SessionsFlush, when set, schedules an immediate persist of the session store.
 	// Used after logout/revocation so deleted sessions cannot reappear after restart.
@@ -118,6 +126,7 @@ func NewAppState() *AppState {
 			StartTime:            time.Now().UnixMilli(),
 			InFlightDownloads:    NewInFlightManager(),
 			AnomalyFailures:      NewAnomalyFailureStore(),
+			AuditLogChan:         make(chan *AuditLogEntry, 500),
 		},
 	}
 }

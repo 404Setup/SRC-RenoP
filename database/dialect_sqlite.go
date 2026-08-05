@@ -77,6 +77,19 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		backup_state INT NOT NULL DEFAULT 0
 	);`
 
+	auditLogsTable := `
+	CREATE TABLE IF NOT EXISTS audit_logs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username VARCHAR(255) NOT NULL,
+		operator VARCHAR(255) NOT NULL,
+		action VARCHAR(64) NOT NULL,
+		details TEXT NOT NULL,
+		auth_method VARCHAR(64) NOT NULL,
+		session_id VARCHAR(255) NOT NULL DEFAULT '',
+		ip VARCHAR(255) NOT NULL,
+		created_at BIGINT NOT NULL
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
@@ -84,6 +97,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(fidoTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(auditLogsTable); err != nil {
 		return err
 	}
 
@@ -98,6 +114,8 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);")
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);")
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);")
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);")
 	return nil
 }
 

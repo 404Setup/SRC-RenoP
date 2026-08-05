@@ -22,6 +22,7 @@ import {
     createSubHeader
 } from './components.js';
 import {
+    animateFieldsToggle,
     el,
     makeCfgInput,
     makeCustomSelect,
@@ -255,7 +256,7 @@ function buildS3Section(repoKey, repo) {
         s3.enabled === true,
         checked => {
             repo.s3.enabled = checked;
-            fieldsContainer.style.display = checked ? '' : 'none';
+            animateFieldsToggle(fieldsContainer, checked);
             saveRepoSettings(repoKey, repo);
         }
     ));
@@ -537,7 +538,7 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     function updateConflictWarning() {
         const hasAllow = Array.isArray(mirror.allow_artifacts) && mirror.allow_artifacts.length > 0;
         const hasDeny = Array.isArray(mirror.deny_artifacts) && mirror.deny_artifacts.length > 0;
-        conflictWarningEl.style.display = (hasAllow && hasDeny) ? 'flex' : 'none';
+        animateFieldsToggle(conflictWarningEl, hasAllow && hasDeny);
     }
 
     const allowInput = makeTagListInput({
@@ -624,14 +625,14 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     const authSelect = makeCustomSelect(authOptions, currentMethod, val => {
         if (val === 'none') {
             delete mirror.authorization;
-            credsRow.style.display = 'none';
+            animateFieldsToggle(credsRow, false);
         } else {
             mirror.authorization = {
                 method: val === 'token' ? 'bearer' : val,
                 login: userInput.value,
                 password: passInput.value
             };
-            credsRow.style.display = 'flex';
+            animateFieldsToggle(credsRow, true);
             if (val === 'token') {
                 userInput.style.display = 'none';
                 passInput.placeholder = t('repos.tokenSecret');

@@ -243,6 +243,11 @@ message FrontendConfig {
   string icp_license = 7;
 }
 
+message AuditLogConfig {
+  int32 retention_days = 1;
+  int32 max_rows = 2;
+}
+
 message ServerConfig {
   string host = 1;
   uint32 port = 2;
@@ -258,6 +263,7 @@ message ServerConfig {
   repeated string cors_origins = 12;
   bool debug_mode = 13;
   DatabaseConfig database = 14;
+  AuditLogConfig audit_log = 15;
 }
 
 message StorageConfig {

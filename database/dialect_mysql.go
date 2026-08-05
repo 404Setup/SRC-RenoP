@@ -67,6 +67,21 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		INDEX idx_fido_credential_id (credential_id)
 	);`
 
+	auditLogsTable := `
+	CREATE TABLE IF NOT EXISTS audit_logs (
+		id BIGINT AUTO_INCREMENT PRIMARY KEY,
+		username VARCHAR(255) NOT NULL,
+		operator VARCHAR(255) NOT NULL,
+		action VARCHAR(64) NOT NULL,
+		details TEXT NOT NULL,
+		auth_method VARCHAR(64) NOT NULL,
+		session_id VARCHAR(255) NOT NULL DEFAULT '',
+		ip VARCHAR(255) NOT NULL,
+		created_at BIGINT NOT NULL,
+		INDEX idx_audit_logs_user_time (username, created_at),
+		INDEX idx_audit_logs_created_at (created_at)
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
@@ -74,6 +89,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(fidoTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(auditLogsTable); err != nil {
 		return err
 	}
 

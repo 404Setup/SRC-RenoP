@@ -217,7 +217,14 @@ func ApplyFrontendConfig(dst *config.FrontendConfig, src *FrontendConfig) {
 	dst.CachedIndexHtml = cached
 }
 
-func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig) *ServerConfig {
+func FromAuditLogConfig(a config.AuditLogConfig) *AuditLogConfig {
+	return &AuditLogConfig{
+		RetentionDays: int32(a.RetentionDays),
+		MaxRows:       int32(a.MaxRows),
+	}
+}
+
+func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig, a config.AuditLogConfig) *ServerConfig {
 	return &ServerConfig{
 		Host:              s.Host,
 		Port:              uint32(s.Port),
@@ -233,11 +240,12 @@ func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig) *ServerCon
 		CorsOrigins:       append([]string(nil), s.CorsOrigins...),
 		DebugMode:         s.DebugMode,
 		Database:          FromDatabaseConfig(d),
+		AuditLog:          FromAuditLogConfig(a),
 	}
 }
 
 // ApplyServerConfig writes protobuf fields onto dst and re-parses trusted proxies.
-func ApplyServerConfig(dstServer *config.ServerConfig, dstDb *config.DatabaseConfig, src *ServerConfig) {
+func ApplyServerConfig(dstServer *config.ServerConfig, dstDb *config.DatabaseConfig, dstAudit *config.AuditLogConfig, src *ServerConfig) {
 	if dstServer == nil || src == nil {
 		return
 	}
@@ -259,6 +267,14 @@ func ApplyServerConfig(dstServer *config.ServerConfig, dstDb *config.DatabaseCon
 	dstServer.ParseTrustedProxies()
 	if dstDb != nil && src.Database != nil {
 		ApplyDatabaseConfig(dstDb, src.Database)
+	}
+	if dstAudit != nil && src.AuditLog != nil {
+		if src.AuditLog.RetentionDays > 0 {
+			dstAudit.RetentionDays = int(src.AuditLog.RetentionDays)
+		}
+		if src.AuditLog.MaxRows > 0 {
+			dstAudit.MaxRows = int(src.AuditLog.MaxRows)
+		}
 	}
 }
 

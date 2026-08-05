@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"renop/audit"
 	"renop/config"
 	"renop/core"
 	"renop/pb"
@@ -79,8 +80,8 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Post("/login", func(c fiber.Ctx) error { return PostAuthLogin(c, state, opChan) })
 	auth.Post("/logout", func(c fiber.Ctx) error { return PostAuthLogout(c, state) })
 	auth.Get("/me", func(c fiber.Ctx) error { return GetAuthMe(c) })
-	auth.Put("/profile/password", func(c fiber.Ctx) error { return UpdatePassword(c, opChan) })
-	auth.Post("/profile/token", func(c fiber.Ctx) error { return GenerateUploadToken(c, opChan) })
+	auth.Put("/profile/password", func(c fiber.Ctx) error { return UpdatePassword(c, state, opChan) })
+	auth.Post("/profile/token", func(c fiber.Ctx) error { return GenerateUploadToken(c, state, opChan) })
 	auth.Get("/profile/sessions", func(c fiber.Ctx) error { return ListSessions(c, state) })
 	auth.Post("/profile/sessions/revoke-others", func(c fiber.Ctx) error { return RevokeOtherSessions(c, state) })
 	auth.Delete("/profile/sessions/:session_id", func(c fiber.Ctx) error { return DeleteSession(c, state) })
@@ -234,6 +235,16 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 
 		state.SaveSession(session, sessionToken)
 
+		audit.Log(state, &core.AuditLogEntry{
+			Username:   user.Username,
+			Operator:   user.Username,
+			Action:     "LOGIN",
+			Details:    "User logged in successfully",
+			AuthMethod: "Password",
+			SessionID:  publicId,
+			IP:         ip,
+		})
+
 		setSessionCookie(c, sessionToken, int(core.SessionIdleTimeoutMillis/1000))
 		details := CreateSessionDetails(user, "")
 		return protohttp.Write(c, pb.FromSessionDetails(details))
@@ -289,8 +300,21 @@ func resolveLogoutSessionToken(c fiber.Ctx) string {
 }
 
 func PostAuthLogout(c fiber.Ctx, state *core.AppState) error {
+	user := GetUser(c)
 	if sessionID := resolveLogoutSessionToken(c); sessionID != "" {
 		state.RevokeSession(sessionID)
+	}
+	if user != nil && user.Username != "" && user.Username != "guest" {
+		_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+		audit.Log(state, &core.AuditLogEntry{
+			Username:   user.Username,
+			Operator:   op,
+			Action:     "LOGOUT",
+			Details:    "User logged out",
+			AuthMethod: authMethod,
+			SessionID:  sessionID,
+			IP:         ip,
+		})
 	}
 	setSessionCookie(c, "", -1)
 	return c.SendStatus(fiber.StatusNoContent)

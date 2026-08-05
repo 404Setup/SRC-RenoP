@@ -22,6 +22,7 @@ import (
 	"github.com/valyala/fasthttp"
 
 	"renop/api"
+	"renop/audit"
 	"renop/auth"
 	"renop/bootstrap"
 	"renop/config"
@@ -83,10 +84,13 @@ func main() {
 	go token.StartTokenConsumer(state, opChan)
 	token.AutoRegisterAdmin(state, opChan)
 
+	go audit.StartAuditLogConsumer(state)
+
 	app.Use(auth.AuthMiddleware(state))
 
 	apiGroup := app.Group("/api")
 	auth.SetupAuthRoutes(apiGroup, state, opChan)
+	audit.SetupAuditRoutes(apiGroup.Group("/auth"), state)
 	token.SetupTokenRoutes(apiGroup, state, opChan)
 	status.SetupRoutes(apiGroup, state)
 	status.SetupDebugRoutes(apiGroup)

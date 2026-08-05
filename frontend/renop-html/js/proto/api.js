@@ -11781,6 +11781,296 @@ export const renop = $root.renop = (() => {
                 return FrontendConfig;
             })();
 
+            v1.AuditLogConfig = (function() {
+
+                /**
+                 * Properties of an AuditLogConfig.
+                 * @typedef {Object} renop.api.v1.AuditLogConfig.$Properties
+                 * @property {number|null} [retention_days] AuditLogConfig retention_days
+                 * @property {number|null} [max_rows] AuditLogConfig max_rows
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an AuditLogConfig.
+                 * @memberof renop.api.v1
+                 * @interface IAuditLogConfig
+                 * @augments renop.api.v1.AuditLogConfig.$Properties
+                 * @deprecated Use renop.api.v1.AuditLogConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an AuditLogConfig.
+                 * @typedef {renop.api.v1.AuditLogConfig.$Properties} renop.api.v1.AuditLogConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new AuditLogConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an AuditLogConfig.
+                 * @constructor
+                 * @param {renop.api.v1.AuditLogConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const AuditLogConfig = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * AuditLogConfig retention_days.
+                 * @member {number} retention_days
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @instance
+                 */
+                AuditLogConfig.prototype.retention_days = 0;
+
+                /**
+                 * AuditLogConfig max_rows.
+                 * @member {number} max_rows
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @instance
+                 */
+                AuditLogConfig.prototype.max_rows = 0;
+
+                /**
+                 * Creates a new AuditLogConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {renop.api.v1.AuditLogConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.AuditLogConfig} AuditLogConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.AuditLogConfig.$Shape): renop.api.v1.AuditLogConfig & renop.api.v1.AuditLogConfig.$Shape;
+                 *   (properties?: renop.api.v1.AuditLogConfig.$Properties): renop.api.v1.AuditLogConfig;
+                 * }}
+                 */
+                AuditLogConfig.create = function(properties) {
+                    return new AuditLogConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified AuditLogConfig message. Does not implicitly {@link renop.api.v1.AuditLogConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {renop.api.v1.AuditLogConfig.$Properties} message AuditLogConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AuditLogConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.retention_days != null && $Object.hasOwnProperty.call(message, "retention_days") && message.retention_days !== 0)
+                        writer.uint32(/* id 1, wireType 0 =*/8).int32(message.retention_days);
+                    if (message.max_rows != null && $Object.hasOwnProperty.call(message, "max_rows") && message.max_rows !== 0)
+                        writer.uint32(/* id 2, wireType 0 =*/16).int32(message.max_rows);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AuditLogConfig message, length delimited. Does not implicitly {@link renop.api.v1.AuditLogConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {renop.api.v1.AuditLogConfig.$Properties} message AuditLogConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AuditLogConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an AuditLogConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.AuditLogConfig & renop.api.v1.AuditLogConfig.$Shape} AuditLogConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AuditLogConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AuditLogConfig(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.retention_days = value;
+                                else
+                                    delete message.retention_days;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.max_rows = value;
+                                else
+                                    delete message.max_rows;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an AuditLogConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.AuditLogConfig & renop.api.v1.AuditLogConfig.$Shape} AuditLogConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AuditLogConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AuditLogConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AuditLogConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.retention_days != null && $Object.hasOwnProperty.call(message, "retention_days"))
+                        if (!$util.isInteger(message.retention_days))
+                            return "retention_days: integer expected";
+                    if (message.max_rows != null && $Object.hasOwnProperty.call(message, "max_rows"))
+                        if (!$util.isInteger(message.max_rows))
+                            return "max_rows: integer expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an AuditLogConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.AuditLogConfig} AuditLogConfig
+                 */
+                AuditLogConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.AuditLogConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.AuditLogConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.AuditLogConfig();
+                    if (object.retention_days != null)
+                        if ($Number(object.retention_days) !== 0)
+                            message.retention_days = object.retention_days | 0;
+                    if (object.max_rows != null)
+                        if ($Number(object.max_rows) !== 0)
+                            message.max_rows = object.max_rows | 0;
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AuditLogConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {renop.api.v1.AuditLogConfig} message AuditLogConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AuditLogConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.retention_days = 0;
+                        object.max_rows = 0;
+                    }
+                    if (message.retention_days != null && $Object.hasOwnProperty.call(message, "retention_days"))
+                        object.retention_days = message.retention_days;
+                    if (message.max_rows != null && $Object.hasOwnProperty.call(message, "max_rows"))
+                        object.max_rows = message.max_rows;
+                    return object;
+                };
+
+                /**
+                 * Converts this AuditLogConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AuditLogConfig.prototype.toJSON = function() {
+                    return AuditLogConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for AuditLogConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.AuditLogConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                AuditLogConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.AuditLogConfig";
+                };
+
+                return AuditLogConfig;
+            })();
+
             v1.ServerConfig = (function() {
 
                 /**
@@ -11800,6 +12090,7 @@ export const renop = $root.renop = (() => {
                  * @property {Array.<string>|null} [cors_origins] ServerConfig cors_origins
                  * @property {boolean|null} [debug_mode] ServerConfig debug_mode
                  * @property {renop.api.v1.DatabaseConfig.$Properties|null} [database] ServerConfig database
+                 * @property {renop.api.v1.AuditLogConfig.$Properties|null} [audit_log] ServerConfig audit_log
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -11947,6 +12238,14 @@ export const renop = $root.renop = (() => {
                 ServerConfig.prototype.database = null;
 
                 /**
+                 * ServerConfig audit_log.
+                 * @member {renop.api.v1.AuditLogConfig.$Properties|null|undefined} audit_log
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.audit_log = null;
+
+                /**
                  * Creates a new ServerConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.ServerConfig
@@ -12009,6 +12308,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 13, wireType 0 =*/104).bool(message.debug_mode);
                     if (message.database != null && $Object.hasOwnProperty.call(message, "database"))
                         $root.renop.api.v1.DatabaseConfig.encode(message.database, writer.uint32(/* id 14, wireType 2 =*/114).fork(), _depth + 1).ldelim();
+                    if (message.audit_log != null && $Object.hasOwnProperty.call(message, "audit_log"))
+                        $root.renop.api.v1.AuditLogConfig.encode(message.audit_log, writer.uint32(/* id 15, wireType 2 =*/122).fork(), _depth + 1).ldelim();
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -12176,6 +12477,12 @@ export const renop = $root.renop = (() => {
                                 message.database = $root.renop.api.v1.DatabaseConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.database);
                                 continue;
                             }
+                        case 15: {
+                                if (wireType !== 2)
+                                    break;
+                                message.audit_log = $root.renop.api.v1.AuditLogConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.audit_log);
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -12275,6 +12582,11 @@ export const renop = $root.renop = (() => {
                         if (error)
                             return "database." + error;
                     }
+                    if (message.audit_log != null && $Object.hasOwnProperty.call(message, "audit_log")) {
+                        let error = $root.renop.api.v1.AuditLogConfig.verify(message.audit_log, _depth + 1);
+                        if (error)
+                            return "audit_log." + error;
+                    }
                     return null;
                 };
 
@@ -12352,6 +12664,11 @@ export const renop = $root.renop = (() => {
                             throw $TypeError(".renop.api.v1.ServerConfig.database: object expected");
                         message.database = $root.renop.api.v1.DatabaseConfig.fromObject(object.database, _depth + 1);
                     }
+                    if (object.audit_log != null) {
+                        if (!$util.isObject(object.audit_log))
+                            throw $TypeError(".renop.api.v1.ServerConfig.audit_log: object expected");
+                        message.audit_log = $root.renop.api.v1.AuditLogConfig.fromObject(object.audit_log, _depth + 1);
+                    }
                     return message;
                 };
 
@@ -12389,6 +12706,7 @@ export const renop = $root.renop = (() => {
                         object.cdn_ip_header = "";
                         object.debug_mode = false;
                         object.database = null;
+                        object.audit_log = null;
                     }
                     if (message.host != null && $Object.hasOwnProperty.call(message, "host"))
                         object.host = message.host;
@@ -12427,6 +12745,8 @@ export const renop = $root.renop = (() => {
                         object.debug_mode = message.debug_mode;
                     if (message.database != null && $Object.hasOwnProperty.call(message, "database"))
                         object.database = $root.renop.api.v1.DatabaseConfig.toObject(message.database, options, _depth + 1);
+                    if (message.audit_log != null && $Object.hasOwnProperty.call(message, "audit_log"))
+                        object.audit_log = $root.renop.api.v1.AuditLogConfig.toObject(message.audit_log, options, _depth + 1);
                     return object;
                 };
 

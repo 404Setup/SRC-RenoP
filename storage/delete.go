@@ -22,6 +22,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/audit"
 	"renop/config"
 	"renop/core"
 	"renop/javadocs"
@@ -198,6 +199,22 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 			}
 		}
 	}
+
+	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	repoName := c.Params("repo_name")
+	details := "Deleted artifact/directory: " + path
+	if repoName != "" {
+		details = "Repository: " + repoName + ", Path: " + path
+	}
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   username,
+		Operator:   op,
+		Action:     "DELETE",
+		Details:    details,
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
 
 	return c.Status(fiber.StatusNoContent).SendString("")
 }

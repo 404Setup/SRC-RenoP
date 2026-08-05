@@ -27,6 +27,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
+	"renop/audit"
 	"renop/config"
 	"renop/core"
 	"renop/pb"
@@ -395,6 +396,17 @@ func PostFidoRegisterFinish(c fiber.Ctx, state *core.AppState) error {
 
 	state.SaveFidoDevice(device)
 
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user.Username,
+		Operator:   op,
+		Action:     "FIDO_UPDATE",
+		Details:    "Added FIDO device (" + device.Name + ")",
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
+
 	return c.JSON(fiber.Map{
 		"status": "success",
 		"device": core.FidoDeviceDto{
@@ -435,6 +447,18 @@ func DeleteProfileFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	deviceID := c.Params("device_id")
 
 	state.DeleteFidoDevice(user.Username, deviceID)
+
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user.Username,
+		Operator:   op,
+		Action:     "FIDO_UPDATE",
+		Details:    "Deleted FIDO device (" + deviceID + ")",
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
+
 	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
@@ -458,6 +482,18 @@ func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	deviceID := c.Params("device_id")
 
 	state.DeleteFidoDevice(username, deviceID)
+
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   strings.ToLower(username),
+		Operator:   op,
+		Action:     "FIDO_UPDATE",
+		Details:    "Deleted FIDO device (" + deviceID + ") by admin",
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
+
 	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 

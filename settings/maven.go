@@ -18,6 +18,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"go.yaml.in/yaml/v3"
 
+	"renop/audit"
 	"renop/config"
 	"renop/core"
 	"renop/pb"
@@ -88,6 +89,17 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	ensureRepositoryStorageDir(state, repoName)
+
+	user, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user,
+		Operator:   op,
+		Action:     "SETTINGS_UPDATE",
+		Details:    "Updated repository settings for (" + repoName + ")",
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
 
 	return c.Status(fiber.StatusOK).SendString("")
 }

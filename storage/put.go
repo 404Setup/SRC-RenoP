@@ -30,6 +30,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
+	"renop/audit"
 	"renop/config"
 	"renop/core"
 	"renop/index"
@@ -203,6 +204,28 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	}
 	keepTmp = true
 	uploadSucceeded = true
+
+	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	storagePath := "storage"
+	if cfgVal := state.Inner.Config.Load(); cfgVal != nil {
+		if cfg, ok := cfgVal.(*config.Config); ok && cfg.StoragePath != "" {
+			storagePath = cfg.StoragePath
+		}
+	}
+	relPath, _ := filepath.Rel(storagePath, localFilePath)
+	if relPath == "" {
+		relPath = localFilePath
+	}
+	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", repo.Name, filepath.ToSlash(relPath), fileSize)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   username,
+		Operator:   op,
+		Action:     "UPLOAD",
+		Details:    details,
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
 
 	return c.Status(fiber.StatusCreated).SendString("")
 }

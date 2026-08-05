@@ -27,6 +27,7 @@ import (
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
+	"renop/audit"
 	"renop/config"
 	"renop/core"
 	"renop/javadocs"
@@ -55,7 +56,7 @@ func GetDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	case "frontend":
 		return protohttp.Write(c, pb.FromFrontendConfig(cfg.Frontend))
 	case "server":
-		return protohttp.Write(c, pb.FromServerConfig(cfg.Server, cfg.Database))
+		return protohttp.Write(c, pb.FromServerConfig(cfg.Server, cfg.Database, cfg.AuditLog))
 	case "storage":
 		return protohttp.Write(c, pb.FromStorageConfig(cfg))
 	case "updater":
@@ -164,7 +165,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			pb.ApplyFrontendConfig(&newConfig.Frontend, frontendMsg)
 			newConfig.Frontend = newConfig.Frontend.DeepCopy()
 		case "server":
-			pb.ApplyServerConfig(&newConfig.Server, &newConfig.Database, serverMsg)
+			pb.ApplyServerConfig(&newConfig.Server, &newConfig.Database, &newConfig.AuditLog, serverMsg)
 			newConfig.Server = newConfig.Server.DeepCopy()
 		case "storage":
 			oldPath := oldConfig.StoragePath
@@ -214,6 +215,17 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	if storagePathChanged {
 		onStoragePathChanged(state, newStoragePath)
 	}
+
+	user, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   user,
+		Operator:   op,
+		Action:     "SETTINGS_UPDATE",
+		Details:    "Updated domain settings (" + name + ")",
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+	})
 
 	return c.Status(fiber.StatusOK).SendString("")
 }

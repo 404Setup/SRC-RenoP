@@ -2201,6 +2201,58 @@ func (x *FrontendConfig) GetIcpLicense() string {
 	return ""
 }
 
+type AuditLogConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RetentionDays int32                  `protobuf:"varint,1,opt,name=retention_days,json=retentionDays,proto3" json:"retention_days,omitempty"`
+	MaxRows       int32                  `protobuf:"varint,2,opt,name=max_rows,json=maxRows,proto3" json:"max_rows,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditLogConfig) Reset() {
+	*x = AuditLogConfig{}
+	mi := &file_api_v1_api_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditLogConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditLogConfig) ProtoMessage() {}
+
+func (x *AuditLogConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditLogConfig.ProtoReflect.Descriptor instead.
+func (*AuditLogConfig) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *AuditLogConfig) GetRetentionDays() int32 {
+	if x != nil {
+		return x.RetentionDays
+	}
+	return 0
+}
+
+func (x *AuditLogConfig) GetMaxRows() int32 {
+	if x != nil {
+		return x.MaxRows
+	}
+	return 0
+}
+
 type ServerConfig struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Host              string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
@@ -2217,13 +2269,14 @@ type ServerConfig struct {
 	CorsOrigins       []string               `protobuf:"bytes,12,rep,name=cors_origins,json=corsOrigins,proto3" json:"cors_origins,omitempty"`
 	DebugMode         bool                   `protobuf:"varint,13,opt,name=debug_mode,json=debugMode,proto3" json:"debug_mode,omitempty"`
 	Database          *DatabaseConfig        `protobuf:"bytes,14,opt,name=database,proto3" json:"database,omitempty"`
+	AuditLog          *AuditLogConfig        `protobuf:"bytes,15,opt,name=audit_log,json=auditLog,proto3" json:"audit_log,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[27]
+	mi := &file_api_v1_api_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2235,7 +2288,7 @@ func (x *ServerConfig) String() string {
 func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[27]
+	mi := &file_api_v1_api_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2248,7 +2301,7 @@ func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerConfig.ProtoReflect.Descriptor instead.
 func (*ServerConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{27}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ServerConfig) GetHost() string {
@@ -2349,6 +2402,13 @@ func (x *ServerConfig) GetDatabase() *DatabaseConfig {
 	return nil
 }
 
+func (x *ServerConfig) GetAuditLog() *AuditLogConfig {
+	if x != nil {
+		return x.AuditLog
+	}
+	return nil
+}
+
 type StorageConfig struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	StoragePath          string                 `protobuf:"bytes,1,opt,name=storage_path,json=storagePath,proto3" json:"storage_path,omitempty"`
@@ -2361,7 +2421,7 @@ type StorageConfig struct {
 
 func (x *StorageConfig) Reset() {
 	*x = StorageConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[28]
+	mi := &file_api_v1_api_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2373,7 +2433,7 @@ func (x *StorageConfig) String() string {
 func (*StorageConfig) ProtoMessage() {}
 
 func (x *StorageConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[28]
+	mi := &file_api_v1_api_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2386,7 +2446,7 @@ func (x *StorageConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageConfig.ProtoReflect.Descriptor instead.
 func (*StorageConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{28}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *StorageConfig) GetStoragePath() string {
@@ -2429,7 +2489,7 @@ type UpdaterConfig struct {
 
 func (x *UpdaterConfig) Reset() {
 	*x = UpdaterConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[29]
+	mi := &file_api_v1_api_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2441,7 +2501,7 @@ func (x *UpdaterConfig) String() string {
 func (*UpdaterConfig) ProtoMessage() {}
 
 func (x *UpdaterConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[29]
+	mi := &file_api_v1_api_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2454,7 +2514,7 @@ func (x *UpdaterConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdaterConfig.ProtoReflect.Descriptor instead.
 func (*UpdaterConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{29}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *UpdaterConfig) GetChannel() string {
@@ -2485,7 +2545,7 @@ type DatabaseConfig struct {
 
 func (x *DatabaseConfig) Reset() {
 	*x = DatabaseConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[30]
+	mi := &file_api_v1_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2497,7 +2557,7 @@ func (x *DatabaseConfig) String() string {
 func (*DatabaseConfig) ProtoMessage() {}
 
 func (x *DatabaseConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[30]
+	mi := &file_api_v1_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2510,7 +2570,7 @@ func (x *DatabaseConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DatabaseConfig.ProtoReflect.Descriptor instead.
 func (*DatabaseConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{30}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DatabaseConfig) GetEnabled() bool {
@@ -2564,7 +2624,7 @@ type IndexDomainSettings struct {
 
 func (x *IndexDomainSettings) Reset() {
 	*x = IndexDomainSettings{}
-	mi := &file_api_v1_api_proto_msgTypes[31]
+	mi := &file_api_v1_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2576,7 +2636,7 @@ func (x *IndexDomainSettings) String() string {
 func (*IndexDomainSettings) ProtoMessage() {}
 
 func (x *IndexDomainSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[31]
+	mi := &file_api_v1_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2589,7 +2649,7 @@ func (x *IndexDomainSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IndexDomainSettings.ProtoReflect.Descriptor instead.
 func (*IndexDomainSettings) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{31}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{32}
 }
 
 // ChunkedUploadInitRequest starts a concurrent multi-part upload session.
@@ -2610,7 +2670,7 @@ type ChunkedUploadInitRequest struct {
 
 func (x *ChunkedUploadInitRequest) Reset() {
 	*x = ChunkedUploadInitRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[32]
+	mi := &file_api_v1_api_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2622,7 +2682,7 @@ func (x *ChunkedUploadInitRequest) String() string {
 func (*ChunkedUploadInitRequest) ProtoMessage() {}
 
 func (x *ChunkedUploadInitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[32]
+	mi := &file_api_v1_api_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2635,7 +2695,7 @@ func (x *ChunkedUploadInitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadInitRequest.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadInitRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{32}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ChunkedUploadInitRequest) GetPurpose() string {
@@ -2692,7 +2752,7 @@ type ChunkedUploadInitResponse struct {
 
 func (x *ChunkedUploadInitResponse) Reset() {
 	*x = ChunkedUploadInitResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[33]
+	mi := &file_api_v1_api_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2704,7 +2764,7 @@ func (x *ChunkedUploadInitResponse) String() string {
 func (*ChunkedUploadInitResponse) ProtoMessage() {}
 
 func (x *ChunkedUploadInitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[33]
+	mi := &file_api_v1_api_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2717,7 +2777,7 @@ func (x *ChunkedUploadInitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadInitResponse.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadInitResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{33}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ChunkedUploadInitResponse) GetUploadId() string {
@@ -2762,7 +2822,7 @@ type ChunkedUploadCompleteResponse struct {
 
 func (x *ChunkedUploadCompleteResponse) Reset() {
 	*x = ChunkedUploadCompleteResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[34]
+	mi := &file_api_v1_api_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2774,7 +2834,7 @@ func (x *ChunkedUploadCompleteResponse) String() string {
 func (*ChunkedUploadCompleteResponse) ProtoMessage() {}
 
 func (x *ChunkedUploadCompleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[34]
+	mi := &file_api_v1_api_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2787,7 +2847,7 @@ func (x *ChunkedUploadCompleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadCompleteResponse.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadCompleteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{34}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ChunkedUploadCompleteResponse) GetStatus() string {
@@ -2821,7 +2881,7 @@ type ErrorMessage struct {
 
 func (x *ErrorMessage) Reset() {
 	*x = ErrorMessage{}
-	mi := &file_api_v1_api_proto_msgTypes[35]
+	mi := &file_api_v1_api_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2833,7 +2893,7 @@ func (x *ErrorMessage) String() string {
 func (*ErrorMessage) ProtoMessage() {}
 
 func (x *ErrorMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[35]
+	mi := &file_api_v1_api_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2846,7 +2906,7 @@ func (x *ErrorMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorMessage.ProtoReflect.Descriptor instead.
 func (*ErrorMessage) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{35}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ErrorMessage) GetError() string {
@@ -2868,7 +2928,7 @@ type FidoDeviceDto struct {
 
 func (x *FidoDeviceDto) Reset() {
 	*x = FidoDeviceDto{}
-	mi := &file_api_v1_api_proto_msgTypes[36]
+	mi := &file_api_v1_api_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2880,7 +2940,7 @@ func (x *FidoDeviceDto) String() string {
 func (*FidoDeviceDto) ProtoMessage() {}
 
 func (x *FidoDeviceDto) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[36]
+	mi := &file_api_v1_api_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2893,7 +2953,7 @@ func (x *FidoDeviceDto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FidoDeviceDto.ProtoReflect.Descriptor instead.
 func (*FidoDeviceDto) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{36}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *FidoDeviceDto) GetId() string {
@@ -2933,7 +2993,7 @@ type FidoDeviceList struct {
 
 func (x *FidoDeviceList) Reset() {
 	*x = FidoDeviceList{}
-	mi := &file_api_v1_api_proto_msgTypes[37]
+	mi := &file_api_v1_api_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2945,7 +3005,7 @@ func (x *FidoDeviceList) String() string {
 func (*FidoDeviceList) ProtoMessage() {}
 
 func (x *FidoDeviceList) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[37]
+	mi := &file_api_v1_api_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2958,7 +3018,7 @@ func (x *FidoDeviceList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FidoDeviceList.ProtoReflect.Descriptor instead.
 func (*FidoDeviceList) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{37}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *FidoDeviceList) GetDevices() []*FidoDeviceDto {
@@ -2977,7 +3037,7 @@ type UpdatePasswordRequest struct {
 
 func (x *UpdatePasswordRequest) Reset() {
 	*x = UpdatePasswordRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[38]
+	mi := &file_api_v1_api_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2989,7 +3049,7 @@ func (x *UpdatePasswordRequest) String() string {
 func (*UpdatePasswordRequest) ProtoMessage() {}
 
 func (x *UpdatePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[38]
+	mi := &file_api_v1_api_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3002,7 +3062,7 @@ func (x *UpdatePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePasswordRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{38}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *UpdatePasswordRequest) GetNewPassword() string {
@@ -3021,7 +3081,7 @@ type GenerateTokenResponse struct {
 
 func (x *GenerateTokenResponse) Reset() {
 	*x = GenerateTokenResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[39]
+	mi := &file_api_v1_api_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3033,7 +3093,7 @@ func (x *GenerateTokenResponse) String() string {
 func (*GenerateTokenResponse) ProtoMessage() {}
 
 func (x *GenerateTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[39]
+	mi := &file_api_v1_api_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3046,7 +3106,7 @@ func (x *GenerateTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateTokenResponse.ProtoReflect.Descriptor instead.
 func (*GenerateTokenResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{39}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GenerateTokenResponse) GetToken() string {
@@ -3068,7 +3128,7 @@ type CreateAccessTokenRequest struct {
 
 func (x *CreateAccessTokenRequest) Reset() {
 	*x = CreateAccessTokenRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[40]
+	mi := &file_api_v1_api_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3080,7 +3140,7 @@ func (x *CreateAccessTokenRequest) String() string {
 func (*CreateAccessTokenRequest) ProtoMessage() {}
 
 func (x *CreateAccessTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[40]
+	mi := &file_api_v1_api_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3093,7 +3153,7 @@ func (x *CreateAccessTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccessTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateAccessTokenRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{40}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *CreateAccessTokenRequest) GetPermissions() []string {
@@ -3134,7 +3194,7 @@ type CreateAccessTokenResponse struct {
 
 func (x *CreateAccessTokenResponse) Reset() {
 	*x = CreateAccessTokenResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[41]
+	mi := &file_api_v1_api_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3146,7 +3206,7 @@ func (x *CreateAccessTokenResponse) String() string {
 func (*CreateAccessTokenResponse) ProtoMessage() {}
 
 func (x *CreateAccessTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[41]
+	mi := &file_api_v1_api_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3159,7 +3219,7 @@ func (x *CreateAccessTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccessTokenResponse.ProtoReflect.Descriptor instead.
 func (*CreateAccessTokenResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{41}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *CreateAccessTokenResponse) GetAccessToken() *AccessTokenDto {
@@ -3186,7 +3246,7 @@ type VersionsResponse struct {
 
 func (x *VersionsResponse) Reset() {
 	*x = VersionsResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[42]
+	mi := &file_api_v1_api_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3198,7 +3258,7 @@ func (x *VersionsResponse) String() string {
 func (*VersionsResponse) ProtoMessage() {}
 
 func (x *VersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[42]
+	mi := &file_api_v1_api_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3211,7 +3271,7 @@ func (x *VersionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VersionsResponse.ProtoReflect.Descriptor instead.
 func (*VersionsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{42}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *VersionsResponse) GetIsSnapshot() bool {
@@ -3238,7 +3298,7 @@ type LatestVersionResponse struct {
 
 func (x *LatestVersionResponse) Reset() {
 	*x = LatestVersionResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[43]
+	mi := &file_api_v1_api_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3250,7 +3310,7 @@ func (x *LatestVersionResponse) String() string {
 func (*LatestVersionResponse) ProtoMessage() {}
 
 func (x *LatestVersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[43]
+	mi := &file_api_v1_api_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3263,7 +3323,7 @@ func (x *LatestVersionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatestVersionResponse.ProtoReflect.Descriptor instead.
 func (*LatestVersionResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{43}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *LatestVersionResponse) GetIsSnapshot() bool {
@@ -3291,7 +3351,7 @@ type PomDetails struct {
 
 func (x *PomDetails) Reset() {
 	*x = PomDetails{}
-	mi := &file_api_v1_api_proto_msgTypes[44]
+	mi := &file_api_v1_api_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3303,7 +3363,7 @@ func (x *PomDetails) String() string {
 func (*PomDetails) ProtoMessage() {}
 
 func (x *PomDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[44]
+	mi := &file_api_v1_api_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3316,7 +3376,7 @@ func (x *PomDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PomDetails.ProtoReflect.Descriptor instead.
 func (*PomDetails) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{44}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *PomDetails) GetGroupId() string {
@@ -3572,7 +3632,10 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x11organization_logo\x18\x05 \x01(\tR\x10organizationLogo\x12%\n" +
 	"\x0ebackground_url\x18\x06 \x01(\tR\rbackgroundUrl\x12\x1f\n" +
 	"\vicp_license\x18\a \x01(\tR\n" +
-	"icpLicense\"\x8c\x04\n" +
+	"icpLicense\"R\n" +
+	"\x0eAuditLogConfig\x12%\n" +
+	"\x0eretention_days\x18\x01 \x01(\x05R\rretentionDays\x12\x19\n" +
+	"\bmax_rows\x18\x02 \x01(\x05R\amaxRows\"\xc7\x04\n" +
 	"\fServerConfig\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\x12\x1f\n" +
@@ -3591,7 +3654,8 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\fcors_origins\x18\f \x03(\tR\vcorsOrigins\x12\x1d\n" +
 	"\n" +
 	"debug_mode\x18\r \x01(\bR\tdebugMode\x128\n" +
-	"\bdatabase\x18\x0e \x01(\v2\x1c.renop.api.v1.DatabaseConfigR\bdatabase\"\xc9\x01\n" +
+	"\bdatabase\x18\x0e \x01(\v2\x1c.renop.api.v1.DatabaseConfigR\bdatabase\x129\n" +
+	"\taudit_log\x18\x0f \x01(\v2\x1c.renop.api.v1.AuditLogConfigR\bauditLog\"\xc9\x01\n" +
 	"\rStorageConfig\x12!\n" +
 	"\fstorage_path\x18\x01 \x01(\tR\vstoragePath\x124\n" +
 	"\x16enable_javadoc_preview\x18\x02 \x01(\bR\x14enableJavadocPreview\x120\n" +
@@ -3679,7 +3743,7 @@ func file_api_v1_api_proto_rawDescGZIP() []byte {
 	return file_api_v1_api_proto_rawDescData
 }
 
-var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_api_v1_api_proto_goTypes = []any{
 	(*AccessTokenIdentifier)(nil),         // 0: renop.api.v1.AccessTokenIdentifier
 	(*AccessTokenDto)(nil),                // 1: renop.api.v1.AccessTokenDto
@@ -3708,25 +3772,26 @@ var file_api_v1_api_proto_goTypes = []any{
 	(*RebuildIndexRequest)(nil),           // 24: renop.api.v1.RebuildIndexRequest
 	(*SettingsDomainsResponse)(nil),       // 25: renop.api.v1.SettingsDomainsResponse
 	(*FrontendConfig)(nil),                // 26: renop.api.v1.FrontendConfig
-	(*ServerConfig)(nil),                  // 27: renop.api.v1.ServerConfig
-	(*StorageConfig)(nil),                 // 28: renop.api.v1.StorageConfig
-	(*UpdaterConfig)(nil),                 // 29: renop.api.v1.UpdaterConfig
-	(*DatabaseConfig)(nil),                // 30: renop.api.v1.DatabaseConfig
-	(*IndexDomainSettings)(nil),           // 31: renop.api.v1.IndexDomainSettings
-	(*ChunkedUploadInitRequest)(nil),      // 32: renop.api.v1.ChunkedUploadInitRequest
-	(*ChunkedUploadInitResponse)(nil),     // 33: renop.api.v1.ChunkedUploadInitResponse
-	(*ChunkedUploadCompleteResponse)(nil), // 34: renop.api.v1.ChunkedUploadCompleteResponse
-	(*ErrorMessage)(nil),                  // 35: renop.api.v1.ErrorMessage
-	(*FidoDeviceDto)(nil),                 // 36: renop.api.v1.FidoDeviceDto
-	(*FidoDeviceList)(nil),                // 37: renop.api.v1.FidoDeviceList
-	(*UpdatePasswordRequest)(nil),         // 38: renop.api.v1.UpdatePasswordRequest
-	(*GenerateTokenResponse)(nil),         // 39: renop.api.v1.GenerateTokenResponse
-	(*CreateAccessTokenRequest)(nil),      // 40: renop.api.v1.CreateAccessTokenRequest
-	(*CreateAccessTokenResponse)(nil),     // 41: renop.api.v1.CreateAccessTokenResponse
-	(*VersionsResponse)(nil),              // 42: renop.api.v1.VersionsResponse
-	(*LatestVersionResponse)(nil),         // 43: renop.api.v1.LatestVersionResponse
-	(*PomDetails)(nil),                    // 44: renop.api.v1.PomDetails
-	nil,                                   // 45: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	(*AuditLogConfig)(nil),                // 27: renop.api.v1.AuditLogConfig
+	(*ServerConfig)(nil),                  // 28: renop.api.v1.ServerConfig
+	(*StorageConfig)(nil),                 // 29: renop.api.v1.StorageConfig
+	(*UpdaterConfig)(nil),                 // 30: renop.api.v1.UpdaterConfig
+	(*DatabaseConfig)(nil),                // 31: renop.api.v1.DatabaseConfig
+	(*IndexDomainSettings)(nil),           // 32: renop.api.v1.IndexDomainSettings
+	(*ChunkedUploadInitRequest)(nil),      // 33: renop.api.v1.ChunkedUploadInitRequest
+	(*ChunkedUploadInitResponse)(nil),     // 34: renop.api.v1.ChunkedUploadInitResponse
+	(*ChunkedUploadCompleteResponse)(nil), // 35: renop.api.v1.ChunkedUploadCompleteResponse
+	(*ErrorMessage)(nil),                  // 36: renop.api.v1.ErrorMessage
+	(*FidoDeviceDto)(nil),                 // 37: renop.api.v1.FidoDeviceDto
+	(*FidoDeviceList)(nil),                // 38: renop.api.v1.FidoDeviceList
+	(*UpdatePasswordRequest)(nil),         // 39: renop.api.v1.UpdatePasswordRequest
+	(*GenerateTokenResponse)(nil),         // 40: renop.api.v1.GenerateTokenResponse
+	(*CreateAccessTokenRequest)(nil),      // 41: renop.api.v1.CreateAccessTokenRequest
+	(*CreateAccessTokenResponse)(nil),     // 42: renop.api.v1.CreateAccessTokenResponse
+	(*VersionsResponse)(nil),              // 43: renop.api.v1.VersionsResponse
+	(*LatestVersionResponse)(nil),         // 44: renop.api.v1.LatestVersionResponse
+	(*PomDetails)(nil),                    // 45: renop.api.v1.PomDetails
+	nil,                                   // 46: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
 }
 var file_api_v1_api_proto_depIdxs = []int32{
 	0,  // 0: renop.api.v1.AccessTokenDto.identifier:type_name -> renop.api.v1.AccessTokenIdentifier
@@ -3741,18 +3806,19 @@ var file_api_v1_api_proto_depIdxs = []int32{
 	16, // 9: renop.api.v1.Mirror.authorization:type_name -> renop.api.v1.MirrorCredentials
 	17, // 10: renop.api.v1.Repository.mirrors:type_name -> renop.api.v1.Mirror
 	18, // 11: renop.api.v1.Repository.s3:type_name -> renop.api.v1.S3Config
-	45, // 12: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	46, // 12: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
 	21, // 13: renop.api.v1.FileDetails.files:type_name -> renop.api.v1.FileDetails
 	22, // 14: renop.api.v1.RepoDetailsResponse.mirrors:type_name -> renop.api.v1.RepoMirrorInfo
-	30, // 15: renop.api.v1.ServerConfig.database:type_name -> renop.api.v1.DatabaseConfig
-	36, // 16: renop.api.v1.FidoDeviceList.devices:type_name -> renop.api.v1.FidoDeviceDto
-	1,  // 17: renop.api.v1.CreateAccessTokenResponse.access_token:type_name -> renop.api.v1.AccessTokenDto
-	19, // 18: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	31, // 15: renop.api.v1.ServerConfig.database:type_name -> renop.api.v1.DatabaseConfig
+	27, // 16: renop.api.v1.ServerConfig.audit_log:type_name -> renop.api.v1.AuditLogConfig
+	37, // 17: renop.api.v1.FidoDeviceList.devices:type_name -> renop.api.v1.FidoDeviceDto
+	1,  // 18: renop.api.v1.CreateAccessTokenResponse.access_token:type_name -> renop.api.v1.AccessTokenDto
+	19, // 19: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_api_proto_init() }
@@ -3762,14 +3828,14 @@ func file_api_v1_api_proto_init() {
 	}
 	file_api_v1_api_proto_msgTypes[1].OneofWrappers = []any{}
 	file_api_v1_api_proto_msgTypes[21].OneofWrappers = []any{}
-	file_api_v1_api_proto_msgTypes[40].OneofWrappers = []any{}
+	file_api_v1_api_proto_msgTypes[41].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_api_proto_rawDesc), len(file_api_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   46,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
