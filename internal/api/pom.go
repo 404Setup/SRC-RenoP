@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -24,14 +24,14 @@ import (
 	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/service/auth"
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/pkg/pb"
+	"renop/internal/service/auth"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
 
 func ResolveBasePath(state *core.AppState, repoName string, path string) (string, error) {
