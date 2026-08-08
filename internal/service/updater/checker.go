@@ -15,6 +15,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"runtime"
@@ -32,9 +33,20 @@ const maxRemoteJSONBody = 1 << 20
 
 func newCheckHTTPClient() *http.Client {
 	return &http.Client{
-		Transport: newCheckTransport(),
-		Timeout:   15 * time.Second,
+		CheckRedirect: checkHTTPSRedirect,
+		Transport:     newCheckTransport(),
+		Timeout:       15 * time.Second,
 	}
+}
+
+func checkHTTPSRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if req.URL.Scheme != "https" || req.URL.Host == "" || req.URL.User != nil {
+		return errors.New("update redirect must be an HTTPS URL without user info")
+	}
+	return nil
 }
 
 func newCheckTransport() *http.Transport {
@@ -44,33 +56,26 @@ func newCheckTransport() *http.Transport {
 			Timeout: 10 * time.Second,
 		}).DialContext,
 		TLSClientConfig: &tls.Config{
-			ClientSessionCache: nil,
-			MinVersion:         tls.VersionTLS12,
+			MinVersion: tls.VersionTLS12,
 		},
-		ForceAttemptHTTP2:     false,
-		TLSNextProto:          map[string]func(string, *tls.Conn) http.RoundTripper{},
-		DisableCompression:    true,
-		DisableKeepAlives:     true,
-		MaxIdleConns:          0,
-		MaxIdleConnsPerHost:   0,
-		MaxConnsPerHost:       2,
-		IdleConnTimeout:       time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 15 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:      false,
+		DisableCompression:     true,
+		DisableKeepAlives:      false,
+		MaxIdleConns:           2,
+		MaxIdleConnsPerHost:    1,
+		MaxConnsPerHost:        2,
+		IdleConnTimeout:        15 * time.Second,
+		TLSHandshakeTimeout:    10 * time.Second,
+		ResponseHeaderTimeout:  15 * time.Second,
+		ExpectContinueTimeout:  1 * time.Second,
+		MaxResponseHeaderBytes: 256 << 10,
 	}
 }
 
 func CheckUpdate(ctx context.Context, channel Channel) (*CheckResult, error) {
 	client := newCheckHTTPClient()
-	defer func() {
-		client.CloseIdleConnections()
-		if tr, ok := client.Transport.(*http.Transport); ok {
-			tr.CloseIdleConnections()
-			client.Transport = nil
-		}
-		utils.ReleaseMemoryToOS()
-	}()
+	defer utils.ScheduleNetworkWorkingSetTrim()
+	defer client.CloseIdleConnections()
 
 	if channel == ChannelNightly {
 		return checkNightly(ctx, client)
@@ -87,17 +92,9 @@ func doJSONGet(ctx context.Context, client *http.Client, url string, accept stri
 	if accept != "" {
 		req.Header.Set("Accept", accept)
 	}
-	req.Close = true
-
 	if client == nil {
 		client = newCheckHTTPClient()
-		defer func() {
-			client.CloseIdleConnections()
-			if tr, ok := client.Transport.(*http.Transport); ok {
-				tr.CloseIdleConnections()
-				client.Transport = nil
-			}
-		}()
+		defer client.CloseIdleConnections()
 	}
 
 	resp, err := client.Do(req)
@@ -115,17 +112,32 @@ func doJSONGet(ctx context.Context, client *http.Client, url string, accept stri
 		return statusCode, fmt.Errorf("response too large: Content-Length=%d", resp.ContentLength)
 	}
 
-	data, err := utils.ReadAllLimited(resp.Body, maxRemoteJSONBody)
-	if err != nil {
+	if err := decodeJSONLimited(resp.Body, resp.ContentLength, maxRemoteJSONBody, dst); err != nil {
 		if errors.Is(err, utils.ErrResponseTooLarge) {
 			return statusCode, fmt.Errorf("response exceeds %d bytes", maxRemoteJSONBody)
 		}
 		return statusCode, err
 	}
-	if err := json.Unmarshal(data, dst); err != nil {
-		return statusCode, err
-	}
 	return statusCode, nil
+}
+
+func decodeJSONLimited(r io.Reader, contentLength, max int64, dst any) error {
+	if max < 0 || contentLength > max {
+		return utils.ErrResponseTooLarge
+	}
+
+	var data []byte
+	var err error
+	if contentLength >= 0 {
+		data = make([]byte, contentLength)
+		_, err = io.ReadFull(r, data)
+	} else {
+		data, err = utils.ReadAllLimited(r, max)
+	}
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, dst)
 }
 
 func doGitHubJSON(ctx context.Context, client *http.Client, url string, dst any) (statusCode int, err error) {
@@ -243,17 +255,9 @@ func githubCommitExists(ctx context.Context, client *http.Client, sha string) (e
 	}
 	req.Header.Set("User-Agent", "RenoP-Updater")
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Close = true
-
 	if client == nil {
 		client = newCheckHTTPClient()
-		defer func() {
-			client.CloseIdleConnections()
-			if tr, ok := client.Transport.(*http.Transport); ok {
-				tr.CloseIdleConnections()
-				client.Transport = nil
-			}
-		}()
+		defer client.CloseIdleConnections()
 	}
 
 	resp, err := client.Do(req)

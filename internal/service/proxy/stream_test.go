@@ -19,6 +19,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -125,6 +126,32 @@ func TestCreateProxyStreamError(t *testing.T) {
 
 	if _, err := os.Stat(localFilePath); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("Final file should not exist on error")
+	}
+}
+
+func TestCreateProxyStreamReportsCacheFileCreationError(t *testing.T) {
+	blockedParent := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blockedParent, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	stream := CreateProxyStream(
+		io.NopCloser(strings.NewReader("artifact")),
+		int64(len("artifact")),
+		filepath.Join(blockedParent, "artifact.jar"),
+		nil,
+		"",
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+	if _, err := io.Copy(io.Discard, stream); err != nil {
+		t.Fatalf("upstream delivery should continue when only the cache write fails: %v", err)
+	}
+	if err := stream.Close(); err == nil {
+		t.Fatal("cache file creation error was swallowed")
 	}
 }
 

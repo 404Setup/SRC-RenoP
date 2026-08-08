@@ -25,13 +25,10 @@ import (
 	"renop/internal/utils"
 )
 
-const proxyStreamWriteBufSize = 16 * 1024
-
 type proxyStreamReader struct {
 	bodyReader io.ReadCloser
 	tmpFile    *os.File
-	writeBuf   []byte // 16 KiB buffer; nil when tmpFile is nil
-	writePos   int    // bytes buffered in writeBuf pending the next flush
+	writeErr   error
 
 	tmpPath    string // path of the temp file
 	tmpKeep    bool   // set true after a successful SafeRename
@@ -66,11 +63,15 @@ func (p *proxyStreamReader) releasePermit() {
 
 func (p *proxyStreamReader) Read(b []byte) (n int, err error) {
 	n, err = p.bodyReader.Read(b)
-	if n > 0 && p.tmpFile != nil {
-		if wErr := p.writeToTmp(b[:n]); wErr != nil {
+	if n > 0 && p.tmpFile != nil && p.success {
+		written, wErr := p.tmpFile.Write(b[:n])
+		p.bytesWritten += int64(written)
+		if wErr == nil && written != n {
+			wErr = io.ErrShortWrite
+		}
+		if wErr != nil {
 			p.success = false
-		} else {
-			p.bytesWritten += int64(n)
+			p.writeErr = wErr
 		}
 	}
 	if err != nil {
@@ -84,46 +85,22 @@ func (p *proxyStreamReader) Read(b []byte) (n int, err error) {
 	return n, err
 }
 
-// writeToTmp copies data into writeBuf, flushing a full buffer to tmpFile
-// whenever the buffer is full.
-func (p *proxyStreamReader) writeToTmp(data []byte) error {
-	for len(data) > 0 {
-		n := copy(p.writeBuf[p.writePos:], data)
-		p.writePos += n
-		data = data[n:]
-		if p.writePos == len(p.writeBuf) {
-			if _, err := p.tmpFile.Write(p.writeBuf); err != nil {
-				return err
-			}
-			p.writePos = 0
-		}
-	}
-	return nil
-}
-
-// flushTmp writes any bytes remaining in writeBuf to tmpFile.
-func (p *proxyStreamReader) flushTmp() error {
-	if p.writePos == 0 {
-		return nil
-	}
-	_, err := p.tmpFile.Write(p.writeBuf[:p.writePos])
-	p.writePos = 0
-	return err
-}
-
 func (p *proxyStreamReader) Close() error {
 	p.closeOnce.Do(func() {
 		success := p.success && p.readEOF && (p.expectedSize < 0 || p.bytesWritten == p.expectedSize)
+		if p.writeErr != nil {
+			p.closeErr = p.writeErr
+		}
 
 		defer func() {
 			if p.inFlightMgr != nil {
 				p.inFlightMgr.UnlockPath(p.pathStr, p.dl, success)
 			}
 			p.releasePermit()
+			utils.ScheduleNetworkWorkingSetTrim()
 			if p.cancel != nil {
 				p.cancel()
 			}
-			p.writeBuf = nil
 		}()
 
 		if p.bodyReader != nil {
@@ -138,12 +115,6 @@ func (p *proxyStreamReader) Close() error {
 		}
 
 		if p.tmpFile != nil {
-			if ferr := p.flushTmp(); ferr != nil {
-				success = false
-				if p.closeErr == nil {
-					p.closeErr = ferr
-				}
-			}
 			if cerr := p.tmpFile.Close(); cerr != nil && p.closeErr == nil {
 				p.closeErr = cerr
 			}
@@ -209,15 +180,10 @@ func CreateProxyStream(
 
 	file, err := os.Create(tmpPath)
 
-	var writeBuf []byte
-	if err == nil {
-		writeBuf = make([]byte, proxyStreamWriteBufSize)
-	}
-
 	return &proxyStreamReader{
 		bodyReader:   bodyReader,
 		tmpFile:      file,
-		writeBuf:     writeBuf,
+		writeErr:     err,
 		tmpPath:      tmpPath,
 		targetPath:   localFilePath,
 		inFlightMgr:  inFlightMgr,

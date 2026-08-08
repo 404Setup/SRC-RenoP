@@ -13,8 +13,10 @@
 package utils
 
 import (
-	"os"
-	"runtime/debug"
+	"errors"
+	"log"
+	"sync"
+	"time"
 
 	"golang.org/x/sys/windows"
 )
@@ -22,27 +24,38 @@ import (
 var (
 	modKernel32                  = windows.NewLazySystemDLL("kernel32.dll")
 	procSetProcessWorkingSetSize = modKernel32.NewProc("SetProcessWorkingSetSize")
+	networkWorkingSetTrimOnce    sync.Once
+	workingSetTrimDelay          = 5 * time.Second
+	workingSetTrim               = trimProcessWorkingSet
 )
 
 // InitLinuxMemoryTuning is a no-op on Windows.
 func InitLinuxMemoryTuning() {}
 
-// TrimProcessWorkingSet requests Windows kernel to trim unreferenced physical pages from process Working Set.
-func TrimProcessWorkingSet() {
-	// This is a very poor approach, intended to solve the persistently difficult-to-solve
-	// HTTP client RSS memory leak problem in Windows.
-	//
-	// I don't know why either, but it's just really hard to fix.
-	h, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA, false, uint32(os.Getpid()))
-	if err != nil {
-		return
-	}
-	defer windows.CloseHandle(h)
-	_, _, _ = procSetProcessWorkingSetSize.Call(uintptr(h), ^uintptr(0), ^uintptr(0))
+// ScheduleNetworkWorkingSetTrim schedules one delayed trim after the process
+// first uses an outbound network client. Some Windows endpoint-security tools
+// fault the complete Go executable image into RAM when networking starts. Go
+// 1.26 images include a 32 MiB dormant FIPS entropy buffer, so those clean,
+// unused pages otherwise remain in the working set indefinitely.
+func ScheduleNetworkWorkingSetTrim() {
+	networkWorkingSetTrimOnce.Do(func() {
+		time.AfterFunc(workingSetTrimDelay, func() {
+			if err := workingSetTrim(); err != nil {
+				log.Printf("Unable to trim the initial network working set: %v", err)
+			}
+		})
+	})
 }
 
-// ReleaseMemoryToOS forces Go garbage collection, frees OS memory, and trims Windows working set.
-func ReleaseMemoryToOS() {
-	debug.FreeOSMemory()
-	TrimProcessWorkingSet()
+func trimProcessWorkingSet() error {
+	result, _, callErr := procSetProcessWorkingSetSize.Call(
+		uintptr(windows.CurrentProcess()), ^uintptr(0), ^uintptr(0),
+	)
+	if result != 0 {
+		return nil
+	}
+	if callErr != nil && !errors.Is(callErr, windows.ERROR_SUCCESS) {
+		return callErr
+	}
+	return errors.New("SetProcessWorkingSetSize returned failure")
 }

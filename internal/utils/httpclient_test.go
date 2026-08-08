@@ -11,7 +11,9 @@
 package utils
 
 import (
+	"crypto/tls"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -26,21 +28,38 @@ func TestDefaultTransportSettings(t *testing.T) {
 	if tr.ForceAttemptHTTP2 {
 		t.Fatal("HTTP/2 should be disabled for artifact proxy stability")
 	}
-	if !tr.DisableKeepAlives {
-		t.Fatal("DisableKeepAlives must be true for low-memory one-shot client")
+	if !tr.DisableCompression {
+		t.Fatal("automatic response decompression adds avoidable per-request buffers")
 	}
-	if tr.TLSClientConfig.ClientSessionCache != nil {
-		t.Fatal("ClientSessionCache must be nil to avoid retaining certificate chains in memory")
+	if tr.DisableKeepAlives {
+		t.Fatal("keep-alives must remain enabled to avoid repeated TLS allocation spikes")
+	}
+	if tr.MaxIdleConns != 16 || tr.MaxIdleConnsPerHost != 4 || tr.MaxConnsPerHost != 64 {
+		t.Fatalf("unexpected connection bounds: idle=%d per_host=%d max_per_host=%d",
+			tr.MaxIdleConns, tr.MaxIdleConnsPerHost, tr.MaxConnsPerHost)
+	}
+	if tr.MaxResponseHeaderBytes != 256<<10 {
+		t.Fatalf("MaxResponseHeaderBytes=%d", tr.MaxResponseHeaderBytes)
+	}
+	if tr.TLSClientConfig.MinVersion != tls.VersionTLS12 {
+		t.Fatalf("minimum TLS version=%x", tr.TLSClientConfig.MinVersion)
 	}
 }
 
 func TestCloseHTTPResponseAllowsReuse(t *testing.T) {
 	var hits atomic.Int32
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var connections atomic.Int32
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits.Add(1)
 		w.Header().Set("Content-Length", "2")
 		_, _ = w.Write([]byte("ok"))
 	}))
+	ts.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			connections.Add(1)
+		}
+	}
+	ts.Start()
 	t.Cleanup(ts.Close)
 
 	client := OutboundClient(5 * time.Second)
@@ -65,6 +84,9 @@ func TestCloseHTTPResponseAllowsReuse(t *testing.T) {
 	}
 	if hits.Load() != 3 {
 		t.Fatalf("hits=%d", hits.Load())
+	}
+	if connections.Load() != 1 {
+		t.Fatalf("connections=%d; sequential requests should reuse one connection", connections.Load())
 	}
 }
 

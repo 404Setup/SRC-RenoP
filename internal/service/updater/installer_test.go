@@ -15,6 +15,7 @@ import (
 	"context"
 	"debug/elf"
 	"encoding/binary"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -43,6 +44,18 @@ func TestDownloadAndExtractValidatesURLAndDigestBeforeNetwork(t *testing.T) {
 				t.Fatalf("error = %v, want text %q", err, tc.wantError)
 			}
 		})
+	}
+}
+
+func TestDownloadHTTPClientIsBoundedOneShot(t *testing.T) {
+	client := newDownloadHTTPClient()
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport type %T", client.Transport)
+	}
+	if !transport.DisableKeepAlives || transport.MaxConnsPerHost != 2 ||
+		transport.MaxResponseHeaderBytes != 256<<10 {
+		t.Fatalf("unexpected download transport bounds: %+v", transport)
 	}
 }
 

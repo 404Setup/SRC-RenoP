@@ -500,32 +500,26 @@ func SetReadyToRestart(binaryPath, latestVersion string) {
 
 func newDownloadHTTPClient() *http.Client {
 	return &http.Client{
-		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
-			if req.URL.Scheme != "https" {
-				return errors.New("update redirect must use HTTPS")
-			}
-			return nil
-		},
+		CheckRedirect: checkHTTPSRedirect,
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
 				Timeout: 15 * time.Second,
 			}).DialContext,
 			TLSClientConfig: &tls.Config{
-				ClientSessionCache: nil,
-				MinVersion:         tls.VersionTLS12,
+				MinVersion: tls.VersionTLS12,
 			},
-			ForceAttemptHTTP2:     false,
-			TLSNextProto:          map[string]func(string, *tls.Conn) http.RoundTripper{},
-			DisableCompression:    true,
-			DisableKeepAlives:     true,
-			MaxIdleConns:          0,
-			MaxIdleConnsPerHost:   0,
-			MaxConnsPerHost:       2,
-			IdleConnTimeout:       time.Second,
-			TLSHandshakeTimeout:   15 * time.Second,
-			ResponseHeaderTimeout: 30 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
+			ForceAttemptHTTP2:      false,
+			DisableCompression:     true,
+			DisableKeepAlives:      true,
+			MaxIdleConns:           0,
+			MaxIdleConnsPerHost:    0,
+			MaxConnsPerHost:        2,
+			IdleConnTimeout:        time.Second,
+			TLSHandshakeTimeout:    15 * time.Second,
+			ResponseHeaderTimeout:  30 * time.Second,
+			ExpectContinueTimeout:  1 * time.Second,
+			MaxResponseHeaderBytes: 256 << 10,
 		},
 		Timeout: 0,
 	}
@@ -542,14 +536,8 @@ func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string)
 	}
 
 	client := newDownloadHTTPClient()
-	defer func() {
-		client.CloseIdleConnections()
-		if tr, ok := client.Transport.(*http.Transport); ok {
-			tr.CloseIdleConnections()
-			client.Transport = nil
-		}
-		utils.ReleaseMemoryToOS()
-	}()
+	defer utils.ScheduleNetworkWorkingSetTrim()
+	defer client.CloseIdleConnections()
 
 	zipTempFile, err := os.CreateTemp("", "renop-download-*.zip")
 	if err != nil {

@@ -15,14 +15,15 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
@@ -230,15 +231,66 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	return c.Status(fiber.StatusOK).SendString("")
 }
 
-func isValidPublicIP(ipStr string) bool {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
+var nonPublicAddressRanges = []netip.Prefix{
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"),
+	netip.MustParsePrefix("192.88.99.0/24"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("198.51.100.0/24"),
+	netip.MustParsePrefix("203.0.113.0/24"),
+	netip.MustParsePrefix("240.0.0.0/4"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("100::/64"),
+	netip.MustParsePrefix("2001:db8::/32"),
+}
+
+func isValidPublicIP(ip net.IP) bool {
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
 		return false
 	}
-	if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsMulticast() || ip.IsLinkLocalUnicast() {
+	addr = addr.Unmap()
+	if !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsLinkLocalUnicast() {
 		return false
+	}
+	for _, prefix := range nonPublicAddressRanges {
+		if prefix.Contains(addr) {
+			return false
+		}
 	}
 	return true
+}
+
+var errInvalidBackgroundWebP = errors.New("background is not a WebP image")
+
+func validateBackgroundWebP(r io.Reader, maxSize int64) error {
+	const signatureSize = 12
+	if maxSize < signatureSize {
+		return utils.ErrResponseTooLarge
+	}
+
+	var signature [signatureSize]byte
+	if _, err := io.ReadFull(r, signature[:]); err != nil {
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return errInvalidBackgroundWebP
+		}
+		return err
+	}
+	if signature[0] != 'R' || signature[1] != 'I' || signature[2] != 'F' || signature[3] != 'F' ||
+		signature[8] != 'W' || signature[9] != 'E' || signature[10] != 'B' || signature[11] != 'P' {
+		return errInvalidBackgroundWebP
+	}
+
+	remaining := maxSize - signatureSize
+	written, err := io.Copy(io.Discard, io.LimitReader(r, remaining+1))
+	if err != nil {
+		return err
+	}
+	if written > remaining {
+		return utils.ErrResponseTooLarge
+	}
+	return nil
 }
 
 func validateBackgroundUrl(bgUrl string) error {
@@ -263,26 +315,27 @@ func validateBackgroundUrl(bgUrl string) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Could not resolve host")
 	}
 
-	validIp := ""
+	var validIP net.IP
 	for _, ip := range ips {
-		if isValidPublicIP(ip.String()) {
-			validIp = ip.String()
+		if isValidPublicIP(ip) {
+			validIP = append(net.IP(nil), ip...)
 			break
 		}
 	}
 
-	if validIp == "" {
+	if validIP == nil {
 		return fiber.NewError(fiber.StatusBadRequest, "URL points to an internal or private IP")
 	}
+	pinnedIP := validIP.String()
 
 	const maxBackgroundSize = 5 * 1024 * 1024
 	dialer := &net.Dialer{Timeout: 10 * time.Second}
 	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
-			ClientSessionCache: nil,
+			MinVersion: tls.VersionTLS12,
 		},
-		DisableKeepAlives: true,
+		DisableCompression: true,
+		DisableKeepAlives:  true,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			_, port, err := net.SplitHostPort(addr)
 			if err != nil || port == "" {
@@ -292,10 +345,11 @@ func validateBackgroundUrl(bgUrl string) error {
 					port = "80"
 				}
 			}
-			return dialer.DialContext(ctx, "tcp", net.JoinHostPort(validIp, port))
+			return dialer.DialContext(ctx, "tcp", net.JoinHostPort(pinnedIP, port))
 		},
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 15 * time.Second,
+		TLSHandshakeTimeout:    10 * time.Second,
+		ResponseHeaderTimeout:  15 * time.Second,
+		MaxResponseHeaderBytes: 256 << 10,
 	}
 	defer transport.CloseIdleConnections()
 
@@ -312,6 +366,7 @@ func validateBackgroundUrl(bgUrl string) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid URL")
 	}
 	req.Close = true
+	defer utils.ScheduleNetworkWorkingSetTrim()
 	resp, err := client.Do(req)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Failed to access background URL or returned non-success status")
@@ -325,19 +380,15 @@ func validateBackgroundUrl(bgUrl string) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Background image exceeds 5 MiB")
 	}
 
-	imgData, err := utils.ReadAllLimited(resp.Body, maxBackgroundSize)
+	err = validateBackgroundWebP(resp.Body, maxBackgroundSize)
 	if err != nil {
 		if errors.Is(err, utils.ErrResponseTooLarge) {
 			return fiber.NewError(fiber.StatusBadRequest, "Background image exceeds 5 MiB")
 		}
+		if errors.Is(err, errInvalidBackgroundWebP) {
+			return fiber.NewError(fiber.StatusBadRequest, "Background URL must be a valid WebP image")
+		}
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to read chunk")
-	}
-
-	isWebpMagic := len(imgData) >= 12 &&
-		unsafeConvert.StringPointer(imgData[0:4]) == "RIFF" &&
-		unsafeConvert.StringPointer(imgData[8:12]) == "WEBP"
-	if !isWebpMagic {
-		return fiber.NewError(fiber.StatusBadRequest, "Background URL must be a valid WebP image")
 	}
 	return nil
 }

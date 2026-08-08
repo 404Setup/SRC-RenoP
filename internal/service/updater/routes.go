@@ -23,7 +23,6 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
-	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/internal/version"
 )
@@ -96,7 +95,6 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
-		// CheckUpdate always recycles its HTTP client and ReleaseMemoryToOS (all platforms).
 		res, err := CheckUpdate(ctx, channel)
 		if err != nil || !res.HasUpdate {
 			return
@@ -114,9 +112,6 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 			s.SHA256 = strings.Clone(res.SHA256)
 			s.IsRelease = res.IsRelease
 		})
-		// Reclaim again after cloning release notes into long-lived state.
-		utils.ReleaseMemoryToOS()
-
 		if mode != ModeAutoInstall {
 			return
 		}
@@ -180,8 +175,6 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 				s.SHA256 = ""
 			}
 		})
-
-		utils.ReleaseMemoryToOS()
 
 		return c.JSON(res)
 	})

@@ -13,6 +13,7 @@ package proxy
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -38,7 +39,52 @@ var (
 	OnArtifactStored func(localPath string)
 )
 
-var httpClient = utils.OutboundClient(0)
+var httpClient = newProxyHTTPClient()
+
+func newProxyHTTPClient() *http.Client {
+	client := utils.OutboundClient(0)
+	client.CheckRedirect = checkMirrorRedirect
+	return client
+}
+
+func checkMirrorRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if len(via) == 0 {
+		return nil
+	}
+
+	previous := via[len(via)-1]
+	if strings.EqualFold(previous.URL.Scheme, "https") && !strings.EqualFold(req.URL.Scheme, "https") {
+		return errors.New("mirror redirect must not downgrade HTTPS")
+	}
+	if previous.Header.Get("Authorization") != "" && !sameURLOrigin(previous.URL, req.URL) {
+		return errors.New("mirror redirect must not forward credentials across origins")
+	}
+	return nil
+}
+
+func sameURLOrigin(a, b *url.URL) bool {
+	if a == nil || b == nil || !strings.EqualFold(a.Scheme, b.Scheme) ||
+		!strings.EqualFold(a.Hostname(), b.Hostname()) {
+		return false
+	}
+	return effectiveURLPort(a) == effectiveURLPort(b)
+}
+
+func effectiveURLPort(u *url.URL) string {
+	if port := u.Port(); port != "" {
+		return port
+	}
+	if strings.EqualFold(u.Scheme, "https") {
+		return "443"
+	}
+	if strings.EqualFold(u.Scheme, "http") {
+		return "80"
+	}
+	return ""
+}
 
 func escapeArtifactPath(path string) string {
 	parts := strings.Split(path, "/")
@@ -100,6 +146,7 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, storagePath string, pathStr string, dl *core.InFlightDownload) (io.ReadCloser, error) {
 	shouldNegativeCache := false
 	var negativeTtl uint64 = 3600
+	networkAttempted := false
 
 	sanitizedPath, ok := utils.SanitizePath(path)
 	if !ok {
@@ -124,20 +171,17 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		builder.WriteString(encodedPath)
 		mirrorUrl := builder.String()
 
-		req, err := http.NewRequest(http.MethodGet, mirrorUrl, nil)
+		streamCtx, streamCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		req, err := http.NewRequestWithContext(streamCtx, http.MethodGet, mirrorUrl, nil)
 		if err != nil {
+			streamCancel()
 			continue
 		}
-		req.Close = true
-
 		if mirror.Authorization != nil {
 			if header := mirror.Authorization.GetAuthHeader(); header != "" {
 				req.Header.Set("Authorization", header)
 			}
 		}
-
-		streamCtx, streamCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		req = req.WithContext(streamCtx)
 
 		select {
 		case state.Inner.ProxyClientSemaphore <- struct{}{}:
@@ -146,6 +190,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 			continue
 		}
 
+		networkAttempted = true
 		res, err := httpClient.Do(req)
 		if err != nil {
 			streamCancel()
@@ -178,6 +223,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 				(res.ContentLength < 0 || int64(len(data)) == res.ContentLength)
 			if completeSmallResponse {
 				utils.DrainAndClose(res.Body)
+				utils.ScheduleNetworkWorkingSetTrim()
 				streamCancel()
 				<-state.Inner.ProxyClientSemaphore
 
@@ -240,6 +286,9 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 	if shouldNegativeCache {
 		HandleNegativeCache(state, repo.Name, path, storagePath, negativeTtl)
 	}
+	if networkAttempted {
+		utils.ScheduleNetworkWorkingSetTrim()
+	}
 
 	state.Inner.InFlightDownloads.UnlockPath(pathStr, dl, false)
 	if lastBlockedReason != "" {
@@ -265,6 +314,12 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 	}
 	path = sanitizedPath
 	encodedPath := escapeArtifactPath(path)
+	networkAttempted := false
+	defer func() {
+		if networkAttempted {
+			utils.ScheduleNetworkWorkingSetTrim()
+		}
+	}()
 
 	for _, mirror := range repo.Mirrors {
 		if allowed, _ := mirror.IsArtifactAllowed(path); !allowed {
@@ -273,25 +328,22 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		trimmedUrl := strings.TrimRight(mirror.Url, "/")
 		mirrorUrl := trimmedUrl + "/" + encodedPath
 
-		req, err := http.NewRequest(http.MethodHead, mirrorUrl, nil)
-		if err != nil {
-			continue
-		}
-		req.Close = true
-
-		if mirror.Authorization != nil {
-			if header := mirror.Authorization.GetAuthHeader(); header != "" {
-				req.Header.Set("Authorization", header)
-			}
-		}
-
 		timeout := time.Duration(mirror.TimeoutSecs) * time.Second
 		if timeout == 0 {
 			timeout = 5 * time.Second
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		req = req.WithContext(ctx)
+		req, err := http.NewRequestWithContext(ctx, http.MethodHead, mirrorUrl, nil)
+		if err != nil {
+			cancel()
+			continue
+		}
+		if mirror.Authorization != nil {
+			if header := mirror.Authorization.GetAuthHeader(); header != "" {
+				req.Header.Set("Authorization", header)
+			}
+		}
 
 		select {
 		case state.Inner.ProxyClientSemaphore <- struct{}{}:
@@ -300,11 +352,11 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 			continue
 		}
 
+		networkAttempted = true
 		res, err := httpClient.Do(req)
-		cancel()
-		<-state.Inner.ProxyClientSemaphore
-
 		if err != nil {
+			cancel()
+			<-state.Inner.ProxyClientSemaphore
 			continue
 		}
 		if res.StatusCode >= 200 && res.StatusCode < 300 {
@@ -322,9 +374,13 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 				headers.Set("ETag", v)
 			}
 			utils.DrainAndClose(res.Body)
+			cancel()
+			<-state.Inner.ProxyClientSemaphore
 			return true, headers, nil
 		}
 		utils.DrainAndClose(res.Body)
+		cancel()
+		<-state.Inner.ProxyClientSemaphore
 	}
 
 	return false, nil, nil

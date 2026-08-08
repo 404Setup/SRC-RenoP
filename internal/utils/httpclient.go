@@ -23,16 +23,19 @@ var DefaultTransport = &http.Transport{
 		Timeout: 10 * time.Second,
 	}).DialContext,
 	TLSClientConfig: &tls.Config{
-		ClientSessionCache: nil,
+		MinVersion: tls.VersionTLS12,
 	},
-	ForceAttemptHTTP2:     false,
-	DisableCompression:    false,
-	DisableKeepAlives:     true,
-	MaxIdleConns:          0,
-	MaxIdleConnsPerHost:   0,
-	TLSHandshakeTimeout:   10 * time.Second,
-	ResponseHeaderTimeout: 15 * time.Second,
-	ExpectContinueTimeout: 1 * time.Second,
+	ForceAttemptHTTP2:      false,
+	DisableCompression:     true,
+	DisableKeepAlives:      false,
+	MaxIdleConns:           16,
+	MaxIdleConnsPerHost:    4,
+	MaxConnsPerHost:        64,
+	IdleConnTimeout:        30 * time.Second,
+	TLSHandshakeTimeout:    10 * time.Second,
+	ResponseHeaderTimeout:  15 * time.Second,
+	ExpectContinueTimeout:  1 * time.Second,
+	MaxResponseHeaderBytes: 256 << 10,
 }
 
 // OutboundClient returns an *http.Client backed by DefaultTransport with the specified timeout.

@@ -14,7 +14,6 @@ package utils
 
 import (
 	"os"
-	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -36,6 +35,9 @@ func InitLinuxMemoryTuning() {
 		}
 	})
 }
+
+// ScheduleNetworkWorkingSetTrim is only needed on Windows.
+func ScheduleNetworkWorkingSetTrim() {}
 
 func linuxSoftMemoryLimit() (int64, bool) {
 	if n, ok := readCgroupMemoryMax(); ok && n > 0 {
@@ -105,11 +107,3 @@ func readMemAvailable() (int64, bool) {
 	}
 	return 0, false
 }
-
-func ReleaseMemoryToOS() {
-	runtime.GC()
-	runtime.GC()
-	debug.FreeOSMemory()
-}
-
-func TrimProcessWorkingSet() {}

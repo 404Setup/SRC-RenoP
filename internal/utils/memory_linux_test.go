@@ -29,7 +29,3 @@ func TestInitLinuxMemoryTuningIdempotent(t *testing.T) {
 	InitLinuxMemoryTuning()
 	InitLinuxMemoryTuning()
 }
-
-func TestReleaseMemoryToOSLinux(t *testing.T) {
-	ReleaseMemoryToOS()
-}

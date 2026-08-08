@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -24,7 +25,6 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/internal/utils"
 )
 
 func largeBodyHandler(size int) http.Handler {
@@ -54,6 +54,52 @@ func TestDoJSONGetRejectsOversizedContentLength(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "too large") && !strings.Contains(err.Error(), "exceeds") {
 		t.Fatalf("expected size-limit error, got: %v", err)
+	}
+}
+
+func TestDoJSONGetRejectsOversizedChunkedBody(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.(http.Flusher).Flush()
+		_, _ = io.WriteString(w, `{"tag_name":"v1.2.3"}`)
+		chunk := bytes.Repeat([]byte(" "), 32<<10)
+		for written := len(`{"tag_name":"v1.2.3"}`); written <= maxRemoteJSONBody; written += len(chunk) {
+			_, _ = w.Write(chunk)
+		}
+	}))
+	t.Cleanup(ts.Close)
+
+	var rel GithubReleaseResponse
+	_, err := doJSONGet(context.Background(), nil, ts.URL, "application/json", &rel)
+	if err == nil || !strings.Contains(err.Error(), "exceeds") {
+		t.Fatalf("expected streaming size-limit error, got %v", err)
+	}
+}
+
+func TestDoJSONGetRejectsTrailingJSON(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{} {}`)
+	}))
+	t.Cleanup(ts.Close)
+
+	var dst map[string]any
+	_, err := doJSONGet(context.Background(), nil, ts.URL, "application/json", &dst)
+	if err == nil {
+		t.Fatalf("expected trailing-data error, got %v", err)
+	}
+}
+
+func BenchmarkDecodeJSONLimited(b *testing.B) {
+	payload := []byte(`{"releases":[{"version":"1.2.3","changelog":"` + strings.Repeat("x", 512<<10) + `"}]}`)
+	b.ReportAllocs()
+	b.SetBytes(int64(len(payload)))
+	for b.Loop() {
+		var info ChannelInfo
+		if err := decodeJSONLimited(bytes.NewReader(payload), int64(len(payload)), maxRemoteJSONBody, &info); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -129,7 +175,7 @@ func TestDoJSONGetDoesNotRetainResponseBuffer(t *testing.T) {
 	runtime.ReadMemStats(&m)
 }
 
-func TestCheckUpdateClosesIdleConnsAndFreesMemory(t *testing.T) {
+func TestCheckClientClosesIdleConnections(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"version":"1.0.0","commit":"abc1234567890"}`)
@@ -144,11 +190,56 @@ func TestCheckUpdateClosesIdleConnsAndFreesMemory(t *testing.T) {
 	}
 
 	client.CloseIdleConnections()
-	if tr, ok := client.Transport.(*http.Transport); ok {
-		tr.CloseIdleConnections()
-		client.Transport = nil
+}
+
+func TestCheckClientUsesBoundedConnectionReuse(t *testing.T) {
+	var connections atomic.Int32
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{}`)
+	}))
+	ts.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			connections.Add(1)
+		}
 	}
-	utils.ReleaseMemoryToOS()
+	ts.Start()
+	t.Cleanup(ts.Close)
+
+	client := newCheckHTTPClient()
+	t.Cleanup(client.CloseIdleConnections)
+	for range 3 {
+		var dst map[string]any
+		if status, err := doJSONGet(context.Background(), client, ts.URL, "application/json", &dst); err != nil || status != http.StatusOK {
+			t.Fatalf("status=%d err=%v", status, err)
+		}
+	}
+	if connections.Load() != 1 {
+		t.Fatalf("connections=%d; checker should reuse one connection per host", connections.Load())
+	}
+
+	transport := client.Transport.(*http.Transport)
+	if transport.DisableKeepAlives || transport.MaxIdleConns != 2 || transport.MaxIdleConnsPerHost != 1 ||
+		transport.MaxConnsPerHost != 2 || transport.MaxResponseHeaderBytes != 256<<10 {
+		t.Fatalf("unexpected checker transport bounds: %+v", transport)
+	}
+}
+
+func TestCheckHTTPSRedirect(t *testing.T) {
+	secure, _ := http.NewRequest(http.MethodGet, "https://cdn.example/update.zip", nil)
+	if err := checkHTTPSRedirect(secure, nil); err != nil {
+		t.Fatalf("secure redirect rejected: %v", err)
+	}
+
+	plain, _ := http.NewRequest(http.MethodGet, "http://cdn.example/update.zip", nil)
+	if err := checkHTTPSRedirect(plain, nil); err == nil {
+		t.Fatal("plain HTTP redirect was allowed")
+	}
+
+	withUser, _ := http.NewRequest(http.MethodGet, "https://user:secret@cdn.example/update.zip", nil)
+	if err := checkHTTPSRedirect(withUser, nil); err == nil {
+		t.Fatal("redirect URL with user info was allowed")
+	}
 }
 
 func TestCommitSubject(t *testing.T) {

@@ -12,17 +12,7 @@
 
 package utils
 
-import (
-	"runtime"
-	"runtime/debug"
-)
-
 func InitLinuxMemoryTuning() {}
 
-func TrimProcessWorkingSet() {}
-
-func ReleaseMemoryToOS() {
-	runtime.GC()
-	runtime.GC()
-	debug.FreeOSMemory()
-}
+// ScheduleNetworkWorkingSetTrim is only needed on Windows.
+func ScheduleNetworkWorkingSetTrim() {}
