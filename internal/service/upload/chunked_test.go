@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"errors"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -187,6 +188,93 @@ func TestNormalizeChunkSize(t *testing.T) {
 	got := NormalizeChunkSize(2<<30, MinChunkSize)
 	if n := (2<<30 + got - 1) / got; n > maxPreferredChunks {
 		t.Fatalf("still too many parts: size=%d count=%d", got, n)
+	}
+	if got := NormalizeChunkSize(math.MaxInt64, MinChunkSize); got != MaxChunkSize {
+		t.Fatalf("max int size: got %d want %d", got, MaxChunkSize)
+	}
+}
+
+func TestCreateSessionCountsPendingReservations(t *testing.T) {
+	mgr := &Manager{
+		sessions: make(map[string]*Session),
+		pending:  MaxSessions,
+	}
+	_, err := mgr.CreateSession(PurposeUpdater, "update.zip", "alice", 0, DefaultChunkSize, false, "", "")
+	if err == nil || err.Error() != "too many concurrent uploads" {
+		t.Fatalf("CreateSession error = %v, want session limit error", err)
+	}
+	if mgr.pending != MaxSessions {
+		t.Fatalf("pending reservations = %d, want %d", mgr.pending, MaxSessions)
+	}
+}
+
+func TestSessionOwnershipRequiresExactNonEmptyOwner(t *testing.T) {
+	if (&Session{}).OwnedBy("alice") {
+		t.Fatal("an ownerless session must not be claimable")
+	}
+	if !(&Session{owner: "alice"}).OwnedBy("alice") {
+		t.Fatal("the exact owner should own the session")
+	}
+	if (&Session{owner: "alice"}).OwnedBy("bob") {
+		t.Fatal("a different user must not own the session")
+	}
+}
+
+func TestBeginCompletionHasSingleWinner(t *testing.T) {
+	sess := &Session{owner: "alice"}
+	var wg sync.WaitGroup
+	results := make(chan error, 2)
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results <- sess.BeginCompletion()
+		}()
+	}
+	wg.Wait()
+	close(results)
+
+	var succeeded, rejected int
+	for err := range results {
+		if err == nil {
+			succeeded++
+		} else if errors.Is(err, errSessionFinished) {
+			rejected++
+		} else {
+			t.Fatalf("unexpected result: %v", err)
+		}
+	}
+	if succeeded != 1 || rejected != 1 {
+		t.Fatalf("succeeded=%d rejected=%d, want one of each", succeeded, rejected)
+	}
+}
+
+func TestManagerCompletionAndAbortAreMutuallyExclusive(t *testing.T) {
+	mgr := &Manager{sessions: map[string]*Session{
+		"id": {ID: "id", owner: "alice"},
+	}}
+	start := make(chan struct{})
+	results := make(chan bool, 2)
+	go func() {
+		<-start
+		_, err := mgr.BeginSessionCompletion("id", "alice")
+		results <- err == nil
+	}()
+	go func() {
+		<-start
+		_, owned := mgr.AbortOwned("id", "alice")
+		results <- owned
+	}()
+	close(start)
+
+	winners := 0
+	for range 2 {
+		if <-results {
+			winners++
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("completion/abort winners = %d, want exactly one", winners)
 	}
 }
 

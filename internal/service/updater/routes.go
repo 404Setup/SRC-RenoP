@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -20,9 +20,9 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/service/auth"
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/auth"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/internal/version"
@@ -111,6 +111,7 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 			s.ReleaseDate = strings.Clone(res.ReleaseDate)
 			s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
 			s.CommitSha = strings.Clone(res.CommitSha)
+			s.SHA256 = strings.Clone(res.SHA256)
 			s.IsRelease = res.IsRelease
 		})
 		// Reclaim again after cloning release notes into long-lived state.
@@ -126,7 +127,7 @@ func TriggerAutoCheck(channel Channel, mode UpdateMode) {
 		if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
 			return
 		}
-		targetPath, err := DownloadAndExtract(ctx, res.DownloadUrl)
+		targetPath, err := DownloadAndExtract(ctx, res.DownloadUrl, res.SHA256)
 		if err != nil {
 			return
 		}
@@ -169,12 +170,14 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 				s.DownloadUrl = strings.Clone(res.DownloadUrl)
 				s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
 				s.CommitSha = strings.Clone(res.CommitSha)
+				s.SHA256 = strings.Clone(res.SHA256)
 			} else {
 				s.Status = "idle"
 				s.LatestVersion = strings.Clone(version.Version)
 				s.DownloadUrl = ""
 				s.ReleaseNotes = ""
 				s.CommitSha = ""
+				s.SHA256 = ""
 			}
 		})
 
@@ -224,7 +227,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 				s.Progress = 10
 			})
 
-			targetPath, err := DownloadAndExtract(context.Background(), downloadUrl)
+			targetPath, err := DownloadAndExtract(context.Background(), downloadUrl, st.SHA256)
 			if err != nil {
 				updateStateFields(func(s *UpdateState) {
 					s.Status = "error"

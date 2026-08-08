@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -145,8 +145,13 @@ func TestHandleJavadocPageAndServeRaw(t *testing.T) {
 	if !strings.Contains(bodyStr, "window.location.pathname") {
 		t.Fatalf("expected template to use window.location.pathname, got: %s", bodyStr)
 	}
-	if !strings.Contains(bodyStr, "allow-forms") {
-		t.Fatalf("expected iframe to include allow-forms sandbox attribute")
+	if !strings.Contains(bodyStr, `sandbox="allow-scripts"`) {
+		t.Fatalf("expected iframe to retain script support inside an opaque origin")
+	}
+	for _, unsafeCapability := range []string{"allow-same-origin", "allow-forms", "allow-popups"} {
+		if strings.Contains(bodyStr, unsafeCapability) {
+			t.Fatalf("iframe must not grant %s to uploaded documentation", unsafeCapability)
+		}
 	}
 
 	reqRaw, _ := http.NewRequest("GET", "/javadoc/releases/com/example/demo/1.0.0/demo-1.0.0-javadoc.jar/raw/index.html", nil)
@@ -160,8 +165,11 @@ func TestHandleJavadocPageAndServeRaw(t *testing.T) {
 	if respRaw.Header.Get("Content-Disposition") != "inline" {
 		t.Fatalf("expected Content-Disposition inline, got %s", respRaw.Header.Get("Content-Disposition"))
 	}
-	if csp := respRaw.Header.Get("Content-Security-Policy"); strings.Contains(csp, "sandbox") {
-		t.Fatalf("expected no sandbox directive in Content-Security-Policy response header, got: %s", csp)
+	if csp := respRaw.Header.Get("Content-Security-Policy"); !strings.Contains(csp, "sandbox allow-scripts") || strings.Contains(csp, "allow-same-origin") {
+		t.Fatalf("expected raw documentation to run in a script-only sandbox, got: %s", csp)
+	}
+	if got := respRaw.Header.Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
 	}
 
 	reqCss, _ := http.NewRequest("GET", "/javadoc/releases/com/example/demo/1.0.0/demo-1.0.0-javadoc.jar/raw/stylesheet.css", nil)

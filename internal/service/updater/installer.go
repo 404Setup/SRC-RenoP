@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -14,10 +14,13 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
 	"crypto/tls"
 	"debug/elf"
 	"debug/macho"
 	"debug/pe"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +28,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -39,6 +43,11 @@ import (
 var (
 	isInstalling         atomic.Bool
 	CanAllocateDiskSpace func(requiredBytes uint64) bool
+)
+
+const (
+	maxUpdatePackageSize    int64 = 2 << 30
+	maxUpdateExecutableSize       = 512 << 20
 )
 
 type pendingBinaryState struct {
@@ -119,6 +128,9 @@ func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if fi.Size() < 0 || fi.Size() > maxUpdatePackageSize {
+		return "", fmt.Errorf("update package exceeds %d bytes", maxUpdatePackageSize)
+	}
 
 	zipReader, err := zip.NewReader(zipTempFile, fi.Size())
 	if err != nil {
@@ -183,6 +195,9 @@ func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
 }
 
 func extractExecutableFromNestedZip(inner *zip.File, exeName string) (string, error) {
+	if inner.UncompressedSize64 > uint64(maxUpdatePackageSize) {
+		return "", fmt.Errorf("nested update package exceeds %d bytes", maxUpdatePackageSize)
+	}
 	rc, err := inner.Open()
 	if err != nil {
 		return "", err
@@ -232,6 +247,9 @@ func extractExecutableFromNestedZip(inner *zip.File, exeName string) (string, er
 func materializeZipEntryAsExecutable(f *zip.File) (string, error) {
 	if f.FileInfo().IsDir() {
 		return "", errors.New("Entry is a directory")
+	}
+	if f.UncompressedSize64 > uint64(maxUpdateExecutableSize) {
+		return "", fmt.Errorf("update executable exceeds %d bytes", maxUpdateExecutableSize)
 	}
 	rc, err := f.Open()
 	if err != nil {
@@ -482,6 +500,12 @@ func SetReadyToRestart(binaryPath, latestVersion string) {
 
 func newDownloadHTTPClient() *http.Client {
 	return &http.Client{
+		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
+			if req.URL.Scheme != "https" {
+				return errors.New("update redirect must use HTTPS")
+			}
+			return nil
+		},
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
@@ -507,7 +531,16 @@ func newDownloadHTTPClient() *http.Client {
 	}
 }
 
-func DownloadAndExtract(ctx context.Context, downloadUrl string) (string, error) {
+func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string) (string, error) {
+	parsedURL, err := url.Parse(downloadUrl)
+	if err != nil || parsedURL.Scheme != "https" || parsedURL.Host == "" || parsedURL.User != nil {
+		return "", errors.New("update download URL must be an HTTPS URL without user info")
+	}
+	expectedDigest, err := hex.DecodeString(strings.TrimSpace(expectedSHA256))
+	if err != nil || len(expectedDigest) != sha256.Size {
+		return "", errors.New("update package is missing a valid SHA-256 digest")
+	}
+
 	client := newDownloadHTTPClient()
 	defer func() {
 		client.CloseIdleConnections()
@@ -544,15 +577,25 @@ func DownloadAndExtract(ctx context.Context, downloadUrl string) (string, error)
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("Download failed with status %d", resp.StatusCode)
 	}
+	if resp.ContentLength > maxUpdatePackageSize {
+		return "", fmt.Errorf("update package exceeds %d bytes", maxUpdatePackageSize)
+	}
 
 	bufWriter := bufio.NewWriterSize(zipTempFile, 32*1024)
-	_, copyErr := io.Copy(bufWriter, resp.Body)
+	hasher := sha256.New()
+	written, copyErr := io.Copy(io.MultiWriter(bufWriter, hasher), io.LimitReader(resp.Body, maxUpdatePackageSize+1))
+	if written > maxUpdatePackageSize {
+		return "", fmt.Errorf("update package exceeds %d bytes", maxUpdatePackageSize)
+	}
 	flushErr := bufWriter.Flush()
 	if copyErr != nil {
 		return "", fmt.Errorf("Failed to save update package: %w", copyErr)
 	}
 	if flushErr != nil {
 		return "", fmt.Errorf("Failed to flush update package: %w", flushErr)
+	}
+	if subtle.ConstantTimeCompare(hasher.Sum(nil), expectedDigest) != 1 {
+		return "", errors.New("update package SHA-256 mismatch")
 	}
 
 	return ExtractExecutableFromZip(zipTempFile)

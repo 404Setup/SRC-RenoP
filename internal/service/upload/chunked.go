@@ -112,8 +112,8 @@ func NormalizeChunkSize(totalSize, requested int64) int64 {
 		return totalSize
 	}
 
-	if n := (totalSize + size - 1) / size; n > maxPreferredChunks {
-		size = max(min((totalSize+maxPreferredChunks-1)/maxPreferredChunks, MaxChunkSize), MinChunkSize)
+	if n := 1 + (totalSize-1)/size; n > maxPreferredChunks {
+		size = max(min(1+(totalSize-1)/maxPreferredChunks, MaxChunkSize), MinChunkSize)
 		if size >= totalSize {
 			return totalSize
 		}
@@ -150,6 +150,7 @@ type Session struct {
 type Manager struct {
 	mu       sync.Mutex
 	sessions map[string]*Session
+	pending  int
 	once     sync.Once
 }
 
@@ -194,24 +195,35 @@ func (m *Manager) CreateSession(
 	if totalSize < 0 {
 		return nil, errors.New("invalid size")
 	}
+	if owner == "" {
+		return nil, errors.New("missing upload owner")
+	}
 	chunkSize = NormalizeChunkSize(totalSize, chunkSize)
 
-	chunkCount := 0
-	if totalSize == 0 {
-		chunkCount = 0
-	} else {
-		chunkCount = int((totalSize + chunkSize - 1) / chunkSize)
+	var chunkCount64 int64
+	if totalSize > 0 {
+		chunkCount64 = 1 + (totalSize-1)/chunkSize
 	}
-	if chunkCount > 100_000 {
+	if chunkCount64 > 100_000 {
 		return nil, errors.New("too many chunks")
 	}
+	chunkCount := int(chunkCount64)
 
 	m.mu.Lock()
-	if len(m.sessions) >= MaxSessions {
+	if len(m.sessions)+m.pending >= MaxSessions {
 		m.mu.Unlock()
 		return nil, errors.New("too many concurrent uploads")
 	}
+	m.pending++
 	m.mu.Unlock()
+	reserved := true
+	defer func() {
+		if reserved {
+			m.mu.Lock()
+			m.pending--
+			m.mu.Unlock()
+		}
+	}()
 
 	id := uuid.New().String()
 	var tempPath string
@@ -267,6 +279,11 @@ func (m *Manager) CreateSession(
 	}
 
 	m.mu.Lock()
+	m.pending--
+	reserved = false
+	if m.sessions == nil {
+		m.sessions = make(map[string]*Session)
+	}
 	m.sessions[id] = sess
 	m.mu.Unlock()
 	return sess, nil
@@ -278,13 +295,6 @@ func (m *Manager) Get(id string) (*Session, bool) {
 	defer m.mu.Unlock()
 	s, ok := m.sessions[id]
 	return s, ok
-}
-
-// Remove drops a session from the map (caller should Abort if needed).
-func (m *Manager) Remove(id string) {
-	m.mu.Lock()
-	delete(m.sessions, id)
-	m.mu.Unlock()
 }
 
 // CleanupExpired aborts sessions older than SessionTTL.
@@ -341,6 +351,52 @@ func (s *Session) claimChunk(index int, contentLength int64) (offset, expected i
 }
 
 var errChunkAlreadyDone = errors.New("chunk already done")
+
+var (
+	errChunksIncomplete = errors.New("not all chunks received")
+	errSessionFinished  = errors.New("session already completed")
+	errSessionNotFound  = errors.New("upload session not found")
+	errSessionNotOwned  = errors.New("upload session owned by another user")
+)
+
+// BeginSessionCompletion atomically removes a complete, owned session from the
+// manager so cancellation cannot delete its temp file during finalization.
+func (m *Manager) BeginSessionCompletion(id, owner string) (*Session, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	sess, ok := m.sessions[id]
+	if !ok {
+		return nil, errSessionNotFound
+	}
+	if !sess.OwnedBy(owner) {
+		return nil, errSessionNotOwned
+	}
+	if err := sess.BeginCompletion(); err != nil {
+		return nil, err
+	}
+	delete(m.sessions, id)
+	return sess, nil
+}
+
+// AbortOwned atomically claims an owned session for cancellation.
+func (m *Manager) AbortOwned(id, owner string) (found, owned bool) {
+	m.mu.Lock()
+	sess, ok := m.sessions[id]
+	if !ok {
+		m.mu.Unlock()
+		return false, false
+	}
+	if !sess.OwnedBy(owner) {
+		m.mu.Unlock()
+		return true, false
+	}
+	delete(m.sessions, id)
+	m.mu.Unlock()
+
+	sess.Abort()
+	return true, true
+}
 
 func (s *Session) releaseClaim(index int) {
 	s.mu.Lock()
@@ -429,6 +485,27 @@ func (s *Session) AllReceived() bool {
 	return true
 }
 
+// BeginCompletion grants exactly one caller ownership of finalization. If a
+// chunk is still being written, the caller may retry after it finishes.
+func (s *Session) BeginCompletion() error {
+	if !atomic.CompareAndSwapInt32(&s.done, 0, 1) {
+		return errSessionFinished
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed || s.aborting {
+		return errSessionFinished
+	}
+	for _, st := range s.received {
+		if st != 2 {
+			atomic.StoreInt32(&s.done, 0)
+			return errChunksIncomplete
+		}
+	}
+	return nil
+}
+
 // CloseFile flushes and closes the backing temp file without deleting it.
 func (s *Session) CloseFile() error {
 	s.mu.Lock()
@@ -479,5 +556,5 @@ func (s *Session) MarkCompleted() {
 
 // OwnedBy reports whether the session belongs to the given username.
 func (s *Session) OwnedBy(username string) bool {
-	return s.owner == "" || s.owner == username
+	return s.owner != "" && s.owner == username
 }

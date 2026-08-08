@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -29,7 +29,7 @@ func (db *DB) SaveAuditLog(entry *core.AuditLogEntry) error {
 		SanitizeInputString(entry.Action, 64),
 		SanitizeInputString(entry.Details, 4096),
 		SanitizeInputString(entry.AuthMethod, 64),
-		SanitizeInputString(entry.SessionID, 255),
+		SanitizeInputString(core.SafeAuditSessionID(entry.SessionID), 255),
 		SanitizeInputString(entry.IP, 255),
 		entry.CreatedAt,
 	)
@@ -101,6 +101,7 @@ func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLog
 		if err := rows.Scan(&e.ID, &e.Username, &e.Operator, &e.Action, &e.Details, &e.AuthMethod, &e.SessionID, &e.IP, &e.CreatedAt); err != nil {
 			return nil, 0, err
 		}
+		e.SessionID = core.SafeAuditSessionID(e.SessionID)
 		entries = append(entries, e)
 	}
 

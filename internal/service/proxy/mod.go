@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -167,7 +167,9 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 			switch {
 			case res.ContentLength >= 0 && res.ContentLength <= maxFastPathSize:
 				data = make([]byte, res.ContentLength)
-				_, readErr = io.ReadFull(res.Body, data)
+				var n int
+				n, readErr = io.ReadFull(res.Body, data)
+				data = data[:n]
 			case res.ContentLength < 0:
 				data, readErr = io.ReadAll(io.LimitReader(res.Body, maxFastPathSize+1))
 			}
@@ -207,8 +209,16 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 				}
 			}
 
-			var bodyReader = res.Body
-			if len(data) > 0 {
+			var bodyReader io.ReadCloser = res.Body
+			if readErr != nil {
+				bodyReader = struct {
+					io.Reader
+					io.Closer
+				}{
+					Reader: io.MultiReader(bytes.NewReader(data), errorReader{err: readErr}),
+					Closer: res.Body,
+				}
+			} else if len(data) > 0 {
 				bodyReader = struct {
 					io.Reader
 					io.Closer
@@ -236,6 +246,16 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		return nil, fiber.NewError(fiber.StatusForbidden, lastBlockedReason)
 	}
 	return nil, fiber.ErrNotFound
+}
+
+// errorReader preserves a terminal error encountered while probing a response.
+// Without it, a short upstream body would look like a clean EOF to the stream.
+type errorReader struct {
+	err error
+}
+
+func (r errorReader) Read([]byte) (int, error) {
+	return 0, r.err
 }
 
 func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool, http.Header, error) {

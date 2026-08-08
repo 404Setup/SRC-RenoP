@@ -59,11 +59,15 @@ func TestFileByteCacheEvictsToMaxBytes(t *testing.T) {
 	}
 }
 
-func TestFileByteCacheSameSizeSetReusesBuffer(t *testing.T) {
+func TestFileByteCacheSameSizeSetKeepsPublishedViewImmutable(t *testing.T) {
 	c := NewFileByteCache(64 << 10)
 	v1 := bytes.Repeat([]byte("a"), 1024)
 	v2 := bytes.Repeat([]byte("b"), 1024)
 	_ = c.Set("k", v1)
+	oldView, err := c.GetReadOnlyView("k")
+	if err != nil {
+		t.Fatal(err)
+	}
 	_ = c.Set("k", v2)
 	got, err := c.Get("k")
 	if err != nil {
@@ -72,6 +76,9 @@ func TestFileByteCacheSameSizeSetReusesBuffer(t *testing.T) {
 	if !bytes.Equal(got, v2) {
 		t.Fatalf("expected updated value")
 	}
+	if !bytes.Equal(oldView, v1) {
+		t.Fatal("a published read-only view was mutated by Set")
+	}
 	n, used := c.Stats()
 	if n != 1 {
 		t.Fatalf("entries=%d want 1", n)
@@ -79,6 +86,43 @@ func TestFileByteCacheSameSizeSetReusesBuffer(t *testing.T) {
 	if used != 1024 {
 		t.Fatalf("used=%d want 1024", used)
 	}
+}
+
+func TestFileByteCacheConcurrentReadOnlyViewAndSet(t *testing.T) {
+	c := NewFileByteCache(64 << 10)
+	values := [][]byte{
+		bytes.Repeat([]byte{1}, 4096),
+		bytes.Repeat([]byte{2}, 4096),
+	}
+	if err := c.Set("shared", values[0]); err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for i := range 1000 {
+			_ = c.Set("shared", values[i&1])
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for range 1000 {
+			view, err := c.GetReadOnlyView("shared")
+			if err != nil || len(view) == 0 {
+				continue
+			}
+			first := view[0]
+			for _, b := range view[1:] {
+				if b != first {
+					t.Errorf("observed a partially overwritten cache entry")
+					return
+				}
+			}
+		}
+	}()
+	wg.Wait()
 }
 
 func TestFileByteCacheConcurrentGetSet(t *testing.T) {

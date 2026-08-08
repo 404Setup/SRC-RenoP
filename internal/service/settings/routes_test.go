@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -29,8 +29,8 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
-	"renop/pkg/pb"
 	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
 
 func setupSettingsTestApp(t *testing.T, cfg *config.Config) (*fiber.App, *core.AppState) {
@@ -537,7 +537,7 @@ func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {
 		t.Fatalf("expected embedded database driver sqlite3, got %v", got.Database)
 	}
 
-	updateServer := got
+	updateServer := proto.Clone(&got).(*pb.ServerConfig)
 	updateServer.Database = &pb.DatabaseConfig{
 		Enabled:            true,
 		Driver:             "sqlite3",
@@ -546,7 +546,7 @@ func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {
 		MaxIdleConns:       10,
 		ConnMaxLifetimeSec: 600,
 	}
-	respPut := protoPUT(t, app, "/domain/server", &updateServer)
+	respPut := protoPUT(t, app, "/domain/server", updateServer)
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}

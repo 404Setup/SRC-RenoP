@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -12,6 +12,7 @@ package upload
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,16 +22,16 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/service/audit"
-	"renop/internal/service/auth"
 	"renop/internal/config"
 	"renop/internal/core"
-	"renop/pkg/pb"
+	"renop/internal/service/audit"
+	"renop/internal/service/auth"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/service/updater"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
 
 // SetupChunkedUploadRoutes registers multi-part upload endpoints under /api/upload/chunked.
@@ -229,47 +230,44 @@ func handleComplete(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		return jsonErr(c, fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	id := c.Params("id")
-	sess, ok := mgr.Get(id)
-	if !ok {
-		return jsonErr(c, fiber.StatusNotFound, "Upload session not found")
-	}
-	if !sess.OwnedBy(user.Username) {
-		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
-	}
-
-	if sess.ChunkCount > 0 && !sess.AllReceived() {
-		return jsonErr(c, fiber.StatusBadRequest, "Not all chunks received")
+	sess, err := mgr.BeginSessionCompletion(c.Params("id"), user.Username)
+	if err != nil {
+		if errors.Is(err, errSessionNotFound) {
+			return jsonErr(c, fiber.StatusNotFound, "Upload session not found")
+		}
+		if errors.Is(err, errSessionNotOwned) {
+			return jsonErr(c, fiber.StatusForbidden, "Forbidden")
+		}
+		if errors.Is(err, errChunksIncomplete) {
+			return jsonErr(c, fiber.StatusBadRequest, "Not all chunks received")
+		}
+		return jsonErr(c, fiber.StatusConflict, "Upload session is already being finalized")
 	}
 
 	if err := sess.CloseFile(); err != nil {
-		mgr.Remove(id)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusInternalServerError, "Failed to finalize upload")
 	}
 
 	switch sess.Purpose {
 	case PurposeStorage:
-		return completeStorage(c, state, mgr, sess)
+		return completeStorage(c, state, sess)
 	case PurposeUpdater:
-		return completeUpdater(c, mgr, sess)
+		return completeUpdater(c, sess)
 	default:
-		mgr.Remove(id)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusBadRequest, "Invalid purpose")
 	}
 }
 
-func completeStorage(c fiber.Ctx, state *core.AppState, mgr *Manager, sess *Session) error {
+func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	cfg := state.Inner.Config.Load().(*config.Config)
 	repo, exists := cfg.Maven.Repositories[sess.RepoName]
 	if !exists {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusNotFound, "Repository not found")
 	}
 	if user := auth.GetUser(c); user == nil || !user.CheckUpdatePermission(sess.RepoName) {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
 	}
@@ -292,14 +290,12 @@ func completeStorage(c fiber.Ctx, state *core.AppState, mgr *Manager, sess *Sess
 
 	existed := storage.PathExistsForUpload(state, localFilePath)
 	if existed && !repo.AllowRedeployment {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusConflict, "Conflict")
 	}
 
 	estimated := storage.EstimateUploadDiskSpace(localFilePath, sess.TotalSize)
 	if !status.CanAllocateDiskSpace(state, uint64(estimated)) {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusInsufficientStorage, "Insufficient disk space to upload file")
 	}
@@ -311,7 +307,6 @@ func completeStorage(c fiber.Ctx, state *core.AppState, mgr *Manager, sess *Sess
 	if sess.GenerateChecksums {
 		d, n, err := storage.HashFile(sess.TempPath)
 		if err != nil {
-			mgr.Remove(sess.ID)
 			sess.Abort()
 			return jsonErr(c, fiber.StatusInternalServerError, "Failed to hash upload")
 		}
@@ -324,7 +319,6 @@ func completeStorage(c fiber.Ctx, state *core.AppState, mgr *Manager, sess *Sess
 
 	tmpPath := sess.TempPath
 	if err := storage.CommitUploadedFile(state, localFilePath, tmpPath, fileSize, modTime, existed, sess.GenerateChecksums, digests); err != nil {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		msg := "Internal Server Error"
 		if strings.HasPrefix(err.Error(), "Failed to upload to S3:") {
@@ -335,7 +329,6 @@ func completeStorage(c fiber.Ctx, state *core.AppState, mgr *Manager, sess *Sess
 
 	sess.TempPath = ""
 	sess.MarkCompleted()
-	mgr.Remove(sess.ID)
 	uploadSucceeded = true
 
 	rel := filepath.ToSlash(localFilePath)
@@ -361,10 +354,9 @@ func completeStorage(c fiber.Ctx, state *core.AppState, mgr *Manager, sess *Sess
 	})
 }
 
-func completeUpdater(c fiber.Ctx, mgr *Manager, sess *Session) error {
+func completeUpdater(c fiber.Ctx, sess *Session) error {
 	user := auth.GetUser(c)
 	if user == nil || !user.IsManager() {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
 	}
@@ -374,13 +366,11 @@ func completeUpdater(c fiber.Ctx, mgr *Manager, sess *Session) error {
 		reqSpace = 100 * 1024 * 1024
 	}
 	if updater.CanAllocateDiskSpace != nil && !updater.CanAllocateDiskSpace(uint64(reqSpace)) {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		return jsonErr(c, fiber.StatusInsufficientStorage, "Insufficient disk space to upload update package")
 	}
 
 	if !updater.TryBeginInstall() {
-		mgr.Remove(sess.ID)
 		sess.Abort()
 		return c.Status(fiber.StatusConflict).SendString("Installation already in progress")
 	}
@@ -390,7 +380,6 @@ func completeUpdater(c fiber.Ctx, mgr *Manager, sess *Session) error {
 
 	zipPath := sess.TempPath
 	sess.TempPath = ""
-	mgr.Remove(sess.ID)
 
 	targetPath, err := updater.ExtractExecutableFromZipPath(zipPath)
 	_ = os.Remove(zipPath)
@@ -413,15 +402,12 @@ func handleAbort(c fiber.Ctx, mgr *Manager) error {
 	if user == nil || user.Username == "" || user.Username == "guest" {
 		return jsonErr(c, fiber.StatusUnauthorized, "Unauthorized")
 	}
-	id := c.Params("id")
-	sess, ok := mgr.Get(id)
-	if !ok {
+	found, owned := mgr.AbortOwned(c.Params("id"), user.Username)
+	if !found {
 		return c.SendStatus(fiber.StatusNoContent)
 	}
-	if !sess.OwnedBy(user.Username) {
+	if !owned {
 		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
 	}
-	mgr.Remove(id)
-	sess.Abort()
 	return c.SendStatus(fiber.StatusNoContent)
 }

@@ -12,13 +12,39 @@ package updater
 
 import (
 	"archive/zip"
+	"context"
 	"debug/elf"
 	"encoding/binary"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
+
+func TestDownloadAndExtractValidatesURLAndDigestBeforeNetwork(t *testing.T) {
+	validDigest := strings.Repeat("0", 64)
+	tests := []struct {
+		name      string
+		url       string
+		digest    string
+		wantError string
+	}{
+		{name: "plain HTTP", url: "http://updates.example/renop.zip", digest: validDigest, wantError: "HTTPS URL"},
+		{name: "URL user info", url: "https://user@updates.example/renop.zip", digest: validDigest, wantError: "without user info"},
+		{name: "missing digest", url: "https://updates.example/renop.zip", digest: "", wantError: "valid SHA-256"},
+		{name: "malformed digest", url: "https://updates.example/renop.zip", digest: "not-a-digest", wantError: "valid SHA-256"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := DownloadAndExtract(context.Background(), tc.url, tc.digest)
+			if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+				t.Fatalf("error = %v, want text %q", err, tc.wantError)
+			}
+		})
+	}
+}
 
 func TestValidateExecutableBinary_CurrentExe(t *testing.T) {
 	exePath, err := os.Executable()

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -25,7 +25,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/llxisdsh/pb"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -457,7 +456,7 @@ func SaveAndUploadChecksum(state *core.AppState, basePath string, ext string, ha
 	if IsS3Enabled(basePath) {
 		UploadChecksumS3(checksumPath, hash)
 	} else {
-		err := os.WriteFile(checksumPath, unsafeConvert.BytePointer(hash), 0644)
+		err := os.WriteFile(checksumPath, []byte(hash), 0644)
 		if err != nil {
 			return err
 		}

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -49,15 +49,15 @@ func ExtractAuthDetails(c fiber.Ctx) (username string, operator string, authMeth
 		cookieVal := c.Cookies("renop_session")
 
 		if currentSess, ok := c.Locals("current_session_id").(string); ok && currentSess != "" {
-			sessionID = currentSess
-			authMethod = fmt.Sprintf("Web (SessionID: %s)", safeSessionPrefix(currentSess))
+			sessionID = core.SafeAuditSessionID(currentSess)
+			authMethod = fmt.Sprintf("Web (SessionID: %s)", sessionID)
 		} else if strings.HasPrefix(authHeader, "Session ") || cookieVal != "" {
 			sID := strings.TrimPrefix(authHeader, "Session ")
 			if sID == "" {
 				sID = cookieVal
 			}
-			sessionID = sID
-			authMethod = fmt.Sprintf("Web (SessionID: %s)", safeSessionPrefix(sID))
+			sessionID = core.SafeAuditSessionID(sID)
+			authMethod = fmt.Sprintf("Web (SessionID: %s)", sessionID)
 		} else if strings.HasPrefix(authHeader, "Basic ") {
 			authMethod = "BasicAuth"
 		} else if strings.HasPrefix(authHeader, "Bearer ") {
@@ -73,13 +73,6 @@ func ExtractAuthDetails(c fiber.Ctx) (username string, operator string, authMeth
 	}
 
 	return username, operator, authMethod, sessionID, ip
-}
-
-func safeSessionPrefix(s string) string {
-	if len(s) > 8 {
-		return s[:8] + "..."
-	}
-	return s
 }
 
 func Log(state *core.AppState, entry *core.AuditLogEntry) {

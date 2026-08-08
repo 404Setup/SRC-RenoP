@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -26,6 +26,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/index"
 )
 
 func TestCreateProxyStreamSuccess(t *testing.T) {
@@ -175,5 +176,52 @@ func TestEscapeArtifactPathPreservesPlusInVersion(t *testing.T) {
 	want = "group/art%20with%20space/1.0.0+build.1/a%20b.jar"
 	if got != want {
 		t.Fatalf("escapeArtifactPath() = %q, want %q", got, want)
+	}
+}
+
+func TestProxyArtifactDoesNotPadOrCacheTruncatedSmallResponse(t *testing.T) {
+	const declaredSize = 32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Length", "32")
+		_, _ = w.Write([]byte("short"))
+	}))
+	defer upstream.Close()
+
+	tempDir := t.TempDir()
+	state := core.NewAppState()
+	state.Inner.FileIndex = index.NewFileIndex()
+	repo := &config.Repository{
+		Name: "releases",
+		Mirrors: []config.Mirror{{
+			Url: upstream.URL,
+		}},
+	}
+	path := "com/example/demo.jar"
+	localPath := filepath.Join(tempDir, repo.Name, filepath.FromSlash(path))
+	pathStr := filepath.ToSlash(localPath)
+	dl, loaded := state.Inner.InFlightDownloads.LockPath(pathStr)
+	if loaded {
+		t.Fatal("unexpected in-flight download")
+	}
+
+	stream, err := ProxyArtifact(state, repo, path, tempDir, pathStr, dl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, readErr := io.ReadAll(stream)
+	if readErr == nil {
+		t.Fatal("expected truncated upstream response to return an error")
+	}
+	if closeErr := stream.Close(); closeErr != nil && !errors.Is(closeErr, readErr) {
+		t.Fatalf("close error = %v, read error = %v", closeErr, readErr)
+	}
+	if string(data) != "short" {
+		t.Fatalf("response = %q, want only bytes received from upstream", data)
+	}
+	if len(data) == declaredSize {
+		t.Fatal("truncated response was padded to the declared content length")
+	}
+	if _, statErr := os.Stat(localPath); !errors.Is(statErr, fs.ErrNotExist) {
+		t.Fatalf("truncated response must not be cached, stat error = %v", statErr)
 	}
 }

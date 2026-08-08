@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -19,9 +19,9 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/service/auth"
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/auth"
 	"renop/internal/utils"
 )
 
@@ -91,7 +91,7 @@ const javadocTemplate = `<!DOCTYPE html>
                 <a id="raw"><h4>Raw docs</h4></a>
             </div>
         </div>
-        <iframe id="javadoc" class="doc" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+        <iframe id="javadoc" class="doc" sandbox="allow-scripts"></iframe>
         <script>
             let base = window.location.pathname;
             if (!base.endsWith('/')) {
@@ -104,6 +104,12 @@ const javadocTemplate = `<!DOCTYPE html>
 </html>`
 
 var javadocReplacer = strings.NewReplacer("{{UNPACKED_INDEX_PATH}}", "raw/index.html")
+
+const rawJavadocCSP = "sandbox allow-scripts; default-src 'self' data: blob:; " +
+	"script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+	"style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
+	"font-src 'self' data:; connect-src 'none'; object-src 'none'; " +
+	"base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
 
 func SetupJavadocRoutes(router fiber.Router, state *core.AppState) {
 	router.Get("/javadoc/:repo_name/*", func(c fiber.Ctx) error { return HandleJavadocPage(c, state) })
@@ -199,6 +205,9 @@ func ServeRawJavadoc(c fiber.Ctx, state *core.AppState, repoName string, gav str
 	}
 
 	c.Set(fiber.HeaderContentDisposition, "inline")
+	c.Set(fiber.HeaderContentSecurityPolicy, rawJavadocCSP)
+	c.Set(fiber.HeaderXContentTypeOptions, "nosniff")
+	c.Set(fiber.HeaderReferrerPolicy, "no-referrer")
 	return c.SendFile(resourcePath, fiber.SendFile{
 		CacheDuration: -1,
 		MaxAge:        3600,

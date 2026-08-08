@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -607,6 +607,7 @@ func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error
 
 	downloadURL := ""
 	var size int64
+	var sha256Digest string
 	if target != nil {
 		if target.DownloadURL != "" {
 			downloadURL = target.DownloadURL
@@ -614,6 +615,7 @@ func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error
 			downloadURL = packageURL(ChannelRelease, latestRel.Version, target.File)
 		}
 		size = target.Size
+		sha256Digest = strings.TrimSpace(target.SHA256)
 	}
 
 	relNotes := latestRel.Changelog
@@ -688,6 +690,7 @@ func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error
 		ReleaseDate:        strings.Clone(relDate),
 		ReleaseNotes:       strings.Clone(relNotes),
 		CommitSha:          strings.Clone(commitSha),
+		SHA256:             strings.Clone(sha256Digest),
 		IsRelease:          true,
 	}, nil
 }
@@ -732,6 +735,7 @@ func checkNightly(ctx context.Context, client *http.Client) (*CheckResult, error
 
 	downloadURL := ""
 	var size int64
+	var sha256Digest string
 	if target != nil {
 		if target.DownloadURL != "" {
 			downloadURL = target.DownloadURL
@@ -739,6 +743,7 @@ func checkNightly(ctx context.Context, client *http.Client) (*CheckResult, error
 			downloadURL = packageURL(ChannelNightly, latestRel.Version, target.File)
 		}
 		size = target.Size
+		sha256Digest = strings.TrimSpace(target.SHA256)
 	}
 
 	commitSha := strings.TrimSpace(latestRel.Commit)
@@ -785,6 +790,7 @@ func checkNightly(ctx context.Context, client *http.Client) (*CheckResult, error
 		ReleaseDate:        strings.Clone(commitDate),
 		ReleaseNotes:       strings.Clone(releaseNotes),
 		CommitSha:          strings.Clone(commitSha),
+		SHA256:             strings.Clone(sha256Digest),
 		IsRelease:          false,
 	}, nil
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -99,8 +99,44 @@ func TestCorsPreflightWildcard(t *testing.T) {
 	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "https://cdn.pkg.one" {
 		t.Fatalf("ACAO = %q", got)
 	}
-	if got := resp.Header.Get("Access-Control-Allow-Methods"); got != "PUT" {
+	if got := resp.Header.Get("Access-Control-Allow-Methods"); got != corsAllowMethods {
 		t.Fatalf("methods = %q", got)
+	}
+	if got := resp.Header.Get("Access-Control-Allow-Headers"); got != corsAllowHeaders {
+		t.Fatalf("headers = %q", got)
+	}
+}
+
+func TestCorsPreflightRejectsUnsupportedMethodAndHeader(t *testing.T) {
+	sc := config.DefaultServerConfig()
+	sc.CorsOrigins = []string{"https://allowed.example"}
+	app := setupCorsApp(t, sc)
+
+	tests := []struct {
+		name    string
+		method  string
+		headers string
+	}{
+		{name: "method", method: "TRACE"},
+		{name: "header", method: "GET", headers: "X-Renop-Internal"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodOptions, "/api/ping", nil)
+			req.Header.Set("Origin", "https://allowed.example")
+			req.Header.Set("Access-Control-Request-Method", tc.method)
+			if tc.headers != "" {
+				req.Header.Set("Access-Control-Request-Headers", tc.headers)
+			}
+			resp, err := app.Test(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusForbidden {
+				t.Fatalf("status = %d, want 403", resp.StatusCode)
+			}
+		})
 	}
 }
 

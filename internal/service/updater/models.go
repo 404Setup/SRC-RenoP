@@ -76,6 +76,7 @@ type UpdateState struct {
 	ReleaseDate        string `json:"release_date,omitempty"`
 	ReleaseNotes       string `json:"release_notes,omitempty"`
 	CommitSha          string `json:"commit_sha,omitempty"`
+	SHA256             string `json:"-"`
 	IsRelease          bool   `json:"is_release"`
 }
 
@@ -87,6 +88,7 @@ type CheckResult struct {
 	ReleaseDate        string `json:"release_date"`
 	ReleaseNotes       string `json:"release_notes"`
 	CommitSha          string `json:"commit_sha"`
+	SHA256             string `json:"sha256"`
 	Size               int64  `json:"size"`
 	EstimatedDiskSpace int64  `json:"estimated_disk_space"`
 	HasUpdate          bool   `json:"has_update"`

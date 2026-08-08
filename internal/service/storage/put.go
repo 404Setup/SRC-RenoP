@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -26,13 +26,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
-	"renop/internal/service/audit"
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/audit"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/status"
@@ -56,7 +55,7 @@ func WriteChecksumFile(parent string, baseName string, ext string, hash string, 
 	name := baseName + ext
 	path := filepath.Join(parent, name)
 
-	err := os.WriteFile(path, unsafeConvert.BytePointer(hash), 0644)
+	err := os.WriteFile(path, []byte(hash), 0644)
 	if err != nil {
 		return err
 	}

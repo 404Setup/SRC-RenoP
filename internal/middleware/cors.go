@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -25,6 +25,27 @@ const (
 	corsMaxAge       = "86400"
 )
 
+func isCorsMethodAllowed(method string) bool {
+	switch strings.ToUpper(strings.TrimSpace(method)) {
+	case fiber.MethodGet, fiber.MethodHead, fiber.MethodPost, fiber.MethodPut,
+		fiber.MethodPatch, fiber.MethodDelete, fiber.MethodOptions:
+		return true
+	default:
+		return false
+	}
+}
+
+func areCorsHeadersAllowed(headers string) bool {
+	for header := range strings.SplitSeq(headers, ",") {
+		switch strings.ToLower(strings.TrimSpace(header)) {
+		case "", "accept", "authorization", "content-type", "origin", "x-requested-with":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // CorsMiddleware enforces browser CORS using server.domains ∪ server.cors_origins.
 // Credentials are always allowed when an Origin matches so session cookies work
 // for approved cross-origin UIs. Disallowed origins receive no CORS headers.
@@ -49,17 +70,13 @@ func CorsMiddleware(state *core.AppState) fiber.Handler {
 
 		if c.Method() == fiber.MethodOptions {
 			reqHeaders := strings.TrimSpace(c.Get(fiber.HeaderAccessControlRequestHeaders))
-			if reqHeaders != "" {
-				c.Set(fiber.HeaderAccessControlAllowHeaders, reqHeaders)
-			} else {
-				c.Set(fiber.HeaderAccessControlAllowHeaders, corsAllowHeaders)
-			}
 			reqMethod := strings.TrimSpace(c.Get(fiber.HeaderAccessControlRequestMethod))
-			if reqMethod != "" {
-				c.Set(fiber.HeaderAccessControlAllowMethods, reqMethod)
-			} else {
-				c.Set(fiber.HeaderAccessControlAllowMethods, corsAllowMethods)
+			if (reqMethod != "" && !isCorsMethodAllowed(reqMethod)) ||
+				(reqHeaders != "" && !areCorsHeadersAllowed(reqHeaders)) {
+				return c.SendStatus(fiber.StatusForbidden)
 			}
+			c.Set(fiber.HeaderAccessControlAllowHeaders, corsAllowHeaders)
+			c.Set(fiber.HeaderAccessControlAllowMethods, corsAllowMethods)
 			c.Set(fiber.HeaderAccessControlMaxAge, corsMaxAge)
 			return c.SendStatus(fiber.StatusNoContent)
 		}

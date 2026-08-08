@@ -24,7 +24,7 @@ const fileCacheShardCount = 16
 
 // FileByteCache is a size-bounded in-memory cache for small artifact metadata.
 // It starts empty (no preallocation), shards keys for concurrent access, and
-// reuses same-size entry buffers on Set to avoid needless allocations.
+// publishes immutable entry buffers so reads stay allocation- and race-free.
 type FileByteCache struct {
 	maxBytes int
 	used     atomic.Int64
@@ -103,8 +103,9 @@ func (c *FileByteCache) GetReadOnlyView(key string) ([]byte, error) {
 	return v, nil
 }
 
-// Set stores a copy of value under key, evicting oldest entries until under budget.
-// When the key already holds a buffer of the same length, the buffer is reused.
+// Set stores an immutable copy of value under key, evicting oldest entries until
+// under budget. Existing buffers are never mutated because readers may still
+// hold a read-only view after the shard lock is released.
 func (c *FileByteCache) Set(key string, value []byte) error {
 	if c == nil {
 		return nil
@@ -112,24 +113,17 @@ func (c *FileByteCache) Set(key string, value []byte) error {
 	if len(value) > c.maxBytes {
 		return nil
 	}
+	data := make([]byte, len(value))
+	copy(data, value)
 
 	s := c.shard(key)
 	s.mu.Lock()
 
-	delta := int64(len(value))
+	delta := int64(len(data))
 	if old, ok := s.entries[key]; ok {
-		if len(old) == len(value) {
-			copy(old, value)
-			s.mu.Unlock()
-			return nil
-		}
 		delta -= int64(len(old))
-		data := make([]byte, len(value))
-		copy(data, value)
 		s.entries[key] = data
 	} else {
-		data := make([]byte, len(value))
-		copy(data, value)
 		s.entries[key] = data
 		s.order = append(s.order, key)
 	}

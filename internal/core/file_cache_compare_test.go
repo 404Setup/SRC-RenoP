@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -17,7 +17,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -381,8 +380,6 @@ func BenchmarkCache_SetParallel(b *testing.B) {
 		b.Cleanup(func() { _ = c.Close() })
 		b.ReportAllocs()
 		b.ResetTimer()
-		var mu sync.Mutex
-		_ = mu
 		b.RunParallel(func(pb *testing.PB) {
 			i := 0
 			for pb.Next() {
