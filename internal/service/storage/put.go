@@ -102,7 +102,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 
 	exists := PathExistsForUpload(state, localFilePath)
 
-	if !repo.AllowRedeployment && exists {
+	if !repo.AllowRedeployment && exists && !isMutableMavenMetadataPath(localFilePath) {
 		return c.Status(fiber.StatusConflict).SendString("Conflict")
 	}
 
@@ -371,6 +371,17 @@ func PathExistsForUpload(state *core.AppState, localFilePath string) bool {
 		exists = err == nil
 	}
 	return exists
+}
+
+func isMutableMavenMetadataPath(path string) bool {
+	name := filepath.Base(path)
+	if name == "maven-metadata.xml" {
+		return true
+	}
+	if !strings.HasPrefix(name, "maven-metadata.xml.") {
+		return false
+	}
+	return isArtifactCompanionPath(name)
 }
 
 func uploadAndCleanup(localPath string) error {

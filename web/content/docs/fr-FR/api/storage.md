@@ -41,8 +41,8 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-Un upload réussi renvoie `201 Created`. Si le redeploy est désactivé et que l’objet existe déjà, la requête échoue avec
-`409 Conflict`.
+Un upload réussi renvoie `201 Created`. Si le redeploy est désactivé et que l’artefact existe déjà, la requête échoue avec
+`409 Conflict`. Les métadonnées Maven (`maven-metadata.xml` et les fichiers de somme de contrôle ou de signature associés) restent modifiables.
 
 L’en-tête optionnel `X-Generate-Checksums: true` écrit les sidecars `.md5`, `.sha1`, `.sha256` et `.sha512`.
 

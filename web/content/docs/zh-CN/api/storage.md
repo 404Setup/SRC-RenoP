@@ -40,7 +40,7 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-成功时返回 `201 Created`。若已禁用 redeploy 且目标文件已存在，返回 `409 Conflict`。
+成功时返回 `201 Created`。若已禁用 redeploy 且目标构件已存在，返回 `409 Conflict`。Maven 元数据（`maven-metadata.xml` 及其校验和或签名伴随文件）仍可更新。
 
 可选请求头 `X-Generate-Checksums: true` 会写入 `.md5`、`.sha1`、`.sha256`、`.sha512` 旁路文件。
 

@@ -27,7 +27,7 @@ func setupCorsApp(t *testing.T, sc config.ServerConfig) *fiber.App {
 	state := core.NewAppState()
 	cfg := config.DefaultConfig()
 	cfg.Server = sc
-	state.Inner.Config.Store(&cfg)
+	state.Inner.Config.Store(cfg)
 
 	app := fiber.New()
 	app.Use(CorsMiddleware(state))

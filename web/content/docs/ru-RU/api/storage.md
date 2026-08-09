@@ -41,7 +41,7 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-Успешный upload возвращает `201 Created`. Если redeploy отключён и объект уже существует, ответ — `409 Conflict`.
+Успешный upload возвращает `201 Created`. Если redeploy отключён и артефакт уже существует, ответ — `409 Conflict`. Метаданные Maven (`maven-metadata.xml` и связанные файлы контрольных сумм или подписей) по-прежнему можно обновлять.
 
 Опциональный request header `X-Generate-Checksums: true` записывает sidecar-файлы `.md5`, `.sha1`, `.sha256` и
 `.sha512`.

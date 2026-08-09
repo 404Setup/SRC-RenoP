@@ -40,7 +40,7 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-成功時は `201 Created` を返します。redeploy が無効で対象オブジェクトが既に存在する場合、`409 Conflict` になります。
+成功時は `201 Created` を返します。redeploy が無効で対象アーティファクトが既に存在する場合、`409 Conflict` になります。Maven メタデータ（`maven-metadata.xml` とそのチェックサムまたは署名の付随ファイル）は引き続き更新できます。
 
 任意のリクエスト ヘッダ `X-Generate-Checksums: true` は `.md5`、`.sha1`、`.sha256`、`.sha512` サイドカーを書き込みます。
 

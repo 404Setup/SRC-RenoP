@@ -20,7 +20,7 @@ func TestGetS3ConfigForPathRequiresStorageBoundary(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = "storage"
 	cfg.Maven.Repositories["releases"].S3 = &config.S3Config{Enabled: true}
-	InitS3(&cfg)
+	InitS3(cfg)
 
 	if got := GetS3ConfigForPath("storageevil/releases/file.jar"); got != nil {
 		t.Fatal("matched an S3 repository outside the configured storage path")
