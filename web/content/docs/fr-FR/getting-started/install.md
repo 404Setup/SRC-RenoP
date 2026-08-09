@@ -19,11 +19,18 @@ description: Télécharger le binaire RenoP
 1. Extraire dans un répertoire de travail
 2. `renop.exe` (Windows) ou `./renop` (Unix)
 
-Écoute `0.0.0.0:3000` par défaut. Définir `RENOP_DEFAULT_ADMIN_PASSWORD` avant le premier démarrage — [démarrage rapide](./quickstart.md).
+Écoute `0.0.0.0:3000` par défaut. Définir `RENOP_DEFAULT_ADMIN_PASSWORD` avant le premier
+démarrage — [démarrage rapide](./quickstart.md).
 
 ## Compiler
 
-Go, PowerShell 7, Node.js.
+Utilisez [notre fork de Go](https://github.com/404Setup/go/releases), pas la version officielle. PowerShell 7 et Node.js
+sont également requis.
+
+1. Relevez la version `go` dans `go.mod`.
+2. Téléchargez la dernière release `go<version>` pour votre système et votre architecture.
+3. Vérifiez l'archive avec le fichier `SHA256SUMS` de la même release.
+4. Extrayez-la, définissez `GOROOT` sur le répertoire `go`, ajoutez `GOROOT/bin` au `PATH`, puis lancez `go version`.
 
 ```powershell
 pwsh ./build.ps1

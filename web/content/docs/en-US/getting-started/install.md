@@ -19,11 +19,18 @@ description: Download the RenoP binary
 1. Extract into a working directory
 2. Run `renop.exe` (Windows) or `./renop` (Unix)
 
-Listens on `0.0.0.0:3000` by default. Set `RENOP_DEFAULT_ADMIN_PASSWORD` before first start — [Quick start](./quickstart.md).
+Listens on `0.0.0.0:3000` by default. Set `RENOP_DEFAULT_ADMIN_PASSWORD` before first
+start — [Quick start](./quickstart.md).
 
 ## Build from source
 
-Needs Go, PowerShell 7, Node.js.
+Use [our Go fork](https://github.com/404Setup/go/releases), not the official Go toolchain. PowerShell 7 and Node.js are
+also required.
+
+1. Check the `go` version in `go.mod`.
+2. Download the newest `go<version>` release for your OS and architecture.
+3. Check the archive against `SHA256SUMS` from the same release.
+4. Extract it, set `GOROOT` to the `go` directory, add `GOROOT/bin` to `PATH`, and run `go version`.
 
 ```powershell
 pwsh ./build.ps1                 # full matrix → dist/

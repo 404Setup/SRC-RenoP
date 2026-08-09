@@ -63,7 +63,13 @@ Most settings can also be changed from the management UI. Restart the server aft
 
 ## Building
 
-Building from source requires **Go**, **PowerShell 7**, and **Node.js** (for the frontend Rolldown bundle).
+RenoP must be built with [our Go fork](https://github.com/404Setup/go/releases). The official Go toolchain will not work
+because RenoP uses our changes to the runtime and standard library. You will also need PowerShell 7 and Node.js.
+
+1. Check the `go` version in [`go.mod`](go.mod).
+2. From the Go fork's releases, download the newest tag beginning with `go<version>` for your OS and architecture.
+3. Check the download against `SHA256SUMS` from the same release.
+4. Extract it, set `GOROOT` to the extracted `go` directory, add `GOROOT/bin` to `PATH`, and run `go version`.
 
 ```powershell
 pwsh ./build.ps1
@@ -108,11 +114,10 @@ A better choice is to open an Issue or submit a PR — we do our best to listen 
 
 ## License
 
-RenoP is licensed under the [Mozilla Public License 2.0](LICENSE) and is
-marked as incompatible with secondary licenses.
+RenoP is licensed under the [Mozilla Public License 2.0](LICENSE) and is marked as incompatible with secondary licenses.
 
-Third-party components retain their own licenses. Copyright notices, SPDX
-identifiers, Apache `NOTICE` excerpts, and full license texts are in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) (also shipped in release
-archives). RenoP used [Reposilite](https://github.com/dzikoysk/reposilite) as a
-design reference only; its code is not redistributed here.
+Third-party components retain their own licenses. Copyright notices, SPDX identifiers, Apache `NOTICE` excerpts, and
+full license texts are in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) (also shipped in release archives). RenoP
+used [Reposilite](https://github.com/dzikoysk/reposilite) as a design reference only; its code is not redistributed
+here.

@@ -22,7 +22,17 @@ redistributed by RenoP. Reposilite is available under its own license (Apache-2.
 
 ## Inventory
 
-### A. Go modules linked into the RenoP server binary
+### A. Go toolchain, runtime, and standard library
+
+RenoP binaries include runtime and standard-library code from the [404Setup Go fork](https://github.com/404Setup/go).
+The exact fork release is selected from the Go version in `go.mod`. Prebuilt RenoP releases do not need an external Go
+installation.
+
+| Component                                          | Version                                             | SPDX         | Copyright / notices                                                                   |
+|----------------------------------------------------|-----------------------------------------------------|--------------|---------------------------------------------------------------------------------------|
+| [404Setup Go fork](https://github.com/404Setup/go) | `go.mod` directive (release resolved at build time) | BSD-3-Clause | Copyright 2009 The Go Authors; retains the Go project `LICENSE` and `PATENTS` notices |
+
+### B. Go modules linked into the RenoP server binary
 
 | Module                                | Version                            | SPDX                                       | Copyright / notices                                                                                            |
 |---------------------------------------|------------------------------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------|
@@ -89,7 +99,7 @@ Platform-specific transitive modules (via `gopsutil` and related code), which ma
 | `github.com/tklauser/go-sysconf`   | v0.4.0                             | BSD-3-Clause | Copyright (c) 2018-2022 Tobias Klauser |
 | `github.com/tklauser/numcpus`      | v0.12.0                            | Apache-2.0   | Copyright 2018 Tobias Klauser          |
 
-### B. Test-only Go modules (not required for binary distribution)
+### C. Test-only Go modules (not required for binary distribution)
 
 These appear in `go.mod` for the test suite. They are not part of release binaries, but remain third-party software in
 the source tree:
@@ -103,7 +113,7 @@ the source tree:
 | `gopkg.in/check.v1`             | v1.0.0-20201130134442-10cb98267c6c | BSD-2-Clause       | Copyright (c) 2010-2013 Gustavo Niemeyer                         |
 | `gopkg.in/yaml.v3`              | v3.0.1                             | MIT AND Apache-2.0 | Same dual-license scheme as `go.yaml.in/yaml/v3`                 |
 
-### C. Frontend / website dependencies and assets
+### D. Frontend / website dependencies and assets
 
 The management UI is embedded into the server binary after bundling. Website packages under `web/` are used for the
 marketing site and documentation, not the server binary.
@@ -147,6 +157,20 @@ are under **Apache-2.0** (Copyright (c) 2011-2019 Canonical Ltd). Both notices a
 
 Primarily **BSD-3-Clause**. Some subpaths (for example `gzhttp/*`) are under **Apache-2.0**. See the package’s own
 `LICENSE` file for the full split.
+
+### 404Setup Go fork
+
+The custom Go distribution used to build RenoP is maintained at
+<https://github.com/404Setup/go>. It is a modified version of the Go project and retains the upstream
+[BSD-3-Clause license](https://github.com/404Setup/go/blob/master/LICENSE) and
+[additional patent grant](https://github.com/404Setup/go/blob/master/PATENTS). Its copyright notice is:
+
+```text
+Copyright 2009 The Go Authors.
+```
+
+The BSD-3-Clause terms are reproduced in [License texts](#bsd-3-clause-license). The additional patent grant is
+available with the fork source.
 
 ---
 

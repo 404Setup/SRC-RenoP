@@ -23,7 +23,13 @@ description: 下载 RenoP 二进制
 
 ## 从源码构建
 
-需要 Go、PowerShell 7、Node.js。
+源码构建必须使用[我们维护的 Go fork](https://github.com/404Setup/go/releases)，不能使用官方 Go。还需要 PowerShell 7 和
+Node.js。
+
+1. 查看 `go.mod` 中的 `go` 版本。
+2. 在 releases 中找到最新的 `go<版本>` tag，下载当前系统和架构对应的文件。
+3. 使用同一 release 中的 `SHA256SUMS` 校验文件。
+4. 解压后将 `GOROOT` 指向 `go` 目录，把 `GOROOT/bin` 加入 `PATH`，再运行 `go version` 确认版本。
 
 ```powershell
 pwsh ./build.ps1

@@ -19,11 +19,18 @@ description: Скачать бинарник RenoP
 1. Распаковать в рабочую директорию
 2. `renop.exe` (Windows) или `./renop` (Unix)
 
-По умолчанию `0.0.0.0:3000`. Перед первым стартом задайте `RENOP_DEFAULT_ADMIN_PASSWORD` — [быстрый старт](./quickstart.md).
+По умолчанию `0.0.0.0:3000`. Перед первым стартом задайте
+`RENOP_DEFAULT_ADMIN_PASSWORD` — [быстрый старт](./quickstart.md).
 
 ## Сборка из исходников
 
-Нужны Go, PowerShell 7, Node.js.
+Используйте [наш fork Go](https://github.com/404Setup/go/releases), а не официальную сборку. Также нужны PowerShell 7 и
+Node.js.
+
+1. Посмотрите версию `go` в `go.mod`.
+2. Скачайте последний release `go<версия>` для своей ОС и архитектуры.
+3. Проверьте архив по файлу `SHA256SUMS` из того же release.
+4. Распакуйте архив, задайте `GOROOT` равным каталогу `go`, добавьте `GOROOT/bin` в `PATH` и запустите `go version`.
 
 ```powershell
 pwsh ./build.ps1

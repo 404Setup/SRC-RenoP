@@ -23,7 +23,13 @@ description: RenoP バイナリの入手
 
 ## ソースからビルド
 
-Go、PowerShell 7、Node.js が必要。
+公式版 Go ではなく、[404Setup の Go fork](https://github.com/404Setup/go/releases)を使用してください。 PowerShell 7 と
+Node.js も必要です。
+
+1. `go.mod` の `go` バージョンを確認します。
+2. OS とアーキテクチャに合う最新の `go<バージョン>` release をダウンロードします。
+3. 同じ release の `SHA256SUMS` で archive を確認します。
+4. 展開後、`GOROOT` を `go` ディレクトリに設定し、`GOROOT/bin` を `PATH` に追加して `go version` を 実行します。
 
 ```powershell
 pwsh ./build.ps1
