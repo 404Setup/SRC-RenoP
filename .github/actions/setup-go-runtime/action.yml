@@ -1,0 +1,116 @@
+name: Setup 404Setup Go runtime
+description: Install a matching prebuilt Go runtime from 404Setup/go releases
+
+inputs:
+  go-version:
+    description: Go version prefix without the leading "go"; read from go-version-file when omitted
+    required: false
+    default: ""
+  go-version-file:
+    description: File containing a Go version directive, relative to the workspace
+    required: false
+    default: go.mod
+  repository:
+    description: GitHub repository that publishes the Go runtime releases
+    required: false
+    default: 404Setup/go
+  github-token:
+    description: Token used to query GitHub releases and download private assets
+    required: false
+    default: ""
+  cache:
+    description: Cache the installed runtime, module cache, and build cache
+    required: false
+    default: "true"
+  cache-dependency-path:
+    description: Dependency file used to key the Go module and build caches
+    required: false
+    default: go.sum
+
+outputs:
+  go-version:
+    description: Resolved release tag
+    value: ${{ steps.resolve.outputs.tag }}
+  goroot:
+    description: Root directory of the installed Go runtime
+    value: ${{ steps.install.outputs.goroot }}
+  asset-name:
+    description: Name of the installed release asset
+    value: ${{ steps.resolve.outputs.asset-name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve Go runtime release
+      id: resolve
+      shell: pwsh
+      env:
+        SETUP_GO_VERSION: ${{ inputs.go-version }}
+        SETUP_GO_VERSION_FILE: ${{ inputs.go-version-file }}
+        SETUP_GO_REPOSITORY: ${{ inputs.repository }}
+        SETUP_GO_TOKEN: ${{ inputs.github-token || github.token }}
+      run: |
+        & (Join-Path $env:GITHUB_ACTION_PATH 'resolve-release.ps1') `
+          -Version $env:SETUP_GO_VERSION `
+          -VersionFile $env:SETUP_GO_VERSION_FILE `
+          -Workspace $env:GITHUB_WORKSPACE `
+          -Repository $env:SETUP_GO_REPOSITORY `
+          -RunnerOS $env:RUNNER_OS `
+          -RunnerArchitecture $env:RUNNER_ARCH `
+          -Token $env:SETUP_GO_TOKEN `
+          -ToolCache $env:RUNNER_TOOL_CACHE `
+          -OutputFile $env:GITHUB_OUTPUT
+
+    - name: Restore Go runtime cache
+      if: inputs.cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.resolve.outputs.install-directory }}
+        key: custom-go-runtime-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-${{ steps.resolve.outputs.sha256 }}
+
+    - name: Install and activate Go runtime
+      id: install
+      shell: pwsh
+      env:
+        SETUP_GO_ASSET_NAME: ${{ steps.resolve.outputs.asset-name }}
+        SETUP_GO_ASSET_URL: ${{ steps.resolve.outputs.asset-url }}
+        SETUP_GO_INSTALL_DIRECTORY: ${{ steps.resolve.outputs.install-directory }}
+        SETUP_GO_SHA256: ${{ steps.resolve.outputs.sha256 }}
+        SETUP_GO_TOKEN: ${{ inputs.github-token || github.token }}
+      run: |
+        & (Join-Path $env:GITHUB_ACTION_PATH 'install-runtime.ps1') `
+          -AssetName $env:SETUP_GO_ASSET_NAME `
+          -AssetUrl $env:SETUP_GO_ASSET_URL `
+          -InstallDirectory $env:SETUP_GO_INSTALL_DIRECTORY `
+          -Sha256 $env:SETUP_GO_SHA256 `
+          -Token $env:SETUP_GO_TOKEN `
+          -EnvironmentFile $env:GITHUB_ENV `
+          -PathFile $env:GITHUB_PATH `
+          -OutputFile $env:GITHUB_OUTPUT
+
+    - name: Read Go cache directories
+      if: inputs.cache == 'true'
+      id: go-cache
+      shell: pwsh
+      run: |
+        $paths = @(
+          (& go env GOMODCACHE).Trim()
+          (& go env GOCACHE).Trim()
+        )
+        if ($LASTEXITCODE -ne 0 -or $paths.Where({ [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+          throw 'Unable to determine the Go cache directories.'
+        }
+        $delimiter = "go-cache-$([guid]::NewGuid().ToString('N'))"
+        "paths<<$delimiter" >> $env:GITHUB_OUTPUT
+        $paths >> $env:GITHUB_OUTPUT
+        $delimiter >> $env:GITHUB_OUTPUT
+
+    - name: Restore Go module and build caches
+      if: inputs.cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.go-cache.outputs.paths }}
+        key: go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-${{ hashFiles(inputs.cache-dependency-path) }}
+        restore-keys: |
+          go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-
+          go-cache-${{ runner.os }}-${{ runner.arch }}-

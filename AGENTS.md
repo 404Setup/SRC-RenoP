@@ -15,12 +15,13 @@
 - **`proto/`**: Protocol Buffers schema definitions (`proto/api/v1/api.proto`).
 - **`web/`**, **`packages/`**, & **`internal/service/frontend/renop-html/`**: Frontend web UI and workspace packages (managed via `pnpm`).
 - **`build.ps1`**: PowerShell 7 build script for single and cross-platform builds.
+- **`.github/actions/setup-go-runtime/`**: Composite Action that resolves, verifies, installs, and caches the prebuilt custom Go runtime from `404Setup/go` releases.
 
 ---
 
 ## 2. Environment & Toolchains
 
-- **Go**: Go 1.28+ (Our own Go fork)
+- **Go**: Go 1.28+ from the `404Setup/go` fork. CI reads the required version from the `go` directive in `go.mod` unless the setup Action receives an explicit version, then selects the newest matching release prefix (including prerelease/development tags).
 - **Node.js**: Node.js 18+ with **pnpm**
 - **PowerShell**: PowerShell 7 (`pwsh`)
 - **Protobuf Compiler**: `protoc` (with `protoc-gen-go` plugin)
@@ -44,6 +45,8 @@
   ```
 - **Protobuf Generation**:
   `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`
+- **CI Go Runtime Setup**:
+  `.github/actions/setup-go-runtime` installs the matching prebuilt release asset (`.tar.gz` on non-Windows runners, `.zip` on Windows), verifies its GitHub-provided SHA-256 digest, and sets `GOROOT`, `PATH`, and `GOTOOLCHAIN=local`.
 
 ### Testing & Verification
 - **Run All Tests**:
