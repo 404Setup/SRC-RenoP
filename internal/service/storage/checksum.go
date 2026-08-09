@@ -87,7 +87,7 @@ func handleChecksumFallback(c fiber.Ctx, localFilePath string, state *core.AppSt
 				hSha512 := sha512.New()
 
 				mw := io.MultiWriter(hMd5, hSha1, hSha256, hSha512)
-				bufPtr := bufferPool128k.Get().(*[]byte)
+				bufPtr := bufferPool128k.Get()
 				_, copyErr := io.CopyBuffer(mw, r, *bufPtr)
 				bufferPool128k.Put(bufPtr)
 				if copyErr == nil {

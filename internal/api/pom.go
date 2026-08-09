@@ -35,7 +35,7 @@ import (
 )
 
 func ResolveBasePath(state *core.AppState, repoName string, path string) (string, error) {
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	if _, ok := cfg.Maven.Repositories[repoName]; !ok {
 		return "", fiber.ErrNotFound
 	}
@@ -97,7 +97,7 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repoPath := filepath.Join(cfg.StoragePath, repoName)
 	if !strings.HasPrefix(filepath.Clean(basePath), filepath.Clean(repoPath)+string(os.PathSeparator)) {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")

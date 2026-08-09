@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	syncv2 "sync/v2"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,8 +52,8 @@ const (
 )
 
 // chunkBufPool reuses read buffers across concurrent WriteChunk calls.
-var chunkBufPool = sync.Pool{
-	New: func() any {
+var chunkBufPool = syncv2.Pool[*[]byte]{
+	New: func() *[]byte {
 		b := make([]byte, chunkIOBufSize)
 		return &b
 	},
@@ -455,7 +456,7 @@ func (s *Session) WriteChunk(index int, r io.Reader, contentLength int64) error 
 		return err
 	}
 
-	bufPtr := chunkBufPool.Get().(*[]byte)
+	bufPtr := chunkBufPool.Get()
 	buf := *bufPtr
 	defer chunkBufPool.Put(bufPtr)
 

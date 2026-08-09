@@ -18,7 +18,6 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/index"
@@ -133,7 +132,7 @@ func StartServices(state *core.AppState, context BootstrapContext) {
 		}
 	}()
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	storagePath := cfg.StoragePath
 
 	watcher, err := index.StartFileWatcher(storagePath, state.Inner.FileIndex)

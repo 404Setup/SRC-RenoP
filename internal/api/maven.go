@@ -29,7 +29,7 @@ import (
 func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Metadata, error) {
 	const maxMetadataSize = 2 * 1024 * 1024
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	if !utils.IsValidRepositoryName(repoName) {
 		return nil, fiber.ErrBadRequest
 	}

@@ -46,7 +46,7 @@ func TestPostAuthLogin(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.DB = db
 	cfg := config.DefaultConfig()
-	state.Inner.Config.Store(&cfg)
+	state.Inner.Config.Store(cfg)
 
 	const secret = "test-admin-password"
 	hash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.MinCost)

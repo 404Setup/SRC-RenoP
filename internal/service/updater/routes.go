@@ -20,7 +20,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/utils/protohttp"
@@ -43,11 +42,7 @@ func resolveConfiguredUpdater(state *core.AppState) (Channel, UpdateMode) {
 	if cfgVal == nil {
 		return ChannelRelease, ModeManual
 	}
-	cfg, ok := cfgVal.(*config.Config)
-	if !ok || cfg == nil {
-		return ChannelRelease, ModeManual
-	}
-	return ParseChannel(cfg.Updater.Channel), ParseUpdateMode(cfg.Updater.Mode)
+	return ParseChannel(cfgVal.Updater.Channel), ParseUpdateMode(cfgVal.Updater.Mode)
 }
 
 func resolveCheckChannel(query string, state *core.AppState) Channel {

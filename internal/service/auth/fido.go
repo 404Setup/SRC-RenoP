@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	syncv2 "sync/v2"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -92,7 +93,7 @@ type fidoSessionEntry struct {
 }
 
 var (
-	fidoSessionMap sync.Map
+	fidoSessionMap syncv2.Map[string, *fidoSessionEntry]
 	cleanFidoOnce  sync.Once
 )
 
@@ -107,11 +108,9 @@ func storeFidoSession(sessionID string, sessionData *webauthn.SessionData, usern
 			ticker := time.NewTicker(5 * time.Minute)
 			for range ticker.C {
 				now := time.Now()
-				fidoSessionMap.Range(func(key, val any) bool {
-					if entry, ok := val.(*fidoSessionEntry); ok {
-						if now.Sub(entry.createdAt) > 10*time.Minute {
-							fidoSessionMap.Delete(key)
-						}
+				fidoSessionMap.Range(func(k string, v *fidoSessionEntry) bool {
+					if now.Sub(v.createdAt) > 10*time.Minute {
+						fidoSessionMap.Delete(k)
 					}
 					return true
 				})
@@ -125,18 +124,17 @@ func getFidoSession(sessionID string) (*webauthn.SessionData, string, bool) {
 	if !ok {
 		return nil, "", false
 	}
-	entry := val.(*fidoSessionEntry)
-	if time.Since(entry.createdAt) > 10*time.Minute {
+	if time.Since(val.createdAt) > 10*time.Minute {
 		return nil, "", false
 	}
-	return entry.sessionData, entry.username, true
+	return val.sessionData, val.username, true
 }
 
 func getWebAuthnEngine(c fiber.Ctx, state *core.AppState) (*webauthn.WebAuthn, error) {
 	var cfg *config.Config
 	if state != nil {
 		if cfgVal := state.Inner.Config.Load(); cfgVal != nil {
-			cfg = cfgVal.(*config.Config)
+			cfg = cfgVal
 		}
 	}
 
@@ -538,8 +536,7 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 
 func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 	cfgVal := state.Inner.Config.Load()
-	cfg := cfgVal.(*config.Config)
-	ip := utils.ExtractIP(c, &cfg.Server)
+	ip := utils.ExtractIP(c, &cfgVal.Server)
 	userAgent := c.Get(fiber.HeaderUserAgent, "Unknown")
 
 	var req FidoLoginFinishRequest

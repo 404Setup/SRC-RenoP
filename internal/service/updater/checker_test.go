@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	atomic2 "sync/atomic/v2"
 	"testing"
 
 	"renop/internal/config"
@@ -570,7 +571,7 @@ func TestParseChannelAndMode(t *testing.T) {
 }
 
 func TestResolveCheckChannelFromConfig(t *testing.T) {
-	var cfgAtomic atomic.Value
+	var cfgAtomic atomic2.Value[*config.Config]
 	cfgAtomic.Store(&config.Config{
 		Updater: config.UpdaterConfig{Channel: "nightly", Mode: "manual"},
 	})

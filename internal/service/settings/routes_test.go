@@ -136,7 +136,7 @@ func TestUpdaterDomainSettings(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	var got pb.UpdaterConfig
 	respGet := protoGET(t, app, "/domain/updater", &got)
@@ -152,7 +152,7 @@ func TestUpdaterDomainSettings(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	if updatedCfg.Updater.Channel != "nightly" || updatedCfg.Updater.Mode != "auto_check" {
 		t.Fatalf("expected updater config to be updated, got channel=%s mode=%s", updatedCfg.Updater.Channel, updatedCfg.Updater.Mode)
 	}
@@ -164,7 +164,7 @@ func TestFullDomainUpdateReplacesUpdater(t *testing.T) {
 	cfg.StoragePath = tempDir
 	cfg.Updater.Channel = "nightly"
 	cfg.Updater.Mode = "manual"
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/domain/updater", &pb.UpdaterConfig{
 		Channel: "release",
@@ -174,7 +174,7 @@ func TestFullDomainUpdateReplacesUpdater(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	if updatedCfg.Updater.Channel != "release" {
 		t.Fatalf("expected channel 'release', got %s", updatedCfg.Updater.Channel)
 	}
@@ -197,7 +197,7 @@ func TestFullRepoUpdate(t *testing.T) {
 			},
 		},
 	}
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
 		Name:              "releases",
@@ -211,7 +211,7 @@ func TestFullRepoUpdate(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	repo := updatedCfg.Maven.Repositories["releases"]
 	if repo == nil {
 		t.Fatalf("expected repo 'releases' to exist")
@@ -234,7 +234,7 @@ func TestFullFrontendUpdate(t *testing.T) {
 	cfg.Frontend.Title = "Custom Server Title"
 	cfg.Frontend.OrganizationWebsite = "https://custom.org"
 	cfg.Frontend.Id = "custom-id"
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/domain/frontend", &pb.FrontendConfig{
 		Id:                  "custom-id",
@@ -249,7 +249,7 @@ func TestFullFrontendUpdate(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	if updatedCfg.Frontend.Title != "Custom Server Title" {
 		t.Fatalf("expected Title to remain 'Custom Server Title', got %s", updatedCfg.Frontend.Title)
 	}
@@ -268,7 +268,7 @@ func TestFullServerUpdate(t *testing.T) {
 	cfg.Server.Port = 8080
 	cfg.Server.Domains = []string{"myrepo.custom.com"}
 	cfg.Server.FileCacheSizeMb = 100
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/domain/server", &pb.ServerConfig{
 		Host:              cfg.Server.Host,
@@ -288,7 +288,7 @@ func TestFullServerUpdate(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	if updatedCfg.Server.Port != 8080 {
 		t.Fatalf("expected Port to remain 8080, got %d", updatedCfg.Server.Port)
 	}
@@ -322,7 +322,7 @@ func TestFullRepoMirrorUpdate(t *testing.T) {
 			},
 		},
 	}
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
 		Name:              "releases",
@@ -342,7 +342,7 @@ func TestFullRepoMirrorUpdate(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	repo := updatedCfg.Maven.Repositories["releases"]
 	if repo == nil {
 		t.Fatalf("expected repo 'releases' to exist")
@@ -366,7 +366,7 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	msg := &pb.FrontendConfig{
 		Id:                  cfg.Frontend.Id,
@@ -395,7 +395,7 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 		bodyBytes[i] = 'X'
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	if updatedCfg.Frontend.Title != "UniqueTitleForZeroCopyCheck" {
 		t.Fatalf("Zero-copy memory leak detected! Title got corrupted: %q", updatedCfg.Frontend.Title)
 	}
@@ -431,7 +431,7 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 		repoPayload[i] = 'Z'
 	}
 
-	updatedCfg2 := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg2 := appState.Inner.Config.Load()
 	r := updatedCfg2.Maven.Repositories["releases"]
 	if r == nil {
 		t.Fatalf("expected repo 'releases'")
@@ -451,7 +451,7 @@ func TestStorageDomainUpdate(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	var got pb.StorageConfig
 	respGet := protoGET(t, app, "/domain/storage", &got)
@@ -469,7 +469,7 @@ func TestStorageDomainUpdate(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	if filepath.Clean(updatedCfg.StoragePath) != filepath.Clean(tempDir) {
 		t.Fatalf("expected StoragePath to remain %s, got %s", tempDir, updatedCfg.StoragePath)
 	}
@@ -501,7 +501,7 @@ func TestStorageDomainUpdate(t *testing.T) {
 	if respPutFull.StatusCode != http.StatusOK {
 		t.Fatalf("expected full PUT 200, got %d", respPutFull.StatusCode)
 	}
-	fullCfg := appState.Inner.Config.Load().(*config.Config)
+	fullCfg := appState.Inner.Config.Load()
 	if filepath.Clean(fullCfg.StoragePath) != filepath.Clean(filepath.Join(tempDir, "partial")) {
 		t.Fatalf("expected StoragePath updated, got %s", fullCfg.StoragePath)
 	}
@@ -512,7 +512,7 @@ func TestStorageDomainUpdate(t *testing.T) {
 
 func TestGetDomainsProtobuf(t *testing.T) {
 	cfg := config.DefaultConfig()
-	app, _ := setupSettingsTestApp(t, &cfg)
+	app, _ := setupSettingsTestApp(t, cfg)
 
 	var got pb.SettingsDomainsResponse
 	resp := protoGET(t, app, "/domains", &got)
@@ -526,7 +526,7 @@ func TestGetDomainsProtobuf(t *testing.T) {
 
 func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {
 	cfg := config.DefaultConfig()
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	var got pb.ServerConfig
 	respGet := protoGET(t, app, "/domain/server", &got)
@@ -551,7 +551,7 @@ func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
 
-	updatedCfg := appState.Inner.Config.Load().(*config.Config)
+	updatedCfg := appState.Inner.Config.Load()
 	if updatedCfg.Database.Dsn != "new_renop.db" || updatedCfg.Database.MaxOpenConns != 50 {
 		t.Fatalf("expected Dsn new_renop.db and MaxOpenConns 50, got Dsn=%s MaxOpenConns=%d", updatedCfg.Database.Dsn, updatedCfg.Database.MaxOpenConns)
 	}
@@ -581,7 +581,7 @@ func TestStoragePathChangeRebuildsIndex(t *testing.T) {
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {Name: "releases", Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
 	}
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	oldFileSlash := filepath.ToSlash(filepath.Clean(oldFile))
 	oldDirSlash := filepath.ToSlash(filepath.Clean(oldDir))
@@ -603,7 +603,7 @@ func TestStoragePathChangeRebuildsIndex(t *testing.T) {
 		t.Fatalf("expected PUT 200, got %d", resp.StatusCode)
 	}
 
-	updated := appState.Inner.Config.Load().(*config.Config)
+	updated := appState.Inner.Config.Load()
 	if filepath.Clean(updated.StoragePath) != filepath.Clean(newDir) {
 		t.Fatalf("expected storage path %s, got %s", newDir, updated.StoragePath)
 	}
@@ -640,7 +640,7 @@ func TestSameStoragePathNormalization(t *testing.T) {
 func TestServerDomainRejectsInvalidPort(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = t.TempDir()
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	resp := protoPUT(t, app, "/domain/server", &pb.ServerConfig{
 		Host:              cfg.Server.Host,
@@ -656,7 +656,7 @@ func TestServerDomainRejectsInvalidPort(t *testing.T) {
 		t.Fatalf("expected port 0 to be rejected with 400, got %d", resp.StatusCode)
 	}
 
-	live := appState.Inner.Config.Load().(*config.Config)
+	live := appState.Inner.Config.Load()
 	if live.Server.Port != cfg.Server.Port {
 		t.Fatalf("expected port unchanged after failed PUT, got %d", live.Server.Port)
 	}
@@ -665,7 +665,7 @@ func TestServerDomainRejectsInvalidPort(t *testing.T) {
 func TestStorageDomainRejectsEmptyPath(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = t.TempDir()
-	app, _ := setupSettingsTestApp(t, &cfg)
+	app, _ := setupSettingsTestApp(t, cfg)
 
 	resp := protoPUT(t, app, "/domain/storage", &pb.StorageConfig{
 		StoragePath:          "   ",
@@ -683,7 +683,7 @@ func TestPutMavenRepositoryCreatesStorageDir(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = tempDir
 	cfg.Maven.Repositories = map[string]*config.Repository{}
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	repoName := "new-repo"
 	repoDir := filepath.Join(tempDir, repoName)
@@ -725,7 +725,7 @@ func TestDeleteMavenRepositoryRemovesStorageAndIndex(t *testing.T) {
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		repoName: {Name: repoName, Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
 	}
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	repoDir := filepath.Join(tempDir, repoName)
 	nested := filepath.Join(repoDir, "com", "example", "artifact")
@@ -758,7 +758,7 @@ func TestDeleteMavenRepositoryRemovesStorageAndIndex(t *testing.T) {
 		t.Fatalf("expected repo storage dir to be deleted, err=%v", err)
 	}
 
-	live := appState.Inner.Config.Load().(*config.Config)
+	live := appState.Inner.Config.Load()
 	if _, ok := live.Maven.Repositories[repoName]; ok {
 		t.Fatal("expected repository removed from config")
 	}
@@ -783,7 +783,7 @@ func TestRepoVisibilityValidationAndDeleteNotFound(t *testing.T) {
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {Name: "releases", Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
 	}
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	respBad := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
 		Visibility: "OPEN",
@@ -802,7 +802,7 @@ func TestRepoVisibilityValidationAndDeleteNotFound(t *testing.T) {
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
-	live := appState.Inner.Config.Load().(*config.Config)
+	live := appState.Inner.Config.Load()
 	if live.Maven.Repositories["releases"].Visibility != "PRIVATE" {
 		t.Fatalf("expected visibility normalized to PRIVATE, got %s", live.Maven.Repositories["releases"].Visibility)
 	}
@@ -824,12 +824,12 @@ func TestRepoVisibilityValidationAndDeleteNotFound(t *testing.T) {
 func TestDomainUpdateDoesNotPublishOnWriteFailure(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = t.TempDir()
-	app, appState := setupSettingsTestApp(t, &cfg)
+	app, appState := setupSettingsTestApp(t, cfg)
 
 	badDir := filepath.Join(t.TempDir(), "missing-parent", "nested")
 	t.Setenv("RENOP_CONFIG", filepath.Join(badDir, "config.yaml"))
 
-	before := appState.Inner.Config.Load().(*config.Config).Updater.Channel
+	before := appState.Inner.Config.Load().Updater.Channel
 
 	resp := protoPUT(t, app, "/domain/updater", &pb.UpdaterConfig{
 		Channel: "nightly",
@@ -838,7 +838,7 @@ func TestDomainUpdateDoesNotPublishOnWriteFailure(t *testing.T) {
 	if resp.StatusCode == http.StatusOK {
 		t.Fatalf("expected write failure, got 200")
 	}
-	after := appState.Inner.Config.Load().(*config.Config).Updater.Channel
+	after := appState.Inner.Config.Load().Updater.Channel
 	if after != before {
 		t.Fatalf("in-memory config published despite disk failure: before=%s after=%s", before, after)
 	}

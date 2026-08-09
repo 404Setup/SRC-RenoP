@@ -19,7 +19,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/utils"
@@ -125,7 +124,7 @@ func HandleJavadocPage(c fiber.Ctx, state *core.AppState) error {
 
 	user := auth.GetUser(c)
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	if !cfg.EnableJavadocPreview {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
@@ -161,7 +160,7 @@ func HandleJavadocPage(c fiber.Ctx, state *core.AppState) error {
 }
 
 func ServeRawJavadoc(c fiber.Ctx, state *core.AppState, repoName string, gav string, resource string) error {
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	if !cfg.EnableJavadocPreview {
 		return c.Status(fiber.StatusNotFound).SendString("Javadocs preview is not enabled on this RenoP instance.")
 	}

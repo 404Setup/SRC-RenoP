@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	atomic2 "sync/atomic/v2"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -76,7 +77,7 @@ type StateDB interface {
 }
 
 type AppStateInner struct {
-	Config             *atomic.Value
+	Config             *atomic2.Value[*config.Config]
 	ConfigWriteLock    sync.Mutex
 	TokensCount        atomic.Uint64
 	TokenWriteLock     sync.Mutex
@@ -110,7 +111,7 @@ type AppState struct {
 func NewAppState() *AppState {
 	return &AppState{
 		Inner: &AppStateInner{
-			Config:               &atomic.Value{},
+			Config:               &atomic2.Value[*config.Config]{},
 			ProxyClientSemaphore: make(chan struct{}, 256),
 			StartTime:            time.Now().UnixMilli(),
 			InFlightDownloads:    NewInFlightManager(),

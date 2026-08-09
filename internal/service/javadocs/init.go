@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	syncv2 "sync/v2"
 
 	"renop/internal/config"
 	"renop/internal/service/index"
@@ -62,8 +63,8 @@ const (
 
 // extractBufPool reuses per-extraction copy buffers so concurrent extractions
 // do not repeatedly allocate large short-lived slices.
-var extractBufPool = sync.Pool{
-	New: func() any {
+var extractBufPool = syncv2.Pool[*[]byte]{
+	New: func() *[]byte {
 		buf := make([]byte, extractBufSize)
 		return &buf
 	},

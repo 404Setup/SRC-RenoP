@@ -200,8 +200,7 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 
 func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
 	cfgVal := state.Inner.Config.Load()
-	cfg := cfgVal.(*config.Config)
-	ip := utils.ExtractIP(c, &cfg.Server)
+	ip := utils.ExtractIP(c, &cfgVal.Server)
 	userAgent := c.Get(fiber.HeaderUserAgent, "Unknown")
 
 	var req pb.LoginRequest

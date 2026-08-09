@@ -24,7 +24,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/time/rate"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/utils"
 )
@@ -226,7 +225,7 @@ func isStaticFrontendPath(reqPath string) bool {
 
 func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		cfg := state.Inner.Config.Load().(*config.Config)
+		cfg := state.Inner.Config.Load()
 
 		maxActive := uint64(cfg.Server.MaxActiveRequests)
 		if maxActive > 0 {

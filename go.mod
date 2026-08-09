@@ -1,6 +1,6 @@
 module renop
 
-go 1.26.5
+go 1.28
 
 require (
 	github.com/3JoB/unsafeConvert v1.6.0

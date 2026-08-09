@@ -13,7 +13,6 @@ package audit
 import (
 	"time"
 
-	"renop/internal/config"
 	"renop/internal/core"
 )
 
@@ -52,9 +51,8 @@ func cleanLogs(state *core.AppState) {
 	if cfgVal == nil {
 		return
 	}
-	cfg := cfgVal.(*config.Config)
 
 	if db := state.GetDB(); db != nil {
-		_ = db.CleanExpiredAuditLogs(cfg.AuditLog.RetentionDays, cfg.AuditLog.MaxRows)
+		_ = db.CleanExpiredAuditLogs(cfgVal.AuditLog.RetentionDays, cfgVal.AuditLog.MaxRows)
 	}
 }

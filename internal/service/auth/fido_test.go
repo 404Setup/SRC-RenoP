@@ -31,7 +31,7 @@ func TestFidoBeginEndpoints(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.DB = db
 	cfg := config.DefaultConfig()
-	state.Inner.Config.Store(&cfg)
+	state.Inner.Config.Store(cfg)
 
 	opChan := make(chan token.TokenOp, 100)
 	go token.StartTokenConsumer(state, opChan)
@@ -113,7 +113,7 @@ func TestGetWebAuthnEngine(t *testing.T) {
 	state := core.NewAppState()
 	cfg := config.DefaultConfig()
 	cfg.Server.Domains = []string{"renop.example.com"}
-	state.Inner.Config.Store(&cfg)
+	state.Inner.Config.Store(cfg)
 
 	testCases := []struct {
 		name       string

@@ -23,7 +23,6 @@ import (
 
 	"renop/internal/api"
 	"renop/internal/bootstrap"
-	"renop/internal/config"
 	"renop/internal/middleware"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
@@ -50,7 +49,7 @@ func main() {
 
 	state, context := bootstrap.Initialize()
 	bootstrap.StartServices(state, context)
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	status.InitDebugMode(cfg.Server.DebugMode)
 
 	concurrency := int(cfg.Server.MaxActiveRequests)

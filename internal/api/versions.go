@@ -21,7 +21,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/service/storage"
@@ -40,7 +39,7 @@ func FindVersions(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
@@ -82,7 +81,7 @@ func LatestVersion(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
@@ -197,7 +196,7 @@ func ResolveLatestPath(state *core.AppState, repoName string, gav string, query 
 		fileName.WriteString(extension)
 	}
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	basePath := filepath.Join(cfg.StoragePath, repoName, sanitizedGav)
 
 	var fullPath string
@@ -232,7 +231,7 @@ func LatestDetails(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
@@ -324,7 +323,7 @@ func LatestFile(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")

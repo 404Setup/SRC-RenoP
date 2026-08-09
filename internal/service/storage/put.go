@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	syncv2 "sync/v2"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -38,15 +39,15 @@ import (
 	"renop/internal/utils"
 )
 
-var bufferPool128k = sync.Pool{
-	New: func() any {
+var bufferPool128k = syncv2.Pool[*[]byte]{
+	New: func() *[]byte {
 		buf := make([]byte, 128*1024)
 		return &buf
 	},
 }
 
-var putWriterPool = sync.Pool{
-	New: func() any {
+var putWriterPool = syncv2.Pool[*bufio.Writer]{
+	New: func() *bufio.Writer {
 		return bufio.NewWriterSize(nil, 128*1024)
 	},
 }
@@ -137,7 +138,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	sha256Hasher := sha256.New()
 	sha512Hasher := sha512.New()
 
-	bufWriter := putWriterPool.Get().(*bufio.Writer)
+	bufWriter := putWriterPool.Get()
 	bufWriter.Reset(file)
 	defer func() {
 		bufWriter.Reset(nil)
@@ -158,7 +159,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 		}
 	} else {
-		bufPtr := bufferPool128k.Get().(*[]byte)
+		bufPtr := bufferPool128k.Get()
 		buf := *bufPtr
 		_, err := io.CopyBuffer(writeDest, bodyReader, buf)
 		bufferPool128k.Put(bufPtr)
@@ -206,10 +207,8 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 
 	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
 	storagePath := "storage"
-	if cfgVal := state.Inner.Config.Load(); cfgVal != nil {
-		if cfg, ok := cfgVal.(*config.Config); ok && cfg.StoragePath != "" {
-			storagePath = cfg.StoragePath
-		}
+	if cfgVal := state.Inner.Config.Load(); cfgVal != nil && cfgVal.StoragePath != "" {
+		storagePath = cfgVal.StoragePath
 	}
 	relPath, _ := filepath.Rel(storagePath, localFilePath)
 	if relPath == "" {
@@ -251,7 +250,7 @@ func HashFile(path string) (*ContentDigests, int64, error) {
 	sha512Hasher := sha512.New()
 	w := io.MultiWriter(md5Hasher, sha1Hasher, sha256Hasher, sha512Hasher)
 
-	bufPtr := bufferPool128k.Get().(*[]byte)
+	bufPtr := bufferPool128k.Get()
 	buf := *bufPtr
 	n, err := io.CopyBuffer(w, f, buf)
 	bufferPool128k.Put(bufPtr)

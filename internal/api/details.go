@@ -132,7 +132,7 @@ func CreateFileDetails(state *core.AppState, localFilePath string, withChildren 
 }
 
 func ResolveAndCheckPath(state *core.AppState, user *config.User, repoName string, path *string) (string, error) {
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repo, ok := cfg.Maven.Repositories[repoName]
 	if !ok {
 		return "", fiber.ErrNotFound
@@ -164,7 +164,7 @@ func ResolveAndCheckPath(state *core.AppState, user *config.User, repoName strin
 func GetDetailsAllRepos(c fiber.Ctx, state *core.AppState) error {
 	user := auth.GetUser(c)
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 
 	var repos []FileDetails
 	for repoName, repo := range cfg.Maven.Repositories {
@@ -240,7 +240,7 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
 	user := auth.GetUser(c)
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")

@@ -22,7 +22,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/status"
 	"renop/internal/utils"
@@ -102,7 +101,7 @@ func extractJavadoc(jarPath string, cacheDir string) error {
 		totalSize += f.UncompressedSize64
 	}
 
-	bufPtr := extractBufPool.Get().(*[]byte)
+	bufPtr := extractBufPool.Get()
 	buf := *bufPtr
 	defer extractBufPool.Put(bufPtr)
 
@@ -255,7 +254,7 @@ func EnsureJavadocExtractedBlocking(jarPath string) (string, error) {
 }
 
 func ensureJavadocExtracted(state *core.AppState, repoName string, path string, requireJar bool) (string, error) {
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	basePath := filepath.Join(cfg.StoragePath, repoName, path)
 
 	var isDir bool

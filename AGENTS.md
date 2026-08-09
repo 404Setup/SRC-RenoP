@@ -20,7 +20,7 @@
 
 ## 2. Environment & Toolchains
 
-- **Go**: Go 1.26.5+
+- **Go**: Go 1.28+ (Our own Go fork)
 - **Node.js**: Node.js 18+ with **pnpm**
 - **PowerShell**: PowerShell 7 (`pwsh`)
 - **Protobuf Compiler**: `protoc` (with `protoc-gen-go` plugin)

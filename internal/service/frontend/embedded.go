@@ -14,7 +14,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"path/filepath"
-	"sync"
+	syncv2 "sync/v2"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	embeddedFileCache sync.Map // map[string]*embeddedFile
+	embeddedFileCache syncv2.Map[string, *embeddedFile]
 )
 
 type embeddedFile struct {
@@ -42,13 +42,13 @@ func cacheEmbeddedFile(publicPath string, data []byte) *embeddedFile {
 		contentType: utils.ContentTypeByExt(filepath.Ext(publicPath)),
 	}
 	actual, _ := embeddedFileCache.LoadOrStore(publicPath, candidate)
-	return actual.(*embeddedFile)
+	return actual
 }
 
 func ServeEmbeddedFile(c fiber.Ctx, path string) error {
 	var file *embeddedFile
 	if cached, ok := embeddedFileCache.Load(path); ok {
-		file = cached.(*embeddedFile)
+		file = cached
 	} else {
 		data, err := readAsset(path)
 		if err != nil {

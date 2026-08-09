@@ -51,10 +51,10 @@ func setupSnapshotPutApp(t *testing.T) (*fiber.App, *core.AppState, string, *con
 	}
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
-	InitS3(&cfg)
+	InitS3(cfg)
 
 	state := core.NewAppState()
-	state.Inner.Config.Store(&cfg)
+	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndex()
 	repo := cfg.Maven.Repositories["snapshots"]
 	if repo == nil {

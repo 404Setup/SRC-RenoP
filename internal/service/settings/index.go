@@ -13,7 +13,6 @@ package settings
 import (
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
@@ -31,7 +30,7 @@ func RebuildIndex(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	storagePath := cfg.StoragePath
 
 	switch payload.Mode {

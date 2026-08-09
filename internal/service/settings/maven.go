@@ -31,7 +31,7 @@ func GetMavenRepositories(c fiber.Ctx, state *core.AppState) error {
 	if !isManager(c) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	return protohttp.Write(c, pb.FromMavenRepositories(cfg.Maven.Repositories))
 }
 
@@ -67,7 +67,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	repo.Visibility = vis
 
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
-		oldConfig := state.Inner.Config.Load().(*config.Config)
+		oldConfig := state.Inner.Config.Load()
 		newConfig := oldConfig.DeepCopy()
 
 		newConfig.Maven.Repositories[repoName] = repo.DeepCopy()
@@ -84,7 +84,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
 
-	if cfg := state.Inner.Config.Load().(*config.Config); cfg != nil {
+	if cfg := state.Inner.Config.Load(); cfg != nil {
 		storage.InitS3(cfg)
 	}
 
@@ -106,15 +106,11 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 
 func ensureRepositoryStorageDir(state *core.AppState, repoName string) {
 	cfgVal := state.Inner.Config.Load()
-	if cfgVal == nil {
-		return
-	}
-	cfg, ok := cfgVal.(*config.Config)
-	if !ok || cfg == nil || cfg.StoragePath == "" {
+	if cfgVal == nil || cfgVal.StoragePath == "" {
 		return
 	}
 
-	repoDir := filepath.Join(cfg.StoragePath, repoName)
+	repoDir := filepath.Join(cfgVal.StoragePath, repoName)
 	if err := os.MkdirAll(repoDir, 0755); err != nil {
 		return
 	}
@@ -146,7 +142,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		s3Cfg       *config.S3Config
 	)
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
-		oldConfig := state.Inner.Config.Load().(*config.Config)
+		oldConfig := state.Inner.Config.Load()
 		repo, ok := oldConfig.Maven.Repositories[repoName]
 		if !ok {
 			notFound = true

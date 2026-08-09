@@ -23,7 +23,6 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
 	"renop/internal/service/updater"
@@ -122,10 +121,8 @@ func processMemoryWithFallback() (rss, vss uint64) {
 func GetFreeDiskSpace(state *core.AppState) uint64 {
 	storagePath := "storage"
 	if state != nil {
-		if cfgVal := state.Inner.Config.Load(); cfgVal != nil {
-			if c, ok := cfgVal.(*config.Config); ok && c.StoragePath != "" {
-				storagePath = c.StoragePath
-			}
+		if cfgVal := state.Inner.Config.Load(); cfgVal != nil && cfgVal.StoragePath != "" {
+			storagePath = cfgVal.StoragePath
 		}
 	}
 	targetDir := "."
@@ -154,10 +151,8 @@ func UpdateDiskStats(state *core.AppState) (renopUsed, diskUsed, diskTotal uint6
 
 	storagePath := "storage"
 	if state != nil {
-		if cfgVal := state.Inner.Config.Load(); cfgVal != nil {
-			if c, ok := cfgVal.(*config.Config); ok && c.StoragePath != "" {
-				storagePath = c.StoragePath
-			}
+		if cfgVal := state.Inner.Config.Load(); cfgVal != nil && cfgVal.StoragePath != "" {
+			storagePath = cfgVal.StoragePath
 		}
 	}
 

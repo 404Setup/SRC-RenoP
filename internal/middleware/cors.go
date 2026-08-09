@@ -15,7 +15,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 )
 
@@ -56,7 +55,7 @@ func CorsMiddleware(state *core.AppState) fiber.Handler {
 			return c.Next()
 		}
 
-		cfg, _ := state.Inner.Config.Load().(*config.Config)
+		cfg := state.Inner.Config.Load()
 		if cfg == nil || !cfg.Server.IsOriginAllowed(origin) {
 			if c.Method() == fiber.MethodOptions {
 				return c.SendStatus(fiber.StatusForbidden)

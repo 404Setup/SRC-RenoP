@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	syncv2 "sync/v2"
 	"time"
 )
 
@@ -44,7 +45,7 @@ type TTLCache[K comparable, V any] struct {
 	defaultTTL time.Duration
 	stopEvict  chan struct{}
 	closeOnce  sync.Once
-	evictPool  sync.Pool
+	evictPool  syncv2.Pool[*[]K]
 }
 
 const (
@@ -95,8 +96,8 @@ func NewTTLCache[K comparable, V any](defaultTTL time.Duration) *TTLCache[K, V] 
 		defaultTTL: defaultTTL,
 		stopEvict:  make(chan struct{}),
 	}
-	cache.evictPool = sync.Pool{
-		New: func() any {
+	cache.evictPool = syncv2.Pool[*[]K]{
+		New: func() *[]K {
 			s := make([]K, 0, 32)
 			return &s
 		},
@@ -237,7 +238,7 @@ func (c *TTLCache[K, V]) DeleteFunc(predicate func(key K, val V) bool) {
 
 func (c *TTLCache[K, V]) EvictExpired() {
 	now := time.Now().UnixMilli()
-	ptrSlice := c.evictPool.Get().(*[]K)
+	ptrSlice := c.evictPool.Get()
 	toDelete := (*ptrSlice)[:0]
 
 	for i := range numShards {

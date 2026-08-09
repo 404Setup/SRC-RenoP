@@ -28,7 +28,6 @@ import (
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/javadocs"
@@ -52,7 +51,7 @@ func GetDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	switch c.Params("name") {
 	case "frontend":
 		return protohttp.Write(c, pb.FromFrontendConfig(cfg.Frontend))
@@ -158,7 +157,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	var newStoragePath string
 
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
-		oldConfig := state.Inner.Config.Load().(*config.Config)
+		oldConfig := state.Inner.Config.Load()
 		newConfig := oldConfig.DeepCopy()
 
 		switch name {

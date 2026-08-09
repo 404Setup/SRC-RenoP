@@ -23,7 +23,7 @@ import (
 
 func LoadConfig(configPath string) *config.Config {
 	file, err := os.Open(configPath)
-	var cfg config.Config
+	var cfg *config.Config
 
 	if err != nil {
 		log.Printf("Config file not found at %s, using default config and creating it", configPath)
@@ -44,7 +44,7 @@ func LoadConfig(configPath string) *config.Config {
 
 	cfg.Frontend.CachedIndexHtml = []byte{}
 
-	return &cfg
+	return cfg
 }
 
 func LoadFileIndex(indexPath string) *index.FileIndex {

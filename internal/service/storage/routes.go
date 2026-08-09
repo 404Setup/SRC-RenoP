@@ -16,7 +16,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/utils"
@@ -44,7 +43,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		path = "/"
 	}
 
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists {
 		if c.Method() == fiber.MethodGet {

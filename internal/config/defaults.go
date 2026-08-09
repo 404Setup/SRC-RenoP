@@ -163,8 +163,8 @@ func DefaultAuditLogConfig() AuditLogConfig {
 	}
 }
 
-func DefaultConfig() Config {
-	return Config{
+func DefaultConfig() *Config {
+	return &Config{
 		StoragePath:          "storage",
 		EnableJavadocPreview: true,
 		JavadocExtractPath:   "",

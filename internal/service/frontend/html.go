@@ -135,7 +135,7 @@ func GenerateIndexHtmlFromConfig(cfg *config.FrontendConfig) []byte {
 }
 
 func GenerateIndexHtml(state *core.AppState) []byte {
-	cfg := state.Inner.Config.Load().(*config.Config)
+	cfg := state.Inner.Config.Load()
 	if len(cfg.Frontend.CachedIndexHtml) > 0 {
 		return cfg.Frontend.CachedIndexHtml
 	}

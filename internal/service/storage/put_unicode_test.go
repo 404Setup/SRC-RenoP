@@ -31,10 +31,10 @@ func TestUnicodeFilenameUploadAndDownload(t *testing.T) {
 	storagePath := t.TempDir()
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
-	InitS3(&cfg)
+	InitS3(cfg)
 
 	state := core.NewAppState()
-	state.Inner.Config.Store(&cfg)
+	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndex()
 	repo := cfg.Maven.Repositories["releases"]
 	repo.AllowRedeployment = true
