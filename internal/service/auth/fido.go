@@ -266,10 +266,10 @@ func getWebAuthnEngine(c fiber.Ctx, state *core.AppState) (*webauthn.WebAuthn, e
 	})
 }
 
-func SetupFidoRoutes(app fiber.Router, state *core.AppState) {
+func SetupFidoRoutes(app fiber.Router, state *core.AppState, opChan chan<- token.TokenOp) {
 	fido := app.Group("/fido")
 	fido.Post("/login/begin", func(c fiber.Ctx) error { return PostFidoLoginBegin(c, state) })
-	fido.Post("/login/finish", func(c fiber.Ctx) error { return PostFidoLoginFinish(c, state) })
+	fido.Post("/login/finish", func(c fiber.Ctx) error { return PostFidoLoginFinish(c, state, opChan) })
 
 	profileFido := app.Group("/profile/fido")
 	profileFido.Get("", func(c fiber.Ctx) error { return GetProfileFidoDevices(c, state) })
@@ -540,7 +540,7 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 	})
 }
 
-func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
+func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
 	cfgVal := state.Inner.Config.Load()
 	ip := utils.ExtractIP(c, &cfgVal.Server)
 	userAgent := c.Get(fiber.HeaderUserAgent, "Unknown")
@@ -598,7 +598,9 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 		}
 		accessToken := state.GetTokenByName(targetUsername)
 		if accessToken == nil && state.Inner.TokensCount.Load() == 0 {
-			token.AutoRegisterAdmin(state, nil)
+			if err := token.AutoRegisterAdmin(state, opChan); err != nil {
+				return nil, err
+			}
 			accessToken = state.GetTokenByName(targetUsername)
 		}
 		if accessToken != nil {
@@ -616,8 +618,11 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 			if loginErr == nil && matchedCred != nil {
 				accessToken := state.GetTokenByName(sessionUsername)
 				if accessToken == nil && state.Inner.TokensCount.Load() == 0 {
-					token.AutoRegisterAdmin(state, nil)
-					accessToken = state.GetTokenByName(sessionUsername)
+					if err := token.AutoRegisterAdmin(state, opChan); err != nil {
+						lastErr = err
+					} else {
+						accessToken = state.GetTokenByName(sessionUsername)
+					}
 				}
 				if accessToken != nil {
 					authenticatedUser = buildSynthUser(accessToken)
@@ -641,8 +646,11 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 		if matchedDevice != nil {
 			accessToken := state.GetTokenByName(matchedDevice.Username)
 			if accessToken == nil && state.Inner.TokensCount.Load() == 0 {
-				token.AutoRegisterAdmin(state, nil)
-				accessToken = state.GetTokenByName(matchedDevice.Username)
+				if err := token.AutoRegisterAdmin(state, opChan); err != nil {
+					lastErr = err
+				} else {
+					accessToken = state.GetTokenByName(matchedDevice.Username)
+				}
 			}
 			if accessToken != nil {
 				authenticatedUser = buildSynthUser(accessToken)

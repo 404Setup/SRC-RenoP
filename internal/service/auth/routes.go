@@ -85,7 +85,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Get("/profile/sessions", func(c fiber.Ctx) error { return ListSessions(c, state) })
 	auth.Post("/profile/sessions/revoke-others", func(c fiber.Ctx) error { return RevokeOtherSessions(c, state) })
 	auth.Delete("/profile/sessions/:session_id", func(c fiber.Ctx) error { return DeleteSession(c, state) })
-	SetupFidoRoutes(auth, state)
+	SetupFidoRoutes(auth, state, opChan)
 }
 
 func CreateSessionDetails(user *config.User, sessionToken string) core.SessionDetails {
@@ -176,7 +176,9 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 	isEmpty := state.Inner.TokensCount.Load() == 0
 
 	if isEmpty {
-		token.AutoRegisterAdmin(state, opChan)
+		if err := token.AutoRegisterAdmin(state, opChan); err != nil {
+			return nil, err
+		}
 	}
 
 	accessToken := state.GetTokenByName(strings.ToLower(body.Name))
@@ -218,6 +220,9 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 	user, err := AuthenticateUser(state, &body, opChan)
 	if errors.Is(err, fiber.ErrForbidden) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Authentication failed")
 	}
 
 	if user != nil {

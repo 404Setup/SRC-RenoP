@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
@@ -25,6 +26,20 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 )
+
+func TestAutoRegisterAdminRejectsNilOperationChannel(t *testing.T) {
+	done := make(chan error, 1)
+	go func() {
+		done <- AutoRegisterAdmin(core.NewAppState(), nil)
+	}()
+
+	select {
+	case err := <-done:
+		require.Error(t, err)
+	case <-time.After(time.Second):
+		t.Fatal("AutoRegisterAdmin blocked on a nil operation channel")
+	}
+}
 
 func TestTokenConsumerPropagatesPersistenceErrors(t *testing.T) {
 	db := newTestDB(t)

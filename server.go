@@ -81,7 +81,9 @@ func main() {
 
 	opChan := make(chan token.TokenOp, 100)
 	go token.StartTokenConsumer(state, opChan)
-	token.AutoRegisterAdmin(state, opChan)
+	if err := token.AutoRegisterAdmin(state, opChan); err != nil {
+		log.Fatalf("Failed to auto-register administrator: %v", err)
+	}
 
 	go audit.StartAuditLogConsumer(state)
 

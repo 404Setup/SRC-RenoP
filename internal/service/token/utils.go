@@ -11,6 +11,7 @@
 package token
 
 import (
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -33,7 +34,16 @@ func UpdateTokenSync(opChan chan<- TokenOp, name string, updateFn func(*core.Acc
 	return <-errChan
 }
 
-func AutoRegisterAdmin(state *core.AppState, opChan chan<- TokenOp) {
+func AutoRegisterAdmin(state *core.AppState, opChan chan<- TokenOp) error {
+	if state == nil || state.Inner == nil {
+		return errors.New("application state is unavailable")
+	}
+	if opChan == nil {
+		return errors.New("token operation channel is unavailable")
+	}
+
+	state.Inner.TokenWriteLock.Lock()
+	defer state.Inner.TokenWriteLock.Unlock()
 	if state.Inner.TokensCount.Load() == 0 {
 		defaultPassword := os.Getenv("RENOP_DEFAULT_ADMIN_PASSWORD")
 		if defaultPassword == "" {
@@ -43,7 +53,7 @@ func AutoRegisterAdmin(state *core.AppState, opChan chan<- TokenOp) {
 
 		hashBytes, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), bcrypt.DefaultCost)
 		if err != nil {
-			return
+			return err
 		}
 		encryptedSecret := unsafeConvert.StringPointer(hashBytes)
 
@@ -69,6 +79,7 @@ func AutoRegisterAdmin(state *core.AppState, opChan chan<- TokenOp) {
 			Token:   token,
 			ErrChan: errChan,
 		}
-		<-errChan
+		return <-errChan
 	}
+	return nil
 }
