@@ -21,6 +21,120 @@ import (
 	"renop/internal/utils"
 )
 
+func TestNormalizeS3KeyPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{name: "empty"},
+		{name: "slashes only", input: "/", want: ""},
+		{name: "trimmed", input: " /renop/production/ ", want: "renop/production"},
+		{name: "single segment", input: "renop", want: "renop"},
+		{name: "empty segment", input: "renop//production", wantErr: true},
+		{name: "current segment", input: "renop/./production", wantErr: true},
+		{name: "parent segment", input: "renop/../production", wantErr: true},
+		{name: "backslash", input: `renop\production`, wantErr: true},
+		{name: "segment whitespace", input: "renop /production", wantErr: true},
+		{name: "control character", input: "renop\nproduction", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NormalizeS3KeyPrefix(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("NormalizeS3KeyPrefix(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Fatalf("NormalizeS3KeyPrefix(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestS3ObjectKeyPreservesLegacyLayoutWithoutPrefix(t *testing.T) {
+	logicalKey := `D:/renop/storage/releases/com/example/demo.jar`
+	got, err := s3ObjectKey(&config.S3Config{}, logicalKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != logicalKey {
+		t.Fatalf("object key = %q, want unchanged key %q", got, logicalKey)
+	}
+}
+
+func TestS3ObjectKeyUsesStorageRelativeLayoutWithPrefix(t *testing.T) {
+	originalConfig := currentConfig.Load()
+	t.Cleanup(func() { currentConfig.Store(originalConfig) })
+
+	storagePath := filepath.Join(t.TempDir(), "storage")
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	currentConfig.Store(cfg)
+	s3Cfg := &config.S3Config{KeyPrefix: "/renop/production/"}
+	logicalKey := utils.GetS3Key(filepath.Join(storagePath, "releases", "com", "example", "demo.jar"))
+
+	got, err := s3ObjectKey(s3Cfg, logicalKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "renop/production/releases/com/example/demo.jar"; got != want {
+		t.Fatalf("object key = %q, want %q", got, want)
+	}
+
+	directoryKey := utils.GetS3Key(filepath.Join(storagePath, "releases")) + "/"
+	got, err = s3ObjectKey(s3Cfg, directoryKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "renop/production/releases/"; got != want {
+		t.Fatalf("directory object key = %q, want %q", got, want)
+	}
+}
+
+func TestS3ObjectKeyIsStableAcrossStoragePaths(t *testing.T) {
+	originalConfig := currentConfig.Load()
+	t.Cleanup(func() { currentConfig.Store(originalConfig) })
+
+	cfg := config.DefaultConfig()
+	s3Cfg := &config.S3Config{KeyPrefix: "renop/production"}
+	keys := make([]string, 0, 2)
+	for _, storagePath := range []string{
+		filepath.Join(t.TempDir(), "first"),
+		filepath.Join(t.TempDir(), "second"),
+	} {
+		cfg.StoragePath = storagePath
+		currentConfig.Store(cfg)
+		logicalKey := utils.GetS3Key(filepath.Join(storagePath, "releases", "demo.jar"))
+		key, err := s3ObjectKey(s3Cfg, logicalKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys = append(keys, key)
+	}
+	if keys[0] != keys[1] || keys[0] != "renop/production/releases/demo.jar" {
+		t.Fatalf("object keys are not stable across storage paths: %q", keys)
+	}
+}
+
+func TestS3ObjectKeyRejectsPathOutsideStorage(t *testing.T) {
+	originalConfig := currentConfig.Load()
+	t.Cleanup(func() { currentConfig.Store(originalConfig) })
+
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = filepath.Join(t.TempDir(), "storage")
+	currentConfig.Store(cfg)
+
+	_, err := s3ObjectKey(
+		&config.S3Config{KeyPrefix: "renop"},
+		utils.GetS3Key(filepath.Join(filepath.Dir(cfg.StoragePath), "outside", "demo.jar")),
+	)
+	if err == nil {
+		t.Fatal("object key outside storage path was accepted")
+	}
+}
+
 func TestGetS3ConfigForPathRequiresStorageBoundary(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = "storage"

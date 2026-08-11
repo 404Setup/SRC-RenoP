@@ -161,6 +161,7 @@ type S3Config struct {
 	Region            string `json:"region" yaml:"region"`
 	AccessKeyId       string `json:"access_key_id" yaml:"access_key_id"`
 	SecretAccessKey   string `json:"secret_access_key" yaml:"secret_access_key"`
+	KeyPrefix         string `json:"key_prefix" yaml:"key_prefix"`
 	Enabled           bool   `json:"enabled" yaml:"enabled"`
 	ForcePathStyle    bool   `json:"force_path_style" yaml:"force_path_style"`
 	RedirectDownloads bool   `json:"redirect_downloads" yaml:"redirect_downloads"`
@@ -177,6 +178,7 @@ func (s *S3Config) DeepCopy() *S3Config {
 		Region:            strings.Clone(s.Region),
 		AccessKeyId:       strings.Clone(s.AccessKeyId),
 		SecretAccessKey:   strings.Clone(s.SecretAccessKey),
+		KeyPrefix:         strings.Clone(s.KeyPrefix),
 		ForcePathStyle:    s.ForcePathStyle,
 		RedirectDownloads: s.RedirectDownloads,
 	}

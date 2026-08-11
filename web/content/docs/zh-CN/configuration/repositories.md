@@ -30,6 +30,7 @@ repositories:
       enabled: false
       endpoint: ""
       bucket: ""
+      key_prefix: ""
       region: auto
       access_key_id: ""
       secret_access_key: ""
@@ -74,8 +75,9 @@ repositories:
 
 ## S3 兼容存储
 
-`s3.enabled: true` 时，该仓库制品写入指定 bucket。常见字段：`endpoint`、`bucket`、`region`、密钥、`force_path_style`（MinIO 常用）、
-`redirect_downloads`。
+`s3.enabled: true` 时，该仓库制品写入指定 bucket。常见字段：`endpoint`、`bucket`、`key_prefix`、`region`、密钥、`force_path_style`（MinIO 常用）、`redirect_downloads`。
+
+`key_prefix` 用于设置 bucket 内的对象键前缀。留空时沿用旧版对象布局。已有制品的仓库添加或修改前缀前，必须先将现有对象迁移到新前缀；RenoP 不会自动迁移。
 
 ## 相关
 

@@ -157,6 +157,7 @@ func FromS3Config(s *config.S3Config) *S3Config {
 		Region:            s.Region,
 		AccessKeyId:       s.AccessKeyId,
 		SecretAccessKey:   s.SecretAccessKey,
+		KeyPrefix:         s.KeyPrefix,
 		ForcePathStyle:    s.ForcePathStyle,
 		RedirectDownloads: s.RedirectDownloads,
 	}
@@ -400,6 +401,7 @@ func ToS3Config(s *S3Config) *config.S3Config {
 		Region:            s.Region,
 		AccessKeyId:       s.AccessKeyId,
 		SecretAccessKey:   s.SecretAccessKey,
+		KeyPrefix:         s.KeyPrefix,
 		ForcePathStyle:    s.ForcePathStyle,
 		RedirectDownloads: s.RedirectDownloads,
 	}

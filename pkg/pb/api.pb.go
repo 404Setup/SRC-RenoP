@@ -1534,6 +1534,7 @@ type S3Config struct {
 	SecretAccessKey   string                 `protobuf:"bytes,6,opt,name=secret_access_key,json=secretAccessKey,proto3" json:"secret_access_key,omitempty"`
 	ForcePathStyle    bool                   `protobuf:"varint,7,opt,name=force_path_style,json=forcePathStyle,proto3" json:"force_path_style,omitempty"`
 	RedirectDownloads bool                   `protobuf:"varint,8,opt,name=redirect_downloads,json=redirectDownloads,proto3" json:"redirect_downloads,omitempty"`
+	KeyPrefix         string                 `protobuf:"bytes,9,opt,name=key_prefix,json=keyPrefix,proto3" json:"key_prefix,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1622,6 +1623,13 @@ func (x *S3Config) GetRedirectDownloads() bool {
 		return x.RedirectDownloads
 	}
 	return false
+}
+
+func (x *S3Config) GetKeyPrefix() string {
+	if x != nil {
+		return x.KeyPrefix
+	}
+	return ""
 }
 
 type Repository struct {
@@ -3581,7 +3589,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\fenabled_date\x18\b \x01(\tR\venabledDate\x12'\n" +
 	"\x0fallow_artifacts\x18\t \x03(\tR\x0eallowArtifacts\x12%\n" +
 	"\x0edeny_artifacts\x18\n" +
-	" \x03(\tR\rdenyArtifacts\"\x99\x02\n" +
+	" \x03(\tR\rdenyArtifacts\"\xb8\x02\n" +
 	"\bS3Config\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1a\n" +
 	"\bendpoint\x18\x02 \x01(\tR\bendpoint\x12\x16\n" +
@@ -3590,7 +3598,9 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\raccess_key_id\x18\x05 \x01(\tR\vaccessKeyId\x12*\n" +
 	"\x11secret_access_key\x18\x06 \x01(\tR\x0fsecretAccessKey\x12(\n" +
 	"\x10force_path_style\x18\a \x01(\bR\x0eforcePathStyle\x12-\n" +
-	"\x12redirect_downloads\x18\b \x01(\bR\x11redirectDownloads\"\xc7\x01\n" +
+	"\x12redirect_downloads\x18\b \x01(\bR\x11redirectDownloads\x12\x1d\n" +
+	"\n" +
+	"key_prefix\x18\t \x01(\tR\tkeyPrefix\"\xc7\x01\n" +
 	"\n" +
 	"Repository\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1e\n" +

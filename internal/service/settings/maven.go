@@ -68,6 +68,13 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid visibility. Expected PUBLIC, HIDDEN, or PRIVATE")
 	}
 	repo.Visibility = vis
+	if repo.S3 != nil {
+		keyPrefix, err := storage.NormalizeS3KeyPrefix(repo.S3.KeyPrefix)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid S3 key prefix")
+		}
+		repo.S3.KeyPrefix = keyPrefix
+	}
 
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		oldConfig := state.Inner.Config.Load()

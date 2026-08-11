@@ -227,6 +227,58 @@ func TestFullRepoUpdate(t *testing.T) {
 	}
 }
 
+func TestRepositoryUpdateNormalizesS3KeyPrefix(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	app, appState := setupSettingsTestApp(t, cfg)
+
+	resp := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
+		Name:       "releases",
+		Visibility: "PUBLIC",
+		S3: &pb.S3Config{
+			KeyPrefix: " /renop/production/ ",
+		},
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected PUT 200, got %d", resp.StatusCode)
+	}
+
+	got := appState.Inner.Config.Load().Maven.Repositories["releases"].S3.KeyPrefix
+	if got != "renop/production" {
+		t.Fatalf("key prefix = %q, want %q", got, "renop/production")
+	}
+
+	var repositories pb.MavenRepositoriesResponse
+	resp = protoGET(t, app, "/maven/repositories", &repositories)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
+	}
+	returned := repositories.Repositories["releases"]
+	if returned == nil || returned.S3 == nil || returned.S3.KeyPrefix != "renop/production" {
+		t.Fatalf("key prefix was not returned through the API: %#v", returned)
+	}
+}
+
+func TestRepositoryUpdateRejectsInvalidS3KeyPrefix(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	app, appState := setupSettingsTestApp(t, cfg)
+
+	resp := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
+		Name:       "releases",
+		Visibility: "PUBLIC",
+		S3: &pb.S3Config{
+			KeyPrefix: "renop/../production",
+		},
+	})
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected PUT 400, got %d", resp.StatusCode)
+	}
+	if got := appState.Inner.Config.Load().Maven.Repositories["releases"].S3; got != nil {
+		t.Fatalf("invalid S3 config was persisted: %#v", got)
+	}
+}
+
 func TestFullFrontendUpdate(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := config.DefaultConfig()

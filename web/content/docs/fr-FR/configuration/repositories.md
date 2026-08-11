@@ -32,6 +32,7 @@ repositories:
       enabled: false
       endpoint: ""
       bucket: ""
+      key_prefix: ""
       region: auto
       access_key_id: ""
       secret_access_key: ""
@@ -86,10 +87,13 @@ When `s3.enabled` is true, artifacts for that repository are stored in the given
 |---------------------------------------|------------------------------------------------|
 | `endpoint`                            | S3 API endpoint                                |
 | `bucket`                              | Bucket name                                    |
+| `key_prefix`                          | Optional object key prefix within the bucket   |
 | `region`                              | Region (or `auto`)                             |
 | `access_key_id` / `secret_access_key` | Credentials                                    |
 | `force_path_style`                    | Path-style URLs (common for MinIO)             |
 | `redirect_downloads`                  | Redirect clients to object URLs when supported |
+
+When `key_prefix` is empty, RenoP preserves the legacy object layout. Before adding or changing a prefix on a repository that already contains artifacts, move its existing objects to the new prefix; RenoP does not migrate them automatically.
 
 ## See also
 

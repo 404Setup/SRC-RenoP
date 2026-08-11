@@ -257,6 +257,7 @@ const ERROR_KEY_MAP = {
     'Invalid or expired login session': 'error.invalidOrExpiredLoginSession',
     'Invalid or expired session': 'error.invalidOrExpiredSession',
     'Invalid repository name': 'error.invalidRepoName',
+    'Invalid S3 key prefix': 'error.invalidS3KeyPrefix',
     'Invalid URL': 'error.invalidUrl',
     'Invalid URL host': 'error.invalidUrlHost',
     'Invalid visibility. Expected PUBLIC, HIDDEN, or PRIVATE': 'error.invalidVisibility',

@@ -234,7 +234,8 @@ function buildRepoSection(container, data, repoKey, repo) {
 function buildS3Section(repoKey, repo) {
     const s3 = repo.s3 || {
         enabled: false, endpoint: '', bucket: '', region: 'auto',
-        access_key_id: '', secret_access_key: '', force_path_style: true, redirect_downloads: false
+        access_key_id: '', secret_access_key: '', key_prefix: '',
+        force_path_style: true, redirect_downloads: false
     };
     if (!repo.s3) repo.s3 = s3;
 
@@ -269,6 +270,7 @@ function buildS3Section(repoKey, repo) {
             placeholder: 'https://...'
         },
         {id: 'bucket', label: t('repos.s3Bucket'), hint: t('repos.s3BucketHint'), placeholder: 'my-repo-bucket'},
+        {id: 'key_prefix', label: t('repos.s3KeyPrefix'), hint: t('repos.s3KeyPrefixHint'), placeholder: 'renop/production'},
         {id: 'region', label: t('repos.s3Region'), hint: t('repos.s3RegionHint'), placeholder: 'auto'},
         {id: 'access_key_id', label: t('repos.s3AccessKey'), hint: t('repos.s3AccessKeyHint'), placeholder: 'AKIA...'},
         {

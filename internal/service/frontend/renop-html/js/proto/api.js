@@ -8178,6 +8178,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [secret_access_key] S3Config secret_access_key
                  * @property {boolean|null} [force_path_style] S3Config force_path_style
                  * @property {boolean|null} [redirect_downloads] S3Config redirect_downloads
+                 * @property {string|null} [key_prefix] S3Config key_prefix
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -8274,6 +8275,14 @@ export const renop = $root.renop = (() => {
                 S3Config.prototype.redirect_downloads = false;
 
                 /**
+                 * S3Config key_prefix.
+                 * @member {string} key_prefix
+                 * @memberof renop.api.v1.S3Config
+                 * @instance
+                 */
+                S3Config.prototype.key_prefix = "";
+
+                /**
                  * Creates a new S3Config instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.S3Config
@@ -8321,6 +8330,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 7, wireType 0 =*/56).bool(message.force_path_style);
                     if (message.redirect_downloads != null && $Object.hasOwnProperty.call(message, "redirect_downloads") && message.redirect_downloads !== false)
                         writer.uint32(/* id 8, wireType 0 =*/64).bool(message.redirect_downloads);
+                    if (message.key_prefix != null && $Object.hasOwnProperty.call(message, "key_prefix") && message.key_prefix !== "")
+                        writer.uint32(/* id 9, wireType 2 =*/74).string(message.key_prefix);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -8440,6 +8451,15 @@ export const renop = $root.renop = (() => {
                                     delete message.redirect_downloads;
                                 continue;
                             }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.key_prefix = value;
+                                else
+                                    delete message.key_prefix;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -8507,6 +8527,9 @@ export const renop = $root.renop = (() => {
                     if (message.redirect_downloads != null && $Object.hasOwnProperty.call(message, "redirect_downloads"))
                         if (typeof message.redirect_downloads !== "boolean")
                             return "redirect_downloads: boolean expected";
+                    if (message.key_prefix != null && $Object.hasOwnProperty.call(message, "key_prefix"))
+                        if (!$util.isString(message.key_prefix))
+                            return "key_prefix: string expected";
                     return null;
                 };
 
@@ -8552,6 +8575,9 @@ export const renop = $root.renop = (() => {
                     if (object.redirect_downloads != null)
                         if (object.redirect_downloads)
                             message.redirect_downloads = $Boolean(object.redirect_downloads);
+                    if (object.key_prefix != null)
+                        if (typeof object.key_prefix !== "string" || object.key_prefix.length)
+                            message.key_prefix = $String(object.key_prefix);
                     return message;
                 };
 
@@ -8581,6 +8607,7 @@ export const renop = $root.renop = (() => {
                         object.secret_access_key = "";
                         object.force_path_style = false;
                         object.redirect_downloads = false;
+                        object.key_prefix = "";
                     }
                     if (message.enabled != null && $Object.hasOwnProperty.call(message, "enabled"))
                         object.enabled = message.enabled;
@@ -8598,6 +8625,8 @@ export const renop = $root.renop = (() => {
                         object.force_path_style = message.force_path_style;
                     if (message.redirect_downloads != null && $Object.hasOwnProperty.call(message, "redirect_downloads"))
                         object.redirect_downloads = message.redirect_downloads;
+                    if (message.key_prefix != null && $Object.hasOwnProperty.call(message, "key_prefix"))
+                        object.key_prefix = message.key_prefix;
                     return object;
                 };
 

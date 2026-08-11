@@ -25,6 +25,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/llxisdsh/pb"
 	"github.com/minio/minio-go/v7"
@@ -219,6 +220,56 @@ func IsS3Enabled(path ...string) bool {
 	return GetS3ConfigForPath(path[0]) != nil
 }
 
+// NormalizeS3KeyPrefix validates and canonicalizes the optional bucket prefix.
+func NormalizeS3KeyPrefix(raw string) (string, error) {
+	prefix := strings.Trim(strings.TrimSpace(raw), "/")
+	if prefix == "" {
+		return "", nil
+	}
+	if strings.Contains(prefix, `\`) {
+		return "", errors.New("S3 key prefix cannot contain backslashes")
+	}
+	for _, segment := range strings.Split(prefix, "/") {
+		if segment == "" || segment == "." || segment == ".." || strings.TrimSpace(segment) != segment ||
+			strings.IndexFunc(segment, unicode.IsControl) >= 0 {
+			return "", errors.New("S3 key prefix contains an invalid path segment")
+		}
+	}
+	return prefix, nil
+}
+
+func s3ObjectKey(s3Cfg *config.S3Config, logicalKey string) (string, error) {
+	prefix, err := NormalizeS3KeyPrefix(s3Cfg.KeyPrefix)
+	if err != nil {
+		return "", err
+	}
+	if prefix == "" {
+		return logicalKey, nil
+	}
+
+	cfg := currentConfig.Load()
+	if cfg == nil {
+		return "", errors.New("S3 configuration is not initialized")
+	}
+	key := utils.GetS3Key(logicalKey)
+	storageKey := strings.TrimSuffix(utils.GetS3Key(filepath.Clean(cfg.StoragePath)), "/")
+	relative := key
+	if storageKey != "" && storageKey != "." {
+		switch {
+		case key == storageKey:
+			relative = ""
+		case strings.HasPrefix(key, storageKey+"/"):
+			relative = strings.TrimPrefix(key, storageKey+"/")
+		default:
+			return "", errors.New("S3 key is outside the configured storage path")
+		}
+	}
+	if relative == "" {
+		return prefix, nil
+	}
+	return prefix + "/" + relative, nil
+}
+
 func UploadToS3(localPath string, s3Key string) error {
 	s3Cfg := GetS3ConfigForPath(localPath)
 	if s3Cfg == nil {
@@ -228,13 +279,17 @@ func UploadToS3(localPath string, s3Key string) error {
 }
 
 func UploadToS3Direct(s3Cfg *config.S3Config, localPath string, s3Key string) error {
+	objectKey, err := s3ObjectKey(s3Cfg, s3Key)
+	if err != nil {
+		return err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
 	defer cancel()
-	_, err = client.FPutObject(ctx, s3Cfg.Bucket, s3Key, localPath, minio.PutObjectOptions{})
+	_, err = client.FPutObject(ctx, s3Cfg.Bucket, objectKey, localPath, minio.PutObjectOptions{})
 	return err
 }
 
@@ -247,12 +302,16 @@ func DownloadFromS3(s3Key string) (io.ReadCloser, index.FileInfo, error) {
 }
 
 func DownloadFromS3Direct(s3Cfg *config.S3Config, s3Key string) (io.ReadCloser, index.FileInfo, error) {
+	objectKey, err := s3ObjectKey(s3Cfg, s3Key)
+	if err != nil {
+		return nil, index.FileInfo{}, err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return nil, index.FileInfo{}, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
-	obj, err := client.GetObject(ctx, s3Cfg.Bucket, s3Key, minio.GetObjectOptions{})
+	obj, err := client.GetObject(ctx, s3Cfg.Bucket, objectKey, minio.GetObjectOptions{})
 	if err != nil {
 		cancel()
 		return nil, index.FileInfo{}, err
@@ -274,6 +333,10 @@ func DownloadRangeFromS3(s3Key string, start, end int64) (io.ReadCloser, error) 
 	if s3Cfg == nil {
 		return nil, errors.New("S3 not enabled for path")
 	}
+	objectKey, err := s3ObjectKey(s3Cfg, s3Key)
+	if err != nil {
+		return nil, err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return nil, err
@@ -283,7 +346,7 @@ func DownloadRangeFromS3(s3Key string, start, end int64) (io.ReadCloser, error) 
 		return nil, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
-	obj, err := client.GetObject(ctx, s3Cfg.Bucket, s3Key, options)
+	obj, err := client.GetObject(ctx, s3Cfg.Bucket, objectKey, options)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -296,6 +359,10 @@ func GetS3PresignedURL(s3Key string, expires time.Duration) (string, error) {
 	if s3Cfg == nil {
 		return "", errors.New("S3 not enabled for path")
 	}
+	objectKey, err := s3ObjectKey(s3Cfg, s3Key)
+	if err != nil {
+		return "", err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return "", err
@@ -303,7 +370,7 @@ func GetS3PresignedURL(s3Key string, expires time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), s3RequestTimeout)
 	defer cancel()
 	reqParams := make(url.Values)
-	u, err := client.PresignedGetObject(ctx, s3Cfg.Bucket, s3Key, expires, reqParams)
+	u, err := client.PresignedGetObject(ctx, s3Cfg.Bucket, objectKey, expires, reqParams)
 	if err != nil {
 		return "", err
 	}
@@ -315,13 +382,17 @@ func UploadStreamToS3(s3Key string, reader io.Reader, size int64, contentType st
 	if s3Cfg == nil {
 		return nil
 	}
+	objectKey, err := s3ObjectKey(s3Cfg, s3Key)
+	if err != nil {
+		return err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
 	defer cancel()
-	_, err = client.PutObject(ctx, s3Cfg.Bucket, s3Key, reader, size, minio.PutObjectOptions{
+	_, err = client.PutObject(ctx, s3Cfg.Bucket, objectKey, reader, size, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	return err
@@ -332,13 +403,17 @@ func DeleteFromS3(s3Key string) error {
 	if s3Cfg == nil {
 		return nil
 	}
+	objectKey, err := s3ObjectKey(s3Cfg, s3Key)
+	if err != nil {
+		return err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), s3RequestTimeout)
 	defer cancel()
-	return client.RemoveObject(ctx, s3Cfg.Bucket, s3Key, minio.RemoveObjectOptions{})
+	return client.RemoveObject(ctx, s3Cfg.Bucket, objectKey, minio.RemoveObjectOptions{})
 }
 
 func DeletePrefixFromS3(s3Prefix string) error {
@@ -351,6 +426,10 @@ func DeletePrefixFromS3Config(s3Cfg *config.S3Config, s3Prefix string) error {
 	if s3Cfg == nil || !s3Cfg.Enabled {
 		return nil
 	}
+	objectPrefix, err := s3ObjectKey(s3Cfg, s3Prefix)
+	if err != nil {
+		return err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return err
@@ -361,11 +440,11 @@ func DeletePrefixFromS3Config(s3Cfg *config.S3Config, s3Prefix string) error {
 	go func() {
 		defer close(objectsCh)
 		for object := range client.ListObjects(ctx, s3Cfg.Bucket, minio.ListObjectsOptions{
-			Prefix:    s3Prefix,
+			Prefix:    objectPrefix,
 			Recursive: true,
 		}) {
 			if object.Err != nil {
-				log.Printf("Error listing S3 object under prefix %s: %v", s3Prefix, object.Err)
+				log.Printf("Error listing S3 object under prefix %s: %v", objectPrefix, object.Err)
 				continue
 			}
 			select {
@@ -389,13 +468,17 @@ func StatS3(s3Key string) (index.FileInfo, error) {
 	if s3Cfg == nil {
 		return index.FileInfo{}, errors.New("S3 not enabled for path")
 	}
+	objectKey, err := s3ObjectKey(s3Cfg, s3Key)
+	if err != nil {
+		return index.FileInfo{}, err
+	}
 	client, err := GetS3Client(s3Cfg)
 	if err != nil {
 		return index.FileInfo{}, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), s3RequestTimeout)
 	defer cancel()
-	objInfo, err := client.StatObject(ctx, s3Cfg.Bucket, s3Key, minio.StatObjectOptions{})
+	objInfo, err := client.StatObject(ctx, s3Cfg.Bucket, objectKey, minio.StatObjectOptions{})
 	if err != nil {
 		return index.FileInfo{}, err
 	}
@@ -423,11 +506,14 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) error {
 				return fmt.Errorf("get S3 client for repository %q: %w", repoName, err)
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
-			prefix := utils.GetS3Key(repoDir)
+			prefix, err := s3ObjectKey(repo.S3, utils.GetS3Key(repoDir))
+			if err != nil {
+				return fmt.Errorf("resolve S3 key prefix for repository %q: %w", repoName, err)
+			}
 			if !strings.HasSuffix(prefix, "/") {
 				prefix += "/"
 			}
+			ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
 
 			for object := range client.ListObjects(ctx, repo.S3.Bucket, minio.ListObjectsOptions{
 				Prefix:    prefix,
