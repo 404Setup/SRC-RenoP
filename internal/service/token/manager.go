@@ -123,6 +123,10 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 
 		case OpTokenUpdate:
 			safeName := strings.Clone(op.Name)
+			if op.UpdateFn == nil {
+				completeTokenOp(op, errors.New("token update function is required"))
+				continue
+			}
 			db := state.GetDB()
 			if db == nil {
 				completeTokenOp(op, core.ErrDatabaseUnavailable)
@@ -155,12 +159,11 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			oldName := strings.Clone(op.Name)
 			newName := strings.Clone(op.NewName)
 			clonedToken := cloneAccessToken(op.Token)
-			clonedToken.Name = newName
-
 			if clonedToken == nil {
 				completeTokenOp(op, errors.New("token is required"))
 				continue
 			}
+			clonedToken.Name = newName
 			db := state.GetDB()
 			if db == nil {
 				completeTokenOp(op, core.ErrDatabaseUnavailable)

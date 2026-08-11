@@ -64,6 +64,31 @@ func TestTokenConsumerPropagatesPersistenceErrors(t *testing.T) {
 	assert.Equal(t, uint64(1), state.Inner.TokensCount.Load())
 }
 
+func TestTokenConsumerRejectsInvalidOperationPayloads(t *testing.T) {
+	db := newTestDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "source"}))
+
+	opChan := make(chan TokenOp, 3)
+	go StartTokenConsumer(state, opChan)
+
+	renameErr := make(chan error, 1)
+	opChan <- TokenOp{Type: OpTokenRename, Name: "source", NewName: "target", ErrChan: renameErr}
+	require.Error(t, <-renameErr)
+
+	updateErr := make(chan error, 1)
+	opChan <- TokenOp{Type: OpTokenUpdate, Name: "source", ErrChan: updateErr}
+	require.Error(t, <-updateErr)
+
+	require.NoError(t, UpdateTokenSync(opChan, "source", func(token *core.AccessToken) {
+		token.Description = "consumer still running"
+	}))
+	updated, err := db.GetTokenByName("source")
+	require.NoError(t, err)
+	require.Equal(t, "consumer still running", updated.Description)
+}
+
 func newTestDB(t *testing.T) *database.DB {
 	t.Helper()
 	dbFile := t.TempDir() + "/test_tokens.db"
