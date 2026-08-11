@@ -143,6 +143,26 @@ func TestPostAuthLogout(t *testing.T) {
 	assert.Nil(t, dbSess)
 }
 
+func TestSessionPersistenceErrorsDoNotMutateMemory(t *testing.T) {
+	db := newTestAuthDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	session := &core.Session{PublicId: "failed", Username: "admin"}
+	session.LastActive.Store(time.Now().UnixMilli())
+
+	require.NoError(t, db.Close())
+	require.Error(t, state.SaveSession(session, "failed-save"))
+	_, ok := state.Inner.Sessions.Load("failed-save")
+	assert.False(t, ok)
+
+	state.Inner.Sessions.Store("failed-revoke", session)
+	revoked, err := state.RevokeSession("failed-revoke")
+	require.Error(t, err)
+	assert.False(t, revoked)
+	_, ok = state.Inner.Sessions.Load("failed-revoke")
+	assert.True(t, ok)
+}
+
 func TestPostAuthLogoutRevokesCookieEvenWithoutUser(t *testing.T) {
 	app := fiber.New()
 	state := core.NewAppState()

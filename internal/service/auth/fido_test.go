@@ -75,7 +75,7 @@ func TestFidoBeginEndpoints(t *testing.T) {
 			PublicKey:    []byte("pubkey-456"),
 			CreatedAt:    1700000000000,
 		}
-		state.SaveFidoDevice(dev)
+		require.NoError(t, state.SaveFidoDevice(dev))
 
 		devs := state.ListFidoDevices("user1")
 		if assert.Len(t, devs, 1) {
@@ -89,13 +89,13 @@ func TestFidoBeginEndpoints(t *testing.T) {
 			assert.Equal(t, uint32(0), matched.SignCount)
 		}
 
-		state.UpdateFidoSignCount([]byte("cred-123"), 42)
+		require.NoError(t, state.UpdateFidoSignCount([]byte("cred-123"), 42))
 		updated := state.GetFidoDeviceByCredentialID([]byte("cred-123"))
 		if assert.NotNil(t, updated) {
 			assert.Equal(t, uint32(42), updated.SignCount)
 		}
 
-		state.UpdateFidoDeviceState([]byte("cred-123"), 45, true, true)
+		require.NoError(t, state.UpdateFidoDeviceState([]byte("cred-123"), 45, true, true))
 		updatedState := state.GetFidoDeviceByCredentialID([]byte("cred-123"))
 		if assert.NotNil(t, updatedState) {
 			assert.Equal(t, uint32(45), updatedState.SignCount)
@@ -103,8 +103,7 @@ func TestFidoBeginEndpoints(t *testing.T) {
 			assert.True(t, updatedState.BackupEligible)
 		}
 
-		deleted := state.DeleteFidoDevice("user1", "dev-1")
-		assert.True(t, deleted)
+		require.NoError(t, state.DeleteFidoDevice("user1", "dev-1"))
 		assert.Empty(t, state.ListFidoDevices("user1"))
 	})
 }

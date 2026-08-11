@@ -392,7 +392,9 @@ func PostFidoRegisterFinish(c fiber.Ctx, state *core.AppState) error {
 		BackupState:     credential.Flags.BackupState,
 	}
 
-	state.SaveFidoDevice(device)
+	if err := state.SaveFidoDevice(device); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to save FIDO device")
+	}
 
 	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -444,7 +446,9 @@ func DeleteProfileFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	user := userInt.(*config.User)
 	deviceID := c.Params("device_id")
 
-	state.DeleteFidoDevice(user.Username, deviceID)
+	if err := state.DeleteFidoDevice(user.Username, deviceID); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete FIDO device")
+	}
 
 	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -479,7 +483,9 @@ func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	username := c.Params("username")
 	deviceID := c.Params("device_id")
 
-	state.DeleteFidoDevice(username, deviceID)
+	if err := state.DeleteFidoDevice(username, deviceID); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete FIDO device")
+	}
 
 	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -569,7 +575,9 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 	if incomingBE {
 		if matchedDevice := state.GetFidoDeviceByCredentialID(parsedResponse.RawID); matchedDevice != nil && !matchedDevice.BackupEligible {
 			matchedDevice.BackupEligible = true
-			state.UpdateFidoDeviceState(matchedDevice.CredentialID, matchedDevice.SignCount, matchedDevice.BackupState, true)
+			if err := state.UpdateFidoDeviceState(matchedDevice.CredentialID, matchedDevice.SignCount, matchedDevice.BackupState, true); err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("Failed to update FIDO device")
+			}
 		}
 	}
 
@@ -650,7 +658,9 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusUnauthorized).SendString(errMsg)
 	}
 
-	state.UpdateFidoDeviceState(matchedCred.ID, matchedCred.Authenticator.SignCount, matchedCred.Flags.BackupState, matchedCred.Flags.BackupEligible)
+	if err := state.UpdateFidoDeviceState(matchedCred.ID, matchedCred.Authenticator.SignCount, matchedCred.Flags.BackupState, matchedCred.Flags.BackupEligible); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update FIDO device")
+	}
 
 	sessionToken := uuid.NewString()
 	publicId := uuid.NewString()
@@ -666,7 +676,9 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState) error {
 	}
 	session.LastActive.Store(now)
 
-	state.SaveSession(session, sessionToken)
+	if err := state.SaveSession(session, sessionToken); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create session")
+	}
 
 	setSessionCookie(c, sessionToken, int(core.SessionIdleTimeoutMillis/1000))
 	details := CreateSessionDetails(authenticatedUser, "")

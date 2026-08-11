@@ -75,36 +75,64 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 		case OpTokenStore:
 			safeName := strings.Clone(op.Name)
 			clonedToken := cloneAccessToken(op.Token)
+			if clonedToken == nil {
+				completeTokenOp(op, errors.New("token is required"))
+				continue
+			}
 			clonedToken.Name = safeName
 
-			if db := state.GetDB(); db != nil {
-				if existing, _ := db.GetTokenByName(safeName); existing == nil {
-					state.Inner.TokensCount.Add(1)
-				}
-				_ = db.SaveToken(clonedToken)
+			db := state.GetDB()
+			if db == nil {
+				completeTokenOp(op, core.ErrDatabaseUnavailable)
+				continue
+			}
+			existing, err := db.GetTokenByName(safeName)
+			if err == nil {
+				err = db.SaveToken(clonedToken)
+			}
+			if err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
+			if existing == nil {
+				state.Inner.TokensCount.Add(1)
 			}
 			state.ClearAuthCache()
-			if op.ErrChan != nil {
-				op.ErrChan <- nil
-			}
+			completeTokenOp(op, nil)
 
 		case OpTokenDelete:
 			safeName := strings.Clone(op.Name)
-			state.DeleteFidoDevicesByUsername(safeName)
-			if db := state.GetDB(); db != nil {
-				if existing, _ := db.GetTokenByName(safeName); existing != nil {
-					_ = db.DeleteToken(safeName)
-					state.Inner.TokensCount.Add(^uint64(0))
-				}
+			db := state.GetDB()
+			if db == nil {
+				completeTokenOp(op, core.ErrDatabaseUnavailable)
+				continue
+			}
+			existing, err := db.GetTokenByName(safeName)
+			if err == nil && existing != nil {
+				err = db.DeleteToken(safeName)
+			}
+			if err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
+			if existing != nil {
+				state.Inner.TokensCount.Add(^uint64(0))
 			}
 			state.ClearAuthCache()
-			if op.ErrChan != nil {
-				op.ErrChan <- nil
-			}
+			completeTokenOp(op, nil)
 
 		case OpTokenUpdate:
 			safeName := strings.Clone(op.Name)
-			val := state.GetTokenByName(safeName)
+			db := state.GetDB()
+			if db == nil {
+				completeTokenOp(op, core.ErrDatabaseUnavailable)
+				continue
+			}
+			val, err := db.GetTokenByName(safeName)
+			if err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
 			if val != nil {
 				token := val
 				tCopy := *token
@@ -113,17 +141,14 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				clonedToken := cloneAccessToken(&tCopy)
 				clonedToken.Name = safeName
 
-				if db := state.GetDB(); db != nil {
-					_ = db.SaveToken(clonedToken)
+				if err := db.SaveToken(clonedToken); err != nil {
+					completeTokenOp(op, err)
+					continue
 				}
 				state.ClearAuthCache()
-				if op.ErrChan != nil {
-					op.ErrChan <- nil
-				}
+				completeTokenOp(op, nil)
 			} else {
-				if op.ErrChan != nil {
-					op.ErrChan <- errors.New("token not found")
-				}
+				completeTokenOp(op, errors.New("token not found"))
 			}
 
 		case OpTokenRename:
@@ -132,35 +157,55 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			clonedToken := cloneAccessToken(op.Token)
 			clonedToken.Name = newName
 
-			val := state.GetTokenByName(oldName)
+			if clonedToken == nil {
+				completeTokenOp(op, errors.New("token is required"))
+				continue
+			}
+			db := state.GetDB()
+			if db == nil {
+				completeTokenOp(op, core.ErrDatabaseUnavailable)
+				continue
+			}
+			val, err := db.GetTokenByName(oldName)
+			if err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
 			if val != nil {
-				if existing := state.GetTokenByName(newName); existing != nil && newName != oldName {
-					if op.ErrChan != nil {
-						op.ErrChan <- errors.New("token name already exists")
+				if newName != oldName {
+					existing, err := db.GetTokenByName(newName)
+					if err != nil {
+						completeTokenOp(op, err)
+						continue
 					}
+					if existing != nil {
+						completeTokenOp(op, errors.New("token name already exists"))
+						continue
+					}
+				}
+				if err := db.RenameToken(oldName, newName, clonedToken); err != nil {
+					completeTokenOp(op, err)
 					continue
 				}
-				if db := state.GetDB(); db != nil {
-					_ = db.RenameToken(oldName, newName, clonedToken)
-					if op.State != nil {
-						_ = db.UpdateSessionsUsername(oldName, newName)
-						op.State.Inner.Sessions.Range(func(key string, session *core.Session) bool {
-							if strings.EqualFold(session.Username, oldName) {
-								session.Username = newName
-							}
-							return true
-						})
-					}
+				if op.State != nil {
+					op.State.Inner.Sessions.Range(func(key string, session *core.Session) bool {
+						if strings.EqualFold(session.Username, oldName) {
+							session.Username = newName
+						}
+						return true
+					})
 				}
 				state.ClearAuthCache()
-				if op.ErrChan != nil {
-					op.ErrChan <- nil
-				}
+				completeTokenOp(op, nil)
 			} else {
-				if op.ErrChan != nil {
-					op.ErrChan <- errors.New("token not found")
-				}
+				completeTokenOp(op, errors.New("token not found"))
 			}
 		}
+	}
+}
+
+func completeTokenOp(op TokenOp, err error) {
+	if op.ErrChan != nil {
+		op.ErrChan <- err
 	}
 }

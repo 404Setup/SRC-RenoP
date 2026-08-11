@@ -43,7 +43,7 @@ func TestInitializeDatabaseSessions(t *testing.T) {
 	sess.LastActive.Store(now)
 
 	token := "session-token-123"
-	state.SaveSession(sess, token)
+	require.NoError(t, state.SaveSession(sess, token))
 
 	// Verify GetSession returns the session
 	fetched := state.GetSession(token)
@@ -57,7 +57,8 @@ func TestInitializeDatabaseSessions(t *testing.T) {
 	assert.True(t, list[0].Current)
 
 	// Revoke session
-	revoked := state.RevokeSession(token)
+	revoked, err := state.RevokeSession(token)
+	require.NoError(t, err)
 	assert.True(t, revoked)
 	assert.Nil(t, state.GetSession(token))
 	_ = dbPath

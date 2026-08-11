@@ -283,6 +283,22 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.Empty(t, emptyDevs)
 	})
 
+	t.Run("Token Deletion Removes FIDO Devices", func(t *testing.T) {
+		tok := &core.AccessToken{Name: "fido-owner", CreatedAt: "2026-07-31T00:00:00Z"}
+		require.NoError(t, db.SaveToken(tok))
+		require.NoError(t, db.SaveFidoDevice(&core.FidoDevice{
+			ID:           "delete-with-token",
+			Username:     "fido-owner",
+			CredentialID: []byte("delete-credential"),
+			PublicKey:    []byte("key"),
+		}))
+
+		require.NoError(t, db.DeleteToken("fido-owner"))
+		devices, err := db.ListFidoDevices("fido-owner")
+		require.NoError(t, err)
+		assert.Empty(t, devices)
+	})
+
 	t.Run("Sanitization and Null Byte Injection Defense", func(t *testing.T) {
 		sanitized := database.SanitizeInputString("user\x00name", 255)
 		assert.Equal(t, "username", sanitized)

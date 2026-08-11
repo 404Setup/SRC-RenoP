@@ -235,7 +235,9 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 		}
 		session.LastActive.Store(now)
 
-		state.SaveSession(session, sessionToken)
+		if err := state.SaveSession(session, sessionToken); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to create session")
+		}
 
 		audit.Log(state, &core.AuditLogEntry{
 			Username:   user.Username,
@@ -304,7 +306,9 @@ func resolveLogoutSessionToken(c fiber.Ctx) string {
 func PostAuthLogout(c fiber.Ctx, state *core.AppState) error {
 	user := GetUser(c)
 	if sessionID := resolveLogoutSessionToken(c); sessionID != "" {
-		state.RevokeSession(sessionID)
+		if _, err := state.RevokeSession(sessionID); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke session")
+		}
 	}
 	if user != nil && user.Username != "" && user.Username != "guest" {
 		_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)

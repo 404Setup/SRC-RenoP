@@ -19,11 +19,35 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 )
+
+func TestTokenConsumerPropagatesPersistenceErrors(t *testing.T) {
+	db := newTestDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	tok := &core.AccessToken{Name: "persisted", Description: "original"}
+	require.NoError(t, db.SaveToken(tok))
+	state.Inner.TokensCount.Store(1)
+	require.NoError(t, db.Close())
+
+	opChan := make(chan TokenOp, 2)
+	go StartTokenConsumer(state, opChan)
+
+	err := UpdateTokenSync(opChan, "persisted", func(token *core.AccessToken) {
+		token.Description = "changed"
+	})
+	require.Error(t, err)
+
+	errChan := make(chan error, 1)
+	opChan <- TokenOp{Type: OpTokenDelete, Name: "persisted", ErrChan: errChan}
+	require.Error(t, <-errChan)
+	assert.Equal(t, uint64(1), state.Inner.TokensCount.Load())
+}
 
 func newTestDB(t *testing.T) *database.DB {
 	t.Helper()

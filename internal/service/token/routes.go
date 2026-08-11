@@ -341,7 +341,9 @@ func DeleteUserSession(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	// Allow revoke even if the account was removed; session may still exist.
-	state.RevokeUserSessionByPublicID(name, sessionID, currentSessionToken(c))
+	if _, _, err := state.RevokeUserSessionByPublicID(name, sessionID, currentSessionToken(c)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke session")
+	}
 
 	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -372,7 +374,9 @@ func RevokeAllUserSessions(c fiber.Ctx, state *core.AppState) error {
 	if user != nil && strings.EqualFold(user.Username, name) {
 		keep = currentSessionToken(c)
 	}
-	state.RevokeOtherUserSessions(name, keep)
+	if _, err := state.RevokeOtherUserSessions(name, keep); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke sessions")
+	}
 
 	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{

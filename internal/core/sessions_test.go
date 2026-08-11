@@ -59,12 +59,14 @@ func TestRevokeUserSessionByPublicID(t *testing.T) {
 	storeTestSession(state, "secret-a", "pub-a", "alice")
 	storeTestSession(state, "secret-b", "pub-b", "alice")
 
-	revoked, wasCurrent := state.RevokeUserSessionByPublicID("alice", "pub-a", "secret-a")
+	revoked, wasCurrent, err := state.RevokeUserSessionByPublicID("alice", "pub-a", "secret-a")
+	require.NoError(t, err)
 	assert.True(t, revoked)
 	assert.True(t, wasCurrent)
 	assert.Len(t, state.ListUserSessions("alice", "secret-a"), 1)
 
-	revoked, wasCurrent = state.RevokeUserSessionByPublicID("bob", "pub-b", "")
+	revoked, wasCurrent, err = state.RevokeUserSessionByPublicID("bob", "pub-b", "")
+	require.NoError(t, err)
 	assert.False(t, revoked)
 	assert.False(t, wasCurrent)
 	assert.Len(t, state.ListUserSessions("alice", ""), 1)
@@ -77,13 +79,16 @@ func TestRevokeOtherUserSessions(t *testing.T) {
 	storeTestSession(state, "drop-2", "pub-2", "alice")
 	storeTestSession(state, "other", "pub-other", "bob")
 
-	n := state.RevokeOtherUserSessions("alice", "keep")
+	n, err := state.RevokeOtherUserSessions("alice", "keep")
+	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	list := state.ListUserSessions("alice", "keep")
 	require.Len(t, list, 1)
 	assert.Equal(t, "pub-keep", list[0].PublicId)
 	assert.Len(t, state.ListUserSessions("bob", ""), 1)
 
-	assert.Equal(t, 1, state.RevokeAllUserSessions("bob"))
+	revoked, err := state.RevokeAllUserSessions("bob")
+	require.NoError(t, err)
+	assert.Equal(t, 1, revoked)
 	assert.Empty(t, state.ListUserSessions("bob", ""))
 }

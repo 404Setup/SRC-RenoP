@@ -50,7 +50,7 @@ func ValidateAndRenewSession(state *core.AppState, sessionId string) string {
 
 	now := time.Now().UnixMilli()
 	if now-session.LastActive.Load() > core.SessionIdleTimeoutMillis {
-		state.RevokeSession(sessionId)
+		_, _ = state.RevokeSession(sessionId)
 		return ""
 	}
 

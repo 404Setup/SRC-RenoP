@@ -145,7 +145,10 @@ func DeleteSession(c fiber.Ctx, state *core.AppState) error {
 	user := userInt.(*config.User)
 	sessionID := c.Params("session_id")
 
-	revoked, wasCurrent := state.RevokeUserSessionByPublicID(user.Username, sessionID, currentSessionToken(c))
+	revoked, wasCurrent, err := state.RevokeUserSessionByPublicID(user.Username, sessionID, currentSessionToken(c))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke session")
+	}
 	if wasCurrent && revoked {
 		setSessionCookie(c, "", -1)
 	}
@@ -172,7 +175,9 @@ func RevokeOtherSessions(c fiber.Ctx, state *core.AppState) error {
 	}
 	user := userInt.(*config.User)
 
-	state.RevokeOtherUserSessions(user.Username, currentSessionToken(c))
+	if _, err := state.RevokeOtherUserSessions(user.Username, currentSessionToken(c)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke sessions")
+	}
 
 	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{

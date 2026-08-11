@@ -11,6 +11,7 @@
 package core
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -28,6 +29,8 @@ type AuthCacheEntry struct {
 	User      *config.User
 	ExpiredAt int64
 }
+
+var ErrDatabaseUnavailable = errors.New("database unavailable")
 
 type CachedFile struct {
 	Bytes        []byte
@@ -194,28 +197,32 @@ func (state *AppState) GetSession(sessionToken string) *Session {
 	return sess
 }
 
-func (state *AppState) SaveSession(session *Session, sessionToken string) {
+func (state *AppState) SaveSession(session *Session, sessionToken string) error {
 	if state == nil || state.Inner == nil || session == nil || sessionToken == "" {
-		return
+		return nil
+	}
+	if db := state.GetDB(); db != nil {
+		if err := db.SaveSession(session, sessionToken); err != nil {
+			return err
+		}
 	}
 	state.Inner.Sessions.Store(sessionToken, session)
-	if db := state.GetDB(); db != nil {
-		_ = db.SaveSession(session, sessionToken)
-	}
+	return nil
 }
 
 // RevokeSession removes a browser session by its secret token and invalidates related auth cache.
-// Returns true if a session was present and removed.
-func (state *AppState) RevokeSession(sessionToken string) bool {
+func (state *AppState) RevokeSession(sessionToken string) (bool, error) {
 	if state == nil || state.Inner == nil || sessionToken == "" {
-		return false
+		return false, nil
+	}
+	if db := state.GetDB(); db != nil {
+		if err := db.DeleteSession(sessionToken); err != nil {
+			return false, err
+		}
 	}
 	state.DeleteAuthCache("Session " + sessionToken)
 	state.Inner.Sessions.Delete(sessionToken)
-	if db := state.GetDB(); db != nil {
-		_ = db.DeleteSession(sessionToken)
-	}
-	return true
+	return true, nil
 }
 
 // sessionToDto maps an in-memory Session (+ map key) to a public SessionDto.
@@ -262,20 +269,20 @@ func (state *AppState) ListUserSessions(username, currentSessionToken string) []
 
 // RevokeUserSessionByPublicID removes one session owned by username, identified by public_id.
 // Returns (revoked, wasCurrent) where wasCurrent means the revoked secret matched currentSessionToken.
-func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSessionToken string) (revoked bool, wasCurrent bool) {
+func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSessionToken string) (revoked bool, wasCurrent bool, err error) {
 	if state == nil || state.Inner == nil || username == "" || publicID == "" {
-		return false, false
+		return false, false, nil
 	}
 	if db := state.GetDB(); db != nil {
 		token, revoked, wasCurrent, err := db.DeleteUserSessionByPublicID(username, publicID, currentSessionToken)
 		if err != nil {
-			return false, false
+			return false, false, err
 		}
 		if revoked && token != "" {
 			state.DeleteAuthCache("Session " + token)
 			state.Inner.Sessions.Delete(token)
 		}
-		return revoked, wasCurrent
+		return revoked, wasCurrent, nil
 	}
 	var toRemove string
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
@@ -286,28 +293,29 @@ func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSe
 		return true
 	})
 	if toRemove == "" {
-		return false, false
+		return false, false, nil
 	}
 	wasCurrent = currentSessionToken != "" && toRemove == currentSessionToken
-	return state.RevokeSession(toRemove), wasCurrent
+	revoked, err = state.RevokeSession(toRemove)
+	return revoked, wasCurrent, err
 }
 
 // RevokeOtherUserSessions removes every session for username except the one matching keepSessionToken.
 // If keepSessionToken is empty, all sessions for the user are removed.
-func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string) int {
+func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string) (int, error) {
 	if state == nil || state.Inner == nil || username == "" {
-		return 0
+		return 0, nil
 	}
 	if db := state.GetDB(); db != nil {
 		deletedTokens, err := db.DeleteOtherUserSessions(username, keepSessionToken)
 		if err != nil {
-			return 0
+			return 0, err
 		}
 		for _, t := range deletedTokens {
 			state.DeleteAuthCache("Session " + t)
 			state.Inner.Sessions.Delete(t)
 		}
-		return len(deletedTokens)
+		return len(deletedTokens), nil
 	}
 	var toRemove []string
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
@@ -318,15 +326,17 @@ func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string
 	})
 	count := 0
 	for _, token := range toRemove {
-		if state.RevokeSession(token) {
+		if revoked, err := state.RevokeSession(token); err != nil {
+			return count, err
+		} else if revoked {
 			count++
 		}
 	}
-	return count
+	return count, nil
 }
 
 // RevokeAllUserSessions removes every browser session for username.
-func (state *AppState) RevokeAllUserSessions(username string) int {
+func (state *AppState) RevokeAllUserSessions(username string) (int, error) {
 	return state.RevokeOtherUserSessions(username, "")
 }
 
@@ -361,54 +371,57 @@ func (state *AppState) GetFidoDeviceByCredentialID(credentialID []byte) *FidoDev
 	return dev
 }
 
-func (state *AppState) SaveFidoDevice(device *FidoDevice) {
+func (state *AppState) SaveFidoDevice(device *FidoDevice) error {
 	if state == nil || state.Inner == nil || device == nil || device.Username == "" {
-		return
+		return nil
 	}
 	lowerName := strings.ToLower(device.Username)
 	device.Username = lowerName
 	if db := state.GetDB(); db != nil {
-		_ = db.SaveFidoDevice(device)
+		return db.SaveFidoDevice(device)
 	}
+	return ErrDatabaseUnavailable
 }
 
-func (state *AppState) DeleteFidoDevice(username, deviceID string) bool {
+func (state *AppState) DeleteFidoDevice(username, deviceID string) error {
 	if state == nil || state.Inner == nil || username == "" || deviceID == "" {
-		return false
+		return nil
 	}
 	lowerName := strings.ToLower(username)
 	db := state.GetDB()
 	if db == nil {
-		return false
+		return ErrDatabaseUnavailable
 	}
-	err := db.DeleteFidoDevice(lowerName, deviceID)
-	return err == nil
+	return db.DeleteFidoDevice(lowerName, deviceID)
 }
 
-func (state *AppState) DeleteFidoDevicesByUsername(username string) {
+func (state *AppState) DeleteFidoDevicesByUsername(username string) error {
 	if state == nil || state.Inner == nil || username == "" {
-		return
+		return nil
 	}
 	lowerName := strings.ToLower(username)
 	if db := state.GetDB(); db != nil {
-		_ = db.DeleteFidoDevicesByUsername(lowerName)
+		return db.DeleteFidoDevicesByUsername(lowerName)
 	}
+	return ErrDatabaseUnavailable
 }
 
-func (state *AppState) UpdateFidoSignCount(credentialID []byte, signCount uint32) {
+func (state *AppState) UpdateFidoSignCount(credentialID []byte, signCount uint32) error {
 	if state == nil || state.Inner == nil || len(credentialID) == 0 {
-		return
+		return nil
 	}
 	if db := state.GetDB(); db != nil {
-		_ = db.UpdateFidoSignCount(credentialID, signCount)
+		return db.UpdateFidoSignCount(credentialID, signCount)
 	}
+	return ErrDatabaseUnavailable
 }
 
-func (state *AppState) UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) {
+func (state *AppState) UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) error {
 	if state == nil || state.Inner == nil || len(credentialID) == 0 {
-		return
+		return nil
 	}
 	if db := state.GetDB(); db != nil {
-		_ = db.UpdateFidoDeviceState(credentialID, signCount, backupState, backupEligible)
+		return db.UpdateFidoDeviceState(credentialID, signCount, backupState, backupEligible)
 	}
+	return ErrDatabaseUnavailable
 }

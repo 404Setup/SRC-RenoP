@@ -195,9 +195,20 @@ func (db *DB) DeleteToken(name string) error {
 	}
 
 	lowerName := strings.ToLower(name)
-	_, err := db.SqlDB.Exec(`DELETE FROM tokens WHERE name = ?`, lowerName)
+	tx, err := db.SqlDB.Begin()
 	if err != nil {
+		return fmt.Errorf("failed to begin token deletion (%s): %w", lowerName, err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete fido devices for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete token (%s): %w", lowerName, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit token deletion (%s): %w", lowerName, err)
 	}
 
 	db.tokenCache.Delete(lowerName)
@@ -244,6 +255,12 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 		if _, err := tx.Exec(query, lowerNew, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJson), token.CreatedAt, token.Description, expiresAt, string(permissionsJson)); err != nil {
 			return err
 		}
+	}
+	if _, err := tx.Exec(`UPDATE sessions SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename sessions from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE fido_devices SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename fido devices from %s to %s: %w", lowerOld, lowerNew, err)
 	}
 
 	if err := tx.Commit(); err != nil {
