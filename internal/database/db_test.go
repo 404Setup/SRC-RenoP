@@ -12,7 +12,7 @@ package database_test
 
 import (
 	"database/sql"
-	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -47,8 +47,7 @@ func TestSQLiteMigrationsFailOnInvalidSchema(t *testing.T) {
 }
 
 func TestInitDB_SQLite(t *testing.T) {
-	dbFile := "test_renop.db"
-	defer os.Remove(dbFile)
+	dbFile := filepath.Join(t.TempDir(), "test_renop.db")
 
 	cfg := config.DatabaseConfig{
 		Driver:       "sqlite3",

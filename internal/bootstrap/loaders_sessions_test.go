@@ -11,25 +11,42 @@
 package bootstrap
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/database"
 )
 
 func TestInitializeDatabaseSessions(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "test.db")
-	t.Setenv("RENOP_CONFIG", filepath.Join(dir, "nonexistent.yaml"))
+	configPath := filepath.Join(dir, "config.yaml")
+	cfg := config.DefaultConfig()
+	cfg.Database.Dsn = dbPath
+	cfg.StoragePath = filepath.Join(dir, "storage")
+	cfg.JavadocExtractPath = filepath.Join(dir, "javadocs")
+	data, err := yaml.Marshal(cfg)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(configPath, data, 0600))
+
+	t.Setenv("RENOP_CONFIG", configPath)
 	t.Setenv("RENOP_REPOSITORIES", filepath.Join(dir, "repos.yaml"))
 	t.Setenv("RENOP_INDEX", filepath.Join(dir, "index.json"))
 
 	state, _ := Initialize()
 	require.NotNil(t, state)
+	db, ok := state.GetDB().(*database.DB)
+	require.True(t, ok)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	assert.FileExists(t, dbPath)
 
 	// Save session
 	now := time.Now().UnixMilli()
@@ -61,5 +78,4 @@ func TestInitializeDatabaseSessions(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, revoked)
 	assert.Nil(t, state.GetSession(token))
-	_ = dbPath
 }
