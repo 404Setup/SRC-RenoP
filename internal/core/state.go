@@ -311,7 +311,20 @@ func (state *AppState) RevokeOtherUserSessions(username, keepSessionToken string
 		if err != nil {
 			return 0, err
 		}
-		for _, t := range deletedTokens {
+		toRemove := append([]string(nil), deletedTokens...)
+		seen := make(map[string]struct{}, len(deletedTokens))
+		for _, token := range deletedTokens {
+			seen[token] = struct{}{}
+		}
+		state.Inner.Sessions.Range(func(token string, session *Session) bool {
+			if session != nil && strings.EqualFold(session.Username, username) && token != keepSessionToken {
+				if _, exists := seen[token]; !exists {
+					toRemove = append(toRemove, token)
+				}
+			}
+			return true
+		})
+		for _, t := range toRemove {
 			state.DeleteAuthCache("Session " + t)
 			state.Inner.Sessions.Delete(t)
 		}

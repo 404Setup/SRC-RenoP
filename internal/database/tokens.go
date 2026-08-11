@@ -143,6 +143,9 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 			return tok, nil
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate tokens by secret: %w", err)
+	}
 
 	db.tokenSecretCache.Set(secret, nil, 30*time.Second)
 	return nil, nil

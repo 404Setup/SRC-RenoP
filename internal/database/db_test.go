@@ -197,6 +197,9 @@ func TestInitDB_SQLite(t *testing.T) {
 		deletedTokens, err = db.DeleteOtherUserSessions("user2", "")
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"token_pub3"}, deletedTokens)
+		deletedSession, err := db.GetSession("token_pub3")
+		require.NoError(t, err)
+		assert.Nil(t, deletedSession)
 	})
 
 	t.Run("SQL Security Bounds & Validation", func(t *testing.T) {

@@ -283,9 +283,13 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 	tokens := make([]string, 0, 8)
 	for rows.Next() {
 		var t string
-		if err := rows.Scan(&t); err == nil {
-			tokens = append(tokens, t)
+		if err := rows.Scan(&t); err != nil {
+			return nil, fmt.Errorf("failed to scan session token for user (%s): %w", lowerName, err)
 		}
+		tokens = append(tokens, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate sessions for user (%s): %w", lowerName, err)
 	}
 
 	if len(tokens) == 0 {
@@ -301,9 +305,9 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 		return nil, fmt.Errorf("failed to delete sessions for user (%s): %w", lowerName, err)
 	}
 
-	for _, t := range tokens {
-		db.sessionCache.Delete(t)
-	}
+	db.sessionCache.DeleteFunc(func(token string, session *core.Session) bool {
+		return session == nil || (strings.EqualFold(session.Username, lowerName) && token != keepSessionToken)
+	})
 	return tokens, nil
 }
 
