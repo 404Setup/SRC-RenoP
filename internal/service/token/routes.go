@@ -121,7 +121,11 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 
 	var reqMsg pb.CreateAccessTokenRequest
 	var createReq core.CreateAccessTokenRequest
-	if err := protohttp.Read(c, &reqMsg); err == nil && (len(reqMsg.Permissions) > 0 || reqMsg.NewName != nil || reqMsg.Secret != nil || reqMsg.IsCreate) {
+	readErr := protohttp.Read(c, &reqMsg)
+	if readErr == fiber.ErrRequestEntityTooLarge {
+		return readErr
+	}
+	if readErr == nil && (len(reqMsg.Permissions) > 0 || reqMsg.NewName != nil || reqMsg.Secret != nil || reqMsg.IsCreate) {
 		createReq.Permissions = reqMsg.Permissions
 		createReq.NewName = reqMsg.NewName
 		createReq.Secret = reqMsg.Secret

@@ -205,6 +205,9 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 
 	var req pb.LoginRequest
 	if err := protohttp.Read(c, &req); err != nil {
+		if err == fiber.ErrRequestEntityTooLarge {
+			return err
+		}
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	body := core.LoginRequest{

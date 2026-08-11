@@ -67,7 +67,11 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 
 	var pomMsg pb.PomDetails
 	var pomDetails PomDetails
-	if err := protohttp.Read(c, &pomMsg); err == nil && pomMsg.ArtifactId != "" {
+	readErr := protohttp.Read(c, &pomMsg)
+	if readErr == fiber.ErrRequestEntityTooLarge {
+		return readErr
+	}
+	if readErr == nil && pomMsg.ArtifactId != "" {
 		pomDetails.GroupId = pomMsg.GroupId
 		pomDetails.ArtifactId = pomMsg.ArtifactId
 		pomDetails.Version = pomMsg.Version

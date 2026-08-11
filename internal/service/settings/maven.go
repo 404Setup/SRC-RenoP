@@ -49,6 +49,9 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 
 	var msg pb.Repository
 	if err := protohttp.Read(c, &msg); err != nil {
+		if err == fiber.ErrRequestEntityTooLarge {
+			return err
+		}
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 

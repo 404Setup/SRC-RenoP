@@ -11,7 +11,7 @@
 package protohttp
 
 import (
-	"bytes"
+	"io"
 
 	"github.com/gofiber/fiber/v3"
 	"google.golang.org/protobuf/proto"
@@ -19,6 +19,10 @@ import (
 
 // ContentType is the MIME type used for protobuf request/response bodies.
 const ContentType = "application/x-protobuf"
+
+// MaxRequestBodySize bounds control-plane protobuf requests without limiting
+// streamed artifact uploads handled by the storage routes.
+const MaxRequestBodySize = 1 << 20
 
 // Write marshals m as protobuf and writes it with the protobuf content type.
 func Write(c fiber.Ctx, m proto.Message) error {
@@ -35,8 +39,30 @@ func WriteStatus(c fiber.Ctx, status int, m proto.Message) error {
 	return c.Status(status).Send(data)
 }
 
-// Read unmarshals the request body into m as protobuf.
-// The body is cloned so callers are safe if the framework reuses the buffer.
+// Read unmarshals a size-limited request body into m as protobuf.
 func Read(c fiber.Ctx, m proto.Message) error {
-	return proto.Unmarshal(bytes.Clone(c.Body()), m)
+	req := c.Request()
+	if contentLength := req.Header.ContentLength(); contentLength > MaxRequestBodySize {
+		return fiber.ErrRequestEntityTooLarge
+	}
+
+	var body []byte
+	if stream := req.BodyStream(); stream != nil {
+		var err error
+		body, err = io.ReadAll(io.LimitReader(stream, MaxRequestBodySize+1))
+		if err != nil {
+			return err
+		}
+		if len(body) > MaxRequestBodySize {
+			return fiber.ErrRequestEntityTooLarge
+		}
+		// Preserve the bounded body for endpoints that support JSON fallback.
+		req.SetBodyRaw(body)
+	} else {
+		body = req.Body()
+	}
+	if len(body) > MaxRequestBodySize {
+		return fiber.ErrRequestEntityTooLarge
+	}
+	return proto.Unmarshal(body, m)
 }

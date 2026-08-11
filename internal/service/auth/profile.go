@@ -40,7 +40,11 @@ func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.Token
 	user := userInt.(*config.User)
 
 	var req pb.UpdatePasswordRequest
-	if err := protohttp.Read(c, &req); err != nil || req.NewPassword == "" {
+	readErr := protohttp.Read(c, &req)
+	if readErr == fiber.ErrRequestEntityTooLarge {
+		return readErr
+	}
+	if readErr != nil || req.NewPassword == "" {
 		var jsonReq UpdatePasswordRequest
 		if jsonErr := c.Bind().JSON(&jsonReq); jsonErr == nil && jsonReq.NewPassword != "" {
 			req.NewPassword = jsonReq.NewPassword
