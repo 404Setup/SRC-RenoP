@@ -75,3 +75,39 @@ func TestExtractAuthDetailsUsesRuntimeIPConfig(t *testing.T) {
 		t.Fatalf("audit IP = %q, want runtime-configured client IP %q", got, clientIP)
 	}
 }
+
+func TestLogPersistsSynchronouslyWhenQueueIsFull(t *testing.T) {
+	db := newTestAuditDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	state.Inner.AuditLogChan = make(chan *core.AuditLogEntry, 1)
+	state.Inner.AuditLogChan <- &core.AuditLogEntry{Action: "QUEUED"}
+
+	Log(state, &core.AuditLogEntry{
+		Username: "fallback-user",
+		Operator: "fallback-user",
+		Action:   "FALLBACK",
+	})
+
+	entries, total, err := db.GetAuditLogs("fallback-user", 10, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 1 || len(entries) != 1 || entries[0].Action != "FALLBACK" {
+		t.Fatalf("fallback audit entry was not persisted: total=%d entries=%v", total, entries)
+	}
+}
+
+func TestPersistAuditEntryRecordsDatabaseFailure(t *testing.T) {
+	db := newTestAuditDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	persistAuditEntry(state, &core.AuditLogEntry{Username: "user", Action: "FAIL"}, 1)
+	if got := state.Inner.FailuresCount.Load(); got != 1 {
+		t.Fatalf("failure count = %d, want 1", got)
+	}
+}

@@ -11,6 +11,7 @@
 package audit
 
 import (
+	"log"
 	"time"
 
 	"renop/internal/core"
@@ -27,20 +28,40 @@ func StartAuditLogConsumer(state *core.AppState) {
 			if !ok {
 				return
 			}
-			saveLog(state, entry)
+			persistAuditEntry(state, entry, 3)
 		case <-ticker.C:
 			cleanLogs(state)
 		}
 	}
 }
 
-func saveLog(state *core.AppState, entry *core.AuditLogEntry) {
+func saveLog(state *core.AppState, entry *core.AuditLogEntry) error {
 	if state == nil || state.Inner == nil || entry == nil {
-		return
+		return nil
 	}
 	if db := state.GetDB(); db != nil {
-		_ = db.SaveAuditLog(entry)
+		return db.SaveAuditLog(entry)
 	}
+	return core.ErrDatabaseUnavailable
+}
+
+func persistAuditEntry(state *core.AppState, entry *core.AuditLogEntry, attempts int) {
+	if attempts < 1 {
+		attempts = 1
+	}
+	var err error
+	for attempt := 0; attempt < attempts; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 100 * time.Millisecond)
+		}
+		if err = saveLog(state, entry); err == nil {
+			return
+		}
+	}
+	if state != nil && state.Inner != nil {
+		state.Inner.FailuresCount.Add(1)
+	}
+	log.Printf("Failed to persist audit log action %q for user %q: %v", entry.Action, entry.Username, err)
 }
 
 func cleanLogs(state *core.AppState) {
@@ -53,6 +74,9 @@ func cleanLogs(state *core.AppState) {
 	}
 
 	if db := state.GetDB(); db != nil {
-		_ = db.CleanExpiredAuditLogs(cfgVal.AuditLog.RetentionDays, cfgVal.AuditLog.MaxRows)
+		if err := db.CleanExpiredAuditLogs(cfgVal.AuditLog.RetentionDays, cfgVal.AuditLog.MaxRows); err != nil {
+			state.Inner.FailuresCount.Add(1)
+			log.Printf("Failed to clean expired audit logs: %v", err)
+		}
 	}
 }

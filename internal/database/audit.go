@@ -137,7 +137,10 @@ func (db *DB) CleanExpiredAuditLogs(retentionDays int, maxRows int) error {
 
 	if maxRows > 0 && maxRows < 100000000 {
 		var count int
-		if err := db.SqlDB.QueryRow("SELECT COUNT(*) FROM audit_logs").Scan(&count); err == nil && count > maxRows {
+		if err := db.SqlDB.QueryRow("SELECT COUNT(*) FROM audit_logs").Scan(&count); err != nil {
+			return err
+		}
+		if count > maxRows {
 			trimQuery := `DELETE FROM audit_logs WHERE id < (
 				SELECT min_id FROM (
 					SELECT MIN(id) AS min_id FROM (

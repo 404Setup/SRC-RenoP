@@ -13,6 +13,7 @@ package audit
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -21,6 +22,8 @@ import (
 	"renop/internal/core"
 	"renop/internal/utils"
 )
+
+var fallbackPersistMu sync.Mutex
 
 // ExtractAuthDetails gets caller info, IP, auth method, and session ID from Fiber context.
 func ExtractAuthDetails(c fiber.Ctx, state *core.AppState) (username string, operator string, authMethod string, sessionID string, ip string) {
@@ -81,6 +84,8 @@ func Log(state *core.AppState, entry *core.AuditLogEntry) {
 	select {
 	case state.Inner.AuditLogChan <- entry:
 	default:
-		// Non-blocking drop if channel is full
+		fallbackPersistMu.Lock()
+		persistAuditEntry(state, entry, 1)
+		fallbackPersistMu.Unlock()
 	}
 }
