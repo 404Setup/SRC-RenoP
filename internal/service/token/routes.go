@@ -270,6 +270,9 @@ func DeleteToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 	if !RequireManager(user) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
+	if strings.EqualFold(user.Username, name) {
+		return c.Status(fiber.StatusForbidden).SendString("Cannot delete current account")
+	}
 
 	if state.GetTokenByName(name) == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")

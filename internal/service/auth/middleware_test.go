@@ -11,6 +11,7 @@
 package auth
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/service/token"
 )
 
 func newTestAuthDB(t *testing.T) *database.DB {
@@ -330,4 +332,46 @@ func TestSessionRevocationIsObservedImmediately(t *testing.T) {
 	assert.Equal(t, fiber.StatusOK, request())
 	state.RevokeSession("revocable")
 	assert.Equal(t, fiber.StatusUnauthorized, request())
+}
+
+func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
+	db := newTestAuthDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name:        "admin",
+		Permissions: []string{"admin"},
+	}))
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name:        "other-admin",
+		Permissions: []string{"admin"},
+	}))
+	state.Inner.TokensCount.Store(2)
+
+	const sessionToken = "self-delete-session"
+	session := &core.Session{PublicId: "self-delete-public", Username: "admin"}
+	session.LastActive.Store(time.Now().UnixMilli())
+	require.NoError(t, state.SaveSession(session, sessionToken))
+
+	opChan := make(chan token.TokenOp, 2)
+	go token.StartTokenConsumer(state, opChan)
+	app := fiber.New()
+	app.Use(AuthMiddleware(state))
+	token.SetupTokenRoutes(app.Group("/api"), state, opChan)
+
+	selfDelete := httptest.NewRequest(http.MethodDelete, "/api/tokens/AdMiN", nil)
+	selfDelete.Header.Set(fiber.HeaderAuthorization, "Session "+sessionToken)
+	selfResponse, err := app.Test(selfDelete)
+	require.NoError(t, err)
+	require.Equal(t, fiber.StatusForbidden, selfResponse.StatusCode)
+	require.NoError(t, selfResponse.Body.Close())
+	assert.NotNil(t, state.GetTokenByName("admin"))
+
+	otherDelete := httptest.NewRequest(http.MethodDelete, "/api/tokens/other-admin", nil)
+	otherDelete.Header.Set(fiber.HeaderAuthorization, "Session "+sessionToken)
+	otherResponse, err := app.Test(otherDelete)
+	require.NoError(t, err)
+	require.Equal(t, fiber.StatusNoContent, otherResponse.StatusCode)
+	require.NoError(t, otherResponse.Body.Close())
+	assert.Nil(t, state.GetTokenByName("other-admin"))
 }
