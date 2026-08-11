@@ -304,7 +304,7 @@ func PostAuthLogout(c fiber.Ctx, state *core.AppState) error {
 		state.RevokeSession(sessionID)
 	}
 	if user != nil && user.Username != "" && user.Username != "guest" {
-		_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+		_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 		audit.Log(state, &core.AuditLogEntry{
 			Username:   user.Username,
 			Operator:   op,

@@ -205,7 +205,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	keepTmp = true
 	uploadSucceeded = true
 
-	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	storagePath := "storage"
 	if cfgVal := state.Inner.Config.Load(); cfgVal != nil && cfgVal.StoragePath != "" {
 		storagePath = cfgVal.StoragePath

@@ -143,7 +143,7 @@ func DeleteUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 
-	_, op, authMethod, sessionID, ip := ExtractAuthDetails(c)
+	_, op, authMethod, sessionID, ip := ExtractAuthDetails(c, state)
 	Log(state, &core.AuditLogEntry{
 		Username:   targetUsername,
 		Operator:   op,

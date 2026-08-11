@@ -90,7 +90,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 
 	ensureRepositoryStorageDir(state, repoName)
 
-	user, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	user, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user,
 		Operator:   op,

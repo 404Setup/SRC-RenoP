@@ -66,7 +66,7 @@ func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.Token
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
 
-	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
@@ -101,7 +101,7 @@ func GenerateUploadToken(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
 
-	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
@@ -146,7 +146,7 @@ func DeleteSession(c fiber.Ctx, state *core.AppState) error {
 		setSessionCookie(c, "", -1)
 	}
 
-	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
@@ -170,7 +170,7 @@ func RevokeOtherSessions(c fiber.Ctx, state *core.AppState) error {
 
 	state.RevokeOtherUserSessions(user.Username, currentSessionToken(c))
 
-	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,

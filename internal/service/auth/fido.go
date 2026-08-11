@@ -394,7 +394,7 @@ func PostFidoRegisterFinish(c fiber.Ctx, state *core.AppState) error {
 
 	state.SaveFidoDevice(device)
 
-	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
@@ -446,7 +446,7 @@ func DeleteProfileFidoDevice(c fiber.Ctx, state *core.AppState) error {
 
 	state.DeleteFidoDevice(user.Username, deviceID)
 
-	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
@@ -481,7 +481,7 @@ func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
 
 	state.DeleteFidoDevice(username, deviceID)
 
-	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   strings.ToLower(username),
 		Operator:   op,

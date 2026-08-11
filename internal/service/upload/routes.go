@@ -335,7 +335,7 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	rel = strings.TrimPrefix(rel, storageSlash)
 	rel = strings.TrimPrefix(rel, "/")
 
-	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", sess.RepoName, rel, fileSize)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   username,

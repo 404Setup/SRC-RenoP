@@ -23,8 +23,7 @@ import (
 )
 
 // ExtractAuthDetails gets caller info, IP, auth method, and session ID from Fiber context.
-func ExtractAuthDetails(c fiber.Ctx) (username string, operator string, authMethod string, sessionID string, ip string) {
-	var sCfg *config.ServerConfig
+func ExtractAuthDetails(c fiber.Ctx, state *core.AppState) (username string, operator string, authMethod string, sessionID string, ip string) {
 	if c != nil {
 		userVal := c.Locals("user")
 		if userVal != nil {
@@ -34,16 +33,13 @@ func ExtractAuthDetails(c fiber.Ctx) (username string, operator string, authMeth
 			}
 		}
 
-		if configVal := c.Locals("config"); configVal != nil {
-			if cfg, ok := configVal.(*config.Config); ok {
-				sCfg = &cfg.Server
+		sCfg := config.DefaultServerConfig()
+		if state != nil && state.Inner != nil {
+			if cfg := state.Inner.Config.Load(); cfg != nil {
+				sCfg = cfg.Server
 			}
 		}
-		if sCfg == nil {
-			d := config.DefaultServerConfig()
-			sCfg = &d
-		}
-		ip = utils.ExtractIP(c, sCfg)
+		ip = utils.ExtractIP(c, &sCfg)
 
 		authHeader := c.Get(fiber.HeaderAuthorization)
 		cookieVal := c.Cookies("renop_session")

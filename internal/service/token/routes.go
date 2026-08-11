@@ -237,7 +237,7 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to save token")
 	}
 
-	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	actionDesc := "Updated user permissions / details"
 	if isNew {
 		actionDesc = "Created new user account"
@@ -281,7 +281,7 @@ func DeleteToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete token")
 	}
 
-	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   name,
 		Operator:   op,
@@ -339,7 +339,7 @@ func DeleteUserSession(c fiber.Ctx, state *core.AppState) error {
 	// Allow revoke even if the account was removed; session may still exist.
 	state.RevokeUserSessionByPublicID(name, sessionID, currentSessionToken(c))
 
-	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   name,
 		Operator:   op,
@@ -370,7 +370,7 @@ func RevokeAllUserSessions(c fiber.Ctx, state *core.AppState) error {
 	}
 	state.RevokeOtherUserSessions(name, keep)
 
-	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   name,
 		Operator:   op,
@@ -401,7 +401,7 @@ func GenerateTokenForUser(c fiber.Ctx, state *core.AppState, opChan chan<- Token
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c)
+	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   name,
 		Operator:   op,

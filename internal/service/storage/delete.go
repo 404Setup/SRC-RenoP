@@ -200,7 +200,7 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 		}
 	}
 
-	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c)
+	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	repoName := c.Params("repo_name")
 	details := "Deleted artifact/directory: " + path
 	if repoName != "" {
