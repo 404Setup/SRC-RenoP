@@ -391,6 +391,16 @@ function renderFrontendSettings(container, data) {
     });
     complianceFields.appendChild(createFieldRow(t('settings.icpLicense'), t('settings.icpLicenseHint'), icpInput));
 
+    const publicSecurityFilingInput = buildInput('text', data.public_security_filing, 'e.g. 京公网安备XXXXXXXXXXXXXX号', e => {
+        currentConfig.public_security_filing = e.target.value;
+        enableSave();
+    });
+    complianceFields.appendChild(createFieldRow(
+        t('settings.publicSecurityFiling'),
+        t('settings.publicSecurityFilingHint'),
+        publicSecurityFilingInput
+    ));
+
     const legalNoticeInput = buildInput('url', data.legal_notice_url, 'https://example.com/legal', e => {
         currentConfig.legal_notice_url = e.target.value;
         enableSave();

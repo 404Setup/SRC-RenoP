@@ -191,14 +191,15 @@ func FromMavenRepositories(repos map[string]*config.Repository) *MavenRepositori
 
 func FromFrontendConfig(f config.FrontendConfig) *FrontendConfig {
 	return &FrontendConfig{
-		Id:                  f.Id,
-		Title:               f.Title,
-		Description:         f.Description,
-		OrganizationWebsite: f.OrganizationWebsite,
-		OrganizationLogo:    f.OrganizationLogo,
-		BackgroundUrl:       f.BackgroundUrl,
-		IcpLicense:          f.IcpLicense,
-		LegalNoticeUrl:      f.LegalNoticeUrl,
+		Id:                   f.Id,
+		Title:                f.Title,
+		Description:          f.Description,
+		OrganizationWebsite:  f.OrganizationWebsite,
+		OrganizationLogo:     f.OrganizationLogo,
+		BackgroundUrl:        f.BackgroundUrl,
+		IcpLicense:           f.IcpLicense,
+		PublicSecurityFiling: f.PublicSecurityFiling,
+		LegalNoticeUrl:       f.LegalNoticeUrl,
 	}
 }
 
@@ -215,6 +216,7 @@ func ApplyFrontendConfig(dst *config.FrontendConfig, src *FrontendConfig) {
 	dst.OrganizationLogo = src.OrganizationLogo
 	dst.BackgroundUrl = src.BackgroundUrl
 	dst.IcpLicense = src.IcpLicense
+	dst.PublicSecurityFiling = src.PublicSecurityFiling
 	dst.LegalNoticeUrl = src.LegalNoticeUrl
 	dst.CachedIndexHtml = cached
 }

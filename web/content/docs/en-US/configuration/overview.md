@@ -91,16 +91,17 @@ Database connection parameters for storing accounts and sessions:
 
 Branding fields for the embedded repository browser:
 
-| Key                    | Description                             |
-|------------------------|-----------------------------------------|
-| `id`                   | Frontend / site identifier              |
-| `title`                | Page title                              |
-| `description`          | Short description                       |
-| `organization_website` | Organization or product URL             |
-| `organization_logo`    | Logo path (for example `/svg/logo.svg`) |
-| `background_url`       | Optional background image URL           |
-| `icp_license`          | Optional ICP or compliance text         |
-| `legal_notice_url`     | Optional legal notice URL in the footer |
+| Key                      | Description                             |
+|--------------------------|-----------------------------------------|
+| `id`                     | Frontend / site identifier              |
+| `title`                  | Page title                              |
+| `description`            | Short description                       |
+| `organization_website`   | Organization or product URL             |
+| `organization_logo`      | Logo path (for example `/svg/logo.svg`) |
+| `background_url`         | Optional background image URL           |
+| `icp_license`            | Optional ICP or compliance text         |
+| `public_security_filing` | Optional Chinese public security filing |
+| `legal_notice_url`       | Optional legal notice URL in the footer |
 
 ### `updater`
 

@@ -568,6 +568,8 @@ export default {
     "settings.complianceDesc": "法律與監管備案資訊",
     "settings.icpLicense": "ICP 備案號",
     "settings.icpLicenseHint": "中國 ICP 備案號（可選）",
+    "settings.publicSecurityFiling": "公安聯網備案號",
+    "settings.publicSecurityFilingHint": "中國公安聯網備案號（可選）",
     "settings.legalNotice": "法律聲明 URL",
     "settings.legalNoticeHint": "頁尾顯示的法律聲明連結（可選）",
     "settings.tlsSsl": "TLS / SSL",

@@ -568,6 +568,8 @@ export default {
     "settings.complianceDesc": "Правовая информация и лицензии",
     "settings.icpLicense": "Лицензия ICP",
     "settings.icpLicenseHint": "Номер регистрации ICP в Китае (опционально)",
+    "settings.publicSecurityFiling": "Регистрация общественной безопасности",
+    "settings.publicSecurityFilingHint": "Китайский номер регистрации общественной безопасности (необязательно)",
     "settings.legalNotice": "URL правовой информации",
     "settings.legalNoticeHint": "Ссылка на правовую информацию в нижней части страницы (необязательно)",
     "settings.tlsSsl": "TLS / SSL",

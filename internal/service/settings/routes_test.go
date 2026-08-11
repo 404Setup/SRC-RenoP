@@ -237,14 +237,15 @@ func TestFullFrontendUpdate(t *testing.T) {
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/domain/frontend", &pb.FrontendConfig{
-		Id:                  "custom-id",
-		Title:               "Custom Server Title",
-		Description:         "New Description",
-		OrganizationWebsite: "https://custom.org",
-		OrganizationLogo:    cfg.Frontend.OrganizationLogo,
-		BackgroundUrl:       "",
-		IcpLicense:          cfg.Frontend.IcpLicense,
-		LegalNoticeUrl:      "https://custom.org/legal",
+		Id:                   "custom-id",
+		Title:                "Custom Server Title",
+		Description:          "New Description",
+		OrganizationWebsite:  "https://custom.org",
+		OrganizationLogo:     cfg.Frontend.OrganizationLogo,
+		BackgroundUrl:        "",
+		IcpLicense:           cfg.Frontend.IcpLicense,
+		PublicSecurityFiling: "京公网安备11000000000001号",
+		LegalNoticeUrl:       "https://custom.org/legal",
 	})
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
@@ -262,6 +263,9 @@ func TestFullFrontendUpdate(t *testing.T) {
 	}
 	if updatedCfg.Frontend.LegalNoticeUrl != "https://custom.org/legal" {
 		t.Fatalf("expected LegalNoticeUrl to be persisted, got %s", updatedCfg.Frontend.LegalNoticeUrl)
+	}
+	if updatedCfg.Frontend.PublicSecurityFiling != "京公网安备11000000000001号" {
+		t.Fatalf("expected PublicSecurityFiling to be persisted, got %s", updatedCfg.Frontend.PublicSecurityFiling)
 	}
 }
 
@@ -387,14 +391,15 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	msg := &pb.FrontendConfig{
-		Id:                  cfg.Frontend.Id,
-		Title:               "UniqueTitleForZeroCopyCheck",
-		Description:         cfg.Frontend.Description,
-		OrganizationWebsite: cfg.Frontend.OrganizationWebsite,
-		OrganizationLogo:    cfg.Frontend.OrganizationLogo,
-		BackgroundUrl:       cfg.Frontend.BackgroundUrl,
-		IcpLicense:          cfg.Frontend.IcpLicense,
-		LegalNoticeUrl:      cfg.Frontend.LegalNoticeUrl,
+		Id:                   cfg.Frontend.Id,
+		Title:                "UniqueTitleForZeroCopyCheck",
+		Description:          cfg.Frontend.Description,
+		OrganizationWebsite:  cfg.Frontend.OrganizationWebsite,
+		OrganizationLogo:     cfg.Frontend.OrganizationLogo,
+		BackgroundUrl:        cfg.Frontend.BackgroundUrl,
+		IcpLicense:           cfg.Frontend.IcpLicense,
+		PublicSecurityFiling: cfg.Frontend.PublicSecurityFiling,
+		LegalNoticeUrl:       cfg.Frontend.LegalNoticeUrl,
 	}
 	bodyBytes, err := proto.Marshal(msg)
 	if err != nil {

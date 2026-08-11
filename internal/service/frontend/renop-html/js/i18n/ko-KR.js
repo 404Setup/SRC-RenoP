@@ -568,6 +568,8 @@ export default {
     "settings.complianceDesc": "법률 및 규제 신고 정보",
     "settings.icpLicense": "ICP 라이선스",
     "settings.icpLicenseHint": "중국 ICP 등록 번호 (선택 사항)",
+    "settings.publicSecurityFiling": "공안 등록",
+    "settings.publicSecurityFilingHint": "중국 공안 등록 번호 (선택 사항)",
     "settings.legalNotice": "법적 고지 URL",
     "settings.legalNoticeHint": "바닥글에 표시할 법적 고지 링크 (선택 사항)",
     "settings.tlsSsl": "TLS / SSL",

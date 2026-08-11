@@ -567,6 +567,8 @@ export default {
     "settings.complianceDesc": "Información legal y regulatoria",
     "settings.icpLicense": "Licencia ICP",
     "settings.icpLicenseHint": "Número de registro ICP de China (opcional)",
+    "settings.publicSecurityFiling": "Registro de seguridad pública",
+    "settings.publicSecurityFilingHint": "Número de registro de seguridad pública de China (opcional)",
     "settings.legalNotice": "URL del aviso legal",
     "settings.legalNoticeHint": "Enlace al aviso legal en el pie de página (opcional)",
     "settings.tlsSsl": "TLS / SSL",

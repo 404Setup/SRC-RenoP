@@ -11359,6 +11359,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [background_url] FrontendConfig background_url
                  * @property {string|null} [icp_license] FrontendConfig icp_license
                  * @property {string|null} [legal_notice_url] FrontendConfig legal_notice_url
+                 * @property {string|null} [public_security_filing] FrontendConfig public_security_filing
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -11455,6 +11456,14 @@ export const renop = $root.renop = (() => {
                 FrontendConfig.prototype.legal_notice_url = "";
 
                 /**
+                 * FrontendConfig public_security_filing.
+                 * @member {string} public_security_filing
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.public_security_filing = "";
+
+                /**
                  * Creates a new FrontendConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.FrontendConfig
@@ -11502,6 +11511,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 7, wireType 2 =*/58).string(message.icp_license);
                     if (message.legal_notice_url != null && $Object.hasOwnProperty.call(message, "legal_notice_url") && message.legal_notice_url !== "")
                         writer.uint32(/* id 8, wireType 2 =*/66).string(message.legal_notice_url);
+                    if (message.public_security_filing != null && $Object.hasOwnProperty.call(message, "public_security_filing") && message.public_security_filing !== "")
+                        writer.uint32(/* id 9, wireType 2 =*/74).string(message.public_security_filing);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -11621,6 +11632,15 @@ export const renop = $root.renop = (() => {
                                     delete message.legal_notice_url;
                                 continue;
                             }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.public_security_filing = value;
+                                else
+                                    delete message.public_security_filing;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -11688,6 +11708,9 @@ export const renop = $root.renop = (() => {
                     if (message.legal_notice_url != null && $Object.hasOwnProperty.call(message, "legal_notice_url"))
                         if (!$util.isString(message.legal_notice_url))
                             return "legal_notice_url: string expected";
+                    if (message.public_security_filing != null && $Object.hasOwnProperty.call(message, "public_security_filing"))
+                        if (!$util.isString(message.public_security_filing))
+                            return "public_security_filing: string expected";
                     return null;
                 };
 
@@ -11733,6 +11756,9 @@ export const renop = $root.renop = (() => {
                     if (object.legal_notice_url != null)
                         if (typeof object.legal_notice_url !== "string" || object.legal_notice_url.length)
                             message.legal_notice_url = $String(object.legal_notice_url);
+                    if (object.public_security_filing != null)
+                        if (typeof object.public_security_filing !== "string" || object.public_security_filing.length)
+                            message.public_security_filing = $String(object.public_security_filing);
                     return message;
                 };
 
@@ -11762,6 +11788,7 @@ export const renop = $root.renop = (() => {
                         object.background_url = "";
                         object.icp_license = "";
                         object.legal_notice_url = "";
+                        object.public_security_filing = "";
                     }
                     if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
                         object.id = message.id;
@@ -11779,6 +11806,8 @@ export const renop = $root.renop = (() => {
                         object.icp_license = message.icp_license;
                     if (message.legal_notice_url != null && $Object.hasOwnProperty.call(message, "legal_notice_url"))
                         object.legal_notice_url = message.legal_notice_url;
+                    if (message.public_security_filing != null && $Object.hasOwnProperty.call(message, "public_security_filing"))
+                        object.public_security_filing = message.public_security_filing;
                     return object;
                 };
 

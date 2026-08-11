@@ -60,16 +60,17 @@ Response: protobuf message for that domain (Content-Type `application/x-protobuf
 
 **frontend** → `FrontendConfig`
 
-| Field                  | Type   |
-|------------------------|--------|
-| `id`                   | string |
-| `title`                | string |
-| `description`          | string |
-| `organization_website` | string |
-| `organization_logo`    | string |
-| `background_url`       | string |
-| `icp_license`          | string |
-| `legal_notice_url`     | string |
+| Field                    | Type   |
+|--------------------------|--------|
+| `id`                     | string |
+| `title`                  | string |
+| `description`            | string |
+| `organization_website`   | string |
+| `organization_logo`      | string |
+| `background_url`         | string |
+| `icp_license`            | string |
+| `public_security_filing` | string |
+| `legal_notice_url`       | string |
 
 **server** → `ServerConfig`
 

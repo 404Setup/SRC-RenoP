@@ -91,16 +91,17 @@ Paramètres de connexion à la base de données pour le stockage des comptes et 
 
 Champs de marque du navigateur de dépôt embarqué :
 
-| Clé                    | Description                              |
-|------------------------|------------------------------------------|
-| `id`                   | Identifiant frontend / site              |
-| `title`                | Titre de page                            |
-| `description`          | Courte description                       |
-| `organization_website` | URL de l’organisation ou du produit      |
-| `organization_logo`    | Chemin du logo (par ex. `/svg/logo.svg`) |
-| `background_url`       | URL d’image de fond optionnelle          |
-| `icp_license`          | Texte ICP ou de conformité optionnel     |
-| `legal_notice_url`     | URL facultative des mentions légales     |
+| Clé                      | Description                                           |
+|--------------------------|-------------------------------------------------------|
+| `id`                     | Identifiant frontend / site                           |
+| `title`                  | Titre de page                                         |
+| `description`            | Courte description                                    |
+| `organization_website`   | URL de l’organisation ou du produit                   |
+| `organization_logo`      | Chemin du logo (par ex. `/svg/logo.svg`)              |
+| `background_url`         | URL d’image de fond optionnelle                       |
+| `icp_license`            | Texte ICP ou de conformité optionnel                  |
+| `public_security_filing` | Enregistrement de sécurité publique chinois optionnel |
+| `legal_notice_url`       | URL facultative des mentions légales                  |
 
 ### `updater`
 

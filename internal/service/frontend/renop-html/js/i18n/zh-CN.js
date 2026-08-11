@@ -622,6 +622,8 @@ export default {
     "settings.complianceDesc": "法律与监管备案信息",
     "settings.icpLicense": "ICP 备案号",
     "settings.icpLicenseHint": "中国 ICP 备案号（可选）",
+    "settings.publicSecurityFiling": "公安联网备案号",
+    "settings.publicSecurityFilingHint": "中国公安联网备案号（可选）",
     "settings.legalNotice": "法律声明 URL",
     "settings.legalNoticeHint": "页脚中显示的法律声明链接（可选）",
     "settings.tlsSsl": "TLS / SSL",

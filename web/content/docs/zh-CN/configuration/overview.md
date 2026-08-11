@@ -88,16 +88,17 @@ description: 配置文件、服务端设置与环境变量
 
 嵌入式仓库浏览器的品牌相关字段：
 
-| 键                     | 说明                           |
-|------------------------|--------------------------------|
-| `id`                   | 前端 / 站点标识                |
-| `title`                | 页面标题                       |
-| `description`          | 简短描述                       |
-| `organization_website` | 组织或产品 URL                 |
-| `organization_logo`    | 标志路径（如 `/svg/logo.svg`） |
-| `background_url`       | 可选背景图 URL                 |
-| `icp_license`          | 可选备案或合规说明文字         |
-| `legal_notice_url`     | 页脚中的可选法律声明 URL       |
+| 键                       | 说明                           |
+|--------------------------|--------------------------------|
+| `id`                     | 前端 / 站点标识                |
+| `title`                  | 页面标题                       |
+| `description`            | 简短描述                       |
+| `organization_website`   | 组织或产品 URL                 |
+| `organization_logo`      | 标志路径（如 `/svg/logo.svg`） |
+| `background_url`         | 可选背景图 URL                 |
+| `icp_license`            | 可选备案或合规说明文字         |
+| `public_security_filing` | 可选公安联网备案号             |
+| `legal_notice_url`       | 页脚中的可选法律声明 URL       |
 
 ### `updater`
 

@@ -145,15 +145,16 @@ func DefaultServerConfig() ServerConfig {
 
 func DefaultFrontendConfig() FrontendConfig {
 	return FrontendConfig{
-		Id:                  DefaultFrontendId(),
-		Title:               DefaultFrontendTitle(),
-		Description:         DefaultFrontendDescription(),
-		OrganizationWebsite: DefaultOrganizationWebsite(),
-		OrganizationLogo:    DefaultOrganizationLogo(),
-		BackgroundUrl:       "",
-		IcpLicense:          "",
-		LegalNoticeUrl:      "",
-		CachedIndexHtml:     []byte{},
+		Id:                   DefaultFrontendId(),
+		Title:                DefaultFrontendTitle(),
+		Description:          DefaultFrontendDescription(),
+		OrganizationWebsite:  DefaultOrganizationWebsite(),
+		OrganizationLogo:     DefaultOrganizationLogo(),
+		BackgroundUrl:        "",
+		IcpLicense:           "",
+		PublicSecurityFiling: "",
+		LegalNoticeUrl:       "",
+		CachedIndexHtml:      []byte{},
 	}
 }
 

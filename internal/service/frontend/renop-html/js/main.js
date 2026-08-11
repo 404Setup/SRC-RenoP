@@ -439,6 +439,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        const publicSecurityFilingText = document.getElementById('public-security-filing-text');
+        const publicSecurityFilingContainer = document.getElementById('public-security-filing-container');
+        if (publicSecurityFilingText && publicSecurityFilingContainer) {
+            const text = publicSecurityFilingText.textContent.trim();
+            if (text && text !== '{{RENOP.PUBLIC_SECURITY_FILING}}') {
+                publicSecurityFilingContainer.style.display = 'inline';
+            }
+        }
+
         const legalNoticeLink = document.getElementById('legal-notice-link');
         const legalNoticeContainer = document.getElementById('legal-notice-container');
         if (legalNoticeLink && legalNoticeContainer) {

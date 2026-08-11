@@ -568,6 +568,8 @@ export default {
     "settings.complianceDesc": "法的および規制に関する情報",
     "settings.icpLicense": "ICP ライセンス",
     "settings.icpLicenseHint": "中国 ICP 届出番号（オプション）",
+    "settings.publicSecurityFiling": "公安登録",
+    "settings.publicSecurityFilingHint": "中国の公安登録番号（任意）",
     "settings.legalNotice": "法的通知 URL",
     "settings.legalNoticeHint": "フッターに表示する法的通知へのリンク（任意）",
     "settings.tlsSsl": "TLS / SSL",

@@ -78,3 +78,16 @@ func TestGenerateIndexHtmlIncludesEscapedLegalNoticeURL(t *testing.T) {
 		t.Fatal("generated HTML does not contain the escaped legal notice URL")
 	}
 }
+
+func TestGenerateIndexHtmlIncludesEscapedPublicSecurityFiling(t *testing.T) {
+	cfg := config.DefaultFrontendConfig()
+	cfg.PublicSecurityFiling = `京公网安备11000000000001号<script>`
+
+	generated := string(GenerateIndexHtmlFromConfig(&cfg))
+	if strings.Contains(generated, "{{RENOP.PUBLIC_SECURITY_FILING}}") {
+		t.Fatal("generated HTML still contains the public security filing placeholder")
+	}
+	if !strings.Contains(generated, `京公网安备11000000000001号&lt;script&gt;`) {
+		t.Fatal("generated HTML does not contain the escaped public security filing")
+	}
+}

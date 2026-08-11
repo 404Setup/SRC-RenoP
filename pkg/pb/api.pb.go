@@ -2110,17 +2110,18 @@ func (x *SettingsDomainsResponse) GetDomains() []string {
 }
 
 type FrontendConfig struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title               string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description         string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	OrganizationWebsite string                 `protobuf:"bytes,4,opt,name=organization_website,json=organizationWebsite,proto3" json:"organization_website,omitempty"`
-	OrganizationLogo    string                 `protobuf:"bytes,5,opt,name=organization_logo,json=organizationLogo,proto3" json:"organization_logo,omitempty"`
-	BackgroundUrl       string                 `protobuf:"bytes,6,opt,name=background_url,json=backgroundUrl,proto3" json:"background_url,omitempty"`
-	IcpLicense          string                 `protobuf:"bytes,7,opt,name=icp_license,json=icpLicense,proto3" json:"icp_license,omitempty"`
-	LegalNoticeUrl      string                 `protobuf:"bytes,8,opt,name=legal_notice_url,json=legalNoticeUrl,proto3" json:"legal_notice_url,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title                string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description          string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	OrganizationWebsite  string                 `protobuf:"bytes,4,opt,name=organization_website,json=organizationWebsite,proto3" json:"organization_website,omitempty"`
+	OrganizationLogo     string                 `protobuf:"bytes,5,opt,name=organization_logo,json=organizationLogo,proto3" json:"organization_logo,omitempty"`
+	BackgroundUrl        string                 `protobuf:"bytes,6,opt,name=background_url,json=backgroundUrl,proto3" json:"background_url,omitempty"`
+	IcpLicense           string                 `protobuf:"bytes,7,opt,name=icp_license,json=icpLicense,proto3" json:"icp_license,omitempty"`
+	LegalNoticeUrl       string                 `protobuf:"bytes,8,opt,name=legal_notice_url,json=legalNoticeUrl,proto3" json:"legal_notice_url,omitempty"`
+	PublicSecurityFiling string                 `protobuf:"bytes,9,opt,name=public_security_filing,json=publicSecurityFiling,proto3" json:"public_security_filing,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *FrontendConfig) Reset() {
@@ -2205,6 +2206,13 @@ func (x *FrontendConfig) GetIcpLicense() string {
 func (x *FrontendConfig) GetLegalNoticeUrl() string {
 	if x != nil {
 		return x.LegalNoticeUrl
+	}
+	return ""
+}
+
+func (x *FrontendConfig) GetPublicSecurityFiling() string {
+	if x != nil {
+		return x.PublicSecurityFiling
 	}
 	return ""
 }
@@ -3631,7 +3639,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x13RebuildIndexRequest\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\"3\n" +
 	"\x17SettingsDomainsResponse\x12\x18\n" +
-	"\adomains\x18\x01 \x03(\tR\adomains\"\xaa\x02\n" +
+	"\adomains\x18\x01 \x03(\tR\adomains\"\xe0\x02\n" +
 	"\x0eFrontendConfig\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -3641,7 +3649,8 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x0ebackground_url\x18\x06 \x01(\tR\rbackgroundUrl\x12\x1f\n" +
 	"\vicp_license\x18\a \x01(\tR\n" +
 	"icpLicense\x12(\n" +
-	"\x10legal_notice_url\x18\b \x01(\tR\x0elegalNoticeUrl\"R\n" +
+	"\x10legal_notice_url\x18\b \x01(\tR\x0elegalNoticeUrl\x124\n" +
+	"\x16public_security_filing\x18\t \x01(\tR\x14publicSecurityFiling\"R\n" +
 	"\x0eAuditLogConfig\x12%\n" +
 	"\x0eretention_days\x18\x01 \x01(\x05R\rretentionDays\x12\x19\n" +
 	"\bmax_rows\x18\x02 \x01(\x05R\amaxRows\"\xc7\x04\n" +

@@ -705,6 +705,9 @@ components:
           description: Must be public WebP, ≤ 5 MiB, when set via PUT.
         icp_license:
           type: string
+        public_security_filing:
+          type: string
+          description: Optional Chinese public security filing number displayed in the footer.
         legal_notice_url:
           type: string
           description: Optional absolute HTTP(S) URL linked as the legal notice in the footer.

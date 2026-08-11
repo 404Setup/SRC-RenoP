@@ -89,16 +89,17 @@ description: 設定ファイル、サーバー設定、環境変数
 
 埋め込みリポジトリブラウザのブランド関連フィールド:
 
-| キー                   | 説明                              |
-|------------------------|-----------------------------------|
-| `id`                   | フロントエンド / サイト識別子     |
-| `title`                | ページタイトル                    |
-| `description`          | 短い説明                          |
-| `organization_website` | 組織または製品の URL              |
-| `organization_logo`    | ロゴパス（例: `/svg/logo.svg`）   |
-| `background_url`       | 任意の背景画像 URL                |
-| `icp_license`          | 任意の ICP / コンプライアンス文言 |
-| `legal_notice_url`     | フッターに表示する任意の法的通知 URL |
+| キー                     | 説明                                 |
+|--------------------------|--------------------------------------|
+| `id`                     | フロントエンド / サイト識別子        |
+| `title`                  | ページタイトル                       |
+| `description`            | 短い説明                             |
+| `organization_website`   | 組織または製品の URL                 |
+| `organization_logo`      | ロゴパス（例: `/svg/logo.svg`）      |
+| `background_url`         | 任意の背景画像 URL                   |
+| `icp_license`            | 任意の ICP / コンプライアンス文言    |
+| `public_security_filing` | 任意の中国公安登録番号               |
+| `legal_notice_url`       | フッターに表示する任意の法的通知 URL |
 
 ### `updater`
 

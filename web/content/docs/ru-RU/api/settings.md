@@ -60,16 +60,17 @@ category: API
 
 **frontend** → `FrontendConfig`
 
-| Поле                   | Тип    |
-|------------------------|--------|
-| `id`                   | string |
-| `title`                | string |
-| `description`          | string |
-| `organization_website` | string |
-| `organization_logo`    | string |
-| `background_url`       | string |
-| `icp_license`          | string |
-| `legal_notice_url`     | string |
+| Поле                     | Тип    |
+|--------------------------|--------|
+| `id`                     | string |
+| `title`                  | string |
+| `description`            | string |
+| `organization_website`   | string |
+| `organization_logo`      | string |
+| `background_url`         | string |
+| `icp_license`            | string |
+| `public_security_filing` | string |
+| `legal_notice_url`       | string |
 
 **server** → `ServerConfig`
 
