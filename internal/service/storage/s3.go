@@ -34,6 +34,7 @@ import (
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/proxy"
+	"renop/internal/utils"
 )
 
 var (
@@ -423,7 +424,7 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
-			prefix := filepath.ToSlash(repoDir)
+			prefix := utils.GetS3Key(repoDir)
 			if !strings.HasSuffix(prefix, "/") {
 				prefix += "/"
 			}
@@ -437,7 +438,11 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
 					continue
 				}
 
-				localKey := filepath.FromSlash(object.Key)
+				localKey, ok := localPathFromS3Object(repoDir, prefix, object.Key)
+				if !ok {
+					log.Printf("Ignoring invalid S3 object key %q for repo %q", object.Key, repoName)
+					continue
+				}
 				idx.EnsureParentDirs(localKey)
 				idx.InsertFile(localKey, index.FileInfo{
 					Size:    object.Size,
@@ -449,6 +454,21 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
 			index.ScanLocalDir(repoDir, idx, false)
 		}
 	}
+}
+
+func localPathFromS3Object(repoDir, prefix, objectKey string) (string, bool) {
+	if prefix == "" || !strings.HasPrefix(objectKey, prefix) {
+		return "", false
+	}
+	relative, ok := utils.SanitizePath(strings.TrimPrefix(objectKey, prefix))
+	if !ok || relative == "" {
+		return "", false
+	}
+	localPath := filepath.Join(repoDir, filepath.FromSlash(relative))
+	if !utils.IsSubPath(repoDir, localPath) {
+		return "", false
+	}
+	return localPath, true
 }
 
 func SaveAndUploadChecksum(state *core.AppState, basePath string, ext string, hash string) error {

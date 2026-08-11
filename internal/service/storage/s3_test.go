@@ -18,6 +18,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
+	"renop/internal/utils"
 )
 
 func TestGetS3ConfigForPathRequiresStorageBoundary(t *testing.T) {
@@ -68,5 +69,28 @@ func TestDeleteIndexedFileKeepsIndexOnDeleteFailure(t *testing.T) {
 	}
 	if !state.Inner.FileIndex.HasFile(dir) {
 		t.Fatal("failed deletion removed the index entry")
+	}
+}
+
+func TestLocalPathFromS3ObjectRestoresAbsoluteStoragePath(t *testing.T) {
+	repoDir := filepath.FromSlash("/srv/renop/releases")
+	prefix := "srv/renop/releases/"
+	objectKey := prefix + "com/example/demo/1.0/demo-1.0.jar"
+
+	got, ok := localPathFromS3Object(repoDir, prefix, objectKey)
+	if !ok {
+		t.Fatal("valid S3 object key was rejected")
+	}
+	want := filepath.Join(repoDir, "com", "example", "demo", "1.0", "demo-1.0.jar")
+	if filepath.Clean(got) != filepath.Clean(want) {
+		t.Fatalf("local path = %q, want %q", got, want)
+	}
+}
+
+func TestLocalPathFromS3ObjectRejectsTraversal(t *testing.T) {
+	repoDir := filepath.Join(t.TempDir(), "releases")
+	prefix := utils.GetS3Key(repoDir) + "/"
+	if _, ok := localPathFromS3Object(repoDir, prefix, prefix+"../../outside"); ok {
+		t.Fatal("traversal object key was accepted")
 	}
 }
