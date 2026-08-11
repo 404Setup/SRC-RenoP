@@ -11,6 +11,7 @@
 
 - **`server.go`**: Server main entry point.
 - **`internal/`**: Server core logic (HTTP routes, auth, Maven repository proxying, storage adapters for S3/Local Disk).
+- **`internal/service/status/process_memory_*.go`**: Platform-specific process memory sampling. Linux reuses `/proc/self/statm` with a fixed buffer; Windows uses process counters; other supported systems use the platform adapter from gopsutil.
 - **`pkg/`**: Public/shared Go libraries.
 - **`proto/`**: Protocol Buffers schema definitions (`proto/api/v1/api.proto`).
 - **`web/`**, **`packages/`**, & **`internal/service/frontend/renop-html/`**: Frontend web UI and workspace packages (managed via `pnpm`).

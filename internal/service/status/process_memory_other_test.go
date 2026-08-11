@@ -17,35 +17,9 @@ import (
 	"testing"
 )
 
-func TestParseProcKBField(t *testing.T) {
-	status := []byte("Name:\trenop\nVmRSS:\t   48256 kB\nVmSwap:\t       0 kB\nVmSize:\t 1282048 kB\n")
-	if got := parseProcKBField(status, "VmRSS"); got != 48256*1024 {
-		t.Fatalf("VmRSS: got %d want %d", got, 48256*1024)
-	}
-	if got := parseProcKBField(status, "VmSize"); got != 1282048*1024 {
-		t.Fatalf("VmSize: got %d want %d", got, 1282048*1024)
-	}
-	if got := parseProcKBField(status, "VmSwap"); got != 0 {
-		t.Fatalf("VmSwap: got %d want 0", got)
-	}
-	if got := parseProcKBField(status, "Missing"); got != 0 {
-		t.Fatalf("Missing: got %d want 0", got)
-	}
-
-	rollup := []byte("Rss:                 48000 kB\nPss:                 45000 kB\nPrivate_Clean:        1200 kB\nPrivate_Dirty:       40000 kB\nAnonymous:           41000 kB\nSwap:                   64 kB\n")
-	priv := parseProcKBField(rollup, "Private_Dirty") + parseProcKBField(rollup, "Private_Clean") + parseProcKBField(rollup, "Swap")
-	if priv != (40000+1200+64)*1024 {
-		t.Fatalf("private: got %d", priv)
-	}
-	vmSize := parseProcKBField(status, "VmSize")
-	if priv >= vmSize {
-		t.Fatalf("expected private commit %d << VmSize %d", priv, vmSize)
-	}
-}
-
 func TestSanitizeVirtualSize(t *testing.T) {
 	rss := uint64(40 << 20)
-	goVMS := uint64(1280 << 20) // ~1.25 GiB — classic Go reserved VA
+	goVMS := uint64(1280 << 20)
 	if got := sanitizeVirtualSize(rss, goVMS); got != 0 {
 		t.Fatalf("inflated VMS: got %d want 0 (drop)", got)
 	}
@@ -103,7 +77,7 @@ func TestProcessMemoryBytesNotInflatedVA(t *testing.T) {
 }
 
 func TestProcessMemoryRSSIsNotGoSys(t *testing.T) {
-	// Success-path RSS must come from VmRSS / gopsutil RSS, not from mixing
+	// Success-path RSS must come from the platform process API, not from mixing
 	// MemStats.Sys into the pair (that made both series track Sys and look
 	// nothing like pprof HeapInuse).
 	rss, vss := processMemoryBytes()
