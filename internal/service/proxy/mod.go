@@ -41,6 +41,11 @@ var (
 
 var httpClient = newProxyHTTPClient()
 
+const (
+	maxProxyArtifactSize = 512 << 20
+	proxyDiskReserve     = 64 << 20
+)
+
 func newProxyHTTPClient() *http.Client {
 	client := utils.OutboundClient(0)
 	client.CheckRedirect = checkMirrorRedirect
@@ -84,6 +89,24 @@ func effectiveURLPort(u *url.URL) string {
 		return "80"
 	}
 	return ""
+}
+
+func mirrorRequestTimeout(timeoutSecs uint64) time.Duration {
+	if timeoutSecs == 0 {
+		timeoutSecs = config.DefaultMirrorTimeout()
+	}
+	const maxTimeout = 30 * time.Minute
+	if timeoutSecs > uint64(maxTimeout/time.Second) {
+		return maxTimeout
+	}
+	return time.Duration(timeoutSecs) * time.Second
+}
+
+func canAllocateProxyDisk(state *core.AppState, bytes uint64) bool {
+	if bytes > ^uint64(0)-proxyDiskReserve {
+		return false
+	}
+	return status.CanAllocateDiskSpace(state, bytes+proxyDiskReserve)
 }
 
 func escapeArtifactPath(path string) string {
@@ -171,7 +194,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		builder.WriteString(encodedPath)
 		mirrorUrl := builder.String()
 
-		streamCtx, streamCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		streamCtx, streamCancel := context.WithTimeout(context.Background(), mirrorRequestTimeout(mirror.TimeoutSecs))
 		req, err := http.NewRequestWithContext(streamCtx, http.MethodGet, mirrorUrl, nil)
 		if err != nil {
 			streamCancel()
@@ -205,6 +228,20 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 
 		if res.StatusCode >= 200 && res.StatusCode < 300 {
 			localFilePath := filepath.Join(storagePath, repo.Name, path)
+			if res.ContentLength > maxProxyArtifactSize {
+				utils.DiscardHTTPBody(res.Body, res.ContentLength)
+				streamCancel()
+				<-state.Inner.ProxyClientSemaphore
+				state.Inner.InFlightDownloads.UnlockPath(pathStr, dl, false)
+				return nil, fiber.ErrRequestEntityTooLarge
+			}
+			if res.ContentLength >= 0 && !canAllocateProxyDisk(state, uint64(res.ContentLength)) {
+				utils.DiscardHTTPBody(res.Body, res.ContentLength)
+				streamCancel()
+				<-state.Inner.ProxyClientSemaphore
+				state.Inner.InFlightDownloads.UnlockPath(pathStr, dl, false)
+				return nil, fiber.NewError(fiber.StatusInsufficientStorage, "Insufficient disk space")
+			}
 
 			const maxFastPathSize = 128 * 1024
 			var data []byte
@@ -227,7 +264,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 				streamCancel()
 				<-state.Inner.ProxyClientSemaphore
 
-				saved := saveToDiskAndS3(state, repo, localFilePath, data)
+				saved := canAllocateProxyDisk(state, uint64(len(data))) && saveToDiskAndS3(state, repo, localFilePath, data)
 				state.Inner.InFlightDownloads.UnlockPath(pathStr, dl, saved)
 
 				return io.NopCloser(bytes.NewReader(data)), nil
@@ -274,7 +311,20 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 				}
 			}
 
-			stream := CreateProxyStream(bodyReader, res.ContentLength, localFilePath, state.Inner.InFlightDownloads, pathStr, dl, state.Inner.ProxyClientSemaphore, streamCancel, state.Inner.FileIndex, onSuccess)
+			stream := CreateProxyStream(
+				bodyReader,
+				res.ContentLength,
+				localFilePath,
+				state.Inner.InFlightDownloads,
+				pathStr,
+				dl,
+				state.Inner.ProxyClientSemaphore,
+				streamCancel,
+				state.Inner.FileIndex,
+				onSuccess,
+				maxProxyArtifactSize,
+				func(next uint64) bool { return canAllocateProxyDisk(state, next) },
+			)
 			return stream, nil
 		}
 
@@ -328,10 +378,7 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		trimmedUrl := strings.TrimRight(mirror.Url, "/")
 		mirrorUrl := trimmedUrl + "/" + encodedPath
 
-		timeout := time.Duration(mirror.TimeoutSecs) * time.Second
-		if timeout == 0 {
-			timeout = 5 * time.Second
-		}
+		timeout := mirrorRequestTimeout(mirror.TimeoutSecs)
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, mirrorUrl, nil)

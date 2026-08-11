@@ -12,6 +12,7 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -24,6 +25,8 @@ import (
 	"renop/internal/service/index"
 	"renop/internal/utils"
 )
+
+var errInsufficientProxyDiskSpace = errors.New("insufficient disk space for proxy cache")
 
 type proxyStreamReader struct {
 	bodyReader io.ReadCloser
@@ -45,9 +48,12 @@ type proxyStreamReader struct {
 	cancel     context.CancelFunc
 
 	expectedSize int64
+	maxSize      int64
+	bytesRead    int64
 	bytesWritten int64
 	readEOF      bool
 	success      bool
+	canAllocate  func(uint64) bool
 
 	closeOnce sync.Once
 	closeErr  error
@@ -62,16 +68,41 @@ func (p *proxyStreamReader) releasePermit() {
 }
 
 func (p *proxyStreamReader) Read(b []byte) (n int, err error) {
-	n, err = p.bodyReader.Read(b)
-	if n > 0 && p.tmpFile != nil && p.success {
-		written, wErr := p.tmpFile.Write(b[:n])
-		p.bytesWritten += int64(written)
-		if wErr == nil && written != n {
-			wErr = io.ErrShortWrite
+	if p.maxSize > 0 {
+		remaining := p.maxSize - p.bytesRead
+		if remaining <= 0 {
+			var probe [1]byte
+			probeN, probeErr := p.bodyReader.Read(probe[:])
+			if probeN > 0 {
+				err = utils.ErrResponseTooLarge
+			} else {
+				err = probeErr
+			}
+		} else {
+			if int64(len(b)) > remaining {
+				b = b[:remaining]
+			}
+			n, err = p.bodyReader.Read(b)
+			p.bytesRead += int64(n)
 		}
-		if wErr != nil {
+	} else {
+		n, err = p.bodyReader.Read(b)
+		p.bytesRead += int64(n)
+	}
+	if n > 0 && p.tmpFile != nil && p.success {
+		if p.canAllocate != nil && !p.canAllocate(uint64(n)) {
 			p.success = false
-			p.writeErr = wErr
+			p.writeErr = errInsufficientProxyDiskSpace
+		} else {
+			written, wErr := p.tmpFile.Write(b[:n])
+			p.bytesWritten += int64(written)
+			if wErr == nil && written != n {
+				wErr = io.ErrShortWrite
+			}
+			if wErr != nil {
+				p.success = false
+				p.writeErr = wErr
+			}
 		}
 	}
 	if err != nil {
@@ -171,6 +202,8 @@ func CreateProxyStream(
 	cancel context.CancelFunc,
 	fileIndex *index.FileIndex,
 	onSuccess func(string) bool,
+	maxSize int64,
+	canAllocate func(uint64) bool,
 ) io.ReadCloser {
 	dir := filepath.Dir(localFilePath)
 	_ = os.MkdirAll(dir, 0755)
@@ -194,6 +227,8 @@ func CreateProxyStream(
 		fileIndex:    fileIndex,
 		onSuccess:    onSuccess,
 		expectedSize: expectedSize,
+		maxSize:      maxSize,
+		canAllocate:  canAllocate,
 		success:      err == nil,
 	}
 }

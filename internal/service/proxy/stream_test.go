@@ -19,6 +19,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
+	"renop/internal/utils"
 )
 
 func TestCreateProxyStreamSuccess(t *testing.T) {
@@ -49,7 +51,7 @@ func TestCreateProxyStreamSuccess(t *testing.T) {
 	permit := make(chan struct{}, 1)
 	permit <- struct{}{}
 
-	stream := CreateProxyStream(res.Body, -1, localFilePath, inFlightMgr, "test", dl, permit, func() {}, nil, nil)
+	stream := CreateProxyStream(res.Body, -1, localFilePath, inFlightMgr, "test", dl, permit, func() {}, nil, nil, maxProxyArtifactSize, nil)
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, stream)
@@ -113,7 +115,7 @@ func TestCreateProxyStreamError(t *testing.T) {
 	permit := make(chan struct{}, 1)
 	permit <- struct{}{}
 
-	stream := CreateProxyStream(res.Body, -1, localFilePath, inFlightMgr, "fail", dl, permit, func() {}, nil, nil)
+	stream := CreateProxyStream(res.Body, -1, localFilePath, inFlightMgr, "fail", dl, permit, func() {}, nil, nil, maxProxyArtifactSize, nil)
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, stream)
@@ -146,12 +148,76 @@ func TestCreateProxyStreamReportsCacheFileCreationError(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		maxProxyArtifactSize,
+		nil,
 	)
 	if _, err := io.Copy(io.Discard, stream); err != nil {
 		t.Fatalf("upstream delivery should continue when only the cache write fails: %v", err)
 	}
 	if err := stream.Close(); err == nil {
 		t.Fatal("cache file creation error was swallowed")
+	}
+}
+
+func TestCreateProxyStreamRejectsOversizedUnknownResponse(t *testing.T) {
+	localFilePath := filepath.Join(t.TempDir(), "oversized.jar")
+	stream := CreateProxyStream(
+		io.NopCloser(strings.NewReader("123456")),
+		-1,
+		localFilePath,
+		nil,
+		"",
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		5,
+		nil,
+	)
+
+	data, err := io.ReadAll(stream)
+	if !errors.Is(err, utils.ErrResponseTooLarge) {
+		t.Fatalf("read error = %v, want %v", err, utils.ErrResponseTooLarge)
+	}
+	if string(data) != "12345" {
+		t.Fatalf("data = %q, want bounded prefix", data)
+	}
+	_ = stream.Close()
+	if _, err := os.Stat(localFilePath); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("oversized response must not be cached, stat error = %v", err)
+	}
+}
+
+func TestCreateProxyStreamStopsCachingWhenDiskIsLow(t *testing.T) {
+	localFilePath := filepath.Join(t.TempDir(), "disk-full.jar")
+	stream := CreateProxyStream(
+		io.NopCloser(strings.NewReader("artifact")),
+		int64(len("artifact")),
+		localFilePath,
+		nil,
+		"",
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		maxProxyArtifactSize,
+		func(uint64) bool { return false },
+	)
+
+	data, err := io.ReadAll(stream)
+	if err != nil {
+		t.Fatalf("upstream delivery failed: %v", err)
+	}
+	if string(data) != "artifact" {
+		t.Fatalf("data = %q", data)
+	}
+	if err := stream.Close(); !errors.Is(err, errInsufficientProxyDiskSpace) {
+		t.Fatalf("close error = %v, want %v", err, errInsufficientProxyDiskSpace)
+	}
+	if _, err := os.Stat(localFilePath); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("disk-constrained response must not be cached, stat error = %v", err)
 	}
 }
 
@@ -181,6 +247,55 @@ func TestProxyArtifactInvalidPath(t *testing.T) {
 	_, err = ProxyArtifact(state, repo, "com/example/lib.jar%20", "/tmp", pathStr, dl3)
 	if !errors.Is(err, fiber.ErrBadRequest) {
 		t.Fatalf("Expected BadRequest, got %v", err)
+	}
+}
+
+func TestProxyArtifactRejectsOversizedDeclaredResponse(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Length", strconv.FormatInt(maxProxyArtifactSize+1, 10))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+
+	state := core.NewAppState()
+	state.Inner.FileIndex = index.NewFileIndex()
+	repo := &config.Repository{Name: "releases", Mirrors: []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}}
+	storagePath := t.TempDir()
+	path := "com/example/oversized.jar"
+	pathStr := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))
+	dl, _ := state.Inner.InFlightDownloads.LockPath(pathStr)
+
+	stream, err := ProxyArtifact(state, repo, path, storagePath, pathStr, dl)
+	if stream != nil {
+		_ = stream.Close()
+		t.Fatal("oversized response returned a stream")
+	}
+	if !errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+		t.Fatalf("error = %v, want %v", err, fiber.ErrRequestEntityTooLarge)
+	}
+	if _, loaded := state.Inner.InFlightDownloads.LockPath(pathStr); loaded {
+		t.Fatal("oversized response left the path locked")
+	}
+}
+
+func TestProxyArtifactUsesMirrorTimeout(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		time.Sleep(2 * time.Second)
+	}))
+	defer upstream.Close()
+
+	state := core.NewAppState()
+	state.Inner.FileIndex = index.NewFileIndex()
+	repo := &config.Repository{Name: "releases", Mirrors: []config.Mirror{{Url: upstream.URL, TimeoutSecs: 1}}}
+	storagePath := t.TempDir()
+	path := "com/example/timeout.jar"
+	pathStr := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))
+	dl, _ := state.Inner.InFlightDownloads.LockPath(pathStr)
+
+	started := time.Now()
+	_, _ = ProxyArtifact(state, repo, path, storagePath, pathStr, dl)
+	if elapsed := time.Since(started); elapsed >= 1500*time.Millisecond {
+		t.Fatalf("proxy ignored mirror timeout: elapsed %s", elapsed)
 	}
 }
 
