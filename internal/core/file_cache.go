@@ -36,7 +36,7 @@ type fileCacheShard struct {
 	entries map[string][]byte
 
 	// order is a FIFO of keys for eviction. May contain stale keys after Delete;
-	// those are skipped and compacted lazily.
+	// those are skipped and compacted once their overhead becomes meaningful.
 	order []string
 }
 
@@ -149,6 +149,7 @@ func (c *FileByteCache) Delete(key string) error {
 	if old, ok := s.entries[key]; ok {
 		c.used.Add(-int64(len(old)))
 		delete(s.entries, key)
+		s.compactOrderLocked()
 	}
 	return nil
 }
@@ -222,6 +223,15 @@ func (c *FileByteCache) evictOneLocked(s *fileCacheShard, protect string) bool {
 }
 
 func (s *fileCacheShard) compactOrderLocked() {
+	if len(s.entries) == 0 {
+		clear(s.order)
+		if cap(s.order) > 64 {
+			s.order = nil
+		} else {
+			s.order = s.order[:0]
+		}
+		return
+	}
 	if len(s.order) <= 2*len(s.entries)+32 {
 		return
 	}
@@ -232,5 +242,11 @@ func (s *fileCacheShard) compactOrderLocked() {
 			n++
 		}
 	}
+	clear(s.order[n:])
 	s.order = s.order[:n]
+	if cap(s.order) > max(64, 4*n) {
+		compacted := make([]string, n)
+		copy(compacted, s.order)
+		s.order = compacted
+	}
 }

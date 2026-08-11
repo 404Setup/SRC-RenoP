@@ -149,3 +149,42 @@ func TestFileByteCacheConcurrentGetSet(t *testing.T) {
 		t.Fatalf("used %d exceeds max", used)
 	}
 }
+
+func TestFileByteCacheDeleteBoundsEvictionMetadata(t *testing.T) {
+	c := NewFileByteCache(4 << 20)
+	value := []byte("metadata")
+	keys := make([]string, 10_000)
+
+	for i := range keys {
+		key := string(rune(i/256)) + string(rune(i%256))
+		keys[i] = key
+		if err := c.Set(key, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var retained [fileCacheShardCount]bool
+	for _, key := range keys {
+		shard := hashKey(key) & (fileCacheShardCount - 1)
+		if !retained[shard] {
+			retained[shard] = true
+			continue
+		}
+		if err := c.Delete(key); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	entries, used := c.Stats()
+	if entries != fileCacheShardCount || used != fileCacheShardCount*len(value) {
+		t.Fatalf("unexpected cache stats after churn: entries=%d used=%d", entries, used)
+	}
+	for i := range c.shards {
+		if got := len(c.shards[i].order); got > 34 {
+			t.Fatalf("shard %d retained %d eviction keys for one entry", i, got)
+		}
+		if got := cap(c.shards[i].order); got > 64 {
+			t.Fatalf("shard %d retained oversized eviction storage: cap=%d", i, got)
+		}
+	}
+}
