@@ -19,6 +19,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/service/index"
+	"renop/internal/utils"
 )
 
 func LoadConfig(configPath string) *config.Config {
@@ -31,7 +32,7 @@ func LoadConfig(configPath string) *config.Config {
 
 		yamlData, err := yaml.Marshal(&cfg)
 		if err == nil {
-			_ = os.WriteFile(configPath, yamlData, 0644)
+			_ = utils.WritePrivateFile(configPath, yamlData)
 		}
 	} else {
 		defer file.Close()

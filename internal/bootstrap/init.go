@@ -25,6 +25,7 @@ import (
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/service/tasks"
+	"renop/internal/utils"
 )
 
 func Initialize() (*core.AppState, BootstrapContext) {
@@ -44,7 +45,7 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	} else {
 		yamlData, err := yaml.Marshal(&cfg.Maven)
 		if err == nil {
-			_ = os.WriteFile(repositoriesPath, yamlData, 0644)
+			_ = utils.WritePrivateFile(repositoriesPath, yamlData)
 		}
 	}
 

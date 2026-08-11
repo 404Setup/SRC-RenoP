@@ -191,7 +191,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			configPath = "config.yaml"
 		}
 		tmpPath := configPath + ".tmp"
-		if err := os.WriteFile(tmpPath, yamlData, 0644); err != nil {
+		if err := utils.WritePrivateFile(tmpPath, yamlData); err != nil {
 			return err
 		}
 		if err := utils.SafeRename(tmpPath, configPath); err != nil {

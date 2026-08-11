@@ -191,7 +191,7 @@ func saveRepositories(cfg *config.Config) error {
 		reposPath = "repositories.yaml"
 	}
 	tmpPath := reposPath + ".tmp"
-	if err := os.WriteFile(tmpPath, yamlData, 0644); err != nil {
+	if err := utils.WritePrivateFile(tmpPath, yamlData); err != nil {
 		return err
 	}
 	return utils.SafeRename(tmpPath, reposPath)
