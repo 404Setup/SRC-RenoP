@@ -12,6 +12,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
@@ -103,21 +104,41 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
+	columnMigrations := []struct {
+		name  string
+		query string
+	}{
+		{name: "sessions.login_method", query: "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';"},
+		{name: "fido_devices.user_present", query: "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;"},
+		{name: "fido_devices.user_verified", query: "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;"},
+		{name: "fido_devices.backup_eligible", query: "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;"},
+		{name: "fido_devices.backup_state", query: "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;"},
+	}
+	for _, migration := range columnMigrations {
+		if err := execIgnoreDuplicateColumn(db, migration.query); err != nil {
+			return fmt.Errorf("failed to apply migration %s: %w", migration.name, err)
+		}
+	}
 
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);")
-	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);")
+	indexMigrations := []struct {
+		name  string
+		query string
+	}{
+		{name: "idx_sessions_username", query: "CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);"},
+		{name: "idx_sessions_last_active", query: "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);"},
+		{name: "idx_sessions_user_public", query: "CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);"},
+		{name: "idx_tokens_expires_at", query: "CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;"},
+		{name: "idx_fido_username", query: "CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);"},
+		{name: "idx_fido_credential_id", query: "CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);"},
+		{name: "idx_audit_logs_user_time", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);"},
+		{name: "idx_audit_logs_user_id", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);"},
+		{name: "idx_audit_logs_created_at", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);"},
+	}
+	for _, migration := range indexMigrations {
+		if _, err := db.Exec(migration.query); err != nil {
+			return fmt.Errorf("failed to apply migration %s: %w", migration.name, err)
+		}
+	}
 	return nil
 }
 

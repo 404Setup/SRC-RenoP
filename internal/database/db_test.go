@@ -11,6 +11,7 @@
 package database_test
 
 import (
+	"database/sql"
 	"os"
 	"testing"
 	"time"
@@ -31,6 +32,18 @@ func TestDialects(t *testing.T) {
 	mysqlDialect := database.NewDialect("mysql")
 	assert.Equal(t, "mysql", mysqlDialect.Name())
 	assert.Contains(t, mysqlDialect.UpsertTokenQuery(), "ON DUPLICATE KEY UPDATE")
+}
+
+func TestSQLiteMigrationsFailOnInvalidSchema(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	_, err = db.Exec("CREATE TABLE sessions (invalid_column TEXT)")
+	require.NoError(t, err)
+
+	err = database.NewDialect("sqlite").InitTables(db)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "idx_sessions_username")
 }
 
 func TestInitDB_SQLite(t *testing.T) {

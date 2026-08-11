@@ -10,7 +10,10 @@
 
 package database
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 type MySQLDialect struct{}
 
@@ -97,11 +100,21 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;")
-	_ = execIgnoreDuplicateColumn(db, "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;")
+	columnMigrations := []struct {
+		name  string
+		query string
+	}{
+		{name: "sessions.login_method", query: "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';"},
+		{name: "fido_devices.user_present", query: "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;"},
+		{name: "fido_devices.user_verified", query: "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;"},
+		{name: "fido_devices.backup_eligible", query: "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;"},
+		{name: "fido_devices.backup_state", query: "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;"},
+	}
+	for _, migration := range columnMigrations {
+		if err := execIgnoreDuplicateColumn(db, migration.query); err != nil {
+			return fmt.Errorf("failed to apply migration %s: %w", migration.name, err)
+		}
+	}
 
 	return nil
 }
