@@ -10,6 +10,8 @@
 
 import {enableDragToScroll} from './scroll.js';
 
+const tabClickContainers = new WeakSet();
+
 const tabResizeObserver = new ResizeObserver((entries) => {
     const containersToUpdate = new Set();
     for (const entry of entries) {
@@ -25,6 +27,36 @@ const tabResizeObserver = new ResizeObserver((entries) => {
         updateTabIndicator(container);
     }
 });
+
+/**
+ * Smoothly reveal a tab inside its horizontal tabs viewport without moving the page vertically.
+ * @param {Element|null|undefined} tab - Tab element to reveal.
+ * @param {{behavior?: ScrollBehavior, padding?: number}} [options]
+ * @returns {void}
+ */
+export function scrollTabIntoView(tab, {behavior = 'smooth', padding = 8} = {}) {
+    if (!tab) return;
+    const scrollContainer = tab.closest('.tabs-container');
+    if (!scrollContainer || scrollContainer.scrollWidth <= scrollContainer.clientWidth + 1) return;
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const tabRect = tab.getBoundingClientRect();
+    const leftEdge = containerRect.left + padding;
+    const rightEdge = containerRect.right - padding;
+    let targetScrollLeft = scrollContainer.scrollLeft;
+
+    if (tabRect.left < leftEdge) {
+        targetScrollLeft -= leftEdge - tabRect.left;
+    } else if (tabRect.right > rightEdge) {
+        targetScrollLeft += tabRect.right - rightEdge;
+    } else {
+        return;
+    }
+
+    const maxScrollLeft = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
+    targetScrollLeft = Math.max(0, Math.min(maxScrollLeft, targetScrollLeft));
+    scrollContainer.scrollTo({left: targetScrollLeft, behavior});
+}
 
 /**
  * Position the sliding tab indicator under the active tab in a tabs container.
@@ -70,6 +102,13 @@ export function updateTabIndicator(tabsContainer) {
 export function registerTabContainer(container) {
     if (!container) return;
     enableDragToScroll(container);
+    if (!tabClickContainers.has(container)) {
+        tabClickContainers.add(container);
+        container.addEventListener('click', (e) => {
+            const tab = e.target.closest?.('.tab');
+            if (tab && container.contains(tab)) scrollTabIntoView(tab);
+        });
+    }
     tabResizeObserver.observe(container);
     container.querySelectorAll('.tab').forEach((tab) => {
         tabResizeObserver.observe(tab);

@@ -15,7 +15,7 @@ import {RenopDialog} from './components.js';
 import {el} from '@renop/ui/dom';
 import {updateModalInertState} from '@renop/ui/modal';
 import {enableDragToScroll, smoothScrollToTop} from '@renop/ui/scroll';
-import {registerTabContainer, updateTabIndicator} from '@renop/ui/tabs';
+import {registerTabContainer, scrollTabIntoView, updateTabIndicator} from '@renop/ui/tabs';
 import {closeModalWithAnim} from './app-ui.js';
 import {fetchInstanceStatus, startDashboardRefresh, stopDashboardRefresh} from './dashboard.js';
 import {initSettings} from './settings.js';
@@ -204,19 +204,7 @@ export async function switchTab(tabId) {
         }
     });
 
-    if (activeTabElement && activeTabElement.parentElement) {
-        const container = activeTabElement.parentElement;
-        const tabLeft = activeTabElement.offsetLeft;
-        const tabWidth = activeTabElement.offsetWidth;
-        const containerWidth = container.clientWidth;
-        const scrollLeft = container.scrollLeft;
-
-        if (tabLeft < scrollLeft) {
-            container.scrollTo({left: tabLeft, behavior: 'smooth'});
-        } else if (tabLeft + tabWidth > scrollLeft + containerWidth) {
-            container.scrollTo({left: tabLeft + tabWidth - containerWidth, behavior: 'smooth'});
-        }
-    }
+    scrollTabIntoView(activeTabElement);
 
     updateTabIndicator(document.querySelector('#tabs'));
 
@@ -337,7 +325,6 @@ export function updateCopyrightFooter() {
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
 
-    document.querySelectorAll('.tabs-container').forEach(enableDragToScroll);
     document.querySelectorAll('.snippet-tabs').forEach(enableDragToScroll);
     document.querySelectorAll('.snippet-content').forEach(enableDragToScroll);
     document.querySelectorAll('#tab-content-users .border-container').forEach(enableDragToScroll);

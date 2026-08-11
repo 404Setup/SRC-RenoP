@@ -10,8 +10,6 @@
 
 import {el} from '@renop/ui/dom';
 import {createIcon} from './icon.js';
-import {createBadge} from './badge.js';
-import {createCallout} from './callout.js';
 
 /**
  * Index / feature card host custom element.
@@ -33,15 +31,13 @@ if (!customElements.get('renop-card')) {
 }
 
 /**
- * Create an index card with icon, badge, description, optional callout, and action button.
+ * Create an index card with icon, description, optional note, and action button.
  * @param {object} options - Card configuration.
- * @param {string} options.badgeText - Header badge label.
- * @param {string} [options.badgeType='success'] - Badge tone.
  * @param {string} [options.iconName='refresh'] - Icon name for header and button.
  * @param {string} [options.iconVariant='success'] - Icon container variant class.
  * @param {string} options.title - Card title.
  * @param {string} options.desc - Card description.
- * @param {{type?: string, text: string, icon?: string}} [options.callout] - Optional callout config.
+ * @param {{text: string, icon?: string}} [options.note] - Optional operational note.
  * @param {string} [options.buttonId] - Action button id.
  * @param {string} options.buttonText - Action button label.
  * @param {string} [options.buttonVariant='primary'] - Action button variant.
@@ -50,13 +46,11 @@ if (!customElements.get('renop-card')) {
  * @returns {HTMLElement}
  */
 export function createIndexCard({
-                                    badgeText,
-                                    badgeType = 'success',
                                     iconName = 'refresh',
                                     iconVariant = 'success',
                                     title,
                                     desc,
-                                    callout,
+                                    note,
                                     buttonId,
                                     buttonText,
                                     buttonVariant = 'primary',
@@ -67,8 +61,7 @@ export function createIndexCard({
     card.className = 'cfg-index-card';
 
     const header = el('div', {class: 'cfg-index-card-header'},
-        el('div', {class: `cfg-index-card-icon cfg-index-card-icon--${iconVariant}`}, createIcon(iconName)),
-        createBadge(badgeText, badgeType, {class: `cfg-badge cfg-badge--${badgeType}`})
+        el('div', {class: `cfg-index-card-icon cfg-index-card-icon--${iconVariant}`}, createIcon(iconName))
     );
 
     const titleEl = el('h3', {class: 'cfg-index-card-title'}, title);
@@ -78,10 +71,11 @@ export function createIndexCard({
     card.appendChild(titleEl);
     card.appendChild(descEl);
 
-    if (callout) {
-        const calloutEl = createCallout(callout.type || 'danger', callout.text, callout.icon || 'warning');
-        calloutEl.style.marginBottom = '1rem';
-        card.appendChild(calloutEl);
+    if (note) {
+        card.appendChild(el('div', {class: 'cfg-index-card-note', role: 'note'},
+            createIcon(note.icon || 'clock'),
+            el('span', {}, note.text)
+        ));
     }
 
     const btn = el('button', {

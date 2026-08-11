@@ -69,6 +69,7 @@ export {
 
 export {
     registerTabContainer,
+    scrollTabIntoView,
     updateTabIndicator,
 } from './tabs.js';
 

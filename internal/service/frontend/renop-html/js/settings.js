@@ -968,8 +968,6 @@ function renderIndexSettings(container) {
     const grid = el('div', {class: 'cfg-index-grid'});
 
     const incrCard = createIndexCard({
-        badgeText: t('settings.fastUpdate'),
-        badgeType: 'success',
         iconName: 'refresh',
         iconVariant: 'success',
         title: t('settings.incrScan'),
@@ -986,16 +984,13 @@ function renderIndexSettings(container) {
     });
 
     const fullCard = createIndexCard({
-        badgeText: t('settings.deepScan'),
-        badgeType: 'warning',
         iconName: 'delete',
         iconVariant: 'danger',
         title: t('settings.fullRebuild'),
         desc: t('settings.fullRebuildDesc'),
-        callout: {
-            type: 'danger',
+        note: {
             text: t('settings.fullRebuildWarning'),
-            icon: 'warning'
+            icon: 'clock'
         },
         buttonId: 'full-rebuild-btn',
         buttonText: t('settings.runFullRebuild'),

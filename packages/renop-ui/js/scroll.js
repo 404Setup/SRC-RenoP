@@ -9,6 +9,9 @@
  */
 
 let scrollToTopTimer = null;
+const dragScrollContainers = new WeakSet();
+const DRAG_DISTANCE_PX = 8;
+const MOUSE_DRAG_HOLD_MS = 180;
 
 /**
  * Smoothly scroll the window to the top while temporarily locking main content
@@ -71,18 +74,31 @@ export function wait(ms) {
  * @returns {void}
  */
 export function enableDragToScroll(container) {
-    if (!container) return;
+    if (!container || dragScrollContainers.has(container)) return;
+    dragScrollContainers.add(container);
+
     let isDown = false;
     let isDragging = false;
     let startX;
+    let startY;
     let scrollLeft;
     let activePointerId = null;
+    let activeScrollTarget = null;
+    let dragReady = false;
+    let holdTimer = null;
+    let dragFrame = null;
+    let pendingScrollLeft = 0;
 
     const getScrollTarget = () => {
+        const tabsContainer = container.closest('.tabs-container');
+        if (tabsContainer && tabsContainer !== container
+            && tabsContainer.scrollWidth > tabsContainer.clientWidth + 1) {
+            return tabsContainer;
+        }
         if (container.scrollWidth > container.clientWidth + 1) {
             return container;
         }
-        const parent = container.closest('.tabs-container') || container.parentElement;
+        const parent = tabsContainer || container.parentElement;
         if (parent && parent.scrollWidth > parent.clientWidth + 1) {
             return parent;
         }
@@ -92,15 +108,29 @@ export function enableDragToScroll(container) {
     const stopDragging = (e) => {
         if (!isDown) return;
         isDown = false;
-        const scrollTarget = getScrollTarget();
-        scrollTarget.style.cursor = '';
-        scrollTarget.classList.remove('is-dragging');
-        if (e && activePointerId !== null && scrollTarget.releasePointerCapture) {
+        if (holdTimer !== null) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+        }
+        if (activeScrollTarget) {
+            if (dragFrame !== null) {
+                cancelAnimationFrame(dragFrame);
+                dragFrame = null;
+                if (isDragging) activeScrollTarget.scrollLeft = pendingScrollLeft;
+            }
+            activeScrollTarget.style.cursor = '';
+            activeScrollTarget.classList.remove('is-dragging');
+        }
+        if (e && activePointerId !== null && container.releasePointerCapture) {
             try {
-                scrollTarget.releasePointerCapture(activePointerId);
+                if (!container.hasPointerCapture || container.hasPointerCapture(activePointerId)) {
+                    container.releasePointerCapture(activePointerId);
+                }
             } catch {}
         }
         activePointerId = null;
+        activeScrollTarget = null;
+        dragReady = false;
         setTimeout(() => {
             isDragging = false;
         }, 0);
@@ -113,39 +143,63 @@ export function enableDragToScroll(container) {
         isDown = true;
         isDragging = false;
         startX = e.clientX;
+        startY = e.clientY;
         scrollLeft = scrollTarget.scrollLeft;
+        pendingScrollLeft = scrollLeft;
         activePointerId = e.pointerId;
-        if (scrollTarget.setPointerCapture) {
-            try {
-                scrollTarget.setPointerCapture(e.pointerId);
-            } catch {}
+        activeScrollTarget = scrollTarget;
+        dragReady = e.pointerType !== 'mouse';
+        if (!dragReady) {
+            holdTimer = setTimeout(() => {
+                dragReady = true;
+                holdTimer = null;
+            }, MOUSE_DRAG_HOLD_MS);
         }
     });
 
     container.addEventListener('pointerleave', (e) => {
-        if (!activePointerId) stopDragging(e);
+        if (isDown && !isDragging) stopDragging(e);
     });
     container.addEventListener('pointerup', stopDragging);
     container.addEventListener('pointercancel', stopDragging);
 
     container.addEventListener('pointermove', (e) => {
-        if (!isDown) return;
-        const scrollTarget = getScrollTarget();
-        const x = e.clientX;
-        const walk = (x - startX) * 1.5;
-        if (Math.abs(walk) > 5) {
-            if (!isDragging) {
-                isDragging = true;
-                if (window.getSelection) {
-                    window.getSelection().removeAllRanges();
-                }
-            }
-            scrollTarget.style.cursor = 'grabbing';
-            scrollTarget.classList.add('is-dragging');
-            e.preventDefault();
+        if (!isDown || e.pointerId !== activePointerId || !activeScrollTarget) return;
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        if (!isDragging && Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > DRAG_DISTANCE_PX) {
+            stopDragging(e);
+            return;
         }
+
+        if (!isDragging && dragReady && Math.abs(deltaX) > DRAG_DISTANCE_PX) {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            scrollLeft = activeScrollTarget.scrollLeft;
+            pendingScrollLeft = scrollLeft;
+            if (container.setPointerCapture) {
+                try {
+                    container.setPointerCapture(e.pointerId);
+                } catch {}
+            }
+            if (window.getSelection) {
+                window.getSelection().removeAllRanges();
+            }
+            activeScrollTarget.style.cursor = 'grabbing';
+            activeScrollTarget.classList.add('is-dragging');
+        }
+
         if (isDragging) {
-            scrollTarget.scrollLeft = scrollLeft - walk;
+            e.preventDefault();
+            pendingScrollLeft = scrollLeft - (e.clientX - startX);
+            if (dragFrame === null) {
+                dragFrame = requestAnimationFrame(() => {
+                    dragFrame = null;
+                    if (activeScrollTarget) activeScrollTarget.scrollLeft = pendingScrollLeft;
+                });
+            }
         }
     });
 
