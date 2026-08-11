@@ -175,6 +175,9 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	}
 
 	db.tokenCache.Set(name, token, 10*time.Minute)
+	db.tokenSecretCache.DeleteFunc(func(_ string, val *core.AccessToken) bool {
+		return val == nil || strings.EqualFold(val.Name, name)
+	})
 	for _, t := range token.Tokens {
 		db.tokenSecretCache.Set(t, token, 10*time.Minute)
 	}

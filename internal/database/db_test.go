@@ -103,6 +103,32 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.Nil(t, fetchedDeleted)
 	})
 
+	t.Run("Token Rotation Invalidates Cached Secrets", func(t *testing.T) {
+		tok := &core.AccessToken{
+			Identifier: core.AccessTokenIdentifier{Type: core.Persistent, Value: 2},
+			Name:       "rotating-user",
+			Tokens:     []string{"old-secret"},
+			CreatedAt:  "2026-07-31T00:00:00Z",
+		}
+		require.NoError(t, db.SaveToken(tok))
+
+		cached, err := db.GetTokenBySecret("old-secret")
+		require.NoError(t, err)
+		require.NotNil(t, cached)
+
+		updated := *tok
+		updated.Tokens = []string{"new-secret"}
+		require.NoError(t, db.SaveToken(&updated))
+
+		oldToken, err := db.GetTokenBySecret("old-secret")
+		require.NoError(t, err)
+		assert.Nil(t, oldToken)
+		newToken, err := db.GetTokenBySecret("new-secret")
+		require.NoError(t, err)
+		require.NotNil(t, newToken)
+		assert.Equal(t, "rotating-user", newToken.Name)
+	})
+
 	t.Run("Session Operations with TTL Cache", func(t *testing.T) {
 		now := time.Now().UnixMilli()
 		sess1 := &core.Session{
