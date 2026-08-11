@@ -14,6 +14,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -404,10 +405,10 @@ func StatS3(s3Key string) (index.FileInfo, error) {
 	}, nil
 }
 
-func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
+func BuildS3IndexSync(storagePath string, idx *index.FileIndex) error {
 	cfg := currentConfig.Load()
 	if cfg == nil {
-		return
+		return errors.New("S3 configuration is not initialized")
 	}
 
 	idx.InsertDir(storagePath)
@@ -419,8 +420,7 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
 		if repo.S3 != nil && repo.S3.Enabled {
 			client, err := GetS3Client(repo.S3)
 			if err != nil {
-				log.Printf("Failed to get S3 client for repo %q: %v", repoName, err)
-				continue
+				return fmt.Errorf("get S3 client for repository %q: %w", repoName, err)
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), s3TransferTimeout)
@@ -434,8 +434,8 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
 				Recursive: true,
 			}) {
 				if object.Err != nil {
-					log.Printf("Error listing S3 objects for repo %q: %v", repoName, object.Err)
-					continue
+					cancel()
+					return fmt.Errorf("list S3 objects for repository %q: %w", repoName, object.Err)
 				}
 
 				localKey, ok := localPathFromS3Object(repoDir, prefix, object.Key)
@@ -454,6 +454,7 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
 			index.ScanLocalDir(repoDir, idx, false)
 		}
 	}
+	return nil
 }
 
 func localPathFromS3Object(repoDir, prefix, objectKey string) (string, bool) {

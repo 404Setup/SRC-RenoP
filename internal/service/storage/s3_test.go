@@ -94,3 +94,21 @@ func TestLocalPathFromS3ObjectRejectsTraversal(t *testing.T) {
 		t.Fatal("traversal object key was accepted")
 	}
 }
+
+func TestBuildS3IndexSyncReturnsClientError(t *testing.T) {
+	originalConfig := currentConfig.Load()
+	t.Cleanup(func() { currentConfig.Store(originalConfig) })
+
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories["releases"].S3 = &config.S3Config{
+		Enabled:  true,
+		Endpoint: "ftp://example.com",
+	}
+	InitS3(cfg)
+
+	err := BuildS3IndexSync(cfg.StoragePath, index.NewFileIndex())
+	if err == nil {
+		t.Fatal("S3 index build ignored an invalid client configuration")
+	}
+}

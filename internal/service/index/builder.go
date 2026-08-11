@@ -11,13 +11,14 @@
 package index
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 )
 
-var S3IndexBuilder func(basePath string, idx *FileIndex)
+var S3IndexBuilder func(basePath string, idx *FileIndex) error
 
 func isTemporaryPath(pathStr string) bool {
 	name := filepath.Base(pathStr)
@@ -107,15 +108,15 @@ func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
 	wg.Wait()
 }
 
-func BuildIndexSync(basePath string, idx *FileIndex) {
+func BuildIndexSync(basePath string, idx *FileIndex) error {
 	if S3IndexBuilder != nil {
-		S3IndexBuilder(basePath, idx)
-		return
+		return S3IndexBuilder(basePath, idx)
 	}
 
 	baseCleaned := filepath.ToSlash(filepath.Clean(basePath))
 	idx.InsertDir(baseCleaned)
 	ScanLocalDir(baseCleaned, idx, true)
+	return nil
 }
 
 type scanMaps struct {
@@ -299,25 +300,35 @@ func applyFileIndexScan(idx *FileIndex, scanned *FileIndex) {
 	})
 }
 
-func replaceIndexFromScan(basePath string, idx *FileIndex) {
+func replaceIndexFromScan(basePath string, idx *FileIndex) error {
 	if S3IndexBuilder != nil {
 		newIndex := NewFileIndexCustom(true)
-		S3IndexBuilder(basePath, newIndex)
+		if err := S3IndexBuilder(basePath, newIndex); err != nil {
+			return err
+		}
 		applyFileIndexScan(idx, newIndex)
-		return
+		return nil
 	}
 
 	scanned := buildScanMaps(basePath)
 	applyScanMaps(idx, scanned)
+	return nil
 }
 
 func RebuildIndexAsync(basePath string, idx *FileIndex) {
-	go replaceIndexFromScan(basePath, idx)
+	go func() {
+		if err := replaceIndexFromScan(basePath, idx); err != nil {
+			log.Printf("Failed to rebuild artifact index: %v", err)
+		}
+	}()
 }
 
 func RebuildIndexDiff(basePath string, idx *FileIndex) {
 	go func() {
-		replaceIndexFromScan(basePath, idx)
+		if err := replaceIndexFromScan(basePath, idx); err != nil {
+			log.Printf("Failed to rebuild artifact index: %v", err)
+			return
+		}
 		idx.IsDirty.Store(true)
 	}()
 }
