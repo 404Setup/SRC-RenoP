@@ -108,17 +108,22 @@ func (db *DB) UpdateSessionLastActive(sessionToken string, lastActive int64) err
 		return nil
 	}
 
-	if sess, ok := db.sessionCache.Get(sessionToken); ok {
+	var cachedSession *core.Session
+	if sess, ok := db.sessionCache.Get(sessionToken); ok && sess != nil {
 		prevActive := sess.LastActive.Load()
-		sess.LastActive.Store(lastActive)
 		if lastActive-prevActive < 30000 && prevActive > 0 {
+			sess.LastActive.Store(lastActive)
 			return nil
 		}
+		cachedSession = sess
 	}
 
 	_, err := db.SqlDB.Exec(`UPDATE sessions SET last_active = ? WHERE session_token = ?`, lastActive, sessionToken)
 	if err != nil {
 		return fmt.Errorf("failed to update session last_active (%s...): %w", safePrefix(sessionToken, 8), err)
+	}
+	if cachedSession != nil {
+		cachedSession.LastActive.Store(lastActive)
 	}
 	return nil
 }

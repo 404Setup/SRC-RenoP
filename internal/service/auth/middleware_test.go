@@ -44,6 +44,28 @@ func storeTestToken(t *testing.T, db *database.DB, state *core.AppState, tok *co
 	require.NoError(t, db.SaveToken(tok))
 }
 
+func TestValidateAndRenewSessionPersistsLastActive(t *testing.T) {
+	db := newTestAuthDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+
+	const sessionToken = "renewed-session"
+	staleLastActive := time.Now().UnixMilli() - core.SessionRenewalIntervalMillis - 1
+	session := &core.Session{PublicId: "renewed-public", Username: "admin"}
+	session.LastActive.Store(staleLastActive)
+	require.NoError(t, state.SaveSession(session, sessionToken))
+
+	require.Equal(t, "admin", ValidateAndRenewSession(state, sessionToken))
+	updatedLastActive := session.LastActive.Load()
+	require.Greater(t, updatedLastActive, staleLastActive)
+
+	var persistedLastActive int64
+	require.NoError(t, db.SqlDB.QueryRow(
+		`SELECT last_active FROM sessions WHERE session_token = ?`, sessionToken,
+	).Scan(&persistedLastActive))
+	assert.Equal(t, updatedLastActive, persistedLastActive)
+}
+
 func TestExtractAuthHeader_WithOtherCookie(t *testing.T) {
 	app := fiber.New()
 	state := core.NewAppState()

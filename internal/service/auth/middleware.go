@@ -12,6 +12,7 @@ package auth
 
 import (
 	"crypto/subtle"
+	"log"
 	"strings"
 	"time"
 
@@ -55,10 +56,12 @@ func ValidateAndRenewSession(state *core.AppState, sessionId string) string {
 	}
 
 	if now-session.LastActive.Load() > core.SessionRenewalIntervalMillis {
-		session.LastActive.Store(now)
 		if db := state.GetDB(); db != nil {
-			_ = db.UpdateSessionLastActive(sessionId, now)
+			if err := db.UpdateSessionLastActive(sessionId, now); err != nil {
+				log.Printf("Failed to persist session activity: %v", err)
+			}
 		}
+		session.LastActive.Store(now)
 	}
 
 	return session.Username
