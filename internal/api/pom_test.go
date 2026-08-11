@@ -82,6 +82,35 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 		t.Errorf("expected POM file to exist at %s, but got error: %v", expectedFilePath, err)
 	}
 
+	original, err := os.ReadFile(expectedFilePath)
+	if err != nil {
+		t.Fatalf("failed to read generated POM: %v", err)
+	}
+	cfg.Maven.Repositories["test-repo"].AllowRedeployment = false
+	redeployPayload := PomDetails{
+		GroupId:    "com.replaced",
+		ArtifactId: "test-artifact",
+		Version:    "1.0.0",
+	}
+	redeployBody, _ := json.Marshal(redeployPayload)
+	redeployReq := httptest.NewRequest("POST", "/maven/generate/pom/test-repo/com/example/test-artifact/1.0.0/test-artifact-1.0.0.pom", bytes.NewReader(redeployBody))
+	redeployReq.Header.Set("Content-Type", "application/json")
+	redeployResp, err := app.Test(redeployReq)
+	if err != nil {
+		t.Fatalf("redeployment request failed: %v", err)
+	}
+	if redeployResp.StatusCode != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d", redeployResp.StatusCode)
+	}
+	after, err := os.ReadFile(expectedFilePath)
+	if err != nil {
+		t.Fatalf("failed to read POM after rejected redeployment: %v", err)
+	}
+	if !bytes.Equal(after, original) {
+		t.Fatal("rejected redeployment changed the existing POM")
+	}
+	cfg.Maven.Repositories["test-repo"].AllowRedeployment = true
+
 	folderPath := filepath.Join(tempDir, "test-repo", "com", "example", "test-artifact", "2.0.0")
 	if err := os.MkdirAll(folderPath, 0755); err != nil {
 		t.Fatalf("failed to create directory: %v", err)

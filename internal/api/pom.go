@@ -106,6 +106,29 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	if !strings.HasPrefix(filepath.Clean(basePath), filepath.Clean(repoPath)+string(os.PathSeparator)) {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
+	repo := cfg.Maven.Repositories[repoName]
+	if repo == nil {
+		return c.Status(fiber.StatusNotFound).SendString("Not found")
+	}
+
+	lockKey := filepath.ToSlash(basePath)
+	var upload *core.InFlightDownload
+	for {
+		var loaded bool
+		upload, loaded = state.Inner.InFlightDownloads.LockPath(lockKey)
+		if !loaded {
+			break
+		}
+		state.Inner.InFlightDownloads.Wait(upload)
+	}
+	uploadSucceeded := false
+	defer func() {
+		state.Inner.InFlightDownloads.UnlockPath(lockKey, upload, uploadSucceeded)
+	}()
+
+	if !repo.AllowRedeployment && storage.PathExistsForUpload(state, basePath) {
+		return c.Status(fiber.StatusConflict).SendString("Conflict")
+	}
 
 	state.Inner.FileIndex.EnsureParentDirs(basePath)
 	parentDir := filepath.Dir(basePath)
@@ -238,6 +261,7 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	state.Inner.FileIndex.InsertFile(basePath)
 	state.Inner.FileIndex.InsertFile(metadataPath)
 	status.MarkStorageUpdated()
+	uploadSucceeded = true
 
 	return c.Status(fiber.StatusCreated).SendString("")
 }
