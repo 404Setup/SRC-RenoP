@@ -100,6 +100,7 @@ Branding fields for the embedded repository browser:
 | `organization_logo`    | Logo path (for example `/svg/logo.svg`) |
 | `background_url`       | Optional background image URL           |
 | `icp_license`          | Optional ICP or compliance text         |
+| `legal_notice_url`     | Optional legal notice URL in the footer |
 
 ### `updater`
 

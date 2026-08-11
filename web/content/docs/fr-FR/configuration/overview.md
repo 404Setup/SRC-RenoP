@@ -100,6 +100,7 @@ Champs de marque du navigateur de dépôt embarqué :
 | `organization_logo`    | Chemin du logo (par ex. `/svg/logo.svg`) |
 | `background_url`       | URL d’image de fond optionnelle          |
 | `icp_license`          | Texte ICP ou de conformité optionnel     |
+| `legal_notice_url`     | URL facultative des mentions légales     |
 
 ### `updater`
 

@@ -19,6 +19,32 @@ import (
 	"renop/internal/utils"
 )
 
+func TestValidateExternalLinkURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		wantErr bool
+	}{
+		{name: "HTTPS", url: "https://example.com/legal"},
+		{name: "HTTP", url: "http://localhost:8080/legal"},
+		{name: "uppercase scheme", url: "HTTPS://example.com/legal"},
+		{name: "relative", url: "/legal", wantErr: true},
+		{name: "unsupported scheme", url: "javascript:alert(1)", wantErr: true},
+		{name: "missing host", url: "https:///legal", wantErr: true},
+		{name: "credentials", url: "https://user:secret@example.com/legal", wantErr: true},
+		{name: "whitespace", url: "https://example.com/legal notice", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateExternalLinkURL(tt.url)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("validateExternalLinkURL(%q) error=%v, wantErr=%v", tt.url, err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestIsValidPublicIP(t *testing.T) {
 	tests := []struct {
 		ip   string

@@ -511,6 +511,7 @@ export default {
 
     "footer.organization": "Organization",
     "footer.privacyPolicy": "Privacy Policy",
+    "footer.legalNotice": "Legal Notice",
     "footer.allRights": "All rights reserved.",
     "footer.licenseNotice": "Source code is licensed under a MPL-2.0 License.",
 
@@ -620,6 +621,8 @@ export default {
     "settings.complianceDesc": "Legal and regulatory information",
     "settings.icpLicense": "ICP License",
     "settings.icpLicenseHint": "Chinese ICP filing number (optional)",
+    "settings.legalNotice": "Legal notice URL",
+    "settings.legalNoticeHint": "Link to the legal notice in the footer (optional)",
     "settings.tlsSsl": "TLS / SSL",
     "settings.tlsSslDesc": "Configure HTTPS encryption for secure connections",
     "settings.enableSsl": "Enable SSL",

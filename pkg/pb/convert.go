@@ -198,6 +198,7 @@ func FromFrontendConfig(f config.FrontendConfig) *FrontendConfig {
 		OrganizationLogo:    f.OrganizationLogo,
 		BackgroundUrl:       f.BackgroundUrl,
 		IcpLicense:          f.IcpLicense,
+		LegalNoticeUrl:      f.LegalNoticeUrl,
 	}
 }
 
@@ -214,6 +215,7 @@ func ApplyFrontendConfig(dst *config.FrontendConfig, src *FrontendConfig) {
 	dst.OrganizationLogo = src.OrganizationLogo
 	dst.BackgroundUrl = src.BackgroundUrl
 	dst.IcpLicense = src.IcpLicense
+	dst.LegalNoticeUrl = src.LegalNoticeUrl
 	dst.CachedIndexHtml = cached
 }
 

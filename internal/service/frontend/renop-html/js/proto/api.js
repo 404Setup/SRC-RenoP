@@ -11358,6 +11358,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [organization_logo] FrontendConfig organization_logo
                  * @property {string|null} [background_url] FrontendConfig background_url
                  * @property {string|null} [icp_license] FrontendConfig icp_license
+                 * @property {string|null} [legal_notice_url] FrontendConfig legal_notice_url
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -11446,6 +11447,14 @@ export const renop = $root.renop = (() => {
                 FrontendConfig.prototype.icp_license = "";
 
                 /**
+                 * FrontendConfig legal_notice_url.
+                 * @member {string} legal_notice_url
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.legal_notice_url = "";
+
+                /**
                  * Creates a new FrontendConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.FrontendConfig
@@ -11491,6 +11500,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 6, wireType 2 =*/50).string(message.background_url);
                     if (message.icp_license != null && $Object.hasOwnProperty.call(message, "icp_license") && message.icp_license !== "")
                         writer.uint32(/* id 7, wireType 2 =*/58).string(message.icp_license);
+                    if (message.legal_notice_url != null && $Object.hasOwnProperty.call(message, "legal_notice_url") && message.legal_notice_url !== "")
+                        writer.uint32(/* id 8, wireType 2 =*/66).string(message.legal_notice_url);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -11601,6 +11612,15 @@ export const renop = $root.renop = (() => {
                                     delete message.icp_license;
                                 continue;
                             }
+                        case 8: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.legal_notice_url = value;
+                                else
+                                    delete message.legal_notice_url;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -11665,6 +11685,9 @@ export const renop = $root.renop = (() => {
                     if (message.icp_license != null && $Object.hasOwnProperty.call(message, "icp_license"))
                         if (!$util.isString(message.icp_license))
                             return "icp_license: string expected";
+                    if (message.legal_notice_url != null && $Object.hasOwnProperty.call(message, "legal_notice_url"))
+                        if (!$util.isString(message.legal_notice_url))
+                            return "legal_notice_url: string expected";
                     return null;
                 };
 
@@ -11707,6 +11730,9 @@ export const renop = $root.renop = (() => {
                     if (object.icp_license != null)
                         if (typeof object.icp_license !== "string" || object.icp_license.length)
                             message.icp_license = $String(object.icp_license);
+                    if (object.legal_notice_url != null)
+                        if (typeof object.legal_notice_url !== "string" || object.legal_notice_url.length)
+                            message.legal_notice_url = $String(object.legal_notice_url);
                     return message;
                 };
 
@@ -11735,6 +11761,7 @@ export const renop = $root.renop = (() => {
                         object.organization_logo = "";
                         object.background_url = "";
                         object.icp_license = "";
+                        object.legal_notice_url = "";
                     }
                     if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
                         object.id = message.id;
@@ -11750,6 +11777,8 @@ export const renop = $root.renop = (() => {
                         object.background_url = message.background_url;
                     if (message.icp_license != null && $Object.hasOwnProperty.call(message, "icp_license"))
                         object.icp_license = message.icp_license;
+                    if (message.legal_notice_url != null && $Object.hasOwnProperty.call(message, "legal_notice_url"))
+                        object.legal_notice_url = message.legal_notice_url;
                     return object;
                 };
 

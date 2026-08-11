@@ -23,6 +23,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gofiber/fiber/v3"
 	"go.yaml.in/yaml/v3"
@@ -89,6 +90,15 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		}
 		if msg.BackgroundUrl != "" {
 			if err := validateBackgroundUrl(msg.BackgroundUrl); err != nil {
+				var fiberErr *fiber.Error
+				if errors.As(err, &fiberErr) {
+					return c.Status(fiberErr.Code).SendString(fiberErr.Message)
+				}
+				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			}
+		}
+		if msg.LegalNoticeUrl != "" {
+			if err := validateExternalLinkURL(msg.LegalNoticeUrl); err != nil {
 				var fiberErr *fiber.Error
 				if errors.As(err, &fiberErr) {
 					return c.Status(fiberErr.Code).SendString(fiberErr.Message)
@@ -262,6 +272,23 @@ func isValidPublicIP(ip net.IP) bool {
 }
 
 var errInvalidBackgroundWebP = errors.New("background is not a WebP image")
+
+func validateExternalLinkURL(rawURL string) error {
+	if strings.IndexFunc(rawURL, unicode.IsSpace) >= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid URL")
+	}
+	parsedURL, err := url.ParseRequestURI(rawURL)
+	if err != nil || parsedURL.Host == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid URL")
+	}
+	if !strings.EqualFold(parsedURL.Scheme, "http") && !strings.EqualFold(parsedURL.Scheme, "https") {
+		return fiber.NewError(fiber.StatusBadRequest, "URL must be http or https")
+	}
+	if parsedURL.User != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "URL must not contain credentials")
+	}
+	return nil
+}
 
 func validateBackgroundWebP(r io.Reader, maxSize int64) error {
 	const signatureSize = 12

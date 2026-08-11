@@ -438,6 +438,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 icpContainer.style.display = 'inline';
             }
         }
+
+        const legalNoticeLink = document.getElementById('legal-notice-link');
+        const legalNoticeContainer = document.getElementById('legal-notice-container');
+        if (legalNoticeLink && legalNoticeContainer) {
+            const rawUrl = legalNoticeLink.dataset.url?.trim();
+            if (rawUrl && rawUrl !== '{{RENOP.LEGAL_NOTICE_URL}}') {
+                try {
+                    const url = new URL(rawUrl);
+                    if ((url.protocol === 'http:' || url.protocol === 'https:') && !url.username && !url.password) {
+                        legalNoticeLink.href = url.href;
+                        legalNoticeContainer.style.display = 'inline';
+                    }
+                } catch {
+                    // Invalid direct YAML values remain hidden.
+                }
+            }
+        }
     } catch (e) {
     }
 });

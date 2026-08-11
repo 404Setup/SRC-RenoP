@@ -69,6 +69,7 @@ category: API
 | `organization_logo`    | string |
 | `background_url`       | string |
 | `icp_license`          | string |
+| `legal_notice_url`     | string |
 
 **server** → `ServerConfig`
 

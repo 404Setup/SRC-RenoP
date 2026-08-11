@@ -514,6 +514,7 @@ export default {
 
     "footer.organization": "组织",
     "footer.privacyPolicy": "隐私政策",
+    "footer.legalNotice": "法律声明",
     "footer.allRights": "保留所有权利。",
     "footer.licenseNotice": "源码采用 MPL-2.0 许可证授权。",
 
@@ -621,6 +622,8 @@ export default {
     "settings.complianceDesc": "法律与监管备案信息",
     "settings.icpLicense": "ICP 备案号",
     "settings.icpLicenseHint": "中国 ICP 备案号（可选）",
+    "settings.legalNotice": "法律声明 URL",
+    "settings.legalNoticeHint": "页脚中显示的法律声明链接（可选）",
     "settings.tlsSsl": "TLS / SSL",
     "settings.tlsSslDesc": "配置 HTTPS 加密以保障连接安全",
     "settings.enableSsl": "启用 SSL",

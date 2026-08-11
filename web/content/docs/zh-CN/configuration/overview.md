@@ -97,6 +97,7 @@ description: 配置文件、服务端设置与环境变量
 | `organization_logo`    | 标志路径（如 `/svg/logo.svg`） |
 | `background_url`       | 可选背景图 URL                 |
 | `icp_license`          | 可选备案或合规说明文字         |
+| `legal_notice_url`     | 页脚中的可选法律声明 URL       |
 
 ### `updater`
 

@@ -98,6 +98,7 @@ description: 設定ファイル、サーバー設定、環境変数
 | `organization_logo`    | ロゴパス（例: `/svg/logo.svg`）   |
 | `background_url`       | 任意の背景画像 URL                |
 | `icp_license`          | 任意の ICP / コンプライアンス文言 |
+| `legal_notice_url`     | フッターに表示する任意の法的通知 URL |
 
 ### `updater`
 

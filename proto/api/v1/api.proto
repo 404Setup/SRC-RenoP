@@ -241,6 +241,7 @@ message FrontendConfig {
   string organization_logo = 5;
   string background_url = 6;
   string icp_license = 7;
+  string legal_notice_url = 8;
 }
 
 message AuditLogConfig {

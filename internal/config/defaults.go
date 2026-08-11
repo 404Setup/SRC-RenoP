@@ -152,6 +152,7 @@ func DefaultFrontendConfig() FrontendConfig {
 		OrganizationLogo:    DefaultOrganizationLogo(),
 		BackgroundUrl:       "",
 		IcpLicense:          "",
+		LegalNoticeUrl:      "",
 		CachedIndexHtml:     []byte{},
 	}
 }

@@ -13,6 +13,8 @@ package frontend
 import (
 	"strings"
 	"testing"
+
+	"renop/internal/config"
 )
 
 func TestBundledAssetsEmbedded(t *testing.T) {
@@ -61,5 +63,18 @@ func TestAssetsHashStableAndNonEmpty(t *testing.T) {
 	}
 	if h1 != h2 {
 		t.Fatalf("assets hash not stable: %q vs %q", h1, h2)
+	}
+}
+
+func TestGenerateIndexHtmlIncludesEscapedLegalNoticeURL(t *testing.T) {
+	cfg := config.DefaultFrontendConfig()
+	cfg.LegalNoticeUrl = `https://example.com/legal?a=1&b="notice"`
+
+	generated := string(GenerateIndexHtmlFromConfig(&cfg))
+	if strings.Contains(generated, "{{RENOP.LEGAL_NOTICE_URL}}") {
+		t.Fatal("generated HTML still contains the legal notice placeholder")
+	}
+	if !strings.Contains(generated, `data-url="https://example.com/legal?a=1&amp;b=&#34;notice&#34;"`) {
+		t.Fatal("generated HTML does not contain the escaped legal notice URL")
 	}
 }

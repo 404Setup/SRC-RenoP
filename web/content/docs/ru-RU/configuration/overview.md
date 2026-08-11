@@ -100,6 +100,7 @@ description: Файлы конфигурации, параметры серве�
 | `organization_logo`    | Путь к логотипу (например `/svg/logo.svg`) |
 | `background_url`       | Необязательный URL фонового изображения    |
 | `icp_license`          | Необязательный ICP / compliance-текст      |
+| `legal_notice_url`     | Необязательная ссылка на правовую информацию |
 
 ### `updater`
 

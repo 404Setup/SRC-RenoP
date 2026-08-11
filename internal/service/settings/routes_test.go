@@ -244,6 +244,7 @@ func TestFullFrontendUpdate(t *testing.T) {
 		OrganizationLogo:    cfg.Frontend.OrganizationLogo,
 		BackgroundUrl:       "",
 		IcpLicense:          cfg.Frontend.IcpLicense,
+		LegalNoticeUrl:      "https://custom.org/legal",
 	})
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
@@ -258,6 +259,23 @@ func TestFullFrontendUpdate(t *testing.T) {
 	}
 	if updatedCfg.Frontend.Description != "New Description" {
 		t.Fatalf("expected Description to be updated to 'New Description', got %s", updatedCfg.Frontend.Description)
+	}
+	if updatedCfg.Frontend.LegalNoticeUrl != "https://custom.org/legal" {
+		t.Fatalf("expected LegalNoticeUrl to be persisted, got %s", updatedCfg.Frontend.LegalNoticeUrl)
+	}
+}
+
+func TestFrontendUpdateRejectsUnsafeLegalNoticeURL(t *testing.T) {
+	tempDir := t.TempDir()
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = tempDir
+	app, _ := setupSettingsTestApp(t, cfg)
+
+	msg := pb.FromFrontendConfig(cfg.Frontend)
+	msg.LegalNoticeUrl = "javascript:alert(1)"
+	resp := protoPUT(t, app, "/domain/frontend", msg)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected PUT 400, got %d", resp.StatusCode)
 	}
 }
 
@@ -376,6 +394,7 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 		OrganizationLogo:    cfg.Frontend.OrganizationLogo,
 		BackgroundUrl:       cfg.Frontend.BackgroundUrl,
 		IcpLicense:          cfg.Frontend.IcpLicense,
+		LegalNoticeUrl:      cfg.Frontend.LegalNoticeUrl,
 	}
 	bodyBytes, err := proto.Marshal(msg)
 	if err != nil {

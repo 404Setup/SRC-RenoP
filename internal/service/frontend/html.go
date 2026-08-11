@@ -127,6 +127,7 @@ func GenerateIndexHtmlFromConfig(cfg *config.FrontendConfig) []byte {
 		"{{RENOP.ORGANIZATION_LOGO}}", html.EscapeString(cfg.OrganizationLogo),
 		"{{RENOP.BACKGROUND_URL}}", html.EscapeString(cfg.BackgroundUrl),
 		"{{RENOP.ICP_LICENSE}}", html.EscapeString(cfg.IcpLicense),
+		"{{RENOP.LEGAL_NOTICE_URL}}", html.EscapeString(cfg.LegalNoticeUrl),
 		"{{RENOP.HASH}}", GetAssetsHash(),
 	)
 	htmlStr := replacer.Replace(indexHtml)

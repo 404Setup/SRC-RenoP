@@ -26,6 +26,7 @@ type FrontendConfig struct {
 	OrganizationLogo    string `json:"organization_logo" yaml:"organization_logo"`
 	BackgroundUrl       string `json:"background_url" yaml:"background_url"`
 	IcpLicense          string `json:"icp_license" yaml:"icp_license"`
+	LegalNoticeUrl      string `json:"legal_notice_url" yaml:"legal_notice_url"`
 	CachedIndexHtml     []byte `json:"-" yaml:"-"`
 }
 
@@ -70,6 +71,7 @@ func (f *FrontendConfig) DeepCopy() FrontendConfig {
 		OrganizationLogo:    strings.Clone(f.OrganizationLogo),
 		BackgroundUrl:       strings.Clone(f.BackgroundUrl),
 		IcpLicense:          strings.Clone(f.IcpLicense),
+		LegalNoticeUrl:      strings.Clone(f.LegalNoticeUrl),
 	}
 	if f.CachedIndexHtml != nil {
 		cloned.CachedIndexHtml = bytes.Clone(f.CachedIndexHtml)

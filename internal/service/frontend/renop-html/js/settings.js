@@ -391,6 +391,12 @@ function renderFrontendSettings(container, data) {
     });
     complianceFields.appendChild(createFieldRow(t('settings.icpLicense'), t('settings.icpLicenseHint'), icpInput));
 
+    const legalNoticeInput = buildInput('url', data.legal_notice_url, 'https://example.com/legal', e => {
+        currentConfig.legal_notice_url = e.target.value;
+        enableSave();
+    });
+    complianceFields.appendChild(createFieldRow(t('settings.legalNotice'), t('settings.legalNoticeHint'), legalNoticeInput));
+
     wrap.appendChild(identitySection);
     wrap.appendChild(brandSection);
     wrap.appendChild(complianceSection);
