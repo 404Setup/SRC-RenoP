@@ -16,17 +16,16 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/core"
-	"renop/internal/service/index"
 	"renop/internal/utils"
 )
 
@@ -103,27 +102,27 @@ func handleChecksumFallback(c fiber.Ctx, localFilePath string, state *core.AppSt
 						".sha512": sha512Str,
 					}
 
-					now := time.Now().UnixNano()
 					var wg sync.WaitGroup
+					errChan := make(chan error, len(hashes))
 					for cExt, cHash := range hashes {
 						wg.Add(1)
 						extStr, hashStr := cExt, cHash
 						go func() {
 							defer wg.Done()
-							cPath := basePath + extStr
-							if IsS3Enabled(cPath) {
-								s3Key := utils.GetS3Key(cPath)
-								_ = UploadStreamToS3(s3Key, strings.NewReader(hashStr), int64(len(hashStr)), "text/plain")
-							} else {
-								_ = os.WriteFile(cPath, []byte(hashStr), 0644)
+							if err := SaveAndUploadChecksum(state, basePath, extStr, hashStr); err != nil {
+								errChan <- err
 							}
-							state.Inner.FileIndex.InsertFile(cPath, index.FileInfo{
-								Size:    int64(len(hashStr)),
-								ModTime: now,
-							})
 						}()
 					}
 					wg.Wait()
+					close(errChan)
+					var persistErr error
+					for err := range errChan {
+						persistErr = errors.Join(persistErr, err)
+					}
+					if persistErr != nil {
+						return false, persistErr
+					}
 					computedSuccess = true
 					reqHashStr := hashes[ext]
 					c.Set(fiber.HeaderContentType, "text/plain")

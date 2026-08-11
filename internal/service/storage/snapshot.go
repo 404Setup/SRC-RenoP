@@ -38,29 +38,24 @@ func isSnapshotArtifactPath(localFilePath string) bool {
 	return strings.Contains(strings.ToUpper(slash), "SNAPSHOT")
 }
 
-func removeArtifactCompanions(state *core.AppState, artifactPath string) {
+func removeArtifactCompanions(state *core.AppState, artifactPath string) error {
 	if state == nil || artifactPath == "" {
-		return
+		return nil
 	}
 	for _, ext := range artifactCompanionExts {
 		companion := artifactPath + ext
-		deleteFileHelper(companion)
-		if state.Inner.FileIndex != nil {
-			state.Inner.FileIndex.RemoveFile(companion)
+		if err := deleteIndexedFile(state, companion); err != nil {
+			return err
 		}
-		state.InvalidateFileCache(companion)
 	}
+	return nil
 }
 
-func removeIndexedFile(state *core.AppState, path string) {
+func removeIndexedFile(state *core.AppState, path string) error {
 	if state == nil || path == "" {
-		return
+		return nil
 	}
-	deleteFileHelper(path)
-	if state.Inner.FileIndex != nil {
-		state.Inner.FileIndex.RemoveFile(path)
-	}
-	state.InvalidateFileCache(path)
+	return deleteIndexedFile(state, path)
 }
 
 type uniqueSnapshotParts struct {
@@ -93,24 +88,24 @@ func stripArtifactCompanionSuffix(name string) string {
 	return name
 }
 
-func cleanupSupersededUniqueSnapshots(state *core.AppState, localFilePath string) {
+func cleanupSupersededUniqueSnapshots(state *core.AppState, localFilePath string) error {
 	if state == nil || state.Inner.FileIndex == nil {
-		return
+		return nil
 	}
 
 	baseName := filepath.Base(localFilePath)
 	if isArtifactCompanionPath(baseName) {
-		return
+		return nil
 	}
 	parts, ok := parseUniqueSnapshotBaseName(baseName)
 	if !ok {
-		return
+		return nil
 	}
 
 	dir := filepath.Dir(localFilePath)
 	dirSlash := filepath.ToSlash(dir)
 	if !strings.Contains(strings.ToUpper(filepath.Base(dirSlash)), "SNAPSHOT") {
-		return
+		return nil
 	}
 
 	entriesFromIndex := state.Inner.FileIndex.GetChildren(dirSlash)
@@ -163,6 +158,9 @@ func cleanupSupersededUniqueSnapshots(state *core.AppState, localFilePath string
 		if other.uniqueVer == parts.uniqueVer {
 			continue
 		}
-		removeIndexedFile(state, filepath.Join(dir, child))
+		if err := removeIndexedFile(state, filepath.Join(dir, child)); err != nil {
+			return err
+		}
 	}
+	return nil
 }

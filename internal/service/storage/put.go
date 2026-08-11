@@ -294,9 +294,13 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 
 	if isSnapshotArtifactPath(localFilePath) && !isArtifactCompanionPath(localFilePath) {
 		if existed {
-			removeArtifactCompanions(state, localFilePath)
+			if err := removeArtifactCompanions(state, localFilePath); err != nil {
+				return err
+			}
 		}
-		cleanupSupersededUniqueSnapshots(state, localFilePath)
+		if err := cleanupSupersededUniqueSnapshots(state, localFilePath); err != nil {
+			return err
+		}
 	}
 
 	if generateChecksums {
@@ -326,15 +330,12 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 		wg.Wait()
 
 		if firstErr != nil {
-			deleteFileHelper(localFilePath)
-			state.Inner.FileIndex.RemoveFile(localFilePath)
+			cleanupErr := deleteIndexedFile(state, localFilePath)
 			for _, generated := range checksums {
 				checksumPath := localFilePath + generated.ext
-				deleteFileHelper(checksumPath)
-				state.Inner.FileIndex.RemoveFile(checksumPath)
+				cleanupErr = errors.Join(cleanupErr, deleteIndexedFile(state, checksumPath))
 			}
-			state.InvalidateFileCache(localFilePath)
-			return firstErr
+			return errors.Join(firstErr, cleanupErr)
 		}
 	}
 

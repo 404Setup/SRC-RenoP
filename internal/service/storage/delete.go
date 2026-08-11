@@ -13,7 +13,9 @@ package storage
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -79,9 +81,9 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 		ext := filepath.Ext(localFilePath)
 		fileStem := strings.TrimSuffix(filepath.Base(localFilePath), ext)
 
-		deleteFileHelper(localFilePath)
-		state.Inner.FileIndex.RemoveFile(localFilePath)
-		state.InvalidateFileCache(localFilePath)
+		if err := deleteIndexedFile(state, localFilePath); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+		}
 
 		if isJar {
 			if strings.HasSuffix(localFilePath, "-javadoc.jar") {
@@ -96,9 +98,9 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 			for _, ext := range extensions {
 				toDelete := filepath.Join(dir, fileStem+ext)
 				if state.Inner.FileIndex.HasFile(toDelete) {
-					deleteFileHelper(toDelete)
-					state.Inner.FileIndex.RemoveFile(toDelete)
-					state.InvalidateFileCache(toDelete)
+					if err := deleteIndexedFile(state, toDelete); err != nil {
+						return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+					}
 				}
 			}
 
@@ -107,7 +109,7 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 			metadataPath := filepath.Join(artifactDir, "maven-metadata.xml")
 
 			if state.Inner.FileIndex.HasFile(metadataPath) {
-				_ = state.Inner.FileIndex.UpdateMetadataCallback(func() error {
+				if err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 					var (
 						src io.ReadCloser
 						err error
@@ -118,13 +120,13 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 						src, err = os.Open(metadataPath)
 					}
 					if err != nil {
-						return nil
+						return err
 					}
 					var metadata config.Metadata
 					decErr := xml.NewDecoder(src).Decode(&metadata)
 					_ = src.Close()
 					if decErr != nil {
-						return nil
+						return decErr
 					}
 					var newVersions []string
 					found := false
@@ -142,14 +144,14 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 						return nil
 					}
 					if len(newVersions) == 0 {
-						deleteFileHelper(metadataPath)
-						state.Inner.FileIndex.RemoveFile(metadataPath)
-						state.InvalidateFileCache(metadataPath)
+						if err := deleteIndexedFile(state, metadataPath); err != nil {
+							return err
+						}
 						for _, ext := range []string{".md5", ".sha1", ".sha256", ".sha512"} {
 							toDel := metadataPath + ext
-							deleteFileHelper(toDel)
-							state.Inner.FileIndex.RemoveFile(toDel)
-							state.InvalidateFileCache(toDel)
+							if err := deleteIndexedFile(state, toDel); err != nil {
+								return err
+							}
 						}
 						return nil
 					}
@@ -182,20 +184,22 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 						}
 					}
 
-					if err == nil {
-						state.InvalidateFileCache(metadataPath)
-						md5Hash := utils.MD5(updatedXML)
-						sha1Hash := utils.SHA1(updatedXML)
-						sha256Hash := utils.SHA256(updatedXML)
-						sha512Hash := utils.SHA512(updatedXML)
-
-						_ = SaveAndUploadChecksum(state, metadataPath, ".md5", md5Hash)
-						_ = SaveAndUploadChecksum(state, metadataPath, ".sha1", sha1Hash)
-						_ = SaveAndUploadChecksum(state, metadataPath, ".sha256", sha256Hash)
-						_ = SaveAndUploadChecksum(state, metadataPath, ".sha512", sha512Hash)
+					if err != nil {
+						return err
+					}
+					state.InvalidateFileCache(metadataPath)
+					for ext, hash := range map[string]string{
+						".md5": utils.MD5(updatedXML), ".sha1": utils.SHA1(updatedXML),
+						".sha256": utils.SHA256(updatedXML), ".sha512": utils.SHA512(updatedXML),
+					} {
+						if err := SaveAndUploadChecksum(state, metadataPath, ext, hash); err != nil {
+							return err
+						}
 					}
 					return nil
-				})
+				}); err != nil {
+					return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+				}
 			}
 		}
 	}
@@ -219,13 +223,27 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 	return c.Status(fiber.StatusNoContent).SendString("")
 }
 
-func deleteFileHelper(path string) {
+func deleteFileHelper(path string) error {
 	if IsS3Enabled(path) {
 		s3Key := utils.GetS3Key(path)
-		_ = DeleteFromS3(s3Key)
-	} else {
-		_ = os.Remove(path)
+		return DeleteFromS3(s3Key)
 	}
+	err := os.Remove(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+func deleteIndexedFile(state *core.AppState, path string) error {
+	if err := deleteFileHelper(path); err != nil {
+		return err
+	}
+	if state.Inner.FileIndex != nil {
+		state.Inner.FileIndex.RemoveFile(path)
+	}
+	state.InvalidateFileCache(path)
+	return nil
 }
 
 // RemoveRepositoryStorage deletes a repository's on-disk (and optional S3) data

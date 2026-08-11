@@ -172,10 +172,13 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 
-	_ = storage.SaveAndUploadChecksum(state, basePath, ".md5", pomMd5)
-	_ = storage.SaveAndUploadChecksum(state, basePath, ".sha1", pomSha1)
-	_ = storage.SaveAndUploadChecksum(state, basePath, ".sha256", pomSha256)
-	_ = storage.SaveAndUploadChecksum(state, basePath, ".sha512", pomSha512)
+	for ext, hash := range map[string]string{
+		".md5": pomMd5, ".sha1": pomSha1, ".sha256": pomSha256, ".sha512": pomSha512,
+	} {
+		if err := storage.SaveAndUploadChecksum(state, basePath, ext, hash); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+		}
+	}
 
 	err = state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		var metadata config.Metadata
@@ -245,10 +248,13 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 			}
 		}
 
-		_ = storage.SaveAndUploadChecksum(state, metadataPath, ".md5", metaMd5)
-		_ = storage.SaveAndUploadChecksum(state, metadataPath, ".sha1", metaSha1)
-		_ = storage.SaveAndUploadChecksum(state, metadataPath, ".sha256", metaSha256)
-		_ = storage.SaveAndUploadChecksum(state, metadataPath, ".sha512", metaSha512)
+		for ext, hash := range map[string]string{
+			".md5": metaMd5, ".sha1": metaSha1, ".sha256": metaSha256, ".sha512": metaSha512,
+		} {
+			if err := storage.SaveAndUploadChecksum(state, metadataPath, ext, hash); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 

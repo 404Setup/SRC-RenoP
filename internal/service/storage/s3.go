@@ -454,7 +454,9 @@ func BuildS3IndexSync(storagePath string, idx *index.FileIndex) {
 func SaveAndUploadChecksum(state *core.AppState, basePath string, ext string, hash string) error {
 	checksumPath := basePath + ext
 	if IsS3Enabled(basePath) {
-		UploadChecksumS3(checksumPath, hash)
+		if err := UploadChecksumS3(checksumPath, hash); err != nil {
+			return err
+		}
 	} else {
 		err := os.WriteFile(checksumPath, []byte(hash), 0644)
 		if err != nil {
@@ -468,9 +470,9 @@ func SaveAndUploadChecksum(state *core.AppState, basePath string, ext string, ha
 	return nil
 }
 
-func UploadChecksumS3(path string, hash string) {
+func UploadChecksumS3(path string, hash string) error {
 	s3Key := filepath.ToSlash(path)
 	s3Key = strings.TrimPrefix(s3Key, "./")
 	s3Key = strings.TrimPrefix(s3Key, "/")
-	_ = UploadStreamToS3(s3Key, strings.NewReader(hash), int64(len(hash)), "text/plain")
+	return UploadStreamToS3(s3Key, strings.NewReader(hash), int64(len(hash)), "text/plain")
 }
