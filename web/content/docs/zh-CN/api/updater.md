@@ -8,9 +8,9 @@ category: API
 
 前缀：`/api/updater`
 
-`GET /status` 公开；`check` / `install` / `upload` / `restart` 需要 **manager**。
+`GET /status` 公开；`check` / `install` / `upload` / `restart` 需要 **manager** 权限。
 
-状态也出现在 `GET /api/status/instance` 的 `update_state`。
+状态也会出现在 `GET /api/status/instance` 的 `update_state` 字段中。
 
 ```text
 idle → available → downloading → ready_to_restart
@@ -41,7 +41,7 @@ idle → available → downloading → ready_to_restart
 |-----------|--------------------------|------------------------|
 | `channel` | 设置项 `updater.channel` | `release` 或 `nightly` |
 
-省略 / 非法 → `updater.channel`（默认 `release`）。
+省略或非法值时使用 `updater.channel`（默认为 `release`）。
 
 | 通道      | `info.json`                                           |
 |-----------|-------------------------------------------------------|
@@ -66,22 +66,22 @@ idle → available → downloading → ready_to_restart
 }
 ```
 
-失败 → 500，`{ "error": "…" }`。
+失败时返回 500，`{ "error": "…" }`。
 
 ## `POST /api/updater/install`
 
 按当前 `download_url` 异步下载并解压。
 
-| 状态 | 原因                                               |
-|------|----------------------------------------------------|
-| 507  | 磁盘不足                                           |
-| 409  | 安装已在进行（`Installation already in progress`） |
+| 状态 | 原因           |
+|------|----------------|
+| 507  | 磁盘空间不足   |
+| 409  | 安装已在进行中 |
 
 ```json
 {"status": "started"}
 ```
 
-轮询 `/status`。完成：`ready_to_restart`。
+轮询 `/status` 查看进度。完成后状态为 `ready_to_restart`。
 
 ## `POST /api/updater/upload`
 
@@ -96,19 +96,19 @@ idle → available → downloading → ready_to_restart
 
 ### 多分片上传（可选）
 
-大 zip 可用分块上传（manager）。小于 **8 MiB** → 单请求 `POST /api/updater/upload`。
+大文件可使用分块上传（需要 manager 权限）。小于 **8 MiB** 的文件可直接使用单次请求 `POST /api/updater/upload`。
 
-init/complete：`application/x-protobuf`（`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`）。分片为原始字节。
+init/complete 请求使用 `application/x-protobuf`（`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`），分片为原始字节。
 
-分片大小见 [storage.md](./storage.md)。使用 init 的 `chunk_size` / `chunk_count`。
+分片大小见 [storage.md](./storage.md)。使用 init 响应中的 `chunk_size` / `chunk_count`。
 
-1. `POST /api/upload/chunked/` — `purpose=updater`、`filename`（`.zip`）、`size`
+1. `POST /api/upload/chunked/` — 设置 `purpose=updater`、`filename`（需为 `.zip`）、`size`
 2. `PUT /api/upload/chunked/:id/:index`（可并行、可重试）
-3. `POST /api/upload/chunked/:id/complete` → `ready_to_restart`
+3. `POST /api/upload/chunked/:id/complete` → 返回 `ready_to_restart`
 
 ## `POST /api/updater/restart`
 
-若已有待应用的更新二进制，则应用后重启进程；否则仅重启当前进程（不应用更新）。
+若已有待应用的更新二进制，则应用更新后重启进程；否则仅重启当前进程。
 
 ```json
 {"status": "restarting"}

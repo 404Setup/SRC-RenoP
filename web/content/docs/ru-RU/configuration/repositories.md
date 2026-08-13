@@ -1,25 +1,25 @@
 ---
-title: Repositories & mirrors
+title: Репозитории и зеркала
 order: 2
-category: Configuration
-description: repositories.yaml — visibility, mirrors, and S3
+category: Конфигурация
+description: repositories.yaml — видимость, зеркала и S3
 ---
 
-# Repositories & mirrors
+# Репозитории и зеркала
 
-File: `repositories.yaml` (override with `RENOP_REPOSITORIES`).
+Файл: `repositories.yaml` (переопределяется через `RENOP_REPOSITORIES`).
 
-Default repositories:
+Репозитории по умолчанию:
 
-| Name        | Role                    |
-|-------------|-------------------------|
-| `releases`  | Releases (usually PUBLIC)  |
-| `snapshots` | Snapshots (usually PUBLIC) |
-| `private`   | Private (PRIVATE)       |
+| Имя         | Назначение                 |
+|-------------|----------------------------|
+| `releases`  | Релизы (обычно PUBLIC)     |
+| `snapshots` | Снапшоты (обычно PUBLIC)   |
+| `private`   | Приватный (PRIVATE)        |
 
-Keyed by name under `repositories:`.
+Ключи по имени под `repositories:`.
 
-## Repository fields
+## Поля репозитория
 
 ```yaml
 repositories:
@@ -40,63 +40,63 @@ repositories:
       redirect_downloads: false
 ```
 
-| Field                | Description                                                                           |
-|----------------------|---------------------------------------------------------------------------------------|
-| `name`               | Repository id (path segment: `http://host:port/{name}/…`)                             |
-| `visibility`         | `PUBLIC` anonymous read; `HIDDEN` restricted listing; `PRIVATE` needs read permission |
-| `allow_redeployment` | Whether overwriting an existing artifact path is allowed (defaults: releases/private `false`, snapshots `true`) |
-| `mirrors`            | Upstream Maven proxies (optional)                                                     |
-| `s3`                 | Optional S3-compatible backend for this repository                                    |
+| Поле                 | Описание                                                                                              |
+|----------------------|-------------------------------------------------------------------------------------------------------|
+| `name`               | ID репозитория (сегмент пути: `http://host:port/{name}/…`)                                           |
+| `visibility`         | `PUBLIC` анонимное чтение, `HIDDEN` ограниченный список, `PRIVATE` требуется разрешение на чтение    |
+| `allow_redeployment` | Разрешена ли перезапись существующего артефакта (по умолчанию: releases/private `false`, snapshots `true`) |
+| `mirrors`            | Восходящие прокси Maven (опционально)                                                                 |
+| `s3`                 | Опциональный S3-совместимый бэкенд для этого репозитория                                              |
 
-Maven layout under each repo is standard: `group/artifact/version/file`.
+Схема Maven под каждым репозиторием стандартная: `group/artifact/version/file`.
 
-## Mirrors
+## Зеркала
 
-On miss, mirrors fetch from upstream and may cache the result.
+При отсутствии артефакта зеркала загружают его из восходящего источника и могут кэшировать результат.
 
-| Field             | Description                                                            |
-|-------------------|------------------------------------------------------------------------|
-| `name`            | Display / config name                                                  |
-| `url`             | Upstream base URL                                                      |
-| `persist`         | Persist cached artifacts to storage                                    |
-| `cache_ttl_secs`  | Positive cache TTL (seconds)                                           |
-| `negative_cache`  | Cache “not found” responses                                            |
-| `timeout_secs`    | Upstream request timeout                                               |
-| `authorization`   | Optional credentials (`method`, `login`, `password`)                   |
-| `enabled_date`    | Optional activation date string                                        |
-| `allow_artifacts` | If set, only matching `group` or `group:artifact` patterns are proxied |
-| `deny_artifacts`  | If set, matching coordinates are blocked (do not combine with allow)   |
+| Поле              | Описание                                                                   |
+|-------------------|----------------------------------------------------------------------------|
+| `name`            | Отображаемое имя / имя в конфигурации                                      |
+| `url`             | Базовый URL восходящего источника                                          |
+| `persist`         | Сохранять кэшированные артефакты в хранилище                               |
+| `cache_ttl_secs`  | TTL позитивного кэша (секунды)                                             |
+| `negative_cache`  | Кэшировать ответы «не найдено»                                             |
+| `timeout_secs`    | Таймаут запроса к восходящему источнику                                    |
+| `authorization`   | Опциональные учётные данные (`method`, `login`, `password`)                |
+| `enabled_date`    | Опциональная строка даты активации                                         |
+| `allow_artifacts` | Если задано, проксируются только совпадающие паттерны `group` или `group:artifact` |
+| `deny_artifacts`  | Если задано, совпадающие координаты блокируются (не сочетать с allow)      |
 
-Authorization methods commonly used: `BASIC` / username-password, or `Bearer` / token.
+Часто используемые методы авторизации: `BASIC` / имя пользователя-пароль, или `Bearer` / токен.
 
-## Visibility vs permissions
+## Видимость vs права доступа
 
-| Visibility | Anonymous read                                      | Notes                        |
-|------------|-----------------------------------------------------|------------------------------|
-| PUBLIC     | Yes                                                 | Open repo                    |
-| HIDDEN     | File fetch may work; root listing needs extra roles |                              |
-| PRIVATE    | No                                                  | Needs `canview` / `allview` / `proview`, write rights, or manager |
+| Видимость | Анонимное чтение                                                   | Примечания                                                               |
+|-----------|--------------------------------------------------------------------|--------------------------------------------------------------------------|
+| PUBLIC    | Да                                                                 | Открытый репозиторий                                                     |
+| HIDDEN    | Загрузка файлов может работать; список корня требует дополнительных ролей |                                                                          |
+| PRIVATE   | Нет                                                                | Требуется `canview` / `allview` / `proview`, права записи или manager    |
 
-Writes always require `canupdate` (or manager). See [Authentication](../api/authentication.md).
+Запись всегда требует `canupdate` (или manager). См. [Аутентификация](../api/authentication.md).
 
-## S3-compatible storage
+## S3-совместимое хранилище
 
-When `s3.enabled` is true, artifacts for that repository are stored in the given bucket. Typical fields:
+Когда `s3.enabled` равно true, артефакты этого репозитория хранятся в указанном bucket. Основные поля:
 
-| Field                                 | Description                                    |
-|---------------------------------------|------------------------------------------------|
-| `endpoint`                            | S3 API endpoint                                |
-| `bucket`                              | Bucket name                                    |
-| `key_prefix`                          | Optional object key prefix within the bucket   |
-| `region`                              | Region (or `auto`)                             |
-| `access_key_id` / `secret_access_key` | Credentials                                    |
-| `force_path_style`                    | Path-style URLs (common for MinIO)             |
-| `redirect_downloads`                  | Redirect clients to object URLs when supported |
+| Поле                                  | Описание                                                |
+|---------------------------------------|---------------------------------------------------------|
+| `endpoint`                            | Эндпоинт S3 API                                         |
+| `bucket`                              | Имя bucket                                              |
+| `key_prefix`                          | Опциональный префикс ключа объекта внутри bucket        |
+| `region`                              | Регион (или `auto`)                                     |
+| `access_key_id` / `secret_access_key` | Учётные данные                                          |
+| `force_path_style`                    | URL в стиле пути (часто для MinIO)                      |
+| `redirect_downloads`                  | Перенаправлять клиентов на URL объектов при поддержке  |
 
-When `key_prefix` is empty, RenoP preserves the legacy object layout. Before adding or changing a prefix on a repository that already contains artifacts, move its existing objects to the new prefix; RenoP does not migrate them automatically.
+Когда `key_prefix` пуст, RenoP сохраняет устаревшую схему объектов. Перед добавлением или изменением префикса в репозитории, который уже содержит артефакты, переместите существующие объекты на новый префикс; RenoP не мигрирует их автоматически.
 
-## See also
+## См. также
 
-- [Configuration overview](./overview.md)
-- [Storage API](../api/storage.md)
-- [Maven client](../getting-started/maven-client.md)
+- [Обзор конфигурации](./overview.md)
+- [API хранилища](../api/storage.md)
+- [Maven-клиент](../getting-started/maven-client.md)

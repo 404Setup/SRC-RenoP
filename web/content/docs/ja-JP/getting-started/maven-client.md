@@ -1,25 +1,25 @@
 ---
-title: Maven client
+title: Maven クライアント
 order: 4
-category: Getting started
-description: settings.xml and pom.xml for RenoP
+category: はじめに
+description: RenoP 用の settings.xml と pom.xml
 ---
 
-# Maven client
+# Maven クライアント
 
-Point Maven (or Gradle with Maven repos) at RenoP. Default base: `http://localhost:3000`.
+Maven（または Maven リポジトリを使用する Gradle）を RenoP に向けます。デフォルトベース: `http://localhost:3000`。
 
-## Repository URLs
+## リポジトリ URL
 
-| Path                              | Use       |
+| パス                              | 用途      |
 |-----------------------------------|-----------|
-| `http://localhost:3000/releases`  | Releases  |
-| `http://localhost:3000/snapshots` | Snapshots |
-| `http://localhost:3000/private`   | Private   |
+| `http://localhost:3000/releases`  | リリース  |
+| `http://localhost:3000/snapshots` | スナップショット |
+| `http://localhost:3000/private`   | プライベート |
 
-Change host/port for your deploy.
+デプロイに合わせてホスト/ポートを変更してください。
 
-## Dependencies (`pom.xml`)
+## 依存関係（`pom.xml`）
 
 ```xml
 <repositories>
@@ -46,7 +46,7 @@ Change host/port for your deploy.
 </repositories>
 ```
 
-## Deploy (`pom.xml`)
+## デプロイ（`pom.xml`）
 
 ```xml
 <distributionManagement>
@@ -61,9 +61,9 @@ Change host/port for your deploy.
 </distributionManagement>
 ```
 
-## Credentials (`~/.m2/settings.xml`)
+## 認証情報（`~/.m2/settings.xml`）
 
-PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. Basic auth: username + password **or** upload token ([Authentication](../api/authentication.md)).
+PUBLIC リポジトリは読み取りに認証が不要なことがよくあります。デプロイと PRIVATE には認証情報が必要です。Basic 認証: ユーザー名 + パスワード **または** アップロードトークン（[認証](../api/authentication.md)）。
 
 ```xml
 <settings>
@@ -82,13 +82,13 @@ PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. 
 </settings>
 ```
 
-`<id>` in `settings.xml` must match `<id>` in `pom.xml`.
+`settings.xml` の `<id>` は `pom.xml` の `<id>` と一致する必要があります。
 
-## Other HTTP clients
+## その他の HTTP クライアント
 
 - `Authorization: Basic base64(user:password_or_token)`
-- `Authorization: Bearer <user>:<secret>` or `Bearer <upload-token>`
-- GET/HEAD only: `?token=…`
+- `Authorization: Bearer <user>:<secret>` または `Bearer <upload-token>`
+- GET/HEAD のみ: `?token=…`
 
 ## Gradle
 
@@ -101,8 +101,8 @@ repositories {
 }
 ```
 
-## See also
+## 関連項目
 
-- [Quick start](./quickstart.md)
-- [Repositories & mirrors](../configuration/repositories.md)
-- [Storage API](../api/storage.md)
+- [クイックスタート](./quickstart.md)
+- [リポジトリとミラー](../configuration/repositories.md)
+- [ストレージ API](../api/storage.md)

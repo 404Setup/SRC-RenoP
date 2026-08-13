@@ -1,25 +1,25 @@
 ---
-title: Maven client
+title: Maven-клиент
 order: 4
-category: Getting started
-description: settings.xml and pom.xml for RenoP
+category: Начало работы
+description: settings.xml и pom.xml для RenoP
 ---
 
-# Maven client
+# Maven-клиент
 
-Point Maven (or Gradle with Maven repos) at RenoP. Default base: `http://localhost:3000`.
+Настройте Maven (или Gradle с Maven-репозиториями) на использование RenoP. База по умолчанию: `http://localhost:3000`.
 
-## Repository URLs
+## URL репозиториев
 
-| Path                              | Use       |
-|-----------------------------------|-----------|
-| `http://localhost:3000/releases`  | Releases  |
-| `http://localhost:3000/snapshots` | Snapshots |
-| `http://localhost:3000/private`   | Private   |
+| Путь                              | Назначение |
+|-----------------------------------|------------|
+| `http://localhost:3000/releases`  | Releases   |
+| `http://localhost:3000/snapshots` | Snapshots  |
+| `http://localhost:3000/private`   | Private    |
 
-Change host/port for your deploy.
+Измените хост/порт в соответствии с вашим развёртыванием.
 
-## Dependencies (`pom.xml`)
+## Зависимости (`pom.xml`)
 
 ```xml
 <repositories>
@@ -46,7 +46,7 @@ Change host/port for your deploy.
 </repositories>
 ```
 
-## Deploy (`pom.xml`)
+## Развёртывание (`pom.xml`)
 
 ```xml
 <distributionManagement>
@@ -61,9 +61,9 @@ Change host/port for your deploy.
 </distributionManagement>
 ```
 
-## Credentials (`~/.m2/settings.xml`)
+## Учётные данные (`~/.m2/settings.xml`)
 
-PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. Basic auth: username + password **or** upload token ([Authentication](../api/authentication.md)).
+PUBLIC-репозитории часто не требуют аутентификации для чтения. Развёртывание и PRIVATE требуют учётных данных. Basic-аутентификация: имя пользователя + пароль **или** токен загрузки ([Аутентификация](../api/authentication.md)).
 
 ```xml
 <settings>
@@ -82,13 +82,13 @@ PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. 
 </settings>
 ```
 
-`<id>` in `settings.xml` must match `<id>` in `pom.xml`.
+`<id>` в `settings.xml` должен совпадать с `<id>` в `pom.xml`.
 
-## Other HTTP clients
+## Другие HTTP-клиенты
 
 - `Authorization: Basic base64(user:password_or_token)`
-- `Authorization: Bearer <user>:<secret>` or `Bearer <upload-token>`
-- GET/HEAD only: `?token=…`
+- `Authorization: Bearer <user>:<secret>` или `Bearer <upload-token>`
+- Только GET/HEAD: `?token=…`
 
 ## Gradle
 
@@ -101,8 +101,8 @@ repositories {
 }
 ```
 
-## See also
+## См. также
 
-- [Quick start](./quickstart.md)
-- [Repositories & mirrors](../configuration/repositories.md)
-- [Storage API](../api/storage.md)
+- [Быстрый старт](./quickstart.md)
+- [Репозитории и зеркала](../configuration/repositories.md)
+- [API хранилища](../api/storage.md)

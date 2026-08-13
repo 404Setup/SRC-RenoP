@@ -21,12 +21,11 @@ category: API
 限制所使用的键来自 `utils.ExtractIP` 解析的客户端 IP：
 
 - 默认：对端地址（`c.IP()`）。
-- 若对端为环回地址（`127.0.0.1` / `::1`）或位于 `server.trusted_proxies` 中，且已配置 `server.cdn_ip_header`，则从该请求头读取客户端
-  IP。多值头从右向左扫描，并跳过可信跳。
+- 若对端为环回地址（`127.0.0.1`/`::1`）或位于 `server.trusted_proxies` 中，且已配置 `server.cdn_ip_header`，则从该请求头读取客户端 IP。多值头从右向左扫描，并跳过可信跳。
 
-代理信任配置不正确可能导致多个客户端映射到同一 IP，或出现相反情况。参见 [settings.md](./settings.md)。
+代理信任配置不正确可能导致多个客户端映射到同一 IP，或出现相反情况，参见 [settings.md](./settings.md)。
 
-Cloudflare → Caddy → RenoP 场景下，将 `cdn_ip_header` 设为 `CF-Connecting-IP` 即可；环回对端无需写入 `trusted_proxies`。
+Cloudflare → Caddy → RenoP 场景下，将 `cdn_ip_header` 设为 `CF-Connecting-IP` 即可，环回对端无需写入 `trusted_proxies`。
 
 ## 1. 并发请求上限
 
@@ -57,7 +56,7 @@ Cloudflare → Caddy → RenoP 场景下，将 `cdn_ip_header` 设为 `CF-Connec
 
 除下方静态前端跳过列表外，所有路径均适用（包括已认证客户端）。处理器持续返回 401/403 时会触发封禁，与后续请求携带的凭证无关。
 
-说明：常量名称含 “per minute”，实际存储窗口为 **5 分钟**；在条目过期前计数只会增加。
+说明：常量名称含 “per minute”，实际存储窗口为 **5 分钟**，在条目过期前计数只会增加。
 
 ## 3. 匿名请求速率限制（按 IP）
 
@@ -84,9 +83,9 @@ Cloudflare → Caddy → RenoP 场景下，将 `cdn_ip_header` 设为 `CF-Connec
 | `Authorization: Basic …`                          | 用户名与密码 / secret 匹配      |
 | GET/HEAD `?token=`                                | 令牌为有效会话 id 或上述 bearer |
 
-无效凭证不提供豁免。此类请求仍会消耗限流令牌；若处理器返回 401/403，仍会增加失败计数。
+无效凭证不提供豁免。此类请求仍会消耗限流令牌，若处理器返回 401/403，仍会增加失败计数。
 
-空闲已过期的会话不视为已认证（空闲超时约为 7 天；详见认证文档）。
+空闲已过期的会话不视为已认证（空闲超时约为 7 天，详见认证文档）。
 
 ### 限流器生命周期
 

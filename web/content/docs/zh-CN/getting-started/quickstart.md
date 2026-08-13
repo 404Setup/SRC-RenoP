@@ -9,25 +9,27 @@ description: 首次启动、管理员密码、默认仓库地址
 
 ## 首次启动
 
-首次启动时会创建 `admin` 账户。请在启动前通过环境变量设置密码：
+首次启动时会自动创建 `admin` 账户。请在启动前通过环境变量设置管理员密码：
 
 ```bash
-RENOP_DEFAULT_ADMIN_PASSWORD='replace-this-password' ./renop
+RENOP_DEFAULT_ADMIN_PASSWORD='your-secure-password' ./renop
 ```
 
-若未设置该变量，服务会生成随机密码并写入服务器日志。启动完成后访问 `http://localhost:3000`。
+若未设置该环境变量，服务将自动生成随机密码并输出到日志中。启动完成后访问 `http://localhost:3000`。
 
-使用 `admin` 登录。具备 manager / admin 权限的账户可在 Web 界面中管理制品、用户、仓库与系统设置。
+使用 `admin` 账户登录后，具备 manager/admin 权限的用户可通过 Web 界面管理制品、用户、仓库和系统配置。
 
 ## 默认仓库
 
-| 路径                              | 用途   |
-|-----------------------------------|--------|
-| `http://localhost:3000/releases`  | 正式版 |
-| `http://localhost:3000/snapshots` | 快照   |
-| `http://localhost:3000/private`   | 私有   |
+RenoP 默认提供三个仓库：
 
-将上述地址配置到 Maven 的 `<repositories>` 或 `<distributionManagement>`。示例见 [Maven 客户端](./maven-client.md)。
+| 路径                              | 用途       |
+|-----------------------------------|------------|
+| `http://localhost:3000/releases`  | 正式版仓库 |
+| `http://localhost:3000/snapshots` | 快照仓库   |
+| `http://localhost:3000/private`   | 私有仓库   |
+
+将上述地址配置到 Maven 的 `<repositories>` 或 `<distributionManagement>` 中即可使用。配置示例请参见 [Maven 客户端](./maven-client.md)。
 
 ## 健康检查
 
@@ -38,16 +40,16 @@ curl -s http://localhost:3000/api/status/health
 
 ## 环境变量
 
-| 变量                           | 默认                | 用途                                                  |
-|--------------------------------|---------------------|-------------------------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | 服务、前端、存储、更新器                              |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | 仓库、镜像、按仓库 S3                                 |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | 账户与 Token                                          |
-| `RENOP_INDEX`                  | `index.json`        | 制品索引                                              |
-| `RENOP_SESSIONS`               | `sessions.bin`      | 登录会话（protobuf；旧版 `sessions.json` 会自动迁移） |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自动生成            | 首个 admin 密码                                       |
+| 变量                           | 默认值              | 用途                                                           |
+|--------------------------------|---------------------|----------------------------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | 服务配置：监听地址、前端品牌、存储路径、更新器                 |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | 仓库配置：仓库列表、镜像配置、S3 存储                          |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | 账户与令牌配置                                                 |
+| `RENOP_INDEX`                  | `index.json`        | 制品索引缓存                                                   |
+| `RENOP_SESSIONS`               | `sessions.bin`      | 登录会话数据（protobuf 格式，旧版 `sessions.json` 自动迁移）   |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自动生成            | 首个 admin 账户的初始密码                                      |
 
-多数配置项也可在管理界面中修改。修改监听地址或 TLS 相关配置后，需要重启进程。
+大部分配置项可在管理界面中修改。修改监听地址或 TLS 相关配置后，需要重启进程才能生效。
 
 ## 下一步
 

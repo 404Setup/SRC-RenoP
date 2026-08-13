@@ -5,21 +5,21 @@ category: 快速开始
 description: 给 RenoP 用的 settings.xml 与 pom.xml
 ---
 
-# Maven 客户端
+# Maven 客户端配置
 
-把 Maven（或走 Maven 仓库的 Gradle）指到 RenoP。默认基址：`http://localhost:3000`。
+将 Maven（或使用 Maven 仓库的 Gradle）指向 RenoP 服务。默认服务地址：`http://localhost:3000`。
 
 ## 仓库 URL
 
-| 路径                              | 用途 |
-|-----------------------------------|------|
-| `http://localhost:3000/releases`  | 正式版 |
-| `http://localhost:3000/snapshots` | 快照 |
-| `http://localhost:3000/private`   | 私有 |
+| 路径                              | 用途       |
+|-----------------------------------|------------|
+| `http://localhost:3000/releases`  | 正式版仓库 |
+| `http://localhost:3000/snapshots` | 快照仓库   |
+| `http://localhost:3000/private`   | 私有仓库   |
 
-按实际部署改 host/port。
+请根据实际部署情况修改主机名和端口。
 
-## 读依赖（`pom.xml`）
+## 配置依赖源（`pom.xml`）
 
 ```xml
 <repositories>
@@ -46,7 +46,7 @@ description: 给 RenoP 用的 settings.xml 与 pom.xml
 </repositories>
 ```
 
-## 发布（`pom.xml`）
+## 配置发布地址（`pom.xml`）
 
 ```xml
 <distributionManagement>
@@ -61,9 +61,9 @@ description: 给 RenoP 用的 settings.xml 与 pom.xml
 </distributionManagement>
 ```
 
-## 凭据（`~/.m2/settings.xml`）
+## 配置认证凭据（`~/.m2/settings.xml`）
 
-PUBLIC 读一般不用认证；部署和 PRIVATE 要凭据。Basic：用户名 + 密码 **或** 上传 Token（见 [认证](../api/authentication.md)）。
+PUBLIC 仓库的读取操作通常不需要认证；但部署操作和 PRIVATE 仓库访问需要提供凭据。可使用 Basic Auth：用户名 + 密码，或者用户名 + 上传 Token（详见 [认证](../api/authentication.md)）。
 
 ```xml
 <settings>
@@ -82,15 +82,17 @@ PUBLIC 读一般不用认证；部署和 PRIVATE 要凭据。Basic：用户名 +
 </settings>
 ```
 
-`settings.xml` 里的 `<id>` 必须和 `pom.xml` 一致。
+注意：`settings.xml` 中的 `<id>` 必须与 `pom.xml` 中的仓库 ID 保持一致。
 
-## 其它 HTTP 客户端
+## 其他 HTTP 客户端
+
+除了 Maven 客户端，也可以使用其他 HTTP 客户端访问仓库：
 
 - `Authorization: Basic base64(user:password_or_token)`
 - `Authorization: Bearer <user>:<secret>` 或 `Bearer <upload-token>`
-- 仅 GET/HEAD：`?token=…`
+- 仅 GET/HEAD 请求：`?token=…`
 
-## Gradle
+## Gradle 配置示例
 
 ```kotlin
 repositories {
@@ -101,7 +103,7 @@ repositories {
 }
 ```
 
-## 相关
+## 相关文档
 
 - [快速开始](./quickstart.md)
 - [仓库与镜像](../configuration/repositories.md)

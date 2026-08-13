@@ -8,7 +8,7 @@ category: API
 
 前缀：`/api/maven`（徽章在 `/api/badge` 下）
 
-这些接口读取索引与元数据。实际制品字节位于 `/{repo}/group/artifact/…` — 见 [storage.md](./storage.md)。
+这些接口读取索引与元数据。实际制品文件位于 `/{repo}/group/artifact/…`，详见 [storage.md](./storage.md)。
 
 路径参数使用 Maven 布局，例如：
 
@@ -17,7 +17,7 @@ com/example/demo
 com/example/demo/1.0.0
 ```
 
-读权限不足时通常返回 `404 Not found`。
+读权限不足时通常返回 `404`。
 
 ## 目录与文件详情（Protobuf）
 
@@ -39,7 +39,7 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 ### `GET /api/maven/details/:repo_name/*`
 
-路径详情。目录含 `files`；文件含 `content_length` 与 `last_modified_time`（RFC3339Nano）。
+路径详情。目录包含 `files` 列表；文件包含 `content_length` 与 `last_modified_time`（RFC3339Nano 格式）。
 
 `type` 为 `FILE` 或 `DIRECTORY`。
 
@@ -47,14 +47,14 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 统计与镜像摘要。响应：`RepoDetailsResponse`。
 
-| 字段                                                | 含义                                             |
-|-----------------------------------------------------|--------------------------------------------------|
-| `name` / `visibility`                               | 名称、可见性                                     |
-| `total_size` / `artifact_size` / `metadata_size`    | 字节数                                           |
-| `total_files` / `artifact_count` / `metadata_count` | 计数（校验和与 maven-metadata 计为元数据）       |
-| `mirrors[]`                                         | name、url、persist、cache_ttl、negative_cache 等 |
+| 字段                                                | 含义                                                                 |
+|-----------------------------------------------------|----------------------------------------------------------------------|
+| `name` / `visibility`                               | 仓库名称、可见性                                                     |
+| `total_size` / `artifact_size` / `metadata_size`    | 总大小、制品大小、元数据大小（字节）                                 |
+| `total_files` / `artifact_count` / `metadata_count` | 文件总数、制品数量、元数据数量（校验和与 maven-metadata 计为元数据） |
+| `mirrors[]`                                         | 镜像配置：name、url、persist、cache_ttl、negative_cache 等           |
 
-无读权限 → **403**（与 details 常用 404 不同）。
+无读权限 → `403`（与 details 常用 `404` 不同）。
 
 ## 版本查询（Protobuf）
 
@@ -101,7 +101,7 @@ message LatestVersionResponse {
 
 ### `GET /api/maven/latest/file/:repo_name/*`
 
-解析最新版本后经存储层获取（重定向或正文 — 类似直接制品 URL）。
+解析最新版本后通过存储层获取（重定向或返回正文，类似直接访问制品 URL）。
 
 ## 徽章
 
@@ -124,7 +124,7 @@ message LatestVersionResponse {
 
 ### `POST /api/maven/generate/pom/:repo_name/*`
 
-需要对仓库的写权限。正文：`application/x-protobuf`，`PomDetails`（兼用于 JSON 兼容输入）。
+需要对仓库的写权限。正文：`application/x-protobuf`，`PomDetails`（兼容 JSON 格式输入）。
 
 ```protobuf
 message PomDetails {
@@ -134,12 +134,12 @@ message PomDetails {
 }
 ```
 
-路径可已以 `.pom` 结尾，或为坐标目录（此时文件名为 `artifact_id-version.pom`）。
+路径可以 `.pom` 结尾，或为坐标目录（此时文件名为 `artifact_id-version.pom`）。
 
-磁盘不足 → 507。成功时写入 POM 并更新索引。
+磁盘空间不足时返回 `507`。成功时写入 POM 文件并更新索引。
 
 ## 隐私政策
 
 ### `GET|HEAD /api/privacy-policy`
 
-若工作目录存在 `privacy-policy.txt`，以 `text/plain` 返回；否则 404。与 Maven 无关； 挂载在同一 API 组上。
+若工作目录存在 `privacy-policy.txt` 文件，以 `text/plain` 格式返回其内容；否则返回 `404`。此接口与 Maven 无关，挂载在同一 API 组上。

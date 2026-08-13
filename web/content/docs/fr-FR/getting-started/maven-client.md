@@ -1,25 +1,25 @@
 ---
-title: Maven client
+title: Client Maven
 order: 4
-category: Getting started
-description: settings.xml and pom.xml for RenoP
+category: Premiers pas
+description: settings.xml et pom.xml pour RenoP
 ---
 
-# Maven client
+# Client Maven
 
-Point Maven (or Gradle with Maven repos) at RenoP. Default base: `http://localhost:3000`.
+Configurez Maven (ou Gradle avec des dépôts Maven) pour utiliser RenoP. Base par défaut : `http://localhost:3000`.
 
-## Repository URLs
+## URL des dépôts
 
-| Path                              | Use       |
+| Chemin                            | Usage     |
 |-----------------------------------|-----------|
 | `http://localhost:3000/releases`  | Releases  |
 | `http://localhost:3000/snapshots` | Snapshots |
 | `http://localhost:3000/private`   | Private   |
 
-Change host/port for your deploy.
+Adaptez l'hôte et le port selon votre déploiement.
 
-## Dependencies (`pom.xml`)
+## Dépendances (`pom.xml`)
 
 ```xml
 <repositories>
@@ -46,7 +46,7 @@ Change host/port for your deploy.
 </repositories>
 ```
 
-## Deploy (`pom.xml`)
+## Déploiement (`pom.xml`)
 
 ```xml
 <distributionManagement>
@@ -61,9 +61,9 @@ Change host/port for your deploy.
 </distributionManagement>
 ```
 
-## Credentials (`~/.m2/settings.xml`)
+## Identifiants (`~/.m2/settings.xml`)
 
-PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. Basic auth: username + password **or** upload token ([Authentication](../api/authentication.md)).
+Les dépôts PUBLIC ne nécessitent souvent pas d'authentification pour la lecture. Le déploiement et PRIVATE requièrent des identifiants. Authentification Basic : nom d'utilisateur + mot de passe **ou** jeton d'upload ([Authentification](../api/authentication.md)).
 
 ```xml
 <settings>
@@ -82,13 +82,13 @@ PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. 
 </settings>
 ```
 
-`<id>` in `settings.xml` must match `<id>` in `pom.xml`.
+L'`<id>` dans `settings.xml` doit correspondre à l'`<id>` dans `pom.xml`.
 
-## Other HTTP clients
+## Autres clients HTTP
 
 - `Authorization: Basic base64(user:password_or_token)`
-- `Authorization: Bearer <user>:<secret>` or `Bearer <upload-token>`
-- GET/HEAD only: `?token=…`
+- `Authorization: Bearer <user>:<secret>` ou `Bearer <upload-token>`
+- GET/HEAD uniquement : `?token=…`
 
 ## Gradle
 
@@ -101,8 +101,8 @@ repositories {
 }
 ```
 
-## See also
+## Voir aussi
 
-- [Quick start](./quickstart.md)
-- [Repositories & mirrors](../configuration/repositories.md)
-- [Storage API](../api/storage.md)
+- [Démarrage rapide](./quickstart.md)
+- [Dépôts et miroirs](../configuration/repositories.md)
+- [API de stockage](../api/storage.md)
