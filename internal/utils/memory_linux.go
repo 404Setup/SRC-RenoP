@@ -13,6 +13,7 @@
 package utils
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -32,6 +33,11 @@ type cgroupMemoryLocation struct {
 
 func InitLinuxMemoryTuning() {
 	linuxMemoryOnce.Do(func() {
+		if godebug, changed := linuxRuntimeDebug(os.Getenv("GODEBUG")); changed {
+			if err := os.Setenv("GODEBUG", godebug); err != nil {
+				log.Printf("Unable to disable transparent huge pages for the Go heap: %v", err)
+			}
+		}
 		if os.Getenv("GOGC") == "" {
 			debug.SetGCPercent(35)
 		}
@@ -42,6 +48,19 @@ func InitLinuxMemoryTuning() {
 			debug.SetMemoryLimit(limit)
 		}
 	})
+}
+
+func linuxRuntimeDebug(godebug string) (string, bool) {
+	for _, setting := range strings.Split(godebug, ",") {
+		name, _, _ := strings.Cut(strings.TrimSpace(setting), "=")
+		if name == "disablethp" {
+			return godebug, false
+		}
+	}
+	if godebug == "" {
+		return "disablethp=1", true
+	}
+	return godebug + ",disablethp=1", true
 }
 
 // ScheduleNetworkWorkingSetTrim is only needed on Windows.

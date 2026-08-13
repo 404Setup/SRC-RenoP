@@ -35,6 +35,28 @@ func TestInitLinuxMemoryTuningIdempotent(t *testing.T) {
 	InitLinuxMemoryTuning()
 }
 
+func TestLinuxRuntimeDebugDefaultsAndOverrides(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		want        string
+		wantChanged bool
+	}{
+		{name: "empty", want: "disablethp=1", wantChanged: true},
+		{name: "preserve others", input: "madvdontneed=1", want: "madvdontneed=1,disablethp=1", wantChanged: true},
+		{name: "explicit enable", input: "disablethp=1", want: "disablethp=1"},
+		{name: "explicit disable", input: "gctrace=1,disablethp=0", want: "gctrace=1,disablethp=0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, changed := linuxRuntimeDebug(tt.input)
+			if got != tt.want || changed != tt.wantChanged {
+				t.Fatalf("linuxRuntimeDebug(%q) = %q, %v; want %q, %v", tt.input, got, changed, tt.want, tt.wantChanged)
+			}
+		})
+	}
+}
+
 func TestReadCgroupV2NestedLimits(t *testing.T) {
 	mountPath := filepath.Join(t.TempDir(), "cgroup2")
 	groupPath := filepath.Join(mountPath, "system.slice", "renop.service")

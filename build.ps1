@@ -257,6 +257,11 @@ try {
         }
 
         $ldflags = "-s -w -X=renop/internal/version.Version=$displayVersion -X=renop/internal/version.Development=$developmentValue"
+        if ($goos -eq 'linux') {
+            # Apply before runtime initialization so even the first Go heap mapping
+            # avoids transparent huge pages. A process-level GODEBUG still overrides it.
+            $ldflags += ' -X=runtime.godebugDefault=disablethp=1'
+        }
         $destinationDescription = if ($noBundle) { $binaryPath } else { $archivePath }
         Write-Host "Building $goos/$goarch -> $destinationDescription"
         & go build -ldflags $ldflags -o $binaryPath .

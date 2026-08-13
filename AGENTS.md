@@ -12,11 +12,11 @@
 - **`server.go`**: Server main entry point.
 - **`internal/`**: Server core logic (HTTP routes, auth, Maven repository proxying, storage adapters for S3/Local Disk).
 - **`internal/service/status/process_memory_*.go`**: Platform-specific process memory sampling. Linux reuses `/proc/self/statm` with a fixed buffer; Windows uses process counters; other supported systems use the platform adapter from gopsutil.
-- **`internal/utils/memory_linux.go`**: Linux GC tuning. It resolves the process's cgroup v1/v2 mount and hierarchy, honors the strictest configured memory limit, and leaves headroom for non-Go process memory.
+- **`internal/utils/memory_linux.go`**: Linux GC tuning. It resolves the process's cgroup v1/v2 mount and hierarchy, honors the strictest configured memory limit, leaves headroom for non-Go process memory, and applies a direct-build fallback for `GODEBUG=disablethp=1`. An explicit `disablethp` value in `GODEBUG` is preserved.
 - **`pkg/`**: Public/shared Go libraries.
 - **`proto/`**: Protocol Buffers schema definitions (`proto/api/v1/api.proto`).
 - **`web/`**, **`packages/`**, & **`internal/service/frontend/renop-html/`**: Frontend web UI and workspace packages (managed via `pnpm`).
-- **`build.ps1`**: PowerShell 7 build script for single and cross-platform builds.
+- **`build.ps1`**: PowerShell 7 build script for single and cross-platform builds. Linux targets link `runtime.godebugDefault=disablethp=1` so transparent huge pages are disabled before the first Go heap mapping; operators can override this with `GODEBUG=disablethp=0`.
 - **`.github/actions/setup-go-runtime/`**: Composite Action that resolves, verifies, installs, and caches the prebuilt custom Go runtime from `404Setup/go` releases.
 
 ---
