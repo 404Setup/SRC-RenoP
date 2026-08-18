@@ -43,6 +43,22 @@ var GuestUser = &config.User{
 	WritePermissions: []string{},
 }
 
+const authTokenExpiresAtLocal = "auth_token_expires_at"
+
+func setAuthTokenExpiry(c fiber.Ctx, accessToken *core.AccessToken) {
+	if accessToken != nil && accessToken.ExpiresAt != nil {
+		c.Locals(authTokenExpiresAtLocal, *accessToken.ExpiresAt)
+	}
+}
+
+func authCacheExpiry(c fiber.Ctx, now int64) int64 {
+	expiresAt := now + int64((10*time.Minute)/time.Millisecond)
+	if tokenExpiresAt, ok := c.Locals(authTokenExpiresAtLocal).(int64); ok && tokenExpiresAt < expiresAt {
+		expiresAt = tokenExpiresAt
+	}
+	return expiresAt
+}
+
 func ValidateAndRenewSession(state *core.AppState, sessionId string) string {
 	session := state.GetSession(sessionId)
 	if session == nil {
@@ -202,6 +218,7 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 			tCopy.Name = username
 			accessToken = &tCopy
 		}
+		setAuthTokenExpiry(c, accessToken)
 		return buildSynthUser(accessToken), nil
 	} else if !isValid {
 		return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
@@ -269,6 +286,7 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 				tCopy.Name = username
 				accessToken = &tCopy
 			}
+			setAuthTokenExpiry(c, accessToken)
 			return buildSynthUser(accessToken), nil
 		}
 	} else {
@@ -281,6 +299,7 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 			return nil, nil
 		}
 
+		setAuthTokenExpiry(c, matchedUser)
 		return buildSynthUser(matchedUser), nil
 	}
 
@@ -348,7 +367,7 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 					if !isSessionAuth {
 						state.StoreAuthCache(authHeader, core.AuthCacheEntry{
 							User:      tempUser,
-							ExpiredAt: time.Now().Add(10 * time.Minute).UnixMilli(),
+							ExpiredAt: authCacheExpiry(c, time.Now().UnixMilli()),
 						})
 					}
 				} else if !isSessionAuth {

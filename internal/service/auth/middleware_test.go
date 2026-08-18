@@ -334,6 +334,42 @@ func TestSessionRevocationIsObservedImmediately(t *testing.T) {
 	assert.Equal(t, fiber.StatusUnauthorized, request())
 }
 
+func TestExpiredTokenIsNotAcceptedFromAuthCache(t *testing.T) {
+	db := newTestAuthDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+
+	expiresAt := time.Now().Add(40 * time.Millisecond).UnixMilli()
+	storeTestToken(t, db, state, &core.AccessToken{
+		Name:        "expiring",
+		Tokens:      []string{"secret"},
+		Permissions: []string{"canview:releases"},
+		ExpiresAt:   &expiresAt,
+	})
+
+	app := fiber.New()
+	app.Use(AuthMiddleware(state))
+	app.Get("/protected", func(c fiber.Ctx) error {
+		if GetUser(c).Username == "guest" {
+			return c.SendStatus(fiber.StatusUnauthorized)
+		}
+		return c.SendStatus(fiber.StatusOK)
+	})
+
+	request := func() int {
+		req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+		req.Header.Set(fiber.HeaderAuthorization, "Bearer expiring:secret")
+		resp, err := app.Test(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	require.Equal(t, fiber.StatusOK, request())
+	time.Sleep(60 * time.Millisecond)
+	assert.NotEqual(t, fiber.StatusOK, request(), "expired token must not remain authorized in the positive auth cache")
+}
+
 func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
 	db := newTestAuthDB(t)
 	state := core.NewAppState()
