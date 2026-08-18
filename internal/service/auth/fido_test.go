@@ -108,6 +108,28 @@ func TestFidoBeginEndpoints(t *testing.T) {
 	})
 }
 
+func TestFidoLoginBeginRejectsOversizedJSON(t *testing.T) {
+	db := newTestAuthDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	cfg := config.DefaultConfig()
+	state.Inner.Config.Store(cfg)
+
+	opChan := make(chan token.TokenOp, 1)
+	app := fiber.New()
+	SetupAuthRoutes(app, state, opChan)
+
+	body := append([]byte(`{"username":"admin","padding":"`), bytes.Repeat([]byte{'a'}, (1<<20)+1)...)
+	body = append(body, []byte(`"}`)...)
+	req := httptest.NewRequest(http.MethodPost, "/auth/fido/login/begin", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusRequestEntityTooLarge, resp.StatusCode)
+}
+
 func TestGetWebAuthnEngine(t *testing.T) {
 	state := core.NewAppState()
 	cfg := config.DefaultConfig()

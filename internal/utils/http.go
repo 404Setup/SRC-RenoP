@@ -12,14 +12,50 @@ package utils
 
 import (
 	"encoding/base64"
+	"io"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/config"
 )
+
+const MaxJSONBodySize int64 = 1 << 20
+
+// ReadJSONLimited decodes a JSON request without allowing an unknown-length
+// stream to grow beyond the endpoint's control-plane body budget.
+func ReadJSONLimited(c fiber.Ctx, dst any, maxSize int64) error {
+	if maxSize <= 0 {
+		return fiber.ErrRequestEntityTooLarge
+	}
+	req := c.Request()
+	if contentLength := req.Header.ContentLength(); int64(contentLength) > maxSize {
+		return fiber.ErrRequestEntityTooLarge
+	}
+
+	var body []byte
+	if stream := req.BodyStream(); stream != nil {
+		var err error
+		body, err = io.ReadAll(io.LimitReader(stream, maxSize+1))
+		if err != nil {
+			return err
+		}
+		if int64(len(body)) > maxSize {
+			return fiber.ErrRequestEntityTooLarge
+		}
+		req.SetBodyRaw(body)
+	} else {
+		body = req.Body()
+		if int64(len(body)) > maxSize {
+			return fiber.ErrRequestEntityTooLarge
+		}
+	}
+
+	return json.Unmarshal(body, dst)
+}
 
 func ParseRange(rangeStr string, fileSize uint64) (uint64, uint64, bool) {
 	rangeStr = strings.TrimSpace(rangeStr)

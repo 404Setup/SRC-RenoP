@@ -340,7 +340,10 @@ func PostFidoRegisterFinish(c fiber.Ctx, state *core.AppState) error {
 	user := userInt.(*config.User)
 
 	var req FidoRegisterFinishRequest
-	if err := c.Bind().JSON(&req); err != nil {
+	if err := utils.ReadJSONLimited(c, &req, utils.MaxJSONBodySize); err != nil {
+		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+			return err
+		}
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 
@@ -503,7 +506,12 @@ func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
 
 func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 	var req FidoLoginBeginRequest
-	_ = c.Bind().JSON(&req)
+	if err := utils.ReadJSONLimited(c, &req, utils.MaxJSONBodySize); err != nil {
+		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+			return err
+		}
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	}
 
 	w, err := getWebAuthnEngine(c, state)
 	if err != nil {
@@ -546,7 +554,10 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 	userAgent := c.Get(fiber.HeaderUserAgent, "Unknown")
 
 	var req FidoLoginFinishRequest
-	if err := c.Bind().JSON(&req); err != nil {
+	if err := utils.ReadJSONLimited(c, &req, utils.MaxJSONBodySize); err != nil {
+		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+			return err
+		}
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 
