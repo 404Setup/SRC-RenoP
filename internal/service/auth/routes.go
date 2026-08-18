@@ -183,10 +183,8 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 
 	accessToken := state.GetTokenByName(strings.ToLower(body.Name))
 	if accessToken != nil {
-		if accessToken.ExpiresAt != nil {
-			if time.Now().UnixMilli() > *accessToken.ExpiresAt {
-				return nil, fiber.ErrForbidden
-			}
+		if isAccessTokenExpired(accessToken) {
+			return nil, fiber.ErrForbidden
 		}
 
 		err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(body.Secret))

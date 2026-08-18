@@ -59,6 +59,10 @@ func authCacheExpiry(c fiber.Ctx, now int64) int64 {
 	return expiresAt
 }
 
+func isAccessTokenExpired(accessToken *core.AccessToken) bool {
+	return accessToken != nil && accessToken.ExpiresAt != nil && time.Now().UnixMilli() >= *accessToken.ExpiresAt
+}
+
 func ValidateAndRenewSession(state *core.AppState, sessionId string) string {
 	session := state.GetSession(sessionId)
 	if session == nil {
@@ -192,10 +196,7 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 		return nil, nil
 	}
 
-	isValid := true
-	if accessToken.ExpiresAt != nil && time.Now().UnixMilli() > *accessToken.ExpiresAt {
-		isValid = false
-	}
+	isValid := !isAccessTokenExpired(accessToken)
 
 	isVerified := false
 	if isValid {
@@ -240,6 +241,10 @@ func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*c
 	if accessToken == nil {
 		return nil, nil
 	}
+	if isAccessTokenExpired(accessToken) {
+		_, _ = state.RevokeSession(sessionId)
+		return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
 
 	if accessToken.Name != username {
 		tCopy := *accessToken
@@ -262,7 +267,7 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 			return nil, nil
 		}
 
-		if accessToken.ExpiresAt != nil && time.Now().UnixMilli() > *accessToken.ExpiresAt {
+		if isAccessTokenExpired(accessToken) {
 			return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
 		}
 
@@ -295,7 +300,7 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 			return nil, nil
 		}
 
-		if matchedUser.ExpiresAt != nil && time.Now().UnixMilli() > *matchedUser.ExpiresAt {
+		if isAccessTokenExpired(matchedUser) {
 			return nil, nil
 		}
 

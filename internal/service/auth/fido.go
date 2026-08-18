@@ -676,6 +676,11 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 		}
 		return c.Status(fiber.StatusUnauthorized).SendString(errMsg)
 	}
+	if accessToken := state.GetTokenByName(authenticatedUser.Username); accessToken == nil {
+		return c.Status(fiber.StatusUnauthorized).SendString("FIDO authentication failed")
+	} else if isAccessTokenExpired(accessToken) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
 
 	if err := state.UpdateFidoDeviceState(matchedCred.ID, matchedCred.Authenticator.SignCount, matchedCred.Flags.BackupState, matchedCred.Flags.BackupEligible); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update FIDO device")
