@@ -19,6 +19,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -155,6 +156,20 @@ func TestUpdaterDomainSettings(t *testing.T) {
 	updatedCfg := appState.Inner.Config.Load()
 	if updatedCfg.Updater.Channel != "nightly" || updatedCfg.Updater.Mode != "auto_check" {
 		t.Fatalf("expected updater config to be updated, got channel=%s mode=%s", updatedCfg.Updater.Channel, updatedCfg.Updater.Mode)
+	}
+}
+
+func TestDomainSettingsRejectsOversizedControlPlaneBody(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	app, _ := setupSettingsTestApp(t, cfg)
+
+	resp := protoPUT(t, app, "/domain/frontend", &pb.FrontendConfig{
+		Title: strings.Repeat("a", protohttp.MaxRequestBodySize),
+	})
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected PUT 413 for oversized body, got %d", resp.StatusCode)
 	}
 }
 

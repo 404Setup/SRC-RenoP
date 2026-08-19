@@ -11,7 +11,6 @@
 package settings
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -75,18 +74,25 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	name := strings.Clone(c.Params("name"))
-	bodyBytes := bytes.Clone(c.Body())
-
 	var frontendMsg *pb.FrontendConfig
 	var serverMsg *pb.ServerConfig
 	var storageMsg *pb.StorageConfig
 	var updaterMsg *pb.UpdaterConfig
+	readConfig := func(msg proto.Message) error {
+		if err := protohttp.Read(c, msg); err != nil {
+			if err == fiber.ErrRequestEntityTooLarge {
+				return err
+			}
+			return fiber.NewError(fiber.StatusBadRequest, "Bad Request")
+		}
+		return nil
+	}
 
 	switch name {
 	case "frontend":
 		msg := &pb.FrontendConfig{}
-		if err := proto.Unmarshal(bodyBytes, msg); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		if err := readConfig(msg); err != nil {
+			return err
 		}
 		if msg.BackgroundUrl != "" {
 			if err := validateBackgroundUrl(msg.BackgroundUrl); err != nil {
@@ -110,8 +116,8 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 
 	case "server":
 		msg := &pb.ServerConfig{}
-		if err := proto.Unmarshal(bodyBytes, msg); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		if err := readConfig(msg); err != nil {
+			return err
 		}
 		if msg.Port == 0 || msg.Port > 65535 {
 			return c.Status(fiber.StatusBadRequest).SendString("Port must be between 1 and 65535")
@@ -132,8 +138,8 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 
 	case "storage":
 		msg := &pb.StorageConfig{}
-		if err := proto.Unmarshal(bodyBytes, msg); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		if err := readConfig(msg); err != nil {
+			return err
 		}
 		if strings.TrimSpace(msg.StoragePath) == "" {
 			return c.Status(fiber.StatusBadRequest).SendString("Storage path must not be empty")
@@ -145,8 +151,8 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 
 	case "updater":
 		msg := &pb.UpdaterConfig{}
-		if err := proto.Unmarshal(bodyBytes, msg); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		if err := readConfig(msg); err != nil {
+			return err
 		}
 		if msg.Channel != "release" && msg.Channel != "nightly" {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid channel")
