@@ -95,6 +95,10 @@ type fidoSessionEntry struct {
 const (
 	fidoSessionTTL  = 10 * time.Minute
 	maxFidoSessions = 4096
+	// Account names are capped by password-login validation as well.  Keeping
+	// the same byte limit here prevents an anonymous FIDO challenge from
+	// retaining an oversized caller-controlled username until expiry.
+	maxFidoUsernameLength = 128
 )
 
 var (
@@ -560,6 +564,9 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	reqUsername := strings.TrimSpace(req.Username)
+	if len(reqUsername) > maxFidoUsernameLength {
+		return c.Status(fiber.StatusBadRequest).SendString("Username is too long")
+	}
 	var options *protocol.CredentialAssertion
 	var sessionData *webauthn.SessionData
 

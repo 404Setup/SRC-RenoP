@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -130,6 +131,29 @@ func TestFidoLoginBeginRejectsOversizedJSON(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusRequestEntityTooLarge, resp.StatusCode)
+}
+
+func TestFidoLoginBeginRejectsOversizedUsername(t *testing.T) {
+	db := newTestAuthDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	state.Inner.Config.Store(config.DefaultConfig())
+
+	opChan := make(chan token.TokenOp, 1)
+	app := fiber.New()
+	SetupAuthRoutes(app, state, opChan)
+
+	body, err := json.Marshal(map[string]string{
+		"username": strings.Repeat("a", maxFidoUsernameLength+1),
+	})
+	require.NoError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/auth/fido/login/begin", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 }
 
 func TestFidoSessionStoreHasGlobalBound(t *testing.T) {
