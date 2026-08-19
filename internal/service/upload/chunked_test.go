@@ -208,6 +208,18 @@ func TestCreateSessionCountsPendingReservations(t *testing.T) {
 	}
 }
 
+func TestCreateSessionRejectsOversizedFilename(t *testing.T) {
+	mgr := &Manager{sessions: make(map[string]*Session)}
+	filename := string(bytes.Repeat([]byte{'x'}, maxUploadMetadataLength+1))
+	_, err := mgr.CreateSession(PurposeUpdater, filename, "alice", 0, DefaultChunkSize, false, "", "")
+	if err == nil || err.Error() != "filename is too long" {
+		t.Fatalf("CreateSession error = %v, want filename length error", err)
+	}
+	if len(mgr.sessions) != 0 || mgr.pending != 0 {
+		t.Fatalf("oversized metadata must not reserve a session: sessions=%d pending=%d", len(mgr.sessions), mgr.pending)
+	}
+}
+
 func TestSessionOwnershipRequiresExactNonEmptyOwner(t *testing.T) {
 	if (&Session{}).OwnedBy("alice") {
 		t.Fatal("an ownerless session must not be claimable")

@@ -44,6 +44,12 @@ const (
 	// MaxSessions bounds concurrent in-memory sessions.
 	MaxSessions = 256
 
+	// maxUploadMetadataLength bounds client-controlled strings retained by a
+	// session.  A chunked session may live for SessionTTL, so accepting the
+	// full protobuf body for a filename would amplify a small request into
+	// substantial process memory.
+	maxUploadMetadataLength = 4 * 1024
+
 	// chunkIOBufSize is the pooled read buffer for streamed part bodies.
 	chunkIOBufSize = 128 * 1024
 
@@ -195,6 +201,9 @@ func (m *Manager) CreateSession(
 ) (*Session, error) {
 	if totalSize < 0 {
 		return nil, errors.New("invalid size")
+	}
+	if len(filename) > maxUploadMetadataLength {
+		return nil, errors.New("filename is too long")
 	}
 	if owner == "" {
 		return nil, errors.New("missing upload owner")

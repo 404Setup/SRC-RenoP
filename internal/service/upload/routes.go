@@ -84,6 +84,9 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		return jsonErr(c, fiber.StatusBadRequest, "Invalid size")
 	}
 	filename := req.GetFilename()
+	if len(filename) > maxUploadMetadataLength {
+		return jsonErr(c, fiber.StatusBadRequest, "filename is too long")
+	}
 	if filename == "" && purpose == PurposeUpdater {
 		return jsonErr(c, fiber.StatusBadRequest, "filename is required")
 	}
@@ -95,7 +98,11 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 
 	switch purpose {
 	case PurposeStorage:
-		path := strings.TrimPrefix(filepath.ToSlash(req.GetPath()), "/")
+		rawPath := req.GetPath()
+		if len(rawPath) > maxUploadMetadataLength {
+			return jsonErr(c, fiber.StatusBadRequest, "path is too long")
+		}
+		path := strings.TrimPrefix(filepath.ToSlash(rawPath), "/")
 		if path == "" {
 			return jsonErr(c, fiber.StatusBadRequest, "path is required for storage uploads")
 		}
