@@ -14,8 +14,10 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
@@ -128,6 +130,35 @@ func TestFidoLoginBeginRejectsOversizedJSON(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, fiber.StatusRequestEntityTooLarge, resp.StatusCode)
+}
+
+func TestFidoSessionStoreHasGlobalBound(t *testing.T) {
+	fidoSessionMu.Lock()
+	fidoSessionMap.Clear()
+	fidoSessionLen = 0
+	fidoSessionMu.Unlock()
+	defer func() {
+		fidoSessionMu.Lock()
+		fidoSessionMap.Clear()
+		fidoSessionLen = 0
+		fidoSessionMu.Unlock()
+	}()
+
+	for i := 0; i < maxFidoSessions; i++ {
+		require.True(t, storeFidoSession(strconv.Itoa(i), &webauthn.SessionData{}, "user"))
+	}
+	fidoSessionMu.Lock()
+	stored := fidoSessionLen
+	fidoSessionMu.Unlock()
+	assert.Equal(t, maxFidoSessions, stored)
+	assert.False(t, storeFidoSession("overflow", &webauthn.SessionData{}, "user"))
+
+	_, _, ok := getFidoSession("0")
+	assert.True(t, ok)
+	fidoSessionMu.Lock()
+	remaining := fidoSessionLen
+	fidoSessionMu.Unlock()
+	assert.Equal(t, maxFidoSessions-1, remaining)
 }
 
 func TestGetWebAuthnEngine(t *testing.T) {

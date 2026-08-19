@@ -92,39 +92,78 @@ type fidoSessionEntry struct {
 	createdAt   time.Time
 }
 
+const (
+	fidoSessionTTL  = 10 * time.Minute
+	maxFidoSessions = 4096
+)
+
 var (
 	fidoSessionMap syncv2.Map[string, *fidoSessionEntry]
 	cleanFidoOnce  sync.Once
+	fidoSessionMu  sync.Mutex
+	fidoSessionLen int
 )
 
-func storeFidoSession(sessionID string, sessionData *webauthn.SessionData, username string) {
-	fidoSessionMap.Store(sessionID, &fidoSessionEntry{
-		sessionData: sessionData,
-		username:    username,
-		createdAt:   time.Now(),
+func purgeExpiredFidoSessionsLocked(now time.Time) {
+	fidoSessionMap.Range(func(k string, v *fidoSessionEntry) bool {
+		if v != nil && now.Sub(v.createdAt) > fidoSessionTTL {
+			if _, loaded := fidoSessionMap.LoadAndDelete(k); loaded {
+				fidoSessionLen--
+			}
+		}
+		return true
 	})
+}
+
+func startFidoSessionCleanup() {
 	cleanFidoOnce.Do(func() {
 		go func() {
 			ticker := time.NewTicker(5 * time.Minute)
-			for range ticker.C {
-				now := time.Now()
-				fidoSessionMap.Range(func(k string, v *fidoSessionEntry) bool {
-					if now.Sub(v.createdAt) > 10*time.Minute {
-						fidoSessionMap.Delete(k)
-					}
-					return true
-				})
+			defer ticker.Stop()
+			for now := range ticker.C {
+				fidoSessionMu.Lock()
+				purgeExpiredFidoSessionsLocked(now)
+				fidoSessionMu.Unlock()
 			}
 		}()
 	})
 }
 
+// storeFidoSession returns false when the process-wide challenge budget is full.
+func storeFidoSession(sessionID string, sessionData *webauthn.SessionData, username string) bool {
+	entry := &fidoSessionEntry{
+		sessionData: sessionData,
+		username:    username,
+		createdAt:   time.Now(),
+	}
+
+	fidoSessionMu.Lock()
+	purgeExpiredFidoSessionsLocked(entry.createdAt)
+	if _, exists := fidoSessionMap.Load(sessionID); !exists && fidoSessionLen >= maxFidoSessions {
+		fidoSessionMu.Unlock()
+		return false
+	}
+	_, replaced := fidoSessionMap.Swap(sessionID, entry)
+	if !replaced {
+		fidoSessionLen++
+	}
+	fidoSessionMu.Unlock()
+
+	startFidoSessionCleanup()
+	return true
+}
+
 func getFidoSession(sessionID string) (*webauthn.SessionData, string, bool) {
+	fidoSessionMu.Lock()
 	val, ok := fidoSessionMap.LoadAndDelete(sessionID)
+	if ok {
+		fidoSessionLen--
+	}
+	fidoSessionMu.Unlock()
 	if !ok {
 		return nil, "", false
 	}
-	if time.Since(val.createdAt) > 10*time.Minute {
+	if time.Since(val.createdAt) > fidoSessionTTL {
 		return nil, "", false
 	}
 	return val.sessionData, val.username, true
@@ -324,7 +363,9 @@ func PostFidoRegisterBegin(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	sessionID := uuid.NewString()
-	storeFidoSession(sessionID, sessionData, user.Username)
+	if !storeFidoSession(sessionID, sessionData, user.Username) {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("FIDO session capacity reached")
+	}
 
 	return c.JSON(fiber.Map{
 		"session_id": sessionID,
@@ -540,7 +581,9 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	sessionID := uuid.NewString()
-	storeFidoSession(sessionID, sessionData, reqUsername)
+	if !storeFidoSession(sessionID, sessionData, reqUsername) {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("FIDO session capacity reached")
+	}
 
 	return c.JSON(fiber.Map{
 		"session_id": sessionID,
