@@ -118,6 +118,13 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			if existing != nil {
 				state.Inner.TokensCount.Add(^uint64(0))
 			}
+			state.Inner.Sessions.Range(func(sessionToken string, session *core.Session) bool {
+				if session != nil && strings.EqualFold(session.Username, safeName) {
+					state.DeleteAuthCache("Session " + sessionToken)
+					state.Inner.Sessions.Delete(sessionToken)
+				}
+				return true
+			})
 			state.ClearAuthCache()
 			completeTokenOp(op, nil)
 

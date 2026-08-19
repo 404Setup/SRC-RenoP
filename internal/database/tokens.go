@@ -207,6 +207,9 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete fido devices for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete sessions for token (%s): %w", lowerName, err)
+	}
 	if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete token (%s): %w", lowerName, err)
 	}
@@ -217,6 +220,9 @@ func (db *DB) DeleteToken(name string) error {
 	db.tokenCache.Delete(lowerName)
 	db.tokenSecretCache.DeleteFunc(func(_ string, val *core.AccessToken) bool {
 		return val == nil || strings.EqualFold(val.Name, lowerName)
+	})
+	db.sessionCache.DeleteFunc(func(_ string, sess *core.Session) bool {
+		return sess == nil || strings.EqualFold(sess.Username, lowerName)
 	})
 
 	return nil

@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,6 +63,62 @@ func TestTokenConsumerPropagatesPersistenceErrors(t *testing.T) {
 	opChan <- TokenOp{Type: OpTokenDelete, Name: "persisted", ErrChan: errChan}
 	require.Error(t, <-errChan)
 	assert.Equal(t, uint64(1), state.Inner.TokensCount.Load())
+}
+
+func TestDeletingTokenRevokesSessionsBeforeUsernameReuse(t *testing.T) {
+	db := newTestDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}))
+	state.Inner.TokensCount.Store(1)
+
+	session := &core.Session{PublicId: "old-public", Username: "alice"}
+	session.LastActive.Store(time.Now().UnixMilli())
+	const sessionToken = "old-alice-session"
+	require.NoError(t, state.SaveSession(session, sessionToken))
+
+	opChan := make(chan TokenOp, 2)
+	go StartTokenConsumer(state, opChan)
+	deleteErr := make(chan error, 1)
+	opChan <- TokenOp{Type: OpTokenDelete, Name: "alice", ErrChan: deleteErr}
+	require.NoError(t, <-deleteErr)
+	deletedSession, err := db.GetSession(sessionToken)
+	require.NoError(t, err)
+	require.Nil(t, deletedSession)
+	require.Nil(t, state.GetSession(sessionToken))
+
+	// Recreating the username must not make the old bearer session valid again.
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}))
+
+	app := fiber.New()
+	app.Use(coreAuthMiddlewareForTest(state))
+	app.Get("/protected", func(c fiber.Ctx) error {
+		if c.Locals("user").(*config.User).Username == "guest" {
+			return c.SendStatus(fiber.StatusUnauthorized)
+		}
+		return c.SendStatus(fiber.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set(fiber.HeaderAuthorization, "Session "+sessionToken)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.NotEqual(t, fiber.StatusOK, resp.StatusCode)
+}
+
+func coreAuthMiddlewareForTest(state *core.AppState) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		// Keep this test package independent of the auth package's route setup.
+		if session := state.GetSession(strings.TrimPrefix(c.Get(fiber.HeaderAuthorization), "Session ")); session != nil {
+			if token := state.GetTokenByName(session.Username); token != nil {
+				c.Locals("user", &config.User{Username: token.Name, Roles: []string{"base"}})
+				return c.Next()
+			}
+		}
+		c.Locals("user", &config.User{Username: "guest"})
+		return c.Next()
+	}
 }
 
 func TestTokenConsumerRejectsInvalidOperationPayloads(t *testing.T) {
