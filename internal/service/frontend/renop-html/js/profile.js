@@ -19,74 +19,114 @@ import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 import {FidoDeviceList, GenerateTokenResponse, StatusOk, UpdatePasswordRequest} from './proto/index.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
+import {morphElementHeight} from '@renop/ui/height-anim';
+
+let profileFidoLoadSeq = 0;
 
 export async function loadProfileFidoDevices() {
     const listEl = document.getElementById('profile-fido-list');
     if (!listEl) return;
 
-    listEl.replaceChildren(
-        el('div', {class: 'sessions-loading'},
-            el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
-            el('span', {}, t('fido.loading') || t('common.loading') || 'Loading...')
-        )
-    );
+    const seq = ++profileFidoLoadSeq;
+    void morphElementHeight(listEl, () => {
+        listEl.replaceChildren(
+            el('div', {class: 'sessions-loading'},
+                el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
+                el('span', {}, t('fido.loading') || t('common.loading') || 'Loading...')
+            )
+        );
+    }, {duration: 300});
 
     try {
         const {response, data} = await fetchProto('/api/auth/profile/fido', FidoDeviceList);
+        if (seq !== profileFidoLoadSeq) return;
 
-        if (!response.ok || !data) return;
-        const devices = data.devices || [];
-
-        listEl.innerHTML = '';
-        if (!Array.isArray(devices) || devices.length === 0) {
-            listEl.innerHTML = `<div style="opacity: 0.6; font-size: 0.85rem; padding: 0.5rem 0;">${t('common.none') || 'No FIDO devices registered'}</div>`;
+        if (!response.ok || !data) {
+            await morphElementHeight(listEl, () => {
+                listEl.replaceChildren(
+                    el('div', {
+                        style: {
+                            padding: '1rem',
+                            textAlign: 'center',
+                            color: '#ef4444',
+                        }
+                    }, t('error.fidoLoadFailed') || 'Failed to load FIDO devices')
+                );
+            }, {duration: 300});
             return;
         }
+        const devices = data.devices || [];
 
-        devices.forEach(dev => {
-            const item = document.createElement('div');
-            item.className = 'fido-device-item';
-            item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; margin-bottom: 0.5rem; background: var(--card-bg, #ffffff);';
+        await morphElementHeight(listEl, () => {
+            listEl.replaceChildren();
+            if (!Array.isArray(devices) || devices.length === 0) {
+                listEl.appendChild(el('div', {
+                    style: {
+                        opacity: '0.6',
+                        fontSize: '0.85rem',
+                        padding: '0.5rem 0',
+                    }
+                }, t('common.none') || 'No FIDO devices registered'));
+                return;
+            }
 
-            const info = document.createElement('div');
-            info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
-            const nameEl = document.createElement('span');
-            nameEl.style.cssText = 'font-weight: 600; font-size: 0.9rem;';
-            nameEl.textContent = dev.name || 'FIDO Device';
-            const dateEl = document.createElement('span');
-            dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
-            dateEl.textContent = new Date(dev.created_at).toLocaleString();
-            info.appendChild(nameEl);
-            info.appendChild(dateEl);
+            devices.forEach(dev => {
+                const item = document.createElement('div');
+                item.className = 'fido-device-item';
+                item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; margin-bottom: 0.5rem; background: var(--card-bg, #ffffff);';
 
-            const delBtn = document.createElement('button');
-            delBtn.type = 'button';
-            delBtn.className = 'pill-btn pill-btn--danger';
-            delBtn.style.cssText = 'padding: 4px 10px; font-size: 0.8rem;';
-            delBtn.textContent = t('common.delete') || 'Delete';
-            delBtn.addEventListener('click', async () => {
-                const confirmMsg = t('profile.confirmDeleteFido', {name: dev.name}) || `Are you sure you want to delete FIDO device "${dev.name}"?`;
-                if (await window.showConfirm(confirmMsg)) {
-                    try {
-                        const delRes = await apiRequest(`/api/auth/profile/fido/${dev.id}`, {method: 'DELETE'});
-                        if (delRes.ok) {
-                            showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
-                            loadProfileFidoDevices();
-                        } else {
+                const info = document.createElement('div');
+                info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
+                const nameEl = document.createElement('span');
+                nameEl.style.cssText = 'font-weight: 600; font-size: 0.9rem;';
+                nameEl.textContent = dev.name || 'FIDO Device';
+                const dateEl = document.createElement('span');
+                dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
+                dateEl.textContent = new Date(dev.created_at).toLocaleString();
+                info.appendChild(nameEl);
+                info.appendChild(dateEl);
+
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'pill-btn pill-btn--danger';
+                delBtn.style.cssText = 'padding: 4px 10px; font-size: 0.8rem;';
+                delBtn.textContent = t('common.delete') || 'Delete';
+                delBtn.addEventListener('click', async () => {
+                    const confirmMsg = t('profile.confirmDeleteFido', {name: dev.name}) || `Are you sure you want to delete FIDO device "${dev.name}"?`;
+                    if (await window.showConfirm(confirmMsg)) {
+                        try {
+                            const delRes = await apiRequest(`/api/auth/profile/fido/${dev.id}`, {method: 'DELETE'});
+                            if (delRes.ok) {
+                                showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
+                                loadProfileFidoDevices();
+                            } else {
+                                showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
+                            }
+                        } catch (err) {
                             showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
                         }
-                    } catch (err) {
-                        showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
                     }
-                }
-            });
+                });
 
-            item.appendChild(info);
-            item.appendChild(delBtn);
-            listEl.appendChild(item);
-        });
+                item.appendChild(info);
+                item.appendChild(delBtn);
+                listEl.appendChild(item);
+            });
+        }, {duration: 300});
     } catch (err) {
+        if (seq !== profileFidoLoadSeq) return;
         console.error('Failed to load FIDO devices:', err);
+        await morphElementHeight(listEl, () => {
+            listEl.replaceChildren(
+                el('div', {
+                    style: {
+                        padding: '1rem',
+                        textAlign: 'center',
+                        color: '#ef4444',
+                    }
+                }, t('error.fidoLoadFailed') || 'Error loading FIDO devices')
+            );
+        }, {duration: 300});
     }
 }
 
@@ -351,12 +391,18 @@ export function openProfileFidoDialog() {
 
     if (closeBtn && !closeBtn.dataset.listenerAttached) {
         closeBtn.dataset.listenerAttached = 'true';
-        closeBtn.addEventListener('click', () => closeModalWithAnim(modal));
+        closeBtn.addEventListener('click', () => {
+            profileFidoLoadSeq += 1;
+            closeModalWithAnim(modal);
+        });
     }
 
     if (backdrop && !backdrop.dataset.listenerAttached) {
         backdrop.dataset.listenerAttached = 'true';
-        backdrop.addEventListener('click', () => closeModalWithAnim(modal));
+        backdrop.addEventListener('click', () => {
+            profileFidoLoadSeq += 1;
+            closeModalWithAnim(modal);
+        });
     }
 
     modal.style.display = 'flex';

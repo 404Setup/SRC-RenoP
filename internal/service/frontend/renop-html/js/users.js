@@ -20,6 +20,7 @@ import {AccessTokenList, FidoDeviceList, GenerateTokenResponse} from './proto/in
 import {openSessionsDialog} from './sessions.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
+import {morphElementHeight} from '@renop/ui/height-anim';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -31,6 +32,7 @@ let sortKey = 'name';
 /** @type {'asc' | 'desc'} */
 let sortDir = 'asc';
 let sortHeadersReady = false;
+let userFidoLoadSeq = 0;
 
 /**
  * Locale-aware string compare by first character / full string for table sorting.
@@ -246,88 +248,131 @@ export async function openUserFidoDialog(username) {
     }
 
     const loadDevices = async () => {
-        list.replaceChildren(
-            el('div', { class: 'sessions-loading' },
-                el('div', { class: 'sessions-loading-spinner', 'aria-hidden': 'true' }),
-                el('span', {}, t('fido.loading') || t('common.loading') || 'Loading...')
-            )
-        );
+        const seq = ++userFidoLoadSeq;
+        void morphElementHeight(list, () => {
+            list.replaceChildren(
+                el('div', {class: 'sessions-loading'},
+                    el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
+                    el('span', {}, t('fido.loading') || t('common.loading') || 'Loading...')
+                )
+            );
+        }, {duration: 300});
+
         try {
             const {
                 response,
                 data
             } = await fetchProto(`/api/auth/users/${encodeURIComponent(username)}/fido`, FidoDeviceList);
+            if (seq !== userFidoLoadSeq) return;
+
             if (!response.ok || !data) {
-                list.innerHTML = `<div style="padding: 1rem; text-align: center; color: #ef4444;">Failed to load FIDO devices</div>`;
+                await morphElementHeight(list, () => {
+                    list.replaceChildren(
+                        el('div', {
+                            style: {
+                                padding: '1rem',
+                                textAlign: 'center',
+                                color: '#ef4444',
+                            }
+                        }, t('error.fidoLoadFailed') || 'Failed to load FIDO devices')
+                    );
+                }, {duration: 300});
                 return;
             }
             const devices = data.devices || [];
-            list.innerHTML = '';
-            if (!Array.isArray(devices) || devices.length === 0) {
-                list.innerHTML = `<div style="padding: 1.5rem; text-align: center; opacity: 0.6; font-size: 0.9rem;">${t('common.none') || 'No FIDO devices registered for this user'}</div>`;
-                return;
-            }
 
-            devices.forEach(dev => {
-                const item = document.createElement('div');
-                item.className = 'fido-device-item';
-                item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; margin-bottom: 0.5rem; background: var(--card-bg, #ffffff);';
+            await morphElementHeight(list, () => {
+                list.replaceChildren();
+                if (!Array.isArray(devices) || devices.length === 0) {
+                    list.appendChild(el('div', {
+                        style: {
+                            padding: '1.5rem',
+                            textAlign: 'center',
+                            opacity: '0.6',
+                            fontSize: '0.9rem',
+                        }
+                    }, t('common.none') || 'No FIDO devices registered for this user'));
+                    return;
+                }
 
-                const info = document.createElement('div');
-                info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
-                const nameEl = document.createElement('span');
-                nameEl.style.cssText = 'font-weight: 600; font-size: 0.9rem;';
-                nameEl.textContent = dev.name || 'FIDO Device';
-                const dateEl = document.createElement('span');
-                dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
-                dateEl.textContent = new Date(dev.created_at).toLocaleString();
-                info.appendChild(nameEl);
-                info.appendChild(dateEl);
+                devices.forEach(dev => {
+                    const item = document.createElement('div');
+                    item.className = 'fido-device-item';
+                    item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; margin-bottom: 0.5rem; background: var(--card-bg, #ffffff);';
 
-                const delBtn = document.createElement('button');
-                delBtn.type = 'button';
-                delBtn.className = 'pill-btn pill-btn--danger';
-                delBtn.style.cssText = 'padding: 4px 10px; font-size: 0.8rem;';
-                delBtn.textContent = t('common.delete') || 'Delete';
-                delBtn.addEventListener('click', async () => {
-                    const confirmMsg = t('users.confirmDeleteUserFido', {
-                        user: username,
-                        name: dev.name
-                    }) || `Are you sure you want to delete FIDO device "${dev.name}" for user "${username}"?`;
-                    if (await window.showConfirm(confirmMsg)) {
-                        try {
-                            const delRes = await apiRequest(`/api/auth/users/${encodeURIComponent(username)}/fido/${dev.id}`, {method: 'DELETE'});
-                            if (delRes.ok) {
-                                showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
-                                loadDevices();
-                            } else {
+                    const info = document.createElement('div');
+                    info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
+                    const nameEl = document.createElement('span');
+                    nameEl.style.cssText = 'font-weight: 600; font-size: 0.9rem;';
+                    nameEl.textContent = dev.name || 'FIDO Device';
+                    const dateEl = document.createElement('span');
+                    dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
+                    dateEl.textContent = new Date(dev.created_at).toLocaleString();
+                    info.appendChild(nameEl);
+                    info.appendChild(dateEl);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'pill-btn pill-btn--danger';
+                    delBtn.style.cssText = 'padding: 4px 10px; font-size: 0.8rem;';
+                    delBtn.textContent = t('common.delete') || 'Delete';
+                    delBtn.addEventListener('click', async () => {
+                        const confirmMsg = t('users.confirmDeleteUserFido', {
+                            user: username,
+                            name: dev.name
+                        }) || `Are you sure you want to delete FIDO device "${dev.name}" for user "${username}"?`;
+                        if (await window.showConfirm(confirmMsg)) {
+                            try {
+                                const delRes = await apiRequest(`/api/auth/users/${encodeURIComponent(username)}/fido/${dev.id}`, {method: 'DELETE'});
+                                if (delRes.ok) {
+                                    showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
+                                    loadDevices();
+                                } else {
+                                    showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
+                                }
+                            } catch (err) {
                                 showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
                             }
-                        } catch (err) {
-                            showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
                         }
-                    }
-                });
+                    });
 
-                item.appendChild(info);
-                item.appendChild(delBtn);
-                list.appendChild(item);
-            });
+                    item.appendChild(info);
+                    item.appendChild(delBtn);
+                    list.appendChild(item);
+                });
+            }, {duration: 300});
         } catch (err) {
+            if (seq !== userFidoLoadSeq) return;
             console.error('Failed to load user FIDO devices:', err);
-            list.innerHTML = `<div style="padding: 1rem; text-align: center; color: #ef4444;">Error loading FIDO devices</div>`;
+            await morphElementHeight(list, () => {
+                list.replaceChildren(
+                    el('div', {
+                        style: {
+                            padding: '1rem',
+                            textAlign: 'center',
+                            color: '#ef4444',
+                        }
+                    }, t('error.fidoLoadFailed') || 'Error loading FIDO devices')
+                );
+            }, {duration: 300});
         }
     };
 
     if (closeBtn && !closeBtn.dataset.listenerAttached) {
         closeBtn.dataset.listenerAttached = 'true';
-        closeBtn.addEventListener('click', () => closeModalWithAnim(modal));
+        closeBtn.addEventListener('click', () => {
+            userFidoLoadSeq += 1;
+            closeModalWithAnim(modal);
+        });
     }
 
     const backdrop = document.getElementById('user-fido-backdrop');
     if (backdrop && !backdrop.dataset.listenerAttached) {
         backdrop.dataset.listenerAttached = 'true';
-        backdrop.addEventListener('click', () => closeModalWithAnim(modal));
+        backdrop.addEventListener('click', () => {
+            userFidoLoadSeq += 1;
+            closeModalWithAnim(modal);
+        });
     }
 
     modal.style.display = 'flex';
