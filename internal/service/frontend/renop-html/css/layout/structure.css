@@ -177,9 +177,13 @@ footer {
     margin: 0 0.25rem;
 }
 
-@media (max-width: 900px) {
+/* Stack the browser and repository cards before tablet widths become cramped.
+ * Keeping both columns in one grid row on a narrow viewport makes the shorter
+ * details column inherit the file list's height, leaving a large blank area
+ * before the footer. */
+@media (max-width: 1024px) {
     .layout-two-col {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
