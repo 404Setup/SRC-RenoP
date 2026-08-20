@@ -40,21 +40,23 @@ Lié à l’exécution :
 
 ### `server`
 
-| Clé                   | Défaut            | Description                                                                     |
-|-----------------------|-------------------|---------------------------------------------------------------------------------|
-| `host`                | `0.0.0.0`         | Adresse d’écoute                                                                |
-| `port`                | `3000`            | Port d’écoute                                                                   |
-| `ssl_enabled`         | `false`           | Activer TLS                                                                     |
-| `ssl_cert_path`       | `""`              | Chemin du certificat lorsque TLS est activé                                     |
-| `ssl_key_path`        | `""`              | Chemin de la clé privée lorsque TLS est activé                                  |
-| `domains`             | `[localhost]`     | Noms d’hôte publics de l’instance (UI / métadonnées et CORS par défaut)         |
-| `cors_origins`        | `[]`              | Liste CORS navigateur (vide = `domains` uniquement ; `*` = toute origine)       |
-| `enable_compression`  | `false`           | Activer la compression des réponses HTTP                                        |
-| `file_cache_size_mb`  | `16`              | Taille du cache fichiers en mémoire (Mo)                                        |
-| `max_active_requests` | `512`             | Nombre maximal de requêtes concurrentes (surcharge → 503)                       |
-| `trusted_proxies`     | `[]`              | CIDR/IP de reverse proxies supplémentaires (loopback toujours de confiance)     |
-| `cdn_ip_header`       | `X-Forwarded-For` | En-tête d’IP client derrière un proxy de confiance (par ex. `CF-Connecting-IP`) |
-| `debug_mode`          | `false`           | Activer les API de profilage de débogage sous `/api/debug` (redémarrage requis) |
+| Clé                   | Défaut              | Description                                                                     |
+|-----------------------|---------------------|---------------------------------------------------------------------------------|
+| `host`                | `0.0.0.0`           | Adresse d’écoute                                                                |
+| `port`                | `3000`              | Port d’écoute                                                                   |
+| `ssl_enabled`         | `false`             | Activer TLS                                                                     |
+| `ssl_cert_path`       | `""`                | Chemin du certificat lorsque TLS est activé                                     |
+| `ssl_key_path`        | `""`                | Chemin de la clé privée lorsque TLS est activé                                  |
+| `domains`             | `[localhost]`       | Noms d’hôte publics de l’instance (UI / métadonnées et CORS par défaut)         |
+| `cors_origins`        | `[]`                | Liste CORS navigateur (vide = `domains` uniquement ; `*` = toute origine)       |
+| `enable_compression`  | `false`             | Activer la compression des réponses HTTP                                        |
+| `file_cache_size_mb`  | `16`                | Taille du cache fichiers en mémoire (Mo)                                        |
+| `max_active_requests` | `512`               | Nombre maximal de requêtes concurrentes (surcharge → 503)                       |
+| `trusted_proxies`     | `[]`                | CIDR/IP de reverse proxies supplémentaires (loopback toujours de confiance)     |
+| `cdn_ip_header`       | `X-Forwarded-For`   | En-tête d’IP client derrière un proxy de confiance (par ex. `CF-Connecting-IP`) |
+| `debug_mode`          | `false`             | Activer les API de profilage de débogage sous `/api/debug` (redémarrage requis) |
+| `audit_log`           | `{}`                | Paramètres du journal d’audit                                                   |
+| `gpg`                 | serveurs par défaut | Serveurs de clés OpenPGP (imbriqués dans `server`)                              |
 
 #### CORS (`server.cors_origins`)
 
@@ -73,6 +75,17 @@ Les configurations héritées utilisant la forme singulière `domain: example.co
 `domains: [example.com]`.
 
 Redémarrez le processus après modification de `host`, `port` ou des paramètres TLS.
+
+#### GPG (`server.gpg`)
+
+`server.gpg.key_servers` contient 1 à 8 serveurs de clés OpenPGP en HTTPS. Les paramètres GPG sont désormais dans
+`server` ; l’ancien domaine `gpg` séparé n’est plus exposé.
+
+### `proxy`
+
+La section facultative `proxy` définit des proxies sortants HTTP/HTTPS/SOCKS5 nommés. Une valeur `selected` vide (valeur
+par défaut) signifie une connexion directe. Un miroir peut hériter de ce choix, utiliser `direct` pour le contourner ou
+sélectionner un proxy nommé.
 
 ### `database`
 

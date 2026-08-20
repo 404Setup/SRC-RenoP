@@ -50,7 +50,7 @@ Response: protobuf `SettingsDomainsResponse`
 |-----------|-----------------|
 | `domains` | repeated string |
 
-Typical values: `frontend`, `server`, `storage`, `updater`, `index`.
+Typical values: `frontend`, `server`, `proxy`, `storage`, `updater`, `index`.
 
 `index` currently has no configurable fields.
 
@@ -90,6 +90,8 @@ Response: protobuf message for that domain (Content-Type `application/x-protobuf
 | `cors_origins`        | repeated string | CORS origins allow list          |
 | `debug_mode`          | bool            | Enable debug profiling endpoints |
 | `database`            | DatabaseConfig  | Database connection settings     |
+| `audit_log`           | AuditLogConfig  | Audit log retention settings     |
+| `gpg`                 | GpgConfig       | OpenPGP key-server settings      |
 
 **DatabaseConfig**:
 
@@ -101,6 +103,19 @@ Response: protobuf message for that domain (Content-Type `application/x-protobuf
 | `max_open_conns`        | int32  | Maximum open connections               |
 | `max_idle_conns`        | int32  | Maximum idle connections               |
 | `conn_max_lifetime_sec` | int32  | Maximum connection lifetime in seconds |
+
+**AuditLogConfig** and **GpgConfig** are nested under `server`; there is no separate `gpg` domain.
+
+| Field                | Type            | Description                             |
+|----------------------|-----------------|-----------------------------------------|
+| `audit_log.enabled`  | bool            | Enable audit log persistence            |
+| `audit_log.max_rows` | int32           | Maximum retained audit rows             |
+| `gpg.key_servers`    | repeated string | HTTPS OpenPGP key servers (1–8 entries) |
+
+**proxy** → `ProxyConfig`
+
+The proxy domain contains named outbound HTTP/HTTPS/SOCKS5 proxies. An empty `selected` means direct connections; a
+named entry selects that proxy for global outbound work.
 
 **storage** → `StorageConfig`
 
@@ -144,13 +159,14 @@ Validation failure → 400 + short English error text.
 
 Response: protobuf `MavenRepositoriesResponse` (`map<string, Repository>`).
 
-| Field                | Meaning                                                   |
-|----------------------|-----------------------------------------------------------|
-| `name`               | Repository name                                           |
-| `visibility`         | `PUBLIC` / `HIDDEN` / `PRIVATE`                           |
-| `allow_redeployment` | Whether existing artifacts may be overwritten             |
-| `mirrors[]`          | Upstream mirrors (url, persist, TTL, auth, allow/deny, …) |
-| `s3`                 | Optional S3-compatible storage                            |
+| Field                   | Meaning                                                                      |
+|-------------------------|------------------------------------------------------------------------------|
+| `name`                  | Repository name                                                              |
+| `visibility`            | `PUBLIC` / `HIDDEN` / `PRIVATE`                                              |
+| `allow_redeployment`    | Whether existing artifacts may be overwritten                                |
+| `require_gpg_signature` | Require detached GPG signatures for protected artifacts                      |
+| `mirrors[]`             | Upstream mirrors (`proxy` selection, url, persist, TTL, auth, allow/deny, …) |
+| `s3`                    | Optional S3-compatible storage                                               |
 
 ### `PUT /api/settings/maven/repositories/:name`
 

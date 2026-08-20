@@ -45,25 +45,30 @@ type ServerConfig struct {
 
 	// DebugMode enables manager-only memory profile dump APIs. Requires process restart to activate.
 	DebugMode bool `json:"debug_mode" yaml:"debug_mode"`
+
+	// GPG contains the trusted key-server settings used for publication
+	// verification and user key registration.
+	GPG GPGConfig `json:"gpg" yaml:"gpg"`
 }
 
 // serverConfigWire is used for JSON/YAML unmarshalling so we can accept the
 // legacy singular "domain" key while serializing only "domains".
 type serverConfigWire struct {
-	Host              string   `json:"host" yaml:"host"`
-	SslCertPath       string   `json:"ssl_cert_path" yaml:"ssl_cert_path"`
-	SslKeyPath        string   `json:"ssl_key_path" yaml:"ssl_key_path"`
-	Domain            string   `json:"domain" yaml:"domain"`
-	Domains           []string `json:"domains" yaml:"domains"`
-	CorsOrigins       []string `json:"cors_origins" yaml:"cors_origins"`
-	CdnIpHeader       string   `json:"cdn_ip_header" yaml:"cdn_ip_header"`
-	TrustedProxies    []string `json:"trusted_proxies" yaml:"trusted_proxies"`
-	FileCacheSizeMb   uint32   `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
-	MaxActiveRequests uint32   `json:"max_active_requests" yaml:"max_active_requests"`
-	Port              uint16   `json:"port" yaml:"port"`
-	SslEnabled        bool     `json:"ssl_enabled" yaml:"ssl_enabled"`
-	EnableCompression bool     `json:"enable_compression" yaml:"enable_compression"`
-	DebugMode         bool     `json:"debug_mode" yaml:"debug_mode"`
+	Host              string     `json:"host" yaml:"host"`
+	SslCertPath       string     `json:"ssl_cert_path" yaml:"ssl_cert_path"`
+	SslKeyPath        string     `json:"ssl_key_path" yaml:"ssl_key_path"`
+	Domain            string     `json:"domain" yaml:"domain"`
+	Domains           []string   `json:"domains" yaml:"domains"`
+	CorsOrigins       []string   `json:"cors_origins" yaml:"cors_origins"`
+	CdnIpHeader       string     `json:"cdn_ip_header" yaml:"cdn_ip_header"`
+	TrustedProxies    []string   `json:"trusted_proxies" yaml:"trusted_proxies"`
+	FileCacheSizeMb   uint32     `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
+	MaxActiveRequests uint32     `json:"max_active_requests" yaml:"max_active_requests"`
+	Port              uint16     `json:"port" yaml:"port"`
+	SslEnabled        bool       `json:"ssl_enabled" yaml:"ssl_enabled"`
+	EnableCompression bool       `json:"enable_compression" yaml:"enable_compression"`
+	DebugMode         bool       `json:"debug_mode" yaml:"debug_mode"`
+	GPG               *GPGConfig `json:"gpg" yaml:"gpg"`
 }
 
 func (s *ServerConfig) applyWire(w *serverConfigWire) {
@@ -82,6 +87,9 @@ func (s *ServerConfig) applyWire(w *serverConfigWire) {
 	s.SslEnabled = w.SslEnabled
 	s.EnableCompression = w.EnableCompression
 	s.DebugMode = w.DebugMode
+	if w.GPG != nil {
+		s.GPG = w.GPG.DeepCopy()
+	}
 
 	if len(w.Domains) > 0 {
 		s.Domains = normalizeDomainList(w.Domains)
@@ -120,6 +128,7 @@ func (s *ServerConfig) setDefaults() {
 	if s.CdnIpHeader == "" {
 		s.CdnIpHeader = DefaultCdnIpHeader()
 	}
+	s.GPG.setDefaults()
 }
 
 func normalizeDomainList(in []string) []string {
@@ -418,6 +427,7 @@ func (s *ServerConfig) DeepCopy() ServerConfig {
 		MaxActiveRequests: s.MaxActiveRequests,
 		CdnIpHeader:       strings.Clone(s.CdnIpHeader),
 		DebugMode:         s.DebugMode,
+		GPG:               s.GPG.DeepCopy(),
 	}
 	if s.Domains != nil {
 		cloned.Domains = make([]string, len(s.Domains))

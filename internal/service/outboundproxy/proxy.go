@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -24,6 +26,13 @@ import (
 )
 
 const MaxProxies = 16
+
+const (
+	// MirrorProxyDirect explicitly bypasses the selected global proxy.
+	MirrorProxyDirect = "direct"
+	// MirrorProxyInherit is the wire-level default for following global state.
+	MirrorProxyInherit = ""
+)
 
 func parse(proxyConfig *config.OutboundProxy) (*url.URL, error) {
 	if proxyConfig == nil {
@@ -127,6 +136,30 @@ func Selected(proxyConfig config.ProxyConfig) (*config.OutboundProxy, error) {
 		}
 	}
 	return nil, errors.New("selected global proxy does not exist")
+}
+
+// ResolveMirrorSelection resolves a mirror's routing selector against the
+// validated global proxy list. Empty, "global", and "inherit" follow the
+// global selection; "direct" makes an explicit direct connection.
+func ResolveMirrorSelection(selection string, proxyConfig config.ProxyConfig) (*config.OutboundProxy, error) {
+	selection = strings.TrimSpace(selection)
+	if selection == "" || strings.EqualFold(selection, "global") || strings.EqualFold(selection, "inherit") {
+		return Selected(proxyConfig)
+	}
+	if strings.EqualFold(selection, MirrorProxyDirect) || strings.EqualFold(selection, "none") {
+		return nil, nil
+	}
+	normalized, err := NormalizeConfig(proxyConfig)
+	if err != nil {
+		return nil, err
+	}
+	for i := range normalized.Proxies {
+		if strings.EqualFold(normalized.Proxies[i].Name, selection) {
+			selected := normalized.Proxies[i].DeepCopy()
+			return &selected, nil
+		}
+	}
+	return nil, fmt.Errorf("mirror proxy %q does not exist", selection)
 }
 
 // ConfigureTransport routes a dedicated outbound HTTP transport through the

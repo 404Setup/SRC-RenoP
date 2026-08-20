@@ -154,7 +154,7 @@ func FromMirror(m config.Mirror) *Mirror {
 		EnabledDate:    m.EnabledDate,
 		AllowArtifacts: append([]string(nil), m.AllowArtifacts...),
 		DenyArtifacts:  append([]string(nil), m.DenyArtifacts...),
-		Proxy:          FromMirrorProxy(m.Proxy),
+		Proxy:          m.ProxyMode,
 	}
 }
 
@@ -259,6 +259,7 @@ func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig, a config.A
 		DebugMode:         s.DebugMode,
 		Database:          FromDatabaseConfig(d),
 		AuditLog:          FromAuditLogConfig(a),
+		Gpg:               FromGPGConfig(s.GPG),
 	}
 }
 
@@ -293,6 +294,9 @@ func ApplyServerConfig(dstServer *config.ServerConfig, dstDb *config.DatabaseCon
 		if src.AuditLog.MaxRows > 0 {
 			dstAudit.MaxRows = int(src.AuditLog.MaxRows)
 		}
+	}
+	if src.Gpg != nil {
+		ApplyGPGConfig(&dstServer.GPG, src.Gpg)
 	}
 }
 
@@ -443,7 +447,7 @@ func ToMirror(m *Mirror) config.Mirror {
 		EnabledDate:    m.EnabledDate,
 		AllowArtifacts: append([]string(nil), m.AllowArtifacts...),
 		DenyArtifacts:  append([]string(nil), m.DenyArtifacts...),
-		Proxy:          ToMirrorProxy(m.Proxy),
+		ProxyMode:      m.Proxy,
 	}
 	// Zero TTL/timeout from proto3 defaults is unsafe; match YAML load defaults.
 	if out.CacheTtlSecs == 0 {

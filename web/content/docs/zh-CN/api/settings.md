@@ -10,7 +10,8 @@ category: API
 
 读写均需 **manager/admin**。
 
-该前缀下携带结构化数据的请求/响应正文均使用 **`application/x-protobuf`**（见 `proto/api/v1/api.proto`）。空的成功响应正文仍为纯文本（空字符串）。校验错误返回简短英文文本。
+该前缀下携带结构化数据的请求/响应正文均使用 **`application/x-protobuf`**（见 `proto/api/v1/api.proto`
+）。空的成功响应正文仍为纯文本（空字符串）。校验错误返回简短英文文本。
 
 磁盘位置：
 
@@ -31,10 +32,10 @@ category: API
 |--------|--------|------------------|
 | `mode` | string | `full` \| `diff` |
 
-| mode   | 行为                          |
-|--------|-------------------------------|
+| mode   | 行为                            |
+|--------|---------------------------------|
 | `full` | 异步全量重建，清除 Javadoc 缓存 |
-| `diff` | 差分重建                      |
+| `diff` | 差分重建                        |
 
 其他值返回 `400`（`Invalid mode. Expected 'full' or 'diff'`）。成功时返回 `200`，空字符串正文。
 
@@ -48,7 +49,7 @@ category: API
 |-----------|-----------------|
 | `domains` | repeated string |
 
-典型值：`frontend`、`server`、`storage`、`updater`、`index`。
+典型值：`frontend`、`server`、`proxy`、`storage`、`updater`、`index`。
 
 `index` 当前无可配置字段。
 
@@ -88,6 +89,8 @@ category: API
 | `cors_origins`        | repeated string | CORS 允许来源列表      |
 | `debug_mode`          | bool            | 是否启用调试分析 API   |
 | `database`            | DatabaseConfig  | 数据库连接配置         |
+| `audit_log`           | AuditLogConfig  | 审计日志保留配置       |
+| `gpg`                 | GpgConfig       | OpenPGP 密钥服务器配置 |
 
 **DatabaseConfig**：
 
@@ -99,6 +102,18 @@ category: API
 | `max_open_conns`        | int32  | 最大打开连接数                       |
 | `max_idle_conns`        | int32  | 最大空闲连接数                       |
 | `conn_max_lifetime_sec` | int32  | 连接最大复用时间（秒）               |
+
+**AuditLogConfig** 与 **GpgConfig** 均嵌套在 `server` 下；不再提供单独的 `gpg` 配置域。
+
+| 字段                 | 类型            | 说明                               |
+|----------------------|-----------------|------------------------------------|
+| `audit_log.enabled`  | bool            | 是否启用审计日志持久化             |
+| `audit_log.max_rows` | int32           | 最大保留审计日志行数               |
+| `gpg.key_servers`    | repeated string | HTTPS OpenPGP 密钥服务器（1–8 项） |
+
+**proxy** → `ProxyConfig`
+
+该域保存命名的 HTTP/HTTPS/SOCKS5 出站代理。`selected` 默认为空，表示直连；选择命名条目后用于全局出站请求。
 
 **storage** → `StorageConfig`
 
@@ -120,7 +135,8 @@ category: API
 
 ### `PUT /api/settings/domain/:name`
 
-对该域做**完整替换**。正文为与该域 GET 相同的 protobuf 消息。Proto3 省略字段解码为零值 — 客户端必须发送完整域配置（UI 始终 POST 完整表单状态）。
+对该域做 **完整替换**。正文为与该域 GET 相同的 protobuf 消息。Proto3 省略字段解码为零值 — 客户端必须发送完整域配置（UI 始终
+POST 完整表单状态）。
 
 成功时返回 `200`，空字符串。
 
@@ -140,17 +156,18 @@ category: API
 
 响应：protobuf `MavenRepositoriesResponse`（`map<string, Repository>`）。
 
-| 字段                 | 含义                                            |
-|----------------------|-------------------------------------------------|
-| `name`               | 仓库名                                          |
-| `visibility`         | `PUBLIC`/`HIDDEN`/`PRIVATE`                     |
-| `allow_redeployment` | 是否允许覆盖已有制品                            |
-| `mirrors[]`          | 上游镜像（url、persist、TTL、auth、allow/deny） |
-| `s3`                 | 可选 S3 兼容存储                                |
+| 字段                    | 含义                                                             |
+|-------------------------|------------------------------------------------------------------|
+| `name`                  | 仓库名                                                           |
+| `visibility`            | `PUBLIC`/`HIDDEN`/`PRIVATE`                                      |
+| `allow_redeployment`    | 是否允许覆盖已有制品                                             |
+| `require_gpg_signature` | 是否要求受保护制品提供独立 GPG 签名                              |
+| `mirrors[]`             | 上游镜像（含 `proxy` 选择、url、persist、TTL、auth、allow/deny） |
+| `s3`                    | 可选 S3 兼容存储                                                 |
 
 ### `PUT /api/settings/maven/repositories/:name`
 
-创建或**完整替换**。正文为 protobuf `Repository`。路径 `:name` 优先于正文 `name`。
+创建或 **完整替换**。正文为 protobuf `Repository`。路径 `:name` 优先于正文 `name`。
 
 保留名：`css`、`js`、`svg`、`api`、`javadocs`、`assets`，以及包含非法字符的名称。
 
@@ -158,4 +175,4 @@ category: API
 
 ### `DELETE /api/settings/maven/repositories/:name`
 
-从配置中移除，**不**删除磁盘上的文件。成功时返回 `200`，空字符串。
+从配置中移除， **不**删除磁盘上的文件。成功时返回 `200`，空字符串。

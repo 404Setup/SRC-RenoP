@@ -45,7 +45,7 @@ func GetDomains(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	return protohttp.Write(c, &pb.SettingsDomainsResponse{
-		Domains: []string{"frontend", "server", "proxy", "storage", "gpg", "updater", "index"},
+		Domains: []string{"frontend", "server", "proxy", "storage", "updater", "index"},
 	})
 }
 
@@ -64,8 +64,6 @@ func GetDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		return protohttp.Write(c, pb.FromProxyConfig(cfg.Proxy))
 	case "storage":
 		return protohttp.Write(c, pb.FromStorageConfig(cfg))
-	case "gpg":
-		return protohttp.Write(c, pb.FromGPGConfig(cfg.GPG))
 	case "updater":
 		return protohttp.Write(c, pb.FromUpdaterConfig(cfg.Updater))
 	case "index":
@@ -85,7 +83,6 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	var serverMsg *pb.ServerConfig
 	var proxyMsg *pb.ProxyConfig
 	var storageMsg *pb.StorageConfig
-	var gpgMsg *pb.GpgConfig
 	var updaterMsg *pb.UpdaterConfig
 	readConfig := func(msg proto.Message) error {
 		if err := protohttp.Read(c, msg); err != nil {
@@ -105,8 +102,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		}
 		if msg.BackgroundUrl != "" {
 			if err := validateBackgroundUrl(msg.BackgroundUrl); err != nil {
-				var fiberErr *fiber.Error
-				if errors.As(err, &fiberErr) {
+				if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 					return c.Status(fiberErr.Code).SendString(fiberErr.Message)
 				}
 				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
@@ -114,8 +110,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		}
 		if msg.LegalNoticeUrl != "" {
 			if err := validateExternalLinkURL(msg.LegalNoticeUrl); err != nil {
-				var fiberErr *fiber.Error
-				if errors.As(err, &fiberErr) {
+				if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 					return c.Status(fiberErr.Code).SendString(fiberErr.Message)
 				}
 				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
@@ -142,6 +137,13 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			if strings.TrimSpace(msg.Database.Dsn) == "" {
 				return c.Status(fiber.StatusBadRequest).SendString("Database DSN must not be empty")
 			}
+		}
+		if msg.Gpg != nil {
+			keyServers, err := gpg.ValidateKeyServers(msg.Gpg.KeyServers)
+			if err != nil {
+				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			}
+			msg.Gpg.KeyServers = keyServers
 		}
 		serverMsg = msg
 
@@ -170,18 +172,6 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusBadRequest).SendString("Max Javadocs size limit must be positive")
 		}
 		storageMsg = msg
-
-	case "gpg":
-		msg := &pb.GpgConfig{}
-		if err := readConfig(msg); err != nil {
-			return err
-		}
-		keyServers, err := gpg.ValidateKeyServers(msg.KeyServers)
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-		}
-		msg.KeyServers = keyServers
-		gpgMsg = msg
 
 	case "updater":
 		msg := &pb.UpdaterConfig{}
@@ -217,6 +207,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		case "server":
 			pb.ApplyServerConfig(&newConfig.Server, &newConfig.Database, &newConfig.AuditLog, serverMsg)
 			newConfig.Server = newConfig.Server.DeepCopy()
+			newConfig.GPG = newConfig.Server.GPG.DeepCopy()
 		case "proxy":
 			pb.ApplyProxyConfig(&newConfig.Proxy, proxyMsg)
 			newConfig.Proxy = newConfig.Proxy.DeepCopy()
@@ -237,9 +228,6 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 				storagePathChanged = true
 				newStoragePath = newConfig.StoragePath
 			}
-		case "gpg":
-			pb.ApplyGPGConfig(&newConfig.GPG, gpgMsg)
-			newConfig.GPG = newConfig.GPG.DeepCopy()
 		case "updater":
 			pb.ApplyUpdaterConfig(&newConfig.Updater, updaterMsg)
 			newConfig.Updater = newConfig.Updater.DeepCopy()
@@ -269,8 +257,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	})
 
 	if err != nil {
-		var fiberErr *fiber.Error
-		if errors.As(err, &fiberErr) {
+		if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 			return c.Status(fiberErr.Code).SendString(fiberErr.Message)
 		}
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")

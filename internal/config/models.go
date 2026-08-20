@@ -56,8 +56,11 @@ type Config struct {
 	Updater              UpdaterConfig  `json:"updater" yaml:"updater"`
 	Database             DatabaseConfig `json:"database" yaml:"database"`
 	AuditLog             AuditLogConfig `json:"audit_log" yaml:"audit_log"`
-	GPG                  GPGConfig      `json:"gpg" yaml:"gpg"`
-	Proxy                ProxyConfig    `json:"proxy" yaml:"proxy"`
+	// GPG is retained as a source-compatibility alias for integrations that
+	// still access the old top-level field. It is never serialized; Server.GPG
+	// is the canonical configuration location.
+	GPG   GPGConfig   `json:"-" yaml:"-"`
+	Proxy ProxyConfig `json:"proxy" yaml:"proxy"`
 }
 
 func (c *Config) setDefaults() {
@@ -70,40 +73,93 @@ func (c *Config) setDefaults() {
 	if c.MaxJavadocSizeMb <= 0 {
 		c.MaxJavadocSizeMb = 48
 	}
+	if len(c.Server.GPG.KeyServers) == 0 && len(c.GPG.KeyServers) > 0 {
+		c.Server.GPG = c.GPG.DeepCopy()
+	}
 	c.Frontend.setDefaults()
 	c.Maven.setDefaults()
 	c.Server.setDefaults()
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
 	c.AuditLog.setDefaults()
-	c.GPG.setDefaults()
+	c.Server.GPG.setDefaults()
+	c.GPG = c.Server.GPG.DeepCopy()
 }
 
 func (c *Config) UnmarshalJSON(data []byte) error {
 	c.setDefaults()
+	var legacy struct {
+		GPG    *GPGConfig      `json:"gpg"`
+		Server json.RawMessage `json:"server"`
+	}
+	if err := json.Unmarshal(data, &legacy); err != nil {
+		return err
+	}
 	type alias Config
 	aux := (*alias)(c)
 	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
+	if legacy.GPG != nil {
+		var serverFields map[string]json.RawMessage
+		_ = json.Unmarshal(legacy.Server, &serverFields)
+		if _, nested := serverFields["gpg"]; !nested {
+			c.Server.GPG = legacy.GPG.DeepCopy()
+		}
+	}
+	c.Server.setDefaults()
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
 	c.AuditLog.setDefaults()
-	c.GPG.setDefaults()
+	c.Server.GPG.setDefaults()
+	c.GPG = c.Server.GPG.DeepCopy()
 	return nil
 }
 
 func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	c.setDefaults()
+	var root yaml.Node
+	if err := value.Decode(&root); err != nil {
+		return err
+	}
+	var legacyGPG *GPGConfig
+	var nestedGPG bool
+	if root.Kind == yaml.MappingNode {
+		for i := 0; i+1 < len(root.Content); i += 2 {
+			key, node := root.Content[i], root.Content[i+1]
+			switch key.Value {
+			case "gpg":
+				var parsed GPGConfig
+				if err := node.Decode(&parsed); err != nil {
+					return err
+				}
+				legacyGPG = &parsed
+			case "server":
+				if node.Kind == yaml.MappingNode {
+					for j := 0; j+1 < len(node.Content); j += 2 {
+						if node.Content[j].Value == "gpg" {
+							nestedGPG = true
+							break
+						}
+					}
+				}
+			}
+		}
+	}
 	type alias Config
 	aux := (*alias)(c)
 	if err := value.Decode(aux); err != nil {
 		return err
 	}
+	if legacyGPG != nil && !nestedGPG {
+		c.Server.GPG = legacyGPG.DeepCopy()
+	}
+	c.Server.setDefaults()
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
 	c.AuditLog.setDefaults()
-	c.GPG.setDefaults()
+	c.Server.GPG.setDefaults()
+	c.GPG = c.Server.GPG.DeepCopy()
 	return nil
 }
 
@@ -163,7 +219,7 @@ func (c *Config) DeepCopy() *Config {
 		Updater:              c.Updater.DeepCopy(),
 		Database:             c.Database,
 		AuditLog:             c.AuditLog,
-		GPG:                  c.GPG.DeepCopy(),
+		GPG:                  c.Server.GPG.DeepCopy(),
 		Proxy:                c.Proxy.DeepCopy(),
 	}
 }

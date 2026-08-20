@@ -146,6 +146,7 @@ func DefaultServerConfig() ServerConfig {
 		MaxActiveRequests: 512,
 		TrustedProxies:    []string{},
 		CdnIpHeader:       DefaultCdnIpHeader(),
+		GPG:               GPGConfig{KeyServers: DefaultGPGKeyServers()},
 	}
 	sc.ParseTrustedProxies()
 	return sc

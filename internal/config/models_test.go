@@ -11,9 +11,11 @@
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestIsArtifactAllowedPrefixBoundary(t *testing.T) {
@@ -112,7 +114,8 @@ func TestConfigDeepCopy(t *testing.T) {
 	orig.Frontend.Title = "Original Title"
 	orig.Frontend.CachedIndexHtml = []byte("hello")
 	orig.Server.TrustedProxies = []string{"192.168.1.1/32"}
-	orig.GPG.KeyServers = []string{"https://keys.example.test"}
+	orig.Server.GPG.KeyServers = []string{"https://keys.example.test"}
+	orig.GPG = orig.Server.GPG.DeepCopy()
 	orig.Proxy = ProxyConfig{
 		Selected: "primary",
 		Proxies: []OutboundProxy{{
@@ -148,7 +151,7 @@ func TestConfigDeepCopy(t *testing.T) {
 	cloned.Frontend.Title = "Modified Title"
 	cloned.Frontend.CachedIndexHtml[0] = 'X'
 	cloned.Server.TrustedProxies[0] = "10.0.0.1/32"
-	cloned.GPG.KeyServers[0] = "https://changed.example.test"
+	cloned.Server.GPG.KeyServers[0] = "https://changed.example.test"
 	cloned.Proxy.Selected = ""
 	cloned.Proxy.Proxies[0].Password = "changed"
 	cloned.Maven.Repositories["testrepo"].Visibility = "PRIVATE"
@@ -168,8 +171,8 @@ func TestConfigDeepCopy(t *testing.T) {
 	if orig.Server.TrustedProxies[0] != "192.168.1.1/32" {
 		t.Fatalf("Server.TrustedProxies mutated in orig: %s", orig.Server.TrustedProxies[0])
 	}
-	if orig.GPG.KeyServers[0] != "https://keys.example.test" {
-		t.Fatalf("GPG.KeyServers mutated in orig: %s", orig.GPG.KeyServers[0])
+	if orig.Server.GPG.KeyServers[0] != "https://keys.example.test" {
+		t.Fatalf("Server.GPG.KeyServers mutated in orig: %s", orig.Server.GPG.KeyServers[0])
 	}
 	if orig.Proxy.Selected != "primary" || orig.Proxy.Proxies[0].Password != "proxy-password" {
 		t.Fatalf("Proxy config mutated in orig: %+v", orig.Proxy)
@@ -186,4 +189,61 @@ func TestConfigDeepCopy(t *testing.T) {
 	if orig.Maven.Repositories["testrepo"].Mirrors[0].Proxy.Username != "proxy-user" {
 		t.Fatalf("Mirror Proxy Username mutated in orig: %s", orig.Maven.Repositories["testrepo"].Mirrors[0].Proxy.Username)
 	}
+}
+
+func TestGPGConfigMigratesIntoServer(t *testing.T) {
+	var nested Config
+	if err := json.Unmarshal([]byte(`{"gpg":{"key_servers":["https://legacy.example"]},"server":{"gpg":{"key_servers":["https://nested.example"]}}}`), &nested); err != nil {
+		t.Fatal(err)
+	}
+	if got := nested.Server.GPG.KeyServers; len(got) != 1 || got[0] != "https://nested.example" {
+		t.Fatalf("nested server.gpg was not preferred: %#v", got)
+	}
+	if got := nested.GPG.KeyServers; len(got) != 1 || got[0] != "https://nested.example" {
+		t.Fatalf("compatibility GPG alias was not synchronized: %#v", got)
+	}
+
+	var legacy Config
+	if err := yaml.Unmarshal([]byte("gpg:\n  key_servers:\n    - https://legacy.example\n"), &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if got := legacy.Server.GPG.KeyServers; len(got) != 1 || got[0] != "https://legacy.example" {
+		t.Fatalf("legacy top-level gpg was not migrated: %#v", got)
+	}
+	encoded, err := yaml.Marshal(&legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) == "" || !contains(string(encoded), "server:\n") || contains(string(encoded), "\ngpg:\n") {
+		t.Fatalf("canonical YAML did not nest GPG settings: %s", encoded)
+	}
+}
+
+func TestMirrorProxySelectorMigration(t *testing.T) {
+	var selected Mirror
+	if err := json.Unmarshal([]byte(`{"proxy":"direct","name":"mirror"}`), &selected); err != nil {
+		t.Fatal(err)
+	}
+	if selected.ProxyMode != "direct" || selected.Proxy != nil {
+		t.Fatalf("selector proxy was not decoded: %#v", selected)
+	}
+
+	var legacy Mirror
+	if err := yaml.Unmarshal([]byte("name: mirror\nproxy:\n  url: socks5://proxy.example:1080\n  username: user\n"), &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.Proxy == nil || legacy.Proxy.URL != "socks5://proxy.example:1080" || legacy.ProxyMode != "" {
+		t.Fatalf("legacy mirror proxy was not retained for migration: %#v", legacy)
+	}
+	encoded, err := json.Marshal(&legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if contains(string(encoded), "socks5://") || contains(string(encoded), "username") {
+		t.Fatalf("legacy proxy credentials leaked into canonical JSON: %s", encoded)
+	}
+}
+
+func contains(value, needle string) bool {
+	return strings.Contains(value, needle)
 }

@@ -50,7 +50,7 @@ category: API
 |-----------|-----------------|
 | `domains` | repeated string |
 
-Типичные значения: `frontend`, `server`, `storage`, `updater`, `index`.
+Типичные значения: `frontend`, `server`, `proxy`, `storage`, `updater`, `index`.
 
 У `index` сейчас нет настраиваемых полей.
 
@@ -90,6 +90,8 @@ category: API
 | `cors_origins`        | repeated string | Список разрешённых origins CORS       |
 | `debug_mode`          | bool            | Включить API отладки и профилирования |
 | `database`            | DatabaseConfig  | Настройки подключения к базе данных   |
+| `audit_log`           | AuditLogConfig  | Настройки хранения журнала аудита     |
+| `gpg`                 | GpgConfig       | Настройки серверов ключей OpenPGP     |
 
 **DatabaseConfig**:
 
@@ -101,6 +103,19 @@ category: API
 | `max_open_conns`        | int32  | Максимальное количество открытых соединений      |
 | `max_idle_conns`        | int32  | Максимальное количество свободных соединений     |
 | `conn_max_lifetime_sec` | int32  | Максимальное время жизни соединения в секундах   |
+
+**AuditLogConfig** и **GpgConfig** вложены в `server`; отдельного домена `gpg` больше нет.
+
+| Поле                 | Тип             | Описание                                   |
+|----------------------|-----------------|--------------------------------------------|
+| `audit_log.enabled`  | bool            | Включить сохранение журнала аудита         |
+| `audit_log.max_rows` | int32           | Максимальное число сохраняемых строк       |
+| `gpg.key_servers`    | repeated string | HTTPS-серверы ключей OpenPGP (1–8 записей) |
+
+**proxy** → `ProxyConfig`
+
+Домен содержит именованные исходящие прокси HTTP/HTTPS/SOCKS5. Пустой `selected` означает прямое соединение; имя
+выбирает соответствующий глобальный прокси.
 
 **storage** → `StorageConfig`
 
@@ -144,13 +159,14 @@ category: API
 
 Ответ: protobuf `MavenRepositoriesResponse` (`map<string, Repository>`).
 
-| Поле                 | Смысл                                                     |
-|----------------------|-----------------------------------------------------------|
-| `name`               | Имя репозитория                                           |
-| `visibility`         | `PUBLIC` / `HIDDEN` / `PRIVATE`                           |
-| `allow_redeployment` | Можно ли перезаписывать существующие артефакты            |
-| `mirrors[]`          | Upstream-зеркала (url, persist, TTL, auth, allow/deny, …) |
-| `s3`                 | Опциональное S3-совместимое хранилище                     |
+| Поле                    | Смысл                                                                    |
+|-------------------------|--------------------------------------------------------------------------|
+| `name`                  | Имя репозитория                                                          |
+| `visibility`            | `PUBLIC` / `HIDDEN` / `PRIVATE`                                          |
+| `allow_redeployment`    | Можно ли перезаписывать существующие артефакты                           |
+| `require_gpg_signature` | Требовать отдельную GPG-подпись для защищённых артефактов                |
+| `mirrors[]`             | Upstream-зеркала (выбор `proxy`, url, persist, TTL, auth, allow/deny, …) |
+| `s3`                    | Опциональное S3-совместимое хранилище                                    |
 
 ### `PUT /api/settings/maven/repositories/:name`
 

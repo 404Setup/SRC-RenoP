@@ -50,7 +50,7 @@ Réponse : protobuf `SettingsDomainsResponse`
 |-----------|-----------------|
 | `domains` | repeated string |
 
-Valeurs typiques : `frontend`, `server`, `storage`, `updater`, `index`.
+Valeurs typiques : `frontend`, `server`, `proxy`, `storage`, `updater`, `index`.
 
 `index` n’a actuellement aucun champ configurable.
 
@@ -90,6 +90,8 @@ Réponse : message protobuf du domaine (Content-Type `application/x-protobuf`).
 | `cors_origins`        | repeated string | Liste des origines CORS autorisées           |
 | `debug_mode`          | bool            | Activer les API de profilage de débogage     |
 | `database`            | DatabaseConfig  | Paramètres de connexion à la base de données |
+| `audit_log`           | AuditLogConfig  | Rétention des journaux d’audit               |
+| `gpg`                 | GpgConfig       | Paramètres des serveurs de clés OpenPGP      |
 
 **DatabaseConfig**:
 
@@ -101,6 +103,19 @@ Réponse : message protobuf du domaine (Content-Type `application/x-protobuf`).
 | `max_open_conns`        | int32  | Nombre maximal de connexions ouvertes             |
 | `max_idle_conns`        | int32  | Nombre maximal de connexions inactives            |
 | `conn_max_lifetime_sec` | int32  | Durée de vie maximale des connexions en secondes  |
+
+**AuditLogConfig** et **GpgConfig** sont imbriqués dans `server` ; il n’existe plus de domaine `gpg` séparé.
+
+| Champ                | Type            | Description                                    |
+|----------------------|-----------------|------------------------------------------------|
+| `audit_log.enabled`  | bool            | Activer la persistance du journal d’audit      |
+| `audit_log.max_rows` | int32           | Nombre maximal de lignes conservées            |
+| `gpg.key_servers`    | repeated string | Serveurs de clés OpenPGP HTTPS (1 à 8 entrées) |
+
+**proxy** → `ProxyConfig`
+
+Ce domaine contient les proxies sortants HTTP/HTTPS/SOCKS5 nommés. Un `selected` vide signifie une connexion directe ;
+un nom sélectionne le proxy global correspondant.
 
 **storage** → `StorageConfig`
 
@@ -145,13 +160,14 @@ Règles :
 
 Réponse : protobuf `MavenRepositoriesResponse` (`map<string, Repository>`).
 
-| Champ                | Signification                                          |
-|----------------------|--------------------------------------------------------|
-| `name`               | Nom du dépôt                                           |
-| `visibility`         | `PUBLIC` / `HIDDEN` / `PRIVATE`                        |
-| `allow_redeployment` | Autoriser l’écrasement d’artefacts existants           |
-| `mirrors[]`          | Miroirs amont (url, persist, TTL, auth, allow/deny, …) |
-| `s3`                 | Stockage S3-compatible optionnel                       |
+| Champ                   | Signification                                                             |
+|-------------------------|---------------------------------------------------------------------------|
+| `name`                  | Nom du dépôt                                                              |
+| `visibility`            | `PUBLIC` / `HIDDEN` / `PRIVATE`                                           |
+| `allow_redeployment`    | Autoriser l’écrasement d’artefacts existants                              |
+| `require_gpg_signature` | Exiger une signature GPG détachée pour les artefacts protégés             |
+| `mirrors[]`             | Miroirs amont (sélection `proxy`, url, persist, TTL, auth, allow/deny, …) |
+| `s3`                    | Stockage S3-compatible optionnel                                          |
 
 ### `PUT /api/settings/maven/repositories/:name`
 

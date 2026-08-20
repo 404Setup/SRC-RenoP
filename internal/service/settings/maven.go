@@ -21,7 +21,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
-	"renop/internal/service/proxy"
+	"renop/internal/service/outboundproxy"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -47,6 +47,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	if !isManager(c) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
+	cfg := state.Inner.Config.Load()
 
 	var msg pb.Repository
 	if err := protohttp.Read(c, &msg); err != nil {
@@ -70,9 +71,11 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	repo.Visibility = vis
 	for i := range repo.Mirrors {
-		if err := proxy.ValidateMirrorProxy(repo.Mirrors[i].Proxy); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror proxy: " + err.Error())
+		mirror := &repo.Mirrors[i]
+		if _, err := outboundproxy.ResolveMirrorSelection(mirror.ProxyMode, cfg.Proxy); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror proxy selection: " + err.Error())
 		}
+		mirror.Proxy = nil
 		if err := repo.Mirrors[i].Authorization.Validate(); err != nil {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror authentication: " + err.Error())
 		}

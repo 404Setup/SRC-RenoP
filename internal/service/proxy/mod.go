@@ -66,9 +66,14 @@ func proxyResponseLimit(path string) int64 {
 }
 
 func newProxyHTTPClient() *http.Client {
-	client := utils.OutboundClient(0)
-	client.CheckRedirect = checkMirrorRedirect
-	return client
+	transport := utils.DefaultTransport.Clone()
+	// Mirror routing is controlled by Settings > Proxy. An empty global
+	// selection means direct connection, regardless of process proxy env vars.
+	transport.Proxy = nil
+	return &http.Client{
+		Transport:     transport,
+		CheckRedirect: checkMirrorRedirect,
+	}
 }
 
 func checkMirrorRedirect(req *http.Request, via []*http.Request) error {
@@ -195,6 +200,12 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 	encodedPath := escapeArtifactPath(path)
 
 	var lastBlockedReason string
+	var globalProxyConfig config.ProxyConfig
+	if state != nil && state.Inner != nil {
+		if cfg := state.Inner.Config.Load(); cfg != nil {
+			globalProxyConfig = cfg.Proxy
+		}
+	}
 	for _, mirror := range repo.Mirrors {
 		if allowed, reason := mirror.IsArtifactAllowed(path); !allowed {
 			lastBlockedReason = reason
@@ -230,7 +241,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		}
 
 		networkAttempted = true
-		client, err := clientForMirror(&mirror)
+		client, err := clientForMirror(&mirror, globalProxyConfig)
 		if err != nil {
 			streamCancel()
 			<-state.Inner.ProxyClientSemaphore
@@ -386,6 +397,12 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 	path = sanitizedPath
 	encodedPath := escapeArtifactPath(path)
 	networkAttempted := false
+	var globalProxyConfig config.ProxyConfig
+	if state != nil && state.Inner != nil {
+		if cfg := state.Inner.Config.Load(); cfg != nil {
+			globalProxyConfig = cfg.Proxy
+		}
+	}
 	defer func() {
 		if networkAttempted {
 			utils.ScheduleNetworkWorkingSetTrim()
@@ -422,7 +439,7 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		}
 
 		networkAttempted = true
-		client, err := clientForMirror(&mirror)
+		client, err := clientForMirror(&mirror, globalProxyConfig)
 		if err != nil {
 			cancel()
 			<-state.Inner.ProxyClientSemaphore

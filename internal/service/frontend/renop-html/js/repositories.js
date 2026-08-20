@@ -12,7 +12,7 @@ import {t} from './i18n.js';
 import {showAlert} from './alert.js';
 import {fetchProto, getAuthHeaders, putProto} from './api.js';
 import {logout} from './auth.js';
-import {MavenRepositoriesResponse, Repository} from './proto/index.js';
+import {MavenRepositoriesResponse, ProxyConfig, Repository} from './proto/index.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {
@@ -36,6 +36,7 @@ import {
 
 let currentConfig = null;
 let initialReposMap = {};
+let globalProxyConfig = {selected: '', proxies: []};
 const saveSeqByRepo = new Map();
 const RESERVED_REPO_NAMES = new Set(['css', 'js', 'svg', 'api', 'javadocs', 'assets']);
 
@@ -58,7 +59,14 @@ function renderRepositoriesSkeleton() {
 export async function initRepositories() {
     renderRepositoriesSkeleton();
     try {
-        const {response, data} = await fetchProto('/api/settings/maven/repositories', MavenRepositoriesResponse);
+        const [repositoriesResult, proxyResult] = await Promise.all([
+            fetchProto('/api/settings/maven/repositories', MavenRepositoriesResponse),
+            fetchProto('/api/settings/domain/proxy', ProxyConfig)
+        ]);
+        const {response, data} = repositoriesResult;
+        if (proxyResult.response.ok && proxyResult.data) {
+            globalProxyConfig = proxyResult.data;
+        }
         if (response.ok && data) {
             const repos = data.repositories || {};
             currentConfig = {repositories: repos};
@@ -126,7 +134,10 @@ function buildRepoSection(container, data, repoKey, repo) {
     const iconBox = el('div', {class: 'cfg-section-icon'}, createIcon('box'));
 
     const meta = el('div', {class: 'cfg-section-meta'});
-    const titleRow = el('div', {class: 'cfg-section-title-row', style: {display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: '0', flexWrap: 'nowrap'}});
+    const titleRow = el('div', {
+        class: 'cfg-section-title-row',
+        style: {display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: '0', flexWrap: 'nowrap'}
+    });
     titleRow.appendChild(el('p', {class: 'cfg-section-title'}, repoKey));
     titleRow.appendChild(makeVisibilityBadge(repo.visibility || 'PUBLIC'));
     meta.appendChild(titleRow);
@@ -215,15 +226,15 @@ function buildRepoSection(container, data, repoKey, repo) {
         }
     ));
 
-	fields.appendChild(makeToggleRow(
-		t('repos.requireGpgSignature'),
-		t('repos.requireGpgSignatureDesc'),
-		repo.require_gpg_signature === true,
-		checked => {
-			repo.require_gpg_signature = checked;
-			saveRepoSettings(repoKey, repo);
-		}
-	));
+    fields.appendChild(makeToggleRow(
+        t('repos.requireGpgSignature'),
+        t('repos.requireGpgSignatureDesc'),
+        repo.require_gpg_signature === true,
+        checked => {
+            repo.require_gpg_signature = checked;
+            saveRepoSettings(repoKey, repo);
+        }
+    ));
 
     bodyInner.appendChild(fields);
     bodyInner.appendChild(buildS3Section(repoKey, repo));
@@ -280,7 +291,12 @@ function buildS3Section(repoKey, repo) {
             placeholder: 'https://...'
         },
         {id: 'bucket', label: t('repos.s3Bucket'), hint: t('repos.s3BucketHint'), placeholder: 'my-repo-bucket'},
-        {id: 'key_prefix', label: t('repos.s3KeyPrefix'), hint: t('repos.s3KeyPrefixHint'), placeholder: 'renop/production'},
+        {
+            id: 'key_prefix',
+            label: t('repos.s3KeyPrefix'),
+            hint: t('repos.s3KeyPrefixHint'),
+            placeholder: 'renop/production'
+        },
         {id: 'region', label: t('repos.s3Region'), hint: t('repos.s3RegionHint'), placeholder: 'auto'},
         {id: 'access_key_id', label: t('repos.s3AccessKey'), hint: t('repos.s3AccessKeyHint'), placeholder: 'AKIA...'},
         {
@@ -417,6 +433,32 @@ function buildMirrorsSection(container, data, repoKey, repo, metaNode) {
 }
 
 /**
+ * Builds mirror routing options from the global proxy settings.
+ * @param {string} selected - Current mirror selector, if any.
+ * @returns {Array<{value: string, label: string}>} Dropdown options.
+ */
+function mirrorProxyOptions(selected) {
+    const current = typeof selected === 'string' ? selected.trim() : '';
+    const options = [
+        {value: '', label: t('repos.proxyGlobal')},
+        {value: 'direct', label: t('repos.proxyDirect')}
+    ];
+    const proxies = Array.isArray(globalProxyConfig.proxies) ? globalProxyConfig.proxies : [];
+    const names = new Set();
+    for (const proxy of proxies) {
+        const name = String(proxy?.name || '').trim();
+        if (!name || names.has(name.toLowerCase())) continue;
+        names.add(name.toLowerCase());
+        options.push({value: name, label: name});
+    }
+    if (current && current.toLowerCase() !== 'direct' && !names.has(current.toLowerCase()) &&
+        !['global', 'inherit'].includes(current.toLowerCase())) {
+        options.push({value: current, label: current});
+    }
+    return options;
+}
+
+/**
  * Builds a single mirror configuration block (name, URL, allow/deny, auth, cache options).
  * @param {HTMLElement} container - Parent repositories container.
  * @param {{repositories: Object.<string, object>}} data - Full repositories config.
@@ -538,27 +580,23 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         })
     ));
 
-    const proxy = mirror.proxy || {url: '', username: '', password: ''};
-    const updateProxy = (field, value) => {
-        proxy[field] = value;
-        if (proxy.url || proxy.username || proxy.password) {
-            mirror.proxy = proxy;
-        } else {
-            delete mirror.proxy;
+    const proxySelection = typeof mirror.proxy === 'string' ? mirror.proxy.trim() : '';
+    const proxySelect = makeCustomSelect(
+        mirrorProxyOptions(proxySelection),
+        proxySelection,
+        value => {
+            if (value) {
+                mirror.proxy = value;
+            } else {
+                delete mirror.proxy;
+            }
+            saveRepoSettings(repoKey, repo);
         }
-        saveRepoSettings(repoKey, repo);
-    };
-
-    fields.appendChild(makeFieldRow(t('repos.proxyUrl'), t('repos.proxyUrlHint'),
-        makeCfgInput(proxy.url, 'http://proxy.example:8080', 'text', v => updateProxy('url', v))
-    ));
-    fields.appendChild(makeFieldRow(t('repos.proxyUsername'), t('repos.proxyUsernameHint'),
-        makeCfgInput(proxy.username, t('repos.proxyUsername'), 'text', v => updateProxy('username', v), {
-            autocomplete: 'off'
-        })
-    ));
-    fields.appendChild(makeFieldRow(t('repos.proxyPassword'), t('repos.proxyPasswordHint'),
-        makeCfgInput(proxy.password, t('repos.proxyPassword'), 'password', v => updateProxy('password', v))
+    );
+    fields.appendChild(makeFieldRow(
+        t('repos.proxyMode'),
+        t('repos.proxyModeHint'),
+        proxySelect
     ));
 
     const conflictWarningEl = createCallout('warning', t('repos.ruleConflictWarning'), 'warning');
@@ -865,13 +903,13 @@ document.getElementById('btn-add-repository')?.addEventListener('click', async (
             showAlert(t('repos.repoExists'), 'error');
             return;
         }
-		const repo = {
-			name: repoName,
-			visibility: 'PUBLIC',
-			allow_redeployment: false,
-			require_gpg_signature: false,
-			mirrors: []
-		};
+        const repo = {
+            name: repoName,
+            visibility: 'PUBLIC',
+            allow_redeployment: false,
+            require_gpg_signature: false,
+            mirrors: []
+        };
         currentConfig.repositories[repoName] = repo;
         const ok = await saveRepoSettings(repoName, repo, {silent: true, isCreate: true});
         if (ok) {

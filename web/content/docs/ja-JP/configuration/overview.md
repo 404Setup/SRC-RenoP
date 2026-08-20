@@ -11,14 +11,14 @@ description: 設定ファイル、サーバー設定、環境変数
 
 ## ファイル
 
-| ファイル            | 環境変数             | 用途                                                                |
-|---------------------|----------------------|---------------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | 待ち受け、TLS、フロントブランド、ストレージパス、データベース、updater|
-| `repositories.yaml` | `RENOP_REPOSITORIES` | リポジトリ、ミラー、リポジトリ単位の S3                             |
-| `tokens.yaml`       | `RENOP_TOKENS`       | ユーザー、ロール、アップロードトークン（起動時に自動でDBに移行）     |
-| `renop.db`          | —                    | 組み込み SQLite データベース（トークンとセッションを保存）           |
-| `index.json`        | `RENOP_INDEX`        | 成果物インデックスキャッシュ                                        |
-| `sessions.bin`      | `RENOP_SESSIONS`     | ブラウザログインセッション（起動時に自動でDBに移行）                 |
+| ファイル            | 環境変数             | 用途                                                                   |
+|---------------------|----------------------|------------------------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | 待ち受け、TLS、フロントブランド、ストレージパス、データベース、updater |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | リポジトリ、ミラー、リポジトリ単位の S3                                |
+| `tokens.yaml`       | `RENOP_TOKENS`       | ユーザー、ロール、アップロードトークン（起動時に自動でDBに移行）       |
+| `renop.db`          | —                    | 組み込み SQLite データベース（トークンとセッションを保存）             |
+| `index.json`        | `RENOP_INDEX`        | 成果物インデックスキャッシュ                                           |
+| `sessions.bin`      | `RENOP_SESSIONS`     | ブラウザログインセッション（起動時に自動でDBに移行）                   |
 
 実行時に関連する変数:
 
@@ -30,30 +30,32 @@ description: 設定ファイル、サーバー設定、環境変数
 
 ### グローバルストレージと Javadoc 設定
 
-| キー                     | 既定       | 説明                                                            |
-|--------------------------|------------|-----------------------------------------------------------------|
-| `storage_path`           | `storage`  | ローカル成果物ストレージのルートディレクトリ                    |
-| `enable_javadoc_preview` | `true`     | オンライン Javadoc プレビューを有効にするか                     |
-| `javadoc_extract_path`   | `""`       | Javadoc 展開パス（空の場合は既定のキャッシュを使用）            |
-| `max_javadoc_size_mb`    | `48`       | Javadoc 展開の最大ファイルサイズ制限（MB）                      |
+| キー                     | 既定      | 説明                                                 |
+|--------------------------|-----------|------------------------------------------------------|
+| `storage_path`           | `storage` | ローカル成果物ストレージのルートディレクトリ         |
+| `enable_javadoc_preview` | `true`    | オンライン Javadoc プレビューを有効にするか          |
+| `javadoc_extract_path`   | `""`      | Javadoc 展開パス（空の場合は既定のキャッシュを使用） |
+| `max_javadoc_size_mb`    | `48`      | Javadoc 展開の最大ファイルサイズ制限（MB）           |
 
 ### `server`
 
-| キー                  | 既定              | 説明                                                                             |
-|-----------------------|-------------------|----------------------------------------------------------------------------------|
-| `host`                | `0.0.0.0`         | 待ち受けアドレス                                                                 |
-| `port`                | `3000`            | 待ち受けポート                                                                   |
-| `ssl_enabled`         | `false`           | TLS を有効にするか                                                               |
-| `ssl_cert_path`       | `""`              | TLS 有効時の証明書パス                                                           |
-| `ssl_key_path`        | `""`              | TLS 有効時の秘密鍵パス                                                           |
-| `domains`             | `[localhost]`     | このインスタンスの公開ホスト名（UI / メタデータおよび既定 CORS）                 |
-| `cors_origins`        | `[]`              | ブラウザ CORS 許可リスト（空 = `domains` のみ、`*` = すべてのオリジン）          |
-| `enable_compression`  | `false`           | HTTP 応答圧縮を有効にするか                                                      |
-| `file_cache_size_mb`  | `16`              | メモリ上のファイルキャッシュサイズ（MB）                                         |
-| `max_active_requests` | `512`             | 同時リクエスト上限（超過時は 503）                                               |
-| `trusted_proxies`     | `[]`              | 追加のリバースプロキシ CIDR/IP（ループバックは常に信頼）                         |
-| `cdn_ip_header`       | `X-Forwarded-For` | 信頼できるプロキシ背後でクライアント IP を読むヘッダー（例: `CF-Connecting-IP`） |
-| `debug_mode`          | `false`           | `/api/debug` 配下のデバッグ分析 API を有効化（再起動が必要）                     |
+| キー                  | 既定               | 説明                                                                             |
+|-----------------------|--------------------|----------------------------------------------------------------------------------|
+| `host`                | `0.0.0.0`          | 待ち受けアドレス                                                                 |
+| `port`                | `3000`             | 待ち受けポート                                                                   |
+| `ssl_enabled`         | `false`            | TLS を有効にするか                                                               |
+| `ssl_cert_path`       | `""`               | TLS 有効時の証明書パス                                                           |
+| `ssl_key_path`        | `""`               | TLS 有効時の秘密鍵パス                                                           |
+| `domains`             | `[localhost]`      | このインスタンスの公開ホスト名（UI / メタデータおよび既定 CORS）                 |
+| `cors_origins`        | `[]`               | ブラウザ CORS 許可リスト（空 = `domains` のみ、`*` = すべてのオリジン）          |
+| `enable_compression`  | `false`            | HTTP 応答圧縮を有効にするか                                                      |
+| `file_cache_size_mb`  | `16`               | メモリ上のファイルキャッシュサイズ（MB）                                         |
+| `max_active_requests` | `512`              | 同時リクエスト上限（超過時は 503）                                               |
+| `trusted_proxies`     | `[]`               | 追加のリバースプロキシ CIDR/IP（ループバックは常に信頼）                         |
+| `cdn_ip_header`       | `X-Forwarded-For`  | 信頼できるプロキシ背後でクライアント IP を読むヘッダー（例: `CF-Connecting-IP`） |
+| `debug_mode`          | `false`            | `/api/debug` 配下のデバッグ分析 API を有効化（再起動が必要）                     |
+| `audit_log`           | `{}`               | 監査ログ設定                                                                     |
+| `gpg`                 | 既定のキーサーバー | OpenPGP キーサーバー（`server` にネスト）                                        |
 
 #### CORS（`server.cors_origins`）
 
@@ -72,18 +74,28 @@ description: 設定ファイル、サーバー設定、環境変数
 
 `host`、`port`、または TLS 関連の設定を変更したあとは、プロセスを再起動してください。
 
+#### GPG（`server.gpg`）
+
+`server.gpg.key_servers` には署名キー解決に使用する HTTPS OpenPGP キーサーバーを 1～8 件指定します。GPG 設定は
+`server` に含まれ、独立した `gpg` ドメインは公開されません。
+
+### `proxy`
+
+任意の `proxy` セクションで名前付き HTTP/HTTPS/SOCKS5 outbound プロキシを定義します。`selected` が空（既定） なら直接接続です。ミラーの
+`proxy` を空にするとグローバル設定を継承し、`direct` ならバイパス、名前ならその プロキシを使用します。
+
 ### `database`
 
 アカウントおよびセッションのデータベース接続設定:
 
-| キー                     | 既定       | 説明                                                            |
-|--------------------------|------------|-----------------------------------------------------------------|
-| `enabled`                | `true`     | 組み込み / 外部データベースの永続化を有効にするか               |
-| `driver`                 | `sqlite3`  | データベースドライバー名（`sqlite3` または `mysql`）           |
-| `dsn`                    | `renop.db` | データベース DSN またはファイルパス（例: `renop.db`）           |
-| `max_open_conns`        | `25`       | 最大オープン接続数                                              |
-| `max_idle_conns`        | `25`       | 最大アイドル接続数                                              |
-| `conn_max_lifetime_sec` | `300`      | 接続の最大生存期間（秒）                                        |
+| キー                    | 既定       | 説明                                                  |
+|-------------------------|------------|-------------------------------------------------------|
+| `enabled`               | `true`     | 組み込み / 外部データベースの永続化を有効にするか     |
+| `driver`                | `sqlite3`  | データベースドライバー名（`sqlite3` または `mysql`）  |
+| `dsn`                   | `renop.db` | データベース DSN またはファイルパス（例: `renop.db`） |
+| `max_open_conns`        | `25`       | 最大オープン接続数                                    |
+| `max_idle_conns`        | `25`       | 最大アイドル接続数                                    |
+| `conn_max_lifetime_sec` | `300`      | 接続の最大生存期間（秒）                              |
 
 ### `frontend`
 

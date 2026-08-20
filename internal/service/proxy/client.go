@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -21,27 +23,28 @@ import (
 	xproxy "golang.org/x/net/proxy"
 
 	"renop/internal/config"
+	"renop/internal/service/outboundproxy"
 	"renop/internal/utils"
 )
 
-const maxMirrorProxyClients = 32
+const maxOutboundProxyClients = 16
 
-type mirrorProxyKey struct {
+type outboundProxyKey struct {
 	url      string
 	username string
 	password string
 }
 
-type cachedMirrorProxyClient struct {
+type cachedOutboundProxyClient struct {
 	client   *http.Client
 	lastUsed uint64
 }
 
-var mirrorProxyClients = struct {
+var outboundProxyClients = struct {
 	sync.Mutex
-	clients map[mirrorProxyKey]cachedMirrorProxyClient
+	clients map[outboundProxyKey]cachedOutboundProxyClient
 	tick    uint64
-}{clients: make(map[mirrorProxyKey]cachedMirrorProxyClient)}
+}{clients: make(map[outboundProxyKey]cachedOutboundProxyClient)}
 
 func parseMirrorProxy(proxyConfig *config.MirrorProxy) (*url.URL, error) {
 	if proxyConfig == nil || strings.TrimSpace(proxyConfig.URL) == "" {
@@ -117,44 +120,65 @@ func newMirrorProxyClient(proxyConfig *config.MirrorProxy) (*http.Client, error)
 	return &http.Client{Transport: transport, CheckRedirect: checkMirrorRedirect}, nil
 }
 
-func clientForMirror(mirror *config.Mirror) (*http.Client, error) {
-	if mirror == nil || mirror.Proxy == nil || strings.TrimSpace(mirror.Proxy.URL) == "" {
+func newOutboundProxyClient(proxyConfig *config.OutboundProxy) (*http.Client, error) {
+	if proxyConfig == nil {
 		return httpClient, nil
 	}
-
-	key := mirrorProxyKey{
-		url:      strings.TrimSpace(mirror.Proxy.URL),
-		username: mirror.Proxy.Username,
-		password: mirror.Proxy.Password,
+	transport := utils.DefaultTransport.Clone()
+	if err := outboundproxy.ConfigureTransport(transport, proxyConfig); err != nil {
+		return nil, err
 	}
+	return &http.Client{Transport: transport, CheckRedirect: checkMirrorRedirect}, nil
+}
 
-	mirrorProxyClients.Lock()
-	defer mirrorProxyClients.Unlock()
-	mirrorProxyClients.tick++
-	if cached, ok := mirrorProxyClients.clients[key]; ok {
-		cached.lastUsed = mirrorProxyClients.tick
-		mirrorProxyClients.clients[key] = cached
-		return cached.client, nil
+// clientForMirror resolves the mirror selector and returns a shared direct
+// client or a bounded cached client for the selected named global proxy.
+func clientForMirror(mirror *config.Mirror, proxyConfig config.ProxyConfig) (*http.Client, error) {
+	selection := ""
+	if mirror != nil {
+		selection = mirror.ProxyMode
 	}
-
-	client, err := newMirrorProxyClient(mirror.Proxy)
+	selected, err := outboundproxy.ResolveMirrorSelection(selection, proxyConfig)
 	if err != nil {
 		return nil, err
 	}
-	if len(mirrorProxyClients.clients) >= maxMirrorProxyClients {
-		var oldestKey mirrorProxyKey
-		var oldest cachedMirrorProxyClient
+	if selected == nil {
+		return httpClient, nil
+	}
+
+	key := outboundProxyKey{
+		url:      strings.TrimSpace(selected.URL),
+		username: selected.Username,
+		password: selected.Password,
+	}
+
+	outboundProxyClients.Lock()
+	defer outboundProxyClients.Unlock()
+	outboundProxyClients.tick++
+	if cached, ok := outboundProxyClients.clients[key]; ok {
+		cached.lastUsed = outboundProxyClients.tick
+		outboundProxyClients.clients[key] = cached
+		return cached.client, nil
+	}
+
+	client, err := newOutboundProxyClient(selected)
+	if err != nil {
+		return nil, err
+	}
+	if len(outboundProxyClients.clients) >= maxOutboundProxyClients {
+		var oldestKey outboundProxyKey
+		var oldest cachedOutboundProxyClient
 		first := true
-		for candidateKey, candidate := range mirrorProxyClients.clients {
+		for candidateKey, candidate := range outboundProxyClients.clients {
 			if first || candidate.lastUsed < oldest.lastUsed {
 				oldestKey = candidateKey
 				oldest = candidate
 				first = false
 			}
 		}
-		delete(mirrorProxyClients.clients, oldestKey)
+		delete(outboundProxyClients.clients, oldestKey)
 		oldest.client.CloseIdleConnections()
 	}
-	mirrorProxyClients.clients[key] = cachedMirrorProxyClient{client: client, lastUsed: mirrorProxyClients.tick}
+	outboundProxyClients.clients[key] = cachedOutboundProxyClient{client: client, lastUsed: outboundProxyClients.tick}
 	return client, nil
 }

@@ -40,21 +40,23 @@ Runtime-related:
 
 ### `server`
 
-| Key                   | Default           | Description                                                                       |
-|-----------------------|-------------------|-----------------------------------------------------------------------------------|
-| `host`                | `0.0.0.0`         | Listen address                                                                    |
-| `port`                | `3000`            | Listen port                                                                       |
-| `ssl_enabled`         | `false`           | Enable TLS                                                                        |
-| `ssl_cert_path`       | `""`              | Certificate path when TLS is enabled                                              |
-| `ssl_key_path`        | `""`              | Private key path when TLS is enabled                                              |
-| `domains`             | `[localhost]`     | Public hostnames for this instance (UI/metadata and default CORS)                 |
-| `cors_origins`        | `[]`              | Browser CORS allow list (empty = `domains` only; `*` = any origin)                |
-| `enable_compression`  | `false`           | Enable HTTP response compression                                                  |
-| `file_cache_size_mb`  | `16`              | In-memory file cache size (MB)                                                    |
-| `max_active_requests` | `512`             | Maximum concurrent requests (overload returns 503)                                |
-| `trusted_proxies`     | `[]`              | Additional reverse-proxy CIDR/IP ranges (loopback is always trusted)              |
-| `cdn_ip_header`       | `X-Forwarded-For` | Header used for client IP behind a trusted proxy (for example `CF-Connecting-IP`) |
-| `debug_mode`          | `false`           | Enable debug profile dump APIs under `/api/debug` (requires restart)              |
+| Key                   | Default             | Description                                                                       |
+|-----------------------|---------------------|-----------------------------------------------------------------------------------|
+| `host`                | `0.0.0.0`           | Listen address                                                                    |
+| `port`                | `3000`              | Listen port                                                                       |
+| `ssl_enabled`         | `false`             | Enable TLS                                                                        |
+| `ssl_cert_path`       | `""`                | Certificate path when TLS is enabled                                              |
+| `ssl_key_path`        | `""`                | Private key path when TLS is enabled                                              |
+| `domains`             | `[localhost]`       | Public hostnames for this instance (UI/metadata and default CORS)                 |
+| `cors_origins`        | `[]`                | Browser CORS allow list (empty = `domains` only; `*` = any origin)                |
+| `enable_compression`  | `false`             | Enable HTTP response compression                                                  |
+| `file_cache_size_mb`  | `16`                | In-memory file cache size (MB)                                                    |
+| `max_active_requests` | `512`               | Maximum concurrent requests (overload returns 503)                                |
+| `trusted_proxies`     | `[]`                | Additional reverse-proxy CIDR/IP ranges (loopback is always trusted)              |
+| `cdn_ip_header`       | `X-Forwarded-For`   | Header used for client IP behind a trusted proxy (for example `CF-Connecting-IP`) |
+| `debug_mode`          | `false`             | Enable debug profile dump APIs under `/api/debug` (requires restart)              |
+| `audit_log`           | `{}`                | Audit log settings                                                                |
+| `gpg`                 | default key servers | OpenPGP key servers (nested under `server`)                                       |
 
 #### CORS (`server.cors_origins`)
 
@@ -73,6 +75,17 @@ Legacy configurations that use the singular form `domain: example.com` still loa
 `domains: [example.com]`.
 
 Restart the process after changing `host`, `port`, or TLS settings.
+
+#### GPG (`server.gpg`)
+
+`server.gpg.key_servers` lists 1–8 HTTPS OpenPGP key servers used to resolve signing keys. GPG settings are part of the
+server section; the former standalone `gpg` settings domain is no longer exposed.
+
+### `proxy`
+
+The optional `proxy` section defines named HTTP/HTTPS/SOCKS5 outbound proxies. An empty `selected` value is the default
+and means direct connections. A mirror can set `proxy` to inherit this global selection, use `direct` to bypass it, or
+name a configured proxy.
 
 ### `database`
 

@@ -109,7 +109,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [ frontend, server, storage, updater, index ]
+        enum: [ frontend, server, proxy, storage, updater, index ]
     VersionFilter:
       name: filter
       in: query
@@ -762,6 +762,21 @@ components:
           description: Persist debug mode; restart required to activate dump APIs
         database:
           $ref: "#/components/schemas/DatabaseConfig"
+        audit_log:
+          $ref: "#/components/schemas/AuditLogConfig"
+        gpg:
+          $ref: "#/components/schemas/GpgConfig"
+
+    AuditLogConfig:
+      type: object
+      description: Protobuf message AuditLogConfig embedded in ServerConfig.
+      properties:
+        retention_days:
+          type: integer
+          format: int32
+        max_rows:
+          type: integer
+          format: int32
 
     DatabaseConfig:
       type: object
@@ -811,6 +826,46 @@ components:
           type: string
           enum: [ manual, auto_check, auto_install, safe_install ]
 
+    GpgConfig:
+      type: object
+      description: Trusted HTTPS key servers used by GPG key resolution.
+      required: [ key_servers ]
+      properties:
+        key_servers:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            type: string
+            format: uri
+          description: HTTPS origins only; paths, credentials, query strings, and fragments are rejected.
+
+    OutboundProxy:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+          description: HTTP, HTTPS, or SOCKS5 proxy URL without embedded credentials.
+        username:
+          type: string
+        password:
+          type: string
+
+    ProxyConfig:
+      type: object
+      description: Named global outbound proxies. An empty selected value means direct connection.
+      properties:
+        selected:
+          type: string
+          description: Name of the active proxy, or empty for direct connection.
+        proxies:
+          type: array
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/OutboundProxy"
+
     SettingsDomainsResponse:
       type: object
       description: Protobuf message SettingsDomainsResponse (application/x-protobuf).
@@ -819,7 +874,7 @@ components:
           type: array
           items:
             type: string
-          example: [ frontend, server, storage, updater, index ]
+          example: [ frontend, server, proxy, storage, updater, index ]
 
     IndexDomainSettings:
       type: object
@@ -918,6 +973,11 @@ components:
           type: array
           items:
             type: string
+        proxy:
+          type: string
+          description: >
+            Empty follows the selected global proxy; `direct` bypasses it; any other value is a named
+            proxy from the Settings `proxy` domain.
 
     S3Config:
       type: object
@@ -952,6 +1012,9 @@ components:
           enum: [ PUBLIC, HIDDEN, PRIVATE ]
         allow_redeployment:
           type: boolean
+        require_gpg_signature:
+          type: boolean
+          description: Require matching detached GPG signatures for protected Maven artifacts.
         mirrors:
           type: array
           items:
@@ -2169,7 +2232,8 @@ paths:
       operationId: getSettingsDomain
       description: |
         Response is protobuf; message type depends on `:name`:
-        `FrontendConfig`, `ServerConfig`, `StorageConfig`, `UpdaterConfig`, or empty `IndexDomainSettings`.
+        `FrontendConfig`, `ServerConfig`, `ProxyConfig`, `StorageConfig`, `UpdaterConfig`, or empty
+        `IndexDomainSettings`. GPG settings are embedded in `ServerConfig.gpg`.
       security:
         - sessionCookie: [ ]
         - sessionHeader: [ ]
@@ -2186,6 +2250,7 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/FrontendConfig"
                   - $ref: "#/components/schemas/ServerConfig"
+                  - $ref: "#/components/schemas/ProxyConfig"
                   - $ref: "#/components/schemas/StorageConfig"
                   - $ref: "#/components/schemas/UpdaterConfig"
                   - $ref: "#/components/schemas/IndexDomainSettings"
@@ -2215,6 +2280,7 @@ paths:
               oneOf:
                 - $ref: "#/components/schemas/FrontendConfig"
                 - $ref: "#/components/schemas/ServerConfig"
+                - $ref: "#/components/schemas/ProxyConfig"
                 - $ref: "#/components/schemas/StorageConfig"
                 - $ref: "#/components/schemas/UpdaterConfig"
       responses:

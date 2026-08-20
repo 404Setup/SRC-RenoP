@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -22,6 +24,7 @@ import (
 	"net/netip"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -196,12 +199,7 @@ func entityAliases(entity *openpgp.Entity) []string {
 }
 
 func entityMatchesReference(entity *openpgp.Entity, reference string) bool {
-	for _, alias := range entityAliases(entity) {
-		if alias == reference {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(entityAliases(entity), reference)
 }
 
 func entityContainsPrivateKey(entity *openpgp.Entity) bool {
@@ -322,10 +320,7 @@ func dialPinnedAddresses(ctx context.Context, network string, addresses []string
 	if len(addresses) == 0 {
 		return nil, errors.New("no public GPG key server address is available")
 	}
-	perAddressTimeout := pinnedDialTimeout / time.Duration(len(addresses))
-	if perAddressTimeout < 750*time.Millisecond {
-		perAddressTimeout = 750 * time.Millisecond
-	}
+	perAddressTimeout := max(pinnedDialTimeout/time.Duration(len(addresses)), 750*time.Millisecond)
 	dialer := &net.Dialer{Timeout: perAddressTimeout, KeepAlive: -1}
 	errList := make([]error, 0, len(addresses))
 	for _, address := range addresses {
@@ -344,9 +339,13 @@ func dialPinnedAddresses(ctx context.Context, network string, addresses []string
 }
 
 func makeKeyServerClient(ctx context.Context, parsed *url.URL, proxyConfig *config.OutboundProxy) (*http.Client, error) {
-	addresses, err := resolveKeyServerAddresses(ctx, parsed)
-	if err != nil {
-		return nil, err
+	var addresses []string
+	if proxyConfig == nil {
+		var err error
+		addresses, err = resolveKeyServerAddresses(ctx, parsed)
+		if err != nil {
+			return nil, err
+		}
 	}
 	transport := &http.Transport{
 		Proxy: nil,
@@ -436,7 +435,7 @@ func fetchPublicKey(ctx context.Context, cfg *config.Config, reference string) (
 	if cfg == nil {
 		return nil, nil, errors.New("configuration unavailable")
 	}
-	servers, err := ValidateKeyServers(cfg.GPG.KeyServers)
+	servers, err := ValidateKeyServers(cfg.Server.GPG.KeyServers)
 	if err != nil {
 		return nil, nil, err
 	}

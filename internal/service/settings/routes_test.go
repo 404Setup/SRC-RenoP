@@ -166,30 +166,37 @@ func TestGPGDomainSettings(t *testing.T) {
 	cfg.StoragePath = t.TempDir()
 	app, appState := setupSettingsTestApp(t, cfg)
 
-	var got pb.GpgConfig
-	respGet := protoGET(t, app, "/domain/gpg", &got)
+	var got pb.ServerConfig
+	respGet := protoGET(t, app, "/domain/server", &got)
 	if respGet.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", respGet.StatusCode)
 	}
-	if len(got.KeyServers) != 3 {
-		t.Fatalf("expected three default GPG key servers, got %v", got.KeyServers)
+	if got.Gpg == nil || len(got.Gpg.KeyServers) != 3 {
+		t.Fatalf("expected three default GPG key servers, got %v", got.Gpg)
 	}
 
 	keyServers := []string{"https://keys.example.test", "https://backup.example.test"}
-	respPut := protoPUT(t, app, "/domain/gpg", &pb.GpgConfig{KeyServers: keyServers})
+	got.Gpg = &pb.GpgConfig{KeyServers: keyServers}
+	respPut := protoPUT(t, app, "/domain/server", &got)
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
 	}
-	if actual := appState.Inner.Config.Load().GPG.KeyServers; !slices.Equal(actual, keyServers) {
+	if actual := appState.Inner.Config.Load().Server.GPG.KeyServers; !slices.Equal(actual, keyServers) {
 		t.Fatalf("expected key servers %v, got %v", keyServers, actual)
 	}
 
-	respInvalid := protoPUT(t, app, "/domain/gpg", &pb.GpgConfig{KeyServers: []string{"http://insecure.example.test"}})
+	got.Gpg = &pb.GpgConfig{KeyServers: []string{"http://insecure.example.test"}}
+	respInvalid := protoPUT(t, app, "/domain/server", &got)
 	if respInvalid.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected invalid key server PUT 400, got %d", respInvalid.StatusCode)
 	}
-	if actual := appState.Inner.Config.Load().GPG.KeyServers; !slices.Equal(actual, keyServers) {
+	if actual := appState.Inner.Config.Load().Server.GPG.KeyServers; !slices.Equal(actual, keyServers) {
 		t.Fatalf("invalid update changed key servers to %v", actual)
+	}
+
+	var removed pb.GpgConfig
+	if resp := protoGET(t, app, "/domain/gpg", &removed); resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected removed GPG domain GET 404, got %d", resp.StatusCode)
 	}
 }
 
@@ -712,8 +719,8 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 7 || !slices.Contains(got.Domains, "proxy") {
-		t.Fatalf("expected 7 domains including proxy, got %v", got.Domains)
+	if len(got.Domains) != 6 || !slices.Contains(got.Domains, "proxy") || slices.Contains(got.Domains, "gpg") {
+		t.Fatalf("expected 6 domains including proxy and excluding gpg, got %v", got.Domains)
 	}
 }
 

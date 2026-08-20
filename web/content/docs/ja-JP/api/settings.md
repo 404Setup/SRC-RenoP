@@ -49,7 +49,7 @@ category: API
 |------------|-----------------|
 | `domains`  | repeated string |
 
-典型値: `frontend`、`server`、`storage`、`updater`、`index`。
+典型値: `frontend`、`server`、`proxy`、`storage`、`updater`、`index`。
 
 `index` には現在設定可能なフィールドはありません。
 
@@ -73,33 +73,47 @@ category: API
 
 **server** → `ServerConfig`
 
-| フィールド            | 型              | 説明                                               |
-|-----------------------|-----------------|----------------------------------------------------|
-| `host`                | string          | 待ち受け IP アドレス                               |
-| `port`                | uint32          | 待ち受けポート                                     |
-| `ssl_enabled`         | bool            | TLS を有効にするか                                 |
-| `ssl_cert_path`       | string          | TLS 証明書ファイルパス                             |
-| `ssl_key_path`        | string          | TLS 秘密鍵ファイルパス                             |
-| `domains`             | repeated string | このインスタンスの公開ホスト名リスト               |
-| `enable_compression`  | bool            | HTTP 応答圧縮を有効にするか                        |
-| `file_cache_size_mb`  | uint32          | メモリ上のファイルキャッシュ上限（MB）             |
-| `max_active_requests` | uint32          | アクティブな同時リクエスト数上限                   |
-| `trusted_proxies`     | repeated string | 信頼できるプロキシの CIDR/IP リスト                |
-| `cdn_ip_header`       | string          | クライアント IP ヘッダー名                         |
-| `cors_origins`        | repeated string | 許可する CORS オリジンリスト                       |
-| `debug_mode`          | bool            | デバッグプロファイリング API を有効化するか        |
-| `database`            | DatabaseConfig  | データベース接続設定                               |
+| フィールド            | 型              | 説明                                        |
+|-----------------------|-----------------|---------------------------------------------|
+| `host`                | string          | 待ち受け IP アドレス                        |
+| `port`                | uint32          | 待ち受けポート                              |
+| `ssl_enabled`         | bool            | TLS を有効にするか                          |
+| `ssl_cert_path`       | string          | TLS 証明書ファイルパス                      |
+| `ssl_key_path`        | string          | TLS 秘密鍵ファイルパス                      |
+| `domains`             | repeated string | このインスタンスの公開ホスト名リスト        |
+| `enable_compression`  | bool            | HTTP 応答圧縮を有効にするか                 |
+| `file_cache_size_mb`  | uint32          | メモリ上のファイルキャッシュ上限（MB）      |
+| `max_active_requests` | uint32          | アクティブな同時リクエスト数上限            |
+| `trusted_proxies`     | repeated string | 信頼できるプロキシの CIDR/IP リスト         |
+| `cdn_ip_header`       | string          | クライアント IP ヘッダー名                  |
+| `cors_origins`        | repeated string | 許可する CORS オリジンリスト                |
+| `debug_mode`          | bool            | デバッグプロファイリング API を有効化するか |
+| `database`            | DatabaseConfig  | データベース接続設定                        |
+| `audit_log`           | AuditLogConfig  | 監査ログ保持設定                            |
+| `gpg`                 | GpgConfig       | OpenPGP キーサーバー設定                    |
 
 **DatabaseConfig**:
 
-| フィールド               | 型     | 説明                                               |
-|--------------------------|--------|----------------------------------------------------|
-| `enabled`                | bool   | データベースの永続化を有効にするか                 |
-| `driver`                 | string | データベースドライバー（`sqlite3` または `mysql`）  |
-| `dsn`                    | string | データベース DSN またはパス（例: `renop.db`）      |
-| `max_open_conns`         | int32  | 最大オープン接続数                                 |
-| `max_idle_conns`         | int32  | 最大アイドル接続数                                 |
-| `conn_max_lifetime_sec`  | int32  | 接続の最大生存期間（秒）                           |
+| フィールド              | 型     | 説明                                               |
+|-------------------------|--------|----------------------------------------------------|
+| `enabled`               | bool   | データベースの永続化を有効にするか                 |
+| `driver`                | string | データベースドライバー（`sqlite3` または `mysql`） |
+| `dsn`                   | string | データベース DSN またはパス（例: `renop.db`）      |
+| `max_open_conns`        | int32  | 最大オープン接続数                                 |
+| `max_idle_conns`        | int32  | 最大アイドル接続数                                 |
+| `conn_max_lifetime_sec` | int32  | 接続の最大生存期間（秒）                           |
+
+**AuditLogConfig** と **GpgConfig** は `server` にネストされます。独立した `gpg` ドメインはありません。
+
+| フィールド           | 型              | 説明                                  |
+|----------------------|-----------------|---------------------------------------|
+| `audit_log.enabled`  | bool            | 監査ログの永続化を有効にするか        |
+| `audit_log.max_rows` | int32           | 保持する監査ログ行数の上限            |
+| `gpg.key_servers`    | repeated string | HTTPS OpenPGP キーサーバー（1～8 件） |
+
+**proxy** → `ProxyConfig`
+
+名前付き HTTP/HTTPS/SOCKS5 outbound プロキシを管理します。`selected` が空なら直接接続、名前を指定すると そのグローバルプロキシを使用します。
 
 **storage** → `StorageConfig`
 
@@ -144,13 +158,14 @@ POST します）。
 
 レスポンス: protobuf `MavenRepositoriesResponse`（`map<string, Repository>`）。
 
-| フィールド           | 意味                                                   |
-|----------------------|--------------------------------------------------------|
-| `name`               | リポジトリ名                                           |
-| `visibility`         | `PUBLIC` / `HIDDEN` / `PRIVATE`                        |
-| `allow_redeployment` | 既存成果物の上書き可否                                 |
-| `mirrors[]`          | 上流ミラー（url、persist、TTL、auth、allow/deny など） |
-| `s3`                 | 任意の S3 互換ストレージ                               |
+| フィールド              | 意味                                                                 |
+|-------------------------|----------------------------------------------------------------------|
+| `name`                  | リポジトリ名                                                         |
+| `visibility`            | `PUBLIC` / `HIDDEN` / `PRIVATE`                                      |
+| `allow_redeployment`    | 既存成果物の上書き可否                                               |
+| `require_gpg_signature` | 保護対象成果物に分離 GPG 署名を要求するか                            |
+| `mirrors[]`             | 上流ミラー（`proxy` 選択、url、persist、TTL、auth、allow/deny など） |
+| `s3`                    | 任意の S3 互換ストレージ                                             |
 
 ### `PUT /api/settings/maven/repositories/:name`
 

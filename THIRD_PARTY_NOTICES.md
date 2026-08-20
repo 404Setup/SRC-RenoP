@@ -6,9 +6,9 @@ RenoP itself is licensed under the [Mozilla Public License 2.0](LICENSE)
 (incompatible with secondary licenses). Third-party components remain under their own licenses. This file is intended to
 satisfy attribution and notice obligations when RenoP is distributed in source or binary form.
 
-Versions below reflect the dependency set used to produce this notice. For an authoritative build-time inventory, see
-`go.mod` / `go.sum` and the frontend
-`package.json` files under `frontend/renop-html/`, `web/`, and `packages/`.
+Versions below reflect the dependency set used to produce this notice (reviewed 2026-08-21). For an authoritative
+build-time inventory, see `go.mod` / `go.sum` and the workspace `package.json` files under
+`internal/service/frontend/renop-html/`, `web/`, and `packages/`.
 
 ---
 
@@ -38,9 +38,11 @@ installation.
 |---------------------------------------|------------------------------------|--------------------------------------------|----------------------------------------------------------------------------------------------------------------|
 | `filippo.io/edwards25519`             | v1.2.0                             | BSD-3-Clause                               | Copyright (c) 2019 The Go Authors                                                                              |
 | `github.com/3JoB/unsafeConvert`       | v1.6.0                             | Apache-2.0                                 | Authors of unsafeConvert                                                                                       |
+| `github.com/ProtonMail/go-crypto`     | v1.4.1                             | BSD-3-Clause                               | Copyright (c) The Go Authors and Proton AG                                                                     |
 | `github.com/allegro/bigcache/v3`      | v3.1.0                             | Apache-2.0                                 | Copyright (c) 2019 Allegro                                                                                     |
 | `github.com/andybalholm/brotli`       | v1.2.2                             | MIT                                        | Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors                                                      |
 | `github.com/cespare/xxhash/v2`        | v2.3.0                             | MIT                                        | Copyright (c) 2016 Caleb Spare                                                                                 |
+| `github.com/cloudflare/circl`         | v1.6.2                             | BSD-3-Clause                               | Copyright (c) 2020 Cloudflare, Inc.                                                                            |
 | `github.com/dustin/go-humanize`       | v1.0.1                             | MIT                                        | Copyright (c) 2005-2008 Dustin Sallings                                                                        |
 | `github.com/fsnotify/fsnotify`        | v1.10.1                            | BSD-3-Clause                               | Copyright © 2012 The Go Authors; Copyright © fsnotify Authors                                                  |
 | `github.com/fxamacker/cbor/v2`        | v2.9.2                             | MIT                                        | Copyright (c) 2019 Faye Amacker                                                                                |
@@ -48,7 +50,7 @@ installation.
 | `github.com/go-sql-driver/mysql`      | v1.10.0                            | **MPL-2.0**                                | Copyright (c) 2013 The Go-MySQL-Driver Authors                                                                 |
 | `github.com/go-viper/mapstructure/v2` | v2.5.0                             | MIT                                        | Copyright (c) 2013 Mitchell Hashimoto                                                                          |
 | `github.com/go-webauthn/webauthn`     | v0.17.4                            | BSD-3-Clause                               | Copyright (c) 2019-present WebAuthn Authors                                                                    |
-| `github.com/go-webauthn/x`            | v0.2.6                             | BSD-3-Clause                               | Copyright (c) 2023 WebAuthn Authors                                                                            |
+| `github.com/go-webauthn/x`            | v0.2.8                             | BSD-3-Clause                               | Copyright (c) 2023 WebAuthn Authors                                                                            |
 | `github.com/goccy/go-json`            | v0.10.6                            | MIT                                        | Copyright (c) 2020 Masaaki Goshima                                                                             |
 | `github.com/gofiber/fiber/v3`         | v3.4.0                             | MIT                                        | Copyright (c) 2019-present Fenny and Contributors                                                              |
 | `github.com/gofiber/schema`           | v1.8.3                             | BSD-3-Clause                               | Copyright (c) 2023 The Gorilla Authors                                                                         |
@@ -56,7 +58,7 @@ installation.
 | `github.com/golang-jwt/jwt/v5`        | v5.3.1                             | MIT                                        | Copyright (c) 2020-present Go Language JWT Authors                                                             |
 | `github.com/google/go-tpm`            | v0.9.8                             | Apache-2.0                                 | Copyright (c) Google LLC                                                                                       |
 | `github.com/google/uuid`              | v1.6.0                             | BSD-3-Clause                               | Copyright (c) 2009, 2014 Google Inc.                                                                           |
-| `github.com/klauspost/compress`       | v1.19.1                            | BSD-3-Clause (+ Apache-2.0 for some files) | Copyright (c) 2012 The Go Authors; Copyright (c) 2019 Klaus Post                                               |
+| `github.com/klauspost/compress`       | v1.19.2                            | BSD-3-Clause (+ Apache-2.0 for some files) | Copyright (c) 2012 The Go Authors; Copyright (c) 2019 Klaus Post                                               |
 | `github.com/klauspost/cpuid/v2`       | v2.4.0                             | MIT                                        | Copyright (c) 2015 Klaus Post                                                                                  |
 | `github.com/klauspost/crc32`          | v1.3.0                             | BSD-3-Clause                               | Copyright (c) 2012 The Go Authors                                                                              |
 | `github.com/llxisdsh/pb`              | v1.5.25                            | MIT                                        | Copyright (c) 2025 llxisdsh                                                                                    |
@@ -82,11 +84,11 @@ installation.
 | `golang.org/x/sys`                    | v0.47.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/text`                   | v0.40.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/time`                   | v0.15.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
-| `google.golang.org/protobuf`          | v1.36.11                           | BSD-3-Clause                               | Copyright (c) 2018 The Go Authors                                                                              |
+| `google.golang.org/protobuf`          | v1.36.12                           | BSD-3-Clause                               | Copyright (c) 2018 The Go Authors                                                                              |
 | `gopkg.in/ini.v1`                     | v1.67.3                            | Apache-2.0                                 | Copyright 2014– Unknwon and contributors                                                                       |
-| `modernc.org/libc`                    | v1.74.4                            | BSD-3-Clause                               | Copyright (c) 2017 The Libc Authors                                                                            |
+| `modernc.org/libc`                    | v1.75.3                            | BSD-3-Clause                               | Copyright (c) 2017 The Libc Authors                                                                            |
 | `modernc.org/mathutil`                | v1.7.1                             | BSD-3-Clause                               | Copyright (c) 2017 The Mathutil Authors                                                                        |
-| `modernc.org/memory`                  | v1.11.0                            | BSD-3-Clause                               | Copyright (c) 2017 The Memory Authors                                                                          |
+| `modernc.org/memory`                  | v1.12.0                            | BSD-3-Clause                               | Copyright (c) 2017 The Memory Authors                                                                          |
 | `modernc.org/sqlite`                  | v1.56.0                            | BSD-3-Clause                               | Copyright (c) 2017 The Sqlite Authors                                                                          |
 
 Platform-specific transitive modules (via `gopsutil` and related code), which may be compiled into some targets:
@@ -94,7 +96,7 @@ Platform-specific transitive modules (via `gopsutil` and related code), which ma
 | Module                             | Version                            | SPDX         | Copyright / notices                    |
 |------------------------------------|------------------------------------|--------------|----------------------------------------|
 | `github.com/lufia/plan9stats`      | v0.0.0-20260802145828-341c2f0c90b5 | BSD-3-Clause | Copyright (c) 2019 KADOTA, Kyohei      |
-| `github.com/power-devops/perfstat` | v0.0.0-20240221224432-82ca36839d55 | MIT          | Copyright (c) 2020 Power DevOps        |
+| `github.com/power-devops/perfstat` | v0.0.0-20260805114148-88456608a4f6 | MIT          | Copyright (c) 2020 Power DevOps        |
 | `github.com/shoenig/go-m1cpu`      | v0.2.2                             | **MPL-2.0**  | Copyright (c) The M1CPU Authors        |
 | `github.com/tklauser/go-sysconf`   | v0.4.0                             | BSD-3-Clause | Copyright (c) 2018-2022 Tobias Klauser |
 | `github.com/tklauser/numcpus`      | v0.12.0                            | Apache-2.0   | Copyright 2018 Tobias Klauser          |

@@ -25,17 +25,22 @@ import (
 )
 
 type Mirror struct {
-	Authorization  *MirrorCredentials `json:"authorization" yaml:"authorization"`
-	Proxy          *MirrorProxy       `json:"proxy,omitempty" yaml:"proxy,omitempty"`
-	Name           string             `json:"name" yaml:"name"`
-	Url            string             `json:"url" yaml:"url"`
-	EnabledDate    string             `json:"enabled_date" yaml:"enabled_date"`
-	AllowArtifacts []string           `json:"allow_artifacts,omitempty" yaml:"allow_artifacts,omitempty"`
-	DenyArtifacts  []string           `json:"deny_artifacts,omitempty" yaml:"deny_artifacts,omitempty"`
-	CacheTtlSecs   uint64             `json:"cache_ttl_secs" yaml:"cache_ttl_secs"`
-	TimeoutSecs    uint64             `json:"timeout_secs" yaml:"timeout_secs"`
-	Persist        bool               `json:"persist" yaml:"persist"`
-	NegativeCache  bool               `json:"negative_cache" yaml:"negative_cache"`
+	Authorization *MirrorCredentials `json:"authorization" yaml:"authorization"`
+	// ProxyMode is the canonical selector: empty inherits the global proxy,
+	// "direct" bypasses it, and any other value names a global proxy.
+	ProxyMode string `json:"proxy,omitempty" yaml:"proxy,omitempty"`
+	// Proxy is retained only to read legacy repositories.yaml files. It is not
+	// serialized and is ignored when an API update is applied.
+	Proxy          *MirrorProxy `json:"-" yaml:"-"`
+	Name           string       `json:"name" yaml:"name"`
+	Url            string       `json:"url" yaml:"url"`
+	EnabledDate    string       `json:"enabled_date" yaml:"enabled_date"`
+	AllowArtifacts []string     `json:"allow_artifacts,omitempty" yaml:"allow_artifacts,omitempty"`
+	DenyArtifacts  []string     `json:"deny_artifacts,omitempty" yaml:"deny_artifacts,omitempty"`
+	CacheTtlSecs   uint64       `json:"cache_ttl_secs" yaml:"cache_ttl_secs"`
+	TimeoutSecs    uint64       `json:"timeout_secs" yaml:"timeout_secs"`
+	Persist        bool         `json:"persist" yaml:"persist"`
+	NegativeCache  bool         `json:"negative_cache" yaml:"negative_cache"`
 }
 
 type MirrorProxy struct {
@@ -175,16 +180,72 @@ func (m *Mirror) setDefaults() {
 
 func (m *Mirror) UnmarshalJSON(data []byte) error {
 	m.setDefaults()
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	proxyRaw, hasProxy := fields["proxy"]
+	delete(fields, "proxy")
 	type alias Mirror
 	aux := (*alias)(m)
-	return json.Unmarshal(data, aux)
+	clean, err := json.Marshal(fields)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(clean, aux); err != nil {
+		return err
+	}
+	m.ProxyMode = ""
+	m.Proxy = nil
+	if hasProxy && len(proxyRaw) > 0 && string(proxyRaw) != "null" {
+		if err := json.Unmarshal(proxyRaw, &m.ProxyMode); err != nil {
+			var legacy MirrorProxy
+			if legacyErr := json.Unmarshal(proxyRaw, &legacy); legacyErr != nil {
+				return err
+			}
+			m.Proxy = &legacy
+		}
+	}
+	m.ProxyMode = strings.TrimSpace(m.ProxyMode)
+	return nil
 }
 
 func (m *Mirror) UnmarshalYAML(value *yaml.Node) error {
 	m.setDefaults()
+	var fields map[string]yaml.Node
+	if err := value.Decode(&fields); err != nil {
+		return err
+	}
+	proxyNode, hasProxy := fields["proxy"]
+	delete(fields, "proxy")
+	clean := yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	for key, node := range fields {
+		keyNode := yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}
+		nodeCopy := node
+		clean.Content = append(clean.Content, &keyNode, &nodeCopy)
+	}
 	type alias Mirror
 	aux := (*alias)(m)
-	return value.Decode(aux)
+	if err := clean.Decode(aux); err != nil {
+		return err
+	}
+	m.ProxyMode = ""
+	m.Proxy = nil
+	if hasProxy && proxyNode.Kind != 0 && proxyNode.Tag != "!!null" {
+		if proxyNode.Kind == yaml.ScalarNode {
+			if err := proxyNode.Decode(&m.ProxyMode); err != nil {
+				return err
+			}
+		} else {
+			var legacy MirrorProxy
+			if err := proxyNode.Decode(&legacy); err != nil {
+				return err
+			}
+			m.Proxy = &legacy
+		}
+	}
+	m.ProxyMode = strings.TrimSpace(m.ProxyMode)
+	return nil
 }
 
 type MirrorCredentials struct {
@@ -322,6 +383,7 @@ func (m *Mirror) DeepCopy() Mirror {
 		NegativeCache: m.NegativeCache,
 		TimeoutSecs:   m.TimeoutSecs,
 		Authorization: m.Authorization.DeepCopy(),
+		ProxyMode:     strings.Clone(m.ProxyMode),
 		Proxy:         m.Proxy.DeepCopy(),
 		EnabledDate:   strings.Clone(m.EnabledDate),
 	}

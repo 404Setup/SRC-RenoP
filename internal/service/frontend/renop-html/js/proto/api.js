@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
 /*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-mixed-operators, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, default-case, jsdoc/require-param*/
 import $protobuf from "protobufjs/minimal.js";
 
@@ -8573,7 +8583,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [enabled_date] Mirror enabled_date
                  * @property {Array.<string>|null} [allow_artifacts] Mirror allow_artifacts
                  * @property {Array.<string>|null} [deny_artifacts] Mirror deny_artifacts
-                 * @property {renop.api.v1.MirrorProxy.$Properties|null} [proxy] Mirror proxy
+                 * @property {string|null} [proxy] Mirror proxy
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -8689,11 +8699,11 @@ export const renop = $root.renop = (() => {
 
                 /**
                  * Mirror proxy.
-                 * @member {renop.api.v1.MirrorProxy.$Properties|null|undefined} proxy
+                 * @member {string} proxy
                  * @memberof renop.api.v1.Mirror
                  * @instance
                  */
-                Mirror.prototype.proxy = null;
+                Mirror.prototype.proxy = "";
 
                 /**
                  * Creates a new Mirror instance using the specified properties.
@@ -8749,8 +8759,8 @@ export const renop = $root.renop = (() => {
                     if (message.deny_artifacts != null && message.deny_artifacts.length)
                         for (let i = 0; i < message.deny_artifacts.length; ++i)
                             writer.uint32(/* id 10, wireType 2 =*/82).string(message.deny_artifacts[i]);
-                    if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy"))
-                        $root.renop.api.v1.MirrorProxy.encode(message.proxy, writer.uint32(/* id 11, wireType 2 =*/90).fork(), _depth + 1).ldelim();
+                    if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy") && message.proxy !== "")
+                        writer.uint32(/* id 11, wireType 2 =*/90).string(message.proxy);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -8886,7 +8896,10 @@ export const renop = $root.renop = (() => {
                         case 11: {
                                 if (wireType !== 2)
                                     break;
-                                message.proxy = $root.renop.api.v1.MirrorProxy.decode(reader, reader.uint32(), $undefined, _depth + 1, message.proxy);
+                                if ((value = reader.stringVerify()).length)
+                                    message.proxy = value;
+                                else
+                                    delete message.proxy;
                                 continue;
                             }
                         }
@@ -8972,11 +8985,9 @@ export const renop = $root.renop = (() => {
                             if (!$util.isString(message.deny_artifacts[i]))
                                 return "deny_artifacts: string[] expected";
                     }
-                    if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy")) {
-                        let error = $root.renop.api.v1.MirrorProxy.verify(message.proxy, _depth + 1);
-                        if (error)
-                            return "proxy." + error;
-                    }
+                    if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy"))
+                        if (!$util.isString(message.proxy))
+                            return "proxy: string expected";
                     return null;
                 };
 
@@ -9052,11 +9063,9 @@ export const renop = $root.renop = (() => {
                         for (let i = 0; i < object.deny_artifacts.length; ++i)
                             message.deny_artifacts[i] = $String(object.deny_artifacts[i]);
                     }
-                    if (object.proxy != null) {
-                        if (!$util.isObject(object.proxy))
-                            throw $TypeError(".renop.api.v1.Mirror.proxy: object expected");
-                        message.proxy = $root.renop.api.v1.MirrorProxy.fromObject(object.proxy, _depth + 1);
-                    }
+                    if (object.proxy != null)
+                        if (typeof object.proxy !== "string" || object.proxy.length)
+                            message.proxy = $String(object.proxy);
                     return message;
                 };
 
@@ -9098,7 +9107,7 @@ export const renop = $root.renop = (() => {
                             object.timeout_secs = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                         object.authorization = null;
                         object.enabled_date = "";
-                        object.proxy = null;
+                        object.proxy = "";
                     }
                     if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
                         object.name = message.name;
@@ -9137,7 +9146,7 @@ export const renop = $root.renop = (() => {
                             object.deny_artifacts[j] = message.deny_artifacts[j];
                     }
                     if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy"))
-                        object.proxy = $root.renop.api.v1.MirrorProxy.toObject(message.proxy, options, _depth + 1);
+                        object.proxy = message.proxy;
                     return object;
                 };
 
@@ -13269,6 +13278,7 @@ export const renop = $root.renop = (() => {
                  * @property {boolean|null} [debug_mode] ServerConfig debug_mode
                  * @property {renop.api.v1.DatabaseConfig.$Properties|null} [database] ServerConfig database
                  * @property {renop.api.v1.AuditLogConfig.$Properties|null} [audit_log] ServerConfig audit_log
+                 * @property {renop.api.v1.GpgConfig.$Properties|null} [gpg] ServerConfig gpg
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -13424,6 +13434,14 @@ export const renop = $root.renop = (() => {
                 ServerConfig.prototype.audit_log = null;
 
                 /**
+                 * ServerConfig gpg.
+                 * @member {renop.api.v1.GpgConfig.$Properties|null|undefined} gpg
+                 * @memberof renop.api.v1.ServerConfig
+                 * @instance
+                 */
+                ServerConfig.prototype.gpg = null;
+
+                /**
                  * Creates a new ServerConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.ServerConfig
@@ -13488,6 +13506,8 @@ export const renop = $root.renop = (() => {
                         $root.renop.api.v1.DatabaseConfig.encode(message.database, writer.uint32(/* id 14, wireType 2 =*/114).fork(), _depth + 1).ldelim();
                     if (message.audit_log != null && $Object.hasOwnProperty.call(message, "audit_log"))
                         $root.renop.api.v1.AuditLogConfig.encode(message.audit_log, writer.uint32(/* id 15, wireType 2 =*/122).fork(), _depth + 1).ldelim();
+                    if (message.gpg != null && $Object.hasOwnProperty.call(message, "gpg"))
+                        $root.renop.api.v1.GpgConfig.encode(message.gpg, writer.uint32(/* id 16, wireType 2 =*/130).fork(), _depth + 1).ldelim();
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -13661,6 +13681,12 @@ export const renop = $root.renop = (() => {
                                 message.audit_log = $root.renop.api.v1.AuditLogConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.audit_log);
                                 continue;
                             }
+                        case 16: {
+                                if (wireType !== 2)
+                                    break;
+                                message.gpg = $root.renop.api.v1.GpgConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.gpg);
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -13765,6 +13791,11 @@ export const renop = $root.renop = (() => {
                         if (error)
                             return "audit_log." + error;
                     }
+                    if (message.gpg != null && $Object.hasOwnProperty.call(message, "gpg")) {
+                        let error = $root.renop.api.v1.GpgConfig.verify(message.gpg, _depth + 1);
+                        if (error)
+                            return "gpg." + error;
+                    }
                     return null;
                 };
 
@@ -13847,6 +13878,11 @@ export const renop = $root.renop = (() => {
                             throw $TypeError(".renop.api.v1.ServerConfig.audit_log: object expected");
                         message.audit_log = $root.renop.api.v1.AuditLogConfig.fromObject(object.audit_log, _depth + 1);
                     }
+                    if (object.gpg != null) {
+                        if (!$util.isObject(object.gpg))
+                            throw $TypeError(".renop.api.v1.ServerConfig.gpg: object expected");
+                        message.gpg = $root.renop.api.v1.GpgConfig.fromObject(object.gpg, _depth + 1);
+                    }
                     return message;
                 };
 
@@ -13885,6 +13921,7 @@ export const renop = $root.renop = (() => {
                         object.debug_mode = false;
                         object.database = null;
                         object.audit_log = null;
+                        object.gpg = null;
                     }
                     if (message.host != null && $Object.hasOwnProperty.call(message, "host"))
                         object.host = message.host;
@@ -13925,6 +13962,8 @@ export const renop = $root.renop = (() => {
                         object.database = $root.renop.api.v1.DatabaseConfig.toObject(message.database, options, _depth + 1);
                     if (message.audit_log != null && $Object.hasOwnProperty.call(message, "audit_log"))
                         object.audit_log = $root.renop.api.v1.AuditLogConfig.toObject(message.audit_log, options, _depth + 1);
+                    if (message.gpg != null && $Object.hasOwnProperty.call(message, "gpg"))
+                        object.gpg = $root.renop.api.v1.GpgConfig.toObject(message.gpg, options, _depth + 1);
                     return object;
                 };
 
