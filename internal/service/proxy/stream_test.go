@@ -278,6 +278,31 @@ func TestProxyArtifactRejectsOversizedDeclaredResponse(t *testing.T) {
 	}
 }
 
+func TestProxyMetadataRejectsOversizedDeclaredResponse(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Length", strconv.FormatInt(maxProxyMetadataSize+1, 10))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+
+	state := core.NewAppState()
+	state.Inner.FileIndex = index.NewFileIndex()
+	repo := &config.Repository{Name: "snapshots", Mirrors: []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}}
+	storagePath := t.TempDir()
+	path := "com/example/demo/1.0-SNAPSHOT/maven-metadata.xml"
+	pathStr := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))
+	dl, _ := state.Inner.InFlightDownloads.LockPath(pathStr)
+
+	stream, err := ProxyArtifact(state, repo, path, storagePath, pathStr, dl)
+	if stream != nil {
+		_ = stream.Close()
+		t.Fatal("oversized metadata response returned a stream")
+	}
+	if !errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+		t.Fatalf("error = %v, want %v", err, fiber.ErrRequestEntityTooLarge)
+	}
+}
+
 func TestProxyArtifactUsesMirrorTimeout(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		time.Sleep(2 * time.Second)

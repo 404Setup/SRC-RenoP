@@ -86,6 +86,23 @@ func init() {
 			javadocs.CleanupJavadoc(localPath)
 		}
 	}
+	proxy.OnArtifactStoredWithState = func(state *core.AppState, repo *config.Repository, localPath string) {
+		if state == nil || repo == nil {
+			return
+		}
+		if isMavenMetadataPath(localPath) {
+			state.InvalidateFileCache(localPath)
+			if err := cleanupSnapshotArtifactsFromMetadata(state, localPath); err != nil {
+				log.Printf("failed to reconcile Maven SNAPSHOT metadata %s: %v", localPath, err)
+			}
+			return
+		}
+		if isSnapshotArtifactPath(localPath) && !isArtifactCompanionPath(localPath) {
+			if err := cleanupSupersededUniqueSnapshots(state, localPath); err != nil {
+				log.Printf("failed to clean superseded Maven SNAPSHOT artifact %s: %v", localPath, err)
+			}
+		}
+	}
 	javadocs.IsS3Enabled = IsS3Enabled
 	javadocs.DownloadFromS3 = DownloadFromS3
 }

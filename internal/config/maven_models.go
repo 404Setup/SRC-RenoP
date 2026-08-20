@@ -21,9 +21,10 @@ type Plugins struct {
 }
 
 type SnapshotVersion struct {
-	Extension *string `json:"extension,omitempty" xml:"extension,omitempty"`
-	Value     *string `json:"value,omitempty" xml:"value,omitempty"`
-	Updated   *string `json:"updated,omitempty" xml:"updated,omitempty"`
+	Extension  *string `json:"extension,omitempty" xml:"extension,omitempty"`
+	Classifier *string `json:"classifier,omitempty" xml:"classifier,omitempty"`
+	Value      *string `json:"value,omitempty" xml:"value,omitempty"`
+	Updated    *string `json:"updated,omitempty" xml:"updated,omitempty"`
 }
 
 type Snapshot struct {

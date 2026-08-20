@@ -33,18 +33,37 @@ import (
 )
 
 var (
-	IsS3Enabled      func(repo *config.Repository) bool
-	UploadToS3       func(repo *config.Repository, localPath string, s3Key string) error
-	UploadStreamToS3 func(repo *config.Repository, s3Key string, reader io.Reader, size int64, contentType string) error
-	OnArtifactStored func(localPath string)
+	IsS3Enabled               func(repo *config.Repository) bool
+	UploadToS3                func(repo *config.Repository, localPath string, s3Key string) error
+	UploadStreamToS3          func(repo *config.Repository, s3Key string, reader io.Reader, size int64, contentType string) error
+	OnArtifactStored          func(localPath string)
+	OnArtifactStoredWithState func(state *core.AppState, repo *config.Repository, localPath string)
 )
 
 var httpClient = newProxyHTTPClient()
 
 const (
 	maxProxyArtifactSize = 512 << 20
+	maxProxyMetadataSize = 2 << 20
 	proxyDiskReserve     = 64 << 20
 )
+
+func notifyArtifactStored(state *core.AppState, repo *config.Repository, localPath string) {
+	if OnArtifactStored != nil {
+		OnArtifactStored(localPath)
+	}
+	if OnArtifactStoredWithState != nil {
+		OnArtifactStoredWithState(state, repo, localPath)
+	}
+}
+
+func proxyResponseLimit(path string) int64 {
+	name := strings.ToLower(filepath.Base(path))
+	if name == "maven-metadata.xml" || strings.HasPrefix(name, "maven-metadata.xml.") {
+		return maxProxyMetadataSize
+	}
+	return maxProxyArtifactSize
+}
 
 func newProxyHTTPClient() *http.Client {
 	client := utils.OutboundClient(0)
@@ -129,9 +148,7 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 				Size:    int64(len(data)),
 				ModTime: time.Now().UnixNano(),
 			})
-			if OnArtifactStored != nil {
-				OnArtifactStored(localFilePath)
-			}
+			notifyArtifactStored(state, repo, localFilePath)
 			return true
 		}
 		return false
@@ -155,9 +172,7 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 			Size:    int64(len(data)),
 			ModTime: time.Now().UnixNano(),
 		})
-		if OnArtifactStored != nil {
-			OnArtifactStored(localFilePath)
-		}
+		notifyArtifactStored(state, repo, localFilePath)
 
 		return true
 	}
@@ -235,7 +250,8 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 
 		if res.StatusCode >= 200 && res.StatusCode < 300 {
 			localFilePath := filepath.Join(storagePath, repo.Name, path)
-			if res.ContentLength > maxProxyArtifactSize {
+			responseLimit := proxyResponseLimit(path)
+			if res.ContentLength > responseLimit {
 				utils.DiscardHTTPBody(res.Body, res.ContentLength)
 				streamCancel()
 				<-state.Inner.ProxyClientSemaphore
@@ -287,19 +303,17 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 					if err := os.Remove(p); err != nil {
 						return false
 					}
-					if OnArtifactStored != nil {
-						OnArtifactStored(p)
-					}
+					notifyArtifactStored(state, repo, p)
 					return true
 				}
-			} else if OnArtifactStored != nil {
+			} else if OnArtifactStored != nil || OnArtifactStoredWithState != nil {
 				onSuccess = func(p string) bool {
-					OnArtifactStored(p)
+					notifyArtifactStored(state, repo, p)
 					return true
 				}
 			}
 
-			var bodyReader io.ReadCloser = res.Body
+			var bodyReader = res.Body
 			if readErr != nil {
 				bodyReader = struct {
 					io.Reader
@@ -329,7 +343,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 				streamCancel,
 				state.Inner.FileIndex,
 				onSuccess,
-				maxProxyArtifactSize,
+				responseLimit,
 				func(next uint64) bool { return canAllocateProxyDisk(state, next) },
 			)
 			return stream, nil

@@ -13,12 +13,14 @@ package storage
 import (
 	"bytes"
 	"errors"
+	"io"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,6 +29,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
+	"renop/internal/service/proxy"
 	"renop/internal/utils"
 )
 
@@ -200,6 +203,72 @@ func TestUniqueSnapshotUploadPurgesOlderBuild(t *testing.T) {
 	}
 }
 
+func TestUniqueSnapshotBuildNumberFromMirrorPurgesOlderBuild(t *testing.T) {
+	_, state, storagePath, repo := setupSnapshotPutApp(t)
+	versionDir := filepath.Join(storagePath, "snapshots", "com", "example", "demo", "1.0.0-SNAPSHOT")
+	oldPath := filepath.Join(versionDir, "demo-1.0.0-1.jar")
+	mustWriteIndexed(t, state, oldPath, []byte("old"))
+	mustWriteIndexed(t, state, oldPath+".sha1", []byte("old-sha"))
+
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "demo-1.0.0-2.jar") {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte("new"))
+	}))
+	t.Cleanup(upstream.Close)
+	repo.Mirrors = []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}
+
+	path := "com/example/demo/1.0.0-SNAPSHOT/demo-1.0.0-2.jar"
+	localPath := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))
+	dl, _ := state.Inner.InFlightDownloads.LockPath(localPath)
+	stream, err := proxy.ProxyArtifact(state, repo, path, storagePath, localPath, dl)
+	if err != nil {
+		t.Fatalf("ProxyArtifact: %v", err)
+	}
+	if _, err := io.Copy(io.Discard, stream); err != nil {
+		t.Fatal(err)
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(oldPath); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("old numeric snapshot still exists, err=%v", err)
+	}
+	if state.Inner.FileIndex.HasFile(oldPath) || state.Inner.FileIndex.HasFile(oldPath+".sha1") {
+		t.Fatal("old numeric snapshot remains in the file index")
+	}
+}
+
+func TestSnapshotMetadataPurgesBuildsNotAdvertisedUpstream(t *testing.T) {
+	_, state, storagePath, _ := setupSnapshotPutApp(t)
+	versionDir := filepath.Join(storagePath, "snapshots", "com", "example", "demo", "1.0.0-SNAPSHOT")
+	oldPath := filepath.Join(versionDir, "demo-1.0.0-1.jar")
+	keepPath := filepath.Join(versionDir, "demo-1.0.0-2.jar")
+	mustWriteIndexed(t, state, oldPath, []byte("old"))
+	mustWriteIndexed(t, state, oldPath+".asc", []byte("old-signature"))
+	mustWriteIndexed(t, state, keepPath, []byte("keep"))
+	mustWriteIndexed(t, state, keepPath+".sha1", []byte("keep-sha"))
+	metadataPath := filepath.Join(versionDir, "maven-metadata.xml")
+	metadata := []byte(`<metadata><artifactId>demo</artifactId><version>1.0.0-SNAPSHOT</version><versioning><snapshotVersions><snapshotVersion><extension>jar</extension><value>1.0.0-2</value></snapshotVersion></snapshotVersions></versioning></metadata>`)
+	mustWriteIndexed(t, state, metadataPath, metadata)
+
+	if err := cleanupSnapshotArtifactsFromMetadata(state, metadataPath); err != nil {
+		t.Fatalf("cleanupSnapshotArtifactsFromMetadata: %v", err)
+	}
+	if _, err := os.Stat(oldPath); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("metadata-stale build still exists, err=%v", err)
+	}
+	if _, err := os.Stat(oldPath + ".asc"); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("metadata-stale signature still exists, err=%v", err)
+	}
+	if _, err := os.Stat(keepPath); err != nil {
+		t.Fatalf("advertised build was removed: %v", err)
+	}
+}
+
 func TestParseUniqueSnapshotBaseName(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -211,6 +280,8 @@ func TestParseUniqueSnapshotBaseName(t *testing.T) {
 	}{
 		{name: "demo-1.0-20240101.120000-1.jar", ok: true, prefix: "demo-1.0", unique: "20240101.120000-1", classif: "", ext: ".jar"},
 		{name: "demo-1.0-20240101.120000-1-sources.jar", ok: true, prefix: "demo-1.0", unique: "20240101.120000-1", classif: "-sources", ext: ".jar"},
+		{name: "demo-1.0.0-2.jar", ok: true, prefix: "demo-1.0.0", unique: "2", classif: "", ext: ".jar"},
+		{name: "demo-1.0.0-2-sources.jar", ok: true, prefix: "demo-1.0.0", unique: "2", classif: "-sources", ext: ".jar"},
 		{name: "demo-1.0-SNAPSHOT.jar", ok: false, prefix: "", unique: "", classif: "", ext: ""},
 		{name: "maven-metadata.xml", ok: false, prefix: "", unique: "", classif: "", ext: ""},
 	}

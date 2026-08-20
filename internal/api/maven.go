@@ -12,7 +12,10 @@ package api
 
 import (
 	"encoding/xml"
+	"errors"
 	"io"
+	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -33,7 +36,8 @@ func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Me
 	if !utils.IsValidRepositoryName(repoName) {
 		return nil, fiber.ErrBadRequest
 	}
-	if _, ok := cfg.Maven.Repositories[repoName]; !ok {
+	repo, ok := cfg.Maven.Repositories[repoName]
+	if !ok || repo == nil {
 		return nil, fiber.ErrNotFound
 	}
 
@@ -42,51 +46,111 @@ func FindMetadata(state *core.AppState, repoName string, gav string) (*config.Me
 		return nil, fiber.ErrBadRequest
 	}
 
-	localFilePath := filepath.Join(cfg.StoragePath, repoName, sanitizedGav)
-	if !strings.HasSuffix(localFilePath, "maven-metadata.xml") {
-		localFilePath = filepath.Join(localFilePath, "maven-metadata.xml")
+	metadataPaths := metadataPathCandidates(cfg.StoragePath, repoName, sanitizedGav)
+	for _, localFilePath := range metadataPaths {
+		if !utils.IsSubPath(cfg.StoragePath, localFilePath) {
+			return nil, fiber.ErrBadRequest
+		}
+
+		cacheKey := filepath.ToSlash(localFilePath)
+		if cachedMeta, ok := state.Inner.MetadataCache.Load(cacheKey); ok {
+			return cachedMeta, nil
+		}
+
+		if !metadataPathExists(state, localFilePath) {
+			if fetchErr := storage.FetchMetadataFromMirror(state, repoName, localFilePath); fetchErr != nil &&
+				!errors.Is(fetchErr, fiber.ErrNotFound) && !errors.Is(fetchErr, fiber.ErrBadRequest) {
+				log.Printf("failed to fetch Maven metadata %s from mirror: %v", localFilePath, fetchErr)
+			}
+		}
+
+		metadata, err := readMetadataFile(localFilePath, maxMetadataSize)
+		if err == nil {
+			state.StoreMetadataCache(cacheKey, metadata)
+			return metadata, nil
+		}
+		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+			return nil, err
+		}
+		if !errors.Is(err, fiber.ErrNotFound) {
+			return nil, err
+		}
 	}
 
-	if !utils.IsSubPath(cfg.StoragePath, localFilePath) {
-		return nil, fiber.ErrBadRequest
+	return nil, fiber.ErrNotFound
+}
+
+func metadataPathCandidates(storagePath, repoName, gav string) []string {
+	trimmed := strings.Trim(gav, "/")
+	metadataName := strings.ToLower(filepath.Base(trimmed))
+	if metadataName == "maven-metadata.xml" {
+		return []string{filepath.Join(storagePath, repoName, filepath.FromSlash(trimmed))}
 	}
 
-	if !state.Inner.FileIndex.HasFile(localFilePath) {
-		return nil, fiber.ErrNotFound
+	base := filepath.Join(storagePath, repoName, filepath.FromSlash(trimmed), "maven-metadata.xml")
+	candidates := []string{base}
+	parts := strings.Split(trimmed, "/")
+	if len(parts) >= 3 && looksLikeMavenVersionSegment(parts[len(parts)-1]) {
+		parent := strings.Join(parts[:len(parts)-1], "/")
+		fallback := filepath.Join(storagePath, repoName, filepath.FromSlash(parent), "maven-metadata.xml")
+		if filepath.ToSlash(fallback) != filepath.ToSlash(base) {
+			candidates = append(candidates, fallback)
+		}
 	}
+	return candidates
+}
 
-	cacheKey := filepath.ToSlash(localFilePath)
-	if cachedMeta, ok := state.Inner.MetadataCache.Load(cacheKey); ok {
-		return cachedMeta, nil
+func looksLikeMavenVersionSegment(segment string) bool {
+	segment = strings.TrimSpace(segment)
+	if segment == "" {
+		return false
 	}
+	upper := strings.ToUpper(segment)
+	if strings.Contains(upper, "SNAPSHOT") || strings.Contains(segment, ".") {
+		return true
+	}
+	return segment[0] >= '0' && segment[0] <= '9'
+}
 
+func metadataPathExists(state *core.AppState, localFilePath string) bool {
+	if state != nil && state.Inner != nil && state.Inner.FileIndex != nil && state.Inner.FileIndex.HasFile(localFilePath) {
+		return true
+	}
+	if storage.IsS3Enabled(localFilePath) {
+		_, err := storage.StatS3(utils.GetS3Key(localFilePath))
+		return err == nil
+	}
+	_, err := os.Stat(localFilePath)
+	return err == nil
+}
+
+func readMetadataFile(localFilePath string, maxMetadataSize int) (*config.Metadata, error) {
 	var r io.ReadCloser
 	var err error
 	if storage.IsS3Enabled(localFilePath) {
-		s3Key := utils.GetS3Key(localFilePath)
-		r, _, err = storage.DownloadFromS3(s3Key)
-		if err != nil {
-			return nil, fiber.ErrNotFound
-		}
+		r, _, err = storage.DownloadFromS3(utils.GetS3Key(localFilePath))
 	} else {
 		r, err = os.Open(localFilePath)
-		if err != nil {
-			return nil, fiber.ErrInternalServerError
+	}
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fiber.ErrNotFound
 		}
+		return nil, fiber.ErrInternalServerError
 	}
 	limited := &io.LimitedReader{R: r, N: int64(maxMetadataSize) + 1}
 	var metadata config.Metadata
-	decErr := xml.NewDecoder(limited).Decode(&metadata)
-	_ = r.Close()
+	decodeErr := xml.NewDecoder(limited).Decode(&metadata)
+	closeErr := r.Close()
 	if limited.N <= 0 {
 		return nil, fiber.ErrRequestEntityTooLarge
 	}
-	if decErr != nil {
+	if decodeErr != nil {
 		return nil, fiber.ErrInternalServerError
 	}
-
-	state.StoreMetadataCache(cacheKey, &metadata)
-
+	if closeErr != nil {
+		return nil, fiber.ErrInternalServerError
+	}
 	return &metadata, nil
 }
 

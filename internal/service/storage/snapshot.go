@@ -11,17 +11,24 @@
 package storage
 
 import (
+	"encoding/xml"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/utils"
 )
 
 var artifactCompanionExts = []string{".md5", ".sha1", ".sha256", ".sha512", ".asc"}
 
-var uniqueSnapshotBaseRE = regexp.MustCompile(`^(.+)-(\d{8}\.\d{6}-\d+)(-[^.]+)?(\.[A-Za-z0-9]+)$`)
+var (
+	uniqueSnapshotTimestampRE = regexp.MustCompile(`^(.+)-(\d{8}\.\d{6}-\d+)(-[^.]+)?(\.[A-Za-z0-9]+)$`)
+	uniqueSnapshotBuildRE     = regexp.MustCompile(`^(.+)-(\d+)(-[^.]+)?(\.[A-Za-z0-9]+)$`)
+)
 
 func isArtifactCompanionPath(path string) bool {
 	lower := strings.ToLower(path)
@@ -66,7 +73,10 @@ type uniqueSnapshotParts struct {
 }
 
 func parseUniqueSnapshotBaseName(baseName string) (uniqueSnapshotParts, bool) {
-	m := uniqueSnapshotBaseRE.FindStringSubmatch(baseName)
+	m := uniqueSnapshotTimestampRE.FindStringSubmatch(baseName)
+	if m == nil {
+		m = uniqueSnapshotBuildRE.FindStringSubmatch(baseName)
+	}
 	if m == nil {
 		return uniqueSnapshotParts{}, false
 	}
@@ -143,10 +153,6 @@ func cleanupSupersededUniqueSnapshots(state *core.AppState, localFilePath string
 			continue
 		}
 		artifactBase := stripArtifactCompanionSuffix(child)
-		if strings.Contains(strings.ToUpper(artifactBase), "SNAPSHOT") &&
-			!uniqueSnapshotBaseRE.MatchString(artifactBase) {
-			continue
-		}
 
 		other, ok := parseUniqueSnapshotBaseName(artifactBase)
 		if !ok {
@@ -159,6 +165,154 @@ func cleanupSupersededUniqueSnapshots(state *core.AppState, localFilePath string
 			continue
 		}
 		if err := removeIndexedFile(state, filepath.Join(dir, child)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isMavenMetadataPath(path string) bool {
+	name := strings.ToLower(filepath.Base(path))
+	return name == "maven-metadata.xml"
+}
+
+// cleanupSnapshotArtifactsFromMetadata removes unique snapshot builds that are
+// no longer advertised by version-level Maven metadata. Maven Central and
+// compatible repositories publish the authoritative build value in
+// <snapshotVersions>, so using the metadata avoids retaining stale builds when
+// an upstream repository advances from build 1 to build 2.
+func cleanupSnapshotArtifactsFromMetadata(state *core.AppState, metadataPath string) error {
+	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil || !isMavenMetadataPath(metadataPath) {
+		return nil
+	}
+
+	versionDir := filepath.Dir(metadataPath)
+	versionName := filepath.Base(versionDir)
+	if !strings.Contains(strings.ToUpper(versionName), "SNAPSHOT") {
+		return nil
+	}
+
+	const maxMetadataSize = 2 * 1024 * 1024
+	var r io.ReadCloser
+	var err error
+	if IsS3Enabled(metadataPath) {
+		r, _, err = DownloadFromS3(utils.GetS3Key(metadataPath))
+	} else {
+		r, err = os.Open(metadataPath)
+	}
+	if err != nil {
+		return err
+	}
+	limited := &io.LimitedReader{R: r, N: maxMetadataSize + 1}
+	var metadata config.Metadata
+	decodeErr := xml.NewDecoder(limited).Decode(&metadata)
+	closeErr := r.Close()
+	if decodeErr != nil {
+		return decodeErr
+	}
+	if limited.N <= 0 {
+		return io.ErrShortBuffer
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+
+	if metadata.Versioning == nil || metadata.Versioning.SnapshotVersions == nil ||
+		len(metadata.Versioning.SnapshotVersions.SnapshotVersion) == 0 {
+		return nil
+	}
+
+	artifactID := ""
+	if metadata.ArtifactId != nil {
+		artifactID = strings.TrimSpace(*metadata.ArtifactId)
+	}
+	if artifactID == "" {
+		artifactID = filepath.Base(filepath.Dir(versionDir))
+	}
+	if artifactID == "" || strings.ContainsAny(artifactID, `/\\`) {
+		return nil
+	}
+
+	baseVersion := versionName
+	if idx := strings.LastIndex(strings.ToUpper(baseVersion), "-SNAPSHOT"); idx >= 0 {
+		baseVersion = baseVersion[:idx]
+	}
+	if baseVersion == "" {
+		return nil
+	}
+	prefix := artifactID + "-" + baseVersion
+	allowed := make(map[string]struct{}, len(metadata.Versioning.SnapshotVersions.SnapshotVersion)*2)
+	for _, snapshotVersion := range metadata.Versioning.SnapshotVersions.SnapshotVersion {
+		if snapshotVersion.Value == nil || snapshotVersion.Extension == nil {
+			continue
+		}
+		value := strings.TrimSpace(*snapshotVersion.Value)
+		extension := strings.TrimPrefix(strings.TrimSpace(*snapshotVersion.Extension), ".")
+		if value == "" || extension == "" || strings.ContainsAny(value+extension, `/\\`) || len(value) > 512 || len(extension) > 32 {
+			continue
+		}
+		classifier := ""
+		if snapshotVersion.Classifier != nil {
+			classifier = strings.TrimSpace(*snapshotVersion.Classifier)
+			if classifier != "" && (strings.ContainsAny(classifier, `/\\`) || len(classifier) > 128) {
+				continue
+			}
+		}
+		stem := artifactID + "-" + value
+		if classifier != "" {
+			stem += "-" + classifier
+		}
+		allowed[stem+"."+extension] = struct{}{}
+		// A few Maven-compatible repositories omit the base version in value;
+		// accept both spellings while still constraining the artifact prefix.
+		if !strings.HasPrefix(value, baseVersion+"-") {
+			prefixed := prefix + "-" + value
+			if classifier != "" {
+				prefixed += "-" + classifier
+			}
+			allowed[prefixed+"."+extension] = struct{}{}
+		}
+	}
+	if len(allowed) == 0 {
+		return nil
+	}
+
+	entriesFromIndex := state.Inner.FileIndex.GetChildren(filepath.ToSlash(versionDir))
+	seen := make(map[string]struct{}, len(entriesFromIndex)+16)
+	children := make([]string, 0, len(entriesFromIndex)+16)
+	for _, child := range entriesFromIndex {
+		if _, exists := seen[child]; !exists {
+			seen[child] = struct{}{}
+			children = append(children, child)
+		}
+	}
+	if !IsS3Enabled(metadataPath) {
+		if entries, readErr := os.ReadDir(versionDir); readErr == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+				if _, exists := seen[entry.Name()]; !exists {
+					seen[entry.Name()] = struct{}{}
+					children = append(children, entry.Name())
+				}
+			}
+		}
+	}
+
+	for _, child := range children {
+		if strings.HasPrefix(strings.ToLower(child), "maven-metadata") {
+			continue
+		}
+		artifactBase := stripArtifactCompanionSuffix(child)
+		parts, ok := parseUniqueSnapshotBaseName(artifactBase)
+		if !ok || parts.prefix != prefix {
+			continue
+		}
+		if _, keep := allowed[artifactBase]; keep {
+			continue
+		}
+		if err := removeIndexedFile(state, filepath.Join(versionDir, child)); err != nil {
 			return err
 		}
 	}
