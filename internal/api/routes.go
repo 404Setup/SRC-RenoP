@@ -60,7 +60,6 @@ func SetupApiRoutes(router fiber.Router, state *core.AppState) {
 		policy := getCachedPolicy()
 		if policy != nil {
 			c.Set(fiber.HeaderContentType, "text/plain; charset=utf-8")
-			c.Set(fiber.HeaderCacheControl, "public, max-age=31536000, immutable")
 			return c.Status(fiber.StatusOK).Send(policy)
 		}
 		return c.SendStatus(fiber.StatusNotFound)

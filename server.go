@@ -76,6 +76,7 @@ func main() {
 		ReadBufferSize:               4 * 1024,
 	})
 
+	app.Use(middleware.APINoCacheMiddleware())
 	app.Use(middleware.CorsMiddleware(state))
 	app.Use(middleware.AnomalyMiddleware(state))
 
