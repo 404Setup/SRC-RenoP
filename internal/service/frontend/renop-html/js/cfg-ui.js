@@ -486,16 +486,24 @@ export function createSection(iconSvg, title, subtitle, options = {}) {
  */
 export function animateFieldsToggle(container, show) {
     if (!container) return;
+
+    const knownVisible = typeof container._fieldsVisible === 'boolean'
+        ? container._fieldsVisible
+        : container.style.display !== 'none' && container.offsetHeight > 0;
+    container._fieldsVisible = show;
+
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         container.style.display = show ? '' : 'none';
         container.style.height = '';
         container.style.transition = '';
         container.style.overflow = '';
+        container.style.visibility = '';
+        container.style.boxSizing = '';
+        container.style.minHeight = '';
         return;
     }
 
-    const isCurrentlyVisible = container.style.display !== 'none' && container.offsetHeight > 0;
-    if (show === isCurrentlyVisible) return;
+    if (show === knownVisible && !container._animTimer1) return;
 
     if (container._animTimer1) clearTimeout(container._animTimer1);
     if (container._animTimer2) clearTimeout(container._animTimer2);
@@ -511,6 +519,9 @@ export function animateFieldsToggle(container, show) {
         });
 
         container.style.height = `${startHeight}px`;
+        container.style.boxSizing = 'border-box';
+        container.style.minHeight = '0';
+        container.style.visibility = 'visible';
         container.style.overflow = 'hidden';
         void container.offsetHeight;
 
@@ -522,10 +533,16 @@ export function animateFieldsToggle(container, show) {
             container.style.height = '';
             container.style.transition = '';
             container.style.overflow = '';
+            container.style.visibility = '';
+            container.style.boxSizing = '';
+            container.style.minHeight = '';
             rows.forEach(row => row.classList.remove('cfg-field-row--leaving'));
         }, 300);
     } else {
         container.style.display = '';
+        container.style.visibility = 'hidden';
+        container.style.boxSizing = 'border-box';
+        container.style.minHeight = '0';
         container.style.overflow = 'hidden';
         container.style.height = 'auto';
         const targetHeight = container.getBoundingClientRect().height;
@@ -540,6 +557,7 @@ export function animateFieldsToggle(container, show) {
 
         void container.offsetHeight;
 
+        container.style.visibility = 'visible';
         container.style.transition = 'height 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
         container.style.height = `${targetHeight}px`;
 
@@ -547,6 +565,9 @@ export function animateFieldsToggle(container, show) {
             container.style.height = '';
             container.style.transition = '';
             container.style.overflow = '';
+            container.style.visibility = '';
+            container.style.boxSizing = '';
+            container.style.minHeight = '';
             rows.forEach(row => row.classList.remove('cfg-field-row--entering'));
         }, 350);
     }

@@ -617,6 +617,7 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
             gap: '0'
         }
     });
+    credsRow._fieldsVisible = currentMethod !== 'none';
 
     const userInput = makeCfgInput(
         mirror.authorization ? mirror.authorization.login || '' : '',
@@ -629,8 +630,6 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         },
         {autocomplete: 'username'}
     );
-    userInput.style.display = currentMethod === 'token' ? 'none' : '';
-
     const passInput = makeCfgInput(
         mirror.authorization ? mirror.authorization.password || '' : '',
         (currentMethod === 'token' || currentMethod === 'custom-header') ? t('repos.tokenSecret') : t('repos.password'),
@@ -656,6 +655,9 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         null,
         userInput
     );
+    let userFieldVisible = currentMethod !== 'token';
+    userFieldRow.style.display = userFieldVisible ? '' : 'none';
+    userFieldRow._fieldsVisible = userFieldVisible;
     const passFieldRow = makeFieldRow(
         (currentMethod === 'token' || currentMethod === 'custom-header') ? t('repos.tokenSecret') : t('repos.password'),
         null,
@@ -663,6 +665,8 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     );
 
     const authSelect = makeCustomSelect(authOptions, currentMethod, val => {
+        const credentialsVisible = credsRow._fieldsVisible === true &&
+            credsRow.style.display !== 'none' && !credsRow._animTimer1;
         if (val === 'none') {
             delete mirror.authorization;
             animateFieldsToggle(credsRow, false);
@@ -672,24 +676,35 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
                 login: userInput.value,
                 password: passInput.value
             };
-            animateFieldsToggle(credsRow, true);
+            const showUser = val !== 'token';
             if (val === 'token') {
-                userInput.style.display = 'none';
                 passInput.placeholder = t('repos.tokenSecret');
                 userFieldRow.querySelector('.cfg-label-text').textContent = t('repos.username');
                 passFieldRow.querySelector('.cfg-label-text').textContent = t('repos.tokenSecret');
             } else if (val === 'custom-header') {
-                userInput.style.display = '';
                 userInput.placeholder = t('repos.headerName');
                 passInput.placeholder = t('repos.tokenSecret');
                 userFieldRow.querySelector('.cfg-label-text').textContent = t('repos.headerName');
                 passFieldRow.querySelector('.cfg-label-text').textContent = t('repos.tokenSecret');
             } else {
-                userInput.style.display = '';
                 userInput.placeholder = t('repos.username');
                 passInput.placeholder = t('repos.password');
                 userFieldRow.querySelector('.cfg-label-text').textContent = t('repos.username');
                 passFieldRow.querySelector('.cfg-label-text').textContent = t('repos.password');
+            }
+
+            if (!credentialsVisible) {
+                // The parent is hidden/animating: establish the final child
+                // display before measuring the parent's opening height.
+                userFieldVisible = showUser;
+                userFieldRow.style.display = showUser ? '' : 'none';
+                userFieldRow.style.height = '';
+                userFieldRow.style.transition = '';
+                userFieldRow.style.overflow = '';
+                animateFieldsToggle(credsRow, true);
+            } else if (showUser !== userFieldVisible) {
+                userFieldVisible = showUser;
+                animateFieldsToggle(userFieldRow, showUser);
             }
         }
         saveRepoSettings(repoKey, repo);
