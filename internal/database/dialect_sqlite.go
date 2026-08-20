@@ -78,6 +78,85 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		backup_state INT NOT NULL DEFAULT 0
 	);`
 
+	gpgPublicKeysTable := `
+	CREATE TABLE IF NOT EXISTS gpg_public_keys (
+		fingerprint VARCHAR(64) PRIMARY KEY,
+		key_id VARCHAR(16) NOT NULL,
+		primary_identity TEXT NOT NULL,
+		public_key BLOB NOT NULL,
+		key_created_at BIGINT NOT NULL,
+		key_expires_at BIGINT NOT NULL DEFAULT 0,
+		fetched_at BIGINT NOT NULL
+	);`
+
+	gpgKeyAliasesTable := `
+	CREATE TABLE IF NOT EXISTS gpg_key_aliases (
+		identifier VARCHAR(64) NOT NULL,
+		fingerprint VARCHAR(64) NOT NULL,
+		PRIMARY KEY (identifier, fingerprint),
+		FOREIGN KEY (fingerprint) REFERENCES gpg_public_keys(fingerprint) ON DELETE CASCADE
+	);`
+
+	userGPGKeysTable := `
+	CREATE TABLE IF NOT EXISTS user_gpg_keys (
+		username VARCHAR(255) NOT NULL,
+		fingerprint VARCHAR(64) NOT NULL,
+		requested_id VARCHAR(64) NOT NULL,
+		added_at BIGINT NOT NULL,
+		PRIMARY KEY (username, fingerprint),
+		FOREIGN KEY (fingerprint) REFERENCES gpg_public_keys(fingerprint) ON DELETE CASCADE
+	);`
+
+	gpgSignaturesTable := `
+	CREATE TABLE IF NOT EXISTS gpg_signatures (
+		artifact_key CHAR(64) PRIMARY KEY,
+		repository VARCHAR(255) NOT NULL,
+		artifact_path TEXT NOT NULL,
+		fingerprint VARCHAR(64) NOT NULL,
+		key_id VARCHAR(16) NOT NULL,
+		primary_identity TEXT NOT NULL,
+		uploader VARCHAR(255) NOT NULL,
+		signature_created_at BIGINT NOT NULL,
+		verified_at BIGINT NOT NULL,
+		hash_algorithm VARCHAR(32) NOT NULL,
+		public_key_algorithm VARCHAR(32) NOT NULL
+	);`
+
+	gpgReleasesTable := `
+	CREATE TABLE IF NOT EXISTS gpg_releases (
+		id CHAR(36) PRIMARY KEY,
+		active_key CHAR(64) NULL UNIQUE,
+		repository VARCHAR(255) NOT NULL,
+		artifact_path TEXT NOT NULL,
+		uploader VARCHAR(255) NOT NULL,
+		status VARCHAR(16) NOT NULL,
+		failure_reason TEXT NOT NULL DEFAULT '',
+		require_signature INT NOT NULL DEFAULT 0,
+		artifact_staging_path TEXT NOT NULL DEFAULT '',
+		signature_staging_path TEXT NOT NULL DEFAULT '',
+		artifact_size BIGINT NOT NULL DEFAULT 0,
+		artifact_mod_time BIGINT NOT NULL DEFAULT 0,
+		signature_size BIGINT NOT NULL DEFAULT 0,
+		signature_mod_time BIGINT NOT NULL DEFAULT 0,
+		artifact_existed INT NOT NULL DEFAULT 0,
+		signature_existed INT NOT NULL DEFAULT 0,
+		artifact_generate_checksums INT NOT NULL DEFAULT 0,
+		signature_generate_checksums INT NOT NULL DEFAULT 0,
+		artifact_md5 VARCHAR(64) NOT NULL DEFAULT '',
+		artifact_sha1 VARCHAR(64) NOT NULL DEFAULT '',
+		artifact_sha256 VARCHAR(128) NOT NULL DEFAULT '',
+		artifact_sha512 VARCHAR(128) NOT NULL DEFAULT '',
+		signature_md5 VARCHAR(64) NOT NULL DEFAULT '',
+		signature_sha1 VARCHAR(64) NOT NULL DEFAULT '',
+		signature_sha256 VARCHAR(128) NOT NULL DEFAULT '',
+		signature_sha512 VARCHAR(128) NOT NULL DEFAULT '',
+		publish_started INT NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		completed_at BIGINT NOT NULL DEFAULT 0,
+		cleanup_pending INT NOT NULL DEFAULT 0
+	);`
+
 	auditLogsTable := `
 	CREATE TABLE IF NOT EXISTS audit_logs (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,6 +177,21 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(fidoTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgPublicKeysTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgKeyAliasesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(userGPGKeysTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgSignaturesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgReleasesTable); err != nil {
 		return err
 	}
 	if _, err := db.Exec(auditLogsTable); err != nil {
@@ -130,6 +224,13 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		{name: "idx_tokens_expires_at", query: "CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;"},
 		{name: "idx_fido_username", query: "CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);"},
 		{name: "idx_fido_credential_id", query: "CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);"},
+		{name: "idx_gpg_alias_fingerprint", query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_fingerprint ON gpg_key_aliases(fingerprint);"},
+		{name: "idx_gpg_alias_identifier", query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_identifier ON gpg_key_aliases(identifier);"},
+		{name: "idx_user_gpg_username", query: "CREATE INDEX IF NOT EXISTS idx_user_gpg_username ON user_gpg_keys(username);"},
+		{name: "idx_gpg_signatures_repository", query: "CREATE INDEX IF NOT EXISTS idx_gpg_signatures_repository ON gpg_signatures(repository);"},
+		{name: "idx_gpg_releases_user_time", query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_user_time ON gpg_releases(uploader, created_at DESC);"},
+		{name: "idx_gpg_releases_queue", query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_queue ON gpg_releases(status, created_at);"},
+		{name: "idx_gpg_releases_cleanup", query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_cleanup ON gpg_releases(cleanup_pending, updated_at);"},
 		{name: "idx_audit_logs_user_time", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);"},
 		{name: "idx_audit_logs_user_id", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);"},
 		{name: "idx_audit_logs_created_at", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);"},

@@ -33,6 +33,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/proxy"
@@ -89,6 +90,14 @@ func init() {
 	proxy.OnArtifactStoredWithState = func(state *core.AppState, repo *config.Repository, localPath string) {
 		if state == nil || repo == nil {
 			return
+		}
+		if gpg.IsProtectedArtifact(filepath.ToSlash(localPath)) {
+			gpgReleaseStorageMutation.Lock()
+			err := RemoveArtifactGPGSignature(state, localPath)
+			gpgReleaseStorageMutation.Unlock()
+			if err != nil {
+				log.Printf("failed to invalidate stale GPG signature for mirrored artifact %s: %v", localPath, err)
+			}
 		}
 		if isMavenMetadataPath(localPath) {
 			state.InvalidateFileCache(localPath)

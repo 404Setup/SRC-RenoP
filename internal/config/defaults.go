@@ -29,6 +29,14 @@ func DefaultAllowedExtensions() []string {
 	}
 }
 
+func DefaultGPGKeyServers() []string {
+	return []string{
+		"https://keyserver.ubuntu.com",
+		"https://keys.openpgp.org",
+		"https://pgp.mit.edu",
+	}
+}
+
 func DefaultConnectTimeout() int32 {
 	return 3
 }
@@ -177,5 +185,7 @@ func DefaultConfig() *Config {
 		Updater:              DefaultUpdaterConfig(),
 		Database:             DefaultDatabaseConfig(),
 		AuditLog:             DefaultAuditLogConfig(),
+		GPG:                  GPGConfig{KeyServers: DefaultGPGKeyServers()},
+		Proxy:                ProxyConfig{},
 	}
 }

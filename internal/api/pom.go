@@ -110,6 +110,9 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	if repo == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
+	if repo.RequireGPGSignature {
+		return c.Status(fiber.StatusConflict).SendString("POM generation is unavailable because this repository requires detached GPG signatures")
+	}
 
 	lockKey := filepath.ToSlash(basePath)
 	var upload *core.InFlightDownload
@@ -125,6 +128,14 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	defer func() {
 		state.Inner.InFlightDownloads.UnlockPath(lockKey, upload, uploadSucceeded)
 	}()
+	releaseUnlock, err := storage.AcquireGPGArtifactMutation(state, basePath)
+	if err != nil {
+		if errors.Is(err, storage.ErrGPGPendingConflict) {
+			return c.Status(fiber.StatusConflict).SendString(err.Error())
+		}
+		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+	}
+	defer releaseUnlock()
 
 	if !repo.AllowRedeployment && storage.PathExistsForUpload(state, basePath) {
 		return c.Status(fiber.StatusConflict).SendString("Conflict")
@@ -150,6 +161,9 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	metadataPath := filepath.Join(parentOfParent, "maven-metadata.xml")
 
 	pomBytes := pomXML.Bytes()
+	if err := storage.RemoveArtifactGPGSignature(state, basePath); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+	}
 	err = os.WriteFile(basePath, pomBytes, 0644)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")

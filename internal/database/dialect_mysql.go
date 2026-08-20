@@ -71,6 +71,92 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		INDEX idx_fido_credential_id (credential_id)
 	);`
 
+	gpgPublicKeysTable := `
+	CREATE TABLE IF NOT EXISTS gpg_public_keys (
+		fingerprint VARCHAR(64) PRIMARY KEY,
+		key_id VARCHAR(16) NOT NULL,
+		primary_identity TEXT NOT NULL,
+		public_key MEDIUMBLOB NOT NULL,
+		key_created_at BIGINT NOT NULL,
+		key_expires_at BIGINT NOT NULL DEFAULT 0,
+		fetched_at BIGINT NOT NULL
+	);`
+
+	gpgKeyAliasesTable := `
+	CREATE TABLE IF NOT EXISTS gpg_key_aliases (
+		identifier VARCHAR(64) NOT NULL,
+		fingerprint VARCHAR(64) NOT NULL,
+		PRIMARY KEY (identifier, fingerprint),
+		INDEX idx_gpg_alias_identifier (identifier),
+		INDEX idx_gpg_alias_fingerprint (fingerprint),
+		CONSTRAINT fk_gpg_alias_key FOREIGN KEY (fingerprint) REFERENCES gpg_public_keys(fingerprint) ON DELETE CASCADE
+	);`
+
+	userGPGKeysTable := `
+	CREATE TABLE IF NOT EXISTS user_gpg_keys (
+		username VARCHAR(255) NOT NULL,
+		fingerprint VARCHAR(64) NOT NULL,
+		requested_id VARCHAR(64) NOT NULL,
+		added_at BIGINT NOT NULL,
+		PRIMARY KEY (username, fingerprint),
+		INDEX idx_user_gpg_username (username),
+		CONSTRAINT fk_user_gpg_key FOREIGN KEY (fingerprint) REFERENCES gpg_public_keys(fingerprint) ON DELETE CASCADE
+	);`
+
+	gpgSignaturesTable := `
+	CREATE TABLE IF NOT EXISTS gpg_signatures (
+		artifact_key CHAR(64) PRIMARY KEY,
+		repository VARCHAR(255) NOT NULL,
+		artifact_path TEXT NOT NULL,
+		fingerprint VARCHAR(64) NOT NULL,
+		key_id VARCHAR(16) NOT NULL,
+		primary_identity TEXT NOT NULL,
+		uploader VARCHAR(255) NOT NULL,
+		signature_created_at BIGINT NOT NULL,
+		verified_at BIGINT NOT NULL,
+		hash_algorithm VARCHAR(32) NOT NULL,
+		public_key_algorithm VARCHAR(32) NOT NULL,
+		INDEX idx_gpg_signatures_repository (repository)
+	);`
+
+	gpgReleasesTable := `
+	CREATE TABLE IF NOT EXISTS gpg_releases (
+		id CHAR(36) PRIMARY KEY,
+		active_key CHAR(64) NULL UNIQUE,
+		repository VARCHAR(255) NOT NULL,
+		artifact_path TEXT NOT NULL,
+		uploader VARCHAR(255) NOT NULL,
+		status VARCHAR(16) NOT NULL,
+		failure_reason TEXT NOT NULL,
+		require_signature TINYINT(1) NOT NULL DEFAULT 0,
+		artifact_staging_path TEXT NOT NULL,
+		signature_staging_path TEXT NOT NULL,
+		artifact_size BIGINT NOT NULL DEFAULT 0,
+		artifact_mod_time BIGINT NOT NULL DEFAULT 0,
+		signature_size BIGINT NOT NULL DEFAULT 0,
+		signature_mod_time BIGINT NOT NULL DEFAULT 0,
+		artifact_existed TINYINT(1) NOT NULL DEFAULT 0,
+		signature_existed TINYINT(1) NOT NULL DEFAULT 0,
+		artifact_generate_checksums TINYINT(1) NOT NULL DEFAULT 0,
+		signature_generate_checksums TINYINT(1) NOT NULL DEFAULT 0,
+		artifact_md5 VARCHAR(64) NOT NULL DEFAULT '',
+		artifact_sha1 VARCHAR(64) NOT NULL DEFAULT '',
+		artifact_sha256 VARCHAR(128) NOT NULL DEFAULT '',
+		artifact_sha512 VARCHAR(128) NOT NULL DEFAULT '',
+		signature_md5 VARCHAR(64) NOT NULL DEFAULT '',
+		signature_sha1 VARCHAR(64) NOT NULL DEFAULT '',
+		signature_sha256 VARCHAR(128) NOT NULL DEFAULT '',
+		signature_sha512 VARCHAR(128) NOT NULL DEFAULT '',
+		publish_started TINYINT(1) NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		completed_at BIGINT NOT NULL DEFAULT 0,
+		cleanup_pending TINYINT(1) NOT NULL DEFAULT 0,
+		INDEX idx_gpg_releases_user_time (uploader, created_at),
+		INDEX idx_gpg_releases_queue (status, created_at),
+		INDEX idx_gpg_releases_cleanup (cleanup_pending, updated_at)
+	);`
+
 	auditLogsTable := `
 	CREATE TABLE IF NOT EXISTS audit_logs (
 		id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -94,6 +180,21 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(fidoTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgPublicKeysTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgKeyAliasesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(userGPGKeysTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgSignaturesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(gpgReleasesTable); err != nil {
 		return err
 	}
 	if _, err := db.Exec(auditLogsTable); err != nil {

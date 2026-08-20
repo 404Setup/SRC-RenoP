@@ -184,11 +184,12 @@ func FromRepository(r *config.Repository) *Repository {
 		mirrors = append(mirrors, FromMirror(m))
 	}
 	return &Repository{
-		Name:              r.Name,
-		Visibility:        r.Visibility,
-		Mirrors:           mirrors,
-		AllowRedeployment: r.AllowRedeployment,
-		S3:                FromS3Config(r.S3),
+		Name:                r.Name,
+		Visibility:          r.Visibility,
+		Mirrors:             mirrors,
+		AllowRedeployment:   r.AllowRedeployment,
+		RequireGpgSignature: r.RequireGPGSignature,
+		S3:                  FromS3Config(r.S3),
 	}
 }
 
@@ -318,6 +319,49 @@ func ApplyStorageConfig(dst *config.Config, src *StorageConfig) {
 	dst.MaxJavadocSizeMb = src.MaxJavadocSizeMb
 }
 
+func FromGPGConfig(g config.GPGConfig) *GpgConfig {
+	return &GpgConfig{KeyServers: append([]string(nil), g.KeyServers...)}
+}
+
+func ApplyGPGConfig(dst *config.GPGConfig, src *GpgConfig) {
+	if dst == nil || src == nil {
+		return
+	}
+	dst.KeyServers = append([]string(nil), src.KeyServers...)
+}
+
+func FromProxyConfig(p config.ProxyConfig) *ProxyConfig {
+	proxies := make([]*OutboundProxy, 0, len(p.Proxies))
+	for i := range p.Proxies {
+		proxies = append(proxies, &OutboundProxy{
+			Name:     p.Proxies[i].Name,
+			Url:      p.Proxies[i].URL,
+			Username: p.Proxies[i].Username,
+			Password: p.Proxies[i].Password,
+		})
+	}
+	return &ProxyConfig{Selected: p.Selected, Proxies: proxies}
+}
+
+func ApplyProxyConfig(dst *config.ProxyConfig, src *ProxyConfig) {
+	if dst == nil || src == nil {
+		return
+	}
+	dst.Selected = src.Selected
+	dst.Proxies = make([]config.OutboundProxy, 0, len(src.Proxies))
+	for _, proxy := range src.Proxies {
+		if proxy == nil {
+			continue
+		}
+		dst.Proxies = append(dst.Proxies, config.OutboundProxy{
+			Name:     proxy.Name,
+			URL:      proxy.Url,
+			Username: proxy.Username,
+			Password: proxy.Password,
+		})
+	}
+}
+
 func FromUpdaterConfig(u config.UpdaterConfig) *UpdaterConfig {
 	return &UpdaterConfig{
 		Channel: u.Channel,
@@ -444,11 +488,12 @@ func ToRepository(r *Repository) *config.Repository {
 		mirrors = append(mirrors, ToMirror(m))
 	}
 	return &config.Repository{
-		Name:              r.Name,
-		Visibility:        r.Visibility,
-		Mirrors:           mirrors,
-		AllowRedeployment: r.AllowRedeployment,
-		S3:                ToS3Config(r.S3),
+		Name:                r.Name,
+		Visibility:          r.Visibility,
+		Mirrors:             mirrors,
+		AllowRedeployment:   r.AllowRedeployment,
+		RequireGPGSignature: r.RequireGpgSignature,
+		S3:                  ToS3Config(r.S3),
 	}
 }
 
@@ -524,6 +569,82 @@ func FromFidoDeviceList(devs []core.FidoDeviceDto) *FidoDeviceList {
 	}
 	for _, d := range devs {
 		out.Devices = append(out.Devices, FromFidoDeviceDto(d))
+	}
+	return out
+}
+
+func FromUserGPGKey(key *core.UserGPGKey) *GpgKeyDto {
+	if key == nil {
+		return nil
+	}
+	return &GpgKeyDto{
+		Fingerprint:     key.Fingerprint,
+		KeyId:           key.KeyID,
+		PrimaryIdentity: key.PrimaryIdentity,
+		KeyCreatedAt:    key.KeyCreatedAt,
+		KeyExpiresAt:    key.KeyExpiresAt,
+		AddedAt:         key.AddedAt,
+		RefreshedAt:     key.FetchedAt,
+	}
+}
+
+func FromUserGPGKeys(keys []*core.UserGPGKey) *GpgKeyList {
+	out := &GpgKeyList{Keys: make([]*GpgKeyDto, 0, len(keys))}
+	for _, key := range keys {
+		if converted := FromUserGPGKey(key); converted != nil {
+			out.Keys = append(out.Keys, converted)
+		}
+	}
+	return out
+}
+
+func FromGPGSignature(signature *core.GPGSignature) *GpgSignatureDetails {
+	if signature == nil {
+		return nil
+	}
+	return &GpgSignatureDetails{
+		Repository:         signature.Repository,
+		ArtifactPath:       signature.ArtifactPath,
+		Fingerprint:        signature.Fingerprint,
+		KeyId:              signature.KeyID,
+		PrimaryIdentity:    signature.PrimaryIdentity,
+		Uploader:           signature.Uploader,
+		SignatureCreatedAt: signature.SignatureCreatedAt,
+		VerifiedAt:         signature.VerifiedAt,
+		HashAlgorithm:      signature.HashAlgorithm,
+		PublicKeyAlgorithm: signature.PublicKeyAlgorithm,
+	}
+}
+
+func FromGPGRelease(release *core.GPGRelease) *GpgReleaseDto {
+	if release == nil {
+		return nil
+	}
+	return &GpgReleaseDto{
+		Id:               release.ID,
+		Repository:       release.Repository,
+		ArtifactPath:     release.ArtifactPath,
+		Status:           release.Status,
+		FailureReason:    release.FailureReason,
+		Signed:           release.SignatureStagingPath != "",
+		RequireSignature: release.RequireSignature,
+		CreatedAt:        release.CreatedAt,
+		UpdatedAt:        release.UpdatedAt,
+		CompletedAt:      release.CompletedAt,
+	}
+}
+
+func FromGPGReleases(releases []*core.GPGRelease, total, limit, offset int) *GpgReleaseList {
+	out := &GpgReleaseList{
+		Releases: make([]*GpgReleaseDto, 0, len(releases)),
+		Total:    int32(total),
+		Limit:    int32(limit),
+		Offset:   int32(offset),
+	}
+	for _, release := range releases {
+		if converted := FromGPGRelease(release); converted != nil {
+			out.Releases = append(out.Releases, converted)
+		}
 	}
 	return out
 }

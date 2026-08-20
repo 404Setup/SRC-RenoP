@@ -27,6 +27,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/status"
 	"renop/internal/utils"
@@ -37,6 +38,8 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 	if path == "" || path == "/" {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
+	gpgReleaseStorageMutation.Lock()
+	defer gpgReleaseStorageMutation.Unlock()
 
 	isDir := false
 	exists := false
@@ -58,6 +61,9 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 	if !exists {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
+	if err := discardPendingGPGUploads(state, localFilePath, "Artifact or directory was deleted before publication"); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+	}
 
 	if isDir {
 		if IsS3Enabled(localFilePath) {
@@ -74,7 +80,25 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 			}
 		}
 		state.Inner.FileIndex.RemoveDir(localFilePath)
+		if err := deleteGPGRecordsByLocalPrefix(state, c.Params("repo_name"), localFilePath); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+		}
 	} else {
+		if artifactPath, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isSignature {
+			cfg := state.Inner.Config.Load()
+			var repo *config.Repository
+			if cfg != nil {
+				repo = cfg.Maven.Repositories[c.Params("repo_name")]
+			}
+			if repo != nil && repo.RequireGPGSignature && PathExistsForUpload(state, filepath.FromSlash(artifactPath)) {
+				return c.Status(fiber.StatusConflict).SendString("Cannot delete a required GPG signature while its artifact exists")
+			}
+		}
+		if gpg.IsProtectedArtifact(filepath.ToSlash(localFilePath)) {
+			if err := RemoveArtifactGPGSignature(state, localFilePath); err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+			}
+		}
 		isJar := filepath.Ext(localFilePath) == ".jar"
 		dir := filepath.Dir(localFilePath)
 
@@ -243,7 +267,7 @@ func deleteIndexedFile(state *core.AppState, path string) error {
 		state.Inner.FileIndex.RemoveFile(path)
 	}
 	state.InvalidateFileCache(path)
-	return nil
+	return deleteGPGRecordForLocalPath(state, path)
 }
 
 // RemoveRepositoryStorage deletes a repository's on-disk (and optional S3) data
@@ -256,6 +280,8 @@ func RemoveRepositoryStorage(state *core.AppState, storagePath, repoName string,
 	if !utils.IsValidRepositoryName(repoName) {
 		return
 	}
+	gpgReleaseStorageMutation.Lock()
+	defer gpgReleaseStorageMutation.Unlock()
 
 	repoDir := filepath.Join(storagePath, repoName)
 	cleanStorage := filepath.Clean(storagePath)
@@ -263,6 +289,7 @@ func RemoveRepositoryStorage(state *core.AppState, storagePath, repoName string,
 	if cleanRepo == cleanStorage || !utils.IsSubPath(storagePath, repoDir) {
 		return
 	}
+	_ = discardPendingGPGUploads(state, cleanRepo, "Repository was deleted before publication")
 
 	if s3Cfg != nil && s3Cfg.Enabled {
 		s3Prefix := utils.GetS3Key(repoDir)
@@ -277,6 +304,9 @@ func RemoveRepositoryStorage(state *core.AppState, storagePath, repoName string,
 	pathNorm := filepath.ToSlash(cleanRepo)
 	if state.Inner.FileIndex != nil {
 		state.Inner.FileIndex.RemoveDir(pathNorm)
+	}
+	if db := state.GetDB(); db != nil {
+		_ = db.DeleteGPGSignaturesByRepository(repoName)
 	}
 
 	state.Inner.IndexWatcherMutex.Lock()

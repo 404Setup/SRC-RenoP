@@ -73,6 +73,25 @@ type StateDB interface {
 	UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) error
 	DeleteFidoDevice(username, deviceID string) error
 	DeleteFidoDevicesByUsername(username string) error
+	FindGPGPublicKeys(identifier string) ([]*GPGPublicKey, error)
+	GetGPGPublicKey(fingerprint string) (*GPGPublicKey, error)
+	ListUserGPGKeys(username string) ([]*UserGPGKey, error)
+	RegisterUserGPGKey(username, requestedID string, key *GPGPublicKey, aliases []string) error
+	RefreshGPGPublicKey(key *GPGPublicKey, aliases []string) error
+	DeleteUserGPGKey(username, fingerprint string) error
+	SaveGPGSignature(signature *GPGSignature) error
+	GetGPGSignature(artifactKey string) (*GPGSignature, error)
+	GetGPGSignatures(artifactKeys []string) ([]*GPGSignature, error)
+	DeleteGPGSignature(artifactKey string) error
+	DeleteGPGSignaturesByPrefix(repository, artifactPathPrefix string) error
+	DeleteGPGSignaturesByRepository(repository string) error
+	SaveGPGRelease(release *GPGRelease) error
+	GetActiveGPGRelease(activeKey string) (*GPGRelease, error)
+	ClaimNextGPGRelease(optionalReadyBefore int64) (*GPGRelease, error)
+	ListGPGReleases(username string, limit, offset int) ([]*GPGRelease, int, error)
+	ListPendingGPGReleases() ([]*GPGRelease, error)
+	CountPendingGPGReleases(username string) (int, int, error)
+	ResetValidatingGPGReleases() error
 	SaveAuditLog(entry *AuditLogEntry) error
 	GetAuditLogs(username string, limit, offset int) ([]*AuditLogEntry, int, error)
 	DeleteAuditLogsByUsername(username string) error
@@ -103,6 +122,10 @@ type AppStateInner struct {
 	MetadataCacheEntries   atomic.Uint64
 	MetadataCacheWriteLock sync.Mutex
 	InFlightDownloads      *InFlightManager
+	GPGKeyFetches          *InFlightManager
+	GPGUserKeyUpdates      *InFlightManager
+	GPGReleaseWake         chan struct{}
+	GPGReleaseWorkerActive atomic.Bool
 	AnomalyFailures        *AnomalyFailureStore
 	ProxyClientSemaphore   chan struct{}
 }
@@ -118,6 +141,9 @@ func NewAppState() *AppState {
 			ProxyClientSemaphore: make(chan struct{}, 256),
 			StartTime:            time.Now().UnixMilli(),
 			InFlightDownloads:    NewInFlightManager(),
+			GPGKeyFetches:        NewInFlightManager(),
+			GPGUserKeyUpdates:    NewInFlightManager(),
+			GPGReleaseWake:       make(chan struct{}, 1),
 			AnomalyFailures:      NewAnomalyFailureStore(),
 			AuditLogChan:         make(chan *AuditLogEntry, 500),
 		},

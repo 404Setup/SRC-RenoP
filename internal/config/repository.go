@@ -19,11 +19,12 @@ import (
 )
 
 type Repository struct {
-	Name              string    `json:"name" yaml:"name"`
-	Visibility        string    `json:"visibility" yaml:"visibility"`
-	Mirrors           []Mirror  `json:"mirrors" yaml:"mirrors"`
-	AllowRedeployment bool      `json:"allow_redeployment" yaml:"allow_redeployment"`
-	S3                *S3Config `json:"s3,omitempty" yaml:"s3,omitempty"`
+	Name                string    `json:"name" yaml:"name"`
+	Visibility          string    `json:"visibility" yaml:"visibility"`
+	Mirrors             []Mirror  `json:"mirrors" yaml:"mirrors"`
+	AllowRedeployment   bool      `json:"allow_redeployment" yaml:"allow_redeployment"`
+	RequireGPGSignature bool      `json:"require_gpg_signature" yaml:"require_gpg_signature"`
+	S3                  *S3Config `json:"s3,omitempty" yaml:"s3,omitempty"`
 }
 
 type MirroredRepositorySettings struct {
@@ -189,10 +190,11 @@ func (r *Repository) DeepCopy() *Repository {
 		return nil
 	}
 	cloned := &Repository{
-		Name:              strings.Clone(r.Name),
-		Visibility:        strings.Clone(r.Visibility),
-		AllowRedeployment: r.AllowRedeployment,
-		S3:                r.S3.DeepCopy(),
+		Name:                strings.Clone(r.Name),
+		Visibility:          strings.Clone(r.Visibility),
+		AllowRedeployment:   r.AllowRedeployment,
+		RequireGPGSignature: r.RequireGPGSignature,
+		S3:                  r.S3.DeepCopy(),
 	}
 	if r.Mirrors != nil {
 		cloned.Mirrors = make([]Mirror, len(r.Mirrors))

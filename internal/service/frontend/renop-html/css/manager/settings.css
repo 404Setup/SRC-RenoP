@@ -589,6 +589,190 @@ html.dark .pill-btn--ghost-danger:hover:not(:disabled) {
     opacity: 0.35;
 }
 
+.global-proxy-list {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.global-proxy-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    min-height: 88px;
+    padding: 1rem 1.5rem;
+    color: var(--text-color);
+    font-size: 0.85rem;
+    opacity: 0.58;
+    text-align: center;
+}
+
+.global-proxy-empty svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+}
+
+.global-proxy-entry {
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+    min-width: 0;
+}
+
+.global-proxy-entry:first-child {
+    border-top: none;
+}
+
+.global-proxy-entry--entering {
+    animation: globalProxyEntryIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.global-proxy-entry--leaving {
+    animation: globalProxyEntryOut 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
+    pointer-events: none;
+}
+
+.global-proxy-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    padding: 0.8rem 1.5rem;
+    background: color-mix(in srgb, var(--item-hover-bg) 34%, transparent);
+}
+
+.global-proxy-entry-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.global-proxy-entry-name,
+.global-proxy-entry-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.global-proxy-entry-name {
+    color: var(--text-color);
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.global-proxy-entry-url {
+    color: var(--text-color);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.74rem;
+    opacity: 0.56;
+}
+
+.global-proxy-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, #ef4444 28%, transparent);
+    border-radius: 6px;
+    background: transparent;
+    color: #dc2626;
+    cursor: pointer;
+    transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.14s ease;
+}
+
+.global-proxy-delete-btn:hover {
+    border-color: color-mix(in srgb, #ef4444 55%, transparent);
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+
+.global-proxy-delete-btn:active {
+    transform: scale(0.94);
+}
+
+.global-proxy-delete-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.global-proxy-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem 1rem;
+    padding: 1rem 1.5rem 1.2rem;
+}
+
+.global-proxy-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.38rem;
+    min-width: 0;
+}
+
+.global-proxy-field--wide {
+    grid-column: 1 / -1;
+}
+
+.global-proxy-field-label {
+    color: var(--text-color);
+    font-size: 0.74rem;
+    font-weight: 600;
+    opacity: 0.68;
+}
+
+.global-proxy-field .cfg-input {
+    max-width: none;
+}
+
+@keyframes globalProxyEntryIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes globalProxyEntryOut {
+    from {
+        opacity: 1;
+        transform: scaleY(1);
+    }
+    to {
+        opacity: 0;
+        transform: scaleY(0.92);
+    }
+}
+
+@media (max-width: 720px) {
+    .global-proxy-entry-header,
+    .global-proxy-editor-grid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .global-proxy-editor-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .global-proxy-field--wide {
+        grid-column: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .global-proxy-entry--entering,
+    .global-proxy-entry--leaving {
+        animation: none !important;
+    }
+}
+
 input[type="number"].cfg-input {
     max-width: 140px;
 }

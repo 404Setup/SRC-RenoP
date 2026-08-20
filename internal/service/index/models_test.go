@@ -186,3 +186,31 @@ func TestFileIndexTotalFileBytes(t *testing.T) {
 		t.Fatalf("after RemoveDir TotalFileBytes = %d, want 50", got)
 	}
 }
+
+func TestBlockedFileIsHiddenFromEveryReadAndSnapshot(t *testing.T) {
+	idx := NewFileIndexCustom(true)
+	path := "storage/releases/org/example/demo.jar"
+	info := FileInfo{Size: 42, ModTime: 99}
+	idx.InsertFile(path, info)
+	idx.BlockFile(path)
+
+	if idx.HasFile(path) {
+		t.Fatal("blocked file remained visible through HasFile")
+	}
+	if _, ok := idx.GetFileInfo(path); ok {
+		t.Fatal("blocked file remained visible through GetFileInfo")
+	}
+	if _, _, ok, isNotFound := idx.GetPathState(path); ok || !isNotFound {
+		t.Fatalf("blocked path state = ok %v, not-found %v", ok, isNotFound)
+	}
+	idx.InsertFile(path, FileInfo{Size: 100, ModTime: 101})
+	if _, exists := idx.Snapshot().Files[path]; exists {
+		t.Fatal("blocked file was persisted in an index snapshot")
+	}
+
+	idx.UnblockFile(path)
+	idx.InsertFile(path, info)
+	if got, ok := idx.GetFileInfo(path); !ok || got != info {
+		t.Fatalf("unblocked file info = %+v, %v; want %+v", got, ok, info)
+	}
+}

@@ -33,6 +33,8 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/auth"
+	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/status"
@@ -70,7 +72,7 @@ func WriteChecksumFile(parent string, baseName string, ext string, hash string, 
 }
 
 func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, localFilePath string) error {
-	lockKey := filepath.ToSlash(localFilePath)
+	lockKey := filepath.ToSlash(GPGUploadLockPath(localFilePath))
 	var upload *core.InFlightDownload
 	for {
 		var loaded bool
@@ -93,6 +95,9 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		estimatedSize = int64(len(c.Body()))
 	}
 	estimatedRequired := EstimateUploadDiskSpace(localFilePath, estimatedSize)
+	if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isSignature && estimatedSize > gpg.MaxDetachedSignatureSize {
+		return c.Status(fiber.StatusRequestEntityTooLarge).SendString("GPG detached signature exceeds the size limit")
+	}
 
 	if !status.CanAllocateDiskSpace(state, uint64(estimatedRequired)) {
 		return c.Status(fiber.StatusInsufficientStorage).JSON(fiber.Map{
@@ -195,12 +200,21 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		}
 	}
 
-	if err := CommitUploadedFile(state, localFilePath, tmpPath, fileSize, modTime, exists, generateChecksums, digests); err != nil {
-		msg := "Internal Server Error"
-		if strings.HasPrefix(err.Error(), "Failed to upload to S3:") {
-			msg = err.Error()
-		}
-		return c.Status(fiber.StatusInternalServerError).SendString(msg)
+	user := auth.GetUser(c)
+	username := ""
+	if user != nil && user.Username != "guest" {
+		username = user.Username
+	}
+	result, err := ProcessUploadedFile(c.Context(), state, repo, &PreparedUpload{
+		LocalFilePath: localFilePath, TempPath: tmpPath, Username: username,
+		FileSize: fileSize, ModTime: modTime, Existed: exists,
+		GenerateChecksums: generateChecksums,
+		SignatureExpected: strings.EqualFold(c.Get("X-RenoP-GPG-Signature-Expected"), "true"),
+		Digests:           digests,
+	})
+	if err != nil {
+		statusCode, message := GPGUploadErrorResponse(err)
+		return c.Status(statusCode).SendString(message)
 	}
 	keepTmp = true
 	uploadSucceeded = true
@@ -215,16 +229,24 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		relPath = localFilePath
 	}
 	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", repo.Name, filepath.ToSlash(relPath), fileSize)
+	action := "UPLOAD"
+	if result.Pending {
+		action = "UPLOAD_QUEUED_GPG"
+	}
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   username,
 		Operator:   op,
-		Action:     "UPLOAD",
+		Action:     action,
 		Details:    details,
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
 		IP:         ip,
 	})
 
+	if result.Pending {
+		c.Set("X-RenoP-Release-ID", result.ReleaseID)
+		return c.Status(fiber.StatusAccepted).SendString("Queued for GPG publication")
+	}
 	return c.Status(fiber.StatusCreated).SendString("")
 }
 

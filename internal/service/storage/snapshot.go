@@ -23,7 +23,10 @@ import (
 	"renop/internal/utils"
 )
 
-var artifactCompanionExts = []string{".md5", ".sha1", ".sha256", ".sha512", ".asc"}
+var artifactCompanionExts = []string{
+	".asc.md5", ".asc.sha1", ".asc.sha256", ".asc.sha512",
+	".md5", ".sha1", ".sha256", ".sha512", ".asc",
+}
 
 var (
 	uniqueSnapshotTimestampRE = regexp.MustCompile(`^(.+)-(\d{8}\.\d{6}-\d+)(-[^.]+)?(\.[A-Za-z0-9]+)$`)

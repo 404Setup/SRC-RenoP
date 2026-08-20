@@ -15,7 +15,7 @@ import {makeCustomSelect} from '@renop/ui/custom-select';
 import {smoothScrollToTop} from '@renop/ui/scroll';
 import {registerTabContainer, updateTabIndicator} from '@renop/ui/tabs';
 import {fetchProto, postProto, putProto} from './api.js';
-import {buildInput, createSection} from './cfg-ui.js';
+import {buildInput, createSection, makeTagListInput} from './cfg-ui.js';
 import {
     createCallout,
     createFieldRow,
@@ -29,7 +29,9 @@ import {logout} from './auth.js';
 import {restartApp} from './dashboard.js';
 import {
     FrontendConfig,
+	GpgConfig,
     IndexDomainSettings,
+	ProxyConfig,
     RebuildIndexRequest,
     ServerConfig,
     SettingsDomainsResponse,
@@ -40,7 +42,9 @@ import {
 const DOMAIN_MESSAGE_TYPES = {
     frontend: FrontendConfig,
     server: ServerConfig,
-    storage: StorageConfig,
+	storage: StorageConfig,
+	proxy: ProxyConfig,
+	gpg: GpgConfig,
     updater: UpdaterConfig,
     index: IndexDomainSettings,
 };
@@ -150,14 +154,16 @@ function renderDomainTabs(domains, activeDomain) {
 
 /**
  * Returns a localized display label for a settings domain key.
- * @param {string} domain - Domain key (frontend, server, storage, updater, index).
+ * @param {string} domain - Domain key (frontend, server, proxy, storage, gpg, updater, index).
  * @returns {string} Localized or title-cased label.
  */
 function domainLabel(domain) {
     const labels = {
         frontend: t('settings.domainFrontend'),
         server: t('settings.domainServer'),
+		proxy: t('settings.domainProxy'),
         storage: t('settings.domainStorage'),
+		gpg: t('settings.domainGpg'),
         updater: t('settings.domainUpdater'),
         index: t('settings.domainIndex'),
     };
@@ -255,7 +261,7 @@ function enableSave() {
 
 /**
  * Dispatches rendering of the settings form for the given domain.
- * @param {string} domain - Domain key (frontend, server, storage, updater, index).
+ * @param {string} domain - Domain key (frontend, server, proxy, storage, gpg, updater, index).
  * @param {object} data - Domain configuration object from the API.
  * @returns {void}
  */
@@ -268,13 +274,259 @@ function renderSettingsForm(domain, data) {
         renderFrontendSettings(container, data);
     } else if (domain === 'server') {
         renderServerSettings(container, data);
+	} else if (domain === 'proxy') {
+		renderProxySettings(container, data);
     } else if (domain === 'storage') {
         renderStorageSettings(container, data);
+	} else if (domain === 'gpg') {
+		renderGPGSettings(container, data);
     } else if (domain === 'updater') {
         renderUpdaterSettings(container, data);
     } else if (domain === 'index') {
         renderIndexSettings(container);
     }
+}
+
+const MAX_GLOBAL_PROXIES = 16;
+
+/**
+ * Builds dropdown options for direct routing and all named global proxies.
+ * @param {Array<{name?: string}>} proxies - Editable proxy records.
+ * @returns {Array<{value: string, label: string}>} Select options.
+ */
+function globalProxyOptions(proxies) {
+	const options = [{value: '', label: t('settings.proxyDirect')}];
+	for (const proxy of proxies) {
+		const name = String(proxy?.name || '').trim();
+		if (name) options.push({value: name, label: name});
+	}
+	return options;
+}
+
+/**
+ * Finds the next unused stable name for a newly added proxy.
+ * @param {Array<{name?: string}>} proxies - Existing proxy records.
+ * @returns {string} A unique `proxy-N` name.
+ */
+function nextGlobalProxyName(proxies) {
+	const names = new Set(proxies.map(proxy => String(proxy?.name || '').trim().toLowerCase()));
+	for (let number = 1; number <= MAX_GLOBAL_PROXIES + 1; number++) {
+		const candidate = `proxy-${number}`;
+		if (!names.has(candidate)) return candidate;
+	}
+	return `proxy-${Date.now()}`;
+}
+
+/**
+ * Creates a compact labeled control for one proxy property.
+ * @param {string} label - Localized field label.
+ * @param {HTMLElement} control - Input control.
+ * @param {boolean} [wide=false] - Whether the field spans the editor width.
+ * @returns {HTMLLabelElement} Labeled proxy field.
+ */
+function createGlobalProxyField(label, control, wide = false) {
+	return el('label', {class: `global-proxy-field${wide ? ' global-proxy-field--wide' : ''}`},
+		el('span', {class: 'global-proxy-field-label'}, label),
+		control
+	);
+}
+
+/**
+ * Renders global proxy selection and the editable named proxy list.
+ * @param {HTMLElement} container - Settings form container.
+ * @param {{selected?: string, proxies?: Array<object>}} data - ProxyConfig fields.
+ * @returns {void}
+ */
+function renderProxySettings(container, data) {
+	const proxies = Array.isArray(data.proxies) ? data.proxies : [];
+	currentConfig.proxies = proxies;
+	currentConfig.selected = data.selected || '';
+	let selectedProxy = proxies.find(proxy => proxy.name === currentConfig.selected) || null;
+
+	const wrap = el('div', {class: 'cfg-layout'});
+	const routingSection = createSection(
+		createIcon('network'),
+		t('settings.proxyRoutingTitle'),
+		t('settings.proxyRoutingSubtitle'),
+		{defaultCollapsed: false}
+	);
+	const routingFields = routingSection.querySelector('.cfg-fields');
+	const activeSelect = makeCustomSelect(globalProxyOptions(proxies), currentConfig.selected, value => {
+		currentConfig.selected = value;
+		selectedProxy = proxies.find(proxy => proxy.name === value) || null;
+		enableSave();
+	});
+	routingFields.appendChild(createFieldRow(
+		t('settings.proxyActive'),
+		t('settings.proxyActiveHint'),
+		activeSelect
+	));
+
+	const proxiesSection = createSection(
+		createIcon('network'),
+		t('settings.proxyListTitle'),
+		t('settings.proxyListSubtitle'),
+		{defaultCollapsed: false}
+	);
+	const list = el('div', {class: 'global-proxy-list'});
+	const addButton = el('button', {
+		type: 'button',
+		class: 'pill-btn pill-btn--soft pill-btn--sm',
+		title: t('settings.proxyAdd'),
+		ariaLabel: t('settings.proxyAdd')
+	}, createIcon('plus'), el('span', {}, t('settings.proxyAdd')));
+	const sectionHeader = proxiesSection.querySelector('.cfg-section-header');
+	const sectionChevron = proxiesSection.querySelector('.cfg-section-chevron');
+	sectionHeader?.insertBefore(addButton, sectionChevron || null);
+
+	/**
+	 * Refreshes the active proxy dropdown after list or name changes.
+	 * @returns {void}
+	 */
+	function refreshActiveSelect() {
+		currentConfig.selected = selectedProxy ? String(selectedProxy.name || '').trim() : '';
+		activeSelect.setOptions(globalProxyOptions(proxies), currentConfig.selected);
+		activeSelect.setValue(currentConfig.selected);
+	}
+
+	/**
+	 * Removes one proxy after confirmation and animates the list update.
+	 * @param {number} index - Proxy index in the editable array.
+	 * @param {HTMLElement} entry - Rendered proxy entry.
+	 * @returns {Promise<void>}
+	 */
+	async function removeProxy(index, entry) {
+		const proxy = proxies[index];
+		if (!proxy) return;
+		const confirmed = await window.showConfirm(t('settings.proxyConfirmDelete', {
+			name: proxy.name || t('settings.proxyUnnamed')
+		}));
+		if (!confirmed) return;
+		entry.classList.add('global-proxy-entry--leaving');
+		setTimeout(() => {
+			if (selectedProxy === proxy) selectedProxy = null;
+			proxies.splice(index, 1);
+			refreshActiveSelect();
+			renderProxyList();
+			enableSave();
+		}, 180);
+	}
+
+	/**
+	 * Re-renders proxy editors from the current mutable configuration.
+	 * @returns {void}
+	 */
+	function renderProxyList() {
+		list.innerHTML = '';
+		addButton.disabled = proxies.length >= MAX_GLOBAL_PROXIES;
+		if (proxies.length === 0) {
+			list.appendChild(el('div', {class: 'global-proxy-empty'},
+				createIcon('network'),
+				el('span', {}, t('settings.proxyEmpty'))
+			));
+			return;
+		}
+
+		proxies.forEach((proxy, index) => {
+			const title = el('span', {class: 'global-proxy-entry-name'}, proxy.name || t('settings.proxyUnnamed'));
+			const endpoint = el('span', {class: 'global-proxy-entry-url'}, proxy.url || t('settings.proxyUrlMissing'));
+			const deleteButton = el('button', {
+				type: 'button',
+				class: 'global-proxy-delete-btn',
+				title: t('settings.proxyDelete'),
+				ariaLabel: t('settings.proxyDelete')
+			}, createIcon('delete'));
+			const entry = el('div', {class: 'global-proxy-entry global-proxy-entry--entering'});
+			const header = el('div', {class: 'global-proxy-entry-header'},
+				el('div', {class: 'global-proxy-entry-meta'}, title, endpoint),
+				deleteButton
+			);
+			const fields = el('div', {class: 'global-proxy-editor-grid'});
+
+			const nameInput = buildInput('text', proxy.name, 'proxy-1', event => {
+				proxy.name = event.target.value;
+				title.textContent = proxy.name || t('settings.proxyUnnamed');
+				refreshActiveSelect();
+				enableSave();
+			});
+			const urlInput = buildInput('text', proxy.url, 'http://127.0.0.1:8080', event => {
+				proxy.url = event.target.value;
+				endpoint.textContent = proxy.url || t('settings.proxyUrlMissing');
+				enableSave();
+			});
+			const usernameInput = buildInput('text', proxy.username, t('settings.proxyUsernamePlaceholder'), event => {
+				proxy.username = event.target.value;
+				enableSave();
+			});
+			const passwordInput = buildInput('password', proxy.password, t('settings.proxyPasswordPlaceholder'), event => {
+				proxy.password = event.target.value;
+				enableSave();
+			});
+
+			fields.appendChild(createGlobalProxyField(t('settings.proxyName'), nameInput));
+			fields.appendChild(createGlobalProxyField(t('settings.proxyUrl'), urlInput, true));
+			fields.appendChild(createGlobalProxyField(t('settings.proxyUsername'), usernameInput));
+			fields.appendChild(createGlobalProxyField(t('settings.proxyPassword'), passwordInput));
+			deleteButton.addEventListener('click', () => removeProxy(index, entry));
+			entry.appendChild(header);
+			entry.appendChild(fields);
+			list.appendChild(entry);
+		});
+	}
+
+	addButton.addEventListener('click', () => {
+		if (proxies.length >= MAX_GLOBAL_PROXIES) return;
+		proxies.push({
+			name: nextGlobalProxyName(proxies),
+			url: '',
+			username: '',
+			password: ''
+		});
+		renderProxyList();
+		refreshActiveSelect();
+		enableSave();
+		list.lastElementChild?.querySelector('input')?.focus();
+	});
+
+	renderProxyList();
+	proxiesSection.querySelector('.cfg-fields')?.appendChild(list);
+	wrap.appendChild(routingSection);
+	wrap.appendChild(proxiesSection);
+	container.appendChild(wrap);
+}
+
+/**
+ * Renders the trusted public-key server list used for GPG key resolution.
+ * @param {HTMLElement} container
+ * @param {{key_servers?: string[]}} data
+ * @returns {void}
+ */
+function renderGPGSettings(container, data) {
+	const wrap = el('div', {class: 'cfg-layout'});
+	const section = createSection(
+		createIcon('fileKey'),
+		t('settings.gpgTitle'),
+		t('settings.gpgSubtitle'),
+		{defaultCollapsed: false}
+	);
+	const fields = section.querySelector('.cfg-fields');
+	const keyServers = makeTagListInput({
+		items: Array.isArray(data.key_servers) ? data.key_servers : [],
+		type: 'allow',
+		placeholder: 'https://keyserver.example',
+		emptyText: t('settings.gpgKeyServersEmpty'),
+		onChange: items => {
+			currentConfig.key_servers = [...items];
+			enableSave();
+		}
+	});
+	fields.appendChild(createFieldRow(
+		t('settings.gpgKeyServers'),
+		t('settings.gpgKeyServersHint'),
+		keyServers
+	));
+	wrap.appendChild(section);
+	container.appendChild(wrap);
 }
 
 /**

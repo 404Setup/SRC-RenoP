@@ -469,6 +469,14 @@ html.dark .dashboard-section-badge {
     --section-accent: #10b981;
 }
 
+.profile-section-icon--gpg {
+	--section-accent: #0f9f6e;
+}
+
+.profile-section-icon--gpg-releases {
+	--section-accent: #c0266d;
+}
+
 .sessions-dialog-body {
     display: flex;
     flex-direction: column;

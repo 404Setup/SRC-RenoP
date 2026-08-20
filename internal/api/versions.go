@@ -209,6 +209,9 @@ func ResolveLatestPath(state *core.AppState, repoName string, gav string, query 
 	if !utils.IsSubPath(cfg.StoragePath, fullPath) {
 		return "", false, fiber.ErrBadRequest
 	}
+	if state.Inner.FileIndex.IsBlocked(fullPath) {
+		return "", false, fiber.ErrNotFound
+	}
 
 	info, err := os.Stat(fullPath)
 	isDir := false

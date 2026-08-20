@@ -21,12 +21,14 @@ import {
 } from '../chunked-upload.js';
 import {collapseElement, expandElement} from '@renop/ui/height-anim';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
-import {InstanceStatus} from '../proto/index.js';
+import {InstanceStatus, RepoDetailsResponse} from '../proto/index.js';
 
 let pendingFiles = [];
 let uploading = false;
 let controlsAnimToken = 0;
 let zoneAnimToken = 0;
+let repositoryPolicySeq = 0;
+let repositoryRequiresGPG = false;
 
 const UPLOAD_PANEL_MARGIN = '1.25rem';
 const UPLOAD_CONTROLS_MARGIN = '0.85rem';
@@ -39,6 +41,41 @@ const UPLOAD_CONTROLS_MARGIN = '0.85rem';
 function fileExt(name) {
     const idx = name.lastIndexOf('.');
     return idx > 0 ? name.slice(idx + 1).toLowerCase() : '';
+}
+
+/**
+ * Whether a filename is one of the Maven artifact types covered by GPG policy.
+ * @param {string} name
+ * @returns {boolean}
+ */
+function isGPGProtectedFile(name) {
+	const lower = String(name || '').toLowerCase();
+	return lower.endsWith('.jar') || lower.endsWith('.pom') || lower.endsWith('.module');
+}
+
+/**
+ * Whether a filename is a canonical detached signature for a protected file.
+ * @param {string} name
+ * @returns {boolean}
+ */
+function isGPGDetachedSignature(name) {
+	const value = String(name || '');
+	return value.endsWith('.asc') && isGPGProtectedFile(value.slice(0, -4));
+}
+
+/**
+ * Apply repository signing policy to upload options without hiding uploads.
+ * @param {boolean} required
+ * @returns {void}
+ */
+function applyRepositoryGPGPolicy(required) {
+	repositoryRequiresGPG = required === true;
+	const pomCheckbox = document.getElementById('pom-checkbox');
+	const pomOption = pomCheckbox?.closest('.upload-option');
+	const pomForm = document.getElementById('pom-form');
+	if (pomOption) pomOption.hidden = repositoryRequiresGPG;
+	if (repositoryRequiresGPG && pomCheckbox) pomCheckbox.checked = false;
+	if (repositoryRequiresGPG && pomForm) pomForm.classList.remove('is-open');
 }
 
 /**
@@ -198,22 +235,40 @@ async function setUploadPanelOpen(open) {
 /**
  * Show or hide the upload panel based on path and update permission.
  * @param {string} path
+ * @param {Promise<object|null>} [detailsPromise]
  * @returns {Promise<void>}
  */
-export async function updateUploadZone(path) {
+export async function updateUploadZone(path, detailsPromise) {
     const uploadZoneContainer = document.getElementById('upload-zone-container');
     const uploadDestination = document.getElementById('upload-destination');
     if (!uploadZoneContainer) return;
 
     const pathParts = path.split('/').filter(p => p.length > 0).map(decodePathSegment);
     const shouldShow = pathParts.length >= 1 && canUpdateRepo(pathParts[0]);
+	const policySeq = ++repositoryPolicySeq;
 
     if (shouldShow) {
+		try {
+			let data = await detailsPromise;
+			if (!detailsPromise) {
+				const result = await fetchProto(
+					`/api/maven/repo-details/${encodePathSegment(pathParts[0])}`,
+					RepoDetailsResponse
+				);
+				data = result.response.ok ? result.data : null;
+			}
+			if (policySeq !== repositoryPolicySeq) return;
+			applyRepositoryGPGPolicy(data?.require_gpg_signature === true);
+		} catch (error) {
+			if (policySeq !== repositoryPolicySeq) return;
+			applyRepositoryGPGPolicy(false);
+		}
         if (uploadDestination) {
             uploadDestination.value = pathParts.join('/');
         }
         await setUploadPanelOpen(true);
     } else {
+		applyRepositoryGPGPolicy(false);
         await setUploadPanelOpen(false);
     }
 }
@@ -347,6 +402,20 @@ export function initUpload() {
     if (uploadBtn) {
         uploadBtn.addEventListener('click', async () => {
             if (pendingFiles.length === 0 || uploading) return;
+			const signedArtifactNames = new Set(
+				pendingFiles
+					.filter(file => isGPGDetachedSignature(file.name))
+					.map(file => file.name.slice(0, -4))
+			);
+			if (repositoryRequiresGPG) {
+				const missingSignatures = pendingFiles.filter(file =>
+					isGPGProtectedFile(file.name) && !signedArtifactNames.has(file.name)
+				);
+				if (missingSignatures.length > 0) {
+					showAlert(t('browser.gpgSignatureRequired', {count: missingSignatures.length}), 'error');
+					return;
+				}
+			}
 
             if (await updateUploadSpaceCheck()) {
                 showAlert(t('browser.insufficientDiskSpace'), 'error');
@@ -370,6 +439,10 @@ export function initUpload() {
 
             const totalFiles = pendingFiles.length;
             const totalBytesAll = pendingFiles.reduce((acc, f) => acc + f.size, 0);
+			const uploadQueue = pendingFiles.map((file, index) => ({file, index}));
+			uploadQueue.sort((left, right) =>
+				Number(isGPGDetachedSignature(left.file.name)) - Number(isGPGDetachedSignature(right.file.name))
+			);
             let completedFiles = 0;
             let bytesUploadedBefore = 0;
 
@@ -385,8 +458,7 @@ export function initUpload() {
                 if (batchFill) batchFill.style.width = '0%';
             }
 
-            for (let i = 0; i < pendingFiles.length; i++) {
-                const file = pendingFiles[i];
+            for (const {file, index: i} of uploadQueue) {
                 file._status = 'uploading';
                 const entryDiv = document.getElementById('upload-entry-' + i);
                 if (entryDiv) {
@@ -399,6 +471,9 @@ export function initUpload() {
                     if (!cleanDest.endsWith('/')) cleanDest += '/';
                     const relativeDest = cleanDest + file.name;
                     const targetPath = '/' + encodeRelativePath(relativeDest);
+					const signatureExpected = isGPGProtectedFile(file.name) && signedArtifactNames.has(file.name);
+					const fileHeaders = {...headers};
+					if (signatureExpected) fileHeaders['X-RenoP-GPG-Signature-Expected'] = 'true';
 
                     if (entryDiv) {
                         entryDiv.classList.add('is-uploading');
@@ -456,13 +531,14 @@ export function initUpload() {
                             purpose: 'storage',
                             path: relativeDest.replace(/\/+/g, '/').replace(/^\//, ''),
                             generateChecksums: !!(checksumCheckbox && checksumCheckbox.checked),
-                            headers,
+							gpgSignatureExpected: signatureExpected,
+							headers: fileHeaders,
                             onProgress: applyProgress,
                             onChunkProgress: applyChunkProgress,
                         });
                         ok = result.ok;
                     } else {
-                        const result = await uploadFileSinglePut(targetPath, file, headers, applyProgress);
+						const result = await uploadFileSinglePut(targetPath, file, fileHeaders, applyProgress);
                         ok = result.ok;
                     }
 

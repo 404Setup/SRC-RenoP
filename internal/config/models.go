@@ -22,6 +22,20 @@ type AuditLogConfig struct {
 	MaxRows       int `json:"max_rows" yaml:"max_rows"`
 }
 
+type GPGConfig struct {
+	KeyServers []string `json:"key_servers" yaml:"key_servers"`
+}
+
+func (g *GPGConfig) setDefaults() {
+	if len(g.KeyServers) == 0 {
+		g.KeyServers = DefaultGPGKeyServers()
+	}
+}
+
+func (g GPGConfig) DeepCopy() GPGConfig {
+	return GPGConfig{KeyServers: append([]string(nil), g.KeyServers...)}
+}
+
 func (a *AuditLogConfig) setDefaults() {
 	if a.RetentionDays <= 0 {
 		a.RetentionDays = 14
@@ -42,6 +56,8 @@ type Config struct {
 	Updater              UpdaterConfig  `json:"updater" yaml:"updater"`
 	Database             DatabaseConfig `json:"database" yaml:"database"`
 	AuditLog             AuditLogConfig `json:"audit_log" yaml:"audit_log"`
+	GPG                  GPGConfig      `json:"gpg" yaml:"gpg"`
+	Proxy                ProxyConfig    `json:"proxy" yaml:"proxy"`
 }
 
 func (c *Config) setDefaults() {
@@ -60,6 +76,7 @@ func (c *Config) setDefaults() {
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
 	c.AuditLog.setDefaults()
+	c.GPG.setDefaults()
 }
 
 func (c *Config) UnmarshalJSON(data []byte) error {
@@ -72,6 +89,7 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
 	c.AuditLog.setDefaults()
+	c.GPG.setDefaults()
 	return nil
 }
 
@@ -85,6 +103,7 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	c.Updater.setDefaults()
 	c.Database.setDefaults()
 	c.AuditLog.setDefaults()
+	c.GPG.setDefaults()
 	return nil
 }
 
@@ -144,5 +163,7 @@ func (c *Config) DeepCopy() *Config {
 		Updater:              c.Updater.DeepCopy(),
 		Database:             c.Database,
 		AuditLog:             c.AuditLog,
+		GPG:                  c.GPG.DeepCopy(),
+		Proxy:                c.Proxy.DeepCopy(),
 	}
 }

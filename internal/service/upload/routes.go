@@ -25,6 +25,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/gpg"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/service/updater"
@@ -135,6 +136,9 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		if !utils.IsSubPath(cfg.StoragePath, localFilePath) {
 			return jsonErr(c, fiber.StatusBadRequest, "Invalid path")
 		}
+		if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isSignature && req.GetSize() > gpg.MaxDetachedSignatureSize {
+			return jsonErr(c, fiber.StatusRequestEntityTooLarge, "GPG detached signature exceeds the size limit")
+		}
 
 		if storage.PathExistsForUpload(state, localFilePath) && !repo.AllowRedeployment {
 			return jsonErr(c, fiber.StatusConflict, "Conflict")
@@ -181,6 +185,7 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 	if err != nil {
 		return jsonErr(c, fiber.StatusInternalServerError, err.Error())
 	}
+	sess.SignatureExpected = req.GetGpgSignatureExpected()
 
 	return protohttp.Write(c, &pb.ChunkedUploadInitResponse{
 		UploadId:   sess.ID,
@@ -282,7 +287,7 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	}
 
 	localFilePath := sess.LocalFilePath
-	lockKey := filepath.ToSlash(localFilePath)
+	lockKey := filepath.ToSlash(storage.GPGUploadLockPath(localFilePath))
 	var upload *core.InFlightDownload
 	for {
 		var loaded bool
@@ -326,14 +331,22 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 		modTime = st.ModTime().UnixNano()
 	}
 
-	tmpPath := sess.TempPath
-	if err := storage.CommitUploadedFile(state, localFilePath, tmpPath, fileSize, modTime, existed, sess.GenerateChecksums, digests); err != nil {
+	user := auth.GetUser(c)
+	if user == nil || user.Username == "" || user.Username == "guest" {
 		sess.Abort()
-		msg := "Internal Server Error"
-		if strings.HasPrefix(err.Error(), "Failed to upload to S3:") {
-			msg = err.Error()
-		}
-		return jsonErr(c, fiber.StatusInternalServerError, msg)
+		return jsonErr(c, fiber.StatusUnauthorized, "Unauthorized")
+	}
+	result, err := storage.ProcessUploadedFile(c.Context(), state, repo, &storage.PreparedUpload{
+		LocalFilePath: localFilePath, TempPath: sess.TempPath, Username: user.Username,
+		FileSize: fileSize, ModTime: modTime, Existed: existed,
+		GenerateChecksums: sess.GenerateChecksums,
+		SignatureExpected: sess.SignatureExpected,
+		Digests:           digests,
+	})
+	if err != nil {
+		sess.Abort()
+		statusCode, message := storage.GPGUploadErrorResponse(err)
+		return jsonErr(c, statusCode, message)
 	}
 
 	sess.TempPath = ""
@@ -347,19 +360,33 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 
 	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", sess.RepoName, rel, fileSize)
+	action := "UPLOAD"
+	if result.Pending {
+		action = "UPLOAD_QUEUED_GPG"
+	}
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   username,
 		Operator:   op,
-		Action:     "UPLOAD",
+		Action:     action,
 		Details:    details,
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
 		IP:         ip,
 	})
 
-	return protohttp.WriteStatus(c, fiber.StatusCreated, &pb.ChunkedUploadCompleteResponse{
-		Status: "created",
-		Path:   rel,
+	statusCode := fiber.StatusCreated
+	statusValue := "created"
+	message := ""
+	if result.Pending {
+		statusCode = fiber.StatusAccepted
+		statusValue = "queued"
+		message = "Queued for GPG publication"
+	}
+	return protohttp.WriteStatus(c, statusCode, &pb.ChunkedUploadCompleteResponse{
+		Status:    statusValue,
+		Message:   message,
+		Path:      rel,
+		ReleaseId: result.ReleaseID,
 	})
 }
 

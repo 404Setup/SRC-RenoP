@@ -21,6 +21,10 @@ import (
 var S3IndexBuilder func(basePath string, idx *FileIndex) error
 
 func isTemporaryPath(pathStr string) bool {
+	pathSlash := filepath.ToSlash(pathStr)
+	if pathSlash == ".renop.tmp.gpg" || strings.Contains(pathSlash, "/.renop.tmp.gpg/") || strings.HasSuffix(pathSlash, "/.renop.tmp.gpg") {
+		return true
+	}
 	name := filepath.Base(pathStr)
 	if name == "" {
 		return false

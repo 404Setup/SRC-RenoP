@@ -151,6 +151,7 @@ type Session struct {
 	closed            bool
 	aborting          bool
 	GenerateChecksums bool
+	SignatureExpected bool
 }
 
 // Manager holds active chunked upload sessions.

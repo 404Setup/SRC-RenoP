@@ -112,6 +112,16 @@ func TestConfigDeepCopy(t *testing.T) {
 	orig.Frontend.Title = "Original Title"
 	orig.Frontend.CachedIndexHtml = []byte("hello")
 	orig.Server.TrustedProxies = []string{"192.168.1.1/32"}
+	orig.GPG.KeyServers = []string{"https://keys.example.test"}
+	orig.Proxy = ProxyConfig{
+		Selected: "primary",
+		Proxies: []OutboundProxy{{
+			Name:     "primary",
+			URL:      "http://proxy.example:8080",
+			Username: "proxy-user",
+			Password: "proxy-password",
+		}},
+	}
 	orig.Server.ParseTrustedProxies()
 	orig.Maven.Repositories["testrepo"] = &Repository{
 		Name:       "testrepo",
@@ -138,6 +148,9 @@ func TestConfigDeepCopy(t *testing.T) {
 	cloned.Frontend.Title = "Modified Title"
 	cloned.Frontend.CachedIndexHtml[0] = 'X'
 	cloned.Server.TrustedProxies[0] = "10.0.0.1/32"
+	cloned.GPG.KeyServers[0] = "https://changed.example.test"
+	cloned.Proxy.Selected = ""
+	cloned.Proxy.Proxies[0].Password = "changed"
 	cloned.Maven.Repositories["testrepo"].Visibility = "PRIVATE"
 	cloned.Maven.Repositories["testrepo"].Mirrors[0].AllowArtifacts[0] = "org.modified"
 	cloned.Maven.Repositories["testrepo"].Mirrors[0].Authorization.Login = "root"
@@ -154,6 +167,12 @@ func TestConfigDeepCopy(t *testing.T) {
 	}
 	if orig.Server.TrustedProxies[0] != "192.168.1.1/32" {
 		t.Fatalf("Server.TrustedProxies mutated in orig: %s", orig.Server.TrustedProxies[0])
+	}
+	if orig.GPG.KeyServers[0] != "https://keys.example.test" {
+		t.Fatalf("GPG.KeyServers mutated in orig: %s", orig.GPG.KeyServers[0])
+	}
+	if orig.Proxy.Selected != "primary" || orig.Proxy.Proxies[0].Password != "proxy-password" {
+		t.Fatalf("Proxy config mutated in orig: %+v", orig.Proxy)
 	}
 	if orig.Maven.Repositories["testrepo"].Visibility != "PUBLIC" {
 		t.Fatalf("Repository Visibility mutated in orig: %s", orig.Maven.Repositories["testrepo"].Visibility)

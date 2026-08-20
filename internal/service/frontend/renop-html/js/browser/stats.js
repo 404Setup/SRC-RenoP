@@ -206,11 +206,22 @@ export function hideRepoStats() {
 }
 
 /**
+ * Fetch repository details once so multiple consumers can share the result.
+ * @param {string} repoName
+ * @returns {Promise<object|null>}
+ */
+export async function fetchRepoDetails(repoName) {
+    const {response, data} = await fetchProto(`/api/maven/repo-details/${repoName}`, RepoDetailsResponse);
+    return response.ok && data ? data : null;
+}
+
+/**
  * Fetch and display repository size/mirror stats for `repoName`.
  * @param {string} repoName
+ * @param {Promise<object|null>} [detailsPromise]
  * @returns {Promise<void>}
  */
-export async function updateRepoStats(repoName) {
+export async function updateRepoStats(repoName, detailsPromise) {
     const repoStatsCard = document.getElementById('repo-stats-card');
     const repoStatsContent = document.getElementById('repo-stats-content');
     if (!repoStatsCard || !repoStatsContent) return;
@@ -218,10 +229,10 @@ export async function updateRepoStats(repoName) {
     const seq = ++statsLoadSeq;
 
     try {
-        const {response, data} = await fetchProto(`/api/maven/repo-details/${repoName}`, RepoDetailsResponse);
+        const data = await (detailsPromise || fetchRepoDetails(repoName));
         if (seq !== statsLoadSeq) return;
 
-        if (!response.ok || !data) {
+        if (!data) {
             await hideRepoStats();
             return;
         }

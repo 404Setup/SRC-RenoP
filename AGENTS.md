@@ -12,8 +12,11 @@
 - **`server.go`**: Server main entry point.
 - **`internal/`**: Server core logic (HTTP routes, auth, Maven repository proxying, storage adapters for S3/Local Disk).
 - **`internal/service/proxy/client.go`**: Bounded per-mirror HTTP/SOCKS5 proxy client cache. Mirror proxy credentials and transports are isolated by configuration, while unconfigured mirrors retain the shared outbound transport.
+- **`internal/service/outboundproxy/`**: Validates the Settings-level named HTTP/HTTPS/SOCKS5 proxy list and configures dedicated outbound transports for the globally selected proxy. This configuration is independent of per-mirror proxies; GPG key resolution is its current consumer.
 - Mirror authentication supports validated custom request headers while reusing `MirrorCredentials.login` for the header name and `password` for its token; routing and hop-by-hop headers are rejected before persistence.
 - Maven metadata requested through the API is fetched through the configured mirror with a bounded response size and an in-flight request lock; cached version-level metadata drives cleanup of superseded Maven SNAPSHOT builds, including numeric and timestamped build forms.
+- **`internal/service/gpg/`**: OpenPGP key resolution and detached-signature verification. User profiles may register up to 10 public-key IDs; HTTPS key-server lookups are response-bounded, validate every resolved address as public, use bounded IPv4-first address fallback for direct connections, can use the selected global proxy, and cache keys in the database.
+- **`internal/service/storage/gpg_*.go`**: Durable, single-threaded GPG publication queue for `.jar`, `.pom`, and `.module` uploads. Pending files live under the private `.renop.tmp.gpg` quarantine, remain persistently blocked from the file index across rebuilds/restarts, and are published only after verification. Terminal state and failure reasons are exposed in the user's profile publication history; storage-path changes are rejected while publication or cleanup work remains.
 - **`internal/service/status/process_memory_*.go`**: Platform-specific process memory sampling. Linux reuses `/proc/self/statm` with a fixed buffer; Windows uses process counters; other supported systems use the platform adapter from gopsutil.
 - **`internal/utils/memory_linux.go`**: Linux GC tuning. It resolves the process's cgroup v1/v2 mount and hierarchy, honors the strictest configured memory limit, leaves headroom for non-Go process memory, and applies a direct-build fallback for `GODEBUG=disablethp=1`. An explicit `disablethp` value in `GODEBUG` is preserved.
 - **`pkg/`**: Public/shared Go libraries.
@@ -30,6 +33,7 @@
 - **Node.js**: Node.js 18+ with **pnpm**
 - **PowerShell**: PowerShell 7 (`pwsh`)
 - **Protobuf Compiler**: `protoc` (with `protoc-gen-go` plugin)
+- **OpenPGP**: Backend verification uses `github.com/ProtonMail/go-crypto`; no browser-side signing dependency is used.
 
 ---
 
@@ -68,3 +72,4 @@
 3. **Error Handling & Quality**: NEVER swallow errors silently, return dummy fallbacks, or delete failing test assertions.
 4. **Performance Safety**: Avoid unnecessary heap allocations or memory copies in hot execution paths (e.g., streaming, storage, hashing).
 5. **Keep AGENTS.md Updated**: If your task alters build scripts, dependencies, project paths, or execution workflows, **you MUST update `AGENTS.md` before finishing**.
+6. **JavaScript Documentation**: Every manually written or modified JavaScript function must include JSDoc. Generated JavaScript should remain generator-owned.

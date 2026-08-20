@@ -27,6 +27,7 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/frontend"
+	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/settings"
 	"renop/internal/service/status"
@@ -92,6 +93,7 @@ func main() {
 
 	apiGroup := app.Group("/api")
 	auth.SetupAuthRoutes(apiGroup, state, opChan)
+	gpg.SetupProfileRoutes(apiGroup, state)
 	audit.SetupAuditRoutes(apiGroup.Group("/auth"), state)
 	token.SetupTokenRoutes(apiGroup, state, opChan)
 	status.SetupRoutes(apiGroup, state)

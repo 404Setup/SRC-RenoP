@@ -164,6 +164,18 @@ message MirrorProxy {
   string password = 3;
 }
 
+message OutboundProxy {
+  string name = 1;
+  string url = 2;
+  string username = 3;
+  string password = 4;
+}
+
+message ProxyConfig {
+  string selected = 1;
+  repeated OutboundProxy proxies = 2;
+}
+
 message Mirror {
   string name = 1;
   string url = 2;
@@ -196,6 +208,7 @@ message Repository {
   repeated Mirror mirrors = 3;
   bool allow_redeployment = 4;
   S3Config s3 = 5;
+  bool require_gpg_signature = 6;
 }
 
 message MavenRepositoriesResponse {
@@ -209,6 +222,7 @@ message FileDetails {
   optional string content_type = 4;
   optional string last_modified_time = 5;
   repeated FileDetails files = 6;
+  bool signed = 7;
 }
 
 message RepoMirrorInfo {
@@ -230,6 +244,7 @@ message RepoDetailsResponse {
   int64 artifact_count = 7;
   int64 metadata_count = 8;
   repeated RepoMirrorInfo mirrors = 9;
+  bool require_gpg_signature = 10;
 }
 
 message RebuildIndexRequest {
@@ -302,6 +317,10 @@ message DatabaseConfig {
 // Index domain has no writable configuration fields.
 message IndexDomainSettings {}
 
+message GpgConfig {
+  repeated string key_servers = 1;
+}
+
 // ChunkedUploadInitRequest starts a concurrent multi-part upload session.
 // purpose: "storage" (repository artifact) or "updater" (offline update zip).
 message ChunkedUploadInitRequest {
@@ -313,6 +332,8 @@ message ChunkedUploadInitRequest {
   bool generate_checksums = 5;
   // Preferred part size in bytes; server may clamp (default 4 MiB).
   int64 chunk_size = 6;
+  // Browser batches set this when a matching detached signature is selected.
+  bool gpg_signature_expected = 7;
 }
 
 message ChunkedUploadInitResponse {
@@ -329,6 +350,7 @@ message ChunkedUploadCompleteResponse {
   string message = 2;
   // Relative storage path when purpose=storage (repo/…).
   string path = 3;
+  string release_id = 4;
 }
 
 // Generic JSON/API error body used by some endpoints (documented shape).
@@ -345,6 +367,57 @@ message FidoDeviceDto {
 
 message FidoDeviceList {
   repeated FidoDeviceDto devices = 1;
+}
+
+message GpgKeyReferenceRequest {
+  string key_id = 1;
+}
+
+message GpgKeyDto {
+  string fingerprint = 1;
+  string key_id = 2;
+  string primary_identity = 3;
+  int64 key_created_at = 4;
+  int64 key_expires_at = 5;
+  int64 added_at = 6;
+  int64 refreshed_at = 7;
+}
+
+message GpgKeyList {
+  repeated GpgKeyDto keys = 1;
+}
+
+message GpgSignatureDetails {
+  string repository = 1;
+  string artifact_path = 2;
+  string fingerprint = 3;
+  string key_id = 4;
+  string primary_identity = 5;
+  string uploader = 6;
+  int64 signature_created_at = 7;
+  int64 verified_at = 8;
+  string hash_algorithm = 9;
+  string public_key_algorithm = 10;
+}
+
+message GpgReleaseDto {
+  string id = 1;
+  string repository = 2;
+  string artifact_path = 3;
+  string status = 4;
+  string failure_reason = 5;
+  bool signed = 6;
+  bool require_signature = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
+  int64 completed_at = 10;
+}
+
+message GpgReleaseList {
+  repeated GpgReleaseDto releases = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
 }
 
 message UpdatePasswordRequest {

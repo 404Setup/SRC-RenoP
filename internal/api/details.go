@@ -23,6 +23,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -34,8 +35,9 @@ func toPbFileDetails(d *FileDetails) *pb.FileDetails {
 		return nil
 	}
 	msg := &pb.FileDetails{
-		Type: string(d.Type),
-		Name: d.Name,
+		Type:   string(d.Type),
+		Name:   d.Name,
+		Signed: d.Signed,
 	}
 	if d.ContentLength != nil {
 		msg.ContentLength = d.ContentLength
@@ -55,9 +57,64 @@ func toPbFileDetails(d *FileDetails) *pb.FileDetails {
 	return msg
 }
 
+func annotateGPGSignatures(state *core.AppState, repository, parentPath string, details *FileDetails) error {
+	if details == nil || state == nil {
+		return nil
+	}
+	db := state.GetDB()
+	if db == nil {
+		return nil
+	}
+
+	type candidate struct {
+		detail *FileDetails
+		key    string
+	}
+	candidates := make([]candidate, 0, len(details.Files)+1)
+	add := func(detail *FileDetails, artifactPath string) {
+		if detail == nil || detail.Type != FileDetailsTypeFile || !gpg.IsProtectedArtifact(artifactPath) {
+			return
+		}
+		candidates = append(candidates, candidate{detail: detail, key: gpg.ArtifactKey(repository, artifactPath)})
+	}
+
+	if details.Type == FileDetailsTypeFile {
+		add(details, parentPath)
+	} else {
+		for i := range details.Files {
+			add(&details.Files[i], path.Join(parentPath, details.Files[i].Name))
+		}
+	}
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	keys := make([]string, 0, len(candidates))
+	for _, item := range candidates {
+		keys = append(keys, item.key)
+	}
+	signatures, err := db.GetGPGSignatures(keys)
+	if err != nil {
+		return err
+	}
+	signed := make(map[string]struct{}, len(signatures))
+	for _, signature := range signatures {
+		if signature != nil {
+			signed[signature.ArtifactKey] = struct{}{}
+		}
+	}
+	for _, item := range candidates {
+		_, item.detail.Signed = signed[item.key]
+	}
+	return nil
+}
+
 func CreateFileDetails(state *core.AppState, localFilePath string, withChildren bool) *FileDetails {
 	idx := state.Inner.FileIndex
 	localFilePath = filepath.ToSlash(localFilePath)
+	if idx.IsBlocked(localFilePath) {
+		return nil
+	}
 	name := path.Base(localFilePath)
 
 	if idx.HasDir(localFilePath) {
@@ -200,6 +257,9 @@ func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 	if details == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
+	if err := annotateGPGSignatures(state, repoName, "", details); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load signature status")
+	}
 
 	return protohttp.Write(c, toPbFileDetails(details))
 }
@@ -220,6 +280,9 @@ func GetDetails(c fiber.Ctx, state *core.AppState) error {
 	details := CreateFileDetails(state, localFilePath, true)
 	if details == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
+	}
+	if err := annotateGPGSignatures(state, repoName, pathParam, details); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load signature status")
 	}
 
 	return protohttp.Write(c, toPbFileDetails(details))
@@ -291,14 +354,15 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	return protohttp.Write(c, &pb.RepoDetailsResponse{
-		Name:          repoName,
-		Visibility:    repo.Visibility,
-		TotalSize:     totalSize,
-		ArtifactSize:  artifactSize,
-		MetadataSize:  metadataSize,
-		TotalFiles:    totalFiles,
-		ArtifactCount: artifactCount,
-		MetadataCount: metadataCount,
-		Mirrors:       mirrors,
+		Name:                repoName,
+		Visibility:          repo.Visibility,
+		TotalSize:           totalSize,
+		ArtifactSize:        artifactSize,
+		MetadataSize:        metadataSize,
+		TotalFiles:          totalFiles,
+		ArtifactCount:       artifactCount,
+		MetadataCount:       metadataCount,
+		Mirrors:             mirrors,
+		RequireGpgSignature: repo.RequireGPGSignature,
 	})
 }

@@ -104,6 +104,9 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	}
 
 	state.Inner.FileIndex = fileIndex
+	if err := storage.RestoreGPGReleaseState(state); err != nil {
+		log.Fatalf("Failed to restore GPG publication queue: %v", err)
+	}
 
 	state.Inner.FileCache = core.NewFileByteCache(int(cfg.Server.FileCacheSizeMb) << 20)
 
@@ -119,6 +122,7 @@ func StartServices(state *core.AppState, context BootstrapContext) {
 	status.StartStatusSnapshotScheduler(state, 20*time.Second)
 	tasks.StartIndexSaver(state, context.IndexPath)
 	tasks.StartSessionCleaner(state)
+	storage.StartGPGReleaseWorker(state)
 
 	go func() {
 		for {

@@ -11,7 +11,13 @@
 import {t, updatePageTranslations} from './i18n.js';
 import {showAlert} from './alert.js';
 import {fetchProto, getAuthHeaders} from './api.js';
-import {createBreadcrumbLink, createBreadcrumbSep, createFileItem} from './components.js';
+import {
+	createBreadcrumbLink,
+	createBreadcrumbSep,
+	createFileItem,
+	createMetaGrid,
+	RenopDialog
+} from './components.js';
 import {lockElementHeight, morphElementHeight} from '@renop/ui/height-anim';
 import {
     applyAdjustments,
@@ -22,8 +28,8 @@ import {
 } from './browser/utils.js';
 import {updateSnippets} from './browser/snippets.js';
 import {initUpload, updateUploadZone} from './browser/upload.js';
-import {hideRepoStats, updateRepoStats} from './browser/stats.js';
-import {FileDetails} from './proto/index.js';
+import {fetchRepoDetails, hideRepoStats, updateRepoStats} from './browser/stats.js';
+import {FileDetails, GpgSignatureDetails} from './proto/index.js';
 
 const fileList = document.getElementById('file-list');
 const fileListContainer = document.getElementById('file-list-container');
@@ -375,7 +381,8 @@ function createFileItemElement(file, index, path) {
                     showAlert(t('browser.failedDelete'), 'error');
                 }
             }
-        }
+		},
+		onSignature: detail => openSignatureDetails(detail)
     });
 
     const fullPath = (path.endsWith('/') ? path : path + '/') + encodePathSegment(file.name);
@@ -389,6 +396,58 @@ function createFileItemElement(file, index, path) {
         previewBtn.addEventListener('mouseenter', () => prefetchUrl(previewBtn.href), {once: true});
     }
     return item;
+}
+
+/**
+ * Format a signature timestamp for the current browser locale.
+ * @param {number|string} value Unix milliseconds
+ * @returns {string}
+ */
+function formatSignatureTime(value) {
+	const timestamp = Number(value);
+	if (!Number.isFinite(timestamp) || timestamp <= 0) return t('common.none');
+	return new Date(timestamp).toLocaleString();
+}
+
+/**
+ * Fetch and display verified GPG signature details for an artifact path.
+ * @param {{fullPath: string}} detail
+ * @returns {Promise<void>}
+ */
+async function openSignatureDetails({fullPath}) {
+	try {
+		const {response, data} = await fetchProto(`/api/maven/signatures${fullPath}`, GpgSignatureDetails);
+		if (!response.ok || !data) {
+			showAlert(t('browser.signatureLoadFailed'), 'error');
+			return;
+		}
+		const details = createMetaGrid([
+			{label: t('browser.signatureIdentity'), value: data.primary_identity || t('common.none')},
+			{label: t('browser.signatureFingerprint'), value: data.fingerprint || '', isCode: true},
+			{label: t('browser.signatureKeyId'), value: data.key_id || '', isCode: true},
+			{label: t('browser.signatureUploader'), value: data.uploader || ''},
+			{label: t('browser.signatureCreated'), value: formatSignatureTime(data.signature_created_at)},
+			{label: t('browser.signatureVerified'), value: formatSignatureTime(data.verified_at)},
+			{label: t('browser.signatureHash'), value: data.hash_algorithm || ''},
+			{label: t('browser.signatureAlgorithm'), value: data.public_key_algorithm || ''}
+		]);
+		RenopDialog.show({
+			id: 'gpg-signature-details-dialog',
+			maxWidth: '620px',
+			icon: 'fileLock',
+			title: t('browser.signatureDetails'),
+			subtitle: data.artifact_path || '',
+			body: details,
+			footer: [{
+				text: t('common.ok'),
+				className: 'action-btn primary-btn',
+				onClick: (event, dialog) => dialog.close(true)
+			}]
+		});
+	} catch (error) {
+		console.error('Failed to load GPG signature details', error);
+		showAlert(t('browser.signatureLoadFailed'), 'error');
+	}
 }
 
 /**
@@ -580,14 +639,16 @@ export async function loadDirectory(path) {
 
     renderBreadcrumb(path);
     updateSnippets(path);
-    updateUploadZone(path);
 
     const pathParts = path.split('/').filter(p => p.length > 0);
+    let repoDetailsPromise;
     if (pathParts.length >= 1 && pathParts[0] !== 'index.html') {
-        updateRepoStats(pathParts[0]);
+        repoDetailsPromise = fetchRepoDetails(pathParts[0]);
+        void updateRepoStats(pathParts[0], repoDetailsPromise);
     } else {
-        hideRepoStats();
+        void hideRepoStats();
     }
+    void updateUploadZone(path, repoDetailsPromise);
 
     try {
         const {response, data} = await fetchProto(`/api/maven/details${path}`, FileDetails);

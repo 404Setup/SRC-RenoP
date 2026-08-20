@@ -58,6 +58,9 @@ func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error
 										if err == nil {
 											pathNorm := filepath.ToSlash(filepath.Clean(path))
 											if isTemporaryPath(pathNorm) {
+												if d.IsDir() {
+													return filepath.SkipDir
+												}
 												return nil
 											}
 											if d.IsDir() {
@@ -102,9 +105,10 @@ func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error
 	err = filepath.WalkDir(basePath, func(path string, d fs.DirEntry, err error) error {
 		if err == nil && d.IsDir() {
 			pathNorm := filepath.ToSlash(filepath.Clean(path))
-			if !isTemporaryPath(pathNorm) {
-				_ = watcher.Add(pathNorm)
+			if isTemporaryPath(pathNorm) {
+				return filepath.SkipDir
 			}
+			_ = watcher.Add(pathNorm)
 		}
 		return nil
 	})

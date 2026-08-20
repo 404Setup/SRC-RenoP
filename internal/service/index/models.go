@@ -181,6 +181,7 @@ func readNotFoundFromJSON(decoder *json.Decoder, idx *FileIndex) error {
 type FileIndex struct {
 	Files         pb.MapOf[string, FileInfo]              `json:"-"`
 	Dirs          pb.MapOf[string, bool]                  `json:"-"`
+	Blocked       pb.MapOf[string, bool]                  `json:"-"`
 	Children      map[string][]string                     `json:"-"`
 	ChildrenMutex sync.RWMutex                            `json:"-"`
 	FilesCount    atomic.Uint64                           `json:"-"`
@@ -345,6 +346,9 @@ func NewFileIndexCustom(isSync bool) *FileIndex {
 
 // putFile stores or replaces a file entry and maintains FilesCount / TotalBytes.
 func (idx *FileIndex) putFile(pathSlash string, info FileInfo) {
+	if idx.IsBlocked(pathSlash) {
+		return
+	}
 	old, loaded := idx.Files.LoadOrStore(pathSlash, info)
 	if !loaded {
 		idx.FilesCount.Add(1)
@@ -457,6 +461,9 @@ func (idx *FileIndex) consumerLoop() {
 		case respCh := <-idx.SnapChan:
 			files := make(map[string]FileInfo)
 			idx.Files.Range(func(k string, v FileInfo) bool {
+				if idx.IsBlocked(k) {
+					return true
+				}
 				files[k] = v
 				return true
 			})
@@ -486,7 +493,11 @@ func (idx *FileIndex) consumerLoop() {
 }
 
 func (idx *FileIndex) HasFile(pathStr string) bool {
-	_, ok := idx.Files.Load(toSlashFast(pathStr))
+	pathStr = toSlashFast(pathStr)
+	if idx.IsBlocked(pathStr) {
+		return false
+	}
+	_, ok := idx.Files.Load(pathStr)
 	return ok
 }
 
@@ -496,12 +507,19 @@ func (idx *FileIndex) HasDir(pathStr string) bool {
 }
 
 func (idx *FileIndex) GetFileInfo(pathStr string) (FileInfo, bool) {
-	val, ok := idx.Files.Load(toSlashFast(pathStr))
+	pathStr = toSlashFast(pathStr)
+	if idx.IsBlocked(pathStr) {
+		return FileInfo{}, false
+	}
+	val, ok := idx.Files.Load(pathStr)
 	return val, ok
 }
 
 func (idx *FileIndex) GetPathState(pathStr string) (isDir bool, info FileInfo, ok bool, isNotFound bool) {
 	pathStr = toSlashFast(pathStr)
+	if idx.IsBlocked(pathStr) {
+		return false, FileInfo{}, false, true
+	}
 
 	currentNotFound := idx.NotFound.Load()
 	if currentNotFound != nil {
@@ -525,6 +543,9 @@ func (idx *FileIndex) GetPathState(pathStr string) (isDir bool, info FileInfo, o
 
 func (idx *FileIndex) InsertFile(pathStr string, info ...FileInfo) {
 	pathStr = toSlashFast(pathStr)
+	if idx.IsBlocked(pathStr) {
+		return
+	}
 	var fileInfo FileInfo
 	if len(info) > 0 {
 		fileInfo = info[0]
@@ -535,6 +556,35 @@ func (idx *FileIndex) InsertFile(pathStr string, info ...FileInfo) {
 		return
 	}
 	idx.OpChan <- IndexOp{Type: OpInsertFile, Path: pathStr, Info: fileInfo}
+}
+
+// BlockFile hides a physical object from every index insertion path until it
+// is explicitly unblocked. Durability is provided by the release database;
+// the in-memory set is restored before storage watchers and rebuilds start.
+func (idx *FileIndex) BlockFile(pathStr string) {
+	if idx == nil || pathStr == "" {
+		return
+	}
+	pathStr = toSlashFast(pathStr)
+	idx.Blocked.Store(pathStr, true)
+	idx.RemoveFile(pathStr)
+}
+
+// UnblockFile permits a successfully published or fully cleaned path to be
+// indexed again. It does not insert the path by itself.
+func (idx *FileIndex) UnblockFile(pathStr string) {
+	if idx == nil || pathStr == "" {
+		return
+	}
+	idx.Blocked.Delete(toSlashFast(pathStr))
+}
+
+func (idx *FileIndex) IsBlocked(pathStr string) bool {
+	if idx == nil || pathStr == "" {
+		return false
+	}
+	_, blocked := idx.Blocked.Load(toSlashFast(pathStr))
+	return blocked
 }
 
 func (idx *FileIndex) InsertDir(pathStr string) {
@@ -712,6 +762,9 @@ func (idx *FileIndex) WriteJSONTo(w io.Writer) (returnErr error) {
 	quoteBuf := make([]byte, 0, 256)
 
 	idx.Files.Range(func(k string, v FileInfo) bool {
+		if idx.IsBlocked(k) {
+			return true
+		}
 		if !first {
 			if _, err := bw.WriteString(","); err != nil {
 				rangeErr = err
@@ -823,6 +876,9 @@ func (idx *FileIndex) Snapshot() FileIndexSnapshot {
 	if idx.isSync {
 		files := make(map[string]FileInfo)
 		idx.Files.Range(func(k string, v FileInfo) bool {
+			if idx.IsBlocked(k) {
+				return true
+			}
 			files[k] = v
 			return true
 		})

@@ -535,6 +535,36 @@
                     </div>
                 </div>
 
+				<div class="profile-section-card">
+					<div class="profile-section-card-header">
+						<div class="profile-section-icon profile-section-icon--gpg" aria-hidden="true">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-1.5 1.5L14 9.5"/><path d="M15.5 7.5L17 9"/><circle cx="7.5" cy="16.5" r="4.5"/></svg>
+						</div>
+						<div class="profile-section-meta">
+							<h3 class="profile-section-title" data-i18n="profile.gpgTitle">GPG Signing Keys</h3>
+							<p class="profile-section-desc" data-i18n="profile.gpgDesc">Register public signing-key IDs used to verify Maven uploads.</p>
+						</div>
+					</div>
+					<div class="profile-section-body">
+						<button type="button" id="btn-profile-gpg" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.gpgBtn">Manage GPG Keys</button>
+					</div>
+				</div>
+
+				<div class="profile-section-card">
+					<div class="profile-section-card-header">
+						<div class="profile-section-icon profile-section-icon--gpg-releases" aria-hidden="true">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M7 3.5 4.5 6"/></svg>
+						</div>
+						<div class="profile-section-meta">
+							<h3 class="profile-section-title" data-i18n="profile.gpgReleasesTitle">GPG Publications</h3>
+							<p class="profile-section-desc" data-i18n="profile.gpgReleasesDesc">Review queued, validating, failed, and successful Maven publications.</p>
+						</div>
+					</div>
+					<div class="profile-section-body">
+						<button type="button" id="btn-profile-gpg-releases" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.gpgReleasesBtn">View Publications</button>
+					</div>
+				</div>
+
                 <div class="profile-section-card">
                     <div class="profile-section-card-header">
                         <div class="profile-section-icon profile-section-icon--audit" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;" aria-hidden="true">

@@ -215,6 +215,16 @@ function buildRepoSection(container, data, repoKey, repo) {
         }
     ));
 
+	fields.appendChild(makeToggleRow(
+		t('repos.requireGpgSignature'),
+		t('repos.requireGpgSignatureDesc'),
+		repo.require_gpg_signature === true,
+		checked => {
+			repo.require_gpg_signature = checked;
+			saveRepoSettings(repoKey, repo);
+		}
+	));
+
     bodyInner.appendChild(fields);
     bodyInner.appendChild(buildS3Section(repoKey, repo));
     bodyInner.appendChild(buildMirrorsSection(container, data, repoKey, repo, meta));
@@ -855,7 +865,13 @@ document.getElementById('btn-add-repository')?.addEventListener('click', async (
             showAlert(t('repos.repoExists'), 'error');
             return;
         }
-        const repo = {name: repoName, visibility: 'PUBLIC', allow_redeployment: false, mirrors: []};
+		const repo = {
+			name: repoName,
+			visibility: 'PUBLIC',
+			allow_redeployment: false,
+			require_gpg_signature: false,
+			mirrors: []
+		};
         currentConfig.repositories[repoName] = repo;
         const ok = await saveRepoSettings(repoName, repo, {silent: true, isCreate: true});
         if (ok) {

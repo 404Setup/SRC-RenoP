@@ -1294,15 +1294,22 @@ ul#file-list a.file-item-link:hover {
 }
 
 .file-action-btn--preview:hover,
-.file-action-btn--docs:hover {
+.file-action-btn--docs:hover,
+.file-action-btn--signature:hover {
     opacity: 1;
     color: var(--link-hover-color);
     background: color-mix(in srgb, var(--text-color) 6%, transparent);
     transform: scale(1.12);
 }
 
+.file-action-btn--signature {
+	color: #0f9f6e;
+	opacity: 0.9;
+}
+
 .file-action-btn--preview:active,
 .file-action-btn--docs:active,
+.file-action-btn--signature:active,
 .file-action-btn--delete:active {
     transform: scale(0.92);
 }

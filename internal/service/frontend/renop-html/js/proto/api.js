@@ -7903,6 +7903,661 @@ export const renop = $root.renop = (() => {
                 return MirrorProxy;
             })();
 
+            v1.OutboundProxy = (function() {
+
+                /**
+                 * Properties of an OutboundProxy.
+                 * @typedef {Object} renop.api.v1.OutboundProxy.$Properties
+                 * @property {string|null} [name] OutboundProxy name
+                 * @property {string|null} [url] OutboundProxy url
+                 * @property {string|null} [username] OutboundProxy username
+                 * @property {string|null} [password] OutboundProxy password
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an OutboundProxy.
+                 * @memberof renop.api.v1
+                 * @interface IOutboundProxy
+                 * @augments renop.api.v1.OutboundProxy.$Properties
+                 * @deprecated Use renop.api.v1.OutboundProxy.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an OutboundProxy.
+                 * @typedef {renop.api.v1.OutboundProxy.$Properties} renop.api.v1.OutboundProxy.$Shape
+                 */
+
+                /**
+                 * Constructs a new OutboundProxy.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an OutboundProxy.
+                 * @constructor
+                 * @param {renop.api.v1.OutboundProxy.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const OutboundProxy = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * OutboundProxy name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @instance
+                 */
+                OutboundProxy.prototype.name = "";
+
+                /**
+                 * OutboundProxy url.
+                 * @member {string} url
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @instance
+                 */
+                OutboundProxy.prototype.url = "";
+
+                /**
+                 * OutboundProxy username.
+                 * @member {string} username
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @instance
+                 */
+                OutboundProxy.prototype.username = "";
+
+                /**
+                 * OutboundProxy password.
+                 * @member {string} password
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @instance
+                 */
+                OutboundProxy.prototype.password = "";
+
+                /**
+                 * Creates a new OutboundProxy instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {renop.api.v1.OutboundProxy.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.OutboundProxy} OutboundProxy instance
+                 * @type {{
+                 *   (properties: renop.api.v1.OutboundProxy.$Shape): renop.api.v1.OutboundProxy & renop.api.v1.OutboundProxy.$Shape;
+                 *   (properties?: renop.api.v1.OutboundProxy.$Properties): renop.api.v1.OutboundProxy;
+                 * }}
+                 */
+                OutboundProxy.create = function(properties) {
+                    return new OutboundProxy(properties);
+                };
+
+                /**
+                 * Encodes the specified OutboundProxy message. Does not implicitly {@link renop.api.v1.OutboundProxy.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {renop.api.v1.OutboundProxy.$Properties} message OutboundProxy message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                OutboundProxy.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url") && message.url !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.url);
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username") && message.username !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.username);
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password") && message.password !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.password);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified OutboundProxy message, length delimited. Does not implicitly {@link renop.api.v1.OutboundProxy.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {renop.api.v1.OutboundProxy.$Properties} message OutboundProxy message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                OutboundProxy.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an OutboundProxy message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.OutboundProxy & renop.api.v1.OutboundProxy.$Shape} OutboundProxy
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                OutboundProxy.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.OutboundProxy(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.url = value;
+                                else
+                                    delete message.url;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.username = value;
+                                else
+                                    delete message.username;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.password = value;
+                                else
+                                    delete message.password;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an OutboundProxy message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.OutboundProxy & renop.api.v1.OutboundProxy.$Shape} OutboundProxy
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                OutboundProxy.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an OutboundProxy message.
+                 * @function verify
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                OutboundProxy.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        if (!$util.isString(message.url))
+                            return "url: string expected";
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        if (!$util.isString(message.username))
+                            return "username: string expected";
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password"))
+                        if (!$util.isString(message.password))
+                            return "password: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an OutboundProxy message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.OutboundProxy} OutboundProxy
+                 */
+                OutboundProxy.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.OutboundProxy)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.OutboundProxy: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.OutboundProxy();
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.url != null)
+                        if (typeof object.url !== "string" || object.url.length)
+                            message.url = $String(object.url);
+                    if (object.username != null)
+                        if (typeof object.username !== "string" || object.username.length)
+                            message.username = $String(object.username);
+                    if (object.password != null)
+                        if (typeof object.password !== "string" || object.password.length)
+                            message.password = $String(object.password);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an OutboundProxy message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {renop.api.v1.OutboundProxy} message OutboundProxy
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                OutboundProxy.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.name = "";
+                        object.url = "";
+                        object.username = "";
+                        object.password = "";
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        object.url = message.url;
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        object.username = message.username;
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password"))
+                        object.password = message.password;
+                    return object;
+                };
+
+                /**
+                 * Converts this OutboundProxy to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                OutboundProxy.prototype.toJSON = function() {
+                    return OutboundProxy.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for OutboundProxy
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.OutboundProxy
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                OutboundProxy.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.OutboundProxy";
+                };
+
+                return OutboundProxy;
+            })();
+
+            v1.ProxyConfig = (function() {
+
+                /**
+                 * Properties of a ProxyConfig.
+                 * @typedef {Object} renop.api.v1.ProxyConfig.$Properties
+                 * @property {string|null} [selected] ProxyConfig selected
+                 * @property {Array.<renop.api.v1.OutboundProxy.$Properties>|null} [proxies] ProxyConfig proxies
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a ProxyConfig.
+                 * @memberof renop.api.v1
+                 * @interface IProxyConfig
+                 * @augments renop.api.v1.ProxyConfig.$Properties
+                 * @deprecated Use renop.api.v1.ProxyConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a ProxyConfig.
+                 * @typedef {renop.api.v1.ProxyConfig.$Properties} renop.api.v1.ProxyConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new ProxyConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a ProxyConfig.
+                 * @constructor
+                 * @param {renop.api.v1.ProxyConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const ProxyConfig = function (properties) {
+                    this.proxies = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * ProxyConfig selected.
+                 * @member {string} selected
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @instance
+                 */
+                ProxyConfig.prototype.selected = "";
+
+                /**
+                 * ProxyConfig proxies.
+                 * @member {Array.<renop.api.v1.OutboundProxy.$Properties>} proxies
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @instance
+                 */
+                ProxyConfig.prototype.proxies = $util.emptyArray;
+
+                /**
+                 * Creates a new ProxyConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {renop.api.v1.ProxyConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.ProxyConfig} ProxyConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.ProxyConfig.$Shape): renop.api.v1.ProxyConfig & renop.api.v1.ProxyConfig.$Shape;
+                 *   (properties?: renop.api.v1.ProxyConfig.$Properties): renop.api.v1.ProxyConfig;
+                 * }}
+                 */
+                ProxyConfig.create = function(properties) {
+                    return new ProxyConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified ProxyConfig message. Does not implicitly {@link renop.api.v1.ProxyConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {renop.api.v1.ProxyConfig.$Properties} message ProxyConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ProxyConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.selected != null && $Object.hasOwnProperty.call(message, "selected") && message.selected !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.selected);
+                    if (message.proxies != null && message.proxies.length)
+                        for (let i = 0; i < message.proxies.length; ++i)
+                            $root.renop.api.v1.OutboundProxy.encode(message.proxies[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified ProxyConfig message, length delimited. Does not implicitly {@link renop.api.v1.ProxyConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {renop.api.v1.ProxyConfig.$Properties} message ProxyConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ProxyConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a ProxyConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.ProxyConfig & renop.api.v1.ProxyConfig.$Shape} ProxyConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ProxyConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ProxyConfig(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.selected = value;
+                                else
+                                    delete message.selected;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.proxies && message.proxies.length))
+                                    message.proxies = [];
+                                message.proxies.push($root.renop.api.v1.OutboundProxy.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a ProxyConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.ProxyConfig & renop.api.v1.ProxyConfig.$Shape} ProxyConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ProxyConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a ProxyConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                ProxyConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.selected != null && $Object.hasOwnProperty.call(message, "selected"))
+                        if (!$util.isString(message.selected))
+                            return "selected: string expected";
+                    if (message.proxies != null && $Object.hasOwnProperty.call(message, "proxies")) {
+                        if (!$Array.isArray(message.proxies))
+                            return "proxies: array expected";
+                        for (let i = 0; i < message.proxies.length; ++i) {
+                            let error = $root.renop.api.v1.OutboundProxy.verify(message.proxies[i], _depth + 1);
+                            if (error)
+                                return "proxies." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a ProxyConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.ProxyConfig} ProxyConfig
+                 */
+                ProxyConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.ProxyConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.ProxyConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.ProxyConfig();
+                    if (object.selected != null)
+                        if (typeof object.selected !== "string" || object.selected.length)
+                            message.selected = $String(object.selected);
+                    if (object.proxies) {
+                        if (!$Array.isArray(object.proxies))
+                            throw $TypeError(".renop.api.v1.ProxyConfig.proxies: array expected");
+                        message.proxies = $Array(object.proxies.length);
+                        for (let i = 0; i < object.proxies.length; ++i) {
+                            if (!$util.isObject(object.proxies[i]))
+                                throw $TypeError(".renop.api.v1.ProxyConfig.proxies: object expected");
+                            message.proxies[i] = $root.renop.api.v1.OutboundProxy.fromObject(object.proxies[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a ProxyConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {renop.api.v1.ProxyConfig} message ProxyConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                ProxyConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.proxies = [];
+                    if (options.defaults)
+                        object.selected = "";
+                    if (message.selected != null && $Object.hasOwnProperty.call(message, "selected"))
+                        object.selected = message.selected;
+                    if (message.proxies && message.proxies.length) {
+                        object.proxies = $Array(message.proxies.length);
+                        for (let j = 0; j < message.proxies.length; ++j)
+                            object.proxies[j] = $root.renop.api.v1.OutboundProxy.toObject(message.proxies[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this ProxyConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                ProxyConfig.prototype.toJSON = function() {
+                    return ProxyConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for ProxyConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.ProxyConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                ProxyConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.ProxyConfig";
+                };
+
+                return ProxyConfig;
+            })();
+
             v1.Mirror = (function() {
 
                 /**
@@ -9017,6 +9672,7 @@ export const renop = $root.renop = (() => {
                  * @property {Array.<renop.api.v1.Mirror.$Properties>|null} [mirrors] Repository mirrors
                  * @property {boolean|null} [allow_redeployment] Repository allow_redeployment
                  * @property {renop.api.v1.S3Config.$Properties|null} [s3] Repository s3
+                 * @property {boolean|null} [require_gpg_signature] Repository require_gpg_signature
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -9090,6 +9746,14 @@ export const renop = $root.renop = (() => {
                 Repository.prototype.s3 = null;
 
                 /**
+                 * Repository require_gpg_signature.
+                 * @member {boolean} require_gpg_signature
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 */
+                Repository.prototype.require_gpg_signature = false;
+
+                /**
                  * Creates a new Repository instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.Repository
@@ -9132,6 +9796,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 4, wireType 0 =*/32).bool(message.allow_redeployment);
                     if (message.s3 != null && $Object.hasOwnProperty.call(message, "s3"))
                         $root.renop.api.v1.S3Config.encode(message.s3, writer.uint32(/* id 5, wireType 2 =*/42).fork(), _depth + 1).ldelim();
+                    if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature") && message.require_gpg_signature !== false)
+                        writer.uint32(/* id 6, wireType 0 =*/48).bool(message.require_gpg_signature);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -9220,6 +9886,15 @@ export const renop = $root.renop = (() => {
                                 message.s3 = $root.renop.api.v1.S3Config.decode(reader, reader.uint32(), $undefined, _depth + 1, message.s3);
                                 continue;
                             }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.require_gpg_signature = value;
+                                else
+                                    delete message.require_gpg_signature;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -9286,6 +9961,9 @@ export const renop = $root.renop = (() => {
                         if (error)
                             return "s3." + error;
                     }
+                    if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
+                        if (typeof message.require_gpg_signature !== "boolean")
+                            return "require_gpg_signature: boolean expected";
                     return null;
                 };
 
@@ -9331,6 +10009,9 @@ export const renop = $root.renop = (() => {
                             throw $TypeError(".renop.api.v1.Repository.s3: object expected");
                         message.s3 = $root.renop.api.v1.S3Config.fromObject(object.s3, _depth + 1);
                     }
+                    if (object.require_gpg_signature != null)
+                        if (object.require_gpg_signature)
+                            message.require_gpg_signature = $Boolean(object.require_gpg_signature);
                     return message;
                 };
 
@@ -9358,6 +10039,7 @@ export const renop = $root.renop = (() => {
                         object.visibility = "";
                         object.allow_redeployment = false;
                         object.s3 = null;
+                        object.require_gpg_signature = false;
                     }
                     if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
                         object.name = message.name;
@@ -9372,6 +10054,8 @@ export const renop = $root.renop = (() => {
                         object.allow_redeployment = message.allow_redeployment;
                     if (message.s3 != null && $Object.hasOwnProperty.call(message, "s3"))
                         object.s3 = $root.renop.api.v1.S3Config.toObject(message.s3, options, _depth + 1);
+                    if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
+                        object.require_gpg_signature = message.require_gpg_signature;
                     return object;
                 };
 
@@ -9722,6 +10406,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [content_type] FileDetails content_type
                  * @property {string|null} [last_modified_time] FileDetails last_modified_time
                  * @property {Array.<renop.api.v1.FileDetails.$Properties>|null} [files] FileDetails files
+                 * @property {boolean|null} [signed] FileDetails signed
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -9802,6 +10487,14 @@ export const renop = $root.renop = (() => {
                  */
                 FileDetails.prototype.files = $util.emptyArray;
 
+                /**
+                 * FileDetails signed.
+                 * @member {boolean} signed
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.signed = false;
+
                 // OneOf field names bound to virtual getters and setters
                 let $oneOfFields;
 
@@ -9868,6 +10561,8 @@ export const renop = $root.renop = (() => {
                     if (message.files != null && message.files.length)
                         for (let i = 0; i < message.files.length; ++i)
                             $root.renop.api.v1.FileDetails.encode(message.files[i], writer.uint32(/* id 6, wireType 2 =*/50).fork(), _depth + 1).ldelim();
+                    if (message.signed != null && $Object.hasOwnProperty.call(message, "signed") && message.signed !== false)
+                        writer.uint32(/* id 7, wireType 0 =*/56).bool(message.signed);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -9962,6 +10657,15 @@ export const renop = $root.renop = (() => {
                                 message.files.push($root.renop.api.v1.FileDetails.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.signed = value;
+                                else
+                                    delete message.signed;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -10036,6 +10740,9 @@ export const renop = $root.renop = (() => {
                                 return "files." + error;
                         }
                     }
+                    if (message.signed != null && $Object.hasOwnProperty.call(message, "signed"))
+                        if (typeof message.signed !== "boolean")
+                            return "signed: boolean expected";
                     return null;
                 };
 
@@ -10086,6 +10793,9 @@ export const renop = $root.renop = (() => {
                             message.files[i] = $root.renop.api.v1.FileDetails.fromObject(object.files[i], _depth + 1);
                         }
                     }
+                    if (object.signed != null)
+                        if (object.signed)
+                            message.signed = $Boolean(object.signed);
                     return message;
                 };
 
@@ -10111,6 +10821,7 @@ export const renop = $root.renop = (() => {
                     if (options.defaults) {
                         object.type = "";
                         object.name = "";
+                        object.signed = false;
                     }
                     if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
                         object.type = message.type;
@@ -10132,6 +10843,8 @@ export const renop = $root.renop = (() => {
                         for (let j = 0; j < message.files.length; ++j)
                             object.files[j] = $root.renop.api.v1.FileDetails.toObject(message.files[j], options, _depth + 1);
                     }
+                    if (message.signed != null && $Object.hasOwnProperty.call(message, "signed"))
+                        object.signed = message.signed;
                     return object;
                 };
 
@@ -10599,6 +11312,7 @@ export const renop = $root.renop = (() => {
                  * @property {number|Long|null} [artifact_count] RepoDetailsResponse artifact_count
                  * @property {number|Long|null} [metadata_count] RepoDetailsResponse metadata_count
                  * @property {Array.<renop.api.v1.RepoMirrorInfo.$Properties>|null} [mirrors] RepoDetailsResponse mirrors
+                 * @property {boolean|null} [require_gpg_signature] RepoDetailsResponse require_gpg_signature
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -10704,6 +11418,14 @@ export const renop = $root.renop = (() => {
                 RepoDetailsResponse.prototype.mirrors = $util.emptyArray;
 
                 /**
+                 * RepoDetailsResponse require_gpg_signature.
+                 * @member {boolean} require_gpg_signature
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.require_gpg_signature = false;
+
+                /**
                  * Creates a new RepoDetailsResponse instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.RepoDetailsResponse
@@ -10754,6 +11476,8 @@ export const renop = $root.renop = (() => {
                     if (message.mirrors != null && message.mirrors.length)
                         for (let i = 0; i < message.mirrors.length; ++i)
                             $root.renop.api.v1.RepoMirrorInfo.encode(message.mirrors[i], writer.uint32(/* id 9, wireType 2 =*/74).fork(), _depth + 1).ldelim();
+                    if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature") && message.require_gpg_signature !== false)
+                        writer.uint32(/* id 10, wireType 0 =*/80).bool(message.require_gpg_signature);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -10881,6 +11605,15 @@ export const renop = $root.renop = (() => {
                                 message.mirrors.push($root.renop.api.v1.RepoMirrorInfo.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
+                        case 10: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.require_gpg_signature = value;
+                                else
+                                    delete message.require_gpg_signature;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -10957,6 +11690,9 @@ export const renop = $root.renop = (() => {
                                 return "mirrors." + error;
                         }
                     }
+                    if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
+                        if (typeof message.require_gpg_signature !== "boolean")
+                            return "require_gpg_signature: boolean expected";
                     return null;
                 };
 
@@ -11054,6 +11790,9 @@ export const renop = $root.renop = (() => {
                             message.mirrors[i] = $root.renop.api.v1.RepoMirrorInfo.fromObject(object.mirrors[i], _depth + 1);
                         }
                     }
+                    if (object.require_gpg_signature != null)
+                        if (object.require_gpg_signature)
+                            message.require_gpg_signature = $Boolean(object.require_gpg_signature);
                     return message;
                 };
 
@@ -11109,6 +11848,7 @@ export const renop = $root.renop = (() => {
                             object.metadata_count = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
                         } else
                             object.metadata_count = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.require_gpg_signature = false;
                     }
                     if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
                         object.name = message.name;
@@ -11161,6 +11901,8 @@ export const renop = $root.renop = (() => {
                         for (let j = 0; j < message.mirrors.length; ++j)
                             object.mirrors[j] = $root.renop.api.v1.RepoMirrorInfo.toObject(message.mirrors[j], options, _depth + 1);
                     }
+                    if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
+                        object.require_gpg_signature = message.require_gpg_signature;
                     return object;
                 };
 
@@ -14493,6 +15235,278 @@ export const renop = $root.renop = (() => {
                 return IndexDomainSettings;
             })();
 
+            v1.GpgConfig = (function() {
+
+                /**
+                 * Properties of a GpgConfig.
+                 * @typedef {Object} renop.api.v1.GpgConfig.$Properties
+                 * @property {Array.<string>|null} [key_servers] GpgConfig key_servers
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GpgConfig.
+                 * @memberof renop.api.v1
+                 * @interface IGpgConfig
+                 * @augments renop.api.v1.GpgConfig.$Properties
+                 * @deprecated Use renop.api.v1.GpgConfig.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GpgConfig.
+                 * @typedef {renop.api.v1.GpgConfig.$Properties} renop.api.v1.GpgConfig.$Shape
+                 */
+
+                /**
+                 * Constructs a new GpgConfig.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GpgConfig.
+                 * @constructor
+                 * @param {renop.api.v1.GpgConfig.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GpgConfig = function (properties) {
+                    this.key_servers = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GpgConfig key_servers.
+                 * @member {Array.<string>} key_servers
+                 * @memberof renop.api.v1.GpgConfig
+                 * @instance
+                 */
+                GpgConfig.prototype.key_servers = $util.emptyArray;
+
+                /**
+                 * Creates a new GpgConfig instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {renop.api.v1.GpgConfig.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GpgConfig} GpgConfig instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GpgConfig.$Shape): renop.api.v1.GpgConfig & renop.api.v1.GpgConfig.$Shape;
+                 *   (properties?: renop.api.v1.GpgConfig.$Properties): renop.api.v1.GpgConfig;
+                 * }}
+                 */
+                GpgConfig.create = function(properties) {
+                    return new GpgConfig(properties);
+                };
+
+                /**
+                 * Encodes the specified GpgConfig message. Does not implicitly {@link renop.api.v1.GpgConfig.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {renop.api.v1.GpgConfig.$Properties} message GpgConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgConfig.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.key_servers != null && message.key_servers.length)
+                        for (let i = 0; i < message.key_servers.length; ++i)
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.key_servers[i]);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GpgConfig message, length delimited. Does not implicitly {@link renop.api.v1.GpgConfig.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {renop.api.v1.GpgConfig.$Properties} message GpgConfig message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgConfig.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GpgConfig message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GpgConfig & renop.api.v1.GpgConfig.$Shape} GpgConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgConfig.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgConfig();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.key_servers && message.key_servers.length))
+                                    message.key_servers = [];
+                                message.key_servers.push(reader.stringVerify());
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GpgConfig message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GpgConfig & renop.api.v1.GpgConfig.$Shape} GpgConfig
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgConfig.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GpgConfig message.
+                 * @function verify
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GpgConfig.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.key_servers != null && $Object.hasOwnProperty.call(message, "key_servers")) {
+                        if (!$Array.isArray(message.key_servers))
+                            return "key_servers: array expected";
+                        for (let i = 0; i < message.key_servers.length; ++i)
+                            if (!$util.isString(message.key_servers[i]))
+                                return "key_servers: string[] expected";
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a GpgConfig message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GpgConfig} GpgConfig
+                 */
+                GpgConfig.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GpgConfig)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GpgConfig: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GpgConfig();
+                    if (object.key_servers) {
+                        if (!$Array.isArray(object.key_servers))
+                            throw $TypeError(".renop.api.v1.GpgConfig.key_servers: array expected");
+                        message.key_servers = $Array(object.key_servers.length);
+                        for (let i = 0; i < object.key_servers.length; ++i)
+                            message.key_servers[i] = $String(object.key_servers[i]);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GpgConfig message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {renop.api.v1.GpgConfig} message GpgConfig
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GpgConfig.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.key_servers = [];
+                    if (message.key_servers && message.key_servers.length) {
+                        object.key_servers = $Array(message.key_servers.length);
+                        for (let j = 0; j < message.key_servers.length; ++j)
+                            object.key_servers[j] = message.key_servers[j];
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this GpgConfig to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GpgConfig
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GpgConfig.prototype.toJSON = function() {
+                    return GpgConfig.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GpgConfig
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GpgConfig
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GpgConfig.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GpgConfig";
+                };
+
+                return GpgConfig;
+            })();
+
             v1.ChunkedUploadInitRequest = (function() {
 
                 /**
@@ -14504,6 +15518,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [path] ChunkedUploadInitRequest path
                  * @property {boolean|null} [generate_checksums] ChunkedUploadInitRequest generate_checksums
                  * @property {number|Long|null} [chunk_size] ChunkedUploadInitRequest chunk_size
+                 * @property {boolean|null} [gpg_signature_expected] ChunkedUploadInitRequest gpg_signature_expected
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -14584,6 +15599,14 @@ export const renop = $root.renop = (() => {
                 ChunkedUploadInitRequest.prototype.chunk_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
                 /**
+                 * ChunkedUploadInitRequest gpg_signature_expected.
+                 * @member {boolean} gpg_signature_expected
+                 * @memberof renop.api.v1.ChunkedUploadInitRequest
+                 * @instance
+                 */
+                ChunkedUploadInitRequest.prototype.gpg_signature_expected = false;
+
+                /**
                  * Creates a new ChunkedUploadInitRequest instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.ChunkedUploadInitRequest
@@ -14627,6 +15650,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 5, wireType 0 =*/40).bool(message.generate_checksums);
                     if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size") && (typeof message.chunk_size === "object" ? message.chunk_size.low || message.chunk_size.high : message.chunk_size !== 0))
                         writer.uint32(/* id 6, wireType 0 =*/48).int64(message.chunk_size);
+                    if (message.gpg_signature_expected != null && $Object.hasOwnProperty.call(message, "gpg_signature_expected") && message.gpg_signature_expected !== false)
+                        writer.uint32(/* id 7, wireType 0 =*/56).bool(message.gpg_signature_expected);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -14728,6 +15753,15 @@ export const renop = $root.renop = (() => {
                                     delete message.chunk_size;
                                 continue;
                             }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.gpg_signature_expected = value;
+                                else
+                                    delete message.gpg_signature_expected;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -14789,6 +15823,9 @@ export const renop = $root.renop = (() => {
                     if (message.chunk_size != null && $Object.hasOwnProperty.call(message, "chunk_size"))
                         if (!$util.isInteger(message.chunk_size) && !(message.chunk_size && $util.isInteger(message.chunk_size.low) && $util.isInteger(message.chunk_size.high)))
                             return "chunk_size: integer|Long expected";
+                    if (message.gpg_signature_expected != null && $Object.hasOwnProperty.call(message, "gpg_signature_expected"))
+                        if (typeof message.gpg_signature_expected !== "boolean")
+                            return "gpg_signature_expected: boolean expected";
                     return null;
                 };
 
@@ -14842,6 +15879,9 @@ export const renop = $root.renop = (() => {
                                 message.chunk_size = object.chunk_size;
                             else if (typeof object.chunk_size === "object")
                                 message.chunk_size = new $util.LongBits(object.chunk_size.low >>> 0, object.chunk_size.high >>> 0).toNumber();
+                    if (object.gpg_signature_expected != null)
+                        if (object.gpg_signature_expected)
+                            message.gpg_signature_expected = $Boolean(object.gpg_signature_expected);
                     return message;
                 };
 
@@ -14877,6 +15917,7 @@ export const renop = $root.renop = (() => {
                             object.chunk_size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
                         } else
                             object.chunk_size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.gpg_signature_expected = false;
                     }
                     if (message.purpose != null && $Object.hasOwnProperty.call(message, "purpose"))
                         object.purpose = message.purpose;
@@ -14900,6 +15941,8 @@ export const renop = $root.renop = (() => {
                             object.chunk_size = options.longs === $String ? $String(message.chunk_size) : message.chunk_size;
                         else
                             object.chunk_size = options.longs === $String ? $util.Long.prototype.toString.call(message.chunk_size) : options.longs === $Number ? new $util.LongBits(message.chunk_size.low >>> 0, message.chunk_size.high >>> 0).toNumber() : message.chunk_size;
+                    if (message.gpg_signature_expected != null && $Object.hasOwnProperty.call(message, "gpg_signature_expected"))
+                        object.gpg_signature_expected = message.gpg_signature_expected;
                     return object;
                 };
 
@@ -15303,6 +16346,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [status] ChunkedUploadCompleteResponse status
                  * @property {string|null} [message] ChunkedUploadCompleteResponse message
                  * @property {string|null} [path] ChunkedUploadCompleteResponse path
+                 * @property {string|null} [release_id] ChunkedUploadCompleteResponse release_id
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -15359,6 +16403,14 @@ export const renop = $root.renop = (() => {
                 ChunkedUploadCompleteResponse.prototype.path = "";
 
                 /**
+                 * ChunkedUploadCompleteResponse release_id.
+                 * @member {string} release_id
+                 * @memberof renop.api.v1.ChunkedUploadCompleteResponse
+                 * @instance
+                 */
+                ChunkedUploadCompleteResponse.prototype.release_id = "";
+
+                /**
                  * Creates a new ChunkedUploadCompleteResponse instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.ChunkedUploadCompleteResponse
@@ -15396,6 +16448,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 2, wireType 2 =*/18).string(message.message);
                     if (message.path != null && $Object.hasOwnProperty.call(message, "path") && message.path !== "")
                         writer.uint32(/* id 3, wireType 2 =*/26).string(message.path);
+                    if (message.release_id != null && $Object.hasOwnProperty.call(message, "release_id") && message.release_id !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.release_id);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -15470,6 +16524,15 @@ export const renop = $root.renop = (() => {
                                     delete message.path;
                                 continue;
                             }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.release_id = value;
+                                else
+                                    delete message.release_id;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -15522,6 +16585,9 @@ export const renop = $root.renop = (() => {
                     if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
                         if (!$util.isString(message.path))
                             return "path: string expected";
+                    if (message.release_id != null && $Object.hasOwnProperty.call(message, "release_id"))
+                        if (!$util.isString(message.release_id))
+                            return "release_id: string expected";
                     return null;
                 };
 
@@ -15552,6 +16618,9 @@ export const renop = $root.renop = (() => {
                     if (object.path != null)
                         if (typeof object.path !== "string" || object.path.length)
                             message.path = $String(object.path);
+                    if (object.release_id != null)
+                        if (typeof object.release_id !== "string" || object.release_id.length)
+                            message.release_id = $String(object.release_id);
                     return message;
                 };
 
@@ -15576,6 +16645,7 @@ export const renop = $root.renop = (() => {
                         object.status = "";
                         object.message = "";
                         object.path = "";
+                        object.release_id = "";
                     }
                     if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
                         object.status = message.status;
@@ -15583,6 +16653,8 @@ export const renop = $root.renop = (() => {
                         object.message = message.message;
                     if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
                         object.path = message.path;
+                    if (message.release_id != null && $Object.hasOwnProperty.call(message, "release_id"))
+                        object.release_id = message.release_id;
                     return object;
                 };
 
@@ -16513,6 +17585,2532 @@ export const renop = $root.renop = (() => {
                 };
 
                 return FidoDeviceList;
+            })();
+
+            v1.GpgKeyReferenceRequest = (function() {
+
+                /**
+                 * Properties of a GpgKeyReferenceRequest.
+                 * @typedef {Object} renop.api.v1.GpgKeyReferenceRequest.$Properties
+                 * @property {string|null} [key_id] GpgKeyReferenceRequest key_id
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GpgKeyReferenceRequest.
+                 * @memberof renop.api.v1
+                 * @interface IGpgKeyReferenceRequest
+                 * @augments renop.api.v1.GpgKeyReferenceRequest.$Properties
+                 * @deprecated Use renop.api.v1.GpgKeyReferenceRequest.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GpgKeyReferenceRequest.
+                 * @typedef {renop.api.v1.GpgKeyReferenceRequest.$Properties} renop.api.v1.GpgKeyReferenceRequest.$Shape
+                 */
+
+                /**
+                 * Constructs a new GpgKeyReferenceRequest.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GpgKeyReferenceRequest.
+                 * @constructor
+                 * @param {renop.api.v1.GpgKeyReferenceRequest.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GpgKeyReferenceRequest = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GpgKeyReferenceRequest key_id.
+                 * @member {string} key_id
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @instance
+                 */
+                GpgKeyReferenceRequest.prototype.key_id = "";
+
+                /**
+                 * Creates a new GpgKeyReferenceRequest instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {renop.api.v1.GpgKeyReferenceRequest.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GpgKeyReferenceRequest} GpgKeyReferenceRequest instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GpgKeyReferenceRequest.$Shape): renop.api.v1.GpgKeyReferenceRequest & renop.api.v1.GpgKeyReferenceRequest.$Shape;
+                 *   (properties?: renop.api.v1.GpgKeyReferenceRequest.$Properties): renop.api.v1.GpgKeyReferenceRequest;
+                 * }}
+                 */
+                GpgKeyReferenceRequest.create = function(properties) {
+                    return new GpgKeyReferenceRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified GpgKeyReferenceRequest message. Does not implicitly {@link renop.api.v1.GpgKeyReferenceRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {renop.api.v1.GpgKeyReferenceRequest.$Properties} message GpgKeyReferenceRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgKeyReferenceRequest.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id") && message.key_id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.key_id);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GpgKeyReferenceRequest message, length delimited. Does not implicitly {@link renop.api.v1.GpgKeyReferenceRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {renop.api.v1.GpgKeyReferenceRequest.$Properties} message GpgKeyReferenceRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgKeyReferenceRequest.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GpgKeyReferenceRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GpgKeyReferenceRequest & renop.api.v1.GpgKeyReferenceRequest.$Shape} GpgKeyReferenceRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgKeyReferenceRequest.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgKeyReferenceRequest(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.key_id = value;
+                                else
+                                    delete message.key_id;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GpgKeyReferenceRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GpgKeyReferenceRequest & renop.api.v1.GpgKeyReferenceRequest.$Shape} GpgKeyReferenceRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgKeyReferenceRequest.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GpgKeyReferenceRequest message.
+                 * @function verify
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GpgKeyReferenceRequest.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id"))
+                        if (!$util.isString(message.key_id))
+                            return "key_id: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a GpgKeyReferenceRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GpgKeyReferenceRequest} GpgKeyReferenceRequest
+                 */
+                GpgKeyReferenceRequest.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GpgKeyReferenceRequest)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GpgKeyReferenceRequest: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GpgKeyReferenceRequest();
+                    if (object.key_id != null)
+                        if (typeof object.key_id !== "string" || object.key_id.length)
+                            message.key_id = $String(object.key_id);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GpgKeyReferenceRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {renop.api.v1.GpgKeyReferenceRequest} message GpgKeyReferenceRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GpgKeyReferenceRequest.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults)
+                        object.key_id = "";
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id"))
+                        object.key_id = message.key_id;
+                    return object;
+                };
+
+                /**
+                 * Converts this GpgKeyReferenceRequest to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GpgKeyReferenceRequest.prototype.toJSON = function() {
+                    return GpgKeyReferenceRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GpgKeyReferenceRequest
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GpgKeyReferenceRequest
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GpgKeyReferenceRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GpgKeyReferenceRequest";
+                };
+
+                return GpgKeyReferenceRequest;
+            })();
+
+            v1.GpgKeyDto = (function() {
+
+                /**
+                 * Properties of a GpgKeyDto.
+                 * @typedef {Object} renop.api.v1.GpgKeyDto.$Properties
+                 * @property {string|null} [fingerprint] GpgKeyDto fingerprint
+                 * @property {string|null} [key_id] GpgKeyDto key_id
+                 * @property {string|null} [primary_identity] GpgKeyDto primary_identity
+                 * @property {number|Long|null} [key_created_at] GpgKeyDto key_created_at
+                 * @property {number|Long|null} [key_expires_at] GpgKeyDto key_expires_at
+                 * @property {number|Long|null} [added_at] GpgKeyDto added_at
+                 * @property {number|Long|null} [refreshed_at] GpgKeyDto refreshed_at
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GpgKeyDto.
+                 * @memberof renop.api.v1
+                 * @interface IGpgKeyDto
+                 * @augments renop.api.v1.GpgKeyDto.$Properties
+                 * @deprecated Use renop.api.v1.GpgKeyDto.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GpgKeyDto.
+                 * @typedef {renop.api.v1.GpgKeyDto.$Properties} renop.api.v1.GpgKeyDto.$Shape
+                 */
+
+                /**
+                 * Constructs a new GpgKeyDto.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GpgKeyDto.
+                 * @constructor
+                 * @param {renop.api.v1.GpgKeyDto.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GpgKeyDto = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GpgKeyDto fingerprint.
+                 * @member {string} fingerprint
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 */
+                GpgKeyDto.prototype.fingerprint = "";
+
+                /**
+                 * GpgKeyDto key_id.
+                 * @member {string} key_id
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 */
+                GpgKeyDto.prototype.key_id = "";
+
+                /**
+                 * GpgKeyDto primary_identity.
+                 * @member {string} primary_identity
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 */
+                GpgKeyDto.prototype.primary_identity = "";
+
+                /**
+                 * GpgKeyDto key_created_at.
+                 * @member {number|Long} key_created_at
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 */
+                GpgKeyDto.prototype.key_created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * GpgKeyDto key_expires_at.
+                 * @member {number|Long} key_expires_at
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 */
+                GpgKeyDto.prototype.key_expires_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * GpgKeyDto added_at.
+                 * @member {number|Long} added_at
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 */
+                GpgKeyDto.prototype.added_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * GpgKeyDto refreshed_at.
+                 * @member {number|Long} refreshed_at
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 */
+                GpgKeyDto.prototype.refreshed_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new GpgKeyDto instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {renop.api.v1.GpgKeyDto.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GpgKeyDto} GpgKeyDto instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GpgKeyDto.$Shape): renop.api.v1.GpgKeyDto & renop.api.v1.GpgKeyDto.$Shape;
+                 *   (properties?: renop.api.v1.GpgKeyDto.$Properties): renop.api.v1.GpgKeyDto;
+                 * }}
+                 */
+                GpgKeyDto.create = function(properties) {
+                    return new GpgKeyDto(properties);
+                };
+
+                /**
+                 * Encodes the specified GpgKeyDto message. Does not implicitly {@link renop.api.v1.GpgKeyDto.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {renop.api.v1.GpgKeyDto.$Properties} message GpgKeyDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgKeyDto.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.fingerprint != null && $Object.hasOwnProperty.call(message, "fingerprint") && message.fingerprint !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.fingerprint);
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id") && message.key_id !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.key_id);
+                    if (message.primary_identity != null && $Object.hasOwnProperty.call(message, "primary_identity") && message.primary_identity !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.primary_identity);
+                    if (message.key_created_at != null && $Object.hasOwnProperty.call(message, "key_created_at") && (typeof message.key_created_at === "object" ? message.key_created_at.low || message.key_created_at.high : message.key_created_at !== 0))
+                        writer.uint32(/* id 4, wireType 0 =*/32).int64(message.key_created_at);
+                    if (message.key_expires_at != null && $Object.hasOwnProperty.call(message, "key_expires_at") && (typeof message.key_expires_at === "object" ? message.key_expires_at.low || message.key_expires_at.high : message.key_expires_at !== 0))
+                        writer.uint32(/* id 5, wireType 0 =*/40).int64(message.key_expires_at);
+                    if (message.added_at != null && $Object.hasOwnProperty.call(message, "added_at") && (typeof message.added_at === "object" ? message.added_at.low || message.added_at.high : message.added_at !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).int64(message.added_at);
+                    if (message.refreshed_at != null && $Object.hasOwnProperty.call(message, "refreshed_at") && (typeof message.refreshed_at === "object" ? message.refreshed_at.low || message.refreshed_at.high : message.refreshed_at !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).int64(message.refreshed_at);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GpgKeyDto message, length delimited. Does not implicitly {@link renop.api.v1.GpgKeyDto.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {renop.api.v1.GpgKeyDto.$Properties} message GpgKeyDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgKeyDto.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GpgKeyDto message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GpgKeyDto & renop.api.v1.GpgKeyDto.$Shape} GpgKeyDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgKeyDto.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgKeyDto(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.fingerprint = value;
+                                else
+                                    delete message.fingerprint;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.key_id = value;
+                                else
+                                    delete message.key_id;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.primary_identity = value;
+                                else
+                                    delete message.primary_identity;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.key_created_at = value;
+                                else
+                                    delete message.key_created_at;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.key_expires_at = value;
+                                else
+                                    delete message.key_expires_at;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.added_at = value;
+                                else
+                                    delete message.added_at;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.refreshed_at = value;
+                                else
+                                    delete message.refreshed_at;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GpgKeyDto message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GpgKeyDto & renop.api.v1.GpgKeyDto.$Shape} GpgKeyDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgKeyDto.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GpgKeyDto message.
+                 * @function verify
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GpgKeyDto.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.fingerprint != null && $Object.hasOwnProperty.call(message, "fingerprint"))
+                        if (!$util.isString(message.fingerprint))
+                            return "fingerprint: string expected";
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id"))
+                        if (!$util.isString(message.key_id))
+                            return "key_id: string expected";
+                    if (message.primary_identity != null && $Object.hasOwnProperty.call(message, "primary_identity"))
+                        if (!$util.isString(message.primary_identity))
+                            return "primary_identity: string expected";
+                    if (message.key_created_at != null && $Object.hasOwnProperty.call(message, "key_created_at"))
+                        if (!$util.isInteger(message.key_created_at) && !(message.key_created_at && $util.isInteger(message.key_created_at.low) && $util.isInteger(message.key_created_at.high)))
+                            return "key_created_at: integer|Long expected";
+                    if (message.key_expires_at != null && $Object.hasOwnProperty.call(message, "key_expires_at"))
+                        if (!$util.isInteger(message.key_expires_at) && !(message.key_expires_at && $util.isInteger(message.key_expires_at.low) && $util.isInteger(message.key_expires_at.high)))
+                            return "key_expires_at: integer|Long expected";
+                    if (message.added_at != null && $Object.hasOwnProperty.call(message, "added_at"))
+                        if (!$util.isInteger(message.added_at) && !(message.added_at && $util.isInteger(message.added_at.low) && $util.isInteger(message.added_at.high)))
+                            return "added_at: integer|Long expected";
+                    if (message.refreshed_at != null && $Object.hasOwnProperty.call(message, "refreshed_at"))
+                        if (!$util.isInteger(message.refreshed_at) && !(message.refreshed_at && $util.isInteger(message.refreshed_at.low) && $util.isInteger(message.refreshed_at.high)))
+                            return "refreshed_at: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a GpgKeyDto message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GpgKeyDto} GpgKeyDto
+                 */
+                GpgKeyDto.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GpgKeyDto)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GpgKeyDto: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GpgKeyDto();
+                    if (object.fingerprint != null)
+                        if (typeof object.fingerprint !== "string" || object.fingerprint.length)
+                            message.fingerprint = $String(object.fingerprint);
+                    if (object.key_id != null)
+                        if (typeof object.key_id !== "string" || object.key_id.length)
+                            message.key_id = $String(object.key_id);
+                    if (object.primary_identity != null)
+                        if (typeof object.primary_identity !== "string" || object.primary_identity.length)
+                            message.primary_identity = $String(object.primary_identity);
+                    if (object.key_created_at != null)
+                        if (typeof object.key_created_at === "object" ? object.key_created_at.low || object.key_created_at.high : $Number(object.key_created_at) !== 0)
+                            if ($util.Long)
+                                message.key_created_at = $util.Long.fromValue(object.key_created_at, false);
+                            else if (typeof object.key_created_at === "string")
+                                message.key_created_at = $parseInt(object.key_created_at, 10);
+                            else if (typeof object.key_created_at === "number")
+                                message.key_created_at = object.key_created_at;
+                            else if (typeof object.key_created_at === "object")
+                                message.key_created_at = new $util.LongBits(object.key_created_at.low >>> 0, object.key_created_at.high >>> 0).toNumber();
+                    if (object.key_expires_at != null)
+                        if (typeof object.key_expires_at === "object" ? object.key_expires_at.low || object.key_expires_at.high : $Number(object.key_expires_at) !== 0)
+                            if ($util.Long)
+                                message.key_expires_at = $util.Long.fromValue(object.key_expires_at, false);
+                            else if (typeof object.key_expires_at === "string")
+                                message.key_expires_at = $parseInt(object.key_expires_at, 10);
+                            else if (typeof object.key_expires_at === "number")
+                                message.key_expires_at = object.key_expires_at;
+                            else if (typeof object.key_expires_at === "object")
+                                message.key_expires_at = new $util.LongBits(object.key_expires_at.low >>> 0, object.key_expires_at.high >>> 0).toNumber();
+                    if (object.added_at != null)
+                        if (typeof object.added_at === "object" ? object.added_at.low || object.added_at.high : $Number(object.added_at) !== 0)
+                            if ($util.Long)
+                                message.added_at = $util.Long.fromValue(object.added_at, false);
+                            else if (typeof object.added_at === "string")
+                                message.added_at = $parseInt(object.added_at, 10);
+                            else if (typeof object.added_at === "number")
+                                message.added_at = object.added_at;
+                            else if (typeof object.added_at === "object")
+                                message.added_at = new $util.LongBits(object.added_at.low >>> 0, object.added_at.high >>> 0).toNumber();
+                    if (object.refreshed_at != null)
+                        if (typeof object.refreshed_at === "object" ? object.refreshed_at.low || object.refreshed_at.high : $Number(object.refreshed_at) !== 0)
+                            if ($util.Long)
+                                message.refreshed_at = $util.Long.fromValue(object.refreshed_at, false);
+                            else if (typeof object.refreshed_at === "string")
+                                message.refreshed_at = $parseInt(object.refreshed_at, 10);
+                            else if (typeof object.refreshed_at === "number")
+                                message.refreshed_at = object.refreshed_at;
+                            else if (typeof object.refreshed_at === "object")
+                                message.refreshed_at = new $util.LongBits(object.refreshed_at.low >>> 0, object.refreshed_at.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GpgKeyDto message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {renop.api.v1.GpgKeyDto} message GpgKeyDto
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GpgKeyDto.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.fingerprint = "";
+                        object.key_id = "";
+                        object.primary_identity = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.key_created_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.key_created_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.key_expires_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.key_expires_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.added_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.added_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.refreshed_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.refreshed_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.fingerprint != null && $Object.hasOwnProperty.call(message, "fingerprint"))
+                        object.fingerprint = message.fingerprint;
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id"))
+                        object.key_id = message.key_id;
+                    if (message.primary_identity != null && $Object.hasOwnProperty.call(message, "primary_identity"))
+                        object.primary_identity = message.primary_identity;
+                    if (message.key_created_at != null && $Object.hasOwnProperty.call(message, "key_created_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.key_created_at = typeof message.key_created_at === "number" ? $BigInt(message.key_created_at) : $util.Long.fromBits(message.key_created_at.low >>> 0, message.key_created_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.key_created_at === "number")
+                            object.key_created_at = options.longs === $String ? $String(message.key_created_at) : message.key_created_at;
+                        else
+                            object.key_created_at = options.longs === $String ? $util.Long.prototype.toString.call(message.key_created_at) : options.longs === $Number ? new $util.LongBits(message.key_created_at.low >>> 0, message.key_created_at.high >>> 0).toNumber() : message.key_created_at;
+                    if (message.key_expires_at != null && $Object.hasOwnProperty.call(message, "key_expires_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.key_expires_at = typeof message.key_expires_at === "number" ? $BigInt(message.key_expires_at) : $util.Long.fromBits(message.key_expires_at.low >>> 0, message.key_expires_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.key_expires_at === "number")
+                            object.key_expires_at = options.longs === $String ? $String(message.key_expires_at) : message.key_expires_at;
+                        else
+                            object.key_expires_at = options.longs === $String ? $util.Long.prototype.toString.call(message.key_expires_at) : options.longs === $Number ? new $util.LongBits(message.key_expires_at.low >>> 0, message.key_expires_at.high >>> 0).toNumber() : message.key_expires_at;
+                    if (message.added_at != null && $Object.hasOwnProperty.call(message, "added_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.added_at = typeof message.added_at === "number" ? $BigInt(message.added_at) : $util.Long.fromBits(message.added_at.low >>> 0, message.added_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.added_at === "number")
+                            object.added_at = options.longs === $String ? $String(message.added_at) : message.added_at;
+                        else
+                            object.added_at = options.longs === $String ? $util.Long.prototype.toString.call(message.added_at) : options.longs === $Number ? new $util.LongBits(message.added_at.low >>> 0, message.added_at.high >>> 0).toNumber() : message.added_at;
+                    if (message.refreshed_at != null && $Object.hasOwnProperty.call(message, "refreshed_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.refreshed_at = typeof message.refreshed_at === "number" ? $BigInt(message.refreshed_at) : $util.Long.fromBits(message.refreshed_at.low >>> 0, message.refreshed_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.refreshed_at === "number")
+                            object.refreshed_at = options.longs === $String ? $String(message.refreshed_at) : message.refreshed_at;
+                        else
+                            object.refreshed_at = options.longs === $String ? $util.Long.prototype.toString.call(message.refreshed_at) : options.longs === $Number ? new $util.LongBits(message.refreshed_at.low >>> 0, message.refreshed_at.high >>> 0).toNumber() : message.refreshed_at;
+                    return object;
+                };
+
+                /**
+                 * Converts this GpgKeyDto to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GpgKeyDto.prototype.toJSON = function() {
+                    return GpgKeyDto.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GpgKeyDto
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GpgKeyDto
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GpgKeyDto.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GpgKeyDto";
+                };
+
+                return GpgKeyDto;
+            })();
+
+            v1.GpgKeyList = (function() {
+
+                /**
+                 * Properties of a GpgKeyList.
+                 * @typedef {Object} renop.api.v1.GpgKeyList.$Properties
+                 * @property {Array.<renop.api.v1.GpgKeyDto.$Properties>|null} [keys] GpgKeyList keys
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GpgKeyList.
+                 * @memberof renop.api.v1
+                 * @interface IGpgKeyList
+                 * @augments renop.api.v1.GpgKeyList.$Properties
+                 * @deprecated Use renop.api.v1.GpgKeyList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GpgKeyList.
+                 * @typedef {renop.api.v1.GpgKeyList.$Properties} renop.api.v1.GpgKeyList.$Shape
+                 */
+
+                /**
+                 * Constructs a new GpgKeyList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GpgKeyList.
+                 * @constructor
+                 * @param {renop.api.v1.GpgKeyList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GpgKeyList = function (properties) {
+                    this.keys = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GpgKeyList keys.
+                 * @member {Array.<renop.api.v1.GpgKeyDto.$Properties>} keys
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @instance
+                 */
+                GpgKeyList.prototype.keys = $util.emptyArray;
+
+                /**
+                 * Creates a new GpgKeyList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {renop.api.v1.GpgKeyList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GpgKeyList} GpgKeyList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GpgKeyList.$Shape): renop.api.v1.GpgKeyList & renop.api.v1.GpgKeyList.$Shape;
+                 *   (properties?: renop.api.v1.GpgKeyList.$Properties): renop.api.v1.GpgKeyList;
+                 * }}
+                 */
+                GpgKeyList.create = function(properties) {
+                    return new GpgKeyList(properties);
+                };
+
+                /**
+                 * Encodes the specified GpgKeyList message. Does not implicitly {@link renop.api.v1.GpgKeyList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {renop.api.v1.GpgKeyList.$Properties} message GpgKeyList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgKeyList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.keys != null && message.keys.length)
+                        for (let i = 0; i < message.keys.length; ++i)
+                            $root.renop.api.v1.GpgKeyDto.encode(message.keys[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GpgKeyList message, length delimited. Does not implicitly {@link renop.api.v1.GpgKeyList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {renop.api.v1.GpgKeyList.$Properties} message GpgKeyList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgKeyList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GpgKeyList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GpgKeyList & renop.api.v1.GpgKeyList.$Shape} GpgKeyList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgKeyList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgKeyList();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.keys && message.keys.length))
+                                    message.keys = [];
+                                message.keys.push($root.renop.api.v1.GpgKeyDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GpgKeyList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GpgKeyList & renop.api.v1.GpgKeyList.$Shape} GpgKeyList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgKeyList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GpgKeyList message.
+                 * @function verify
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GpgKeyList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.keys != null && $Object.hasOwnProperty.call(message, "keys")) {
+                        if (!$Array.isArray(message.keys))
+                            return "keys: array expected";
+                        for (let i = 0; i < message.keys.length; ++i) {
+                            let error = $root.renop.api.v1.GpgKeyDto.verify(message.keys[i], _depth + 1);
+                            if (error)
+                                return "keys." + error;
+                        }
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a GpgKeyList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GpgKeyList} GpgKeyList
+                 */
+                GpgKeyList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GpgKeyList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GpgKeyList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GpgKeyList();
+                    if (object.keys) {
+                        if (!$Array.isArray(object.keys))
+                            throw $TypeError(".renop.api.v1.GpgKeyList.keys: array expected");
+                        message.keys = $Array(object.keys.length);
+                        for (let i = 0; i < object.keys.length; ++i) {
+                            if (!$util.isObject(object.keys[i]))
+                                throw $TypeError(".renop.api.v1.GpgKeyList.keys: object expected");
+                            message.keys[i] = $root.renop.api.v1.GpgKeyDto.fromObject(object.keys[i], _depth + 1);
+                        }
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GpgKeyList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {renop.api.v1.GpgKeyList} message GpgKeyList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GpgKeyList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.keys = [];
+                    if (message.keys && message.keys.length) {
+                        object.keys = $Array(message.keys.length);
+                        for (let j = 0; j < message.keys.length; ++j)
+                            object.keys[j] = $root.renop.api.v1.GpgKeyDto.toObject(message.keys[j], options, _depth + 1);
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this GpgKeyList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GpgKeyList.prototype.toJSON = function() {
+                    return GpgKeyList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GpgKeyList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GpgKeyList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GpgKeyList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GpgKeyList";
+                };
+
+                return GpgKeyList;
+            })();
+
+            v1.GpgSignatureDetails = (function() {
+
+                /**
+                 * Properties of a GpgSignatureDetails.
+                 * @typedef {Object} renop.api.v1.GpgSignatureDetails.$Properties
+                 * @property {string|null} [repository] GpgSignatureDetails repository
+                 * @property {string|null} [artifact_path] GpgSignatureDetails artifact_path
+                 * @property {string|null} [fingerprint] GpgSignatureDetails fingerprint
+                 * @property {string|null} [key_id] GpgSignatureDetails key_id
+                 * @property {string|null} [primary_identity] GpgSignatureDetails primary_identity
+                 * @property {string|null} [uploader] GpgSignatureDetails uploader
+                 * @property {number|Long|null} [signature_created_at] GpgSignatureDetails signature_created_at
+                 * @property {number|Long|null} [verified_at] GpgSignatureDetails verified_at
+                 * @property {string|null} [hash_algorithm] GpgSignatureDetails hash_algorithm
+                 * @property {string|null} [public_key_algorithm] GpgSignatureDetails public_key_algorithm
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GpgSignatureDetails.
+                 * @memberof renop.api.v1
+                 * @interface IGpgSignatureDetails
+                 * @augments renop.api.v1.GpgSignatureDetails.$Properties
+                 * @deprecated Use renop.api.v1.GpgSignatureDetails.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GpgSignatureDetails.
+                 * @typedef {renop.api.v1.GpgSignatureDetails.$Properties} renop.api.v1.GpgSignatureDetails.$Shape
+                 */
+
+                /**
+                 * Constructs a new GpgSignatureDetails.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GpgSignatureDetails.
+                 * @constructor
+                 * @param {renop.api.v1.GpgSignatureDetails.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GpgSignatureDetails = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GpgSignatureDetails repository.
+                 * @member {string} repository
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.repository = "";
+
+                /**
+                 * GpgSignatureDetails artifact_path.
+                 * @member {string} artifact_path
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.artifact_path = "";
+
+                /**
+                 * GpgSignatureDetails fingerprint.
+                 * @member {string} fingerprint
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.fingerprint = "";
+
+                /**
+                 * GpgSignatureDetails key_id.
+                 * @member {string} key_id
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.key_id = "";
+
+                /**
+                 * GpgSignatureDetails primary_identity.
+                 * @member {string} primary_identity
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.primary_identity = "";
+
+                /**
+                 * GpgSignatureDetails uploader.
+                 * @member {string} uploader
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.uploader = "";
+
+                /**
+                 * GpgSignatureDetails signature_created_at.
+                 * @member {number|Long} signature_created_at
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.signature_created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * GpgSignatureDetails verified_at.
+                 * @member {number|Long} verified_at
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.verified_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * GpgSignatureDetails hash_algorithm.
+                 * @member {string} hash_algorithm
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.hash_algorithm = "";
+
+                /**
+                 * GpgSignatureDetails public_key_algorithm.
+                 * @member {string} public_key_algorithm
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 */
+                GpgSignatureDetails.prototype.public_key_algorithm = "";
+
+                /**
+                 * Creates a new GpgSignatureDetails instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {renop.api.v1.GpgSignatureDetails.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GpgSignatureDetails} GpgSignatureDetails instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GpgSignatureDetails.$Shape): renop.api.v1.GpgSignatureDetails & renop.api.v1.GpgSignatureDetails.$Shape;
+                 *   (properties?: renop.api.v1.GpgSignatureDetails.$Properties): renop.api.v1.GpgSignatureDetails;
+                 * }}
+                 */
+                GpgSignatureDetails.create = function(properties) {
+                    return new GpgSignatureDetails(properties);
+                };
+
+                /**
+                 * Encodes the specified GpgSignatureDetails message. Does not implicitly {@link renop.api.v1.GpgSignatureDetails.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {renop.api.v1.GpgSignatureDetails.$Properties} message GpgSignatureDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgSignatureDetails.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.repository != null && $Object.hasOwnProperty.call(message, "repository") && message.repository !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.repository);
+                    if (message.artifact_path != null && $Object.hasOwnProperty.call(message, "artifact_path") && message.artifact_path !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.artifact_path);
+                    if (message.fingerprint != null && $Object.hasOwnProperty.call(message, "fingerprint") && message.fingerprint !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.fingerprint);
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id") && message.key_id !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.key_id);
+                    if (message.primary_identity != null && $Object.hasOwnProperty.call(message, "primary_identity") && message.primary_identity !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.primary_identity);
+                    if (message.uploader != null && $Object.hasOwnProperty.call(message, "uploader") && message.uploader !== "")
+                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.uploader);
+                    if (message.signature_created_at != null && $Object.hasOwnProperty.call(message, "signature_created_at") && (typeof message.signature_created_at === "object" ? message.signature_created_at.low || message.signature_created_at.high : message.signature_created_at !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).int64(message.signature_created_at);
+                    if (message.verified_at != null && $Object.hasOwnProperty.call(message, "verified_at") && (typeof message.verified_at === "object" ? message.verified_at.low || message.verified_at.high : message.verified_at !== 0))
+                        writer.uint32(/* id 8, wireType 0 =*/64).int64(message.verified_at);
+                    if (message.hash_algorithm != null && $Object.hasOwnProperty.call(message, "hash_algorithm") && message.hash_algorithm !== "")
+                        writer.uint32(/* id 9, wireType 2 =*/74).string(message.hash_algorithm);
+                    if (message.public_key_algorithm != null && $Object.hasOwnProperty.call(message, "public_key_algorithm") && message.public_key_algorithm !== "")
+                        writer.uint32(/* id 10, wireType 2 =*/82).string(message.public_key_algorithm);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GpgSignatureDetails message, length delimited. Does not implicitly {@link renop.api.v1.GpgSignatureDetails.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {renop.api.v1.GpgSignatureDetails.$Properties} message GpgSignatureDetails message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgSignatureDetails.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GpgSignatureDetails message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GpgSignatureDetails & renop.api.v1.GpgSignatureDetails.$Shape} GpgSignatureDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgSignatureDetails.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgSignatureDetails(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.repository = value;
+                                else
+                                    delete message.repository;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.artifact_path = value;
+                                else
+                                    delete message.artifact_path;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.fingerprint = value;
+                                else
+                                    delete message.fingerprint;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.key_id = value;
+                                else
+                                    delete message.key_id;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.primary_identity = value;
+                                else
+                                    delete message.primary_identity;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.uploader = value;
+                                else
+                                    delete message.uploader;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.signature_created_at = value;
+                                else
+                                    delete message.signature_created_at;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.verified_at = value;
+                                else
+                                    delete message.verified_at;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.hash_algorithm = value;
+                                else
+                                    delete message.hash_algorithm;
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.public_key_algorithm = value;
+                                else
+                                    delete message.public_key_algorithm;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GpgSignatureDetails message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GpgSignatureDetails & renop.api.v1.GpgSignatureDetails.$Shape} GpgSignatureDetails
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgSignatureDetails.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GpgSignatureDetails message.
+                 * @function verify
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GpgSignatureDetails.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.repository != null && $Object.hasOwnProperty.call(message, "repository"))
+                        if (!$util.isString(message.repository))
+                            return "repository: string expected";
+                    if (message.artifact_path != null && $Object.hasOwnProperty.call(message, "artifact_path"))
+                        if (!$util.isString(message.artifact_path))
+                            return "artifact_path: string expected";
+                    if (message.fingerprint != null && $Object.hasOwnProperty.call(message, "fingerprint"))
+                        if (!$util.isString(message.fingerprint))
+                            return "fingerprint: string expected";
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id"))
+                        if (!$util.isString(message.key_id))
+                            return "key_id: string expected";
+                    if (message.primary_identity != null && $Object.hasOwnProperty.call(message, "primary_identity"))
+                        if (!$util.isString(message.primary_identity))
+                            return "primary_identity: string expected";
+                    if (message.uploader != null && $Object.hasOwnProperty.call(message, "uploader"))
+                        if (!$util.isString(message.uploader))
+                            return "uploader: string expected";
+                    if (message.signature_created_at != null && $Object.hasOwnProperty.call(message, "signature_created_at"))
+                        if (!$util.isInteger(message.signature_created_at) && !(message.signature_created_at && $util.isInteger(message.signature_created_at.low) && $util.isInteger(message.signature_created_at.high)))
+                            return "signature_created_at: integer|Long expected";
+                    if (message.verified_at != null && $Object.hasOwnProperty.call(message, "verified_at"))
+                        if (!$util.isInteger(message.verified_at) && !(message.verified_at && $util.isInteger(message.verified_at.low) && $util.isInteger(message.verified_at.high)))
+                            return "verified_at: integer|Long expected";
+                    if (message.hash_algorithm != null && $Object.hasOwnProperty.call(message, "hash_algorithm"))
+                        if (!$util.isString(message.hash_algorithm))
+                            return "hash_algorithm: string expected";
+                    if (message.public_key_algorithm != null && $Object.hasOwnProperty.call(message, "public_key_algorithm"))
+                        if (!$util.isString(message.public_key_algorithm))
+                            return "public_key_algorithm: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a GpgSignatureDetails message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GpgSignatureDetails} GpgSignatureDetails
+                 */
+                GpgSignatureDetails.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GpgSignatureDetails)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GpgSignatureDetails: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GpgSignatureDetails();
+                    if (object.repository != null)
+                        if (typeof object.repository !== "string" || object.repository.length)
+                            message.repository = $String(object.repository);
+                    if (object.artifact_path != null)
+                        if (typeof object.artifact_path !== "string" || object.artifact_path.length)
+                            message.artifact_path = $String(object.artifact_path);
+                    if (object.fingerprint != null)
+                        if (typeof object.fingerprint !== "string" || object.fingerprint.length)
+                            message.fingerprint = $String(object.fingerprint);
+                    if (object.key_id != null)
+                        if (typeof object.key_id !== "string" || object.key_id.length)
+                            message.key_id = $String(object.key_id);
+                    if (object.primary_identity != null)
+                        if (typeof object.primary_identity !== "string" || object.primary_identity.length)
+                            message.primary_identity = $String(object.primary_identity);
+                    if (object.uploader != null)
+                        if (typeof object.uploader !== "string" || object.uploader.length)
+                            message.uploader = $String(object.uploader);
+                    if (object.signature_created_at != null)
+                        if (typeof object.signature_created_at === "object" ? object.signature_created_at.low || object.signature_created_at.high : $Number(object.signature_created_at) !== 0)
+                            if ($util.Long)
+                                message.signature_created_at = $util.Long.fromValue(object.signature_created_at, false);
+                            else if (typeof object.signature_created_at === "string")
+                                message.signature_created_at = $parseInt(object.signature_created_at, 10);
+                            else if (typeof object.signature_created_at === "number")
+                                message.signature_created_at = object.signature_created_at;
+                            else if (typeof object.signature_created_at === "object")
+                                message.signature_created_at = new $util.LongBits(object.signature_created_at.low >>> 0, object.signature_created_at.high >>> 0).toNumber();
+                    if (object.verified_at != null)
+                        if (typeof object.verified_at === "object" ? object.verified_at.low || object.verified_at.high : $Number(object.verified_at) !== 0)
+                            if ($util.Long)
+                                message.verified_at = $util.Long.fromValue(object.verified_at, false);
+                            else if (typeof object.verified_at === "string")
+                                message.verified_at = $parseInt(object.verified_at, 10);
+                            else if (typeof object.verified_at === "number")
+                                message.verified_at = object.verified_at;
+                            else if (typeof object.verified_at === "object")
+                                message.verified_at = new $util.LongBits(object.verified_at.low >>> 0, object.verified_at.high >>> 0).toNumber();
+                    if (object.hash_algorithm != null)
+                        if (typeof object.hash_algorithm !== "string" || object.hash_algorithm.length)
+                            message.hash_algorithm = $String(object.hash_algorithm);
+                    if (object.public_key_algorithm != null)
+                        if (typeof object.public_key_algorithm !== "string" || object.public_key_algorithm.length)
+                            message.public_key_algorithm = $String(object.public_key_algorithm);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GpgSignatureDetails message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {renop.api.v1.GpgSignatureDetails} message GpgSignatureDetails
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GpgSignatureDetails.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.repository = "";
+                        object.artifact_path = "";
+                        object.fingerprint = "";
+                        object.key_id = "";
+                        object.primary_identity = "";
+                        object.uploader = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.signature_created_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.signature_created_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.verified_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.verified_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.hash_algorithm = "";
+                        object.public_key_algorithm = "";
+                    }
+                    if (message.repository != null && $Object.hasOwnProperty.call(message, "repository"))
+                        object.repository = message.repository;
+                    if (message.artifact_path != null && $Object.hasOwnProperty.call(message, "artifact_path"))
+                        object.artifact_path = message.artifact_path;
+                    if (message.fingerprint != null && $Object.hasOwnProperty.call(message, "fingerprint"))
+                        object.fingerprint = message.fingerprint;
+                    if (message.key_id != null && $Object.hasOwnProperty.call(message, "key_id"))
+                        object.key_id = message.key_id;
+                    if (message.primary_identity != null && $Object.hasOwnProperty.call(message, "primary_identity"))
+                        object.primary_identity = message.primary_identity;
+                    if (message.uploader != null && $Object.hasOwnProperty.call(message, "uploader"))
+                        object.uploader = message.uploader;
+                    if (message.signature_created_at != null && $Object.hasOwnProperty.call(message, "signature_created_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.signature_created_at = typeof message.signature_created_at === "number" ? $BigInt(message.signature_created_at) : $util.Long.fromBits(message.signature_created_at.low >>> 0, message.signature_created_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.signature_created_at === "number")
+                            object.signature_created_at = options.longs === $String ? $String(message.signature_created_at) : message.signature_created_at;
+                        else
+                            object.signature_created_at = options.longs === $String ? $util.Long.prototype.toString.call(message.signature_created_at) : options.longs === $Number ? new $util.LongBits(message.signature_created_at.low >>> 0, message.signature_created_at.high >>> 0).toNumber() : message.signature_created_at;
+                    if (message.verified_at != null && $Object.hasOwnProperty.call(message, "verified_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.verified_at = typeof message.verified_at === "number" ? $BigInt(message.verified_at) : $util.Long.fromBits(message.verified_at.low >>> 0, message.verified_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.verified_at === "number")
+                            object.verified_at = options.longs === $String ? $String(message.verified_at) : message.verified_at;
+                        else
+                            object.verified_at = options.longs === $String ? $util.Long.prototype.toString.call(message.verified_at) : options.longs === $Number ? new $util.LongBits(message.verified_at.low >>> 0, message.verified_at.high >>> 0).toNumber() : message.verified_at;
+                    if (message.hash_algorithm != null && $Object.hasOwnProperty.call(message, "hash_algorithm"))
+                        object.hash_algorithm = message.hash_algorithm;
+                    if (message.public_key_algorithm != null && $Object.hasOwnProperty.call(message, "public_key_algorithm"))
+                        object.public_key_algorithm = message.public_key_algorithm;
+                    return object;
+                };
+
+                /**
+                 * Converts this GpgSignatureDetails to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GpgSignatureDetails.prototype.toJSON = function() {
+                    return GpgSignatureDetails.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GpgSignatureDetails
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GpgSignatureDetails
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GpgSignatureDetails.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GpgSignatureDetails";
+                };
+
+                return GpgSignatureDetails;
+            })();
+
+            v1.GpgReleaseDto = (function() {
+
+                /**
+                 * Properties of a GpgReleaseDto.
+                 * @typedef {Object} renop.api.v1.GpgReleaseDto.$Properties
+                 * @property {string|null} [id] GpgReleaseDto id
+                 * @property {string|null} [repository] GpgReleaseDto repository
+                 * @property {string|null} [artifact_path] GpgReleaseDto artifact_path
+                 * @property {string|null} [status] GpgReleaseDto status
+                 * @property {string|null} [failure_reason] GpgReleaseDto failure_reason
+                 * @property {boolean|null} [signed] GpgReleaseDto signed
+                 * @property {boolean|null} [require_signature] GpgReleaseDto require_signature
+                 * @property {number|Long|null} [created_at] GpgReleaseDto created_at
+                 * @property {number|Long|null} [updated_at] GpgReleaseDto updated_at
+                 * @property {number|Long|null} [completed_at] GpgReleaseDto completed_at
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GpgReleaseDto.
+                 * @memberof renop.api.v1
+                 * @interface IGpgReleaseDto
+                 * @augments renop.api.v1.GpgReleaseDto.$Properties
+                 * @deprecated Use renop.api.v1.GpgReleaseDto.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GpgReleaseDto.
+                 * @typedef {renop.api.v1.GpgReleaseDto.$Properties} renop.api.v1.GpgReleaseDto.$Shape
+                 */
+
+                /**
+                 * Constructs a new GpgReleaseDto.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GpgReleaseDto.
+                 * @constructor
+                 * @param {renop.api.v1.GpgReleaseDto.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GpgReleaseDto = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GpgReleaseDto id.
+                 * @member {string} id
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.id = "";
+
+                /**
+                 * GpgReleaseDto repository.
+                 * @member {string} repository
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.repository = "";
+
+                /**
+                 * GpgReleaseDto artifact_path.
+                 * @member {string} artifact_path
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.artifact_path = "";
+
+                /**
+                 * GpgReleaseDto status.
+                 * @member {string} status
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.status = "";
+
+                /**
+                 * GpgReleaseDto failure_reason.
+                 * @member {string} failure_reason
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.failure_reason = "";
+
+                /**
+                 * GpgReleaseDto signed.
+                 * @member {boolean} signed
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.signed = false;
+
+                /**
+                 * GpgReleaseDto require_signature.
+                 * @member {boolean} require_signature
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.require_signature = false;
+
+                /**
+                 * GpgReleaseDto created_at.
+                 * @member {number|Long} created_at
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * GpgReleaseDto updated_at.
+                 * @member {number|Long} updated_at
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.updated_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * GpgReleaseDto completed_at.
+                 * @member {number|Long} completed_at
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 */
+                GpgReleaseDto.prototype.completed_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new GpgReleaseDto instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseDto.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GpgReleaseDto} GpgReleaseDto instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GpgReleaseDto.$Shape): renop.api.v1.GpgReleaseDto & renop.api.v1.GpgReleaseDto.$Shape;
+                 *   (properties?: renop.api.v1.GpgReleaseDto.$Properties): renop.api.v1.GpgReleaseDto;
+                 * }}
+                 */
+                GpgReleaseDto.create = function(properties) {
+                    return new GpgReleaseDto(properties);
+                };
+
+                /**
+                 * Encodes the specified GpgReleaseDto message. Does not implicitly {@link renop.api.v1.GpgReleaseDto.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseDto.$Properties} message GpgReleaseDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgReleaseDto.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id") && message.id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+                    if (message.repository != null && $Object.hasOwnProperty.call(message, "repository") && message.repository !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.repository);
+                    if (message.artifact_path != null && $Object.hasOwnProperty.call(message, "artifact_path") && message.artifact_path !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.artifact_path);
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status") && message.status !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.status);
+                    if (message.failure_reason != null && $Object.hasOwnProperty.call(message, "failure_reason") && message.failure_reason !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.failure_reason);
+                    if (message.signed != null && $Object.hasOwnProperty.call(message, "signed") && message.signed !== false)
+                        writer.uint32(/* id 6, wireType 0 =*/48).bool(message.signed);
+                    if (message.require_signature != null && $Object.hasOwnProperty.call(message, "require_signature") && message.require_signature !== false)
+                        writer.uint32(/* id 7, wireType 0 =*/56).bool(message.require_signature);
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at") && (typeof message.created_at === "object" ? message.created_at.low || message.created_at.high : message.created_at !== 0))
+                        writer.uint32(/* id 8, wireType 0 =*/64).int64(message.created_at);
+                    if (message.updated_at != null && $Object.hasOwnProperty.call(message, "updated_at") && (typeof message.updated_at === "object" ? message.updated_at.low || message.updated_at.high : message.updated_at !== 0))
+                        writer.uint32(/* id 9, wireType 0 =*/72).int64(message.updated_at);
+                    if (message.completed_at != null && $Object.hasOwnProperty.call(message, "completed_at") && (typeof message.completed_at === "object" ? message.completed_at.low || message.completed_at.high : message.completed_at !== 0))
+                        writer.uint32(/* id 10, wireType 0 =*/80).int64(message.completed_at);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GpgReleaseDto message, length delimited. Does not implicitly {@link renop.api.v1.GpgReleaseDto.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseDto.$Properties} message GpgReleaseDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgReleaseDto.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GpgReleaseDto message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GpgReleaseDto & renop.api.v1.GpgReleaseDto.$Shape} GpgReleaseDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgReleaseDto.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgReleaseDto(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.id = value;
+                                else
+                                    delete message.id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.repository = value;
+                                else
+                                    delete message.repository;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.artifact_path = value;
+                                else
+                                    delete message.artifact_path;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.status = value;
+                                else
+                                    delete message.status;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.failure_reason = value;
+                                else
+                                    delete message.failure_reason;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.signed = value;
+                                else
+                                    delete message.signed;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.require_signature = value;
+                                else
+                                    delete message.require_signature;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.created_at = value;
+                                else
+                                    delete message.created_at;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.updated_at = value;
+                                else
+                                    delete message.updated_at;
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.completed_at = value;
+                                else
+                                    delete message.completed_at;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GpgReleaseDto message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GpgReleaseDto & renop.api.v1.GpgReleaseDto.$Shape} GpgReleaseDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgReleaseDto.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GpgReleaseDto message.
+                 * @function verify
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GpgReleaseDto.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        if (!$util.isString(message.id))
+                            return "id: string expected";
+                    if (message.repository != null && $Object.hasOwnProperty.call(message, "repository"))
+                        if (!$util.isString(message.repository))
+                            return "repository: string expected";
+                    if (message.artifact_path != null && $Object.hasOwnProperty.call(message, "artifact_path"))
+                        if (!$util.isString(message.artifact_path))
+                            return "artifact_path: string expected";
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        if (!$util.isString(message.status))
+                            return "status: string expected";
+                    if (message.failure_reason != null && $Object.hasOwnProperty.call(message, "failure_reason"))
+                        if (!$util.isString(message.failure_reason))
+                            return "failure_reason: string expected";
+                    if (message.signed != null && $Object.hasOwnProperty.call(message, "signed"))
+                        if (typeof message.signed !== "boolean")
+                            return "signed: boolean expected";
+                    if (message.require_signature != null && $Object.hasOwnProperty.call(message, "require_signature"))
+                        if (typeof message.require_signature !== "boolean")
+                            return "require_signature: boolean expected";
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (!$util.isInteger(message.created_at) && !(message.created_at && $util.isInteger(message.created_at.low) && $util.isInteger(message.created_at.high)))
+                            return "created_at: integer|Long expected";
+                    if (message.updated_at != null && $Object.hasOwnProperty.call(message, "updated_at"))
+                        if (!$util.isInteger(message.updated_at) && !(message.updated_at && $util.isInteger(message.updated_at.low) && $util.isInteger(message.updated_at.high)))
+                            return "updated_at: integer|Long expected";
+                    if (message.completed_at != null && $Object.hasOwnProperty.call(message, "completed_at"))
+                        if (!$util.isInteger(message.completed_at) && !(message.completed_at && $util.isInteger(message.completed_at.low) && $util.isInteger(message.completed_at.high)))
+                            return "completed_at: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a GpgReleaseDto message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GpgReleaseDto} GpgReleaseDto
+                 */
+                GpgReleaseDto.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GpgReleaseDto)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GpgReleaseDto: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GpgReleaseDto();
+                    if (object.id != null)
+                        if (typeof object.id !== "string" || object.id.length)
+                            message.id = $String(object.id);
+                    if (object.repository != null)
+                        if (typeof object.repository !== "string" || object.repository.length)
+                            message.repository = $String(object.repository);
+                    if (object.artifact_path != null)
+                        if (typeof object.artifact_path !== "string" || object.artifact_path.length)
+                            message.artifact_path = $String(object.artifact_path);
+                    if (object.status != null)
+                        if (typeof object.status !== "string" || object.status.length)
+                            message.status = $String(object.status);
+                    if (object.failure_reason != null)
+                        if (typeof object.failure_reason !== "string" || object.failure_reason.length)
+                            message.failure_reason = $String(object.failure_reason);
+                    if (object.signed != null)
+                        if (object.signed)
+                            message.signed = $Boolean(object.signed);
+                    if (object.require_signature != null)
+                        if (object.require_signature)
+                            message.require_signature = $Boolean(object.require_signature);
+                    if (object.created_at != null)
+                        if (typeof object.created_at === "object" ? object.created_at.low || object.created_at.high : $Number(object.created_at) !== 0)
+                            if ($util.Long)
+                                message.created_at = $util.Long.fromValue(object.created_at, false);
+                            else if (typeof object.created_at === "string")
+                                message.created_at = $parseInt(object.created_at, 10);
+                            else if (typeof object.created_at === "number")
+                                message.created_at = object.created_at;
+                            else if (typeof object.created_at === "object")
+                                message.created_at = new $util.LongBits(object.created_at.low >>> 0, object.created_at.high >>> 0).toNumber();
+                    if (object.updated_at != null)
+                        if (typeof object.updated_at === "object" ? object.updated_at.low || object.updated_at.high : $Number(object.updated_at) !== 0)
+                            if ($util.Long)
+                                message.updated_at = $util.Long.fromValue(object.updated_at, false);
+                            else if (typeof object.updated_at === "string")
+                                message.updated_at = $parseInt(object.updated_at, 10);
+                            else if (typeof object.updated_at === "number")
+                                message.updated_at = object.updated_at;
+                            else if (typeof object.updated_at === "object")
+                                message.updated_at = new $util.LongBits(object.updated_at.low >>> 0, object.updated_at.high >>> 0).toNumber();
+                    if (object.completed_at != null)
+                        if (typeof object.completed_at === "object" ? object.completed_at.low || object.completed_at.high : $Number(object.completed_at) !== 0)
+                            if ($util.Long)
+                                message.completed_at = $util.Long.fromValue(object.completed_at, false);
+                            else if (typeof object.completed_at === "string")
+                                message.completed_at = $parseInt(object.completed_at, 10);
+                            else if (typeof object.completed_at === "number")
+                                message.completed_at = object.completed_at;
+                            else if (typeof object.completed_at === "object")
+                                message.completed_at = new $util.LongBits(object.completed_at.low >>> 0, object.completed_at.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GpgReleaseDto message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseDto} message GpgReleaseDto
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GpgReleaseDto.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.id = "";
+                        object.repository = "";
+                        object.artifact_path = "";
+                        object.status = "";
+                        object.failure_reason = "";
+                        object.signed = false;
+                        object.require_signature = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.created_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.created_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.updated_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.updated_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.completed_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.completed_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        object.id = message.id;
+                    if (message.repository != null && $Object.hasOwnProperty.call(message, "repository"))
+                        object.repository = message.repository;
+                    if (message.artifact_path != null && $Object.hasOwnProperty.call(message, "artifact_path"))
+                        object.artifact_path = message.artifact_path;
+                    if (message.status != null && $Object.hasOwnProperty.call(message, "status"))
+                        object.status = message.status;
+                    if (message.failure_reason != null && $Object.hasOwnProperty.call(message, "failure_reason"))
+                        object.failure_reason = message.failure_reason;
+                    if (message.signed != null && $Object.hasOwnProperty.call(message, "signed"))
+                        object.signed = message.signed;
+                    if (message.require_signature != null && $Object.hasOwnProperty.call(message, "require_signature"))
+                        object.require_signature = message.require_signature;
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.created_at = typeof message.created_at === "number" ? $BigInt(message.created_at) : $util.Long.fromBits(message.created_at.low >>> 0, message.created_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.created_at === "number")
+                            object.created_at = options.longs === $String ? $String(message.created_at) : message.created_at;
+                        else
+                            object.created_at = options.longs === $String ? $util.Long.prototype.toString.call(message.created_at) : options.longs === $Number ? new $util.LongBits(message.created_at.low >>> 0, message.created_at.high >>> 0).toNumber() : message.created_at;
+                    if (message.updated_at != null && $Object.hasOwnProperty.call(message, "updated_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.updated_at = typeof message.updated_at === "number" ? $BigInt(message.updated_at) : $util.Long.fromBits(message.updated_at.low >>> 0, message.updated_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.updated_at === "number")
+                            object.updated_at = options.longs === $String ? $String(message.updated_at) : message.updated_at;
+                        else
+                            object.updated_at = options.longs === $String ? $util.Long.prototype.toString.call(message.updated_at) : options.longs === $Number ? new $util.LongBits(message.updated_at.low >>> 0, message.updated_at.high >>> 0).toNumber() : message.updated_at;
+                    if (message.completed_at != null && $Object.hasOwnProperty.call(message, "completed_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.completed_at = typeof message.completed_at === "number" ? $BigInt(message.completed_at) : $util.Long.fromBits(message.completed_at.low >>> 0, message.completed_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.completed_at === "number")
+                            object.completed_at = options.longs === $String ? $String(message.completed_at) : message.completed_at;
+                        else
+                            object.completed_at = options.longs === $String ? $util.Long.prototype.toString.call(message.completed_at) : options.longs === $Number ? new $util.LongBits(message.completed_at.low >>> 0, message.completed_at.high >>> 0).toNumber() : message.completed_at;
+                    return object;
+                };
+
+                /**
+                 * Converts this GpgReleaseDto to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GpgReleaseDto.prototype.toJSON = function() {
+                    return GpgReleaseDto.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GpgReleaseDto
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GpgReleaseDto
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GpgReleaseDto.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GpgReleaseDto";
+                };
+
+                return GpgReleaseDto;
+            })();
+
+            v1.GpgReleaseList = (function() {
+
+                /**
+                 * Properties of a GpgReleaseList.
+                 * @typedef {Object} renop.api.v1.GpgReleaseList.$Properties
+                 * @property {Array.<renop.api.v1.GpgReleaseDto.$Properties>|null} [releases] GpgReleaseList releases
+                 * @property {number|null} [total] GpgReleaseList total
+                 * @property {number|null} [limit] GpgReleaseList limit
+                 * @property {number|null} [offset] GpgReleaseList offset
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a GpgReleaseList.
+                 * @memberof renop.api.v1
+                 * @interface IGpgReleaseList
+                 * @augments renop.api.v1.GpgReleaseList.$Properties
+                 * @deprecated Use renop.api.v1.GpgReleaseList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a GpgReleaseList.
+                 * @typedef {renop.api.v1.GpgReleaseList.$Properties} renop.api.v1.GpgReleaseList.$Shape
+                 */
+
+                /**
+                 * Constructs a new GpgReleaseList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a GpgReleaseList.
+                 * @constructor
+                 * @param {renop.api.v1.GpgReleaseList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const GpgReleaseList = function (properties) {
+                    this.releases = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * GpgReleaseList releases.
+                 * @member {Array.<renop.api.v1.GpgReleaseDto.$Properties>} releases
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @instance
+                 */
+                GpgReleaseList.prototype.releases = $util.emptyArray;
+
+                /**
+                 * GpgReleaseList total.
+                 * @member {number} total
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @instance
+                 */
+                GpgReleaseList.prototype.total = 0;
+
+                /**
+                 * GpgReleaseList limit.
+                 * @member {number} limit
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @instance
+                 */
+                GpgReleaseList.prototype.limit = 0;
+
+                /**
+                 * GpgReleaseList offset.
+                 * @member {number} offset
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @instance
+                 */
+                GpgReleaseList.prototype.offset = 0;
+
+                /**
+                 * Creates a new GpgReleaseList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.GpgReleaseList} GpgReleaseList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.GpgReleaseList.$Shape): renop.api.v1.GpgReleaseList & renop.api.v1.GpgReleaseList.$Shape;
+                 *   (properties?: renop.api.v1.GpgReleaseList.$Properties): renop.api.v1.GpgReleaseList;
+                 * }}
+                 */
+                GpgReleaseList.create = function(properties) {
+                    return new GpgReleaseList(properties);
+                };
+
+                /**
+                 * Encodes the specified GpgReleaseList message. Does not implicitly {@link renop.api.v1.GpgReleaseList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseList.$Properties} message GpgReleaseList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgReleaseList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.releases != null && message.releases.length)
+                        for (let i = 0; i < message.releases.length; ++i)
+                            $root.renop.api.v1.GpgReleaseDto.encode(message.releases[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total") && message.total !== 0)
+                        writer.uint32(/* id 2, wireType 0 =*/16).int32(message.total);
+                    if (message.limit != null && $Object.hasOwnProperty.call(message, "limit") && message.limit !== 0)
+                        writer.uint32(/* id 3, wireType 0 =*/24).int32(message.limit);
+                    if (message.offset != null && $Object.hasOwnProperty.call(message, "offset") && message.offset !== 0)
+                        writer.uint32(/* id 4, wireType 0 =*/32).int32(message.offset);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified GpgReleaseList message, length delimited. Does not implicitly {@link renop.api.v1.GpgReleaseList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseList.$Properties} message GpgReleaseList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                GpgReleaseList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a GpgReleaseList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.GpgReleaseList & renop.api.v1.GpgReleaseList.$Shape} GpgReleaseList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgReleaseList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgReleaseList(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.releases && message.releases.length))
+                                    message.releases = [];
+                                message.releases.push($root.renop.api.v1.GpgReleaseDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.total = value;
+                                else
+                                    delete message.total;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.limit = value;
+                                else
+                                    delete message.limit;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.offset = value;
+                                else
+                                    delete message.offset;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a GpgReleaseList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.GpgReleaseList & renop.api.v1.GpgReleaseList.$Shape} GpgReleaseList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                GpgReleaseList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a GpgReleaseList message.
+                 * @function verify
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                GpgReleaseList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.releases != null && $Object.hasOwnProperty.call(message, "releases")) {
+                        if (!$Array.isArray(message.releases))
+                            return "releases: array expected";
+                        for (let i = 0; i < message.releases.length; ++i) {
+                            let error = $root.renop.api.v1.GpgReleaseDto.verify(message.releases[i], _depth + 1);
+                            if (error)
+                                return "releases." + error;
+                        }
+                    }
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total"))
+                        if (!$util.isInteger(message.total))
+                            return "total: integer expected";
+                    if (message.limit != null && $Object.hasOwnProperty.call(message, "limit"))
+                        if (!$util.isInteger(message.limit))
+                            return "limit: integer expected";
+                    if (message.offset != null && $Object.hasOwnProperty.call(message, "offset"))
+                        if (!$util.isInteger(message.offset))
+                            return "offset: integer expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a GpgReleaseList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.GpgReleaseList} GpgReleaseList
+                 */
+                GpgReleaseList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.GpgReleaseList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.GpgReleaseList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.GpgReleaseList();
+                    if (object.releases) {
+                        if (!$Array.isArray(object.releases))
+                            throw $TypeError(".renop.api.v1.GpgReleaseList.releases: array expected");
+                        message.releases = $Array(object.releases.length);
+                        for (let i = 0; i < object.releases.length; ++i) {
+                            if (!$util.isObject(object.releases[i]))
+                                throw $TypeError(".renop.api.v1.GpgReleaseList.releases: object expected");
+                            message.releases[i] = $root.renop.api.v1.GpgReleaseDto.fromObject(object.releases[i], _depth + 1);
+                        }
+                    }
+                    if (object.total != null)
+                        if ($Number(object.total) !== 0)
+                            message.total = object.total | 0;
+                    if (object.limit != null)
+                        if ($Number(object.limit) !== 0)
+                            message.limit = object.limit | 0;
+                    if (object.offset != null)
+                        if ($Number(object.offset) !== 0)
+                            message.offset = object.offset | 0;
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a GpgReleaseList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {renop.api.v1.GpgReleaseList} message GpgReleaseList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                GpgReleaseList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.releases = [];
+                    if (options.defaults) {
+                        object.total = 0;
+                        object.limit = 0;
+                        object.offset = 0;
+                    }
+                    if (message.releases && message.releases.length) {
+                        object.releases = $Array(message.releases.length);
+                        for (let j = 0; j < message.releases.length; ++j)
+                            object.releases[j] = $root.renop.api.v1.GpgReleaseDto.toObject(message.releases[j], options, _depth + 1);
+                    }
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total"))
+                        object.total = message.total;
+                    if (message.limit != null && $Object.hasOwnProperty.call(message, "limit"))
+                        object.limit = message.limit;
+                    if (message.offset != null && $Object.hasOwnProperty.call(message, "offset"))
+                        object.offset = message.offset;
+                    return object;
+                };
+
+                /**
+                 * Converts this GpgReleaseList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                GpgReleaseList.prototype.toJSON = function() {
+                    return GpgReleaseList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for GpgReleaseList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.GpgReleaseList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                GpgReleaseList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.GpgReleaseList";
+                };
+
+                return GpgReleaseList;
             })();
 
             v1.UpdatePasswordRequest = (function() {

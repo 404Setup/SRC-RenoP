@@ -32,6 +32,9 @@ func serveLocalFile(c fiber.Ctx, state *core.AppState, localFilePath, pathStr, c
 			entries, err := os.ReadDir(localFilePath)
 			if err == nil {
 				for _, entry := range entries {
+					if state.Inner.FileIndex.IsBlocked(filepath.Join(localFilePath, entry.Name())) {
+						continue
+					}
 					files.WriteString(entry.Name())
 					files.WriteByte('\n')
 				}

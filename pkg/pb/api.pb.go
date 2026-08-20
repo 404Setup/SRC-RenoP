@@ -1468,6 +1468,126 @@ func (x *MirrorProxy) GetPassword() string {
 	return ""
 }
 
+type OutboundProxy struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Url           string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OutboundProxy) Reset() {
+	*x = OutboundProxy{}
+	mi := &file_api_v1_api_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OutboundProxy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OutboundProxy) ProtoMessage() {}
+
+func (x *OutboundProxy) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OutboundProxy.ProtoReflect.Descriptor instead.
+func (*OutboundProxy) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *OutboundProxy) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OutboundProxy) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *OutboundProxy) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *OutboundProxy) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+type ProxyConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Selected      string                 `protobuf:"bytes,1,opt,name=selected,proto3" json:"selected,omitempty"`
+	Proxies       []*OutboundProxy       `protobuf:"bytes,2,rep,name=proxies,proto3" json:"proxies,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProxyConfig) Reset() {
+	*x = ProxyConfig{}
+	mi := &file_api_v1_api_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProxyConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProxyConfig) ProtoMessage() {}
+
+func (x *ProxyConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProxyConfig.ProtoReflect.Descriptor instead.
+func (*ProxyConfig) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ProxyConfig) GetSelected() string {
+	if x != nil {
+		return x.Selected
+	}
+	return ""
+}
+
+func (x *ProxyConfig) GetProxies() []*OutboundProxy {
+	if x != nil {
+		return x.Proxies
+	}
+	return nil
+}
+
 type Mirror struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1487,7 +1607,7 @@ type Mirror struct {
 
 func (x *Mirror) Reset() {
 	*x = Mirror{}
-	mi := &file_api_v1_api_proto_msgTypes[18]
+	mi := &file_api_v1_api_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1499,7 +1619,7 @@ func (x *Mirror) String() string {
 func (*Mirror) ProtoMessage() {}
 
 func (x *Mirror) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[18]
+	mi := &file_api_v1_api_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1512,7 +1632,7 @@ func (x *Mirror) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Mirror.ProtoReflect.Descriptor instead.
 func (*Mirror) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{18}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Mirror) GetName() string {
@@ -1609,7 +1729,7 @@ type S3Config struct {
 
 func (x *S3Config) Reset() {
 	*x = S3Config{}
-	mi := &file_api_v1_api_proto_msgTypes[19]
+	mi := &file_api_v1_api_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1621,7 +1741,7 @@ func (x *S3Config) String() string {
 func (*S3Config) ProtoMessage() {}
 
 func (x *S3Config) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[19]
+	mi := &file_api_v1_api_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1634,7 +1754,7 @@ func (x *S3Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use S3Config.ProtoReflect.Descriptor instead.
 func (*S3Config) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{19}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *S3Config) GetEnabled() bool {
@@ -1701,19 +1821,20 @@ func (x *S3Config) GetKeyPrefix() string {
 }
 
 type Repository struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Name              string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Visibility        string                 `protobuf:"bytes,2,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	Mirrors           []*Mirror              `protobuf:"bytes,3,rep,name=mirrors,proto3" json:"mirrors,omitempty"`
-	AllowRedeployment bool                   `protobuf:"varint,4,opt,name=allow_redeployment,json=allowRedeployment,proto3" json:"allow_redeployment,omitempty"`
-	S3                *S3Config              `protobuf:"bytes,5,opt,name=s3,proto3" json:"s3,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Name                string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Visibility          string                 `protobuf:"bytes,2,opt,name=visibility,proto3" json:"visibility,omitempty"`
+	Mirrors             []*Mirror              `protobuf:"bytes,3,rep,name=mirrors,proto3" json:"mirrors,omitempty"`
+	AllowRedeployment   bool                   `protobuf:"varint,4,opt,name=allow_redeployment,json=allowRedeployment,proto3" json:"allow_redeployment,omitempty"`
+	S3                  *S3Config              `protobuf:"bytes,5,opt,name=s3,proto3" json:"s3,omitempty"`
+	RequireGpgSignature bool                   `protobuf:"varint,6,opt,name=require_gpg_signature,json=requireGpgSignature,proto3" json:"require_gpg_signature,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Repository) Reset() {
 	*x = Repository{}
-	mi := &file_api_v1_api_proto_msgTypes[20]
+	mi := &file_api_v1_api_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1725,7 +1846,7 @@ func (x *Repository) String() string {
 func (*Repository) ProtoMessage() {}
 
 func (x *Repository) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[20]
+	mi := &file_api_v1_api_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1738,7 +1859,7 @@ func (x *Repository) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Repository.ProtoReflect.Descriptor instead.
 func (*Repository) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{20}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Repository) GetName() string {
@@ -1776,6 +1897,13 @@ func (x *Repository) GetS3() *S3Config {
 	return nil
 }
 
+func (x *Repository) GetRequireGpgSignature() bool {
+	if x != nil {
+		return x.RequireGpgSignature
+	}
+	return false
+}
+
 type MavenRepositoriesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Repositories  map[string]*Repository `protobuf:"bytes,1,rep,name=repositories,proto3" json:"repositories,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -1785,7 +1913,7 @@ type MavenRepositoriesResponse struct {
 
 func (x *MavenRepositoriesResponse) Reset() {
 	*x = MavenRepositoriesResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[21]
+	mi := &file_api_v1_api_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1797,7 +1925,7 @@ func (x *MavenRepositoriesResponse) String() string {
 func (*MavenRepositoriesResponse) ProtoMessage() {}
 
 func (x *MavenRepositoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[21]
+	mi := &file_api_v1_api_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1810,7 +1938,7 @@ func (x *MavenRepositoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MavenRepositoriesResponse.ProtoReflect.Descriptor instead.
 func (*MavenRepositoriesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{21}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *MavenRepositoriesResponse) GetRepositories() map[string]*Repository {
@@ -1828,13 +1956,14 @@ type FileDetails struct {
 	ContentType      *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3,oneof" json:"content_type,omitempty"`
 	LastModifiedTime *string                `protobuf:"bytes,5,opt,name=last_modified_time,json=lastModifiedTime,proto3,oneof" json:"last_modified_time,omitempty"`
 	Files            []*FileDetails         `protobuf:"bytes,6,rep,name=files,proto3" json:"files,omitempty"`
+	Signed           bool                   `protobuf:"varint,7,opt,name=signed,proto3" json:"signed,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *FileDetails) Reset() {
 	*x = FileDetails{}
-	mi := &file_api_v1_api_proto_msgTypes[22]
+	mi := &file_api_v1_api_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1846,7 +1975,7 @@ func (x *FileDetails) String() string {
 func (*FileDetails) ProtoMessage() {}
 
 func (x *FileDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[22]
+	mi := &file_api_v1_api_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1859,7 +1988,7 @@ func (x *FileDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileDetails.ProtoReflect.Descriptor instead.
 func (*FileDetails) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{22}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *FileDetails) GetType() string {
@@ -1904,6 +2033,13 @@ func (x *FileDetails) GetFiles() []*FileDetails {
 	return nil
 }
 
+func (x *FileDetails) GetSigned() bool {
+	if x != nil {
+		return x.Signed
+	}
+	return false
+}
+
 type RepoMirrorInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1918,7 +2054,7 @@ type RepoMirrorInfo struct {
 
 func (x *RepoMirrorInfo) Reset() {
 	*x = RepoMirrorInfo{}
-	mi := &file_api_v1_api_proto_msgTypes[23]
+	mi := &file_api_v1_api_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1930,7 +2066,7 @@ func (x *RepoMirrorInfo) String() string {
 func (*RepoMirrorInfo) ProtoMessage() {}
 
 func (x *RepoMirrorInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[23]
+	mi := &file_api_v1_api_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1943,7 +2079,7 @@ func (x *RepoMirrorInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepoMirrorInfo.ProtoReflect.Descriptor instead.
 func (*RepoMirrorInfo) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{23}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *RepoMirrorInfo) GetName() string {
@@ -1989,23 +2125,24 @@ func (x *RepoMirrorInfo) GetNegativeCache() bool {
 }
 
 type RepoDetailsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Visibility    string                 `protobuf:"bytes,2,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	TotalSize     int64                  `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
-	ArtifactSize  int64                  `protobuf:"varint,4,opt,name=artifact_size,json=artifactSize,proto3" json:"artifact_size,omitempty"`
-	MetadataSize  int64                  `protobuf:"varint,5,opt,name=metadata_size,json=metadataSize,proto3" json:"metadata_size,omitempty"`
-	TotalFiles    int64                  `protobuf:"varint,6,opt,name=total_files,json=totalFiles,proto3" json:"total_files,omitempty"`
-	ArtifactCount int64                  `protobuf:"varint,7,opt,name=artifact_count,json=artifactCount,proto3" json:"artifact_count,omitempty"`
-	MetadataCount int64                  `protobuf:"varint,8,opt,name=metadata_count,json=metadataCount,proto3" json:"metadata_count,omitempty"`
-	Mirrors       []*RepoMirrorInfo      `protobuf:"bytes,9,rep,name=mirrors,proto3" json:"mirrors,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Name                string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Visibility          string                 `protobuf:"bytes,2,opt,name=visibility,proto3" json:"visibility,omitempty"`
+	TotalSize           int64                  `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
+	ArtifactSize        int64                  `protobuf:"varint,4,opt,name=artifact_size,json=artifactSize,proto3" json:"artifact_size,omitempty"`
+	MetadataSize        int64                  `protobuf:"varint,5,opt,name=metadata_size,json=metadataSize,proto3" json:"metadata_size,omitempty"`
+	TotalFiles          int64                  `protobuf:"varint,6,opt,name=total_files,json=totalFiles,proto3" json:"total_files,omitempty"`
+	ArtifactCount       int64                  `protobuf:"varint,7,opt,name=artifact_count,json=artifactCount,proto3" json:"artifact_count,omitempty"`
+	MetadataCount       int64                  `protobuf:"varint,8,opt,name=metadata_count,json=metadataCount,proto3" json:"metadata_count,omitempty"`
+	Mirrors             []*RepoMirrorInfo      `protobuf:"bytes,9,rep,name=mirrors,proto3" json:"mirrors,omitempty"`
+	RequireGpgSignature bool                   `protobuf:"varint,10,opt,name=require_gpg_signature,json=requireGpgSignature,proto3" json:"require_gpg_signature,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *RepoDetailsResponse) Reset() {
 	*x = RepoDetailsResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[24]
+	mi := &file_api_v1_api_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2017,7 +2154,7 @@ func (x *RepoDetailsResponse) String() string {
 func (*RepoDetailsResponse) ProtoMessage() {}
 
 func (x *RepoDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[24]
+	mi := &file_api_v1_api_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2030,7 +2167,7 @@ func (x *RepoDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepoDetailsResponse.ProtoReflect.Descriptor instead.
 func (*RepoDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{24}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *RepoDetailsResponse) GetName() string {
@@ -2096,6 +2233,13 @@ func (x *RepoDetailsResponse) GetMirrors() []*RepoMirrorInfo {
 	return nil
 }
 
+func (x *RepoDetailsResponse) GetRequireGpgSignature() bool {
+	if x != nil {
+		return x.RequireGpgSignature
+	}
+	return false
+}
+
 type RebuildIndexRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// "full" or "diff"
@@ -2106,7 +2250,7 @@ type RebuildIndexRequest struct {
 
 func (x *RebuildIndexRequest) Reset() {
 	*x = RebuildIndexRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[25]
+	mi := &file_api_v1_api_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2118,7 +2262,7 @@ func (x *RebuildIndexRequest) String() string {
 func (*RebuildIndexRequest) ProtoMessage() {}
 
 func (x *RebuildIndexRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[25]
+	mi := &file_api_v1_api_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2131,7 +2275,7 @@ func (x *RebuildIndexRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RebuildIndexRequest.ProtoReflect.Descriptor instead.
 func (*RebuildIndexRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{25}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *RebuildIndexRequest) GetMode() string {
@@ -2150,7 +2294,7 @@ type SettingsDomainsResponse struct {
 
 func (x *SettingsDomainsResponse) Reset() {
 	*x = SettingsDomainsResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[26]
+	mi := &file_api_v1_api_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2162,7 +2306,7 @@ func (x *SettingsDomainsResponse) String() string {
 func (*SettingsDomainsResponse) ProtoMessage() {}
 
 func (x *SettingsDomainsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[26]
+	mi := &file_api_v1_api_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2175,7 +2319,7 @@ func (x *SettingsDomainsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SettingsDomainsResponse.ProtoReflect.Descriptor instead.
 func (*SettingsDomainsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{26}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SettingsDomainsResponse) GetDomains() []string {
@@ -2202,7 +2346,7 @@ type FrontendConfig struct {
 
 func (x *FrontendConfig) Reset() {
 	*x = FrontendConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[27]
+	mi := &file_api_v1_api_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2214,7 +2358,7 @@ func (x *FrontendConfig) String() string {
 func (*FrontendConfig) ProtoMessage() {}
 
 func (x *FrontendConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[27]
+	mi := &file_api_v1_api_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2227,7 +2371,7 @@ func (x *FrontendConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FrontendConfig.ProtoReflect.Descriptor instead.
 func (*FrontendConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{27}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *FrontendConfig) GetId() string {
@@ -2303,7 +2447,7 @@ type AuditLogConfig struct {
 
 func (x *AuditLogConfig) Reset() {
 	*x = AuditLogConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[28]
+	mi := &file_api_v1_api_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2315,7 +2459,7 @@ func (x *AuditLogConfig) String() string {
 func (*AuditLogConfig) ProtoMessage() {}
 
 func (x *AuditLogConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[28]
+	mi := &file_api_v1_api_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2328,7 +2472,7 @@ func (x *AuditLogConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditLogConfig.ProtoReflect.Descriptor instead.
 func (*AuditLogConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{28}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AuditLogConfig) GetRetentionDays() int32 {
@@ -2368,7 +2512,7 @@ type ServerConfig struct {
 
 func (x *ServerConfig) Reset() {
 	*x = ServerConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[29]
+	mi := &file_api_v1_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2380,7 +2524,7 @@ func (x *ServerConfig) String() string {
 func (*ServerConfig) ProtoMessage() {}
 
 func (x *ServerConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[29]
+	mi := &file_api_v1_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2393,7 +2537,7 @@ func (x *ServerConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerConfig.ProtoReflect.Descriptor instead.
 func (*ServerConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{29}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ServerConfig) GetHost() string {
@@ -2513,7 +2657,7 @@ type StorageConfig struct {
 
 func (x *StorageConfig) Reset() {
 	*x = StorageConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[30]
+	mi := &file_api_v1_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2525,7 +2669,7 @@ func (x *StorageConfig) String() string {
 func (*StorageConfig) ProtoMessage() {}
 
 func (x *StorageConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[30]
+	mi := &file_api_v1_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2538,7 +2682,7 @@ func (x *StorageConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StorageConfig.ProtoReflect.Descriptor instead.
 func (*StorageConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{30}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *StorageConfig) GetStoragePath() string {
@@ -2581,7 +2725,7 @@ type UpdaterConfig struct {
 
 func (x *UpdaterConfig) Reset() {
 	*x = UpdaterConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[31]
+	mi := &file_api_v1_api_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2593,7 +2737,7 @@ func (x *UpdaterConfig) String() string {
 func (*UpdaterConfig) ProtoMessage() {}
 
 func (x *UpdaterConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[31]
+	mi := &file_api_v1_api_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2606,7 +2750,7 @@ func (x *UpdaterConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdaterConfig.ProtoReflect.Descriptor instead.
 func (*UpdaterConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{31}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *UpdaterConfig) GetChannel() string {
@@ -2637,7 +2781,7 @@ type DatabaseConfig struct {
 
 func (x *DatabaseConfig) Reset() {
 	*x = DatabaseConfig{}
-	mi := &file_api_v1_api_proto_msgTypes[32]
+	mi := &file_api_v1_api_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2649,7 +2793,7 @@ func (x *DatabaseConfig) String() string {
 func (*DatabaseConfig) ProtoMessage() {}
 
 func (x *DatabaseConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[32]
+	mi := &file_api_v1_api_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2662,7 +2806,7 @@ func (x *DatabaseConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DatabaseConfig.ProtoReflect.Descriptor instead.
 func (*DatabaseConfig) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{32}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *DatabaseConfig) GetEnabled() bool {
@@ -2716,7 +2860,7 @@ type IndexDomainSettings struct {
 
 func (x *IndexDomainSettings) Reset() {
 	*x = IndexDomainSettings{}
-	mi := &file_api_v1_api_proto_msgTypes[33]
+	mi := &file_api_v1_api_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2728,7 +2872,7 @@ func (x *IndexDomainSettings) String() string {
 func (*IndexDomainSettings) ProtoMessage() {}
 
 func (x *IndexDomainSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[33]
+	mi := &file_api_v1_api_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2741,7 +2885,51 @@ func (x *IndexDomainSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IndexDomainSettings.ProtoReflect.Descriptor instead.
 func (*IndexDomainSettings) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{33}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{35}
+}
+
+type GpgConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	KeyServers    []string               `protobuf:"bytes,1,rep,name=key_servers,json=keyServers,proto3" json:"key_servers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GpgConfig) Reset() {
+	*x = GpgConfig{}
+	mi := &file_api_v1_api_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GpgConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GpgConfig) ProtoMessage() {}
+
+func (x *GpgConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GpgConfig.ProtoReflect.Descriptor instead.
+func (*GpgConfig) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *GpgConfig) GetKeyServers() []string {
+	if x != nil {
+		return x.KeyServers
+	}
+	return nil
 }
 
 // ChunkedUploadInitRequest starts a concurrent multi-part upload session.
@@ -2755,14 +2943,16 @@ type ChunkedUploadInitRequest struct {
 	Path              string `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
 	GenerateChecksums bool   `protobuf:"varint,5,opt,name=generate_checksums,json=generateChecksums,proto3" json:"generate_checksums,omitempty"`
 	// Preferred part size in bytes; server may clamp (default 4 MiB).
-	ChunkSize     int64 `protobuf:"varint,6,opt,name=chunk_size,json=chunkSize,proto3" json:"chunk_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ChunkSize int64 `protobuf:"varint,6,opt,name=chunk_size,json=chunkSize,proto3" json:"chunk_size,omitempty"`
+	// Browser batches set this when a matching detached signature is selected.
+	GpgSignatureExpected bool `protobuf:"varint,7,opt,name=gpg_signature_expected,json=gpgSignatureExpected,proto3" json:"gpg_signature_expected,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ChunkedUploadInitRequest) Reset() {
 	*x = ChunkedUploadInitRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[34]
+	mi := &file_api_v1_api_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2774,7 +2964,7 @@ func (x *ChunkedUploadInitRequest) String() string {
 func (*ChunkedUploadInitRequest) ProtoMessage() {}
 
 func (x *ChunkedUploadInitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[34]
+	mi := &file_api_v1_api_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2787,7 +2977,7 @@ func (x *ChunkedUploadInitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadInitRequest.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadInitRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{34}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ChunkedUploadInitRequest) GetPurpose() string {
@@ -2832,6 +3022,13 @@ func (x *ChunkedUploadInitRequest) GetChunkSize() int64 {
 	return 0
 }
 
+func (x *ChunkedUploadInitRequest) GetGpgSignatureExpected() bool {
+	if x != nil {
+		return x.GpgSignatureExpected
+	}
+	return false
+}
+
 type ChunkedUploadInitResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UploadId      string                 `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
@@ -2844,7 +3041,7 @@ type ChunkedUploadInitResponse struct {
 
 func (x *ChunkedUploadInitResponse) Reset() {
 	*x = ChunkedUploadInitResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[35]
+	mi := &file_api_v1_api_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2856,7 +3053,7 @@ func (x *ChunkedUploadInitResponse) String() string {
 func (*ChunkedUploadInitResponse) ProtoMessage() {}
 
 func (x *ChunkedUploadInitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[35]
+	mi := &file_api_v1_api_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2869,7 +3066,7 @@ func (x *ChunkedUploadInitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadInitResponse.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadInitResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{35}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ChunkedUploadInitResponse) GetUploadId() string {
@@ -2908,13 +3105,14 @@ type ChunkedUploadCompleteResponse struct {
 	Message string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	// Relative storage path when purpose=storage (repo/…).
 	Path          string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	ReleaseId     string `protobuf:"bytes,4,opt,name=release_id,json=releaseId,proto3" json:"release_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChunkedUploadCompleteResponse) Reset() {
 	*x = ChunkedUploadCompleteResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[36]
+	mi := &file_api_v1_api_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2926,7 +3124,7 @@ func (x *ChunkedUploadCompleteResponse) String() string {
 func (*ChunkedUploadCompleteResponse) ProtoMessage() {}
 
 func (x *ChunkedUploadCompleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[36]
+	mi := &file_api_v1_api_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2939,7 +3137,7 @@ func (x *ChunkedUploadCompleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkedUploadCompleteResponse.ProtoReflect.Descriptor instead.
 func (*ChunkedUploadCompleteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{36}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ChunkedUploadCompleteResponse) GetStatus() string {
@@ -2963,6 +3161,13 @@ func (x *ChunkedUploadCompleteResponse) GetPath() string {
 	return ""
 }
 
+func (x *ChunkedUploadCompleteResponse) GetReleaseId() string {
+	if x != nil {
+		return x.ReleaseId
+	}
+	return ""
+}
+
 // Generic JSON/API error body used by some endpoints (documented shape).
 type ErrorMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2973,7 +3178,7 @@ type ErrorMessage struct {
 
 func (x *ErrorMessage) Reset() {
 	*x = ErrorMessage{}
-	mi := &file_api_v1_api_proto_msgTypes[37]
+	mi := &file_api_v1_api_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2985,7 +3190,7 @@ func (x *ErrorMessage) String() string {
 func (*ErrorMessage) ProtoMessage() {}
 
 func (x *ErrorMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[37]
+	mi := &file_api_v1_api_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2998,7 +3203,7 @@ func (x *ErrorMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorMessage.ProtoReflect.Descriptor instead.
 func (*ErrorMessage) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{37}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ErrorMessage) GetError() string {
@@ -3020,7 +3225,7 @@ type FidoDeviceDto struct {
 
 func (x *FidoDeviceDto) Reset() {
 	*x = FidoDeviceDto{}
-	mi := &file_api_v1_api_proto_msgTypes[38]
+	mi := &file_api_v1_api_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3032,7 +3237,7 @@ func (x *FidoDeviceDto) String() string {
 func (*FidoDeviceDto) ProtoMessage() {}
 
 func (x *FidoDeviceDto) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[38]
+	mi := &file_api_v1_api_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3045,7 +3250,7 @@ func (x *FidoDeviceDto) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FidoDeviceDto.ProtoReflect.Descriptor instead.
 func (*FidoDeviceDto) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{38}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *FidoDeviceDto) GetId() string {
@@ -3085,7 +3290,7 @@ type FidoDeviceList struct {
 
 func (x *FidoDeviceList) Reset() {
 	*x = FidoDeviceList{}
-	mi := &file_api_v1_api_proto_msgTypes[39]
+	mi := &file_api_v1_api_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3097,7 +3302,7 @@ func (x *FidoDeviceList) String() string {
 func (*FidoDeviceList) ProtoMessage() {}
 
 func (x *FidoDeviceList) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[39]
+	mi := &file_api_v1_api_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3110,7 +3315,7 @@ func (x *FidoDeviceList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FidoDeviceList.ProtoReflect.Descriptor instead.
 func (*FidoDeviceList) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{39}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *FidoDeviceList) GetDevices() []*FidoDeviceDto {
@@ -3118,6 +3323,486 @@ func (x *FidoDeviceList) GetDevices() []*FidoDeviceDto {
 		return x.Devices
 	}
 	return nil
+}
+
+type GpgKeyReferenceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	KeyId         string                 `protobuf:"bytes,1,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GpgKeyReferenceRequest) Reset() {
+	*x = GpgKeyReferenceRequest{}
+	mi := &file_api_v1_api_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GpgKeyReferenceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GpgKeyReferenceRequest) ProtoMessage() {}
+
+func (x *GpgKeyReferenceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GpgKeyReferenceRequest.ProtoReflect.Descriptor instead.
+func (*GpgKeyReferenceRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *GpgKeyReferenceRequest) GetKeyId() string {
+	if x != nil {
+		return x.KeyId
+	}
+	return ""
+}
+
+type GpgKeyDto struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Fingerprint     string                 `protobuf:"bytes,1,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	KeyId           string                 `protobuf:"bytes,2,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
+	PrimaryIdentity string                 `protobuf:"bytes,3,opt,name=primary_identity,json=primaryIdentity,proto3" json:"primary_identity,omitempty"`
+	KeyCreatedAt    int64                  `protobuf:"varint,4,opt,name=key_created_at,json=keyCreatedAt,proto3" json:"key_created_at,omitempty"`
+	KeyExpiresAt    int64                  `protobuf:"varint,5,opt,name=key_expires_at,json=keyExpiresAt,proto3" json:"key_expires_at,omitempty"`
+	AddedAt         int64                  `protobuf:"varint,6,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
+	RefreshedAt     int64                  `protobuf:"varint,7,opt,name=refreshed_at,json=refreshedAt,proto3" json:"refreshed_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GpgKeyDto) Reset() {
+	*x = GpgKeyDto{}
+	mi := &file_api_v1_api_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GpgKeyDto) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GpgKeyDto) ProtoMessage() {}
+
+func (x *GpgKeyDto) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GpgKeyDto.ProtoReflect.Descriptor instead.
+func (*GpgKeyDto) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *GpgKeyDto) GetFingerprint() string {
+	if x != nil {
+		return x.Fingerprint
+	}
+	return ""
+}
+
+func (x *GpgKeyDto) GetKeyId() string {
+	if x != nil {
+		return x.KeyId
+	}
+	return ""
+}
+
+func (x *GpgKeyDto) GetPrimaryIdentity() string {
+	if x != nil {
+		return x.PrimaryIdentity
+	}
+	return ""
+}
+
+func (x *GpgKeyDto) GetKeyCreatedAt() int64 {
+	if x != nil {
+		return x.KeyCreatedAt
+	}
+	return 0
+}
+
+func (x *GpgKeyDto) GetKeyExpiresAt() int64 {
+	if x != nil {
+		return x.KeyExpiresAt
+	}
+	return 0
+}
+
+func (x *GpgKeyDto) GetAddedAt() int64 {
+	if x != nil {
+		return x.AddedAt
+	}
+	return 0
+}
+
+func (x *GpgKeyDto) GetRefreshedAt() int64 {
+	if x != nil {
+		return x.RefreshedAt
+	}
+	return 0
+}
+
+type GpgKeyList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Keys          []*GpgKeyDto           `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GpgKeyList) Reset() {
+	*x = GpgKeyList{}
+	mi := &file_api_v1_api_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GpgKeyList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GpgKeyList) ProtoMessage() {}
+
+func (x *GpgKeyList) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GpgKeyList.ProtoReflect.Descriptor instead.
+func (*GpgKeyList) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *GpgKeyList) GetKeys() []*GpgKeyDto {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
+type GpgSignatureDetails struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Repository         string                 `protobuf:"bytes,1,opt,name=repository,proto3" json:"repository,omitempty"`
+	ArtifactPath       string                 `protobuf:"bytes,2,opt,name=artifact_path,json=artifactPath,proto3" json:"artifact_path,omitempty"`
+	Fingerprint        string                 `protobuf:"bytes,3,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	KeyId              string                 `protobuf:"bytes,4,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
+	PrimaryIdentity    string                 `protobuf:"bytes,5,opt,name=primary_identity,json=primaryIdentity,proto3" json:"primary_identity,omitempty"`
+	Uploader           string                 `protobuf:"bytes,6,opt,name=uploader,proto3" json:"uploader,omitempty"`
+	SignatureCreatedAt int64                  `protobuf:"varint,7,opt,name=signature_created_at,json=signatureCreatedAt,proto3" json:"signature_created_at,omitempty"`
+	VerifiedAt         int64                  `protobuf:"varint,8,opt,name=verified_at,json=verifiedAt,proto3" json:"verified_at,omitempty"`
+	HashAlgorithm      string                 `protobuf:"bytes,9,opt,name=hash_algorithm,json=hashAlgorithm,proto3" json:"hash_algorithm,omitempty"`
+	PublicKeyAlgorithm string                 `protobuf:"bytes,10,opt,name=public_key_algorithm,json=publicKeyAlgorithm,proto3" json:"public_key_algorithm,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *GpgSignatureDetails) Reset() {
+	*x = GpgSignatureDetails{}
+	mi := &file_api_v1_api_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GpgSignatureDetails) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GpgSignatureDetails) ProtoMessage() {}
+
+func (x *GpgSignatureDetails) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GpgSignatureDetails.ProtoReflect.Descriptor instead.
+func (*GpgSignatureDetails) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *GpgSignatureDetails) GetRepository() string {
+	if x != nil {
+		return x.Repository
+	}
+	return ""
+}
+
+func (x *GpgSignatureDetails) GetArtifactPath() string {
+	if x != nil {
+		return x.ArtifactPath
+	}
+	return ""
+}
+
+func (x *GpgSignatureDetails) GetFingerprint() string {
+	if x != nil {
+		return x.Fingerprint
+	}
+	return ""
+}
+
+func (x *GpgSignatureDetails) GetKeyId() string {
+	if x != nil {
+		return x.KeyId
+	}
+	return ""
+}
+
+func (x *GpgSignatureDetails) GetPrimaryIdentity() string {
+	if x != nil {
+		return x.PrimaryIdentity
+	}
+	return ""
+}
+
+func (x *GpgSignatureDetails) GetUploader() string {
+	if x != nil {
+		return x.Uploader
+	}
+	return ""
+}
+
+func (x *GpgSignatureDetails) GetSignatureCreatedAt() int64 {
+	if x != nil {
+		return x.SignatureCreatedAt
+	}
+	return 0
+}
+
+func (x *GpgSignatureDetails) GetVerifiedAt() int64 {
+	if x != nil {
+		return x.VerifiedAt
+	}
+	return 0
+}
+
+func (x *GpgSignatureDetails) GetHashAlgorithm() string {
+	if x != nil {
+		return x.HashAlgorithm
+	}
+	return ""
+}
+
+func (x *GpgSignatureDetails) GetPublicKeyAlgorithm() string {
+	if x != nil {
+		return x.PublicKeyAlgorithm
+	}
+	return ""
+}
+
+type GpgReleaseDto struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Repository       string                 `protobuf:"bytes,2,opt,name=repository,proto3" json:"repository,omitempty"`
+	ArtifactPath     string                 `protobuf:"bytes,3,opt,name=artifact_path,json=artifactPath,proto3" json:"artifact_path,omitempty"`
+	Status           string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	FailureReason    string                 `protobuf:"bytes,5,opt,name=failure_reason,json=failureReason,proto3" json:"failure_reason,omitempty"`
+	Signed           bool                   `protobuf:"varint,6,opt,name=signed,proto3" json:"signed,omitempty"`
+	RequireSignature bool                   `protobuf:"varint,7,opt,name=require_signature,json=requireSignature,proto3" json:"require_signature,omitempty"`
+	CreatedAt        int64                  `protobuf:"varint,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt        int64                  `protobuf:"varint,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CompletedAt      int64                  `protobuf:"varint,10,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GpgReleaseDto) Reset() {
+	*x = GpgReleaseDto{}
+	mi := &file_api_v1_api_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GpgReleaseDto) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GpgReleaseDto) ProtoMessage() {}
+
+func (x *GpgReleaseDto) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GpgReleaseDto.ProtoReflect.Descriptor instead.
+func (*GpgReleaseDto) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *GpgReleaseDto) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GpgReleaseDto) GetRepository() string {
+	if x != nil {
+		return x.Repository
+	}
+	return ""
+}
+
+func (x *GpgReleaseDto) GetArtifactPath() string {
+	if x != nil {
+		return x.ArtifactPath
+	}
+	return ""
+}
+
+func (x *GpgReleaseDto) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *GpgReleaseDto) GetFailureReason() string {
+	if x != nil {
+		return x.FailureReason
+	}
+	return ""
+}
+
+func (x *GpgReleaseDto) GetSigned() bool {
+	if x != nil {
+		return x.Signed
+	}
+	return false
+}
+
+func (x *GpgReleaseDto) GetRequireSignature() bool {
+	if x != nil {
+		return x.RequireSignature
+	}
+	return false
+}
+
+func (x *GpgReleaseDto) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *GpgReleaseDto) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+func (x *GpgReleaseDto) GetCompletedAt() int64 {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return 0
+}
+
+type GpgReleaseList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Releases      []*GpgReleaseDto       `protobuf:"bytes,1,rep,name=releases,proto3" json:"releases,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GpgReleaseList) Reset() {
+	*x = GpgReleaseList{}
+	mi := &file_api_v1_api_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GpgReleaseList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GpgReleaseList) ProtoMessage() {}
+
+func (x *GpgReleaseList) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_api_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GpgReleaseList.ProtoReflect.Descriptor instead.
+func (*GpgReleaseList) Descriptor() ([]byte, []int) {
+	return file_api_v1_api_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *GpgReleaseList) GetReleases() []*GpgReleaseDto {
+	if x != nil {
+		return x.Releases
+	}
+	return nil
+}
+
+func (x *GpgReleaseList) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *GpgReleaseList) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GpgReleaseList) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
 }
 
 type UpdatePasswordRequest struct {
@@ -3129,7 +3814,7 @@ type UpdatePasswordRequest struct {
 
 func (x *UpdatePasswordRequest) Reset() {
 	*x = UpdatePasswordRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[40]
+	mi := &file_api_v1_api_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3141,7 +3826,7 @@ func (x *UpdatePasswordRequest) String() string {
 func (*UpdatePasswordRequest) ProtoMessage() {}
 
 func (x *UpdatePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[40]
+	mi := &file_api_v1_api_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3154,7 +3839,7 @@ func (x *UpdatePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePasswordRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{40}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *UpdatePasswordRequest) GetNewPassword() string {
@@ -3173,7 +3858,7 @@ type GenerateTokenResponse struct {
 
 func (x *GenerateTokenResponse) Reset() {
 	*x = GenerateTokenResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[41]
+	mi := &file_api_v1_api_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3185,7 +3870,7 @@ func (x *GenerateTokenResponse) String() string {
 func (*GenerateTokenResponse) ProtoMessage() {}
 
 func (x *GenerateTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[41]
+	mi := &file_api_v1_api_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3198,7 +3883,7 @@ func (x *GenerateTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateTokenResponse.ProtoReflect.Descriptor instead.
 func (*GenerateTokenResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{41}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GenerateTokenResponse) GetToken() string {
@@ -3220,7 +3905,7 @@ type CreateAccessTokenRequest struct {
 
 func (x *CreateAccessTokenRequest) Reset() {
 	*x = CreateAccessTokenRequest{}
-	mi := &file_api_v1_api_proto_msgTypes[42]
+	mi := &file_api_v1_api_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3232,7 +3917,7 @@ func (x *CreateAccessTokenRequest) String() string {
 func (*CreateAccessTokenRequest) ProtoMessage() {}
 
 func (x *CreateAccessTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[42]
+	mi := &file_api_v1_api_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3245,7 +3930,7 @@ func (x *CreateAccessTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccessTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateAccessTokenRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{42}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *CreateAccessTokenRequest) GetPermissions() []string {
@@ -3286,7 +3971,7 @@ type CreateAccessTokenResponse struct {
 
 func (x *CreateAccessTokenResponse) Reset() {
 	*x = CreateAccessTokenResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[43]
+	mi := &file_api_v1_api_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3298,7 +3983,7 @@ func (x *CreateAccessTokenResponse) String() string {
 func (*CreateAccessTokenResponse) ProtoMessage() {}
 
 func (x *CreateAccessTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[43]
+	mi := &file_api_v1_api_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3311,7 +3996,7 @@ func (x *CreateAccessTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAccessTokenResponse.ProtoReflect.Descriptor instead.
 func (*CreateAccessTokenResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{43}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *CreateAccessTokenResponse) GetAccessToken() *AccessTokenDto {
@@ -3338,7 +4023,7 @@ type VersionsResponse struct {
 
 func (x *VersionsResponse) Reset() {
 	*x = VersionsResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[44]
+	mi := &file_api_v1_api_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3350,7 +4035,7 @@ func (x *VersionsResponse) String() string {
 func (*VersionsResponse) ProtoMessage() {}
 
 func (x *VersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[44]
+	mi := &file_api_v1_api_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3363,7 +4048,7 @@ func (x *VersionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VersionsResponse.ProtoReflect.Descriptor instead.
 func (*VersionsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{44}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *VersionsResponse) GetIsSnapshot() bool {
@@ -3390,7 +4075,7 @@ type LatestVersionResponse struct {
 
 func (x *LatestVersionResponse) Reset() {
 	*x = LatestVersionResponse{}
-	mi := &file_api_v1_api_proto_msgTypes[45]
+	mi := &file_api_v1_api_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3402,7 +4087,7 @@ func (x *LatestVersionResponse) String() string {
 func (*LatestVersionResponse) ProtoMessage() {}
 
 func (x *LatestVersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[45]
+	mi := &file_api_v1_api_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3415,7 +4100,7 @@ func (x *LatestVersionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatestVersionResponse.ProtoReflect.Descriptor instead.
 func (*LatestVersionResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{45}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *LatestVersionResponse) GetIsSnapshot() bool {
@@ -3443,7 +4128,7 @@ type PomDetails struct {
 
 func (x *PomDetails) Reset() {
 	*x = PomDetails{}
-	mi := &file_api_v1_api_proto_msgTypes[46]
+	mi := &file_api_v1_api_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3455,7 +4140,7 @@ func (x *PomDetails) String() string {
 func (*PomDetails) ProtoMessage() {}
 
 func (x *PomDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_api_proto_msgTypes[46]
+	mi := &file_api_v1_api_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3468,7 +4153,7 @@ func (x *PomDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PomDetails.ProtoReflect.Descriptor instead.
 func (*PomDetails) Descriptor() ([]byte, []int) {
-	return file_api_v1_api_proto_rawDescGZIP(), []int{46}
+	return file_api_v1_api_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *PomDetails) GetGroupId() string {
@@ -3649,7 +4334,15 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\vMirrorProxy\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"\xa3\x03\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"m\n" +
+	"\rOutboundProxy\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\x12\x1a\n" +
+	"\bpassword\x18\x04 \x01(\tR\bpassword\"`\n" +
+	"\vProxyConfig\x12\x1a\n" +
+	"\bselected\x18\x01 \x01(\tR\bselected\x125\n" +
+	"\aproxies\x18\x02 \x03(\v2\x1b.renop.api.v1.OutboundProxyR\aproxies\"\xa3\x03\n" +
 	"\x06Mirror\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x18\n" +
@@ -3673,7 +4366,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x10force_path_style\x18\a \x01(\bR\x0eforcePathStyle\x12-\n" +
 	"\x12redirect_downloads\x18\b \x01(\bR\x11redirectDownloads\x12\x1d\n" +
 	"\n" +
-	"key_prefix\x18\t \x01(\tR\tkeyPrefix\"\xc7\x01\n" +
+	"key_prefix\x18\t \x01(\tR\tkeyPrefix\"\xfb\x01\n" +
 	"\n" +
 	"Repository\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1e\n" +
@@ -3682,19 +4375,21 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"visibility\x12.\n" +
 	"\amirrors\x18\x03 \x03(\v2\x14.renop.api.v1.MirrorR\amirrors\x12-\n" +
 	"\x12allow_redeployment\x18\x04 \x01(\bR\x11allowRedeployment\x12&\n" +
-	"\x02s3\x18\x05 \x01(\v2\x16.renop.api.v1.S3ConfigR\x02s3\"\xd5\x01\n" +
+	"\x02s3\x18\x05 \x01(\v2\x16.renop.api.v1.S3ConfigR\x02s3\x122\n" +
+	"\x15require_gpg_signature\x18\x06 \x01(\bR\x13requireGpgSignature\"\xd5\x01\n" +
 	"\x19MavenRepositoriesResponse\x12]\n" +
 	"\frepositories\x18\x01 \x03(\v29.renop.api.v1.MavenRepositoriesResponse.RepositoriesEntryR\frepositories\x1aY\n" +
 	"\x11RepositoriesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12.\n" +
-	"\x05value\x18\x02 \x01(\v2\x18.renop.api.v1.RepositoryR\x05value:\x028\x01\"\xa8\x02\n" +
+	"\x05value\x18\x02 \x01(\v2\x18.renop.api.v1.RepositoryR\x05value:\x028\x01\"\xc0\x02\n" +
 	"\vFileDetails\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12*\n" +
 	"\x0econtent_length\x18\x03 \x01(\x03H\x00R\rcontentLength\x88\x01\x01\x12&\n" +
 	"\fcontent_type\x18\x04 \x01(\tH\x01R\vcontentType\x88\x01\x01\x121\n" +
 	"\x12last_modified_time\x18\x05 \x01(\tH\x02R\x10lastModifiedTime\x88\x01\x01\x12/\n" +
-	"\x05files\x18\x06 \x03(\v2\x19.renop.api.v1.FileDetailsR\x05filesB\x11\n" +
+	"\x05files\x18\x06 \x03(\v2\x19.renop.api.v1.FileDetailsR\x05files\x12\x16\n" +
+	"\x06signed\x18\a \x01(\bR\x06signedB\x11\n" +
 	"\x0f_content_lengthB\x0f\n" +
 	"\r_content_typeB\x15\n" +
 	"\x13_last_modified_time\"\xb7\x01\n" +
@@ -3704,7 +4399,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\apersist\x18\x03 \x01(\bR\apersist\x12!\n" +
 	"\fenabled_date\x18\x04 \x01(\tR\venabledDate\x12\x1b\n" +
 	"\tcache_ttl\x18\x05 \x01(\x04R\bcacheTtl\x12%\n" +
-	"\x0enegative_cache\x18\x06 \x01(\bR\rnegativeCache\"\xd9\x02\n" +
+	"\x0enegative_cache\x18\x06 \x01(\bR\rnegativeCache\"\x8d\x03\n" +
 	"\x13RepoDetailsResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1e\n" +
 	"\n" +
@@ -3718,7 +4413,9 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"totalFiles\x12%\n" +
 	"\x0eartifact_count\x18\a \x01(\x03R\rartifactCount\x12%\n" +
 	"\x0emetadata_count\x18\b \x01(\x03R\rmetadataCount\x126\n" +
-	"\amirrors\x18\t \x03(\v2\x1c.renop.api.v1.RepoMirrorInfoR\amirrors\")\n" +
+	"\amirrors\x18\t \x03(\v2\x1c.renop.api.v1.RepoMirrorInfoR\amirrors\x122\n" +
+	"\x15require_gpg_signature\x18\n" +
+	" \x01(\bR\x13requireGpgSignature\")\n" +
 	"\x13RebuildIndexRequest\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\"3\n" +
 	"\x17SettingsDomainsResponse\x12\x18\n" +
@@ -3772,7 +4469,10 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x0emax_open_conns\x18\x04 \x01(\x05R\fmaxOpenConns\x12$\n" +
 	"\x0emax_idle_conns\x18\x05 \x01(\x05R\fmaxIdleConns\x121\n" +
 	"\x15conn_max_lifetime_sec\x18\x06 \x01(\x05R\x12connMaxLifetimeSec\"\x15\n" +
-	"\x13IndexDomainSettings\"\xc6\x01\n" +
+	"\x13IndexDomainSettings\",\n" +
+	"\tGpgConfig\x12\x1f\n" +
+	"\vkey_servers\x18\x01 \x03(\tR\n" +
+	"keyServers\"\xfc\x01\n" +
 	"\x18ChunkedUploadInitRequest\x12\x18\n" +
 	"\apurpose\x18\x01 \x01(\tR\apurpose\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12\x12\n" +
@@ -3780,18 +4480,21 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x04path\x18\x04 \x01(\tR\x04path\x12-\n" +
 	"\x12generate_checksums\x18\x05 \x01(\bR\x11generateChecksums\x12\x1d\n" +
 	"\n" +
-	"chunk_size\x18\x06 \x01(\x03R\tchunkSize\"\x92\x01\n" +
+	"chunk_size\x18\x06 \x01(\x03R\tchunkSize\x124\n" +
+	"\x16gpg_signature_expected\x18\a \x01(\bR\x14gpgSignatureExpected\"\x92\x01\n" +
 	"\x19ChunkedUploadInitResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\tR\buploadId\x12\x1d\n" +
 	"\n" +
 	"chunk_size\x18\x02 \x01(\x03R\tchunkSize\x12\x1f\n" +
 	"\vchunk_count\x18\x03 \x01(\x05R\n" +
 	"chunkCount\x12\x18\n" +
-	"\apurpose\x18\x04 \x01(\tR\apurpose\"e\n" +
+	"\apurpose\x18\x04 \x01(\tR\apurpose\"\x84\x01\n" +
 	"\x1dChunkedUploadCompleteResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04path\"$\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\x12\x1d\n" +
+	"\n" +
+	"release_id\x18\x04 \x01(\tR\treleaseId\"$\n" +
 	"\fErrorMessage\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\tR\x05error\"n\n" +
 	"\rFidoDeviceDto\x12\x0e\n" +
@@ -3801,7 +4504,56 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"G\n" +
 	"\x0eFidoDeviceList\x125\n" +
-	"\adevices\x18\x01 \x03(\v2\x1b.renop.api.v1.FidoDeviceDtoR\adevices\":\n" +
+	"\adevices\x18\x01 \x03(\v2\x1b.renop.api.v1.FidoDeviceDtoR\adevices\"/\n" +
+	"\x16GpgKeyReferenceRequest\x12\x15\n" +
+	"\x06key_id\x18\x01 \x01(\tR\x05keyId\"\xf9\x01\n" +
+	"\tGpgKeyDto\x12 \n" +
+	"\vfingerprint\x18\x01 \x01(\tR\vfingerprint\x12\x15\n" +
+	"\x06key_id\x18\x02 \x01(\tR\x05keyId\x12)\n" +
+	"\x10primary_identity\x18\x03 \x01(\tR\x0fprimaryIdentity\x12$\n" +
+	"\x0ekey_created_at\x18\x04 \x01(\x03R\fkeyCreatedAt\x12$\n" +
+	"\x0ekey_expires_at\x18\x05 \x01(\x03R\fkeyExpiresAt\x12\x19\n" +
+	"\badded_at\x18\x06 \x01(\x03R\aaddedAt\x12!\n" +
+	"\frefreshed_at\x18\a \x01(\x03R\vrefreshedAt\"9\n" +
+	"\n" +
+	"GpgKeyList\x12+\n" +
+	"\x04keys\x18\x01 \x03(\v2\x17.renop.api.v1.GpgKeyDtoR\x04keys\"\x86\x03\n" +
+	"\x13GpgSignatureDetails\x12\x1e\n" +
+	"\n" +
+	"repository\x18\x01 \x01(\tR\n" +
+	"repository\x12#\n" +
+	"\rartifact_path\x18\x02 \x01(\tR\fartifactPath\x12 \n" +
+	"\vfingerprint\x18\x03 \x01(\tR\vfingerprint\x12\x15\n" +
+	"\x06key_id\x18\x04 \x01(\tR\x05keyId\x12)\n" +
+	"\x10primary_identity\x18\x05 \x01(\tR\x0fprimaryIdentity\x12\x1a\n" +
+	"\buploader\x18\x06 \x01(\tR\buploader\x120\n" +
+	"\x14signature_created_at\x18\a \x01(\x03R\x12signatureCreatedAt\x12\x1f\n" +
+	"\vverified_at\x18\b \x01(\x03R\n" +
+	"verifiedAt\x12%\n" +
+	"\x0ehash_algorithm\x18\t \x01(\tR\rhashAlgorithm\x120\n" +
+	"\x14public_key_algorithm\x18\n" +
+	" \x01(\tR\x12publicKeyAlgorithm\"\xc9\x02\n" +
+	"\rGpgReleaseDto\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1e\n" +
+	"\n" +
+	"repository\x18\x02 \x01(\tR\n" +
+	"repository\x12#\n" +
+	"\rartifact_path\x18\x03 \x01(\tR\fartifactPath\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12%\n" +
+	"\x0efailure_reason\x18\x05 \x01(\tR\rfailureReason\x12\x16\n" +
+	"\x06signed\x18\x06 \x01(\bR\x06signed\x12+\n" +
+	"\x11require_signature\x18\a \x01(\bR\x10requireSignature\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\x03R\tupdatedAt\x12!\n" +
+	"\fcompleted_at\x18\n" +
+	" \x01(\x03R\vcompletedAt\"\x8d\x01\n" +
+	"\x0eGpgReleaseList\x127\n" +
+	"\breleases\x18\x01 \x03(\v2\x1b.renop.api.v1.GpgReleaseDtoR\breleases\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\":\n" +
 	"\x15UpdatePasswordRequest\x12!\n" +
 	"\fnew_password\x18\x01 \x01(\tR\vnewPassword\"-\n" +
 	"\x15GenerateTokenResponse\x12\x14\n" +
@@ -3843,7 +4595,7 @@ func file_api_v1_api_proto_rawDescGZIP() []byte {
 	return file_api_v1_api_proto_rawDescData
 }
 
-var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
+var file_api_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
 var file_api_v1_api_proto_goTypes = []any{
 	(*AccessTokenIdentifier)(nil),         // 0: renop.api.v1.AccessTokenIdentifier
 	(*AccessTokenDto)(nil),                // 1: renop.api.v1.AccessTokenDto
@@ -3863,36 +4615,45 @@ var file_api_v1_api_proto_goTypes = []any{
 	(*RuntimeMemoryBreakdown)(nil),        // 15: renop.api.v1.RuntimeMemoryBreakdown
 	(*MirrorCredentials)(nil),             // 16: renop.api.v1.MirrorCredentials
 	(*MirrorProxy)(nil),                   // 17: renop.api.v1.MirrorProxy
-	(*Mirror)(nil),                        // 18: renop.api.v1.Mirror
-	(*S3Config)(nil),                      // 19: renop.api.v1.S3Config
-	(*Repository)(nil),                    // 20: renop.api.v1.Repository
-	(*MavenRepositoriesResponse)(nil),     // 21: renop.api.v1.MavenRepositoriesResponse
-	(*FileDetails)(nil),                   // 22: renop.api.v1.FileDetails
-	(*RepoMirrorInfo)(nil),                // 23: renop.api.v1.RepoMirrorInfo
-	(*RepoDetailsResponse)(nil),           // 24: renop.api.v1.RepoDetailsResponse
-	(*RebuildIndexRequest)(nil),           // 25: renop.api.v1.RebuildIndexRequest
-	(*SettingsDomainsResponse)(nil),       // 26: renop.api.v1.SettingsDomainsResponse
-	(*FrontendConfig)(nil),                // 27: renop.api.v1.FrontendConfig
-	(*AuditLogConfig)(nil),                // 28: renop.api.v1.AuditLogConfig
-	(*ServerConfig)(nil),                  // 29: renop.api.v1.ServerConfig
-	(*StorageConfig)(nil),                 // 30: renop.api.v1.StorageConfig
-	(*UpdaterConfig)(nil),                 // 31: renop.api.v1.UpdaterConfig
-	(*DatabaseConfig)(nil),                // 32: renop.api.v1.DatabaseConfig
-	(*IndexDomainSettings)(nil),           // 33: renop.api.v1.IndexDomainSettings
-	(*ChunkedUploadInitRequest)(nil),      // 34: renop.api.v1.ChunkedUploadInitRequest
-	(*ChunkedUploadInitResponse)(nil),     // 35: renop.api.v1.ChunkedUploadInitResponse
-	(*ChunkedUploadCompleteResponse)(nil), // 36: renop.api.v1.ChunkedUploadCompleteResponse
-	(*ErrorMessage)(nil),                  // 37: renop.api.v1.ErrorMessage
-	(*FidoDeviceDto)(nil),                 // 38: renop.api.v1.FidoDeviceDto
-	(*FidoDeviceList)(nil),                // 39: renop.api.v1.FidoDeviceList
-	(*UpdatePasswordRequest)(nil),         // 40: renop.api.v1.UpdatePasswordRequest
-	(*GenerateTokenResponse)(nil),         // 41: renop.api.v1.GenerateTokenResponse
-	(*CreateAccessTokenRequest)(nil),      // 42: renop.api.v1.CreateAccessTokenRequest
-	(*CreateAccessTokenResponse)(nil),     // 43: renop.api.v1.CreateAccessTokenResponse
-	(*VersionsResponse)(nil),              // 44: renop.api.v1.VersionsResponse
-	(*LatestVersionResponse)(nil),         // 45: renop.api.v1.LatestVersionResponse
-	(*PomDetails)(nil),                    // 46: renop.api.v1.PomDetails
-	nil,                                   // 47: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	(*OutboundProxy)(nil),                 // 18: renop.api.v1.OutboundProxy
+	(*ProxyConfig)(nil),                   // 19: renop.api.v1.ProxyConfig
+	(*Mirror)(nil),                        // 20: renop.api.v1.Mirror
+	(*S3Config)(nil),                      // 21: renop.api.v1.S3Config
+	(*Repository)(nil),                    // 22: renop.api.v1.Repository
+	(*MavenRepositoriesResponse)(nil),     // 23: renop.api.v1.MavenRepositoriesResponse
+	(*FileDetails)(nil),                   // 24: renop.api.v1.FileDetails
+	(*RepoMirrorInfo)(nil),                // 25: renop.api.v1.RepoMirrorInfo
+	(*RepoDetailsResponse)(nil),           // 26: renop.api.v1.RepoDetailsResponse
+	(*RebuildIndexRequest)(nil),           // 27: renop.api.v1.RebuildIndexRequest
+	(*SettingsDomainsResponse)(nil),       // 28: renop.api.v1.SettingsDomainsResponse
+	(*FrontendConfig)(nil),                // 29: renop.api.v1.FrontendConfig
+	(*AuditLogConfig)(nil),                // 30: renop.api.v1.AuditLogConfig
+	(*ServerConfig)(nil),                  // 31: renop.api.v1.ServerConfig
+	(*StorageConfig)(nil),                 // 32: renop.api.v1.StorageConfig
+	(*UpdaterConfig)(nil),                 // 33: renop.api.v1.UpdaterConfig
+	(*DatabaseConfig)(nil),                // 34: renop.api.v1.DatabaseConfig
+	(*IndexDomainSettings)(nil),           // 35: renop.api.v1.IndexDomainSettings
+	(*GpgConfig)(nil),                     // 36: renop.api.v1.GpgConfig
+	(*ChunkedUploadInitRequest)(nil),      // 37: renop.api.v1.ChunkedUploadInitRequest
+	(*ChunkedUploadInitResponse)(nil),     // 38: renop.api.v1.ChunkedUploadInitResponse
+	(*ChunkedUploadCompleteResponse)(nil), // 39: renop.api.v1.ChunkedUploadCompleteResponse
+	(*ErrorMessage)(nil),                  // 40: renop.api.v1.ErrorMessage
+	(*FidoDeviceDto)(nil),                 // 41: renop.api.v1.FidoDeviceDto
+	(*FidoDeviceList)(nil),                // 42: renop.api.v1.FidoDeviceList
+	(*GpgKeyReferenceRequest)(nil),        // 43: renop.api.v1.GpgKeyReferenceRequest
+	(*GpgKeyDto)(nil),                     // 44: renop.api.v1.GpgKeyDto
+	(*GpgKeyList)(nil),                    // 45: renop.api.v1.GpgKeyList
+	(*GpgSignatureDetails)(nil),           // 46: renop.api.v1.GpgSignatureDetails
+	(*GpgReleaseDto)(nil),                 // 47: renop.api.v1.GpgReleaseDto
+	(*GpgReleaseList)(nil),                // 48: renop.api.v1.GpgReleaseList
+	(*UpdatePasswordRequest)(nil),         // 49: renop.api.v1.UpdatePasswordRequest
+	(*GenerateTokenResponse)(nil),         // 50: renop.api.v1.GenerateTokenResponse
+	(*CreateAccessTokenRequest)(nil),      // 51: renop.api.v1.CreateAccessTokenRequest
+	(*CreateAccessTokenResponse)(nil),     // 52: renop.api.v1.CreateAccessTokenResponse
+	(*VersionsResponse)(nil),              // 53: renop.api.v1.VersionsResponse
+	(*LatestVersionResponse)(nil),         // 54: renop.api.v1.LatestVersionResponse
+	(*PomDetails)(nil),                    // 55: renop.api.v1.PomDetails
+	nil,                                   // 56: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
 }
 var file_api_v1_api_proto_depIdxs = []int32{
 	0,  // 0: renop.api.v1.AccessTokenDto.identifier:type_name -> renop.api.v1.AccessTokenIdentifier
@@ -3904,23 +4665,26 @@ var file_api_v1_api_proto_depIdxs = []int32{
 	1,  // 6: renop.api.v1.AccessTokenList.tokens:type_name -> renop.api.v1.AccessTokenDto
 	11, // 7: renop.api.v1.InstanceStatus.update_state:type_name -> renop.api.v1.UpdateState
 	13, // 8: renop.api.v1.StatusSnapshotList.snapshots:type_name -> renop.api.v1.StatusSnapshot
-	16, // 9: renop.api.v1.Mirror.authorization:type_name -> renop.api.v1.MirrorCredentials
-	17, // 10: renop.api.v1.Mirror.proxy:type_name -> renop.api.v1.MirrorProxy
-	18, // 11: renop.api.v1.Repository.mirrors:type_name -> renop.api.v1.Mirror
-	19, // 12: renop.api.v1.Repository.s3:type_name -> renop.api.v1.S3Config
-	47, // 13: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
-	22, // 14: renop.api.v1.FileDetails.files:type_name -> renop.api.v1.FileDetails
-	23, // 15: renop.api.v1.RepoDetailsResponse.mirrors:type_name -> renop.api.v1.RepoMirrorInfo
-	32, // 16: renop.api.v1.ServerConfig.database:type_name -> renop.api.v1.DatabaseConfig
-	28, // 17: renop.api.v1.ServerConfig.audit_log:type_name -> renop.api.v1.AuditLogConfig
-	38, // 18: renop.api.v1.FidoDeviceList.devices:type_name -> renop.api.v1.FidoDeviceDto
-	1,  // 19: renop.api.v1.CreateAccessTokenResponse.access_token:type_name -> renop.api.v1.AccessTokenDto
-	20, // 20: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	18, // 9: renop.api.v1.ProxyConfig.proxies:type_name -> renop.api.v1.OutboundProxy
+	16, // 10: renop.api.v1.Mirror.authorization:type_name -> renop.api.v1.MirrorCredentials
+	17, // 11: renop.api.v1.Mirror.proxy:type_name -> renop.api.v1.MirrorProxy
+	20, // 12: renop.api.v1.Repository.mirrors:type_name -> renop.api.v1.Mirror
+	21, // 13: renop.api.v1.Repository.s3:type_name -> renop.api.v1.S3Config
+	56, // 14: renop.api.v1.MavenRepositoriesResponse.repositories:type_name -> renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry
+	24, // 15: renop.api.v1.FileDetails.files:type_name -> renop.api.v1.FileDetails
+	25, // 16: renop.api.v1.RepoDetailsResponse.mirrors:type_name -> renop.api.v1.RepoMirrorInfo
+	34, // 17: renop.api.v1.ServerConfig.database:type_name -> renop.api.v1.DatabaseConfig
+	30, // 18: renop.api.v1.ServerConfig.audit_log:type_name -> renop.api.v1.AuditLogConfig
+	41, // 19: renop.api.v1.FidoDeviceList.devices:type_name -> renop.api.v1.FidoDeviceDto
+	44, // 20: renop.api.v1.GpgKeyList.keys:type_name -> renop.api.v1.GpgKeyDto
+	47, // 21: renop.api.v1.GpgReleaseList.releases:type_name -> renop.api.v1.GpgReleaseDto
+	1,  // 22: renop.api.v1.CreateAccessTokenResponse.access_token:type_name -> renop.api.v1.AccessTokenDto
+	22, // 23: renop.api.v1.MavenRepositoriesResponse.RepositoriesEntry.value:type_name -> renop.api.v1.Repository
+	24, // [24:24] is the sub-list for method output_type
+	24, // [24:24] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_api_proto_init() }
@@ -3929,15 +4693,15 @@ func file_api_v1_api_proto_init() {
 		return
 	}
 	file_api_v1_api_proto_msgTypes[1].OneofWrappers = []any{}
-	file_api_v1_api_proto_msgTypes[22].OneofWrappers = []any{}
-	file_api_v1_api_proto_msgTypes[42].OneofWrappers = []any{}
+	file_api_v1_api_proto_msgTypes[24].OneofWrappers = []any{}
+	file_api_v1_api_proto_msgTypes[51].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_api_proto_rawDesc), len(file_api_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   48,
+			NumMessages:   57,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

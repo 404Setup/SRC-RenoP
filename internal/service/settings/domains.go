@@ -28,9 +28,12 @@ import (
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/outboundproxy"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -42,7 +45,7 @@ func GetDomains(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	return protohttp.Write(c, &pb.SettingsDomainsResponse{
-		Domains: []string{"frontend", "server", "storage", "updater", "index"},
+		Domains: []string{"frontend", "server", "proxy", "storage", "gpg", "updater", "index"},
 	})
 }
 
@@ -57,8 +60,12 @@ func GetDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		return protohttp.Write(c, pb.FromFrontendConfig(cfg.Frontend))
 	case "server":
 		return protohttp.Write(c, pb.FromServerConfig(cfg.Server, cfg.Database, cfg.AuditLog))
+	case "proxy":
+		return protohttp.Write(c, pb.FromProxyConfig(cfg.Proxy))
 	case "storage":
 		return protohttp.Write(c, pb.FromStorageConfig(cfg))
+	case "gpg":
+		return protohttp.Write(c, pb.FromGPGConfig(cfg.GPG))
 	case "updater":
 		return protohttp.Write(c, pb.FromUpdaterConfig(cfg.Updater))
 	case "index":
@@ -76,7 +83,9 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	name := strings.Clone(c.Params("name"))
 	var frontendMsg *pb.FrontendConfig
 	var serverMsg *pb.ServerConfig
+	var proxyMsg *pb.ProxyConfig
 	var storageMsg *pb.StorageConfig
+	var gpgMsg *pb.GpgConfig
 	var updaterMsg *pb.UpdaterConfig
 	readConfig := func(msg proto.Message) error {
 		if err := protohttp.Read(c, msg); err != nil {
@@ -136,6 +145,19 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		}
 		serverMsg = msg
 
+	case "proxy":
+		msg := &pb.ProxyConfig{}
+		if err := readConfig(msg); err != nil {
+			return err
+		}
+		candidate := config.ProxyConfig{}
+		pb.ApplyProxyConfig(&candidate, msg)
+		normalized, err := outboundproxy.NormalizeConfig(candidate)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+		proxyMsg = pb.FromProxyConfig(normalized)
+
 	case "storage":
 		msg := &pb.StorageConfig{}
 		if err := readConfig(msg); err != nil {
@@ -148,6 +170,18 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusBadRequest).SendString("Max Javadocs size limit must be positive")
 		}
 		storageMsg = msg
+
+	case "gpg":
+		msg := &pb.GpgConfig{}
+		if err := readConfig(msg); err != nil {
+			return err
+		}
+		keyServers, err := gpg.ValidateKeyServers(msg.KeyServers)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+		msg.KeyServers = keyServers
+		gpgMsg = msg
 
 	case "updater":
 		msg := &pb.UpdaterConfig{}
@@ -183,15 +217,29 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		case "server":
 			pb.ApplyServerConfig(&newConfig.Server, &newConfig.Database, &newConfig.AuditLog, serverMsg)
 			newConfig.Server = newConfig.Server.DeepCopy()
+		case "proxy":
+			pb.ApplyProxyConfig(&newConfig.Proxy, proxyMsg)
+			newConfig.Proxy = newConfig.Proxy.DeepCopy()
 		case "storage":
 			oldPath := oldConfig.StoragePath
 			pb.ApplyStorageConfig(newConfig, storageMsg)
 			newConfig.StoragePath = strings.Clone(newConfig.StoragePath)
 			newConfig.JavadocExtractPath = strings.Clone(newConfig.JavadocExtractPath)
 			if !sameStoragePath(oldPath, newConfig.StoragePath) {
+				unlock, lockErr := storage.AcquireGPGStoragePathChange(state)
+				if lockErr != nil {
+					if errors.Is(lockErr, storage.ErrGPGStoragePathChange) {
+						return fiber.NewError(fiber.StatusConflict, lockErr.Error())
+					}
+					return lockErr
+				}
+				defer unlock()
 				storagePathChanged = true
 				newStoragePath = newConfig.StoragePath
 			}
+		case "gpg":
+			pb.ApplyGPGConfig(&newConfig.GPG, gpgMsg)
+			newConfig.GPG = newConfig.GPG.DeepCopy()
 		case "updater":
 			pb.ApplyUpdaterConfig(&newConfig.Updater, updaterMsg)
 			newConfig.Updater = newConfig.Updater.DeepCopy()

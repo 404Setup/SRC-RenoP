@@ -63,5 +63,6 @@ type FileDetails struct {
 	ContentLength    *int64          `json:"content_length,omitempty"`
 	ContentType      *string         `json:"content_type,omitempty"`
 	LastModifiedTime *string         `json:"last_modified_time,omitempty"`
+	Signed           bool            `json:"signed,omitempty"`
 	Files            []FileDetails   `json:"files,omitempty"`
 }

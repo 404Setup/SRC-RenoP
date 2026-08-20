@@ -207,6 +207,16 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete fido devices for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM user_gpg_keys WHERE username = ?`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete GPG keys for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM gpg_releases WHERE uploader = ? AND active_key IS NULL AND cleanup_pending = 0`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete completed GPG releases for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`UPDATE gpg_releases SET status = ?, failure_reason = ?, cleanup_pending = 1, updated_at = ?
+		WHERE uploader = ? AND active_key IS NOT NULL`, core.GPGReleaseFailed, "Uploader account was deleted", time.Now().UnixMilli(), lowerName); err != nil {
+		return fmt.Errorf("failed to cancel pending GPG releases for token (%s): %w", lowerName, err)
+	}
 	if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete sessions for token (%s): %w", lowerName, err)
 	}
@@ -270,6 +280,15 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	}
 	if _, err := tx.Exec(`UPDATE fido_devices SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
 		return fmt.Errorf("failed to rename fido devices from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE user_gpg_keys SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename GPG keys from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE gpg_signatures SET uploader = ? WHERE uploader = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename GPG signature uploader from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE gpg_releases SET uploader = ? WHERE uploader = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename GPG release uploader from %s to %s: %w", lowerOld, lowerNew, err)
 	}
 
 	if err := tx.Commit(); err != nil {

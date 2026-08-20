@@ -41,6 +41,7 @@ export const CHUNK_RETRY_BASE_MS = 400;
  * @property {'storage'|'updater'} purpose
  * @property {string} [path] destination path for storage (e.g. "releases/com/foo/a.jar")
  * @property {boolean} [generateChecksums]
+ * @property {boolean} [gpgSignatureExpected] whether a matching .asc is part of this browser batch
  * @property {Record<string, string>} [headers]
  * @property {(loaded: number, total: number) => void} [onProgress]
  * @property {(chunks: ChunkState[], meta: {chunkCount: number, concurrency: number}) => void} [onChunkProgress]
@@ -117,6 +118,7 @@ export async function uploadFileChunked(file, options = {}) {
     if (purpose === 'storage') {
         initPayload.path = options.path || '';
         initPayload.generate_checksums = !!options.generateChecksums;
+		initPayload.gpg_signature_expected = !!options.gpgSignatureExpected;
     }
 
     const initBody = ChunkedUploadInitRequest.encode(
@@ -475,6 +477,11 @@ function putChunkWithProgress(uploadId, index, blob, headers, signal, onChunkPro
 
 /**
  * Single-shot PUT used by the browser upload panel for small files (original behavior).
+ * @param {string} targetPath
+ * @param {File|Blob} file
+ * @param {Record<string, string>} headers
+ * @param {(loaded: number, total: number) => void} [onProgress]
+ * @returns {Promise<{ok: boolean, status: number, responseText: string}>}
  */
 export function uploadFileSinglePut(targetPath, file, headers, onProgress) {
     return new Promise((resolve) => {

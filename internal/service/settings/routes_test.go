@@ -19,6 +19,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +29,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/utils/protohttp"
@@ -159,6 +161,102 @@ func TestUpdaterDomainSettings(t *testing.T) {
 	}
 }
 
+func TestGPGDomainSettings(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	app, appState := setupSettingsTestApp(t, cfg)
+
+	var got pb.GpgConfig
+	respGet := protoGET(t, app, "/domain/gpg", &got)
+	if respGet.StatusCode != http.StatusOK {
+		t.Fatalf("expected GET 200, got %d", respGet.StatusCode)
+	}
+	if len(got.KeyServers) != 3 {
+		t.Fatalf("expected three default GPG key servers, got %v", got.KeyServers)
+	}
+
+	keyServers := []string{"https://keys.example.test", "https://backup.example.test"}
+	respPut := protoPUT(t, app, "/domain/gpg", &pb.GpgConfig{KeyServers: keyServers})
+	if respPut.StatusCode != http.StatusOK {
+		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
+	}
+	if actual := appState.Inner.Config.Load().GPG.KeyServers; !slices.Equal(actual, keyServers) {
+		t.Fatalf("expected key servers %v, got %v", keyServers, actual)
+	}
+
+	respInvalid := protoPUT(t, app, "/domain/gpg", &pb.GpgConfig{KeyServers: []string{"http://insecure.example.test"}})
+	if respInvalid.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected invalid key server PUT 400, got %d", respInvalid.StatusCode)
+	}
+	if actual := appState.Inner.Config.Load().GPG.KeyServers; !slices.Equal(actual, keyServers) {
+		t.Fatalf("invalid update changed key servers to %v", actual)
+	}
+}
+
+func TestProxyDomainSettings(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	app, appState := setupSettingsTestApp(t, cfg)
+
+	var initial pb.ProxyConfig
+	respGet := protoGET(t, app, "/domain/proxy", &initial)
+	if respGet.StatusCode != http.StatusOK {
+		t.Fatalf("expected GET 200, got %d", respGet.StatusCode)
+	}
+	if initial.Selected != "" || len(initial.Proxies) != 0 {
+		t.Fatalf("expected direct routing without configured proxies, got selected %q with %d proxies", initial.Selected, len(initial.Proxies))
+	}
+
+	update := &pb.ProxyConfig{
+		Selected: " PRIMARY ",
+		Proxies: []*pb.OutboundProxy{
+			{Name: "Primary", Url: "HTTP://proxy.example:8080/", Username: "alice", Password: "secret"},
+			{Name: "fallback", Url: "socks5://127.0.0.1:1080"},
+		},
+	}
+	respPut := protoPUT(t, app, "/domain/proxy", update)
+	if respPut.StatusCode != http.StatusOK {
+		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
+	}
+	actual := appState.Inner.Config.Load().Proxy
+	if actual.Selected != "Primary" || len(actual.Proxies) != 2 {
+		t.Fatalf("unexpected normalized proxy config: %+v", actual)
+	}
+	if actual.Proxies[0].URL != "http://proxy.example:8080" || actual.Proxies[0].Password != "secret" {
+		t.Fatalf("expected normalized proxy and preserved credentials, got %+v", actual.Proxies[0])
+	}
+
+	var roundTrip pb.ProxyConfig
+	respRoundTrip := protoGET(t, app, "/domain/proxy", &roundTrip)
+	if respRoundTrip.StatusCode != http.StatusOK {
+		t.Fatalf("expected second GET 200, got %d", respRoundTrip.StatusCode)
+	}
+	if roundTrip.Selected != "Primary" || len(roundTrip.Proxies) != 2 || roundTrip.Proxies[0].Password != "secret" {
+		t.Fatalf("unexpected proxy round trip: selected %q with %d proxies", roundTrip.Selected, len(roundTrip.Proxies))
+	}
+
+	invalidUpdates := []*pb.ProxyConfig{
+		{
+			Proxies: []*pb.OutboundProxy{
+				{Name: "duplicate", Url: "http://proxy.example"},
+				{Name: "DUPLICATE", Url: "http://backup.example"},
+			},
+		},
+		{Proxies: []*pb.OutboundProxy{{Name: "bad", Url: "file:///tmp/socket"}}},
+		{Selected: "missing", Proxies: []*pb.OutboundProxy{{Name: "primary", Url: "http://proxy.example"}}},
+	}
+	for _, invalid := range invalidUpdates {
+		respInvalid := protoPUT(t, app, "/domain/proxy", invalid)
+		if respInvalid.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected invalid proxy PUT 400, got %d", respInvalid.StatusCode)
+		}
+		unchanged := appState.Inner.Config.Load().Proxy
+		if unchanged.Selected != "Primary" || len(unchanged.Proxies) != 2 {
+			t.Fatalf("invalid update changed proxy settings: %+v", unchanged)
+		}
+	}
+}
+
 func TestDomainSettingsRejectsOversizedControlPlaneBody(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = t.TempDir()
@@ -215,9 +313,10 @@ func TestFullRepoUpdate(t *testing.T) {
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/maven/repositories/releases", &pb.Repository{
-		Name:              "releases",
-		Visibility:        "PRIVATE",
-		AllowRedeployment: true,
+		Name:                "releases",
+		Visibility:          "PRIVATE",
+		AllowRedeployment:   true,
+		RequireGpgSignature: true,
 		Mirrors: []*pb.Mirror{
 			{Name: "central", Url: "https://repo.maven.apache.org/maven2/"},
 		},
@@ -236,6 +335,9 @@ func TestFullRepoUpdate(t *testing.T) {
 	}
 	if !repo.AllowRedeployment {
 		t.Fatalf("expected AllowRedeployment to remain true")
+	}
+	if !repo.RequireGPGSignature {
+		t.Fatal("expected RequireGPGSignature to be enabled")
 	}
 	if len(repo.Mirrors) != 1 || repo.Mirrors[0].Name != "central" {
 		t.Fatalf("expected existing mirrors to be preserved")
@@ -610,8 +712,8 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 5 {
-		t.Fatalf("expected 5 domains, got %v", got.Domains)
+	if len(got.Domains) != 7 || !slices.Contains(got.Domains, "proxy") {
+		t.Fatalf("expected 7 domains including proxy, got %v", got.Domains)
 	}
 }
 
@@ -711,6 +813,56 @@ func TestStoragePathChangeRebuildsIndex(t *testing.T) {
 			t.Fatalf("index not rebuilt after storage path change: hasNew=%v hasOld=%v", hasNew, hasOld)
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestStoragePathChangeRejectedWhileGPGPublicationPending(t *testing.T) {
+	oldDir := t.TempDir()
+	newDir := t.TempDir()
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = oldDir
+	cfg.Database = config.DatabaseConfig{
+		Driver:       "sqlite",
+		Dsn:          filepath.Join(t.TempDir(), "settings-gpg.db"),
+		MaxOpenConns: 1,
+		MaxIdleConns: 1,
+	}
+	db, err := database.InitDB(cfg.Database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	app, state := setupSettingsTestApp(t, cfg)
+	state.Inner.DB = db
+	now := time.Now().UnixMilli()
+	if err := db.SaveGPGRelease(&core.GPGRelease{
+		ID:           "11111111-1111-4111-8111-111111111111",
+		ActiveKey:    strings.Repeat("a", 64),
+		Repository:   "releases",
+		ArtifactPath: "org/example/demo/1.0/demo-1.0.jar",
+		Uploader:     "alice",
+		Status:       core.GPGReleaseQueued,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	resp := protoPUT(t, app, "/domain/storage", &pb.StorageConfig{
+		StoragePath:          filepath.ToSlash(newDir),
+		EnableJavadocPreview: cfg.EnableJavadocPreview,
+		JavadocExtractPath:   cfg.JavadocExtractPath,
+		MaxJavadocSizeMb:     cfg.MaxJavadocSizeMb,
+	})
+	if resp.StatusCode != http.StatusConflict {
+		t.Fatalf("expected PUT 409, got %d", resp.StatusCode)
+	}
+	if filepath.Clean(state.Inner.Config.Load().StoragePath) != filepath.Clean(oldDir) {
+		t.Fatal("rejected storage path update changed the active configuration")
 	}
 }
 
