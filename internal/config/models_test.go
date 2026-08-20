@@ -84,6 +84,26 @@ func TestMirrorCredentialsUnmarshaling(t *testing.T) {
 	}
 }
 
+func TestMirrorCredentialsCustomHeaderValidation(t *testing.T) {
+	valid := &MirrorCredentials{Method: "custom-header", Login: "X-Repository-Token", Password: "secret"}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("valid custom header rejected: %v", err)
+	}
+
+	for name, credentials := range map[string]*MirrorCredentials{
+		"missing name":   {Method: "custom-header", Password: "secret"},
+		"newline name":   {Method: "custom-header", Login: "X-Token\r\nInjected", Password: "secret"},
+		"routing header": {Method: "custom-header", Login: "Host", Password: "secret"},
+		"newline token":  {Method: "custom-header", Login: "X-Token", Password: "secret\nvalue"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := credentials.Validate(); err == nil {
+				t.Fatal("expected invalid custom header to be rejected")
+			}
+		})
+	}
+}
+
 func TestConfigDeepCopy(t *testing.T) {
 	orig := DefaultConfig()
 	orig.StoragePath = "original_storage"

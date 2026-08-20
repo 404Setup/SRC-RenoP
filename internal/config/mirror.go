@@ -12,6 +12,8 @@ package config
 
 import (
 	"encoding/base64"
+	"errors"
+	"net/http"
 	"slices"
 	"strings"
 	"sync"
@@ -194,6 +196,45 @@ type MirrorCredentials struct {
 	once         sync.Once `json:"-" yaml:"-"`
 }
 
+func (m *MirrorCredentials) Validate() error {
+	if m == nil {
+		return nil
+	}
+	method := strings.ToLower(strings.TrimSpace(m.Method))
+	switch method {
+	case "", "none", "basic", "username/password", "bearer", "token":
+		return nil
+	case "custom-header", "custom_header", "request-header", "header":
+		name := strings.TrimSpace(m.Login)
+		if name == "" || len(name) > 256 || !validMirrorHeaderName(name) {
+			return errors.New("custom authentication header name is invalid")
+		}
+		if len(m.Password) > 4096 || strings.ContainsAny(m.Password, "\r\n") {
+			return errors.New("custom authentication token is invalid")
+		}
+		lowerName := strings.ToLower(name)
+		switch lowerName {
+		case "host", "content-length", "connection", "proxy-connection", "transfer-encoding", "upgrade":
+			return errors.New("custom authentication header is not allowed")
+		}
+		return nil
+	default:
+		return errors.New("unsupported mirror authentication method")
+	}
+}
+
+func validMirrorHeaderName(name string) bool {
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') || strings.ContainsRune("!#$%&'*+-.^_`|~", rune(c)) {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
 func (m *MirrorCredentials) setDefaults() {
 	if m.Method == "" {
 		m.Method = DefaultAuthMethod()
@@ -216,7 +257,7 @@ func (m *MirrorCredentials) UnmarshalYAML(value *yaml.Node) error {
 
 func (m *MirrorCredentials) GetAuthHeader() string {
 	m.once.Do(func() {
-		method := strings.ToLower(m.Method)
+		method := strings.ToLower(strings.TrimSpace(m.Method))
 		if method == "basic" || method == "username/password" {
 			credentials := m.Login + ":" + m.Password
 			encoded := base64.StdEncoding.EncodeToString(unsafeConvert.BytePointer(credentials))
@@ -230,6 +271,25 @@ func (m *MirrorCredentials) GetAuthHeader() string {
 		}
 	})
 	return m.cachedHeader
+}
+
+// Apply sets the configured mirror authentication on an outbound request.
+func (m *MirrorCredentials) Apply(req *http.Request) error {
+	if m == nil || req == nil {
+		return nil
+	}
+	if err := m.Validate(); err != nil {
+		return err
+	}
+	method := strings.ToLower(strings.TrimSpace(m.Method))
+	if method == "custom-header" || method == "custom_header" || method == "request-header" || method == "header" {
+		req.Header.Set(strings.TrimSpace(m.Login), m.Password)
+		return nil
+	}
+	if header := m.GetAuthHeader(); header != "" {
+		req.Header.Set("Authorization", header)
+	}
+	return nil
 }
 
 func (m *MirrorCredentials) DeepCopy() *MirrorCredentials {

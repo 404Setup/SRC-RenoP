@@ -201,8 +201,9 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 			continue
 		}
 		if mirror.Authorization != nil {
-			if header := mirror.Authorization.GetAuthHeader(); header != "" {
-				req.Header.Set("Authorization", header)
+			if err := mirror.Authorization.Apply(req); err != nil {
+				streamCancel()
+				continue
 			}
 		}
 
@@ -393,8 +394,9 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 			continue
 		}
 		if mirror.Authorization != nil {
-			if header := mirror.Authorization.GetAuthHeader(); header != "" {
-				req.Header.Set("Authorization", header)
+			if err := mirror.Authorization.Apply(req); err != nil {
+				cancel()
+				continue
 			}
 		}
 

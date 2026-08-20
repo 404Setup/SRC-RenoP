@@ -12,6 +12,7 @@
 - **`server.go`**: Server main entry point.
 - **`internal/`**: Server core logic (HTTP routes, auth, Maven repository proxying, storage adapters for S3/Local Disk).
 - **`internal/service/proxy/client.go`**: Bounded per-mirror HTTP/SOCKS5 proxy client cache. Mirror proxy credentials and transports are isolated by configuration, while unconfigured mirrors retain the shared outbound transport.
+- Mirror authentication supports validated custom request headers while reusing `MirrorCredentials.login` for the header name and `password` for its token; routing and hop-by-hop headers are rejected before persistence.
 - **`internal/service/status/process_memory_*.go`**: Platform-specific process memory sampling. Linux reuses `/proc/self/statm` with a fixed buffer; Windows uses process counters; other supported systems use the platform adapter from gopsutil.
 - **`internal/utils/memory_linux.go`**: Linux GC tuning. It resolves the process's cgroup v1/v2 mount and hierarchy, honors the strictest configured memory limit, leaves headroom for non-Go process memory, and applies a direct-build fallback for `GODEBUG=disablethp=1`. An explicit `disablethp` value in `GODEBUG` is preserved.
 - **`pkg/`**: Public/shared Go libraries.

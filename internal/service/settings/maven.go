@@ -73,6 +73,9 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		if err := proxy.ValidateMirrorProxy(repo.Mirrors[i].Proxy); err != nil {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror proxy: " + err.Error())
 		}
+		if err := repo.Mirrors[i].Authorization.Validate(); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror authentication: " + err.Error())
+		}
 	}
 	if repo.S3 != nil {
 		keyPrefix, err := storage.NormalizeS3KeyPrefix(repo.S3.KeyPrefix)

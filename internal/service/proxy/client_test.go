@@ -75,3 +75,31 @@ func TestMirrorHTTPProxyUsesConfiguredCredentials(t *testing.T) {
 		t.Fatalf("status = %d, want %d", res.StatusCode, http.StatusNoContent)
 	}
 }
+
+func TestMirrorCustomHeaderIsApplied(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("X-Repository-Token"); got != "secret-token" {
+			t.Errorf("custom header = %q, want %q", got, "secret-token")
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	credentials := &config.MirrorCredentials{
+		Method:   "custom-header",
+		Login:    "X-Repository-Token",
+		Password: "secret-token",
+	}
+	if err := credentials.Apply(req); err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+}

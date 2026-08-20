@@ -601,7 +601,10 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         : 'none';
     if (currentMethod === 'username/password') currentMethod = 'basic';
     if (currentMethod === 'bearer') currentMethod = 'token';
-    if (currentMethod !== 'none' && currentMethod !== 'basic' && currentMethod !== 'token') {
+    if (currentMethod === 'custom_header' || currentMethod === 'request-header' || currentMethod === 'header') {
+        currentMethod = 'custom-header';
+    }
+    if (currentMethod !== 'none' && currentMethod !== 'basic' && currentMethod !== 'token' && currentMethod !== 'custom-header') {
         currentMethod = 'none';
     }
 
@@ -617,7 +620,7 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
 
     const userInput = makeCfgInput(
         mirror.authorization ? mirror.authorization.login || '' : '',
-        t('repos.username'), 'text',
+        currentMethod === 'custom-header' ? t('repos.headerName') : t('repos.username'), 'text',
         v => {
             if (mirror.authorization) {
                 mirror.authorization.login = v;
@@ -630,7 +633,7 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
 
     const passInput = makeCfgInput(
         mirror.authorization ? mirror.authorization.password || '' : '',
-        currentMethod === 'token' ? t('repos.tokenSecret') : t('repos.password'),
+        (currentMethod === 'token' || currentMethod === 'custom-header') ? t('repos.tokenSecret') : t('repos.password'),
         'password',
         v => {
             if (mirror.authorization) {
@@ -644,8 +647,20 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     const authOptions = [
         {value: 'none', label: t('repos.authNone')},
         {value: 'basic', label: t('repos.authBasic')},
-        {value: 'token', label: t('repos.authToken')}
+        {value: 'token', label: t('repos.authToken')},
+        {value: 'custom-header', label: t('repos.authCustomHeader')}
     ];
+
+    const userFieldRow = makeFieldRow(
+        currentMethod === 'custom-header' ? t('repos.headerName') : t('repos.username'),
+        null,
+        userInput
+    );
+    const passFieldRow = makeFieldRow(
+        (currentMethod === 'token' || currentMethod === 'custom-header') ? t('repos.tokenSecret') : t('repos.password'),
+        null,
+        passInput
+    );
 
     const authSelect = makeCustomSelect(authOptions, currentMethod, val => {
         if (val === 'none') {
@@ -661,10 +676,20 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
             if (val === 'token') {
                 userInput.style.display = 'none';
                 passInput.placeholder = t('repos.tokenSecret');
+                userFieldRow.querySelector('.cfg-label-text').textContent = t('repos.username');
+                passFieldRow.querySelector('.cfg-label-text').textContent = t('repos.tokenSecret');
+            } else if (val === 'custom-header') {
+                userInput.style.display = '';
+                userInput.placeholder = t('repos.headerName');
+                passInput.placeholder = t('repos.tokenSecret');
+                userFieldRow.querySelector('.cfg-label-text').textContent = t('repos.headerName');
+                passFieldRow.querySelector('.cfg-label-text').textContent = t('repos.tokenSecret');
             } else {
                 userInput.style.display = '';
                 userInput.placeholder = t('repos.username');
                 passInput.placeholder = t('repos.password');
+                userFieldRow.querySelector('.cfg-label-text').textContent = t('repos.username');
+                passFieldRow.querySelector('.cfg-label-text').textContent = t('repos.password');
             }
         }
         saveRepoSettings(repoKey, repo);
@@ -672,8 +697,8 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
 
     fields.appendChild(makeFieldRow(t('repos.authMethod'), t('repos.authMethodHint'), authSelect));
 
-    credsRow.appendChild(makeFieldRow(t('repos.username'), null, userInput));
-    credsRow.appendChild(makeFieldRow(`${t('repos.password')} / ${t('repos.tokenSecret')}`, null, passInput));
+    credsRow.appendChild(userFieldRow);
+    credsRow.appendChild(passFieldRow);
     fields.appendChild(credsRow);
 
     const optionsRow = el('div', {
