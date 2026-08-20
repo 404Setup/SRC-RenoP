@@ -21,6 +21,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/proxy"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -68,6 +69,11 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid visibility. Expected PUBLIC, HIDDEN, or PRIVATE")
 	}
 	repo.Visibility = vis
+	for i := range repo.Mirrors {
+		if err := proxy.ValidateMirrorProxy(repo.Mirrors[i].Proxy); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror proxy: " + err.Error())
+		}
+	}
 	if repo.S3 != nil {
 		keyPrefix, err := storage.NormalizeS3KeyPrefix(repo.S3.KeyPrefix)
 		if err != nil {

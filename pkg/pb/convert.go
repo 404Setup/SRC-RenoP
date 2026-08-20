@@ -131,6 +131,17 @@ func FromMirrorCredentials(c *config.MirrorCredentials) *MirrorCredentials {
 	}
 }
 
+func FromMirrorProxy(p *config.MirrorProxy) *MirrorProxy {
+	if p == nil {
+		return nil
+	}
+	return &MirrorProxy{
+		Url:      p.URL,
+		Username: p.Username,
+		Password: p.Password,
+	}
+}
+
 func FromMirror(m config.Mirror) *Mirror {
 	return &Mirror{
 		Name:           m.Name,
@@ -143,6 +154,7 @@ func FromMirror(m config.Mirror) *Mirror {
 		EnabledDate:    m.EnabledDate,
 		AllowArtifacts: append([]string(nil), m.AllowArtifacts...),
 		DenyArtifacts:  append([]string(nil), m.DenyArtifacts...),
+		Proxy:          FromMirrorProxy(m.Proxy),
 	}
 }
 
@@ -361,6 +373,17 @@ func ToMirrorCredentials(c *MirrorCredentials) *config.MirrorCredentials {
 	}
 }
 
+func ToMirrorProxy(p *MirrorProxy) *config.MirrorProxy {
+	if p == nil {
+		return nil
+	}
+	return &config.MirrorProxy{
+		URL:      p.Url,
+		Username: p.Username,
+		Password: p.Password,
+	}
+}
+
 func ToMirror(m *Mirror) config.Mirror {
 	if m == nil {
 		return config.Mirror{}
@@ -376,6 +399,7 @@ func ToMirror(m *Mirror) config.Mirror {
 		EnabledDate:    m.EnabledDate,
 		AllowArtifacts: append([]string(nil), m.AllowArtifacts...),
 		DenyArtifacts:  append([]string(nil), m.DenyArtifacts...),
+		Proxy:          ToMirrorProxy(m.Proxy),
 	}
 	// Zero TTL/timeout from proto3 defaults is unsafe; match YAML load defaults.
 	if out.CacheTtlSecs == 0 {

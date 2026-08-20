@@ -528,6 +528,29 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         })
     ));
 
+    const proxy = mirror.proxy || {url: '', username: '', password: ''};
+    const updateProxy = (field, value) => {
+        proxy[field] = value;
+        if (proxy.url || proxy.username || proxy.password) {
+            mirror.proxy = proxy;
+        } else {
+            delete mirror.proxy;
+        }
+        saveRepoSettings(repoKey, repo);
+    };
+
+    fields.appendChild(makeFieldRow(t('repos.proxyUrl'), t('repos.proxyUrlHint'),
+        makeCfgInput(proxy.url, 'http://proxy.example:8080', 'text', v => updateProxy('url', v))
+    ));
+    fields.appendChild(makeFieldRow(t('repos.proxyUsername'), t('repos.proxyUsernameHint'),
+        makeCfgInput(proxy.username, t('repos.proxyUsername'), 'text', v => updateProxy('username', v), {
+            autocomplete: 'off'
+        })
+    ));
+    fields.appendChild(makeFieldRow(t('repos.proxyPassword'), t('repos.proxyPasswordHint'),
+        makeCfgInput(proxy.password, t('repos.proxyPassword'), 'password', v => updateProxy('password', v))
+    ));
+
     const conflictWarningEl = createCallout('warning', t('repos.ruleConflictWarning'), 'warning');
     conflictWarningEl.className = 'cfg-warning-banner';
     conflictWarningEl.style.display = (Array.isArray(mirror.allow_artifacts) && mirror.allow_artifacts.length > 0 &&

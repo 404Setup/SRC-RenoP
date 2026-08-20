@@ -98,6 +98,11 @@ func TestConfigDeepCopy(t *testing.T) {
 			{
 				Name:           "m1",
 				AllowArtifacts: []string{"org.example"},
+				Proxy: &MirrorProxy{
+					URL:      "socks5://proxy.example:1080",
+					Username: "proxy-user",
+					Password: "proxy-password",
+				},
 				Authorization: &MirrorCredentials{
 					Login: "admin",
 				},
@@ -114,6 +119,7 @@ func TestConfigDeepCopy(t *testing.T) {
 	cloned.Maven.Repositories["testrepo"].Visibility = "PRIVATE"
 	cloned.Maven.Repositories["testrepo"].Mirrors[0].AllowArtifacts[0] = "org.modified"
 	cloned.Maven.Repositories["testrepo"].Mirrors[0].Authorization.Login = "root"
+	cloned.Maven.Repositories["testrepo"].Mirrors[0].Proxy.Username = "changed"
 
 	if orig.StoragePath != "original_storage" {
 		t.Fatalf("StoragePath mutated in orig: %s", orig.StoragePath)
@@ -135,5 +141,8 @@ func TestConfigDeepCopy(t *testing.T) {
 	}
 	if orig.Maven.Repositories["testrepo"].Mirrors[0].Authorization.Login != "admin" {
 		t.Fatalf("Mirror Authorization Login mutated in orig: %s", orig.Maven.Repositories["testrepo"].Mirrors[0].Authorization.Login)
+	}
+	if orig.Maven.Repositories["testrepo"].Mirrors[0].Proxy.Username != "proxy-user" {
+		t.Fatalf("Mirror Proxy Username mutated in orig: %s", orig.Maven.Repositories["testrepo"].Mirrors[0].Proxy.Username)
 	}
 }

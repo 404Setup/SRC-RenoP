@@ -7584,6 +7584,325 @@ export const renop = $root.renop = (() => {
                 return MirrorCredentials;
             })();
 
+            v1.MirrorProxy = (function() {
+
+                /**
+                 * Properties of a MirrorProxy.
+                 * @typedef {Object} renop.api.v1.MirrorProxy.$Properties
+                 * @property {string|null} [url] MirrorProxy url
+                 * @property {string|null} [username] MirrorProxy username
+                 * @property {string|null} [password] MirrorProxy password
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a MirrorProxy.
+                 * @memberof renop.api.v1
+                 * @interface IMirrorProxy
+                 * @augments renop.api.v1.MirrorProxy.$Properties
+                 * @deprecated Use renop.api.v1.MirrorProxy.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a MirrorProxy.
+                 * @typedef {renop.api.v1.MirrorProxy.$Properties} renop.api.v1.MirrorProxy.$Shape
+                 */
+
+                /**
+                 * Constructs a new MirrorProxy.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a MirrorProxy.
+                 * @constructor
+                 * @param {renop.api.v1.MirrorProxy.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const MirrorProxy = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * MirrorProxy url.
+                 * @member {string} url
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @instance
+                 */
+                MirrorProxy.prototype.url = "";
+
+                /**
+                 * MirrorProxy username.
+                 * @member {string} username
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @instance
+                 */
+                MirrorProxy.prototype.username = "";
+
+                /**
+                 * MirrorProxy password.
+                 * @member {string} password
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @instance
+                 */
+                MirrorProxy.prototype.password = "";
+
+                /**
+                 * Creates a new MirrorProxy instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {renop.api.v1.MirrorProxy.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.MirrorProxy} MirrorProxy instance
+                 * @type {{
+                 *   (properties: renop.api.v1.MirrorProxy.$Shape): renop.api.v1.MirrorProxy & renop.api.v1.MirrorProxy.$Shape;
+                 *   (properties?: renop.api.v1.MirrorProxy.$Properties): renop.api.v1.MirrorProxy;
+                 * }}
+                 */
+                MirrorProxy.create = function(properties) {
+                    return new MirrorProxy(properties);
+                };
+
+                /**
+                 * Encodes the specified MirrorProxy message. Does not implicitly {@link renop.api.v1.MirrorProxy.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {renop.api.v1.MirrorProxy.$Properties} message MirrorProxy message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MirrorProxy.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url") && message.url !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.url);
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username") && message.username !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.username);
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password") && message.password !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.password);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified MirrorProxy message, length delimited. Does not implicitly {@link renop.api.v1.MirrorProxy.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {renop.api.v1.MirrorProxy.$Properties} message MirrorProxy message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MirrorProxy.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a MirrorProxy message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.MirrorProxy & renop.api.v1.MirrorProxy.$Shape} MirrorProxy
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MirrorProxy.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MirrorProxy(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.url = value;
+                                else
+                                    delete message.url;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.username = value;
+                                else
+                                    delete message.username;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.password = value;
+                                else
+                                    delete message.password;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a MirrorProxy message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.MirrorProxy & renop.api.v1.MirrorProxy.$Shape} MirrorProxy
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MirrorProxy.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a MirrorProxy message.
+                 * @function verify
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                MirrorProxy.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        if (!$util.isString(message.url))
+                            return "url: string expected";
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        if (!$util.isString(message.username))
+                            return "username: string expected";
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password"))
+                        if (!$util.isString(message.password))
+                            return "password: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a MirrorProxy message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.MirrorProxy} MirrorProxy
+                 */
+                MirrorProxy.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.MirrorProxy)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.MirrorProxy: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.MirrorProxy();
+                    if (object.url != null)
+                        if (typeof object.url !== "string" || object.url.length)
+                            message.url = $String(object.url);
+                    if (object.username != null)
+                        if (typeof object.username !== "string" || object.username.length)
+                            message.username = $String(object.username);
+                    if (object.password != null)
+                        if (typeof object.password !== "string" || object.password.length)
+                            message.password = $String(object.password);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a MirrorProxy message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {renop.api.v1.MirrorProxy} message MirrorProxy
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                MirrorProxy.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.url = "";
+                        object.username = "";
+                        object.password = "";
+                    }
+                    if (message.url != null && $Object.hasOwnProperty.call(message, "url"))
+                        object.url = message.url;
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        object.username = message.username;
+                    if (message.password != null && $Object.hasOwnProperty.call(message, "password"))
+                        object.password = message.password;
+                    return object;
+                };
+
+                /**
+                 * Converts this MirrorProxy to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                MirrorProxy.prototype.toJSON = function() {
+                    return MirrorProxy.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for MirrorProxy
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.MirrorProxy
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                MirrorProxy.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.MirrorProxy";
+                };
+
+                return MirrorProxy;
+            })();
+
             v1.Mirror = (function() {
 
                 /**
@@ -7599,6 +7918,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [enabled_date] Mirror enabled_date
                  * @property {Array.<string>|null} [allow_artifacts] Mirror allow_artifacts
                  * @property {Array.<string>|null} [deny_artifacts] Mirror deny_artifacts
+                 * @property {renop.api.v1.MirrorProxy.$Properties|null} [proxy] Mirror proxy
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -7713,6 +8033,14 @@ export const renop = $root.renop = (() => {
                 Mirror.prototype.deny_artifacts = $util.emptyArray;
 
                 /**
+                 * Mirror proxy.
+                 * @member {renop.api.v1.MirrorProxy.$Properties|null|undefined} proxy
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.proxy = null;
+
+                /**
                  * Creates a new Mirror instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.Mirror
@@ -7766,6 +8094,8 @@ export const renop = $root.renop = (() => {
                     if (message.deny_artifacts != null && message.deny_artifacts.length)
                         for (let i = 0; i < message.deny_artifacts.length; ++i)
                             writer.uint32(/* id 10, wireType 2 =*/82).string(message.deny_artifacts[i]);
+                    if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy"))
+                        $root.renop.api.v1.MirrorProxy.encode(message.proxy, writer.uint32(/* id 11, wireType 2 =*/90).fork(), _depth + 1).ldelim();
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -7898,6 +8228,12 @@ export const renop = $root.renop = (() => {
                                 message.deny_artifacts.push(reader.stringVerify());
                                 continue;
                             }
+                        case 11: {
+                                if (wireType !== 2)
+                                    break;
+                                message.proxy = $root.renop.api.v1.MirrorProxy.decode(reader, reader.uint32(), $undefined, _depth + 1, message.proxy);
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -7981,6 +8317,11 @@ export const renop = $root.renop = (() => {
                             if (!$util.isString(message.deny_artifacts[i]))
                                 return "deny_artifacts: string[] expected";
                     }
+                    if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy")) {
+                        let error = $root.renop.api.v1.MirrorProxy.verify(message.proxy, _depth + 1);
+                        if (error)
+                            return "proxy." + error;
+                    }
                     return null;
                 };
 
@@ -8056,6 +8397,11 @@ export const renop = $root.renop = (() => {
                         for (let i = 0; i < object.deny_artifacts.length; ++i)
                             message.deny_artifacts[i] = $String(object.deny_artifacts[i]);
                     }
+                    if (object.proxy != null) {
+                        if (!$util.isObject(object.proxy))
+                            throw $TypeError(".renop.api.v1.Mirror.proxy: object expected");
+                        message.proxy = $root.renop.api.v1.MirrorProxy.fromObject(object.proxy, _depth + 1);
+                    }
                     return message;
                 };
 
@@ -8097,6 +8443,7 @@ export const renop = $root.renop = (() => {
                             object.timeout_secs = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                         object.authorization = null;
                         object.enabled_date = "";
+                        object.proxy = null;
                     }
                     if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
                         object.name = message.name;
@@ -8134,6 +8481,8 @@ export const renop = $root.renop = (() => {
                         for (let j = 0; j < message.deny_artifacts.length; ++j)
                             object.deny_artifacts[j] = message.deny_artifacts[j];
                     }
+                    if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy"))
+                        object.proxy = $root.renop.api.v1.MirrorProxy.toObject(message.proxy, options, _depth + 1);
                     return object;
                 };
 

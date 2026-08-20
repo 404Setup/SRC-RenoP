@@ -158,6 +158,12 @@ message MirrorCredentials {
   string password = 3;
 }
 
+message MirrorProxy {
+  string url = 1;
+  string username = 2;
+  string password = 3;
+}
+
 message Mirror {
   string name = 1;
   string url = 2;
@@ -169,6 +175,7 @@ message Mirror {
   string enabled_date = 8;
   repeated string allow_artifacts = 9;
   repeated string deny_artifacts = 10;
+  MirrorProxy proxy = 11;
 }
 
 message S3Config {

@@ -214,7 +214,13 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		}
 
 		networkAttempted = true
-		res, err := httpClient.Do(req)
+		client, err := clientForMirror(&mirror)
+		if err != nil {
+			streamCancel()
+			<-state.Inner.ProxyClientSemaphore
+			continue
+		}
+		res, err := client.Do(req)
 		if err != nil {
 			streamCancel()
 			<-state.Inner.ProxyClientSemaphore
@@ -400,7 +406,13 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		}
 
 		networkAttempted = true
-		res, err := httpClient.Do(req)
+		client, err := clientForMirror(&mirror)
+		if err != nil {
+			cancel()
+			<-state.Inner.ProxyClientSemaphore
+			continue
+		}
+		res, err := client.Do(req)
 		if err != nil {
 			cancel()
 			<-state.Inner.ProxyClientSemaphore

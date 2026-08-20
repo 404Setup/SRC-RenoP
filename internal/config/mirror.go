@@ -24,6 +24,7 @@ import (
 
 type Mirror struct {
 	Authorization  *MirrorCredentials `json:"authorization" yaml:"authorization"`
+	Proxy          *MirrorProxy       `json:"proxy,omitempty" yaml:"proxy,omitempty"`
 	Name           string             `json:"name" yaml:"name"`
 	Url            string             `json:"url" yaml:"url"`
 	EnabledDate    string             `json:"enabled_date" yaml:"enabled_date"`
@@ -33,6 +34,23 @@ type Mirror struct {
 	TimeoutSecs    uint64             `json:"timeout_secs" yaml:"timeout_secs"`
 	Persist        bool               `json:"persist" yaml:"persist"`
 	NegativeCache  bool               `json:"negative_cache" yaml:"negative_cache"`
+}
+
+type MirrorProxy struct {
+	URL      string `json:"url" yaml:"url"`
+	Username string `json:"username" yaml:"username"`
+	Password string `json:"password" yaml:"password"`
+}
+
+func (p *MirrorProxy) DeepCopy() *MirrorProxy {
+	if p == nil {
+		return nil
+	}
+	return &MirrorProxy{
+		URL:      strings.Clone(p.URL),
+		Username: strings.Clone(p.Username),
+		Password: strings.Clone(p.Password),
+	}
 }
 
 // parseMavenGroupArtifact extracts groupId and artifactId from a Maven repository path.
@@ -235,6 +253,7 @@ func (m *Mirror) DeepCopy() Mirror {
 		NegativeCache: m.NegativeCache,
 		TimeoutSecs:   m.TimeoutSecs,
 		Authorization: m.Authorization.DeepCopy(),
+		Proxy:         m.Proxy.DeepCopy(),
 		EnabledDate:   strings.Clone(m.EnabledDate),
 	}
 	if m.AllowArtifacts != nil {
