@@ -46,15 +46,9 @@ func NewFileByteCache(maxBytes int) *FileByteCache {
 	if maxBytes <= 0 {
 		maxBytes = 16 << 20
 	}
-	shards := make([]fileCacheShard, fileCacheShardCount)
-	for i := range shards {
-		shards[i] = fileCacheShard{
-			entries: make(map[string][]byte),
-		}
-	}
 	return &FileByteCache{
 		maxBytes: maxBytes,
-		shards:   shards,
+		shards:   make([]fileCacheShard, fileCacheShardCount),
 	}
 }
 
@@ -118,6 +112,9 @@ func (c *FileByteCache) Set(key string, value []byte) error {
 
 	s := c.shard(key)
 	s.mu.Lock()
+	if s.entries == nil {
+		s.entries = make(map[string][]byte)
+	}
 
 	delta := int64(len(data))
 	if old, ok := s.entries[key]; ok {
@@ -224,6 +221,10 @@ func (c *FileByteCache) evictOneLocked(s *fileCacheShard, protect string) bool {
 
 func (s *fileCacheShard) compactOrderLocked() {
 	if len(s.entries) == 0 {
+		// Drop the map as well as its eviction order. A shard can briefly see
+		// many unique keys during a rebuild; retaining its hash buckets after
+		// the last entry is a significant source of idle heap retention.
+		s.entries = nil
 		clear(s.order)
 		if cap(s.order) > 64 {
 			s.order = nil

@@ -22,6 +22,11 @@ var (
 	poolSize   atomic.Int64
 )
 
+const (
+	maxInternedStrings = 20_000
+	internEvictionBatch = 2_000
+)
+
 func Intern(s string) string {
 	if s == "" {
 		return ""
@@ -30,13 +35,13 @@ func Intern(s string) string {
 		return val
 	}
 
-	if poolSize.Load() >= 50000 {
+	if poolSize.Load() >= maxInternedStrings {
 		var evicted int64
 		stringPool.Range(func(k string, v string) bool {
 			if _, loaded := stringPool.LoadAndDelete(k); loaded {
 				evicted++
 			}
-			return evicted < 5000
+			return evicted < internEvictionBatch
 		})
 		if evicted > 0 {
 			poolSize.Add(-evicted)
