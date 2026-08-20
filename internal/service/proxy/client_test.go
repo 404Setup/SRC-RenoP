@@ -103,3 +103,17 @@ func TestMirrorCustomHeaderIsApplied(t *testing.T) {
 	}
 	defer res.Body.Close()
 }
+
+func TestMirrorCustomHeaderWithEmptyNameIsInert(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	credentials := &config.MirrorCredentials{Method: "custom-header", Password: "pending"}
+	if err := credentials.Apply(req); err != nil {
+		t.Fatal(err)
+	}
+	if len(req.Header) != 0 {
+		t.Fatalf("incomplete custom header added fields: %#v", req.Header)
+	}
+}

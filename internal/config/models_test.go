@@ -91,7 +91,6 @@ func TestMirrorCredentialsCustomHeaderValidation(t *testing.T) {
 	}
 
 	for name, credentials := range map[string]*MirrorCredentials{
-		"missing name":   {Method: "custom-header", Password: "secret"},
 		"newline name":   {Method: "custom-header", Login: "X-Token\r\nInjected", Password: "secret"},
 		"routing header": {Method: "custom-header", Login: "Host", Password: "secret"},
 		"newline token":  {Method: "custom-header", Login: "X-Token", Password: "secret\nvalue"},
@@ -101,6 +100,9 @@ func TestMirrorCredentialsCustomHeaderValidation(t *testing.T) {
 				t.Fatal("expected invalid custom header to be rejected")
 			}
 		})
+	}
+	if err := (&MirrorCredentials{Method: "custom-header", Password: "secret"}).Validate(); err != nil {
+		t.Fatalf("incomplete custom header should be saveable: %v", err)
 	}
 }
 

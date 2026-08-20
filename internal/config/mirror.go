@@ -206,7 +206,13 @@ func (m *MirrorCredentials) Validate() error {
 		return nil
 	case "custom-header", "custom_header", "request-header", "header":
 		name := strings.TrimSpace(m.Login)
-		if name == "" || len(name) > 256 || !validMirrorHeaderName(name) {
+		if name == "" {
+			if len(m.Password) > 4096 || strings.ContainsAny(m.Password, "\r\n") {
+				return errors.New("custom authentication token is invalid")
+			}
+			return nil
+		}
+		if len(name) > 256 || !validMirrorHeaderName(name) {
 			return errors.New("custom authentication header name is invalid")
 		}
 		if len(m.Password) > 4096 || strings.ContainsAny(m.Password, "\r\n") {
@@ -283,7 +289,10 @@ func (m *MirrorCredentials) Apply(req *http.Request) error {
 	}
 	method := strings.ToLower(strings.TrimSpace(m.Method))
 	if method == "custom-header" || method == "custom_header" || method == "request-header" || method == "header" {
-		req.Header.Set(strings.TrimSpace(m.Login), m.Password)
+		name := strings.TrimSpace(m.Login)
+		if name != "" {
+			req.Header.Set(name, m.Password)
+		}
 		return nil
 	}
 	if header := m.GetAuthHeader(); header != "" {
