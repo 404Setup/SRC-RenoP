@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -31,12 +32,26 @@ import (
 
 const maxRemoteJSONBody = 1 << 20
 
+var sharedCheckClient struct {
+	sync.Once
+	client *http.Client
+}
+
 func newCheckHTTPClient() *http.Client {
 	return &http.Client{
 		CheckRedirect: checkHTTPSRedirect,
 		Transport:     newCheckTransport(),
 		Timeout:       15 * time.Second,
 	}
+}
+
+// checkHTTPClient returns the process-wide bounded client used by update checks.
+// The transport is initialized only when an update operation first needs it.
+func checkHTTPClient() *http.Client {
+	sharedCheckClient.Do(func() {
+		sharedCheckClient.client = newCheckHTTPClient()
+	})
+	return sharedCheckClient.client
 }
 
 func checkHTTPSRedirect(req *http.Request, via []*http.Request) error {
@@ -73,9 +88,8 @@ func newCheckTransport() *http.Transport {
 }
 
 func CheckUpdate(ctx context.Context, channel Channel) (*CheckResult, error) {
-	client := newCheckHTTPClient()
+	client := checkHTTPClient()
 	defer utils.ScheduleNetworkWorkingSetTrim()
-	defer client.CloseIdleConnections()
 
 	if channel == ChannelNightly {
 		return checkNightly(ctx, client)
@@ -93,8 +107,7 @@ func doJSONGet(ctx context.Context, client *http.Client, url string, accept stri
 		req.Header.Set("Accept", accept)
 	}
 	if client == nil {
-		client = newCheckHTTPClient()
-		defer client.CloseIdleConnections()
+		client = checkHTTPClient()
 	}
 
 	resp, err := client.Do(req)
@@ -256,8 +269,7 @@ func githubCommitExists(ctx context.Context, client *http.Client, sha string) (e
 	req.Header.Set("User-Agent", "RenoP-Updater")
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	if client == nil {
-		client = newCheckHTTPClient()
-		defer client.CloseIdleConnections()
+		client = checkHTTPClient()
 	}
 
 	resp, err := client.Do(req)

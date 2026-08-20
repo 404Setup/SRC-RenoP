@@ -525,6 +525,21 @@ func newDownloadHTTPClient() *http.Client {
 	}
 }
 
+var sharedDownloadClient struct {
+	sync.Once
+	client *http.Client
+}
+
+// downloadHTTPClient returns the lazily initialized bounded download client.
+// Downloads stream directly to a temporary file, so a shared transport does
+// not retain package-sized response buffers between operations.
+func downloadHTTPClient() *http.Client {
+	sharedDownloadClient.Do(func() {
+		sharedDownloadClient.client = newDownloadHTTPClient()
+	})
+	return sharedDownloadClient.client
+}
+
 func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string) (string, error) {
 	parsedURL, err := url.Parse(downloadUrl)
 	if err != nil || parsedURL.Scheme != "https" || parsedURL.Host == "" || parsedURL.User != nil {
@@ -535,9 +550,8 @@ func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string)
 		return "", errors.New("update package is missing a valid SHA-256 digest")
 	}
 
-	client := newDownloadHTTPClient()
+	client := downloadHTTPClient()
 	defer utils.ScheduleNetworkWorkingSetTrim()
-	defer client.CloseIdleConnections()
 
 	zipTempFile, err := os.CreateTemp("", "renop-download-*.zip")
 	if err != nil {
