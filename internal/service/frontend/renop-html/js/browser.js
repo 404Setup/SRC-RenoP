@@ -355,7 +355,7 @@ export function renderBreadcrumb(path) {
 
 /**
  * Build a file/directory list item with navigate, delete, and prefetch hooks.
- * @param {{name: string, type: string, content_length?: number}} file
+ * @param {{name: string, type: string, content_length?: number, signed?: boolean}} file
  * @param {number} index
  * @param {string} path current directory path
  * @returns {HTMLElement}
@@ -544,7 +544,7 @@ function animateFileListFLIP(list, firstRects) {
 
 /**
  * Diff-update the file list in place (add/remove/reorder) with animations.
- * @param {Array<{name: string, type: string, content_length?: number}>} filesToDisplay
+ * @param {Array<{name: string, type: string, content_length?: number, signed?: boolean}>} filesToDisplay
  * @param {string} path
  * @returns {void}
  */
@@ -583,6 +583,15 @@ function renderFileListReconciled(filesToDisplay, path) {
         const existingLi = existingMap.get(file.name);
         if (existingLi && !existingLi.classList.contains('is-removing')) {
             existingLi.dataset.index = String(index);
+            const shouldBeSigned = file.signed === true;
+            const isSigned = existingLi.hasAttribute('signed');
+            if (shouldBeSigned !== isSigned) {
+                if (shouldBeSigned) {
+                    existingLi.setAttribute('signed', '');
+                } else {
+                    existingLi.removeAttribute('signed');
+                }
+            }
             const badge = existingLi.querySelector('.file-type-badge');
             if (badge) {
                 const i18nKey = badge.getAttribute('data-i18n');

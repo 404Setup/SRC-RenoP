@@ -37,16 +37,16 @@ idle → available → downloading → ready_to_restart
 
 ## `POST /api/updater/check`
 
-| クエリ    | デフォルト               | 意味                       |
-|-----------|--------------------------|----------------------------|
-| `channel` | 設定 `updater.channel`   | `release` または `nightly` |
+| クエリ    | デフォルト             | 意味                       |
+|-----------|------------------------|----------------------------|
+| `channel` | 設定 `updater.channel` | `release` または `nightly` |
 
 省略 / 不正 → `updater.channel`（既定 `release`）。
 
-| チャネル    | `info.json`                                           |
-|-------------|-------------------------------------------------------|
-| `nightly`   | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
-| `release`   | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
+| チャネル  | `info.json`                                           |
+|-----------|-------------------------------------------------------|
+| `nightly` | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release` | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
 
 パッケージ: `…/{nightly\|stable}/{version}/{file}`。
 
@@ -72,10 +72,10 @@ idle → available → downloading → ready_to_restart
 
 現在の `download_url` で非同期ダウンロード / 展開。
 
-| ステータス | 理由                                                           |
-|------------|----------------------------------------------------------------|
-| 507        | ディスク不足                                                   |
-| 409        | インストール実行中（`Installation already in progress`）       |
+| ステータス | 理由                                                     |
+|------------|----------------------------------------------------------|
+| 507        | ディスク不足                                             |
+| 409        | インストール実行中（`Installation already in progress`） |
 
 ```json
 {"status": "started"}
@@ -96,7 +96,7 @@ idle → available → downloading → ready_to_restart
 
 ### マルチパートアップロード（任意）
 
-大きな zip はチャンクアップロード可（manager）。**8 MiB** 未満 → 単一 `POST /api/updater/upload`。
+大きな zip はチャンクアップロード可（manager）。 **8 MiB** 未満 → 単一 `POST /api/updater/upload`。
 
 init/complete: **`application/x-protobuf`**（`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`）。パートは生バイト。
 

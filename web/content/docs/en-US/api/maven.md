@@ -44,6 +44,9 @@ Path details. Directories include `files`; files include `content_length` and `l
 
 `type` is `FILE` or `DIRECTORY`.
 
+For a file, `signed` is `true` only when RenoP has a verified detached GPG signature for that path. Protected Maven
+files are `.jar`, `.pom`, and `.module`; see [GPG signatures](./gpg.md) for registration, upload, and verification.
+
 ### `GET /api/maven/repo-details/:repo_name`
 
 Stats and mirror summary. Response: `RepoDetailsResponse`.
@@ -71,6 +74,8 @@ Path should point at a coordinate directory that has `maven-metadata.xml` (group
 Response: `application/x-protobuf`, `VersionsResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message VersionsResponse {
   bool is_snapshot = 1;
   repeated string versions = 2;
@@ -84,6 +89,8 @@ Same query params; add `type=raw` for a bare version string (`text/plain`).
 Default response: `application/x-protobuf`, `LatestVersionResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message LatestVersionResponse {
   bool is_snapshot = 1;
   string version = 2;
@@ -128,6 +135,8 @@ SVG badge with the latest version. `Content-Type: image/svg+xml`.
 Requires write access to the repository. Body: `application/x-protobuf`, `PomDetails` (also accepts JSON).
 
 ```protobuf
+syntax = "proto3";
+
 message PomDetails {
   string group_id = 1;
   string artifact_id = 2;

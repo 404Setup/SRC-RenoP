@@ -34,6 +34,23 @@ const UPLOAD_PANEL_MARGIN = '1.25rem';
 const UPLOAD_CONTROLS_MARGIN = '0.85rem';
 
 /**
+ * Refresh the current directory while a queued GPG publication is finalized.
+ * @param {string} path - Directory path that contained the upload.
+ * @param {number} [attempt=0] - Zero-based refresh attempt.
+ * @returns {void}
+ */
+function scheduleGPGDirectoryRefresh(path, attempt = 0) {
+    const delays = [1000, 2500, 5000];
+    if (attempt >= delays.length) return;
+
+    setTimeout(() => {
+        if (window.location.pathname !== path || uploading) return;
+        void loadDirectory(path);
+        scheduleGPGDirectoryRefresh(path, attempt + 1);
+    }, delays[attempt]);
+}
+
+/**
  * Return the lowercased file extension without the leading dot, or `''`.
  * @param {string} name
  * @returns {string}
@@ -605,6 +622,9 @@ export function initUpload() {
             setUploadBusy(false);
             renderPendingFiles();
             loadDirectory(currentPath);
+            if (signedArtifactNames.size > 0) {
+                scheduleGPGDirectoryRefresh(currentPath);
+            }
         });
     }
 }

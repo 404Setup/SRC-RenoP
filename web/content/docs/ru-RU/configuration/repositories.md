@@ -45,7 +45,7 @@ repositories:
 | `name`                  | ID репозитория (сегмент пути: `http://host:port/{name}/…`)                                                 |
 | `visibility`            | `PUBLIC` анонимное чтение, `HIDDEN` ограниченный список, `PRIVATE` требуется разрешение на чтение          |
 | `allow_redeployment`    | Разрешена ли перезапись существующего артефакта (по умолчанию: releases/private `false`, snapshots `true`) |
-| `require_gpg_signature` | Требовать отдельную GPG-подпись для защищённых артефактов                                                  |
+| `require_gpg_signature` | Требовать подпись GPG для `.jar`, `.pom` и `.module`; ждать завершения проверки                            |
 | `mirrors`               | Восходящие прокси Maven (опционально)                                                                      |
 | `s3`                    | Опциональный S3-совместимый бэкенд для этого репозитория                                                   |
 
@@ -106,4 +106,5 @@ repositories:
 
 - [Обзор конфигурации](./overview.md)
 - [API хранилища](../api/storage.md)
+- [Подписи GPG](../api/gpg.md)
 - [Maven-клиент](../getting-started/maven-client.md)

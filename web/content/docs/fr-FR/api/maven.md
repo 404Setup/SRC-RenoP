@@ -45,6 +45,10 @@ Détails du chemin. Les répertoires incluent `files` ; les fichiers incluent `c
 
 `type` est `FILE` ou `DIRECTORY`.
 
+Pour un fichier, `signed` vaut `true` uniquement lorsqu’une signature GPG détachée de ce chemin a été vérifiée. Les
+fichiers Maven protégés sont `.jar`, `.pom` et `.module`. Voir [Signatures GPG](./gpg.md) pour l’enregistrement, le
+téléversement et la consultation des signatures.
+
 ### `GET /api/maven/repo-details/:repo_name`
 
 Statistiques et résumé des miroirs. Réponse : `RepoDetailsResponse`.

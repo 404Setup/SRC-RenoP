@@ -40,14 +40,14 @@ repositories:
       redirect_downloads: false
 ```
 
-| Champ                   | Description                                                                                             |
-|-------------------------|---------------------------------------------------------------------------------------------------------|
-| `name`                  | ID du dépôt (segment de chemin : `http://host:port/{name}/…`)                                           |
-| `visibility`            | `PUBLIC` lecture anonyme, `HIDDEN` liste restreinte, `PRIVATE` permission de lecture requise            |
-| `allow_redeployment`    | Autoriser l'écrasement d'un artefact existant (par défaut : releases/private `false`, snapshots `true`) |
-| `require_gpg_signature` | Exiger une signature GPG détachée pour les artefacts protégés                                           |
-| `mirrors`               | Proxies Maven amont (optionnel)                                                                         |
-| `s3`                    | Backend compatible S3 optionnel pour ce dépôt                                                           |
+| Champ                   | Description                                                                                                |
+|-------------------------|------------------------------------------------------------------------------------------------------------|
+| `name`                  | ID du dépôt (segment de chemin : `http://host:port/{name}/…`)                                              |
+| `visibility`            | `PUBLIC` lecture anonyme, `HIDDEN` liste restreinte, `PRIVATE` permission de lecture requise               |
+| `allow_redeployment`    | Autoriser l'écrasement d'un artefact existant (par défaut : releases/private `false`, snapshots `true`)    |
+| `require_gpg_signature` | Exiger une signature GPG détachée pour les fichiers `.jar`, `.pom` et `.module` ; attendre la vérification |
+| `mirrors`               | Proxies Maven amont (optionnel)                                                                            |
+| `s3`                    | Backend compatible S3 optionnel pour ce dépôt                                                              |
 
 La disposition Maven sous chaque dépôt est standard : `group/artifact/version/file`.
 
@@ -106,4 +106,5 @@ pas automatiquement.
 
 - [Vue d'ensemble de la configuration](./overview.md)
 - [API de stockage](../api/storage.md)
+- [Signatures GPG](../api/gpg.md)
 - [Client Maven](../getting-started/maven-client.md)

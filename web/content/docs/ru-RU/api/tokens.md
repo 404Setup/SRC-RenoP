@@ -57,6 +57,8 @@ category: API
 Ответ: `application/x-protobuf`, `CreateAccessTokenResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message CreateAccessTokenResponse {
   AccessTokenDto access_token = 1;
   string secret = 2; // только когда сгенерирован или указан в этом запросе

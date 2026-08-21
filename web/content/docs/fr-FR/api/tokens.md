@@ -60,6 +60,8 @@ Créer ou mettre à jour. Corps : `application/x-protobuf`, `CreateAccessTokenRe
 Réponse : `application/x-protobuf`, `CreateAccessTokenResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message CreateAccessTokenResponse {
   AccessTokenDto access_token = 1;
   string secret = 2; // présent uniquement si généré ou fourni dans cette requête

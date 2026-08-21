@@ -37,16 +37,16 @@ Réponse : `application/x-protobuf`, `UpdateState` (`proto/api/v1/api.proto`).
 
 ## `POST /api/updater/check`
 
-| Query     | Défaut                     | Signification          |
-|-----------|----------------------------|------------------------|
-| `channel` | réglage `updater.channel`  | `release` ou `nightly` |
+| Query     | Défaut                    | Signification          |
+|-----------|---------------------------|------------------------|
+| `channel` | réglage `updater.channel` | `release` ou `nightly` |
 
 Absent / invalide → `updater.channel` (défaut `release`).
 
-| Canal       | `info.json`                                           |
-|-------------|-------------------------------------------------------|
-| `nightly`   | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
-| `release`   | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
+| Canal     | `info.json`                                           |
+|-----------|-------------------------------------------------------|
+| `nightly` | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release` | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
 
 Paquets : `…/{nightly\|stable}/{version}/{file}`.
 
@@ -98,7 +98,8 @@ Mise à jour hors ligne : zip multipart (`file` ou `package`). Doit être `.zip`
 
 Grands zip : upload découpé (manager). Sous **8 MiB** → `POST /api/updater/upload` simple.
 
-Init/complete : **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Parties : octets bruts.
+Init/complete : **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Parties :
+octets bruts.
 
 Taille de partie : [storage.md](./storage.md). Utiliser `chunk_size` / `chunk_count` de l’init.
 
@@ -108,7 +109,8 @@ Taille de partie : [storage.md](./storage.md). Utiliser `chunk_size` / `chunk_co
 
 ## `POST /api/updater/restart`
 
-Si un binaire de mise à jour est en attente, l’applique puis redémarre le processus. Sinon redémarre le processus courant sans appliquer de mise à jour.
+Si un binaire de mise à jour est en attente, l’applique puis redémarre le processus. Sinon redémarre le processus
+courant sans appliquer de mise à jour.
 
 ```json
 {"status": "restarting"}

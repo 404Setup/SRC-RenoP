@@ -37,16 +37,16 @@ idle → available → downloading → ready_to_restart
 
 ## `POST /api/updater/check`
 
-| Query     | По умолчанию               | Смысл                   |
-|-----------|----------------------------|-------------------------|
-| `channel` | настройка `updater.channel`| `release` или `nightly` |
+| Query     | По умолчанию                | Смысл                   |
+|-----------|-----------------------------|-------------------------|
+| `channel` | настройка `updater.channel` | `release` или `nightly` |
 
 Пусто / неверно → `updater.channel` (по умолчанию `release`).
 
-| Канал       | `info.json`                                           |
-|-------------|-------------------------------------------------------|
-| `nightly`   | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
-| `release`   | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
+| Канал     | `info.json`                                           |
+|-----------|-------------------------------------------------------|
+| `nightly` | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release` | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
 
 Пакеты: `…/{nightly\|stable}/{version}/{file}`.
 
@@ -98,7 +98,8 @@ idle → available → downloading → ready_to_restart
 
 Большие zip — chunked upload (manager). Меньше **8 MiB** → один `POST /api/updater/upload`.
 
-Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Части — сырые байты.
+Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Части —
+сырые байты.
 
 Размер части: [storage.md](./storage.md). Берите `chunk_size` / `chunk_count` из init.
 
@@ -108,7 +109,8 @@ Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `Chunk
 
 ## `POST /api/updater/restart`
 
-Если есть подготовленный бинарник обновления — применяет его и перезапускает процесс. Иначе перезапускает текущий процесс без применения обновления.
+Если есть подготовленный бинарник обновления — применяет его и перезапускает процесс. Иначе перезапускает текущий
+процесс без применения обновления.
 
 ```json
 {"status": "restarting"}

@@ -41,13 +41,24 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-Un upload réussi renvoie `201 Created`. Si le redeploy est désactivé et que l’artefact existe déjà, la requête échoue avec
-`409 Conflict`. Les métadonnées Maven (`maven-metadata.xml` et les fichiers de somme de contrôle ou de signature associés) restent modifiables.
+Un upload réussi renvoie `201 Created`. Si le redeploy est désactivé et que l’artefact existe déjà, la requête échoue
+avec
+`409 Conflict`. Les métadonnées Maven (`maven-metadata.xml` et les fichiers de somme de contrôle ou de signature
+associés) restent modifiables.
 
 L’en-tête optionnel `X-Generate-Checksums: true` écrit les sidecars `.md5`, `.sha1`, `.sha256` et `.sha512`.
 
 Le serveur met à jour l’index d’artefacts, les checksums optionnels et la synchronisation S3 selon la configuration. Les
 clients voient une disposition de dépôt Maven standard.
+
+#### Artefacts Maven signés
+
+Les fichiers `.jar`, `.pom` et `.module` sont des artefacts Maven protégés. Pour en publier un avec une signature
+OpenPGP détachée, téléversez l’artefact et le fichier `.asc` correspondant (en minuscules), par exemple
+`demo-1.0.0.pom.asc`. Ajoutez `X-RenoP-GPG-Signature-Expected: true` à la requête de l’artefact lorsque la signature
+fait partie du même lot. Un dépôt configuré avec `require_gpg_signature: true` impose automatiquement cette règle.
+L’artefact n’est publié qu’après vérification de la signature avec une clé publique enregistrée pour l’utilisateur. Voir
+[Signatures GPG](./gpg.md) pour le flux complet et le point d’accès des détails.
 
 ### Upload découpé (optionnel)
 
@@ -65,14 +76,15 @@ Init et complete utilisent **`application/x-protobuf`** (`ChunkedUploadInitReque
 
 1. **`POST /api/upload/chunked/`** — créer une session (`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`)
 
-| Champ                | Description                                       |
-|----------------------|---------------------------------------------------|
-| `purpose`            | `storage` (défaut)                                |
-| `path`               | Chemin de destination `repo/…/file`               |
-| `filename`           | Nom d’affichage optionnel                         |
-| `size`               | Taille totale en octets                           |
-| `generate_checksums` | Écrire les sidecars de checksum                   |
-| `chunk_size`         | Taille de partie préférée (optionnel ; normalisé) |
+| Champ                    | Description                                                             |
+|--------------------------|-------------------------------------------------------------------------|
+| `purpose`                | `storage` (défaut)                                                      |
+| `path`                   | Chemin de destination `repo/…/file`                                     |
+| `filename`               | Nom d’affichage optionnel                                               |
+| `size`                   | Taille totale en octets                                                 |
+| `generate_checksums`     | Écrire les sidecars de checksum                                         |
+| `chunk_size`             | Taille de partie préférée (optionnel ; normalisé)                       |
+| `gpg_signature_expected` | Attendre une signature détachée correspondante pour un artefact protégé |
 
 Champs de réponse : `upload_id`, `chunk_size`, `chunk_count`, `purpose`. Les uploads de parties suivants doivent
 utiliser les `chunk_size` et `chunk_count` renvoyés.

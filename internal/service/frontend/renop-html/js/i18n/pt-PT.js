@@ -304,6 +304,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "Geração de Token",
     "audit.action.USER_PERMISSION_UPDATE": "Atualização de Permissões",
     "audit.action.LOG_CLEAR": "Limpeza de Registos",
+    "audit.action.GPG_UPDATE": "Atualização de Chave GPG",
+    "audit.action.UPLOAD_QUEUED_GPG": "Envio GPG em Fila",
 
     "settings.auditLogTitle": "Definições de Registos de Atividade",
     "settings.auditLogSubtitle": "Configure a duração de retenção e o limite máximo de entradas.",

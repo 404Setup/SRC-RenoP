@@ -40,12 +40,21 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-成功時は `201 Created` を返します。redeploy が無効で対象アーティファクトが既に存在する場合、`409 Conflict` になります。Maven メタデータ（`maven-metadata.xml` とそのチェックサムまたは署名の付随ファイル）は引き続き更新できます。
+成功時は `201 Created` を返します。redeploy が無効で対象アーティファクトが既に存在する場合、`409 Conflict` になります。Maven
+メタデータ（`maven-metadata.xml` とそのチェックサムまたは署名の付随ファイル）は引き続き更新できます。
 
 任意のリクエスト ヘッダ `X-Generate-Checksums: true` は `.md5`、`.sha1`、`.sha256`、`.sha512` サイドカーを書き込みます。
 
 サーバは設定に従い成果物インデックス、任意チェックサム、S3 同期を更新します。クライアントから見えるのは標準の Maven リポジトリ
 レイアウトです。
+
+#### 署名付き Maven 成果物
+
+`.jar`、`.pom`、`.module` は保護対象の Maven 成果物です。分離 OpenPGP 署名付きで公開するには、成果物と対応する 小文字の
+`.asc` ファイル（例: `demo-1.0.0.pom.asc`）をアップロードします。同じバッチに署名を含める場合は、 成果物のリクエストに
+`X-RenoP-GPG-Signature-Expected: true` を指定してください。`require_gpg_signature: true`
+のリポジトリでは、この要件が自動的に適用されます。アップロードユーザーに登録された公開鍵で署名が検証されるまで、
+成果物は公開されません。完全な手順と署名詳細エンドポイントは [GPG 署名](./gpg.md)を参照してください。
 
 ### チャンク アップロード（任意）
 
@@ -61,14 +70,15 @@ init と complete は **`application/x-protobuf`**（`proto/api/v1/api.proto` �
 
 1. **`POST /api/upload/chunked/`** — セッション作成（`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`）
 
-| フィールド           | 説明                                      |
-|----------------------|-------------------------------------------|
-| `purpose`            | `storage`（既定）                         |
-| `path`               | 宛先パス `repo/…/file`                    |
-| `filename`           | 任意の表示名                              |
-| `size`               | 総バイト数                                |
-| `generate_checksums` | チェックサム サイドカーを書くか           |
-| `chunk_size`         | 希望パート サイズ（任意。サーバが正規化） |
+| フィールド               | 説明                                      |
+|--------------------------|-------------------------------------------|
+| `purpose`                | `storage`（既定）                         |
+| `path`                   | 宛先パス `repo/…/file`                    |
+| `filename`               | 任意の表示名                              |
+| `size`                   | 総バイト数                                |
+| `generate_checksums`     | チェックサム サイドカーを書くか           |
+| `chunk_size`             | 希望パート サイズ（任意。サーバが正規化） |
+| `gpg_signature_expected` | 保護対象成果物に対応する分離署名を待つか  |
 
 応答フィールド: `upload_id`、`chunk_size`、`chunk_count`、`purpose`。以降のパート アップロードは返却された `chunk_size` と
 `chunk_count` を使用する必要があります。

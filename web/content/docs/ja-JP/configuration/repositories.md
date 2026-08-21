@@ -45,7 +45,7 @@ repositories:
 | `name`                  | リポジトリ ID（パスセグメント: `http://host:port/{name}/…`）                               |
 | `visibility`            | `PUBLIC` 匿名読み取り可、`HIDDEN` 一覧制限あり、`PRIVATE` 読み取り権限必要                 |
 | `allow_redeployment`    | 既存成果物パスの上書き許可（デフォルト: releases/private は `false`、snapshots は `true`） |
-| `require_gpg_signature` | 保護対象成果物に分離 GPG 署名を要求するか                                                  |
+| `require_gpg_signature` | `.jar`、`.pom`、`.module` に分離 GPG 署名を必須とし、検証完了まで公開を待つか              |
 | `mirrors`               | 上流 Maven プロキシ（任意）                                                                |
 | `s3`                    | このリポジトリの S3 互換バックエンド（任意）                                               |
 
@@ -106,4 +106,5 @@ repositories:
 
 - [設定概要](./overview.md)
 - [ストレージ API](../api/storage.md)
+- [GPG 署名](../api/gpg.md)
 - [Maven クライアント](../getting-started/maven-client.md)

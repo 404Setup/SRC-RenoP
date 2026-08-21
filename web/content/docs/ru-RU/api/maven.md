@@ -44,6 +44,10 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 `type` — `FILE` или `DIRECTORY`.
 
+Для файла `signed` имеет значение `true` только при наличии проверенной отделённой GPG-подписи для этого пути.
+Защищённые Maven-файлы — `.jar`, `.pom` и `.module`. Регистрация ключей, загрузка и просмотр сведений о подписях
+описаны в разделе [Подписи GPG](./gpg.md).
+
 ### `GET /api/maven/repo-details/:repo_name`
 
 Статистика и сводка зеркал. Ответ: `RepoDetailsResponse`.
@@ -71,6 +75,8 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 Ответ: `application/x-protobuf`, `VersionsResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message VersionsResponse {
   bool is_snapshot = 1;
   repeated string versions = 2;
@@ -84,6 +90,8 @@ message VersionsResponse {
 Дефолтный ответ: `application/x-protobuf`, `LatestVersionResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message LatestVersionResponse {
   bool is_snapshot = 1;
   string version = 2;
@@ -128,6 +136,8 @@ SVG-badge с последней версией. `Content-Type: image/svg+xml`.
 Требуется право записи в репозиторий. Тело: `application/x-protobuf`, `PomDetails` (также JSON).
 
 ```protobuf
+syntax = "proto3";
+
 message PomDetails {
   string group_id = 1;
   string artifact_id = 2;

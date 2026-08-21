@@ -192,7 +192,7 @@ func IsPreviewableTextFile(path string) bool {
 	}
 	ext := strings.ToLower(path[idx:])
 	switch ext {
-	case ".pom", ".xml", ".json", ".txt", ".md", ".yml", ".yaml":
+	case ".pom", ".module", ".xml", ".json", ".txt", ".md", ".yml", ".yaml":
 		return true
 	default:
 		return false

@@ -305,6 +305,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "토큰 생성",
     "audit.action.USER_PERMISSION_UPDATE": "권한 변경",
     "audit.action.LOG_CLEAR": "기록 지우기",
+    "audit.action.GPG_UPDATE": "GPG 키 업데이트",
+    "audit.action.UPLOAD_QUEUED_GPG": "GPG 업로드 대기",
 
     "settings.auditLogTitle": "활동 기록 설정",
     "settings.auditLogSubtitle": "활동 기록 보관 기간 및 최대 보관 건수를 설정합니다.",

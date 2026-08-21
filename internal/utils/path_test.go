@@ -221,3 +221,11 @@ func TestIsImageFileEdgeCases(t *testing.T) {
 		}
 	}
 }
+
+func TestIsPreviewableTextFileIncludesGradleModuleMetadata(t *testing.T) {
+	for _, path := range []string{"demo.module", "demo.MODULE", "group/demo.module"} {
+		if !IsPreviewableTextFile(path) {
+			t.Errorf("IsPreviewableTextFile(%q) = false, expected true", path)
+		}
+	}
+}

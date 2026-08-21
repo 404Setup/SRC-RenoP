@@ -38,22 +38,25 @@ category: API
 
 ## `GET /api/tokens/:name`
 
-单个账户，**protobuf** `AccessTokenDto` (`application/x-protobuf`)。名称不区分大小写（以小写形式存储）。账户不存在时返回 `404`。
+单个账户， **protobuf** `AccessTokenDto` (`application/x-protobuf`)。名称不区分大小写（以小写形式存储）。账户不存在时返回
+`404`。
 
 ## `PUT /api/tokens/:name`
 
 创建或更新。正文：`application/x-protobuf`，`CreateAccessTokenRequest`（兼容 JSON 格式输入）。
 
-| 字段          | 含义                                                     |
-|---------------|----------------------------------------------------------|
-| `is_create`   | 设为 `true` 且名称已存在时返回 `409`                     |
-| `secret`      | 创建时省略则自动生成 UUID 密码；更新时省略则保持原密码不变|
-| `new_name`    | 用于重命名；目标名称已存在时返回 `409`                   |
-| `permissions` | 仅在提供时替换权限列表                                   |
+| 字段          | 含义                                                       |
+|---------------|------------------------------------------------------------|
+| `is_create`   | 设为 `true` 且名称已存在时返回 `409`                       |
+| `secret`      | 创建时省略则自动生成 UUID 密码；更新时省略则保持原密码不变 |
+| `new_name`    | 用于重命名；目标名称已存在时返回 `409`                     |
+| `permissions` | 仅在提供时替换权限列表                                     |
 
 响应：`application/x-protobuf`，`CreateAccessTokenResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message CreateAccessTokenResponse {
   AccessTokenDto access_token = 1;
   string secret = 2; // 仅在本次请求生成或提供时存在
@@ -68,7 +71,7 @@ message CreateAccessTokenResponse {
 
 ## 浏览器会话与 FIDO 设备（管理员）
 
-管理员可列出并撤销任意账户的**浏览器登录会话**与 **FIDO 安全密钥设备**。Basic/Bearer 认证不属于会话，Session 密钥永不返回。
+管理员可列出并撤销任意账户的 **浏览器登录会话**与 **FIDO 安全密钥设备**。Basic/Bearer 认证不属于会话，Session 密钥永不返回。
 
 ### `GET /api/tokens/:name/sessions`
 
@@ -76,7 +79,7 @@ message CreateAccessTokenResponse {
 
 ### `POST /api/tokens/:name/sessions/revoke-all`
 
-撤销该用户全部浏览器会话。管理员操作**自己的**账户时保留当前请求的会话。响应：`StatusOk` protobuf。
+撤销该用户全部浏览器会话。管理员操作 **自己的**账户时保留当前请求的会话。响应：`StatusOk` protobuf。
 
 ### `DELETE /api/tokens/:name/sessions/:session_id`
 

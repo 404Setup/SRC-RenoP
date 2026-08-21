@@ -8,25 +8,26 @@ category: API
 
 Адрес прослушивания по умолчанию: `0.0.0.0:3000`.
 
-| Путь        | Назначение                                                   |
-|-------------|--------------------------------------------------------------|
-| `/api/*`    | Management API (вход, настройки, статус, …)                  |
+| Путь        | Назначение                                                 |
+|-------------|------------------------------------------------------------|
+| `/api/*`    | Management API (вход, настройки, статус, …)                |
 | `/{repo}/…` | Раскладка Maven-репозитория (скачивание/загрузка/удаление) |
 
 Тела ошибок часто — простой текст (`Unauthorized`, `Forbidden`, `Not found`). Сначала доверяйте коду статуса.
 
 ## Оглавление
 
-| Файл                                     | Содержание                                                     |
-|------------------------------------------|----------------------------------------------------------------|
-| [authentication.md](./authentication.md) | Вход, сессии, права                                            |
-| [tokens.md](./tokens.md)                 | Управление учётными записями (manager)                         |
-| [maven.md](./maven.md)                   | Обзор, версии, badge, генерация POM                            |
-| [status.md](./status.md)                 | Health и runtime-статус                                        |
-| [settings.md](./settings.md)             | Домены конфигурации, репозитории, пересборка индекса           |
-| [updater.md](./updater.md)               | Онлайн/офлайн обновления                                       |
-| [storage.md](./storage.md)               | GET/PUT/DELETE на путях репозитория, chunked-загрузка          |
-| [rate-limit.md](./rate-limit.md)         | Лимиты по IP, бан после сбоев auth, лимит одновременных запросов|
+| Файл                                     | Содержание                                                       |
+|------------------------------------------|------------------------------------------------------------------|
+| [authentication.md](./authentication.md) | Вход, сессии, права                                              |
+| [tokens.md](./tokens.md)                 | Управление учётными записями (manager)                           |
+| [maven.md](./maven.md)                   | Обзор, версии, badge, генерация POM                              |
+| [gpg.md](./gpg.md)                       | Ключи GPG, подписанные загрузки и проверка                       |
+| [status.md](./status.md)                 | Health и runtime-статус                                          |
+| [settings.md](./settings.md)             | Домены конфигурации, репозитории, пересборка индекса             |
+| [updater.md](./updater.md)               | Онлайн/офлайн обновления                                         |
+| [storage.md](./storage.md)               | GET/PUT/DELETE на путях репозитория, chunked-загрузка            |
+| [rate-limit.md](./rate-limit.md)         | Лимиты по IP, бан после сбоев auth, лимит одновременных запросов |
 
 Машиночитаемая схема: [openapi.yaml](/assets/openapi.yaml). Proto-определения: `proto/api/v1/api.proto` (сгенерированный
 Go-код в `pb/`).
@@ -51,6 +52,10 @@ Go-код в `pb/`).
 | `PUT /api/settings/maven/repositories/:name` | request            |
 | `GET /api/maven/details…`                    | response           |
 | `GET /api/maven/repo-details/:repo`          | response           |
+| `GET /api/maven/signatures…`                 | response           |
+| `GET /api/auth/profile/gpg`                  | response           |
+| `POST /api/auth/profile/gpg`                 | request + response |
+| `GET /api/auth/profile/gpg/releases`         | response           |
 | `POST /api/upload/chunked/`                  | request + response |
 | `POST /api/upload/chunked/:id/complete`      | response           |
 

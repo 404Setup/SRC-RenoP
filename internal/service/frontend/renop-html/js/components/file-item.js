@@ -490,7 +490,7 @@ export function getFileTypeLabel(fileName, ext) {
 }
 
 const PREVIEWABLE_IMAGE_RE = /\.(png|jpg|jpeg|gif|webp|bmp|svg|avif|ico)$/i;
-const PREVIEWABLE_TEXT_RE = /\.(pom|xml|json|jsonc|json5|txt|md|mdx|yml|yaml|properties|log|patch|diff|sh|bash|zsh|py|js|mjs|cjs|ts|mts|cts|go|rs|toml|ini|conf|env|gradle|hcl|tf|sql|css|scss|sass|less|html|htm|vue|svelte|jsx|tsx|kt|kts|java|c|cpp|h|hpp|cs|php|rb|swift|lua|dart|zig|r|jl|ex|exs|erl|pl|sol|nim|graphql|gql|proto|dockerfile|coffee|elm|f90|f95|lisp|scm|vb|hx|pas|gleam|odin|res|resi|tex|rst|adoc|nix|glsl|hlsl|wgsl|srt|vtt|plist|ics|eml|justfile|procfile)$/i;
+const PREVIEWABLE_TEXT_RE = /\.(pom|module|xml|json|jsonc|json5|txt|md|mdx|yml|yaml|properties|log|patch|diff|sh|bash|zsh|py|js|mjs|cjs|ts|mts|cts|go|rs|toml|ini|conf|env|gradle|hcl|tf|sql|css|scss|sass|less|html|htm|vue|svelte|jsx|tsx|kt|kts|java|c|cpp|h|hpp|cs|php|rb|swift|lua|dart|zig|r|jl|ex|exs|erl|pl|sol|nim|graphql|gql|proto|dockerfile|coffee|elm|f90|f95|lisp|scm|vb|hx|pas|gleam|odin|res|resi|tex|rst|adoc|nix|glsl|hlsl|wgsl|srt|vtt|plist|ics|eml|justfile|procfile)$/i;
 
 /**
  * Browser file/directory list item custom element.
@@ -511,6 +511,19 @@ export class RenopFileItem extends HTMLElement {
         this._onLangChange = () => this.render();
         window.addEventListener('languageChanged', this._onLangChange);
         this.render();
+    }
+
+    /**
+     * Re-render when the server changes the verified-signature state.
+     * @param {string} name - Changed attribute name.
+     * @param {string|null} oldValue - Previous attribute value.
+     * @param {string|null} newValue - New attribute value.
+     * @returns {void}
+     */
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (name === 'signed' && oldValue !== newValue && this.isConnected) {
+            this.render();
+        }
     }
 
     /**
@@ -672,7 +685,7 @@ if (!customElements.get('renop-file-item')) {
 
 /**
  * Create a browser file/directory list item.
- * @param {{name: string, type: string}} file - File entry with name and type (FILE or DIRECTORY).
+ * @param {{name: string, type: string, signed?: boolean}} file - File entry with name, type, and signature state.
  * @param {number} index - List index for staggered animation.
  * @param {string} path - Parent path of the entry.
  * @param {object} [options={}] - Extra options.

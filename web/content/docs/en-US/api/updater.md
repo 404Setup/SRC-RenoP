@@ -37,16 +37,16 @@ Response: `application/x-protobuf`, `UpdateState` (`proto/api/v1/api.proto`).
 
 ## `POST /api/updater/check`
 
-| Query     | Default                    | Meaning                |
-|-----------|----------------------------|------------------------|
-| `channel` | `updater.channel` setting  | `release` or `nightly` |
+| Query     | Default                   | Meaning                |
+|-----------|---------------------------|------------------------|
+| `channel` | `updater.channel` setting | `release` or `nightly` |
 
 Omit / invalid → `updater.channel` (default `release`).
 
-| Channel   | `info.json`                                                      |
-|-----------|------------------------------------------------------------------|
-| `nightly` | `https://mvnc.pkg.one/update/renop/nightly/info.json`            |
-| `release` | `https://mvnc.pkg.one/update/renop/stable/info.json`             |
+| Channel   | `info.json`                                           |
+|-----------|-------------------------------------------------------|
+| `nightly` | `https://mvnc.pkg.one/update/renop/nightly/info.json` |
+| `release` | `https://mvnc.pkg.one/update/renop/stable/info.json`  |
 
 Packages: `…/{nightly\|stable}/{version}/{file}`.
 
@@ -98,7 +98,8 @@ Offline update: multipart zip (`file` or `package`). Must be `.zip`.
 
 Large zips may use chunked upload (manager). Under **8 MiB** → single `POST /api/updater/upload`.
 
-Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Parts: raw bytes.
+Init/complete: **`application/x-protobuf`** (`ChunkedUploadInitRequest` / `ChunkedUploadCompleteResponse`). Parts: raw
+bytes.
 
 Part size: see [storage.md](./storage.md). Use `chunk_size` / `chunk_count` from init.
 
@@ -108,7 +109,8 @@ Part size: see [storage.md](./storage.md). Use `chunk_size` / `chunk_count` from
 
 ## `POST /api/updater/restart`
 
-If a prepared update binary is pending, applies it and restarts the process. Otherwise restarts the current process without applying an update.
+If a prepared update binary is pending, applies it and restarts the process. Otherwise restarts the current process
+without applying an update.
 
 ```json
 {"status": "restarting"}

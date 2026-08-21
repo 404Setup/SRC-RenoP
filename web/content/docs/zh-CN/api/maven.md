@@ -43,6 +43,8 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 `type` 为 `FILE` 或 `DIRECTORY`。
 
+对于文件，只有该路径存在已验证的 GPG 分离签名时，`signed` 才为 `true`。受保护的 Maven 文件包括 `.jar`、`.pom` 和 `.module`；密钥注册、上传与验证流程见 [GPG 签名](./gpg.md)。
+
 ### `GET /api/maven/repo-details/:repo_name`
 
 统计与镜像摘要。响应：`RepoDetailsResponse`。
@@ -70,6 +72,8 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 响应：`application/x-protobuf`，`VersionsResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message VersionsResponse {
   bool is_snapshot = 1;
   repeated string versions = 2;
@@ -83,6 +87,8 @@ message VersionsResponse {
 默认响应：`application/x-protobuf`，`LatestVersionResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message LatestVersionResponse {
   bool is_snapshot = 1;
   string version = 2;
@@ -127,6 +133,8 @@ message LatestVersionResponse {
 需要对仓库的写权限。正文：`application/x-protobuf`，`PomDetails`（兼容 JSON 格式输入）。
 
 ```protobuf
+syntax = "proto3";
+
 message PomDetails {
   string group_id = 1;
   string artifact_id = 2;

@@ -57,6 +57,8 @@ Create or update. Body: `application/x-protobuf`, `CreateAccessTokenRequest` (al
 Response: `application/x-protobuf`, `CreateAccessTokenResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message CreateAccessTokenResponse {
   AccessTokenDto access_token = 1;
   string secret = 2; // present only when generated or supplied this request

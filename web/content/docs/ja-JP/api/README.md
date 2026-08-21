@@ -11,7 +11,7 @@ category: API
 | パス        | 用途                                                         |
 |-------------|--------------------------------------------------------------|
 | `/api/*`    | 管理 API（ログイン、設定、ステータスなど）                   |
-| `/{repo}/…` | Maven リポジトリレイアウト（ダウンロード/アップロード/削除）|
+| `/{repo}/…` | Maven リポジトリレイアウト（ダウンロード/アップロード/削除） |
 
 エラー本文はしばしばプレーンテキスト（`Unauthorized`、`Forbidden`、`Not found`）です。まずステータスコードを信頼してください。
 
@@ -22,6 +22,7 @@ category: API
 | [authentication.md](./authentication.md) | ログイン、セッション、権限                          |
 | [tokens.md](./tokens.md)                 | アカウント管理（manager）                           |
 | [maven.md](./maven.md)                   | 閲覧、バージョン、バッジ、POM 生成                  |
+| [gpg.md](./gpg.md)                       | GPG 鍵の登録、署名付きアップロード、検証            |
 | [status.md](./status.md)                 | ヘルスとランタイムステータス                        |
 | [settings.md](./settings.md)             | 設定ドメイン、リポジトリ、インデックス再構築        |
 | [updater.md](./updater.md)               | オンライン/オフライン更新                           |
@@ -51,6 +52,10 @@ Proto 定義: `proto/api/v1/api.proto`（生成 Go コードは `pb/` 配下）�
 | `PUT /api/settings/maven/repositories/:name` | request            |
 | `GET /api/maven/details…`                    | response           |
 | `GET /api/maven/repo-details/:repo`          | response           |
+| `GET /api/maven/signatures…`                 | response           |
+| `GET /api/auth/profile/gpg`                  | response           |
+| `POST /api/auth/profile/gpg`                 | request + response |
+| `GET /api/auth/profile/gpg/releases`         | response           |
 | `POST /api/upload/chunked/`                  | request + response |
 | `POST /api/upload/chunked/:id/complete`      | response           |
 

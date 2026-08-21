@@ -304,6 +304,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "Token generieren",
     "audit.action.USER_PERMISSION_UPDATE": "Berechtigungsaktualisierung",
     "audit.action.LOG_CLEAR": "Protokoll löschen",
+    "audit.action.GPG_UPDATE": "GPG-Schlüssel aktualisiert",
+    "audit.action.UPLOAD_QUEUED_GPG": "GPG-Upload eingereiht",
 
     "settings.auditLogTitle": "Aktivitätsprotokoll-Einstellungen",
     "settings.auditLogSubtitle": "Konfigurieren Sie die Aufbewahrungsdauer und die maximale Anzahl an Einträgen.",

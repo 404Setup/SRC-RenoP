@@ -11,11 +11,11 @@ Maven（または Maven リポジトリを使用する Gradle）を RenoP に向
 
 ## リポジトリ URL
 
-| パス                              | 用途      |
-|-----------------------------------|-----------|
-| `http://localhost:3000/releases`  | リリース  |
+| パス                              | 用途             |
+|-----------------------------------|------------------|
+| `http://localhost:3000/releases`  | リリース         |
 | `http://localhost:3000/snapshots` | スナップショット |
-| `http://localhost:3000/private`   | プライベート |
+| `http://localhost:3000/private`   | プライベート     |
 
 デプロイに合わせてホスト/ポートを変更してください。
 
@@ -63,7 +63,8 @@ Maven（または Maven リポジトリを使用する Gradle）を RenoP に向
 
 ## 認証情報（`~/.m2/settings.xml`）
 
-PUBLIC リポジトリは読み取りに認証が不要なことがよくあります。デプロイと PRIVATE には認証情報が必要です。Basic 認証: ユーザー名 + パスワード **または** アップロードトークン（[認証](../api/authentication.md)）。
+PUBLIC リポジトリは読み取りに認証が不要なことがよくあります。デプロイと PRIVATE には認証情報が必要です。Basic 認証:
+ユーザー名 + パスワード **または** アップロードトークン（[認証](../api/authentication.md)）。
 
 ```xml
 <settings>

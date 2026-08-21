@@ -8,28 +8,28 @@ category: API
 
 默认监听地址：`0.0.0.0:3000`。
 
-| 路径        | 用途                               |
-|-------------|-------------------------------------|
-| `/api/*`    | 管理 API（登录、设置、状态等）      |
-| `/{repo}/…` | Maven 仓库布局（下载/上传/删除）    |
+| 路径        | 用途                             |
+|-------------|----------------------------------|
+| `/api/*`    | 管理 API（登录、设置、状态等）   |
+| `/{repo}/…` | Maven 仓库布局（下载/上传/删除） |
 
 错误响应正文多为纯文本（`Unauthorized`、`Forbidden`、`Not found`）。以状态码为准。
 
 ## 索引
 
-| 文件                                     | 内容                                    |
-|------------------------------------------|-----------------------------------------|
-| [authentication.md](./authentication.md) | 登录、会话、权限                        |
-| [tokens.md](./tokens.md)                 | 账户管理（manager）                     |
-| [maven.md](./maven.md)                   | 浏览、版本、徽章、生成 POM              |
-| [status.md](./status.md)                 | 健康检查与运行时状态                    |
-| [settings.md](./settings.md)             | 配置域、仓库、索引重建                  |
-| [updater.md](./updater.md)               | 在线/离线更新                           |
-| [storage.md](./storage.md)               | 仓库路径上的 GET/PUT/DELETE、可选分块上传|
-| [rate-limit.md](./rate-limit.md)         | IP 限流、认证失败封禁、并发请求上限     |
+| 文件                                     | 内容                                      |
+|------------------------------------------|-------------------------------------------|
+| [authentication.md](./authentication.md) | 登录、会话、权限                          |
+| [tokens.md](./tokens.md)                 | 账户管理（manager）                       |
+| [maven.md](./maven.md)                   | 浏览、版本、徽章、生成 POM                |
+| [gpg.md](./gpg.md)                       | GPG 密钥注册、签名上传与验证              |
+| [status.md](./status.md)                 | 健康检查与运行时状态                      |
+| [settings.md](./settings.md)             | 配置域、仓库、索引重建                    |
+| [updater.md](./updater.md)               | 在线/离线更新                             |
+| [storage.md](./storage.md)               | 仓库路径上的 GET/PUT/DELETE、可选分块上传 |
+| [rate-limit.md](./rate-limit.md)         | IP 限流、认证失败封禁、并发请求上限       |
 
-机器可读规范：[openapi.yaml](/assets/openapi.yaml)。
-Proto 定义：`proto/api/v1/api.proto`（生成的 Go 代码在 `pb/` 下）。
+机器可读规范：[openapi.yaml](/assets/openapi.yaml)。 Proto 定义：`proto/api/v1/api.proto`（生成的 Go 代码在 `pb/` 下）。
 
 ## JSON 与 Protobuf
 
@@ -51,6 +51,10 @@ Proto 定义：`proto/api/v1/api.proto`（生成的 Go 代码在 `pb/` 下）。
 | `PUT /api/settings/maven/repositories/:name` | request            |
 | `GET /api/maven/details…`                    | response           |
 | `GET /api/maven/repo-details/:repo`          | response           |
+| `GET /api/maven/signatures…`                 | response           |
+| `GET /api/auth/profile/gpg`                  | response           |
+| `POST /api/auth/profile/gpg`                 | request + response |
+| `GET /api/auth/profile/gpg/releases`         | response           |
 | `POST /api/upload/chunked/`                  | request + response |
 | `POST /api/upload/chunked/:id/complete`      | response           |
 
@@ -81,11 +85,11 @@ curl -s -b 'renop_session=<session-id>' \
 
 会话在约 **7 天** 空闲后过期，有活动时会续期。
 
-| 角色         | 能力                                      |
-|--------------|-------------------------------------------|
-| 匿名         | 读取 PUBLIC 仓库；管理 API 大多返回 401/403|
-| 普通用户     | 通过 `canview:`/`canupdate:` 访问仓库     |
-| manager/admin| 用户、设置、更新器等管理 API              |
+| 角色          | 能力                                        |
+|---------------|---------------------------------------------|
+| 匿名          | 读取 PUBLIC 仓库；管理 API 大多返回 401/403 |
+| 普通用户      | 通过 `canview:`/`canupdate:` 访问仓库       |
+| manager/admin | 用户、设置、更新器等管理 API                |
 
 详情见 [authentication.md](./authentication.md)。
 

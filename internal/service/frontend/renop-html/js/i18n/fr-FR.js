@@ -303,6 +303,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "Génération de jeton",
     "audit.action.USER_PERMISSION_UPDATE": "Mise à jour des permissions",
     "audit.action.LOG_CLEAR": "Nettoyage des journaux",
+    "audit.action.GPG_UPDATE": "Mise à jour de clé GPG",
+    "audit.action.UPLOAD_QUEUED_GPG": "Téléversement GPG en attente",
 
     "settings.auditLogTitle": "Paramètres des journaux d'activité",
     "settings.auditLogSubtitle": "Configurez la durée de conservation et la limite maximale d'entrées.",

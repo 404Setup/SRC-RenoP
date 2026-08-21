@@ -57,6 +57,8 @@ category: API
 レスポンス: `application/x-protobuf`、`CreateAccessTokenResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message CreateAccessTokenResponse {
   AccessTokenDto access_token = 1;
   string secret = 2; // 本リクエストで生成または指定された場合のみ存在

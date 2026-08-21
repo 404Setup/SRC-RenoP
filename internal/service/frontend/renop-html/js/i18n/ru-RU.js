@@ -305,6 +305,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "Создание токена",
     "audit.action.USER_PERMISSION_UPDATE": "Обновление прав",
     "audit.action.LOG_CLEAR": "Очистка журнала",
+    "audit.action.GPG_UPDATE": "Обновление ключа GPG",
+    "audit.action.UPLOAD_QUEUED_GPG": "Загрузка GPG поставлена в очередь",
 
     "settings.auditLogTitle": "Настройки журнала действий",
     "settings.auditLogSubtitle": "Настройте срок хранения и максимальное количество записей журнала.",

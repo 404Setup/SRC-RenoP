@@ -63,7 +63,9 @@ Adaptez l'hôte et le port selon votre déploiement.
 
 ## Identifiants (`~/.m2/settings.xml`)
 
-Les dépôts PUBLIC ne nécessitent souvent pas d'authentification pour la lecture. Le déploiement et PRIVATE requièrent des identifiants. Authentification Basic : nom d'utilisateur + mot de passe **ou** jeton d'upload ([Authentification](../api/authentication.md)).
+Les dépôts PUBLIC ne nécessitent souvent pas d'authentification pour la lecture. Le déploiement et PRIVATE requièrent
+des identifiants. Authentification Basic : nom d'utilisateur + mot de passe **ou** jeton d'upload
+([Authentification](../api/authentication.md)).
 
 ```xml
 <settings>

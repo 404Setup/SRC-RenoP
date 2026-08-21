@@ -41,13 +41,23 @@ curl -u admin:SECRET -T artifact.jar \
   "http://localhost:3000/releases/com/example/demo/1.0.0/demo-1.0.0.jar"
 ```
 
-Успешный upload возвращает `201 Created`. Если redeploy отключён и артефакт уже существует, ответ — `409 Conflict`. Метаданные Maven (`maven-metadata.xml` и связанные файлы контрольных сумм или подписей) по-прежнему можно обновлять.
+Успешный upload возвращает `201 Created`. Если redeploy отключён и артефакт уже существует, ответ — `409 Conflict`.
+Метаданные Maven (`maven-metadata.xml` и связанные файлы контрольных сумм или подписей) по-прежнему можно обновлять.
 
 Опциональный request header `X-Generate-Checksums: true` записывает sidecar-файлы `.md5`, `.sha1`, `.sha256` и
 `.sha512`.
 
 Сервер обновляет artifact index, optional checksums и S3 sync согласно конфигурации. Клиенты видят стандартный Maven
 repository layout.
+
+#### Подписанные Maven-артефакты
+
+Файлы `.jar`, `.pom` и `.module` являются защищёнными Maven-артефактами. Для публикации с отделённой подписью OpenPGP
+загрузите артефакт и соответствующий файл `.asc` с суффиксом в нижнем регистре, например `demo-1.0.0.pom.asc`. Если
+подпись входит в тот же пакет, добавьте к запросу артефакта `X-RenoP-GPG-Signature-Expected: true`. В репозитории с
+`require_gpg_signature: true` это требование включается автоматически. Артефакт публикуется только после проверки
+подписи открытым ключом, зарегистрированным для пользователя. Полный порядок действий и эндпоинт сведений приведены в
+разделе [Подписи GPG](./gpg.md).
 
 ### Chunked upload (optional)
 
@@ -63,14 +73,15 @@ Init и complete используют **`application/x-protobuf`** (`ChunkedUplo
 
 1. **`POST /api/upload/chunked/`** — создать session (`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`)
 
-| Field                | Description                                       |
-|----------------------|---------------------------------------------------|
-| `purpose`            | `storage` (default)                               |
-| `path`               | Destination path `repo/…/file`                    |
-| `filename`           | Optional display name                             |
-| `size`               | Total size in bytes                               |
-| `generate_checksums` | Whether to write checksum sidecars                |
-| `chunk_size`         | Preferred part size (optional; server normalizes) |
+| Field                    | Description                                                   |
+|--------------------------|---------------------------------------------------------------|
+| `purpose`                | `storage` (default)                                           |
+| `path`                   | Destination path `repo/…/file`                                |
+| `filename`               | Optional display name                                         |
+| `size`                   | Total size in bytes                                           |
+| `generate_checksums`     | Whether to write checksum sidecars                            |
+| `chunk_size`             | Preferred part size (optional; server normalizes)             |
+| `gpg_signature_expected` | Expect a matching detached signature for a protected artifact |
 
 Response fields: `upload_id`, `chunk_size`, `chunk_count`, `purpose`. Последующие part uploads должны использовать
 returned `chunk_size` и `chunk_count`.

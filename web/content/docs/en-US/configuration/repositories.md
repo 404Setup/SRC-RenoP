@@ -45,7 +45,7 @@ repositories:
 | `name`                  | Repository id (path segment: `http://host:port/{name}/…`)                                                       |
 | `visibility`            | `PUBLIC` anonymous read; `HIDDEN` restricted listing; `PRIVATE` needs read permission                           |
 | `allow_redeployment`    | Whether overwriting an existing artifact path is allowed (defaults: releases/private `false`, snapshots `true`) |
-| `require_gpg_signature` | Require detached GPG signatures for protected artifacts                                                         |
+| `require_gpg_signature` | Require detached GPG signatures for `.jar`, `.pom`, and `.module` uploads; publication waits for verification   |
 | `mirrors`               | Upstream Maven proxies (optional)                                                                               |
 | `s3`                    | Optional S3-compatible backend for this repository                                                              |
 
@@ -105,4 +105,5 @@ that already contains artifacts, move its existing objects to the new prefix; Re
 
 - [Configuration overview](./overview.md)
 - [Storage API](../api/storage.md)
+- [GPG signatures](../api/gpg.md)
 - [Maven client](../getting-started/maven-client.md)

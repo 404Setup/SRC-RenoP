@@ -22,6 +22,7 @@ Error bodies are usually plain text (`Unauthorized`, `Forbidden`, `Not found`). 
 | [authentication.md](./authentication.md) | Login, sessions, permissions                                |
 | [tokens.md](./tokens.md)                 | Account management (manager)                                |
 | [maven.md](./maven.md)                   | Browse, versions, badge, generate POM                       |
+| [gpg.md](./gpg.md)                       | GPG key registration, signed uploads, and verification      |
 | [status.md](./status.md)                 | Health and runtime status                                   |
 | [settings.md](./settings.md)             | Config domains, repositories, index rebuild                 |
 | [updater.md](./updater.md)               | Online / offline updates                                    |
@@ -51,6 +52,10 @@ Most endpoints still use JSON. These use `application/x-protobuf`:
 | `PUT /api/settings/maven/repositories/:name` | request            |
 | `GET /api/maven/details…`                    | response           |
 | `GET /api/maven/repo-details/:repo`          | response           |
+| `GET /api/maven/signatures…`                 | response           |
+| `GET /api/auth/profile/gpg`                  | response           |
+| `POST /api/auth/profile/gpg`                 | request + response |
+| `GET /api/auth/profile/gpg/releases`         | response           |
 | `POST /api/upload/chunked/`                  | request + response |
 | `POST /api/upload/chunked/:id/complete`      | response           |
 

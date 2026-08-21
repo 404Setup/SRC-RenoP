@@ -305,6 +305,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "トークン生成",
     "audit.action.USER_PERMISSION_UPDATE": "権限更新",
     "audit.action.LOG_CLEAR": "ログ消去",
+    "audit.action.GPG_UPDATE": "GPG キー更新",
+    "audit.action.UPLOAD_QUEUED_GPG": "GPG アップロード待機",
 
     "settings.auditLogTitle": "アクティビティログ設定",
     "settings.auditLogSubtitle": "ログの保持期間および最大記録件数を設定します。",

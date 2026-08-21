@@ -44,6 +44,10 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 
 `type` は `FILE` または `DIRECTORY`。
 
+ファイルの `signed` は、そのパスの分離 GPG 署名が検証済みの場合だけ `true` になります。保護対象の Maven ファイルは `.jar`、
+`.pom`、`.module` です。鍵の登録、アップロード、署名詳細の確認については
+[GPG 署名](./gpg.md)を参照してください。
+
 ### `GET /api/maven/repo-details/:repo_name`
 
 統計とミラー概要。レスポンス: `RepoDetailsResponse`。
@@ -71,6 +75,8 @@ files[] = { type: DIRECTORY, name: "<repo>" }
 レスポンス: `application/x-protobuf`、`VersionsResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message VersionsResponse {
   bool is_snapshot = 1;
   repeated string versions = 2;
@@ -84,6 +90,8 @@ message VersionsResponse {
 デフォルトレスポンス: `application/x-protobuf`、`LatestVersionResponse`
 
 ```protobuf
+syntax = "proto3";
+
 message LatestVersionResponse {
   bool is_snapshot = 1;
   string version = 2;
@@ -128,6 +136,8 @@ message LatestVersionResponse {
 リポジトリへの書き込み権限が必要です。ボディ: `application/x-protobuf`、`PomDetails`（JSON も受付可）。
 
 ```protobuf
+syntax = "proto3";
+
 message PomDetails {
   string group_id = 1;
   string artifact_id = 2;

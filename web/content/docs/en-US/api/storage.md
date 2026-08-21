@@ -48,6 +48,15 @@ Optional request header `X-Generate-Checksums: true` writes `.md5`, `.sha1`, `.s
 The server updates the artifact index, optional checksums, and S3 synchronization as configured. Clients observe a
 standard Maven repository layout.
 
+#### Signed Maven artifacts
+
+`.jar`, `.pom`, and `.module` files are protected Maven artifacts. To publish one with a detached OpenPGP signature,
+upload the artifact and the matching lowercase `.asc` file (for example `demo-1.0.0.pom.asc`). Set
+`X-RenoP-GPG-Signature-Expected: true` on the artifact request when the signature is part of the same upload batch.
+Repositories with `require_gpg_signature: true` set this requirement automatically. The artifact is not published until
+the signature is verified against a public key registered for the uploader. See [GPG signatures](./gpg.md) for the
+complete workflow and the signature-details endpoint.
+
 ### Chunked upload (optional)
 
 Authentication matches storage write: session cookie, Basic, or Bearer, with write permission on the target repository.
@@ -62,14 +71,15 @@ Init and complete use **`application/x-protobuf`** (`ChunkedUploadInitRequest`, 
 
 1. **`POST /api/upload/chunked/`** — create a session (`ChunkedUploadInitRequest` → `ChunkedUploadInitResponse`)
 
-| Field                | Description                                       |
-|----------------------|---------------------------------------------------|
-| `purpose`            | `storage` (default)                               |
-| `path`               | Destination path `repo/…/file`                    |
-| `filename`           | Optional display name                             |
-| `size`               | Total size in bytes                               |
-| `generate_checksums` | Whether to write checksum sidecars                |
-| `chunk_size`         | Preferred part size (optional; server normalizes) |
+| Field                    | Description                                                   |
+|--------------------------|---------------------------------------------------------------|
+| `purpose`                | `storage` (default)                                           |
+| `path`                   | Destination path `repo/…/file`                                |
+| `filename`               | Optional display name                                         |
+| `size`                   | Total size in bytes                                           |
+| `generate_checksums`     | Whether to write checksum sidecars                            |
+| `chunk_size`             | Preferred part size (optional; server normalizes)             |
+| `gpg_signature_expected` | Expect a matching detached signature for a protected artifact |
 
 Response fields: `upload_id`, `chunk_size`, `chunk_count`, `purpose`. Subsequent part uploads must use the returned
 `chunk_size` and `chunk_count`.

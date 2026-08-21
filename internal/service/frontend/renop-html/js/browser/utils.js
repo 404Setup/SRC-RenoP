@@ -197,8 +197,8 @@ export const compareSemver = (rawA, rawB) => {
 
 /**
  * Filter hash sidecars and sort files by type, version, and name preferences.
- * @param {Array<{name: string, type: string}>} files
- * @returns {Array<{name: string, type: string}>}
+ * @param {Array<{name: string, type: string, signed?: boolean}>} files
+ * @returns {Array<{name: string, type: string, signed?: boolean}>}
  */
 export function applyAdjustments(files) {
     let result = files;

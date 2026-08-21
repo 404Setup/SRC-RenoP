@@ -73,6 +73,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	min-width: 0;
 	gap: 0.75rem;
 	padding: 0.7rem 0.8rem;
 	border: 1px solid var(--border-color);
@@ -80,12 +81,20 @@
 }
 
 .gpg-key-info {
+	flex: 1 1 auto;
 	min-width: 0;
 	gap: 0.2rem;
 }
 
 .gpg-key-identity {
 	font-size: 0.88rem;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.gpg-key-item > .file-action-btn {
+	flex: 0 0 auto;
 }
 
 .gpg-key-fingerprint {
@@ -388,7 +397,7 @@ html:not(.light) .modal-content textarea:focus {
 
 .modal-meta-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.35rem 0.75rem;
     padding: 0.65rem 0.85rem;
     background-color: rgba(0, 0, 0, 0.03);
@@ -423,7 +432,21 @@ html:not(.light) .modal-meta-grid {
 
 .modal-meta-value {
     color: var(--text-color);
+    min-width: 0;
+    overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.modal-meta-grid .code-badge {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+}
+
+@media (max-width: 560px) {
+    .modal-meta-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .modal-notes-container {

@@ -26,21 +26,21 @@ category: API
 
 响应：`application/x-protobuf`，`InstanceStatus`。
 
-| 字段                                                   | 含义                                       |
-|--------------------------------------------------------|--------------------------------------------|
-| `version`                                              | 二进制版本                                 |
-| `development`                                          | 开发构建标志                               |
-| `uptime`                                               | 自启动以来的毫秒数                         |
-| `used_memory` / `total_memory`                         | 物理内存使用量与总量（字节）               |
-| `vss_memory`                                           | 虚拟内存大小（字节）                       |
-| `renop_used_disk`                                      | RenoP 存储占用                             |
-| `disk_used` / `disk_total`                             | 磁盘使用量与总量                           |
-| `used_threads` / `available_threads` / `total_threads` | Goroutine 及并发限制相关线程数             |
-| `architecture` / `os`                                  | GOARCH / GOOS                              |
-| `logical_cores` / `physical_cores`                     | 逻辑与物理 CPU 核心数                      |
-| `failures_count`                                       | 运行时失败计数                             |
-| `update_state`                                         | 更新器状态，详见 [updater.md](./updater.md)|
-| `debug_mode`                                           | 进程启动时是否激活了调试模式               |
+| 字段                                                   | 含义                                        |
+|--------------------------------------------------------|---------------------------------------------|
+| `version`                                              | 二进制版本                                  |
+| `development`                                          | 开发构建标志                                |
+| `uptime`                                               | 自启动以来的毫秒数                          |
+| `used_memory` / `total_memory`                         | 物理内存使用量与总量（字节）                |
+| `vss_memory`                                           | 虚拟内存大小（字节）                        |
+| `renop_used_disk`                                      | RenoP 存储占用                              |
+| `disk_used` / `disk_total`                             | 磁盘使用量与总量                            |
+| `used_threads` / `available_threads` / `total_threads` | Goroutine 及并发限制相关线程数              |
+| `architecture` / `os`                                  | GOARCH / GOOS                               |
+| `logical_cores` / `physical_cores`                     | 逻辑与物理 CPU 核心数                       |
+| `failures_count`                                       | 运行时失败计数                              |
+| `update_state`                                         | 更新器状态，详见 [updater.md](./updater.md) |
+| `debug_mode`                                           | 进程启动时是否激活了调试模式                |
 
 ## `GET /api/status/snapshots`
 
@@ -57,7 +57,8 @@ category: API
 
 ## 调试分析 API（`/api/debug`）
 
-需具备 **manager** 权限，且配置文件中启用 `server.debug_mode: true` 并在启动时加载生效。未开启调试模式或权限不足时返回 `403`。
+需具备 **manager** 权限，且配置文件中启用 `server.debug_mode: true` 并在启动时加载生效。未开启调试模式或权限不足时返回
+`403`。
 
 ### `GET /api/debug/memory/heap`
 
@@ -73,4 +74,5 @@ category: API
 
 ### `GET /api/debug/memory/runtime`
 
-获取 Go 运行时内存、堆/栈细分以及 Off-heap 评估数据。响应：`application/x-protobuf`，`RuntimeMemoryBreakdown`。包含 `process_rss`、`process_vss`、`go_retained`、`heap_inuse`、`heap_alloc`、`heap_sys`、`off_heap_runtime_estimate` 等字段。
+获取 Go 运行时内存、堆/栈细分以及 Off-heap 评估数据。响应：`application/x-protobuf`，`RuntimeMemoryBreakdown`。包含
+`process_rss`、`process_vss`、`go_retained`、`heap_inuse`、`heap_alloc`、`heap_sys`、`off_heap_runtime_estimate` 等字段。

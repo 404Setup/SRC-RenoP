@@ -43,7 +43,7 @@ repositories:
 | `name`                  | 仓库 ID（访问路径：`http://host:port/{name}/…`）                                   |
 | `visibility`            | `PUBLIC` 匿名可读；`HIDDEN` 限制列表展示；`PRIVATE` 需要读取权限                   |
 | `allow_redeployment`    | 是否允许覆盖已有制品路径（默认：releases/private 为 `false`，snapshots 为 `true`） |
-| `require_gpg_signature` | 是否要求受保护制品提供独立 GPG 签名                                                |
+| `require_gpg_signature` | 是否要求 `.jar`、`.pom`、`.module` 上传提供独立 GPG 签名，并在验证完成前暂不发布   |
 | `mirrors`               | 上游 Maven 镜像代理列表（可选）                                                    |
 | `s3`                    | 该仓库的 S3 兼容对象存储后端配置（可选）                                           |
 
@@ -103,4 +103,5 @@ repositories:
 
 - [配置概览](./overview.md)
 - [存储 API](../api/storage.md)
+- [GPG 签名](../api/gpg.md)
 - [Maven 客户端配置](../getting-started/maven-client.md)

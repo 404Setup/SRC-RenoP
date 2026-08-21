@@ -347,6 +347,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "Token Generate",
     "audit.action.USER_PERMISSION_UPDATE": "Permission Update",
     "audit.action.LOG_CLEAR": "Log Clear",
+    "audit.action.GPG_UPDATE": "GPG Key Update",
+    "audit.action.UPLOAD_QUEUED_GPG": "GPG Upload Queued",
 
     "settings.auditLogTitle": "Activity Log Settings",
     "settings.auditLogSubtitle": "Configure activity log retention duration and maximum entry limits.",

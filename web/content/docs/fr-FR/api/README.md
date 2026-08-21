@@ -8,9 +8,9 @@ category: API
 
 Adresse d’écoute par défaut : `0.0.0.0:3000`.
 
-| Chemin      | Rôle                                                            |
-|-------------|------------------------------------------------------------------|
-| `/api/*`    | API d’administration (login, réglages, statut, …)               |
+| Chemin      | Rôle                                                           |
+|-------------|----------------------------------------------------------------|
+| `/api/*`    | API d’administration (login, réglages, statut, …)              |
 | `/{repo}/…` | Disposition de dépôt Maven (téléchargement/upload/suppression) |
 
 Les corps d’erreur sont souvent du texte brut (`Unauthorized`, `Forbidden`, `Not found`). Faites d’abord confiance au
@@ -18,16 +18,17 @@ code de statut.
 
 ## Index
 
-| Fichier                                  | Contenu                                                            |
-|------------------------------------------|--------------------------------------------------------------------|
-| [authentication.md](./authentication.md) | Connexion, sessions, permissions                                   |
-| [tokens.md](./tokens.md)                 | Gestion des comptes (manager)                                      |
-| [maven.md](./maven.md)                   | Parcourir, versions, badge, génération de POM                      |
-| [status.md](./status.md)                 | Santé et statut d’exécution                                        |
-| [settings.md](./settings.md)             | Domaines de config, dépôts, reconstruction d’index                 |
-| [updater.md](./updater.md)               | Mises à jour en ligne/hors ligne                                   |
-| [storage.md](./storage.md)               | GET/PUT/DELETE sur les chemins de dépôt, upload découpé optionnel  |
-| [rate-limit.md](./rate-limit.md)         | Limites IP, ban après échecs d’auth, plafond de requêtes           |
+| Fichier                                  | Contenu                                                           |
+|------------------------------------------|-------------------------------------------------------------------|
+| [authentication.md](./authentication.md) | Connexion, sessions, permissions                                  |
+| [tokens.md](./tokens.md)                 | Gestion des comptes (manager)                                     |
+| [maven.md](./maven.md)                   | Parcourir, versions, badge, génération de POM                     |
+| [gpg.md](./gpg.md)                       | Clés GPG, téléversements signés et vérification                   |
+| [status.md](./status.md)                 | Santé et statut d’exécution                                       |
+| [settings.md](./settings.md)             | Domaines de config, dépôts, reconstruction d’index                |
+| [updater.md](./updater.md)               | Mises à jour en ligne/hors ligne                                  |
+| [storage.md](./storage.md)               | GET/PUT/DELETE sur les chemins de dépôt, upload découpé optionnel |
+| [rate-limit.md](./rate-limit.md)         | Limites IP, ban après échecs d’auth, plafond de requêtes          |
 
 Schéma machine : [openapi.yaml](/assets/openapi.yaml).  
 Définitions Proto : `proto/api/v1/api.proto` (code Go généré sous `pb/`).
@@ -52,6 +53,10 @@ La plupart des points d’accès utilisent encore JSON. Ceux-ci utilisent `appli
 | `PUT /api/settings/maven/repositories/:name` | request            |
 | `GET /api/maven/details…`                    | response           |
 | `GET /api/maven/repo-details/:repo`          | response           |
+| `GET /api/maven/signatures…`                 | response           |
+| `GET /api/auth/profile/gpg`                  | response           |
+| `POST /api/auth/profile/gpg`                 | request + response |
+| `GET /api/auth/profile/gpg/releases`         | response           |
 | `POST /api/upload/chunked/`                  | request + response |
 | `POST /api/upload/chunked/:id/complete`      | response           |
 

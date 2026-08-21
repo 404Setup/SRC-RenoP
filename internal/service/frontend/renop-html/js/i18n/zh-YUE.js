@@ -305,6 +305,8 @@ export default {
     "audit.action.TOKEN_GENERATE": "Token生成",
     "audit.action.USER_PERMISSION_UPDATE": "權限更新",
     "audit.action.LOG_CLEAR": "日誌清理",
+    "audit.action.GPG_UPDATE": "GPG 密鑰更新",
+    "audit.action.UPLOAD_QUEUED_GPG": "GPG 上載排隊",
 
     "settings.auditLogTitle": "行為日誌設定",
     "settings.auditLogSubtitle": "設定行為日誌保留幾耐同最大條數限制。",

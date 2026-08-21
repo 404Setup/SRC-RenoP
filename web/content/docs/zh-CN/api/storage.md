@@ -46,6 +46,12 @@ curl -u admin:SECRET -T artifact.jar \
 
 服务端会按配置更新制品索引、生成可选校验和并执行 S3 同步。客户端所见为标准 Maven 仓库布局。
 
+#### 带 GPG 签名的 Maven 制品
+
+`.jar`、`.pom` 和 `.module` 属于受保护的 Maven 制品。要发布带 OpenPGP 分离签名的制品，请上传制品及其匹配的
+小写 `.asc` 文件（例如 `demo-1.0.0.pom.asc`）。当签名属于同一批上传时，在制品请求中设置
+`X-RenoP-GPG-Signature-Expected: true`。仓库设置 `require_gpg_signature: true` 后会自动要求签名。签名必须通过上传者已注册公钥的验证后，制品才会发布。完整流程及签名详情接口见 [GPG 签名](./gpg.md)。
+
 ### 分块上传（可选）
 
 认证要求与存储写入一致：会话 cookie、Basic 或 Bearer，且对目标仓库具备写权限。
@@ -66,6 +72,7 @@ init 与 complete 使用 **`application/x-protobuf`**（`ChunkedUploadInitReques
 | `size`               | 文件总字节数                             |
 | `generate_checksums` | 是否自动生成并写入校验和文件             |
 | `chunk_size`         | 首选分片大小（可选；由服务端规范化处理） |
+| `gpg_signature_expected` | 受保护制品是否需要匹配的分离签名       |
 
 响应字段：`upload_id`、`chunk_size`、`chunk_count`、`purpose`。后续分片上传必须使用返回的 `chunk_size` 与 `chunk_count`。
 

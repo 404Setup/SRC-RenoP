@@ -63,7 +63,8 @@ Change host/port for your deploy.
 
 ## Credentials (`~/.m2/settings.xml`)
 
-PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. Basic auth: username + password **or** upload token ([Authentication](../api/authentication.md)).
+PUBLIC repos often need no auth for reads. Deploy and PRIVATE need credentials. Basic auth: username + password **or**
+upload token ([Authentication](../api/authentication.md)).
 
 ```xml
 <settings>
