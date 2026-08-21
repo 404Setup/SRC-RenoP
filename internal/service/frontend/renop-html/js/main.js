@@ -24,6 +24,7 @@ import {fetchTokens} from './users.js';
 import {populateRoles} from './users/modal.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
+import {initMessageCenter} from './messages.js';
 
 initI18n();
 
@@ -322,8 +323,13 @@ export function updateCopyrightFooter() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+/**
+ * Initialize the application shell after the document is ready.
+ * @returns {Promise<void>}
+ */
+async function initializeApplication() {
     initTheme();
+    initMessageCenter();
 
     document.querySelectorAll('.snippet-tabs').forEach(enableDragToScroll);
     document.querySelectorAll('.snippet-content').forEach(enableDragToScroll);
@@ -336,7 +342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const modalIds = [
         'create-token-modal', 'user-result-modal', 'login-modal', 'privacy-policy-modal', 'repo-mirrors-modal',
-        'language-modal', 'renop-confirm-container', 'renop-prompt-container'
+        'language-modal', 'message-center-modal', 'renop-confirm-container', 'renop-prompt-container'
     ];
     const _checkModals = () => {
         updateModalInertState();
@@ -453,4 +459,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (e) {
     }
-});
+}
+
+document.addEventListener('DOMContentLoaded', initializeApplication);

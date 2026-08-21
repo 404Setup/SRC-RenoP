@@ -29,6 +29,7 @@ import (
 	"renop/internal/service/frontend"
 	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/message"
 	"renop/internal/service/settings"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
@@ -99,6 +100,7 @@ func main() {
 	status.SetupRoutes(apiGroup, state)
 	status.SetupDebugRoutes(apiGroup)
 	api.SetupApiRoutes(apiGroup, state)
+	message.SetupRoutes(apiGroup, state)
 	upload.SetupChunkedUploadRoutes(apiGroup, state)
 	settings.SetupSettingsRoutes(apiGroup.Group("/settings"), state)
 	updater.SetupUpdaterRoutes(apiGroup, state)

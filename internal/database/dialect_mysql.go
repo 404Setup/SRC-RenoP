@@ -173,6 +173,29 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		INDEX idx_audit_logs_created_at (created_at)
 	);`
 
+	userMessagesTable := `
+	CREATE TABLE IF NOT EXISTS user_messages (
+		id CHAR(36) PRIMARY KEY,
+		recipient VARCHAR(255) NOT NULL,
+		sender VARCHAR(255) NOT NULL,
+		kind VARCHAR(64) NOT NULL,
+		severity VARCHAR(16) NOT NULL,
+		title VARCHAR(240) NOT NULL,
+		body TEXT NOT NULL,
+		payload_json TEXT NOT NULL,
+		action_kind VARCHAR(64) NOT NULL DEFAULT '',
+		action_status VARCHAR(16) NOT NULL DEFAULT '',
+		created_at BIGINT NOT NULL,
+		read_at BIGINT NOT NULL DEFAULT 0,
+		acted_at BIGINT NOT NULL DEFAULT 0,
+		expires_at BIGINT NOT NULL DEFAULT 0,
+		dedupe_key VARCHAR(255) NULL,
+		UNIQUE KEY uq_user_messages_dedupe (recipient, dedupe_key),
+		INDEX idx_user_messages_recipient_time (recipient, created_at DESC, id DESC),
+		INDEX idx_user_messages_unread (recipient, read_at, expires_at),
+		INDEX idx_user_messages_action (action_kind, action_status, expires_at)
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
@@ -198,6 +221,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(auditLogsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(userMessagesTable); err != nil {
 		return err
 	}
 

@@ -177,13 +177,13 @@ export function updateAuthUI(isLoggedIn, name = '', isManager = false, permissio
         if (avatarDot) avatarDot.textContent = '';
     }
 
-    document.querySelectorAll('.manager-only').forEach(el => {
-        el.style.display = isManager ? 'inline-block' : 'none';
-    });
+    for (const element of document.querySelectorAll('.manager-only')) {
+        setAuthControlledDisplay(element, isManager);
+    }
 
-    document.querySelectorAll('.user-only').forEach(el => {
-        el.style.display = isLoggedIn ? 'inline-block' : 'none';
-    });
+    for (const element of document.querySelectorAll('.user-only')) {
+        setAuthControlledDisplay(element, isLoggedIn);
+    }
 
     const visibleTabs = Array.from(document.querySelectorAll('#tabs .tab')).filter(el => el.style.display !== 'none');
     const tabsContainer = document.querySelector('#tabs')?.closest('.tabs-container');
@@ -213,6 +213,20 @@ export function updateAuthUI(isLoggedIn, name = '', isManager = false, permissio
         localStorage.setItem('selectedTab', 'overview');
         requestSwitchTab('overview');
     }
+
+    window.dispatchEvent(new CustomEvent('authChanged', {
+        detail: {isLoggedIn, isManager, username: name}
+    }));
+}
+
+/**
+ * Preserve the intended layout mode of controls gated by authentication.
+ * @param {HTMLElement} element - Auth-controlled element.
+ * @param {boolean} visible - Whether the current session may see it.
+ * @returns {void}
+ */
+function setAuthControlledDisplay(element, visible) {
+    element.style.display = visible ? (element.dataset.authDisplay || 'inline-block') : 'none';
 }
 
 /**

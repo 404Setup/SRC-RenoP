@@ -29,6 +29,12 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
   to 10 public-key IDs; HTTPS key-server lookups are response-bounded, validate every resolved address as public, use
   bounded IPv4-first address fallback for direct connections, can use the selected global proxy, and cache keys in the
   database.
+- **`internal/service/message/`**: Durable user message-center API. Feature modules deliver typed, user-scoped messages
+  with server-owned action kinds (never callback URLs); users can read, remove completed notifications, or clear all
+  dismissible notifications without losing pending workflow requests, while managers
+  can send bounded plain-text notices to named users or all users. A manager-only, prefix-bounded username search powers
+  recipient autocomplete without exposing token secrets. The embedded frontend polls only the unread count and provides
+  the matching localized message center and manager composer.
 - **`internal/service/storage/gpg_*.go`**: Durable, single-threaded GPG publication queue for `.jar`, `.pom`, and
   `.module` uploads. Pending files live under the private `.renop.tmp.gpg` quarantine, remain persistently blocked from
   the file index across rebuilds/restarts, and are published only after verification. Terminal state and failure reasons

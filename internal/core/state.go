@@ -51,6 +51,7 @@ type StateDB interface {
 	GetTokenByName(name string) (*AccessToken, error)
 	GetTokenBySecret(secret string) (*AccessToken, error)
 	GetAllTokens() ([]*AccessToken, error)
+	SearchTokenNames(prefix string, limit int, now int64) ([]string, error)
 	CountTokens() (uint64, error)
 	SaveToken(token *AccessToken) error
 	DeleteToken(name string) error
@@ -96,6 +97,15 @@ type StateDB interface {
 	GetAuditLogs(username string, limit, offset int) ([]*AuditLogEntry, int, error)
 	DeleteAuditLogsByUsername(username string) error
 	CleanExpiredAuditLogs(retentionDays int, maxRows int) error
+	SaveMessages(messages []*UserMessage) error
+	ListMessages(username string, limit int, beforeCreatedAt int64, beforeID string, now int64) ([]*UserMessage, error)
+	CountUnreadMessages(username string, now int64) (int, error)
+	GetUserMessage(id, username string, now int64) (*UserMessage, error)
+	MarkMessageRead(id, username string, readAt int64) (bool, error)
+	MarkAllMessagesRead(username string, readAt int64) (int64, error)
+	TransitionMessageAction(id, username, expectedStatus, newStatus string, actedAt int64) (bool, error)
+	DeleteUserMessage(id, username string) (bool, error)
+	DeleteUserMessages(username string) (int64, error)
 }
 
 type AppStateInner struct {

@@ -170,6 +170,26 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		created_at BIGINT NOT NULL
 	);`
 
+	userMessagesTable := `
+	CREATE TABLE IF NOT EXISTS user_messages (
+		id CHAR(36) PRIMARY KEY,
+		recipient VARCHAR(255) NOT NULL,
+		sender VARCHAR(255) NOT NULL,
+		kind VARCHAR(64) NOT NULL,
+		severity VARCHAR(16) NOT NULL,
+		title VARCHAR(240) NOT NULL,
+		body TEXT NOT NULL,
+		payload_json TEXT NOT NULL DEFAULT '{}',
+		action_kind VARCHAR(64) NOT NULL DEFAULT '',
+		action_status VARCHAR(16) NOT NULL DEFAULT '',
+		created_at BIGINT NOT NULL,
+		read_at BIGINT NOT NULL DEFAULT 0,
+		acted_at BIGINT NOT NULL DEFAULT 0,
+		expires_at BIGINT NOT NULL DEFAULT 0,
+		dedupe_key VARCHAR(255) NULL,
+		UNIQUE (recipient, dedupe_key)
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
@@ -195,6 +215,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(auditLogsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(userMessagesTable); err != nil {
 		return err
 	}
 
@@ -234,6 +257,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		{name: "idx_audit_logs_user_time", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);"},
 		{name: "idx_audit_logs_user_id", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);"},
 		{name: "idx_audit_logs_created_at", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);"},
+		{name: "idx_user_messages_recipient_time", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_recipient_time ON user_messages(recipient, created_at DESC, id DESC);"},
+		{name: "idx_user_messages_unread", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_unread ON user_messages(recipient, read_at, expires_at);"},
+		{name: "idx_user_messages_action", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_action ON user_messages(action_kind, action_status, expires_at);"},
 	}
 	for _, migration := range indexMigrations {
 		if _, err := db.Exec(migration.query); err != nil {

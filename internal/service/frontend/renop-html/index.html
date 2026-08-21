@@ -61,6 +61,16 @@
             </button>
             <div class="divider" id="nav-divider" aria-hidden="true"></div>
             <button id="login-btn" type="button" class="nav-sign-in-btn" data-i18n="nav.signIn">Sign in</button>
+            <button id="message-center-btn" class="icon-btn message-center-trigger user-only" type="button"
+                    data-auth-display="inline-flex"
+                    style="display: none;" title="Messages" data-i18n-title="messages.open"
+                    data-i18n-aria-label="messages.open" aria-label="Open message center">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+                    <path d="M10 21h4"/>
+                </svg>
+                <span id="message-unread-badge" class="message-unread-badge" hidden>0</span>
+            </button>
             <div id="user-info" class="nav-user-info" style="display: none;">
                 <span id="welcome-text" class="user-text">
                     <span class="user-avatar-dot" id="user-avatar-dot" aria-hidden="true"></span>
@@ -743,6 +753,77 @@
         </div>
         <div class="modal-body">
             <div id="privacy-policy-content" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="message-center-modal" class="modal" style="display: none;">
+    <div class="modal-backdrop" id="message-center-backdrop"></div>
+    <div class="modal-content message-center-modal-content">
+        <button id="message-center-close" class="close-btn" type="button" aria-label="Close message center" data-i18n-aria-label="modal.close">&times;</button>
+        <div class="modal-header message-center-header">
+            <div>
+                <h2 class="modal-title" data-i18n="messages.title">Messages</h2>
+                <p class="modal-subtitle" data-i18n="messages.subtitle">Notifications and requests for your account.</p>
+            </div>
+        </div>
+        <div id="message-center-body" class="modal-body message-center-body">
+            <div class="message-center-toolbar">
+                <button id="message-clear-all" type="button" class="pill-btn pill-btn--danger pill-btn--sm message-clear-all"
+                        aria-busy="false" data-i18n="messages.clearAll">Clear notifications</button>
+                <button id="message-mark-all-read" type="button" class="pill-btn pill-btn--soft pill-btn--sm" data-i18n="messages.markAllRead">Mark all read</button>
+                <button id="message-compose-toggle" type="button" class="pill-btn pill-btn--primary pill-btn--sm manager-only"
+                        style="display: none;" aria-controls="message-compose-region" aria-expanded="false"
+                        data-i18n="messages.compose">Send notification</button>
+            </div>
+            <div id="message-compose-region" class="message-compose-region" hidden>
+                <div class="message-compose-shell">
+                    <form id="message-compose-form" class="message-compose-form" action="javascript:void(0);">
+                        <div class="message-compose-heading">
+                            <h3 data-i18n="messages.composeTitle">New notification</h3>
+                            <p data-i18n="messages.composeHint">Send a plain-text notification to selected users or everyone.</p>
+                        </div>
+                        <div class="message-compose-field message-compose-recipient-field">
+                            <label for="message-compose-recipients" data-i18n="messages.recipients">Recipients</label>
+                            <span class="message-recipient-input-wrap">
+                                <input id="message-compose-recipients" type="text" maxlength="4096" autocomplete="off"
+                                       role="combobox" aria-autocomplete="list" aria-expanded="false"
+                                       aria-controls="message-recipient-suggestions" placeholder="alice, bob"
+                                       data-i18n-placeholder="messages.recipientsPlaceholder">
+                                <span id="message-recipient-suggestions" class="custom-select-dropdown message-recipient-suggestions"
+                                      role="listbox"></span>
+                            </span>
+                        </div>
+                        <div class="message-compose-broadcast">
+                            <span id="message-compose-all-label" data-i18n="messages.sendAll">Send to all users</span>
+                            <span id="message-compose-all" class="message-compose-all-switch"></span>
+                        </div>
+                        <div class="message-compose-field">
+                            <span data-i18n="messages.severity">Severity</span>
+                            <span id="message-compose-severity" class="message-compose-severity"></span>
+                        </div>
+                        <label class="message-compose-field">
+                            <span data-i18n="messages.subject">Subject</span>
+                            <input id="message-compose-title" type="text" maxlength="240" required>
+                        </label>
+                        <label class="message-compose-field">
+                            <span data-i18n="messages.body">Message</span>
+                            <textarea id="message-compose-body" maxlength="8000" rows="4" required></textarea>
+                        </label>
+                        <div class="message-compose-actions">
+                            <button id="message-compose-cancel" type="button" class="pill-btn pill-btn--soft" data-i18n="common.cancel">Cancel</button>
+                            <button id="message-compose-submit" type="submit" class="pill-btn pill-btn--primary">
+                                <span class="message-compose-submit-label" data-i18n="messages.send">Send</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="message-center-loading" class="message-center-state" data-i18n="messages.loading">Loading messages...</div>
+            <div id="message-center-empty" class="message-center-state" hidden data-i18n="messages.empty">No messages yet.</div>
+            <div id="message-center-list" class="message-center-list"></div>
+            <button id="message-load-more" type="button" class="pill-btn pill-btn--soft message-load-more"
+                    aria-busy="false" data-next-cursor="" hidden data-i18n="messages.loadMore">Load more</button>
         </div>
     </div>
 </div>

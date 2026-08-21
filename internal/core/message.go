@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ */
+
+package core
+
+import "encoding/json"
+
+const (
+	MessageActionPending   = "pending"
+	MessageActionAccepted  = "accepted"
+	MessageActionRejected  = "rejected"
+	MessageActionCancelled = "cancelled"
+)
+
+// UserMessage is a durable, user-scoped notification. ActionKind and Payload
+// allow feature modules to attach a typed workflow without letting clients
+// choose arbitrary callback URLs.
+type UserMessage struct {
+	ID           string          `json:"id"`
+	Recipient    string          `json:"recipient"`
+	Sender       string          `json:"sender"`
+	Kind         string          `json:"kind"`
+	Severity     string          `json:"severity"`
+	Title        string          `json:"title"`
+	Body         string          `json:"body"`
+	Payload      json.RawMessage `json:"payload"`
+	ActionKind   string          `json:"action_kind,omitempty"`
+	ActionStatus string          `json:"action_status,omitempty"`
+	CreatedAt    int64           `json:"created_at"`
+	ReadAt       int64           `json:"read_at"`
+	ActedAt      int64           `json:"acted_at"`
+	ExpiresAt    int64           `json:"expires_at"`
+	DedupeKey    string          `json:"-"`
+}

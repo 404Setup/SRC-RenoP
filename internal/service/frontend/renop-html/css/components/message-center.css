@@ -1,0 +1,499 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+.message-center-trigger {
+    position: relative;
+    align-self: center;
+    vertical-align: middle;
+}
+
+.message-unread-badge {
+    position: absolute;
+    top: -0.25rem;
+    right: -0.3rem;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.2rem;
+    border: 2px solid var(--bg-color);
+    border-radius: 999px;
+    color: #fff;
+    background: #ef4444;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 0.8rem;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.message-center-modal-content {
+    width: min(680px, calc(100vw - 2rem));
+    max-width: 680px;
+    max-height: min(86vh, 780px);
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.message-center-header {
+    padding-bottom: 0.6rem;
+}
+
+.message-center-header .modal-subtitle,
+.message-compose-heading p {
+    margin: 0.35rem 0 0;
+    color: color-mix(in srgb, var(--text-color) 66%, transparent);
+    font-size: 0.85rem;
+}
+
+.message-center-body {
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.message-center-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.message-clear-all {
+    position: relative;
+    margin-right: auto;
+}
+
+.message-clear-all.is-loading {
+    padding-left: 2rem;
+}
+
+.message-clear-all.is-loading::before {
+    position: absolute;
+    top: 50%;
+    left: 0.7rem;
+    width: 0.65rem;
+    height: 0.65rem;
+    margin-top: -0.41rem;
+    border: 2px solid color-mix(in srgb, currentColor 32%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    content: '';
+    animation: messageSendSpin 0.7s linear infinite;
+}
+
+.message-compose-actions,
+.message-card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.message-compose-region {
+    box-sizing: border-box;
+    padding: 0;
+}
+
+.message-compose-shell {
+    padding: 0.8rem 0 1rem;
+}
+
+.message-compose-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(10rem, 0.42fr);
+    gap: 0.8rem 0.9rem;
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--item-hover-bg) 28%, var(--card-bg));
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.message-compose-heading,
+.message-compose-actions,
+.message-compose-field:has(textarea) {
+    grid-column: 1 / -1;
+}
+
+.message-compose-heading h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.message-compose-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+    color: color-mix(in srgb, var(--text-color) 80%, transparent);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.message-compose-field input,
+.message-compose-field textarea {
+    width: 100%;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-color);
+    background: var(--bg-color);
+    font: inherit;
+    font-weight: 400;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.message-compose-field input:focus,
+.message-compose-field textarea:focus {
+    border-color: var(--link-hover-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 18%, transparent);
+}
+
+.message-compose-field textarea {
+    resize: vertical;
+    min-height: 6rem;
+}
+
+.message-compose-broadcast {
+    display: inline-flex;
+    align-items: center;
+    align-self: end;
+    justify-self: start;
+    gap: 0.75rem;
+    min-height: 2.35rem;
+    font-size: 0.82rem;
+}
+
+.message-compose-all-switch,
+.message-compose-all-control {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.message-center-modal-content .message-compose-all-control .cfg-toggle {
+    display: inline-flex;
+    margin: 0;
+    opacity: 1;
+}
+
+.message-center-modal-content .message-compose-all-control .cfg-toggle-track {
+    display: block;
+}
+
+.message-recipient-input-wrap {
+    position: relative;
+    display: block;
+}
+
+.message-recipient-suggestions {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-height: 210px;
+}
+
+.message-recipient-suggestion {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+}
+
+.message-compose-severity,
+.message-compose-severity .custom-select-wrapper,
+.message-compose-severity .custom-select-btn {
+    width: 100%;
+    max-width: none;
+}
+
+.message-compose-severity .custom-select-btn {
+    min-height: 2.35rem;
+    padding: 0.6rem 0.7rem;
+    background: var(--bg-color);
+    font-size: 0.78rem;
+    font-weight: 400;
+}
+
+.message-compose-submit-label {
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+#message-compose-submit {
+    position: relative;
+    min-width: 5.25rem;
+}
+
+#message-compose-submit.is-sending .message-compose-submit-label,
+#message-compose-submit.is-success .message-compose-submit-label {
+    opacity: 0;
+    transform: scale(0.85);
+}
+
+#message-compose-submit.is-sending::after,
+#message-compose-submit.is-success::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    content: '';
+}
+
+#message-compose-submit.is-sending::after {
+    width: 0.85rem;
+    height: 0.85rem;
+    margin: -0.53rem 0 0 -0.53rem;
+    border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: messageSendSpin 0.7s linear infinite;
+}
+
+#message-compose-submit.is-success {
+    border-color: #16a34a;
+    background: #16a34a;
+}
+
+#message-compose-submit.is-success::after {
+    width: 0.45rem;
+    height: 0.8rem;
+    margin: -0.55rem 0 0 -0.22rem;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    animation: messageSendSuccess 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.message-compose-form.is-sent {
+    border-color: color-mix(in srgb, #16a34a 55%, var(--border-color));
+    box-shadow: 0 0 0 3px color-mix(in srgb, #16a34a 12%, transparent);
+}
+
+.message-center-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 0.8rem;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: 0.65rem;
+}
+
+.message-center-list:empty {
+    display: none;
+}
+
+.message-center-state {
+    box-sizing: border-box;
+    padding: 2rem 1rem;
+    color: color-mix(in srgb, var(--text-color) 58%, transparent);
+    text-align: center;
+}
+
+.message-card {
+    position: relative;
+    box-sizing: border-box;
+    padding: 0.9rem 1rem;
+    border: 0;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
+    transition: background-color 0.18s ease;
+}
+
+.message-card:last-child {
+    border-bottom: 0;
+}
+
+.message-card:hover {
+    background: color-mix(in srgb, var(--item-hover-bg) 42%, transparent);
+}
+
+.message-card.is-unread {
+    background: color-mix(in srgb, var(--link-hover-color) 6%, transparent);
+}
+
+.message-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.message-card-title-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.55rem;
+}
+
+.message-card-title {
+    min-width: 0;
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.message-severity-badge {
+    flex: 0 0 auto;
+    padding: 0.18rem 0.42rem;
+    border-radius: 999px;
+    color: #2563eb;
+    background: color-mix(in srgb, #3b82f6 12%, transparent);
+    font-size: 0.65rem;
+    font-weight: 650;
+    line-height: 1.25;
+}
+
+.message-card[data-severity="success"] .message-severity-badge {
+    color: #16a34a;
+    background: color-mix(in srgb, #22c55e 12%, transparent);
+}
+
+.message-card[data-severity="warning"] .message-severity-badge {
+    color: #b45309;
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+}
+
+.message-card[data-severity="error"] .message-severity-badge {
+    color: #dc2626;
+    background: color-mix(in srgb, #ef4444 12%, transparent);
+}
+
+.message-card-unread-dot {
+    flex: 0 0 auto;
+    width: 0.48rem;
+    height: 0.48rem;
+    margin-top: 0.35rem;
+    border-radius: 50%;
+    background: var(--accent-color, #3b82f6);
+}
+
+.message-card-body {
+    margin: 0.55rem 0 0.65rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: color-mix(in srgb, var(--text-color) 78%, transparent);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.message-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.message-card-meta {
+    color: color-mix(in srgb, var(--text-color) 52%, transparent);
+    font-size: 0.72rem;
+}
+
+.message-action-status {
+    padding: 0.24rem 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-color) 7%, transparent);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.message-load-more {
+    position: relative;
+    z-index: 1;
+    margin: 0.85rem auto 0;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.message-load-more.is-loading {
+    padding-left: 2rem;
+}
+
+.message-load-more.is-loading::before {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-top: -0.44rem;
+    border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    content: '';
+    animation: messageSendSpin 0.7s linear infinite;
+}
+
+.message-card.is-entering {
+    animation: messageCardEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.message-card.is-leaving {
+    pointer-events: none;
+}
+
+@keyframes messageSendSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes messageSendSuccess {
+    from { opacity: 0; transform: rotate(45deg) scale(0.5); }
+    to { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+
+@keyframes messageCardEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+    .message-center-modal-content {
+        width: calc(100vw - 1rem);
+        max-height: 92vh;
+    }
+
+    .message-compose-form {
+        grid-template-columns: 1fr;
+    }
+
+    .message-center-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .message-compose-heading,
+    .message-compose-actions,
+    .message-compose-field:has(textarea) {
+        grid-column: 1;
+    }
+
+    .message-compose-broadcast {
+        align-self: start;
+    }
+
+    .message-card-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .message-card-actions {
+        width: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .message-center-modal-content,
+    .message-card.is-entering,
+    #message-compose-submit.is-success::after {
+        animation: none;
+        transition: none;
+    }
+}

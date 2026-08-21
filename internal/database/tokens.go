@@ -220,6 +220,9 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete sessions for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM user_messages WHERE recipient = ?`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete messages for token (%s): %w", lowerName, err)
+	}
 	if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete token (%s): %w", lowerName, err)
 	}
@@ -290,6 +293,12 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	if _, err := tx.Exec(`UPDATE gpg_releases SET uploader = ? WHERE uploader = ?`, lowerNew, lowerOld); err != nil {
 		return fmt.Errorf("failed to rename GPG release uploader from %s to %s: %w", lowerOld, lowerNew, err)
 	}
+	if _, err := tx.Exec(`UPDATE user_messages SET recipient = ? WHERE recipient = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename message recipient from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE user_messages SET sender = ? WHERE sender = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename message sender from %s to %s: %w", lowerOld, lowerNew, err)
+	}
 
 	if err := tx.Commit(); err != nil {
 		return err
@@ -358,6 +367,41 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 	}
 
 	return tokens, nil
+}
+
+// SearchTokenNames returns a bounded, index-friendly prefix match without
+// loading token secrets or permission data into the autocomplete request path.
+func (db *DB) SearchTokenNames(prefix string, limit int, now int64) ([]string, error) {
+	if db == nil || db.SqlDB == nil {
+		return []string{}, nil
+	}
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	if prefix == "" {
+		return []string{}, nil
+	}
+	if limit < 1 || limit > 20 {
+		limit = 8
+	}
+	escapedPrefix := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(prefix) + "%"
+	rows, err := db.SqlDB.Query(`SELECT name FROM tokens
+		WHERE name LIKE ? ESCAPE '!' AND (expires_at IS NULL OR expires_at > ?)
+		ORDER BY name ASC LIMIT ?`, escapedPrefix, now, limit)
+	if err != nil {
+		return nil, fmt.Errorf("search token names: %w", err)
+	}
+	defer rows.Close()
+	names := make([]string, 0, limit)
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, fmt.Errorf("scan token name: %w", err)
+		}
+		names = append(names, name)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate token names: %w", err)
+	}
+	return names, nil
 }
 
 func escapeJSONLikeSecret(secret string) string {
