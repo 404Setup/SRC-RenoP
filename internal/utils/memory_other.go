@@ -12,7 +12,25 @@
 
 package utils
 
-func InitLinuxMemoryTuning() {}
+import (
+	"os"
+	"runtime/debug"
+	"sync"
+)
+
+var otherMemoryOnce sync.Once
+
+func InitMemoryTuning() {
+	otherMemoryOnce.Do(func() {
+		if os.Getenv("GOGC") == "" {
+			debug.SetGCPercent(35)
+		}
+	})
+}
+
+func InitLinuxMemoryTuning() {
+	InitMemoryTuning()
+}
 
 // ScheduleNetworkWorkingSetTrim is only needed on Windows.
 func ScheduleNetworkWorkingSetTrim() {}

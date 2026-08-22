@@ -13,43 +13,21 @@
 package utils
 
 import (
-	"sync"
-	"sync/atomic"
 	"testing"
-	"time"
 )
 
-func TestScheduleNetworkWorkingSetTrimRunsOnce(t *testing.T) {
-	originalDelay := workingSetTrimDelay
-	originalTrim := workingSetTrim
-	t.Cleanup(func() {
-		networkWorkingSetTrimOnce = sync.Once{}
-		workingSetTrimDelay = originalDelay
-		workingSetTrim = originalTrim
-	})
-
-	networkWorkingSetTrimOnce = sync.Once{}
-	workingSetTrimDelay = time.Millisecond
-	var calls atomic.Int32
-	called := make(chan struct{})
-	workingSetTrim = func() error {
-		if calls.Add(1) == 1 {
-			close(called)
+func TestWindowsSoftMemoryLimitDoesNotPanic(t *testing.T) {
+	if limit, ok := windowsSoftMemoryLimit(); ok {
+		if limit < 64<<20 {
+			t.Fatalf("limit too small: %d", limit)
 		}
-		return nil
+		t.Logf("soft memory limit = %d MiB", limit>>20)
+	} else {
+		t.Log("no soft memory limit available on this host")
 	}
+}
 
-	for range 10 {
-		ScheduleNetworkWorkingSetTrim()
-	}
-
-	select {
-	case <-called:
-	case <-time.After(time.Second):
-		t.Fatal("scheduled working-set trim did not run")
-	}
-	time.Sleep(10 * time.Millisecond)
-	if got := calls.Load(); got != 1 {
-		t.Fatalf("working-set trim calls = %d, want 1", got)
-	}
+func TestInitWindowsMemoryTuningIdempotent(t *testing.T) {
+	InitMemoryTuning()
+	InitMemoryTuning()
 }

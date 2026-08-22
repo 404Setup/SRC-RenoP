@@ -31,6 +31,10 @@ type cgroupMemoryLocation struct {
 	files     []string
 }
 
+func InitMemoryTuning() {
+	InitLinuxMemoryTuning()
+}
+
 func InitLinuxMemoryTuning() {
 	linuxMemoryOnce.Do(func() {
 		if godebug, changed := linuxRuntimeDebug(os.Getenv("GODEBUG")); changed {

@@ -12,8 +12,6 @@ package main
 
 import (
 	"log"
-	"os"
-	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -44,10 +42,7 @@ func init() {
 }
 
 func main() {
-	if os.Getenv("GOGC") == "" {
-		debug.SetGCPercent(40)
-	}
-	utils.InitLinuxMemoryTuning()
+	utils.InitMemoryTuning()
 
 	state, context := bootstrap.Initialize()
 	bootstrap.StartServices(state, context)
