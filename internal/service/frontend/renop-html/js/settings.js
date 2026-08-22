@@ -854,7 +854,8 @@ function renderServerSettings(container, data) {
 
     const driverOptions = [
         {value: 'sqlite3', label: 'SQLite (sqlite3)'},
-        {value: 'mysql', label: 'MySQL'}
+        {value: 'mysql', label: 'MySQL'},
+        {value: 'postgres', label: 'PostgreSQL'}
     ];
 
     const dsnContainer = el('div', {class: 'cfg-dsn-container'});
@@ -863,7 +864,50 @@ function renderServerSettings(container, data) {
 
     function buildDsnFields(driver) {
         const fragment = document.createDocumentFragment();
-        if (driver === 'mysql') {
+        if (driver === 'postgres' || driver === 'postgresql' || driver === 'pgx' || driver === 'pg') {
+            const pgParts = parsePostgresDsn(currentConfig.database.dsn);
+
+            const updatePostgres = () => {
+                currentConfig.database.dsn = formatPostgresDsn(pgParts);
+                enableSave();
+            };
+
+            const hostInput = buildInput('text', pgParts.host, '127.0.0.1', e => {
+                pgParts.host = e.target.value;
+                updatePostgres();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbHost'), t('settings.dbHostHint'), hostInput));
+
+            const portInput = buildInput('number', pgParts.port, '5432', e => {
+                pgParts.port = e.target.value;
+                updatePostgres();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbPort'), t('settings.dbPortHint'), portInput));
+
+            const userInput = buildInput('text', pgParts.user, 'postgres', e => {
+                pgParts.user = e.target.value;
+                updatePostgres();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbUser'), t('settings.dbUserHint'), userInput));
+
+            const passInput = buildInput('password', pgParts.password, '••••••••', e => {
+                pgParts.password = e.target.value;
+                updatePostgres();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbPassword'), t('settings.dbPasswordHint'), passInput));
+
+            const dbNameInput = buildInput('text', pgParts.database, 'renop', e => {
+                pgParts.database = e.target.value;
+                updatePostgres();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbName'), t('settings.dbNameHint'), dbNameInput));
+
+            const paramsInput = buildInput('text', pgParts.params, 'sslmode=disable', e => {
+                pgParts.params = e.target.value;
+                updatePostgres();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbParams'), t('settings.dbParamsHint'), paramsInput));
+        } else if (driver === 'mysql') {
             const mysqlParts = parseMysqlDsn(currentConfig.database.dsn);
 
             const updateMysql = () => {
@@ -981,7 +1025,9 @@ function renderServerSettings(container, data) {
         currentConfig.database.driver = val;
         if (val === 'mysql' && (!currentConfig.database.dsn || !currentConfig.database.dsn.includes('tcp('))) {
             currentConfig.database.dsn = formatMysqlDsn(parseMysqlDsn(''));
-        } else if (val === 'sqlite3' && (!currentConfig.database.dsn || currentConfig.database.dsn.includes('tcp('))) {
+        } else if (val === 'postgres' && (!currentConfig.database.dsn || (!currentConfig.database.dsn.startsWith('postgres://') && !currentConfig.database.dsn.startsWith('postgresql://')))) {
+            currentConfig.database.dsn = formatPostgresDsn(parsePostgresDsn(''));
+        } else if (val === 'sqlite3' && (!currentConfig.database.dsn || currentConfig.database.dsn.includes('tcp(') || currentConfig.database.dsn.startsWith('postgres://') || currentConfig.database.dsn.startsWith('postgresql://'))) {
             currentConfig.database.dsn = 'renop.db';
         }
         updateDsnUI(val, true);
@@ -1136,6 +1182,107 @@ function formatMysqlDsn(parts) {
     dsn += 'tcp(' + addr + ')/' + db;
     if (params) {
         dsn += '?' + params;
+    }
+    return dsn;
+}
+
+/**
+ * Parses a PostgreSQL DSN string into components (user, password, host, port, database, params).
+ * @param {string} dsnStr - PostgreSQL DSN or connection URL string.
+ * @returns {object} Parsed components.
+ */
+function parsePostgresDsn(dsnStr) {
+    const defaults = {
+        user: 'postgres',
+        password: '',
+        host: '127.0.0.1',
+        port: '5432',
+        database: 'renop',
+        params: 'sslmode=disable',
+    };
+    if (!dsnStr || typeof dsnStr !== 'string') return defaults;
+    const str = dsnStr.trim();
+    if (!str) return defaults;
+
+    if (str.startsWith('postgres://') || str.startsWith('postgresql://')) {
+        try {
+            const parsedUrl = new URL(str);
+            const user = decodeURIComponent(parsedUrl.username || '');
+            const password = decodeURIComponent(parsedUrl.password || '');
+            const host = parsedUrl.hostname || '127.0.0.1';
+            const port = parsedUrl.port || '5432';
+            const database = (parsedUrl.pathname || '').replace(/^\//, '') || 'renop';
+            const params = parsedUrl.search ? parsedUrl.search.substring(1) : '';
+            return {
+                user: user || 'postgres',
+                password: password || '',
+                host: host || '127.0.0.1',
+                port: port || '5432',
+                database: database || 'renop',
+                params: params || 'sslmode=disable',
+            };
+        } catch {
+            // Fallback to manual parsing if URL constructor throws
+        }
+    }
+
+    if (str.includes('=')) {
+        const result = {...defaults, params: ''};
+        const extraParams = [];
+        const regex = /([a-zA-Z_]+)=('(?:\\'|[^'])*'|\S+)/g;
+        let match;
+        while ((match = regex.exec(str)) !== null) {
+            const key = match[1].toLowerCase();
+            let val = match[2];
+            if (val.startsWith("'") && val.endsWith("'")) {
+                val = val.slice(1, -1).replace(/\\'/g, "'");
+            }
+            if (key === 'user') result.user = val;
+            else if (key === 'password') result.password = val;
+            else if (key === 'host') result.host = val;
+            else if (key === 'port') result.port = val;
+            else if (key === 'dbname' || key === 'database') result.database = val;
+            else extraParams.push(`${key}=${val}`);
+        }
+        if (extraParams.length > 0) {
+            result.params = extraParams.join('&');
+        }
+        return result;
+    }
+
+    return defaults;
+}
+
+/**
+ * Formats PostgreSQL components into a standard PostgreSQL URL DSN string.
+ * @param {object} parts - PostgreSQL components (user, password, host, port, database, params).
+ * @returns {string} DSN string.
+ */
+function formatPostgresDsn(parts) {
+    const u = encodeURIComponent((parts.user || 'postgres').trim());
+    const p = parts.password || '';
+    const h = (parts.host || '127.0.0.1').trim();
+    const port = (parts.port || '5432').trim();
+    const db = (parts.database || 'renop').trim();
+    const params = (parts.params || '').trim();
+
+    let userPass = u;
+    if (p) {
+        userPass += ':' + encodeURIComponent(p);
+    }
+
+    let addr = h;
+    if (port) {
+        addr += ':' + port;
+    }
+
+    let dsn = 'postgres://';
+    if (userPass) {
+        dsn += userPass + '@';
+    }
+    dsn += addr + '/' + db;
+    if (params) {
+        dsn += '?' + (params.startsWith('?') ? params.slice(1) : params);
     }
     return dsn;
 }

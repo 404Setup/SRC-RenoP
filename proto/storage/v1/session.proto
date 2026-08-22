@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package renop.storage.v1;
 
-option go_package = "renop/pb";
+option go_package = "renop/pkg/pb";
 
 message StoredSession {
   string public_id = 1;

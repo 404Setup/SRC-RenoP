@@ -18,4 +18,4 @@ package pb
 //
 // Or via go generate from this package directory:
 //
-//go:generate protoc -I ../proto --go_out=.. --go_opt=module=renop ../proto/api/v1/api.proto ../proto/storage/v1/session.proto
+//go:generate protoc -I ../../proto --go_out=../.. --go_opt=module=renop ../../proto/api/v1/api.proto ../../proto/storage/v1/session.proto
