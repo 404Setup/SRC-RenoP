@@ -12,6 +12,7 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
 
 - **`server.go`**: Server main entry point.
 - **`internal/`**: Server core logic (HTTP routes, auth, Maven repository proxying, storage adapters for S3/Local Disk).
+- **`internal/database/`**: Pluggable database layer supporting **SQLite**, **MySQL**, and **PostgreSQL** (via `github.com/jackc/pgx/v5` stdlib driver `pgx`). Dialects encapsulate schema creation, shared column migrations, and dialect-specific upsert queries (`ON CONFLICT` / `ON DUPLICATE KEY UPDATE`). A zero-alloc lexer `RebindPostgres` translates standard `?` positional parameters into `$1, $2...` while safely ignoring string literals, identifiers, and comments. `*database.DB` and `*database.Tx` provide uniform query execution with automatic parameter rebinding.
 - **`internal/service/proxy/client.go`**: Bounded cache of HTTP clients for named global mirror-proxy selections.
   Mirrors store only a selector (`""` inherits global state, `direct` bypasses it); direct traffic reuses the shared
   outbound client.
@@ -91,6 +92,7 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
 - **PowerShell**: PowerShell 7 (`pwsh`)
 - **Protobuf Compiler**: `protoc` (with `protoc-gen-go` plugin)
 - **OpenPGP**: Backend verification uses `github.com/ProtonMail/go-crypto`; no browser-side signing dependency is used.
+- **Database Drivers**: Modern pure Go drivers — SQLite (`modernc.org/sqlite`), MySQL (`github.com/go-sql-driver/mysql`), and PostgreSQL (`github.com/jackc/pgx/v5`).
 
 ---
 
