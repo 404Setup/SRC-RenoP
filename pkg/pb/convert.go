@@ -11,6 +11,7 @@
 package pb
 
 import (
+	"strings"
 	"time"
 
 	"renop/internal/config"
@@ -146,6 +147,7 @@ func FromMirror(m config.Mirror) *Mirror {
 	return &Mirror{
 		Name:           m.Name,
 		Url:            m.Url,
+		ArtifactUrl:    m.ArtifactUrl,
 		Persist:        m.Persist,
 		CacheTtlSecs:   m.CacheTtlSecs,
 		NegativeCache:  m.NegativeCache,
@@ -185,6 +187,7 @@ func FromRepository(r *config.Repository) *Repository {
 	}
 	return &Repository{
 		Name:                r.Name,
+		Format:              r.NormalizedFormat(),
 		Visibility:          r.Visibility,
 		Mirrors:             mirrors,
 		AllowRedeployment:   r.AllowRedeployment,
@@ -439,6 +442,7 @@ func ToMirror(m *Mirror) config.Mirror {
 	out := config.Mirror{
 		Name:           m.Name,
 		Url:            m.Url,
+		ArtifactUrl:    m.ArtifactUrl,
 		Persist:        m.Persist,
 		CacheTtlSecs:   m.CacheTtlSecs,
 		NegativeCache:  m.NegativeCache,
@@ -493,6 +497,7 @@ func ToRepository(r *Repository) *config.Repository {
 	}
 	return &config.Repository{
 		Name:                r.Name,
+		Format:              strings.ToLower(strings.TrimSpace(r.Format)),
 		Visibility:          r.Visibility,
 		Mirrors:             mirrors,
 		AllowRedeployment:   r.AllowRedeployment,

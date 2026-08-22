@@ -27,6 +27,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/cargo"
 	"renop/internal/service/index"
 	"renop/internal/service/status"
 	"renop/internal/utils"
@@ -41,6 +42,12 @@ var (
 )
 
 var httpClient = newProxyHTTPClient()
+
+// escapeArtifactPath remains package-local for existing proxy benchmarks and
+// tests; Cargo-specific path handling lives in the cargo package.
+func escapeArtifactPath(path string) string {
+	return cargo.EscapePath(path)
+}
 
 const (
 	maxProxyArtifactSize = 512 << 20
@@ -57,7 +64,10 @@ func notifyArtifactStored(state *core.AppState, repo *config.Repository, localPa
 	}
 }
 
-func proxyResponseLimit(path string) int64 {
+func proxyResponseLimit(repo *config.Repository, path string) int64 {
+	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatCargo {
+		return cargo.ResponseLimit(path)
+	}
 	name := strings.ToLower(filepath.Base(path))
 	if name == "maven-metadata.xml" || strings.HasPrefix(name, "maven-metadata.xml.") {
 		return maxProxyMetadataSize
@@ -133,14 +143,6 @@ func canAllocateProxyDisk(state *core.AppState, bytes uint64) bool {
 	return status.CanAllocateDiskSpace(state, bytes+proxyDiskReserve)
 }
 
-func escapeArtifactPath(path string) string {
-	parts := strings.Split(path, "/")
-	for i := range parts {
-		parts[i] = strings.ReplaceAll(url.PathEscape(parts[i]), "%2B", "+")
-	}
-	return strings.Join(parts, "/")
-}
-
 func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePath string, data []byte) bool {
 	defer status.MarkStorageUpdated()
 	if IsS3Enabled != nil && IsS3Enabled(repo) && UploadStreamToS3 != nil {
@@ -197,8 +199,6 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		return nil, fiber.ErrBadRequest
 	}
 	path = sanitizedPath
-	encodedPath := escapeArtifactPath(path)
-
 	var lastBlockedReason string
 	var globalProxyConfig config.ProxyConfig
 	if state != nil && state.Inner != nil {
@@ -207,18 +207,14 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 		}
 	}
 	for _, mirror := range repo.Mirrors {
-		if allowed, reason := mirror.IsArtifactAllowed(path); !allowed {
+		if allowed, reason := mirror.IsArtifactAllowedFor(repo.NormalizedFormat(), path); !allowed {
 			lastBlockedReason = reason
 			continue
 		}
-		trimmedUrl := strings.TrimRight(mirror.Url, "/")
-
-		var builder strings.Builder
-		builder.Grow(len(trimmedUrl) + 1 + len(encodedPath))
-		builder.WriteString(trimmedUrl)
-		builder.WriteByte('/')
-		builder.WriteString(encodedPath)
-		mirrorUrl := builder.String()
+		mirrorUrl := cargo.ArtifactURL(repo, mirror, path)
+		if mirrorUrl == "" {
+			continue
+		}
 
 		streamCtx, streamCancel := context.WithTimeout(context.Background(), mirrorRequestTimeout(mirror.TimeoutSecs))
 		req, err := http.NewRequestWithContext(streamCtx, http.MethodGet, mirrorUrl, nil)
@@ -261,7 +257,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 
 		if res.StatusCode >= 200 && res.StatusCode < 300 {
 			localFilePath := filepath.Join(storagePath, repo.Name, path)
-			responseLimit := proxyResponseLimit(path)
+			responseLimit := proxyResponseLimit(repo, path)
 			if res.ContentLength > responseLimit {
 				utils.DiscardHTTPBody(res.Body, res.ContentLength)
 				streamCancel()
@@ -395,7 +391,6 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		return false, nil, fiber.ErrBadRequest
 	}
 	path = sanitizedPath
-	encodedPath := escapeArtifactPath(path)
 	networkAttempted := false
 	var globalProxyConfig config.ProxyConfig
 	if state != nil && state.Inner != nil {
@@ -410,11 +405,13 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 	}()
 
 	for _, mirror := range repo.Mirrors {
-		if allowed, _ := mirror.IsArtifactAllowed(path); !allowed {
+		if allowed, _ := mirror.IsArtifactAllowedFor(repo.NormalizedFormat(), path); !allowed {
 			continue
 		}
-		trimmedUrl := strings.TrimRight(mirror.Url, "/")
-		mirrorUrl := trimmedUrl + "/" + encodedPath
+		mirrorUrl := cargo.ArtifactURL(repo, mirror, path)
+		if mirrorUrl == "" {
+			continue
+		}
 
 		timeout := mirrorRequestTimeout(mirror.TimeoutSecs)
 

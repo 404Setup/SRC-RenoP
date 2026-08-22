@@ -943,6 +943,7 @@ func TestPutMavenRepositoryCreatesStorageDir(t *testing.T) {
 
 	respPut := protoPUT(t, app, "/maven/repositories/"+repoName, &pb.Repository{
 		Name:       repoName,
+		Format:     config.RepositoryFormatMaven,
 		Visibility: "PUBLIC",
 		Mirrors:    []*pb.Mirror{},
 	})
@@ -964,6 +965,72 @@ func TestPutMavenRepositoryCreatesStorageDir(t *testing.T) {
 	}
 	if !appState.Inner.FileIndex.HasDir(pathNorm) {
 		t.Fatalf("expected repo dir to be registered in file index: %s", pathNorm)
+	}
+}
+
+func TestRepositoryCreationRequiresStableFormatAndSlug(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"existing": {Name: "existing", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
+	}
+	app, _ := setupSettingsTestApp(t, cfg)
+
+	missingFormat := protoPUT(t, app, "/repositories/new-repo", &pb.Repository{
+		Name: "new-repo", Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if missingFormat.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected missing creation format rejected with 400, got %d", missingFormat.StatusCode)
+	}
+
+	invalidName := protoPUT(t, app, "/repositories/Bad_Name", &pb.Repository{
+		Name: "Bad_Name", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if invalidName.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected invalid repository slug rejected with 400, got %d", invalidName.StatusCode)
+	}
+
+	digitName := protoPUT(t, app, "/repositories/cargo2", &pb.Repository{
+		Name: "cargo2", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if digitName.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected numeric repository slug rejected with 400, got %d", digitName.StatusCode)
+	}
+
+	reservedName := protoPUT(t, app, "/repositories/javadoc", &pb.Repository{
+		Name: "javadoc", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if reservedName.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected reserved repository slug rejected with 400, got %d", reservedName.StatusCode)
+	}
+
+	formatChange := protoPUT(t, app, "/repositories/existing", &pb.Repository{
+		Name: "existing", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if formatChange.StatusCode != http.StatusConflict {
+		t.Fatalf("expected repository format change rejected with 409, got %d", formatChange.StatusCode)
+	}
+
+	caseCollision := protoPUT(t, app, "/repositories/EXISTING", &pb.Repository{
+		Name: "EXISTING", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if caseCollision.StatusCode != http.StatusConflict {
+		t.Fatalf("expected case-insensitive repository collision rejected with 409, got %d", caseCollision.StatusCode)
+	}
+}
+
+func TestCargoMirrorAllowsIndexURLWithoutArtifactTemplate(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories = map[string]*config.Repository{}
+	app, _ := setupSettingsTestApp(t, cfg)
+
+	response := protoPUT(t, app, "/repositories/cargo", &pb.Repository{
+		Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
+		Mirrors: []*pb.Mirror{{Name: "crates-io", Url: "https://index.crates.io/"}},
+	})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected Cargo mirror without artifact template accepted, got %d", response.StatusCode)
 	}
 }
 

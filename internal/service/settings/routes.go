@@ -26,6 +26,11 @@ func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
 	router.Get("/maven/repositories", func(c fiber.Ctx) error { return GetMavenRepositories(c, state) })
 	router.Put("/maven/repositories/:name", func(c fiber.Ctx) error { return PutMavenRepository(c, state) })
 	router.Delete("/maven/repositories/:name", func(c fiber.Ctx) error { return DeleteMavenRepository(c, state) })
+	// Generic aliases are used by the multi-format UI. The Maven-prefixed
+	// routes remain available for older clients.
+	router.Get("/repositories", func(c fiber.Ctx) error { return GetMavenRepositories(c, state) })
+	router.Put("/repositories/:name", func(c fiber.Ctx) error { return PutMavenRepository(c, state) })
+	router.Delete("/repositories/:name", func(c fiber.Ctx) error { return DeleteMavenRepository(c, state) })
 }
 
 func isManager(c fiber.Ctx) bool {

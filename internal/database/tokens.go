@@ -203,6 +203,25 @@ func (db *DB) DeleteToken(name string) error {
 		return fmt.Errorf("failed to begin token deletion (%s): %w", lowerName, err)
 	}
 	defer tx.Rollback()
+	var soleCargoOwnerships int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members current_member
+		WHERE current_member.username = ? AND current_member.permission_level = ? AND NOT EXISTS (
+			SELECT 1 FROM cargo_members other_member
+			WHERE other_member.repository = current_member.repository
+			AND other_member.normalized_name = current_member.normalized_name
+			AND other_member.permission_level = ? AND other_member.username <> current_member.username
+		)`, lowerName, core.CargoPermissionFull, core.CargoPermissionFull).Scan(&soleCargoOwnerships); err != nil {
+		return fmt.Errorf("failed to inspect Cargo package ownership for token (%s): %w", lowerName, err)
+	}
+	if soleCargoOwnerships > 0 {
+		return fmt.Errorf("cannot delete token %s: user is the last L3 member of %d Cargo package(s)", lowerName, soleCargoOwnerships)
+	}
+	if err := cancelCargoInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("failed to cancel Cargo invitations for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM cargo_members WHERE username = ?`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete Cargo memberships for token (%s): %w", lowerName, err)
+	}
 
 	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete fido devices for token (%s): %w", lowerName, err)
@@ -298,6 +317,18 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	}
 	if _, err := tx.Exec(`UPDATE user_messages SET sender = ? WHERE sender = ?`, lowerNew, lowerOld); err != nil {
 		return fmt.Errorf("failed to rename message sender from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE cargo_members SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Cargo memberships from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE cargo_versions SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Cargo publishers from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE cargo_invitations SET inviter = ? WHERE inviter = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Cargo invitation senders from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE cargo_invitations SET recipient = ? WHERE recipient = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Cargo invitation recipients from %s to %s: %w", lowerOld, lowerNew, err)
 	}
 
 	if err := tx.Commit(); err != nil {

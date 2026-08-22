@@ -140,6 +140,23 @@
                                 </svg>
                             </a>
                         </nav>
+                        <form id="repository-search" class="repository-search" role="search" action="/" hidden>
+                            <span class="repository-search-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="7"></circle>
+                                    <line x1="20" y1="20" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
+                            <input id="repository-search-input" type="search" autocomplete="off" maxlength="128"
+                                   aria-controls="repository-search-results" aria-autocomplete="list">
+                            <button id="repository-search-clear" class="repository-search-clear" type="button"
+                                    aria-label="Clear search" data-i18n-aria-label="search.clear" hidden>
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </form>
                         <div class="browser-adjustments">
                             <button id="adjustments-btn" type="button" class="adjustments-trigger-btn" title="Adjustments" data-i18n-title="browser.adjustments" aria-haspopup="true" aria-expanded="false" aria-controls="adjustments-menu">
                                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -187,6 +204,7 @@
                             </div>
                         </div>
                     </div>
+                    <section id="cargo-repository-view" class="cargo-repository-view" hidden></section>
                     <div id="file-list-container" class="file-list-container">
                         <div class="file-list-viewport">
                             <ul id="file-list" class="file-list"></ul>
@@ -306,7 +324,7 @@
                             </div>
                             <div class="details-card-meta">
                                 <h3 id="details-card-title" class="details-card-title" data-i18n="details.title">Repository details</h3>
-                                <p class="details-card-subtitle" data-i18n="details.subtitle">Copy configuration snippets for your build tool</p>
+                                <p id="details-card-subtitle" class="details-card-subtitle" data-i18n="details.subtitle">Copy configuration snippets for your build tool</p>
                             </div>
                             <button class="copy-btn" title="Copy snippet" data-i18n-title="details.copySnippet" id="copy-snippet-btn"><img src="/svg/copy.svg"
                                                                                                      alt="Copy"
@@ -507,7 +525,7 @@
                         </div>
                         <div class="profile-section-meta">
                             <h3 class="profile-section-title" data-i18n="profile.uploadTokenTitle">Upload Token</h3>
-                            <p class="profile-section-desc" data-i18n="profile.uploadTokenDesc">Use this token for API or Maven uploads. Regenerating invalidates the old one.</p>
+                            <p class="profile-section-desc" data-i18n="profile.uploadTokenDesc">Use this token for authenticated API operations and package publishing. Regenerating invalidates the old one.</p>
                         </div>
                     </div>
                     <div class="profile-section-body">
@@ -673,9 +691,9 @@
             <div class="settings-header repos-header">
                 <div class="repos-header-text">
                     <h2 data-i18n="repos.title">Repositories</h2>
-                    <p data-i18n="repos.subtitle">Manage Maven repositories.</p>
+                    <p data-i18n="repos.subtitle">Manage package repositories and their protocol-specific configuration.</p>
                 </div>
-                <button id="btn-add-repository" type="button" class="settings-save-btn" title="Add a new Maven repository" data-i18n-title="repos.addRepoTitle">
+                <button id="btn-add-repository" type="button" class="settings-save-btn" title="Add a package repository" data-i18n-title="repos.addRepoTitle">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <line x1="12" y1="5" x2="12" y2="19"/>
                         <line x1="5" y1="12" x2="19" y2="12"/>

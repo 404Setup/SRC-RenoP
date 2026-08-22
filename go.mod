@@ -4,6 +4,7 @@ go 1.28
 
 require (
 	github.com/3JoB/unsafeConvert v1.6.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/fsnotify/fsnotify v1.10.1
@@ -12,6 +13,7 @@ require (
 	github.com/goccy/go-json v0.10.6
 	github.com/gofiber/fiber/v3 v3.4.0
 	github.com/google/uuid v1.6.0
+	github.com/klauspost/compress v1.19.2
 	github.com/klauspost/cpuid/v2 v2.4.0
 	github.com/llxisdsh/pb v1.5.25
 	github.com/minio/minio-go/v7 v7.2.1
@@ -20,6 +22,7 @@ require (
 	github.com/valyala/fasthttp v1.73.0
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.54.0
+	golang.org/x/mod v0.38.0
 	golang.org/x/net v0.57.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/time v0.15.0
@@ -42,7 +45,6 @@ require (
 	github.com/gofiber/utils/v2 v2.4.1 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
-	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260802145828-341c2f0c90b5 // indirect

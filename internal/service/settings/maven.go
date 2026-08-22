@@ -11,9 +11,12 @@
 package settings
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"go.yaml.in/yaml/v3"
@@ -39,15 +42,24 @@ func GetMavenRepositories(c fiber.Ctx, state *core.AppState) error {
 func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	repoName := strings.Clone(c.Params("name"))
 
-	reservedName := strings.ToLower(repoName)
-	if !utils.IsValidRepositoryName(repoName) || reservedName == "css" || reservedName == "js" || reservedName == "svg" || reservedName == "api" || reservedName == "javadocs" || reservedName == "assets" {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid repository name")
-	}
-
 	if !isManager(c) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	cfg := state.Inner.Config.Load()
+	existing := cfg.Maven.Repositories[repoName]
+	for configuredName := range cfg.Maven.Repositories {
+		if configuredName != repoName && strings.EqualFold(configuredName, repoName) {
+			return c.Status(fiber.StatusConflict).SendString("Repository name conflicts with an existing repository")
+		}
+	}
+	creating := existing == nil
+	if creating {
+		if !utils.IsValidRepositorySlug(repoName) {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid repository name")
+		}
+	} else if !utils.IsValidRepositoryName(repoName) {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid repository name")
+	}
 
 	var msg pb.Repository
 	if err := protohttp.Read(c, &msg); err != nil {
@@ -62,6 +74,24 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	repo.Name = repoName
+	requestedFormat := strings.ToLower(strings.TrimSpace(repo.Format))
+	if existing == nil && requestedFormat == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Repository format is required when creating a repository")
+	}
+	if existing != nil && requestedFormat == "" {
+		requestedFormat = existing.NormalizedFormat()
+	}
+	if !config.IsSupportedRepositoryFormat(requestedFormat) {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid repository format")
+	}
+	repo.Format = requestedFormat
+	if existing != nil && existing.NormalizedFormat() != repo.Format {
+		return c.Status(fiber.StatusConflict).SendString("Repository format cannot be changed after creation")
+	}
+	if repo.Format == config.RepositoryFormatCargo {
+		repo.AllowRedeployment = false
+		repo.RequireGPGSignature = false
+	}
 	if repo.Mirrors == nil {
 		repo.Mirrors = []config.Mirror{}
 	}
@@ -79,6 +109,12 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		if err := repo.Mirrors[i].Authorization.Validate(); err != nil {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror authentication: " + err.Error())
 		}
+		if err := mirror.ValidateArtifactURL(repo.Format); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror artifact URL: " + err.Error())
+		}
+		if repo.Format != config.RepositoryFormatCargo {
+			mirror.ArtifactUrl = ""
+		}
 	}
 	if repo.S3 != nil {
 		keyPrefix, err := storage.NormalizeS3KeyPrefix(repo.S3.KeyPrefix)
@@ -88,8 +124,27 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		repo.S3.KeyPrefix = keyPrefix
 	}
 
+	errRepositoryCreated := errors.New("repository was created concurrently")
+	errRepositoryRemoved := errors.New("repository was removed concurrently")
+	errFormatChanged := errors.New("repository format changed concurrently")
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		oldConfig := state.Inner.Config.Load()
+		current := oldConfig.Maven.Repositories[repoName]
+		if creating {
+			for configuredName := range oldConfig.Maven.Repositories {
+				if strings.EqualFold(configuredName, repoName) {
+					return errRepositoryCreated
+				}
+			}
+			if err := ensureRepositoryStorageDir(state, repoName); err != nil {
+				return err
+			}
+		} else if current == nil {
+			return errRepositoryRemoved
+		}
+		if current != nil && current.NormalizedFormat() != repo.Format {
+			return errFormatChanged
+		}
 		newConfig := oldConfig.DeepCopy()
 
 		newConfig.Maven.Repositories[repoName] = repo.DeepCopy()
@@ -103,14 +158,21 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	})
 
 	if err != nil {
+		if errors.Is(err, errRepositoryCreated) {
+			return c.Status(fiber.StatusConflict).SendString("Repository already exists")
+		}
+		if errors.Is(err, errRepositoryRemoved) {
+			return c.Status(fiber.StatusConflict).SendString("Repository was removed while it was being updated")
+		}
+		if errors.Is(err, errFormatChanged) {
+			return c.Status(fiber.StatusConflict).SendString("Repository format cannot be changed after creation")
+		}
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
 
 	if cfg := state.Inner.Config.Load(); cfg != nil {
 		storage.InitS3(cfg)
 	}
-
-	ensureRepositoryStorageDir(state, repoName)
 
 	user, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -126,25 +188,39 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	return c.Status(fiber.StatusOK).SendString("")
 }
 
-func ensureRepositoryStorageDir(state *core.AppState, repoName string) {
+func ensureRepositoryStorageDir(state *core.AppState, repoName string) error {
+	if state == nil || state.Inner == nil {
+		return errors.New("application state is unavailable")
+	}
 	cfgVal := state.Inner.Config.Load()
 	if cfgVal == nil || cfgVal.StoragePath == "" {
-		return
+		return errors.New("repository storage path is unavailable")
 	}
 
 	repoDir := filepath.Join(cfgVal.StoragePath, repoName)
+	_, statErr := os.Stat(repoDir)
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return fmt.Errorf("inspect repository storage directory: %w", statErr)
+	}
 	if err := os.MkdirAll(repoDir, 0755); err != nil {
-		return
+		return fmt.Errorf("create repository storage directory: %w", err)
 	}
 
 	pathNorm := filepath.ToSlash(filepath.Clean(repoDir))
+	if state.Inner.FileIndex == nil {
+		return errors.New("repository file index is unavailable")
+	}
 	state.Inner.FileIndex.InsertDir(pathNorm)
 
 	state.Inner.IndexWatcherMutex.Lock()
+	defer state.Inner.IndexWatcherMutex.Unlock()
 	if state.Inner.IndexWatcher != nil {
-		_ = state.Inner.IndexWatcher.Add(pathNorm)
+		if err := state.Inner.IndexWatcher.Add(pathNorm); err != nil {
+			state.Inner.FileIndex.RemoveDir(pathNorm)
+			return fmt.Errorf("watch repository storage directory: %w", err)
+		}
 	}
-	state.Inner.IndexWatcherMutex.Unlock()
+	return nil
 }
 
 func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
@@ -191,10 +267,21 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
 	if notFound {
+		if db := state.GetDB(); db != nil {
+			if err := db.DeleteCargoRepository(repoName, time.Now().UnixMilli()); err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("Failed to remove repository package metadata")
+			}
+		}
 		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
 	}
-
+	var metadataErr error
+	if db := state.GetDB(); db != nil {
+		metadataErr = db.DeleteCargoRepository(repoName, time.Now().UnixMilli())
+	}
 	storage.RemoveRepositoryStorage(state, storagePath, repoName, s3Cfg)
+	if metadataErr != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to remove repository package metadata")
+	}
 
 	return c.Status(fiber.StatusOK).SendString("")
 }

@@ -16,8 +16,10 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/cargo"
 	"renop/internal/utils"
 )
 
@@ -56,6 +58,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
+	isCargo := repo.NormalizedFormat() == config.RepositoryFormatCargo
 
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {
@@ -72,7 +75,15 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	isRead := c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead
 	if isRead {
 		isRoot := strings.HasSuffix(path, "/") || path == "" || isDirOnDisk
-		if !user.CheckReadPermission(repoName, sanitized, repo.Visibility, isRoot) {
+		canRead, err := cargo.CanReadRepository(state, user, repo, sanitized, isRoot)
+		if err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+		}
+		if !canRead {
+			if isCargo && sanitized == "config.json" &&
+				strings.EqualFold(repo.Visibility, "PRIVATE") && user.Username == "guest" {
+				return cargo.SendAuthChallenge(c)
+			}
 			if TryHTMLFallback(state, c) {
 				return nil
 			}
@@ -81,13 +92,21 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		if isDirOnDisk && TryHTMLFallback(state, c) {
 			return nil
 		}
-	} else {
+	} else if !isCargo {
 		if !user.CheckUpdatePermission(repoName) {
 			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 		}
 	}
 
 	path = sanitized
+	if isCargo {
+		if handled, err := cargoHandler.Handle(c, state, repo, cfg.StoragePath, path); handled {
+			return err
+		}
+		if !isRead {
+			return c.Status(fiber.StatusMethodNotAllowed).SendString("Cargo repositories must be modified through the Cargo registry API")
+		}
+	}
 
 	if !isIndexed && isNotFound && c.Method() != fiber.MethodPut && c.Method() != fiber.MethodPost {
 		if TryHTMLFallback(state, c) {

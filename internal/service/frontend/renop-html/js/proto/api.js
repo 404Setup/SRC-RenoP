@@ -1,13 +1,3 @@
-/*
- * Copyright (c) 2026 404Setup. All rights reserved.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
- *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
- */
-
 /*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-mixed-operators, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, default-case, jsdoc/require-param*/
 import $protobuf from "protobufjs/minimal.js";
 
@@ -8584,6 +8574,7 @@ export const renop = $root.renop = (() => {
                  * @property {Array.<string>|null} [allow_artifacts] Mirror allow_artifacts
                  * @property {Array.<string>|null} [deny_artifacts] Mirror deny_artifacts
                  * @property {string|null} [proxy] Mirror proxy
+                 * @property {string|null} [artifact_url] Mirror artifact_url
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -8706,6 +8697,14 @@ export const renop = $root.renop = (() => {
                 Mirror.prototype.proxy = "";
 
                 /**
+                 * Mirror artifact_url.
+                 * @member {string} artifact_url
+                 * @memberof renop.api.v1.Mirror
+                 * @instance
+                 */
+                Mirror.prototype.artifact_url = "";
+
+                /**
                  * Creates a new Mirror instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.Mirror
@@ -8761,6 +8760,8 @@ export const renop = $root.renop = (() => {
                             writer.uint32(/* id 10, wireType 2 =*/82).string(message.deny_artifacts[i]);
                     if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy") && message.proxy !== "")
                         writer.uint32(/* id 11, wireType 2 =*/90).string(message.proxy);
+                    if (message.artifact_url != null && $Object.hasOwnProperty.call(message, "artifact_url") && message.artifact_url !== "")
+                        writer.uint32(/* id 12, wireType 2 =*/98).string(message.artifact_url);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -8902,6 +8903,15 @@ export const renop = $root.renop = (() => {
                                     delete message.proxy;
                                 continue;
                             }
+                        case 12: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.artifact_url = value;
+                                else
+                                    delete message.artifact_url;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -8988,6 +8998,9 @@ export const renop = $root.renop = (() => {
                     if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy"))
                         if (!$util.isString(message.proxy))
                             return "proxy: string expected";
+                    if (message.artifact_url != null && $Object.hasOwnProperty.call(message, "artifact_url"))
+                        if (!$util.isString(message.artifact_url))
+                            return "artifact_url: string expected";
                     return null;
                 };
 
@@ -9066,6 +9079,9 @@ export const renop = $root.renop = (() => {
                     if (object.proxy != null)
                         if (typeof object.proxy !== "string" || object.proxy.length)
                             message.proxy = $String(object.proxy);
+                    if (object.artifact_url != null)
+                        if (typeof object.artifact_url !== "string" || object.artifact_url.length)
+                            message.artifact_url = $String(object.artifact_url);
                     return message;
                 };
 
@@ -9108,6 +9124,7 @@ export const renop = $root.renop = (() => {
                         object.authorization = null;
                         object.enabled_date = "";
                         object.proxy = "";
+                        object.artifact_url = "";
                     }
                     if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
                         object.name = message.name;
@@ -9147,6 +9164,8 @@ export const renop = $root.renop = (() => {
                     }
                     if (message.proxy != null && $Object.hasOwnProperty.call(message, "proxy"))
                         object.proxy = message.proxy;
+                    if (message.artifact_url != null && $Object.hasOwnProperty.call(message, "artifact_url"))
+                        object.artifact_url = message.artifact_url;
                     return object;
                 };
 
@@ -9682,6 +9701,7 @@ export const renop = $root.renop = (() => {
                  * @property {boolean|null} [allow_redeployment] Repository allow_redeployment
                  * @property {renop.api.v1.S3Config.$Properties|null} [s3] Repository s3
                  * @property {boolean|null} [require_gpg_signature] Repository require_gpg_signature
+                 * @property {string|null} [format] Repository format
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -9763,6 +9783,14 @@ export const renop = $root.renop = (() => {
                 Repository.prototype.require_gpg_signature = false;
 
                 /**
+                 * Repository format.
+                 * @member {string} format
+                 * @memberof renop.api.v1.Repository
+                 * @instance
+                 */
+                Repository.prototype.format = "";
+
+                /**
                  * Creates a new Repository instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.Repository
@@ -9807,6 +9835,8 @@ export const renop = $root.renop = (() => {
                         $root.renop.api.v1.S3Config.encode(message.s3, writer.uint32(/* id 5, wireType 2 =*/42).fork(), _depth + 1).ldelim();
                     if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature") && message.require_gpg_signature !== false)
                         writer.uint32(/* id 6, wireType 0 =*/48).bool(message.require_gpg_signature);
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format") && message.format !== "")
+                        writer.uint32(/* id 7, wireType 2 =*/58).string(message.format);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -9904,6 +9934,15 @@ export const renop = $root.renop = (() => {
                                     delete message.require_gpg_signature;
                                 continue;
                             }
+                        case 7: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.format = value;
+                                else
+                                    delete message.format;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -9973,6 +10012,9 @@ export const renop = $root.renop = (() => {
                     if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
                         if (typeof message.require_gpg_signature !== "boolean")
                             return "require_gpg_signature: boolean expected";
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        if (!$util.isString(message.format))
+                            return "format: string expected";
                     return null;
                 };
 
@@ -10021,6 +10063,9 @@ export const renop = $root.renop = (() => {
                     if (object.require_gpg_signature != null)
                         if (object.require_gpg_signature)
                             message.require_gpg_signature = $Boolean(object.require_gpg_signature);
+                    if (object.format != null)
+                        if (typeof object.format !== "string" || object.format.length)
+                            message.format = $String(object.format);
                     return message;
                 };
 
@@ -10049,6 +10094,7 @@ export const renop = $root.renop = (() => {
                         object.allow_redeployment = false;
                         object.s3 = null;
                         object.require_gpg_signature = false;
+                        object.format = "";
                     }
                     if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
                         object.name = message.name;
@@ -10065,6 +10111,8 @@ export const renop = $root.renop = (() => {
                         object.s3 = $root.renop.api.v1.S3Config.toObject(message.s3, options, _depth + 1);
                     if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
                         object.require_gpg_signature = message.require_gpg_signature;
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        object.format = message.format;
                     return object;
                 };
 
@@ -10416,6 +10464,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [last_modified_time] FileDetails last_modified_time
                  * @property {Array.<renop.api.v1.FileDetails.$Properties>|null} [files] FileDetails files
                  * @property {boolean|null} [signed] FileDetails signed
+                 * @property {string|null} [format] FileDetails format
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -10504,6 +10553,14 @@ export const renop = $root.renop = (() => {
                  */
                 FileDetails.prototype.signed = false;
 
+                /**
+                 * FileDetails format.
+                 * @member {string} format
+                 * @memberof renop.api.v1.FileDetails
+                 * @instance
+                 */
+                FileDetails.prototype.format = "";
+
                 // OneOf field names bound to virtual getters and setters
                 let $oneOfFields;
 
@@ -10572,6 +10629,8 @@ export const renop = $root.renop = (() => {
                             $root.renop.api.v1.FileDetails.encode(message.files[i], writer.uint32(/* id 6, wireType 2 =*/50).fork(), _depth + 1).ldelim();
                     if (message.signed != null && $Object.hasOwnProperty.call(message, "signed") && message.signed !== false)
                         writer.uint32(/* id 7, wireType 0 =*/56).bool(message.signed);
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format") && message.format !== "")
+                        writer.uint32(/* id 8, wireType 2 =*/66).string(message.format);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -10675,6 +10734,15 @@ export const renop = $root.renop = (() => {
                                     delete message.signed;
                                 continue;
                             }
+                        case 8: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.format = value;
+                                else
+                                    delete message.format;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -10752,6 +10820,9 @@ export const renop = $root.renop = (() => {
                     if (message.signed != null && $Object.hasOwnProperty.call(message, "signed"))
                         if (typeof message.signed !== "boolean")
                             return "signed: boolean expected";
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        if (!$util.isString(message.format))
+                            return "format: string expected";
                     return null;
                 };
 
@@ -10805,6 +10876,9 @@ export const renop = $root.renop = (() => {
                     if (object.signed != null)
                         if (object.signed)
                             message.signed = $Boolean(object.signed);
+                    if (object.format != null)
+                        if (typeof object.format !== "string" || object.format.length)
+                            message.format = $String(object.format);
                     return message;
                 };
 
@@ -10831,6 +10905,7 @@ export const renop = $root.renop = (() => {
                         object.type = "";
                         object.name = "";
                         object.signed = false;
+                        object.format = "";
                     }
                     if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
                         object.type = message.type;
@@ -10854,6 +10929,8 @@ export const renop = $root.renop = (() => {
                     }
                     if (message.signed != null && $Object.hasOwnProperty.call(message, "signed"))
                         object.signed = message.signed;
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        object.format = message.format;
                     return object;
                 };
 
@@ -11322,6 +11399,7 @@ export const renop = $root.renop = (() => {
                  * @property {number|Long|null} [metadata_count] RepoDetailsResponse metadata_count
                  * @property {Array.<renop.api.v1.RepoMirrorInfo.$Properties>|null} [mirrors] RepoDetailsResponse mirrors
                  * @property {boolean|null} [require_gpg_signature] RepoDetailsResponse require_gpg_signature
+                 * @property {string|null} [format] RepoDetailsResponse format
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -11435,6 +11513,14 @@ export const renop = $root.renop = (() => {
                 RepoDetailsResponse.prototype.require_gpg_signature = false;
 
                 /**
+                 * RepoDetailsResponse format.
+                 * @member {string} format
+                 * @memberof renop.api.v1.RepoDetailsResponse
+                 * @instance
+                 */
+                RepoDetailsResponse.prototype.format = "";
+
+                /**
                  * Creates a new RepoDetailsResponse instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.RepoDetailsResponse
@@ -11487,6 +11573,8 @@ export const renop = $root.renop = (() => {
                             $root.renop.api.v1.RepoMirrorInfo.encode(message.mirrors[i], writer.uint32(/* id 9, wireType 2 =*/74).fork(), _depth + 1).ldelim();
                     if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature") && message.require_gpg_signature !== false)
                         writer.uint32(/* id 10, wireType 0 =*/80).bool(message.require_gpg_signature);
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format") && message.format !== "")
+                        writer.uint32(/* id 11, wireType 2 =*/90).string(message.format);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -11623,6 +11711,15 @@ export const renop = $root.renop = (() => {
                                     delete message.require_gpg_signature;
                                 continue;
                             }
+                        case 11: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.format = value;
+                                else
+                                    delete message.format;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -11702,6 +11799,9 @@ export const renop = $root.renop = (() => {
                     if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
                         if (typeof message.require_gpg_signature !== "boolean")
                             return "require_gpg_signature: boolean expected";
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        if (!$util.isString(message.format))
+                            return "format: string expected";
                     return null;
                 };
 
@@ -11802,6 +11902,9 @@ export const renop = $root.renop = (() => {
                     if (object.require_gpg_signature != null)
                         if (object.require_gpg_signature)
                             message.require_gpg_signature = $Boolean(object.require_gpg_signature);
+                    if (object.format != null)
+                        if (typeof object.format !== "string" || object.format.length)
+                            message.format = $String(object.format);
                     return message;
                 };
 
@@ -11858,6 +11961,7 @@ export const renop = $root.renop = (() => {
                         } else
                             object.metadata_count = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                         object.require_gpg_signature = false;
+                        object.format = "";
                     }
                     if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
                         object.name = message.name;
@@ -11912,6 +12016,8 @@ export const renop = $root.renop = (() => {
                     }
                     if (message.require_gpg_signature != null && $Object.hasOwnProperty.call(message, "require_gpg_signature"))
                         object.require_gpg_signature = message.require_gpg_signature;
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        object.format = message.format;
                     return object;
                 };
 

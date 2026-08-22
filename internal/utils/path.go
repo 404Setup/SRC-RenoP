@@ -133,6 +133,38 @@ func IsValidRepositoryName(name string) bool {
 	return ok && sanitized == name
 }
 
+// IsValidRepositorySlug validates names for newly created repositories. The
+// stricter slug keeps top-level repository URLs stable across package formats.
+func IsValidRepositorySlug(name string) bool {
+	if len(name) == 0 || len(name) > 64 || IsReservedRepositoryName(name) {
+		return false
+	}
+	previousHyphen := false
+	for i := 0; i < len(name); i++ {
+		char := name[i]
+		if char >= 'a' && char <= 'z' {
+			previousHyphen = false
+			continue
+		}
+		if char != '-' || i == 0 || i == len(name)-1 || previousHyphen {
+			return false
+		}
+		previousHyphen = true
+	}
+	return true
+}
+
+// IsReservedRepositoryName reports top-level names owned by RenoP routes or
+// embedded assets rather than repository storage.
+func IsReservedRepositoryName(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "api", "assets", "css", "js", "svg", "javadoc", "javadocs":
+		return true
+	default:
+		return false
+	}
+}
+
 func IsImageFile(path string) bool {
 	idx := strings.LastIndexByte(path, '.')
 	if idx == -1 {

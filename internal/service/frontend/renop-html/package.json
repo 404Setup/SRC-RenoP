@@ -8,7 +8,7 @@
   "scripts": {
     "proto": "node ./build.mjs --proto-only",
     "build": "node ./build.mjs",
-    "build:bundle": "rolldown -c rolldown.config.mjs"
+    "build:bundle": "node ./build.mjs"
   },
   "devDependencies": {
     "lightningcss": "^1.33.0",

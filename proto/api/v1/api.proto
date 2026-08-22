@@ -191,6 +191,8 @@ message Mirror {
   // Empty inherits the selected global proxy; "direct" bypasses it;
   // otherwise this is the name of a proxy in Settings > Proxy.
   string proxy = 11;
+  // Optional artifact origin template. Cargo replaces {crate} and {version}.
+  string artifact_url = 12;
 }
 
 message S3Config {
@@ -212,6 +214,8 @@ message Repository {
   bool allow_redeployment = 4;
   S3Config s3 = 5;
   bool require_gpg_signature = 6;
+  // "maven" (default) or "cargo".
+  string format = 7;
 }
 
 message MavenRepositoriesResponse {
@@ -226,6 +230,8 @@ message FileDetails {
   optional string last_modified_time = 5;
   repeated FileDetails files = 6;
   bool signed = 7;
+  // Repository protocol for top-level repository entries.
+  string format = 8;
 }
 
 message RepoMirrorInfo {
@@ -248,6 +254,7 @@ message RepoDetailsResponse {
   int64 metadata_count = 8;
   repeated RepoMirrorInfo mirrors = 9;
   bool require_gpg_signature = 10;
+  string format = 11;
 }
 
 message RebuildIndexRequest {

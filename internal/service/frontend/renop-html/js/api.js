@@ -29,11 +29,12 @@ export function getAuthHeaders() {
 /**
  * Merge default fetch options so session cookies are always included.
  * @param {RequestInit} [options={}] - Additional fetch options to merge.
- * @returns {RequestInit} Options with credentials: 'include' and auth headers.
+ * @returns {RequestInit} Options with credentials, explicit API cache bypass, and auth headers.
  */
 export function withCredentials(options = {}) {
     return {
         credentials: 'include',
+        cache: 'no-store',
         ...options,
         headers: {
             ...getAuthHeaders(),
@@ -43,12 +44,14 @@ export function withCredentials(options = {}) {
 }
 
 /**
- * Clear local session state and force logout when the response is 401/403.
+ * Clear local session state and force logout on authentication failures.
  * @param {Response} response - Fetch response to inspect.
+ * @param {{logoutOnForbidden?: boolean}} [policy={}] - Whether a 403 also proves the session is invalid.
  * @throws {Error} Always throws with message 'Unauthorized' on auth failure.
  */
-function handleAuthFailure(response) {
-    if (response.status === 401 || response.status === 403) {
+function handleAuthFailure(response, policy = {}) {
+    const {logoutOnForbidden = true} = policy;
+    if (response.status === 401 || (response.status === 403 && logoutOnForbidden)) {
         localStorage.removeItem('session-token');
         localStorage.removeItem('username');
         document.cookie = 'renop_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -62,11 +65,12 @@ function handleAuthFailure(response) {
  * Perform a fetch with credentials and handle auth failures.
  * @param {string} url - Request URL.
  * @param {RequestInit} [options={}] - Fetch options.
+ * @param {{logoutOnForbidden?: boolean}} [authPolicy={}] - Authentication-failure handling policy.
  * @returns {Promise<Response>} The fetch response (throws on 401/403).
  */
-export async function apiRequest(url, options = {}) {
+export async function apiRequest(url, options = {}, authPolicy = {}) {
     const response = await fetch(url, withCredentials(options));
-    handleAuthFailure(response);
+    handleAuthFailure(response, authPolicy);
     return response;
 }
 

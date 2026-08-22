@@ -20,6 +20,14 @@ import (
 	"renop/internal/utils"
 )
 
+const frontendIndexCacheControl = "no-store, no-cache, must-revalidate, max-age=0"
+
+func setFrontendIndexCacheHeaders(c fiber.Ctx) {
+	c.Set(fiber.HeaderCacheControl, frontendIndexCacheControl)
+	c.Set(fiber.HeaderPragma, "no-cache")
+	c.Set(fiber.HeaderExpires, "0")
+}
+
 func ServeIndex(c fiber.Ctx, state *core.AppState) error {
 	html := GenerateIndexHtml(state)
 
@@ -29,7 +37,7 @@ func ServeIndex(c fiber.Ctx, state *core.AppState) error {
 
 	c.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
 	c.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * data: blob:;")
-	c.Set(fiber.HeaderCacheControl, "no-cache, must-revalidate")
+	setFrontendIndexCacheHeaders(c)
 	c.Set(fiber.HeaderETag, etag)
 
 	if clientETag := c.Get(fiber.HeaderIfNoneMatch); clientETag != "" && clientETag == etag {

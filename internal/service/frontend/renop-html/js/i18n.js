@@ -8,18 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import enUS from './i18n/en-US.js';
-import deDE from './i18n/de-DE.js';
-import frFR from './i18n/fr-FR.js';
-import jaJP from './i18n/ja-JP.js';
-import zhCN from './i18n/zh-CN.js';
-import zhHK from './i18n/zh-HK.js';
-import zhTW from './i18n/zh-TW.js';
-import zhYUE from './i18n/zh-YUE.js';
-import koKR from './i18n/ko-KR.js';
-import ruRU from './i18n/ru-RU.js';
-import esES from './i18n/es-ES.js';
-import ptPT from './i18n/pt-PT.js';
+import localeCatalog from './i18n/catalog.generated.js';
 import {createLangCard} from '@renop/ui/lang-card';
 import {bindModalChrome} from '@renop/ui/modal';
 import {
@@ -32,6 +21,18 @@ import {
 
 const STORAGE_KEY = 'renop_language';
 const DEFAULT_LANG = 'en-US';
+const enUS = localeCatalog['en-US'];
+const deDE = localeCatalog['de-DE'];
+const frFR = localeCatalog['fr-FR'];
+const jaJP = localeCatalog['ja-JP'];
+const zhCN = localeCatalog['zh-CN'];
+const zhHK = localeCatalog['zh-HK'];
+const zhTW = localeCatalog['zh-TW'];
+const zhYUE = localeCatalog['zh-YUE'];
+const koKR = localeCatalog['ko-KR'];
+const ruRU = localeCatalog['ru-RU'];
+const esES = localeCatalog['es-ES'];
+const ptPT = localeCatalog['pt-PT'];
 
 const languages = {
     'en-US': enUS,

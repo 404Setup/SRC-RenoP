@@ -23,7 +23,8 @@ import {
     createIcon,
     createSkeleton,
     createSubHeader,
-    createToggleRow as makeToggleRow
+    createToggleRow as makeToggleRow,
+    RenopDialog
 } from './components.js';
 import {
     animateFieldsToggle,
@@ -33,12 +34,17 @@ import {
     makeTagListInput,
     makeVisibilityBadge
 } from './cfg-ui.js';
+import {
+    createRepositoryDraft,
+    getRepositoryFormat,
+    isValidRepositorySlug,
+    listRepositoryFormats
+} from './repository-formats.js';
 
 let currentConfig = null;
 let initialReposMap = {};
 let globalProxyConfig = {selected: '', proxies: []};
 const saveSeqByRepo = new Map();
-const RESERVED_REPO_NAMES = new Set(['css', 'js', 'svg', 'api', 'javadocs', 'assets']);
 
 /**
  * Renders a repository-list skeleton placeholder in the repositories container.
@@ -53,14 +59,14 @@ function renderRepositoriesSkeleton() {
 }
 
 /**
- * Loads Maven repositories from the API and renders the repositories settings UI.
+ * Loads package repositories from the API and renders the repositories settings UI.
  * @returns {Promise<void>}
  */
 export async function initRepositories() {
     renderRepositoriesSkeleton();
     try {
         const [repositoriesResult, proxyResult] = await Promise.all([
-            fetchProto('/api/settings/maven/repositories', MavenRepositoriesResponse),
+            fetchProto('/api/settings/repositories', MavenRepositoriesResponse),
             fetchProto('/api/settings/domain/proxy', ProxyConfig)
         ]);
         const {response, data} = repositoriesResult;
@@ -71,7 +77,7 @@ export async function initRepositories() {
             const repos = data.repositories || {};
             currentConfig = {repositories: repos};
             initialReposMap = JSON.parse(JSON.stringify(repos));
-            renderMavenSettings(document.getElementById('repositories-container'), currentConfig);
+            renderRepositories(document.getElementById('repositories-container'), currentConfig);
         } else if (response.status === 401 || response.status === 403) {
             logout('kicked');
         }
@@ -81,12 +87,12 @@ export async function initRepositories() {
 }
 
 /**
- * Renders all Maven repository sections (or empty state) into the container.
+ * Renders all package repository sections (or empty state) into the container.
  * @param {HTMLElement} container - Repositories container element.
  * @param {{repositories?: Object.<string, object>}} data - Config holding a repositories map.
  * @returns {void}
  */
-function renderMavenSettings(container, data) {
+function renderRepositories(container, data) {
     if (!data.repositories) data.repositories = {};
 
     const originalHeight = container.offsetHeight;
@@ -119,7 +125,7 @@ function renderMavenSettings(container, data) {
 }
 
 /**
- * Builds a collapsible UI section for a single Maven repository (visibility, S3, mirrors).
+ * Builds a collapsible UI section for a package repository (format, visibility, S3, mirrors).
  * @param {HTMLElement} container - Parent repositories container (used for remove animation).
  * @param {{repositories: Object.<string, object>}} data - Full repositories config.
  * @param {string} repoKey - Repository name/key.
@@ -127,6 +133,7 @@ function renderMavenSettings(container, data) {
  * @returns {HTMLElement} The section element.
  */
 function buildRepoSection(container, data, repoKey, repo) {
+    const format = getRepositoryFormat(repo.format);
     const section = el('div', {class: 'cfg-section is-collapsed'});
 
     const header = el('div', {class: 'cfg-section-header'});
@@ -139,7 +146,9 @@ function buildRepoSection(container, data, repoKey, repo) {
         style: {display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: '0', flexWrap: 'nowrap'}
     });
     titleRow.appendChild(el('p', {class: 'cfg-section-title'}, repoKey));
-    titleRow.appendChild(makeVisibilityBadge(repo.visibility || 'PUBLIC'));
+    titleRow.appendChild(el('span', {class: 'cfg-format-badge'}, t(format.labelKey)));
+    let visibilityBadge = makeVisibilityBadge(repo.visibility || 'PUBLIC');
+    titleRow.appendChild(visibilityBadge);
     meta.appendChild(titleRow);
 
     const mirrorCount = (repo.mirrors || []).length;
@@ -157,7 +166,7 @@ function buildRepoSection(container, data, repoKey, repo) {
         if (await window.showConfirm(t('repos.confirmDelete', {name: repoKey}))) {
             try {
                 const headers = getAuthHeaders();
-                const response = await fetch(`/api/settings/maven/repositories/${encodeURIComponent(repoKey)}`, {
+                const response = await fetch(`/api/settings/repositories/${encodeURIComponent(repoKey)}`, {
                     method: 'DELETE', headers
                 });
                 if (response.status === 401 || response.status === 403) {
@@ -196,45 +205,73 @@ function buildRepoSection(container, data, repoKey, repo) {
 
     const fields = el('div', {class: 'cfg-fields'});
 
+    const formatValue = el('span', {class: 'cfg-readonly-value'}, t(format.labelKey));
+    fields.appendChild(makeFieldRow(t('repos.format'), t('repos.formatImmutableDesc'), formatValue));
+
     const visOptions = [
         {value: 'PUBLIC', label: t('repos.visibilityPublic')},
         {value: 'HIDDEN', label: t('repos.visibilityHidden')},
         {value: 'PRIVATE', label: t('repos.visibilityPrivate')}
     ];
+
+    /**
+     * Persist visibility and replace only the visibility badge in the header.
+     * @param {string} value - Selected visibility.
+     * @returns {void}
+     */
+    function handleVisibilityChange(value) {
+        repo.visibility = value;
+        if (visibilityBadge.isConnected) {
+            const newBadge = makeVisibilityBadge(value);
+            titleRow.replaceChild(newBadge, visibilityBadge);
+            visibilityBadge = newBadge;
+        }
+        saveRepoSettings(repoKey, repo);
+    }
+
+    /**
+     * Persist the Maven-only redeployment setting.
+     * @param {boolean} checked - Whether redeployment is allowed.
+     * @returns {void}
+     */
+    function handleRedeploymentChange(checked) {
+        repo.allow_redeployment = checked;
+        saveRepoSettings(repoKey, repo);
+    }
+
+    /**
+     * Persist the Maven-only GPG signature requirement.
+     * @param {boolean} checked - Whether uploads require a valid signature.
+     * @returns {void}
+     */
+    function handleGpgRequirementChange(checked) {
+        repo.require_gpg_signature = checked;
+        saveRepoSettings(repoKey, repo);
+    }
+
     const visSelect = makeCustomSelect(
         visOptions,
         repo.visibility || 'PUBLIC',
-        v => {
-            repo.visibility = v;
-            const badge = titleRow.querySelector('span');
-            if (badge) {
-                const newBadge = makeVisibilityBadge(v);
-                titleRow.replaceChild(newBadge, badge);
-            }
-            saveRepoSettings(repoKey, repo);
-        }
+        handleVisibilityChange
     );
     fields.appendChild(makeFieldRow(t('repos.visibility'), t('repos.visibilityDesc'), visSelect));
 
-    fields.appendChild(makeToggleRow(
-        t('repos.allowRedeploy'),
-        t('repos.allowRedeployDesc'),
-        repo.allow_redeployment === true,
-        checked => {
-            repo.allow_redeployment = checked;
-            saveRepoSettings(repoKey, repo);
-        }
-    ));
-
-    fields.appendChild(makeToggleRow(
-        t('repos.requireGpgSignature'),
-        t('repos.requireGpgSignatureDesc'),
-        repo.require_gpg_signature === true,
-        checked => {
-            repo.require_gpg_signature = checked;
-            saveRepoSettings(repoKey, repo);
-        }
-    ));
+    if (format.supportsRedeployment) {
+        fields.appendChild(makeToggleRow(
+            t('repos.allowRedeploy'),
+            t('repos.allowRedeployDesc'),
+            repo.allow_redeployment === true,
+            handleRedeploymentChange
+        ));
+    }
+    if (format.supportsGpg) {
+        fields.appendChild(makeToggleRow(
+            t('repos.requireGpgSignature'),
+            t('repos.requireGpgSignatureDesc'),
+            repo.require_gpg_signature === true,
+            handleGpgRequirementChange
+        ));
+    }
 
     bodyInner.appendChild(fields);
     bodyInner.appendChild(buildS3Section(repoKey, repo));
@@ -470,6 +507,8 @@ function mirrorProxyOptions(selected) {
  * @returns {HTMLElement} Mirror block element.
  */
 function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode) {
+	const format = getRepositoryFormat(repo.format);
+	const isCargo = format.id === 'cargo';
     const block = el('div', {
         class: 'mirror-block',
         style: {
@@ -565,20 +604,52 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
 
     const fields = el('div', {class: 'cfg-fields'});
 
+    /**
+     * Persist the mirror display name and refresh its section heading.
+     * @param {string} value - Mirror display name.
+     * @returns {void}
+     */
+    function handleMirrorNameChange(value) {
+        mirror.name = value;
+        updateMirrorLabel();
+        saveRepoSettings(repoKey, repo);
+    }
+
+    /**
+     * Persist the mirror index or repository base URL.
+     * @param {string} value - Mirror base URL.
+     * @returns {void}
+     */
+    function handleMirrorUrlChange(value) {
+        mirror.url = value;
+        saveRepoSettings(repoKey, repo);
+    }
+
     fields.appendChild(makeFieldRow(t('repos.mirrorName'), t('repos.mirrorNameHint'),
-        makeCfgInput(mirror.name || '', 'e.g. Maven Central', 'text', v => {
-            mirror.name = v;
-            updateMirrorLabel();
-            saveRepoSettings(repoKey, repo);
-        })
+        makeCfgInput(mirror.name || '', isCargo ? 'crates.io' : 'Maven Central', 'text', handleMirrorNameChange)
     ));
 
-    fields.appendChild(makeFieldRow(t('repos.mirrorUrl'), t('repos.mirrorUrlHint'),
-        makeCfgInput(mirror.url || '', 'https://repo1.maven.org/maven2/', 'text', v => {
-            mirror.url = v;
-            saveRepoSettings(repoKey, repo);
-        })
+    fields.appendChild(makeFieldRow(
+        t(isCargo ? 'repos.cargoMirrorUrl' : 'repos.mavenMirrorUrl'),
+        t(isCargo ? 'repos.cargoMirrorUrlHint' : 'repos.mavenMirrorUrlHint'),
+        makeCfgInput(mirror.url || '', isCargo ? 'https://index.crates.io/' : 'https://repo1.maven.org/maven2/', 'text', handleMirrorUrlChange)
     ));
+
+    if (format.supportsArtifactTemplate) {
+        /**
+         * Stores the optional Cargo artifact URL template.
+         * @param {string} value - Artifact URL template.
+         * @returns {void}
+         */
+        const updateArtifactUrl = value => {
+            if (value) mirror.artifact_url = value;
+            else delete mirror.artifact_url;
+            saveRepoSettings(repoKey, repo);
+        };
+        fields.appendChild(makeFieldRow(t('repos.artifactUrl'), t('repos.artifactUrlHint'),
+            makeCfgInput(mirror.artifact_url || '', 'https://static.crates.io/crates/{crate}/{crate}-{version}.crate', 'text', updateArtifactUrl)
+        ));
+    }
 
     const proxySelection = typeof mirror.proxy === 'string' ? mirror.proxy.trim() : '';
     const proxySelect = makeCustomSelect(
@@ -617,8 +688,8 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     const allowInput = makeTagListInput({
         items: mirror.allow_artifacts || [],
         type: 'allow',
-        placeholder: t('repos.addRulePlaceholder'),
-        emptyText: t('repos.emptyAllowList'),
+        placeholder: t(isCargo ? 'repos.cargoAddRulePlaceholder' : 'repos.addRulePlaceholder'),
+        emptyText: t(isCargo ? 'repos.cargoEmptyAllowList' : 'repos.emptyAllowList'),
         onChange: (newList) => {
             if (newList.length > 0) mirror.allow_artifacts = newList;
             else delete mirror.allow_artifacts;
@@ -630,8 +701,8 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     const denyInput = makeTagListInput({
         items: mirror.deny_artifacts || [],
         type: 'deny',
-        placeholder: t('repos.addRulePlaceholder'),
-        emptyText: t('repos.emptyDenyList'),
+        placeholder: t(isCargo ? 'repos.cargoAddRulePlaceholder' : 'repos.addRulePlaceholder'),
+        emptyText: t(isCargo ? 'repos.cargoEmptyDenyList' : 'repos.emptyDenyList'),
         onChange: (newList) => {
             if (newList.length > 0) mirror.deny_artifacts = newList;
             else delete mirror.deny_artifacts;
@@ -640,8 +711,18 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         }
     });
 
-    fields.appendChild(makeFieldRow(t('repos.mirrorAllowList'), t('repos.mirrorAllowListHint'), allowInput, 'cfg-field-row--top-align'));
-    fields.appendChild(makeFieldRow(t('repos.mirrorDenyList'), t('repos.mirrorDenyListHint'), denyInput, 'cfg-field-row--top-align'));
+    fields.appendChild(makeFieldRow(
+		t('repos.mirrorAllowList'),
+		t(isCargo ? 'repos.cargoMirrorAllowListHint' : 'repos.mirrorAllowListHint'),
+		allowInput,
+		'cfg-field-row--top-align'
+	));
+    fields.appendChild(makeFieldRow(
+		t('repos.mirrorDenyList'),
+		t(isCargo ? 'repos.cargoMirrorDenyListHint' : 'repos.mirrorDenyListHint'),
+		denyInput,
+		'cfg-field-row--top-align'
+	));
     fields.appendChild(conflictWarningEl);
 
     let currentMethod = (mirror.authorization && mirror.authorization.method)
@@ -832,7 +913,7 @@ function getReposLayout(container) {
  */
 function animateRemoveRepoSection(section, container, data) {
     if (!section) {
-        renderMavenSettings(container, data);
+        renderRepositories(container, data);
         return;
     }
     section.classList.add('cfg-section--leaving');
@@ -870,7 +951,7 @@ function animateRemoveRepoSection(section, container, data) {
 function animateAddRepoSection(container, data, repoKey, repo) {
     const layout = getReposLayout(container);
     if (!layout) {
-        renderMavenSettings(container, data);
+        renderRepositories(container, data);
         return;
     }
     const empty = layout.querySelector('renop-empty-state, .renop-empty-state');
@@ -885,42 +966,129 @@ function animateAddRepoSection(container, data, repoKey, repo) {
     setTimeout(() => section.classList.remove('cfg-section--entering'), 450);
 }
 
-document.getElementById('btn-add-repository')?.addEventListener('click', async () => {
-    let repoName = await window.showPrompt(t('repos.enterNewRepoName'));
-    if (repoName) {
-        repoName = repoName.trim();
-        if (!repoName || repoName.includes('/')) {
-            showAlert(t('repos.invalidRepoName'), 'error');
-            return;
-        }
-        if (RESERVED_REPO_NAMES.has(repoName.toLowerCase())) {
+/**
+ * Build localized options for the creation-only repository format selector.
+ * @returns {Array<{value: string, label: string}>} Repository format options.
+ */
+function repositoryFormatOptions() {
+    const options = [];
+    for (const format of listRepositoryFormats()) {
+        options.push({value: format.id, label: t(format.labelKey)});
+    }
+    return options;
+}
+
+/**
+ * Move initial focus into the repository-name field.
+ * @param {HTMLInputElement} input - Repository name input.
+ * @returns {void}
+ */
+function focusRepositoryName(input) {
+    input.focus();
+}
+
+/**
+ * Open the repository creation dialog. Format is chosen before the first API
+ * request and is immutable after creation.
+ * @returns {void}
+ */
+function openRepositoryCreateDialog() {
+    const nameInput = el('input', {
+        id: 'repository-create-name',
+        type: 'text',
+        autocomplete: 'off',
+        maxlength: '64',
+        placeholder: t('repos.namePlaceholder'),
+        required: true
+    });
+    let selectedFormat = 'maven';
+
+    /**
+     * Store the creation-only repository format selection.
+     * @param {string} value - Selected format identifier.
+     * @returns {void}
+     */
+    function handleCreateFormatChange(value) {
+        selectedFormat = getRepositoryFormat(value).id;
+    }
+
+    const formatSelect = makeCustomSelect(
+        repositoryFormatOptions(),
+        selectedFormat,
+        handleCreateFormatChange
+    );
+    const body = el('div', {class: 'cfg-fields repository-create-fields'},
+        makeFieldRow(t('repos.name'), t('repos.nameHint'), nameInput),
+        makeFieldRow(t('repos.format'), t('repos.formatCreateDesc'), formatSelect)
+    );
+
+    /**
+     * Validate and persist a new repository from the creation dialog.
+     * @param {SubmitEvent} event - Form submission event.
+     * @param {{close: (result?: unknown) => void}} dialog - Active dialog controller.
+     * @returns {Promise<void>}
+     */
+    async function submitRepositoryCreation(event, dialog) {
+        event.preventDefault();
+        const repoName = nameInput.value.trim();
+        if (!isValidRepositorySlug(repoName)) {
             showAlert(t('repos.invalidRepoName'), 'error');
             return;
         }
         if (!currentConfig) currentConfig = {repositories: {}};
         if (!currentConfig.repositories) currentConfig.repositories = {};
-        if (currentConfig.repositories[repoName]) {
+        let repositoryExists = false;
+        for (const configuredName of Object.keys(currentConfig.repositories)) {
+            if (configuredName.toLowerCase() === repoName.toLowerCase()) {
+                repositoryExists = true;
+                break;
+            }
+        }
+        if (repositoryExists) {
             showAlert(t('repos.repoExists'), 'error');
             return;
         }
-        const repo = {
-            name: repoName,
-            visibility: 'PUBLIC',
-            allow_redeployment: false,
-            require_gpg_signature: false,
-            mirrors: []
-        };
+        const repo = createRepositoryDraft(repoName, selectedFormat);
         currentConfig.repositories[repoName] = repo;
         const ok = await saveRepoSettings(repoName, repo, {silent: true, isCreate: true});
-        if (ok) {
-            showAlert(t('repos.createdSuccess', {name: repoName}), 'success');
-            const container = document.getElementById('repositories-container');
-            animateAddRepoSection(container, currentConfig, repoName, repo);
-        } else {
+        if (!ok) {
             delete currentConfig.repositories[repoName];
+            return;
         }
+        dialog.close(true);
+        showAlert(t('repos.createdSuccess', {name: repoName}), 'success');
+        const container = document.getElementById('repositories-container');
+        animateAddRepoSection(container, currentConfig, repoName, repo);
     }
-});
+
+    /**
+     * Close the repository creation dialog without persisting a draft.
+     * @param {MouseEvent} event - Button click event.
+     * @param {{close: (result?: unknown) => void}} dialog - Active dialog controller.
+     * @returns {void}
+     */
+    function cancelRepositoryCreation(event, dialog) {
+        event.preventDefault();
+        dialog.close(false);
+    }
+
+    RenopDialog.show({
+        id: 'repository-create-dialog',
+        maxWidth: '560px',
+        icon: 'box',
+        title: t('repos.createTitle'),
+        subtitle: t('repos.createSubtitle'),
+        form: {id: 'repository-create-form', onSubmit: submitRepositoryCreation},
+        body,
+        footer: [
+            {text: t('common.create'), className: 'action-btn primary-btn', type: 'submit'},
+            {text: t('common.cancel'), className: 'action-btn', onClick: cancelRepositoryCreation}
+        ]
+    });
+    requestAnimationFrame(focusRepositoryName.bind(null, nameInput));
+}
+
+document.getElementById('btn-add-repository')?.addEventListener('click', openRepositoryCreateDialog);
 
 /**
  * Persists a single repository via PUT. Skips the request when unchanged (unless creating).
@@ -945,7 +1113,7 @@ async function saveRepoSettings(repoKey, repo, options = {}) {
 
         const payload = JSON.parse(JSON.stringify(repo));
         const {response} = await putProto(
-            `/api/settings/maven/repositories/${encodeURIComponent(repoKey)}`,
+            `/api/settings/repositories/${encodeURIComponent(repoKey)}`,
             Repository,
             payload
         );
@@ -972,7 +1140,7 @@ async function saveRepoSettings(repoKey, repo, options = {}) {
 
 window.addEventListener('languageChanged', () => {
     if (currentConfig && document.getElementById('repositories-container')) {
-        renderMavenSettings(document.getElementById('repositories-container'), currentConfig);
+        renderRepositories(document.getElementById('repositories-container'), currentConfig);
     }
 });
 

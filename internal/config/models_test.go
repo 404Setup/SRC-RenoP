@@ -75,6 +75,94 @@ func TestIsArtifactAllowedGAAndDeny(t *testing.T) {
 	}
 }
 
+func TestIsArtifactAllowedForCargoUsesExactNormalizedCrateNames(t *testing.T) {
+	allow := &Mirror{AllowArtifacts: []string{"Serde_JSON"}}
+	if ok, _ := allow.IsArtifactAllowedFor(RepositoryFormatCargo, "se/rd/serde-json"); !ok {
+		t.Fatal("expected normalized Cargo crate name to match allow list")
+	}
+	if ok, _ := allow.IsArtifactAllowedFor(RepositoryFormatCargo, "api/v1/crates/serde_json/1.0.0/download"); !ok {
+		t.Fatal("expected Cargo download path to match allow list")
+	}
+	if ok, _ := allow.IsArtifactAllowedFor(RepositoryFormatCargo, "se/rd/serde-json-extra"); ok {
+		t.Fatal("Cargo allow rules must not use prefix matching")
+	}
+	if ok, _ := allow.IsArtifactAllowedFor(RepositoryFormatCargo, "config.json"); !ok {
+		t.Fatal("Cargo registry configuration must not be blocked by crate rules")
+	}
+
+	deny := &Mirror{DenyArtifacts: []string{"serde-json"}}
+	if ok, _ := deny.IsArtifactAllowedFor(RepositoryFormatCargo, "api/v1/crates/serde-json/1.0.0/download"); ok {
+		t.Fatal("expected Cargo deny rule to block matching crate")
+	}
+}
+
+func TestValidateCargoArtifactURLRejectsAuthorityPlaceholders(t *testing.T) {
+	valid := &Mirror{ArtifactUrl: "https://static.example.test/crates/{crate}/{crate}-{version}.crate"}
+	if err := valid.ValidateArtifactURL(RepositoryFormatCargo); err != nil {
+		t.Fatalf("valid Cargo artifact URL rejected: %v", err)
+	}
+
+	invalid := &Mirror{ArtifactUrl: "https://{crate}.example.test/{version}/{crate}.crate"}
+	if err := invalid.ValidateArtifactURL(RepositoryFormatCargo); err == nil {
+		t.Fatal("expected Cargo artifact URL authority placeholder to be rejected")
+	}
+}
+
+func TestRepositorySerializationUsesFormatSpecificFields(t *testing.T) {
+	cargoRepository := Repository{
+		Name: "rust-packages", Format: RepositoryFormatCargo, Visibility: "PUBLIC",
+		AllowRedeployment: true, RequireGPGSignature: true,
+		Mirrors: []Mirror{{
+			Name: "crates.io", Url: "https://index.crates.io/",
+			ArtifactUrl: "https://static.crates.io/crates/{crate}/{crate}-{version}.crate",
+		}},
+	}
+	for name, marshal := range map[string]func(any) ([]byte, error){
+		"json": json.Marshal,
+		"yaml": yaml.Marshal,
+	} {
+		t.Run("cargo "+name, func(t *testing.T) {
+			encoded, err := marshal(cargoRepository)
+			if err != nil {
+				t.Fatal(err)
+			}
+			text := string(encoded)
+			if strings.Contains(text, "allow_redeployment") || strings.Contains(text, "require_gpg_signature") {
+				t.Fatalf("Cargo serialization contains Maven-only fields: %s", text)
+			}
+			if !strings.Contains(text, "artifact_url") {
+				t.Fatalf("Cargo serialization omitted artifact URL template: %s", text)
+			}
+		})
+	}
+
+	mavenRepository := Repository{
+		Name: "releases", Format: RepositoryFormatMaven, Visibility: "PUBLIC",
+		Mirrors: []Mirror{{
+			Name: "central", Url: "https://repo1.maven.org/maven2/",
+			ArtifactUrl: "https://unused.example/{crate}/{version}",
+		}},
+	}
+	for name, marshal := range map[string]func(any) ([]byte, error){
+		"json": json.Marshal,
+		"yaml": yaml.Marshal,
+	} {
+		t.Run("maven "+name, func(t *testing.T) {
+			encoded, err := marshal(mavenRepository)
+			if err != nil {
+				t.Fatal(err)
+			}
+			text := string(encoded)
+			if !strings.Contains(text, "allow_redeployment") || !strings.Contains(text, "require_gpg_signature") {
+				t.Fatalf("Maven serialization omitted Maven policy fields: %s", text)
+			}
+			if strings.Contains(text, "artifact_url") {
+				t.Fatalf("Maven serialization contains Cargo artifact URL field: %s", text)
+			}
+		})
+	}
+}
+
 func TestMirrorCredentialsUnmarshaling(t *testing.T) {
 	var m MirrorCredentials
 	err := json.Unmarshal([]byte(`{"method":"basic","login":"foo","password":"bar"}`), &m)

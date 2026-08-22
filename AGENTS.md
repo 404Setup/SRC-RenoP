@@ -8,7 +8,7 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
 
 ## 1. Project Overview & Architecture
 
-**RenoP** is a self-hosted Maven repository server with a **Go** backend and an embedded **Node.js/pnpm** frontend.
+**RenoP** is a self-hosted package repository server with a **Go** backend and an embedded **Node.js/pnpm** frontend.
 
 - **`server.go`**: Server main entry point.
 - **`internal/`**: Server core logic (HTTP routes, auth, Maven repository proxying, storage adapters for S3/Local Disk).
@@ -25,6 +25,16 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
 - Maven metadata requested through the API is fetched through the configured mirror with a bounded response size and an
   in-flight request lock; cached version-level metadata drives cleanup of superseded Maven SNAPSHOT builds, including
   numeric and timestamped build forms.
+- **`internal/service/cargo/`**: Sparse-only Cargo registry protocol, bounded streaming publication and archive
+  validation, upstream index/artifact mirroring, package lifecycle operations, and L1-L3 collaboration managed through
+  message-center invitations. Repository format is selected at creation and is immutable; format-specific settings and
+  browser behavior are defined by the frontend repository-format registry so future package protocols can be added
+  without branching the entire repository UI. Repository JSON/YAML serialization omits Maven-only publication policy
+  from Cargo entries and strips Cargo artifact URL templates from Maven entries.
+- **`internal/api/search.go`**: Bounded, format-aware repository search. Maven queries the in-memory file index with
+  path-permission and quarantine filtering; Cargo queries public package metadata and every result links to a readable
+  package subpage. The frontend renders results in a body-attached overlay so searching never changes the repository
+  browser's dimensions.
 - **`internal/service/gpg/`**: OpenPGP key resolution and detached-signature verification. User profiles may register up
   to 10 public-key IDs; HTTPS key-server lookups are response-bounded, validate every resolved address as public, use
   bounded IPv4-first address fallback for direct connections, can use the selected global proxy, and cache keys in the
@@ -50,6 +60,20 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
 - **`proto/`**: Protocol Buffers schema definitions (`proto/api/v1/api.proto`).
 - **`web/`**, **`packages/`**, & **`internal/service/frontend/renop-html/`**: Frontend web UI and workspace packages
   (managed via `pnpm`).
+- Frontend API requests use an explicit `no-store` fetch policy. Entry HTML is never stored, while versioned embedded
+  assets retain revalidation headers on both `200` and conditional `304` responses so stale browser cache state cannot
+  leave the single-page UI waiting on code that no longer matches the server.
+- **`internal/service/frontend/renop-html/js/i18n/<locale>/`**: Modular frontend translations. Each locale contains
+  the same feature fragments (for example `core.js`, `repository.js`, and `cargo.js`); `build.mjs` validates locale/key parity and
+  generates `js/i18n/catalog.generated.js`. Run the frontend build instead of editing the catalog directly.
+- Cargo repositories render package-centric routes at `/<repository>/packages[/<package>]` in the main browser column;
+  they never expose Maven's raw file-tree management view. The overview is a bounded, paginated public package catalog
+  that merges management state only for authorized sessions. Package metadata and versions are readable under normal
+  repository visibility rules, while team membership and mutation controls remain collaborator/administrator-only.
+  Cargo subpage navigation preserves the previous content and reuses immutable repository-format metadata until the
+  next route is ready. Package-team autocomplete and permission menus are body-attached or fixed-width controls to
+  avoid resizing their page containers. Repository settings select Maven versus Cargo mirror URL labels and hints from
+  the immutable format rather than presenting protocol-specific fields globally.
 - **`build.ps1`**: PowerShell 7 build script for single and cross-platform builds. Linux targets link
   `runtime.godebugDefault=disablethp=1` so transparent huge pages are disabled before the first Go heap mapping;
   operators can override this with `GODEBUG=disablethp=0`.

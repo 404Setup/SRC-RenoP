@@ -1,0 +1,1129 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+import {el} from '@renop/ui/dom';
+import {makeCustomSelect} from '@renop/ui/custom-select';
+import {morphElementHeight} from '@renop/ui/height-anim';
+import {apiRequest} from '../api.js';
+import {cachedIsLoggedIn} from '../auth.js';
+import {showAlert, showConfirm} from '../alert.js';
+import {createIcon, createSkeleton} from '../components.js';
+import {t} from '../i18n.js';
+import {getRepositoryFormat} from '../repository-formats.js';
+import {decodePathSegment} from './utils.js';
+
+const INVITE_SEARCH_DELAY_MS = 160;
+const INVITE_CLOSE_DELAY_MS = 150;
+const CARGO_CATALOG_PAGE_SIZE = 50;
+let cargoLoadSequence = 0;
+let activeRepository = '';
+let activeAdministrator = false;
+let activePackageDetails = null;
+let activePackageList = [];
+let activePublicPackageNames = new Set();
+let activePublicPackageTotal = 0;
+let activeCatalogPage = 1;
+let activeNavigate = null;
+let activeView = null;
+let activeRouteKind = '';
+let listenersInitialized = false;
+let inviteLevel = 1;
+let inviteSuggestionTimer = 0;
+let inviteSuggestionVersion = 0;
+let inviteCloseTimer = 0;
+let inviteSuggestions = [];
+let activeInviteSuggestion = -1;
+let inviteSuggestionPanel = null;
+let inviteInput = null;
+
+/**
+ * Extract a useful bounded error from a Cargo JSON or text response.
+ * @param {Response} response - Failed API response.
+ * @returns {Promise<string>} Safe error detail.
+ */
+async function cargoResponseError(response) {
+    const text = (await response.text()).slice(0, 1024);
+    if (!text) return `HTTP ${response.status}`;
+    try {
+        const payload = JSON.parse(text);
+        const detail = payload?.errors?.[0]?.detail || payload?.msg;
+        return String(detail || text).slice(0, 512);
+    } catch {
+        return text;
+    }
+}
+
+/**
+ * Perform a same-origin Cargo registry API request and decode optional JSON.
+ * @param {string} path - Absolute repository API path.
+ * @param {RequestInit} [options] - Fetch options.
+ * @returns {Promise<object|null>} Decoded response payload.
+ */
+async function cargoRequest(path, options = {}) {
+    const response = await apiRequest(path, options, {logoutOnForbidden: false});
+    if (!response.ok) throw new Error(await cargoResponseError(response));
+    if (response.status === 204) return null;
+    const contentType = response.headers.get('content-type') || '';
+    return contentType.includes('application/json') ? response.json() : null;
+}
+
+/**
+ * Build a repository-owned Cargo API path with encoded path segments.
+ * @param {...string} segments - API path segments after `/api/v1`.
+ * @returns {string} Encoded Cargo API path.
+ */
+function cargoAPIPath(...segments) {
+    const suffix = segments.map(encodeURIComponent).join('/');
+    return `/${encodeURIComponent(activeRepository)}/api/v1/${suffix}`;
+}
+
+/**
+ * Build the browser route for a Cargo package-management subpage.
+ * @param {string} [packageName] - Optional Cargo package name.
+ * @returns {string} Encoded application route.
+ */
+function cargoPagePath(packageName = '') {
+    const base = `/${encodeURIComponent(activeRepository)}/packages`;
+    return packageName ? `${base}/${encodeURIComponent(packageName)}` : base;
+}
+
+/**
+ * Normalize Cargo package spelling for catalog merges (`-` and `_` are equivalent).
+ * @param {unknown} value - Package name candidate.
+ * @returns {string} Normalized package key.
+ */
+function normalizeCargoPackageName(value) {
+    return String(value || '').trim().toLowerCase().replaceAll('_', '-');
+}
+
+/**
+ * Return a localized Cargo permission label.
+ * @param {number} level - Permission level 1 through 3.
+ * @returns {string} Permission label.
+ */
+function cargoPermissionLabel(level) {
+    return t(`cargo.permissionL${Number(level)}`);
+}
+
+/**
+ * Format a Cargo metadata timestamp in the current locale.
+ * @param {number|string} value - Unix milliseconds.
+ * @returns {string} Localized date.
+ */
+function cargoDate(value) {
+    const timestamp = Number(value);
+    return Number.isFinite(timestamp) && timestamp > 0
+        ? new Date(timestamp).toLocaleDateString()
+        : t('common.unknown');
+}
+
+/**
+ * Navigate within the repository browser without reloading the document.
+ * @param {MouseEvent} event - Link click event.
+ * @returns {void}
+ */
+function handleCargoRouteLink(event) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+    }
+    event.preventDefault();
+    if (typeof activeNavigate === 'function') activeNavigate(new URL(event.currentTarget.href).pathname);
+}
+
+/**
+ * Build one package row for the Cargo package-centric repository view.
+ * @param {object} packageRecord - Cargo package summary.
+ * @returns {HTMLAnchorElement} Package subpage link.
+ */
+function buildCargoPackageRow(packageRecord) {
+    const name = String(packageRecord?.name || '');
+    const row = el('a', {href: cargoPagePath(name), class: 'cargo-package-row'});
+    row.addEventListener('click', handleCargoRouteLink);
+    const meta = el('span', {class: 'cargo-package-row-meta'},
+        el('strong', {class: 'cargo-package-row-name'}, name),
+        el('span', {class: 'cargo-package-row-description'},
+            String(packageRecord?.description || t('cargo.noDescription'))
+        )
+    );
+    const badges = el('span', {class: 'cargo-package-row-badges'});
+    if (packageRecord?.archived) {
+        badges.appendChild(el('span', {class: 'cargo-state-badge is-archived'}, t('cargo.archived')));
+    }
+    if (!activeAdministrator && Number(packageRecord?.permission_level) > 0) {
+        badges.appendChild(el('span', {class: 'cargo-permission-badge'}, `L${Number(packageRecord.permission_level)}`));
+    }
+    if (packageRecord?.max_version) {
+        badges.appendChild(el('span', {class: 'cargo-version-badge'}, String(packageRecord.max_version)));
+    }
+    badges.appendChild(createIcon('chevron'));
+    row.append(meta, badges);
+    return row;
+}
+
+/**
+ * Build the Cargo repository overview header.
+ * @returns {HTMLElement} Page hero.
+ */
+function buildCargoOverviewHero() {
+    return el('header', {class: 'cargo-page-hero'},
+        el('span', {class: 'cargo-page-kicker'}, 'Cargo'),
+        el('h2', {}, t('cargo.registryTitle')),
+        el('p', {}, t('cargo.registrySubtitle')),
+        el('p', {class: 'cargo-page-search-hint'}, t('cargo.searchHint'))
+    );
+}
+
+/**
+ * Return the complete visible catalog count, including managed archived packages.
+ * @returns {number} Visible package count.
+ */
+function cargoCatalogCount() {
+    const managedOnlyCount = activePackageList.reduce((count, packageRecord) => {
+        const key = normalizeCargoPackageName(packageRecord?.name);
+        return count + (key && packageRecord?.archived === true && !activePublicPackageNames.has(key) ? 1 : 0);
+    }, 0);
+    return activePublicPackageTotal + managedOnlyCount;
+}
+
+/**
+ * Build the public Cargo package catalog and its bounded pagination control.
+ * @returns {HTMLElement} Package-catalog section.
+ */
+function buildCargoCatalogSection() {
+    const section = el('section', {class: 'cargo-page-section'},
+        el('div', {class: 'cargo-section-header'},
+            el('div', {},
+                el('h3', {}, t('cargo.packageCatalog')),
+                el('p', {}, t('cargo.packageCatalogSubtitle'))
+            ),
+            el('span', {class: 'cargo-section-count'}, String(cargoCatalogCount()))
+        )
+    );
+    if (activePackageList.length === 0) {
+        section.appendChild(el('p', {class: 'cargo-section-empty'}, t('cargo.noPackages')));
+        return section;
+    }
+    const list = el('div', {class: 'cargo-package-list'});
+    for (const packageRecord of activePackageList) list.appendChild(buildCargoPackageRow(packageRecord));
+    section.appendChild(list);
+    if (activePublicPackageNames.size < activePublicPackageTotal) {
+        section.appendChild(el('div', {class: 'cargo-catalog-actions'},
+            el('button', {
+                type: 'button', class: 'pill-btn pill-btn--soft',
+                'data-cargo-action': 'load-more-packages'
+            }, t('cargo.loadMorePackages'))
+        ));
+    }
+    return section;
+}
+
+/**
+ * Render the Cargo repository overview from cached package state.
+ * @returns {void}
+ */
+function renderCargoOverview() {
+    if (!activeView) return;
+    closeInviteSuggestions(true);
+    activePackageDetails = null;
+    activeRouteKind = 'overview';
+    activeView.replaceChildren(buildCargoOverviewHero(), buildCargoCatalogSection());
+}
+
+/**
+ * Build a compact package summary and package-level controls.
+ * @returns {HTMLElement} Summary section.
+ */
+function buildCargoPackageSummary() {
+    const packageRecord = activePackageDetails.package;
+    const canManagePackage = activeAdministrator || Number(packageRecord.permission_level) >= 3;
+    const summary = el('section', {class: 'cargo-page-section cargo-package-summary'},
+        el('h3', {class: 'cargo-section-title'}, t('cargo.packageDetails')),
+        el('p', {class: 'cargo-package-description'},
+            String(packageRecord.description || t('cargo.noDescription'))
+        )
+    );
+    const permissionLevel = Number(packageRecord.permission_level);
+    const accessLabel = activeAdministrator
+        ? t('cargo.administratorAccess')
+        : permissionLevel > 0 ? cargoPermissionLabel(permissionLevel) : t('cargo.readOnlyAccess');
+    const facts = el('div', {class: 'cargo-package-facts'},
+        el('span', {}, t('cargo.updatedAt', {date: cargoDate(packageRecord.updated_at)})),
+        el('span', {}, accessLabel)
+    );
+    summary.appendChild(facts);
+    if (canManagePackage) {
+        const actions = el('div', {class: 'cargo-page-actions'});
+        const restoreLocked = packageRecord.archived && packageRecord.admin_archived && !activeAdministrator;
+        actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+            'data-cargo-action': 'toggle-package-archive', disabled: restoreLocked
+        }, packageRecord.archived ? t('cargo.restorePackage') : t('cargo.archivePackage')));
+        actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
+            'data-cargo-action': 'delete-package'
+        }, t('cargo.deletePackage')));
+        summary.appendChild(actions);
+        if (restoreLocked) summary.appendChild(el('p', {class: 'cargo-operation-note'}, t('cargo.adminRestoreOnly')));
+    }
+    return summary;
+}
+
+/**
+ * Build the version list with L2/L3 or administrator operations.
+ * @returns {HTMLElement} Version section.
+ */
+function buildCargoVersionsSection() {
+    const packageRecord = activePackageDetails.package;
+    const canManageVersions = activeAdministrator || Number(packageRecord.permission_level) >= 2;
+    const section = el('section', {class: 'cargo-page-section'},
+        el('h3', {class: 'cargo-section-title'}, t('cargo.versions'))
+    );
+    const versions = Array.isArray(activePackageDetails.versions) ? activePackageDetails.versions : [];
+    if (versions.length === 0) {
+        section.appendChild(el('p', {class: 'cargo-section-empty'}, t('cargo.noVersions')));
+        return section;
+    }
+    const list = el('div', {class: 'cargo-version-list'});
+    for (const version of versions) {
+        const row = el('div', {class: 'cargo-version-row'});
+        const meta = el('div', {class: 'cargo-version-meta'},
+            el('strong', {}, String(version.version || '')),
+            el('span', {}, t('cargo.publishedBy', {name: version.publisher || t('common.unknown')}))
+        );
+        if (version.yanked) meta.appendChild(el('span', {class: 'cargo-state-badge is-yanked'}, t('cargo.yanked')));
+        row.appendChild(meta);
+        if (canManageVersions) {
+            const actions = el('div', {class: 'cargo-row-actions'});
+            const restoreLocked = version.yanked && (
+                (version.admin_yanked && !activeAdministrator) || packageRecord.archived
+            );
+            actions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+                'data-cargo-action': version.yanked ? 'unyank-version' : 'yank-version',
+                'data-cargo-version': String(version.version || ''), disabled: restoreLocked
+            }, version.yanked ? t('cargo.restoreVersion') : t('cargo.yankVersion')));
+            actions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
+                'data-cargo-action': 'delete-version', 'data-cargo-version': String(version.version || '')
+            }, t('common.delete')));
+            row.appendChild(actions);
+        }
+        list.appendChild(row);
+    }
+    section.appendChild(list);
+    return section;
+}
+
+/**
+ * Build one custom-select permission option.
+ * @param {number} level - Cargo permission level.
+ * @returns {{value: string, label: string}} Select option.
+ */
+function buildPermissionOption(level) {
+    return {value: String(level), label: `L${level} — ${cargoPermissionLabel(level)}`};
+}
+
+/**
+ * Persist a team member's L1/L2/L3 permission selection.
+ * @param {string} username - Team member username.
+ * @param {string|number} level - Selected permission level.
+ * @returns {void}
+ */
+function handleMemberLevelChange(username, level) {
+	void updateCargoMemberLevel(username, Number(level));
+}
+
+/**
+ * Build one fixed-width styled permission selector for a team member.
+ * @param {object} member - Cargo member record.
+ * @returns {HTMLElement} Custom select element.
+ */
+function buildMemberLevelSelect(member) {
+    const username = String(member.login || '');
+    const level = Number(member.level);
+	const select = makeCustomSelect(
+		[1, 2, 3].map(buildPermissionOption), String(level),
+		handleMemberLevelChange.bind(null, username)
+    );
+    select.classList.add('cargo-permission-select');
+    select.dataset.cargoPermissionUser = username;
+    return select;
+}
+
+/**
+ * Build the package team section and optional L3 invitation form.
+ * @returns {HTMLElement} Team section.
+ */
+function buildCargoTeamSection() {
+    const packageRecord = activePackageDetails.package;
+    const canManageTeam = !activeAdministrator && Number(packageRecord.permission_level) >= 3;
+    const section = el('section', {class: 'cargo-page-section'},
+        el('h3', {class: 'cargo-section-title'}, t('cargo.team'))
+    );
+    const members = Array.isArray(activePackageDetails.members) ? activePackageDetails.members : [];
+    const list = el('div', {class: 'cargo-team-list'});
+    for (const member of members) {
+        const row = el('div', {class: 'cargo-team-row'});
+        row.appendChild(el('div', {class: 'cargo-team-member'},
+            el('strong', {}, String(member.login || '')),
+            canManageTeam ? el('span', {}, cargoDate(member.added_at)) : el('span', {}, cargoPermissionLabel(member.level))
+        ));
+        if (canManageTeam) {
+            const controls = el('div', {class: 'cargo-team-controls'});
+            controls.appendChild(buildMemberLevelSelect(member));
+            controls.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
+                'data-cargo-action': 'remove-member', 'data-cargo-user': String(member.login || '')
+            }, t('common.remove')));
+            row.appendChild(controls);
+        }
+        list.appendChild(row);
+    }
+    section.appendChild(list);
+    if (canManageTeam) section.appendChild(buildCargoInviteForm());
+    return section;
+}
+
+/**
+ * Store the selected invitation permission level.
+ * @param {string|number} level - Selected permission level.
+ * @returns {void}
+ */
+function handleInviteLevelChange(level) {
+    inviteLevel = Number(level);
+}
+
+/**
+ * Build the L3-only invitation form with stable-width permission controls.
+ * @returns {HTMLFormElement} Invitation form.
+ */
+function buildCargoInviteForm() {
+    inviteLevel = 1;
+    inviteSuggestions = [];
+    activeInviteSuggestion = -1;
+    inviteInput = el('input', {
+        id: 'cargo-invite-username', type: 'text', role: 'combobox', autocomplete: 'off', maxlength: '255',
+        placeholder: t('cargo.inviteUsernamePlaceholder'), 'aria-autocomplete': 'list',
+        'aria-controls': 'cargo-invite-suggestions', 'aria-expanded': 'false'
+    });
+    inviteInput.addEventListener('input', handleCargoInviteInput);
+    inviteInput.addEventListener('keydown', handleCargoInviteKeydown);
+    const inputWrap = el('div', {class: 'cargo-invite-input-wrap'}, inviteInput);
+    const levelSelect = makeCustomSelect([1, 2, 3].map(buildPermissionOption), '1', handleInviteLevelChange);
+    levelSelect.classList.add('cargo-invite-permission-select');
+    const form = el('form', {class: 'cargo-invite-form', action: 'javascript:void(0);'},
+        el('div', {class: 'cargo-invite-form-heading'},
+            el('strong', {}, t('cargo.inviteMember')),
+            el('span', {}, t('cargo.inviteMemberHint'))
+        ),
+        el('div', {class: 'cargo-invite-controls'}, inputWrap, levelSelect,
+            el('button', {type: 'submit', class: 'pill-btn pill-btn--primary'}, t('cargo.sendInvite'))
+        )
+    );
+    form.addEventListener('submit', submitCargoInvitation);
+    return form;
+}
+
+/**
+ * Build the package-management page header and back link.
+ * @returns {HTMLElement} Page header.
+ */
+function buildCargoPackageHero() {
+    const packageName = String(activePackageDetails?.package?.name || '');
+    const back = el('a', {href: cargoPagePath(), class: 'cargo-page-back'},
+        createIcon('chevronLeft'), el('span', {}, t('cargo.backToPackages'))
+    );
+    back.addEventListener('click', handleCargoRouteLink);
+    const title = el('div', {class: 'cargo-package-title-row'}, el('h2', {}, packageName));
+    if (activePackageDetails?.package?.archived) {
+        title.appendChild(el('span', {class: 'cargo-state-badge is-archived'}, t('cargo.archived')));
+    }
+    return el('header', {class: 'cargo-page-hero cargo-package-hero'},
+        back, title, el('p', {}, t('cargo.packagePageSubtitle'))
+    );
+}
+
+/**
+ * Replace the Cargo package subpage from the latest server state.
+ * @returns {void}
+ */
+function renderCargoPackagePage() {
+    if (!activeView || !activePackageDetails?.package) return;
+    closeInviteSuggestions(true);
+    activeRouteKind = 'package';
+    const sections = [
+        buildCargoPackageHero(), buildCargoPackageSummary(), buildCargoVersionsSection()
+    ];
+    if (activeAdministrator || Number(activePackageDetails.package.permission_level) > 0) {
+        sections.push(buildCargoTeamSection());
+    }
+    activeView.replaceChildren(...sections);
+}
+
+/**
+ * Render a loading surface inside the Cargo subpage.
+ * @param {string} title - Localized loading title.
+ * @returns {void}
+ */
+function renderCargoLoading(title) {
+    if (!activeView) return;
+    activeView.replaceChildren(el('section', {class: 'cargo-page-section cargo-page-loading'},
+        el('h2', {}, title), createSkeleton('list', 3)
+    ));
+}
+
+/**
+ * Render a route-level Cargo error without exposing raw server responses.
+ * @param {string} message - Localized error message.
+ * @returns {void}
+ */
+function renderCargoError(message) {
+    if (!activeView) return;
+    activeRouteKind = 'error';
+    activeView.replaceChildren(el('section', {class: 'cargo-page-section cargo-page-error'},
+        createIcon('alertCircle'), el('h2', {}, t('cargo.pageUnavailable')), el('p', {}, message)
+    ));
+}
+
+/**
+ * Mark the Cargo view busy without removing the currently rendered route.
+ * @param {boolean} updating - Whether a route request is in flight.
+ * @returns {void}
+ */
+function setCargoUpdating(updating) {
+    if (!activeView) return;
+    activeView.classList.toggle('is-updating', updating);
+    if (updating) activeView.setAttribute('aria-busy', 'true');
+    else activeView.removeAttribute('aria-busy');
+}
+
+/**
+ * Show an initial skeleton only when no Cargo content can be preserved.
+ * @param {string} title - Localized loading title.
+ * @returns {void}
+ */
+function beginCargoRouteLoad(title) {
+    if (!activeView) return;
+    if (!activeView.firstElementChild) renderCargoLoading(title);
+    setCargoUpdating(true);
+}
+
+/**
+ * Merge public catalog results with package records carrying management state.
+ * @param {Array<object>} publicPackages - Public search results.
+ * @param {Array<object>} managedPackages - Packages visible through the management endpoint.
+ * @param {boolean} [reset=false] - Whether to replace prior catalog state.
+ * @returns {void}
+ */
+function mergeCargoPackageRecords(publicPackages, managedPackages, reset = false) {
+    const records = reset ? [] : activePackageList;
+    const packagesByName = new Map();
+    for (const packageRecord of records) {
+        const key = normalizeCargoPackageName(packageRecord?.name);
+        if (key) packagesByName.set(key, packageRecord);
+    }
+    for (const packageRecord of publicPackages) {
+        const key = normalizeCargoPackageName(packageRecord?.name);
+        if (!key) continue;
+        activePublicPackageNames.add(key);
+        packagesByName.set(key, {...(packagesByName.get(key) || {}), ...packageRecord});
+    }
+    for (const packageRecord of managedPackages) {
+        const key = normalizeCargoPackageName(packageRecord?.name);
+        if (!key) continue;
+        if (packageRecord?.archived !== true) activePublicPackageNames.add(key);
+        packagesByName.set(key, {...(packagesByName.get(key) || {}), ...packageRecord});
+    }
+    activePackageList = Array.from(packagesByName.values()).sort((left, right) =>
+        normalizeCargoPackageName(left?.name).localeCompare(normalizeCargoPackageName(right?.name))
+    );
+}
+
+/**
+ * Load the public package catalog plus optional management metadata.
+ * @param {number} sequence - Route generation owning this request.
+ * @returns {Promise<void>}
+ */
+async function loadCargoCatalog(sequence) {
+    const catalogRequest = cargoRequest(
+        `${cargoAPIPath('crates')}?q=&per_page=${CARGO_CATALOG_PAGE_SIZE}&page=1`
+    );
+    const managementRequest = cachedIsLoggedIn
+        ? cargoRequest(cargoAPIPath('me', 'crates'))
+        : Promise.resolve(null);
+    const [catalogResult, managementResult] = await Promise.allSettled([catalogRequest, managementRequest]);
+    if (catalogResult.status === 'rejected') throw catalogResult.reason;
+    if (sequence !== cargoLoadSequence) return;
+
+    let managementPayload = null;
+    if (managementResult.status === 'fulfilled') {
+        managementPayload = managementResult.value;
+    } else {
+        console.error('Failed to load Cargo package management state', managementResult.reason);
+    }
+
+    const catalogPayload = catalogResult.value;
+    activeAdministrator = managementPayload?.administrator === true;
+    activePublicPackageNames = new Set();
+    activePublicPackageTotal = Math.max(0, Number(catalogPayload?.meta?.total) || 0);
+    activeCatalogPage = 1;
+    mergeCargoPackageRecords(
+        Array.isArray(catalogPayload?.crates) ? catalogPayload.crates : [],
+        Array.isArray(managementPayload?.packages) ? managementPayload.packages : [],
+        true
+    );
+}
+
+/**
+ * Load and render the Cargo package overview route.
+ * @param {number} sequence - Route generation owning this request.
+ * @returns {Promise<void>}
+ */
+async function loadCargoOverview(sequence) {
+    activePackageDetails = null;
+    beginCargoRouteLoad(t('cargo.loadingPackages'));
+    try {
+        await loadCargoCatalog(sequence);
+        if (sequence !== cargoLoadSequence) return;
+        await morphElementHeight(activeView, renderCargoOverview, {duration: 300});
+    } catch (error) {
+        if (sequence !== cargoLoadSequence) return;
+        console.error('Failed to load Cargo packages', error);
+        renderCargoError(t('cargo.loadFailed'));
+    } finally {
+        if (sequence === cargoLoadSequence) setCargoUpdating(false);
+    }
+}
+
+/**
+ * Load and render one Cargo package-management route.
+ * @param {string} packageName - Cargo package name.
+ * @param {number} sequence - Route generation owning this request.
+ * @returns {Promise<void>}
+ */
+async function loadCargoPackage(packageName, sequence) {
+    beginCargoRouteLoad(t('cargo.loadingPackage'));
+    try {
+        const details = await cargoRequest(cargoAPIPath('crates', packageName));
+        if (sequence !== cargoLoadSequence) return;
+        activePackageDetails = details;
+        activeAdministrator = details?.administrator === true;
+        await morphElementHeight(activeView, renderCargoPackagePage, {duration: 300});
+    } catch (error) {
+        if (sequence !== cargoLoadSequence) return;
+        console.error('Failed to load Cargo package', error);
+        renderCargoError(error.message || t('cargo.loadFailed'));
+    } finally {
+        if (sequence === cargoLoadSequence) setCargoUpdating(false);
+    }
+}
+
+/**
+ * Append the next bounded public catalog page and preserve any management metadata.
+ * @returns {Promise<void>}
+ */
+async function loadMoreCargoPackages() {
+    if (!activeView || activePublicPackageNames.size >= activePublicPackageTotal) return;
+    const sequence = cargoLoadSequence;
+    const nextPage = activeCatalogPage + 1;
+    setCargoUpdating(true);
+    try {
+        const payload = await cargoRequest(
+            `${cargoAPIPath('crates')}?q=&per_page=${CARGO_CATALOG_PAGE_SIZE}&page=${nextPage}`
+        );
+        if (sequence !== cargoLoadSequence) return;
+        activeCatalogPage = nextPage;
+        activePublicPackageTotal = Math.max(activePublicPackageTotal, Number(payload?.meta?.total) || 0);
+        mergeCargoPackageRecords(Array.isArray(payload?.crates) ? payload.crates : [], []);
+        await morphElementHeight(activeView, renderCargoOverview, {duration: 300});
+    } catch (error) {
+        if (sequence !== cargoLoadSequence) return;
+        console.error('Failed to load more Cargo packages', error);
+        showAlert(t('cargo.loadFailed'), 'error');
+    } finally {
+        if (sequence === cargoLoadSequence) setCargoUpdating(false);
+    }
+}
+
+/**
+ * Refresh active package details and animate page-height changes.
+ * @returns {Promise<void>}
+ */
+async function refreshCargoPackagePage() {
+    if (!activePackageDetails?.package || !activeView) return;
+    const nextDetails = await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name));
+    activePackageDetails = nextDetails;
+    activeAdministrator = nextDetails?.administrator === true;
+    await morphElementHeight(activeView, renderCargoPackagePage, {duration: 300});
+}
+
+/**
+ * Send a version or package mutation then refresh the package subpage.
+ * @param {string} path - Cargo API path.
+ * @param {string} method - HTTP method.
+ * @param {string} successKey - Translation key for success feedback.
+ * @returns {Promise<void>}
+ */
+async function mutateCargoPackage(path, method, successKey) {
+    await cargoRequest(path, {method});
+    showAlert(t(successKey), 'success');
+    await refreshCargoPackagePage();
+}
+
+/**
+ * Handle package, version, and team operation buttons on the Cargo subpage.
+ * @param {MouseEvent} event - Delegated page click.
+ * @returns {Promise<void>}
+ */
+async function handleCargoPageClick(event) {
+    const button = event.target.closest('[data-cargo-action]');
+    if (!(button instanceof HTMLButtonElement) || button.disabled) return;
+    const action = button.dataset.cargoAction;
+    if (action === 'load-more-packages') {
+        button.disabled = true;
+        try {
+            await loadMoreCargoPackages();
+        } finally {
+            if (button.isConnected) button.disabled = false;
+        }
+        return;
+    }
+    if (!activePackageDetails?.package) return;
+    const packageName = activePackageDetails.package.name;
+    const version = button.dataset.cargoVersion || '';
+    const username = button.dataset.cargoUser || '';
+    button.disabled = true;
+    try {
+        switch (action) {
+            case 'toggle-package-archive':
+                await mutateCargoPackage(
+                    cargoAPIPath('crates', packageName, 'archive'),
+                    activePackageDetails.package.archived ? 'DELETE' : 'PUT',
+                    activePackageDetails.package.archived ? 'cargo.packageRestored' : 'cargo.packageArchived'
+                );
+                break;
+            case 'delete-package':
+                await deleteCargoPackage(packageName);
+                break;
+            case 'yank-version':
+                await mutateCargoPackage(cargoAPIPath('crates', packageName, version, 'yank'), 'DELETE', 'cargo.versionYanked');
+                break;
+            case 'unyank-version':
+                await mutateCargoPackage(cargoAPIPath('crates', packageName, version, 'unyank'), 'PUT', 'cargo.versionRestored');
+                break;
+            case 'delete-version':
+                await deleteCargoVersion(packageName, version);
+                break;
+            case 'remove-member':
+                await removeCargoMember(packageName, username);
+                break;
+            default:
+                break;
+        }
+    } catch (error) {
+        console.error('Cargo package operation failed', error);
+        showAlert(error.message || t('cargo.operationFailed'), 'error');
+    } finally {
+        if (button.isConnected) button.disabled = false;
+    }
+}
+
+/**
+ * Delete an entire Cargo package after explicit confirmation.
+ * @param {string} packageName - Package name.
+ * @returns {Promise<void>}
+ */
+async function deleteCargoPackage(packageName) {
+    const confirmed = await showConfirm(t('cargo.deletePackageConfirm', {package: packageName}), {
+        title: t('cargo.deletePackage'), confirmText: t('cargo.deletePackage'), danger: true
+    });
+    if (!confirmed) return;
+    await cargoRequest(cargoAPIPath('crates', packageName), {method: 'DELETE'});
+    showAlert(t('cargo.packageDeleted'), 'success');
+    if (typeof activeNavigate === 'function') activeNavigate(cargoPagePath());
+}
+
+/**
+ * Delete one Cargo version after explicit confirmation.
+ * @param {string} packageName - Package name.
+ * @param {string} version - Version string.
+ * @returns {Promise<void>}
+ */
+async function deleteCargoVersion(packageName, version) {
+    const confirmed = await showConfirm(t('cargo.deleteVersionConfirm', {version}), {
+        title: t('cargo.deleteVersion'), confirmText: t('common.delete'), danger: true
+    });
+    if (!confirmed) return;
+    await mutateCargoPackage(cargoAPIPath('crates', packageName, version), 'DELETE', 'cargo.versionDeleted');
+}
+
+/**
+ * Remove a package team member after explicit confirmation.
+ * @param {string} packageName - Package name.
+ * @param {string} username - Team username.
+ * @returns {Promise<void>}
+ */
+async function removeCargoMember(packageName, username) {
+    const confirmed = await showConfirm(t('cargo.removeMemberConfirm', {name: username}), {
+        title: t('cargo.removeMember'), confirmText: t('common.remove'), danger: true
+    });
+    if (!confirmed) return;
+    await mutateCargoPackage(cargoAPIPath('crates', packageName, 'owners', username), 'DELETE', 'cargo.memberRemoved');
+}
+
+/**
+ * Update one package team member's permission without rebuilding sibling controls.
+ * @param {string} username - Team username.
+ * @param {number} level - Permission level 1 through 3.
+ * @returns {Promise<void>}
+ */
+async function updateCargoMemberLevel(username, level) {
+	const member = activePackageDetails?.members?.find(candidate => candidate?.login === username);
+	const previousLevel = Number(member?.level);
+	if (!activePackageDetails?.package || level < 1 || level > 3 || level === previousLevel) return;
+    const selector = activeView?.querySelector(`[data-cargo-permission-user="${CSS.escape(username)}"]`);
+    try {
+        await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners', username), {
+            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level})
+        });
+		if (member) member.level = level;
+        showAlert(t('cargo.memberUpdated'), 'success');
+    } catch (error) {
+        console.error('Failed to update Cargo member permission', error);
+        if (selector && typeof selector.setValue === 'function') selector.setValue(String(previousLevel));
+        showAlert(error.message || t('cargo.operationFailed'), 'error');
+    }
+}
+
+/**
+ * Return the body-level username suggestion panel.
+ * @returns {HTMLElement} Suggestion panel.
+ */
+function ensureInviteSuggestionPanel() {
+    if (inviteSuggestionPanel?.isConnected) return inviteSuggestionPanel;
+    inviteSuggestionPanel = el('div', {
+        id: 'cargo-invite-suggestions', class: 'cargo-user-suggestions', role: 'listbox', hidden: true
+    });
+    inviteSuggestionPanel.addEventListener('click', handleCargoSuggestionClick);
+    document.body.appendChild(inviteSuggestionPanel);
+    return inviteSuggestionPanel;
+}
+
+/**
+ * Keep the body-level username suggestions anchored to their input.
+ * @returns {void}
+ */
+function positionInviteSuggestions() {
+    const panel = ensureInviteSuggestionPanel();
+    if (!(inviteInput instanceof HTMLInputElement) || panel.hidden) return;
+    const rect = inviteInput.getBoundingClientRect();
+    panel.style.left = `${Math.max(10, rect.left)}px`;
+    panel.style.width = `${Math.min(rect.width, window.innerWidth - 20)}px`;
+    panel.style.top = `${rect.bottom + 6}px`;
+    const height = panel.getBoundingClientRect().height;
+    if (rect.bottom + height + 12 > window.innerHeight && rect.top > height + 12) {
+        panel.style.top = `${rect.top - height - 6}px`;
+        panel.classList.add('opens-upward');
+    } else {
+        panel.classList.remove('opens-upward');
+    }
+}
+
+/**
+ * Hide invitation suggestions after a smooth exit transition.
+ * @param {boolean} [immediate=false] - Skip the transition during page teardown.
+ * @returns {void}
+ */
+function closeInviteSuggestions(immediate = false) {
+    const panel = ensureInviteSuggestionPanel();
+    if (inviteCloseTimer) clearTimeout(inviteCloseTimer);
+    panel.classList.remove('is-visible');
+    inviteInput?.setAttribute('aria-expanded', 'false');
+    if (immediate || panel.hidden) {
+        panel.hidden = true;
+        panel.classList.remove('is-leaving');
+        inviteCloseTimer = 0;
+        return;
+    }
+    panel.classList.add('is-leaving');
+    inviteCloseTimer = setTimeout(() => {
+        panel.hidden = true;
+        panel.classList.remove('is-leaving');
+        inviteCloseTimer = 0;
+    }, INVITE_CLOSE_DELAY_MS);
+}
+
+/**
+ * Schedule bounded username autocomplete after the invitation input changes.
+ * @param {InputEvent} event - Username input event.
+ * @returns {void}
+ */
+function handleCargoInviteInput(event) {
+    if (inviteSuggestionTimer) clearTimeout(inviteSuggestionTimer);
+    const query = String(event.currentTarget.value || '').trim();
+    if (!query) {
+        renderCargoInviteSuggestions([]);
+        return;
+    }
+    const version = ++inviteSuggestionVersion;
+    inviteSuggestionTimer = setTimeout(fetchCargoInviteSuggestions.bind(null, query, version), INVITE_SEARCH_DELAY_MS);
+}
+
+/**
+ * Fetch prefix-bounded username suggestions for the active package.
+ * @param {string} query - Username prefix.
+ * @param {number} version - Input version owning the request.
+ * @returns {Promise<void>}
+ */
+async function fetchCargoInviteSuggestions(query, version) {
+    if (!activePackageDetails?.package) return;
+    try {
+        const payload = await cargoRequest(
+            `${cargoAPIPath('crates', activePackageDetails.package.name, 'users')}?q=${encodeURIComponent(query)}`
+        );
+        if (version !== inviteSuggestionVersion) return;
+        renderCargoInviteSuggestions(Array.isArray(payload?.users) ? payload.users : []);
+    } catch (error) {
+        console.error('Failed to search Cargo invitation users', error);
+        renderCargoInviteSuggestions([]);
+    }
+}
+
+/**
+ * Render the invitation username suggestion dropdown outside page layout.
+ * @param {string[]} users - Suggested usernames.
+ * @returns {void}
+ */
+function renderCargoInviteSuggestions(users) {
+    const panel = ensureInviteSuggestionPanel();
+    inviteSuggestions = users.slice(0, 8);
+    activeInviteSuggestion = -1;
+    panel.replaceChildren();
+    for (const username of inviteSuggestions) {
+        panel.appendChild(el('button', {
+            type: 'button', role: 'option', class: 'cargo-user-suggestion', 'data-cargo-suggestion': username
+        }, username));
+    }
+    if (inviteSuggestions.length === 0) {
+        closeInviteSuggestions();
+        return;
+    }
+    if (inviteCloseTimer) {
+        clearTimeout(inviteCloseTimer);
+        inviteCloseTimer = 0;
+    }
+    panel.hidden = false;
+    panel.classList.remove('is-leaving');
+    inviteInput?.setAttribute('aria-expanded', 'true');
+    positionInviteSuggestions();
+    requestAnimationFrame(() => panel.classList.add('is-visible'));
+}
+
+/**
+ * Apply one clicked username autocomplete suggestion.
+ * @param {MouseEvent} event - Suggestion click.
+ * @returns {void}
+ */
+function handleCargoSuggestionClick(event) {
+    const option = event.target.closest('[data-cargo-suggestion]');
+    if (!(option instanceof HTMLElement)) return;
+    applyCargoInviteSuggestion(option.dataset.cargoSuggestion || '');
+}
+
+/**
+ * Fill the invitation input from a selected username suggestion.
+ * @param {string} username - Selected username.
+ * @returns {void}
+ */
+function applyCargoInviteSuggestion(username) {
+    if (inviteInput instanceof HTMLInputElement) {
+        inviteInput.value = username;
+        inviteInput.focus();
+    }
+    inviteSuggestions = [];
+    closeInviteSuggestions();
+}
+
+/**
+ * Support ArrowUp, ArrowDown, Escape, and Enter in username autocomplete.
+ * @param {KeyboardEvent} event - Username input key event.
+ * @returns {void}
+ */
+function handleCargoInviteKeydown(event) {
+    if (event.key === 'Escape') {
+        closeInviteSuggestions();
+        return;
+    }
+    if (inviteSuggestions.length === 0) return;
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        activeInviteSuggestion = (activeInviteSuggestion + 1) % inviteSuggestions.length;
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        activeInviteSuggestion = (activeInviteSuggestion - 1 + inviteSuggestions.length) % inviteSuggestions.length;
+    } else if (event.key === 'Enter' && activeInviteSuggestion >= 0) {
+        event.preventDefault();
+        applyCargoInviteSuggestion(inviteSuggestions[activeInviteSuggestion]);
+        return;
+    } else {
+        return;
+    }
+    const options = ensureInviteSuggestionPanel().querySelectorAll('.cargo-user-suggestion');
+    for (let index = 0; index < options.length; index++) {
+        options[index].classList.toggle('is-active', index === activeInviteSuggestion);
+    }
+}
+
+/**
+ * Send a package-team invitation at the selected permission level.
+ * @param {SubmitEvent} event - Invitation form submission.
+ * @returns {Promise<void>}
+ */
+async function submitCargoInvitation(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const username = inviteInput instanceof HTMLInputElement ? inviteInput.value.trim() : '';
+    if (!username || !activePackageDetails?.package) return;
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit) submit.disabled = true;
+    try {
+        await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners'), {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({users: [username], level: inviteLevel})
+        });
+        if (inviteInput instanceof HTMLInputElement) inviteInput.value = '';
+        inviteSuggestions = [];
+        closeInviteSuggestions();
+        showAlert(t('cargo.inviteSent', {name: username}), 'success');
+    } catch (error) {
+        console.error('Failed to invite Cargo package member', error);
+        showAlert(error.message || t('cargo.operationFailed'), 'error');
+    } finally {
+        if (submit) submit.disabled = false;
+    }
+}
+
+/**
+ * Close username suggestions after a click outside their input and panel.
+ * @param {MouseEvent} event - Document click event.
+ * @returns {void}
+ */
+function handleCargoDocumentClick(event) {
+    if (inviteInput?.contains(event.target) || inviteSuggestionPanel?.contains(event.target)) return;
+    closeInviteSuggestions();
+}
+
+/**
+ * Keep username suggestions anchored without resizing their owner page.
+ * @returns {void}
+ */
+function handleCargoViewportChange() {
+    if (inviteSuggestionPanel && !inviteSuggestionPanel.hidden) positionInviteSuggestions();
+}
+
+/**
+ * Reload Cargo state after authentication or package invitation changes.
+ * @param {Event} event - State change event.
+ * @returns {void}
+ */
+function handleCargoStateChanged(event) {
+    const changedRepository = event instanceof CustomEvent ? event.detail?.repository : '';
+    if (!activeRepository || (changedRepository && changedRepository !== activeRepository)) return;
+    void renderCargoRepository(window.location.pathname, {format: 'cargo'}, activeNavigate);
+}
+
+/**
+ * Re-render cached Cargo content when the active language changes.
+ * @returns {void}
+ */
+function handleCargoLanguageChanged() {
+    if (!activeView || activeView.hidden) return;
+    if (activeRouteKind === 'package' && activePackageDetails) renderCargoPackagePage();
+    else if (activeRouteKind === 'overview') renderCargoOverview();
+}
+
+/**
+ * Attach stable delegated Cargo UI listeners once.
+ * @returns {void}
+ */
+function initializeCargoPageListeners() {
+    if (listenersInitialized) return;
+    listenersInitialized = true;
+    ensureInviteSuggestionPanel();
+    document.getElementById('cargo-repository-view')?.addEventListener('click', handleCargoPageClick);
+    document.addEventListener('click', handleCargoDocumentClick);
+    window.addEventListener('scroll', handleCargoViewportChange, {passive: true});
+    window.addEventListener('resize', handleCargoViewportChange, {passive: true});
+    window.addEventListener('authChanged', handleCargoStateChanged);
+    window.addEventListener('cargoMembershipChanged', handleCargoStateChanged);
+    window.addEventListener('languageChanged', handleCargoLanguageChanged);
+}
+
+/**
+ * Render a Cargo repository overview or package-management subpage.
+ * @param {string} path - Current browser route.
+ * @param {object|null} repositoryDetails - Repository metadata.
+ * @param {(path: string) => void} navigate - In-app navigation callback.
+ * @returns {Promise<boolean>} Whether the route belongs to a Cargo repository.
+ */
+export async function renderCargoRepository(path, repositoryDetails, navigate) {
+    initializeCargoPageListeners();
+    const format = getRepositoryFormat(repositoryDetails?.format).id;
+    if (format !== 'cargo') {
+        hideCargoRepositoryView();
+        return false;
+    }
+    const parts = path.split('/').filter(Boolean).map(decodePathSegment);
+    if (parts.length === 0) {
+        hideCargoRepositoryView();
+        return false;
+    }
+    const sequence = ++cargoLoadSequence;
+    activeRepository = parts[0];
+    activeNavigate = navigate;
+    activeView = document.getElementById('cargo-repository-view');
+    if (!activeView) return true;
+    activeView.hidden = false;
+    activeView.classList.add('is-visible');
+
+    if (parts.length === 1 || (parts.length === 2 && parts[1] === 'packages')) {
+        await loadCargoOverview(sequence);
+        return true;
+    }
+    if (parts.length === 3 && parts[1] === 'packages' && parts[2]) {
+        await loadCargoPackage(parts[2], sequence);
+        return true;
+    }
+    renderCargoError(t('cargo.routeNotFound'));
+    return true;
+}
+
+/**
+ * Hide and reset the Cargo repository subpage when browsing another format.
+ * @returns {void}
+ */
+export function hideCargoRepositoryView() {
+    cargoLoadSequence++;
+    closeInviteSuggestions(true);
+    activeRepository = '';
+    activeAdministrator = false;
+    activePackageDetails = null;
+    activePackageList = [];
+    activePublicPackageNames = new Set();
+    activePublicPackageTotal = 0;
+    activeCatalogPage = 1;
+    activeNavigate = null;
+    activeRouteKind = '';
+    activeView = document.getElementById('cargo-repository-view');
+    if (activeView) {
+        activeView.classList.remove('is-visible', 'is-updating');
+        activeView.removeAttribute('aria-busy');
+        activeView.hidden = true;
+        activeView.replaceChildren();
+    }
+}

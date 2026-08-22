@@ -41,6 +41,14 @@ func SetupApiRoutes(router fiber.Router, state *core.AppState) {
 	router.Get("/maven/details/:repo_name/*", func(c fiber.Ctx) error { return GetDetails(c, state) })
 	router.Get("/maven/repo-details/:repo_name", func(c fiber.Ctx) error { return GetRepoDetails(c, state) })
 	router.Get("/maven/signatures/:repo_name/*", func(c fiber.Ctx) error { return GetGPGSignature(c, state) })
+	// Multi-format aliases keep repository browsing independent from Maven.
+	router.Get("/repositories/details", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
+	router.Get("/repositories/details/", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
+	router.Get("/repositories/details/:repo_name", func(c fiber.Ctx) error { return GetDetailsRoot(c, state) })
+	router.Get("/repositories/details/:repo_name/*", func(c fiber.Ctx) error { return GetDetails(c, state) })
+	router.Get("/repositories/repo-details/:repo_name", func(c fiber.Ctx) error { return GetRepoDetails(c, state) })
+	router.Get("/repositories/signatures/:repo_name/*", func(c fiber.Ctx) error { return GetGPGSignature(c, state) })
+	router.Get("/repositories/search/:repo_name", func(c fiber.Ctx) error { return SearchRepository(c, state) })
 
 	router.Get("/maven/versions/:repo_name/*", func(c fiber.Ctx) error { return FindVersions(c, state) })
 	router.Get("/maven/latest/version/:repo_name/*", func(c fiber.Ctx) error { return LatestVersion(c, state) })

@@ -29,17 +29,25 @@ import {
 import {updateSnippets} from './browser/snippets.js';
 import {initUpload, updateUploadZone} from './browser/upload.js';
 import {fetchRepoDetails, hideRepoStats, updateRepoStats} from './browser/stats.js';
+import {hideCargoRepositoryView, renderCargoRepository} from './browser/cargo.js';
+import {localizeRepositorySearch, updateRepositorySearch} from './browser/search.js';
 import {FileDetails, GpgSignatureDetails} from './proto/index.js';
+import {getRepositoryFormat} from './repository-formats.js';
 
 const fileList = document.getElementById('file-list');
 const fileListContainer = document.getElementById('file-list-container');
 const emptyState = document.getElementById('empty-state');
 const errorState = document.getElementById('error-state');
 const breadcrumbLinks = document.getElementById('breadcrumb-links');
+const browserAdjustments = document.querySelector('.browser-adjustments');
 
 let currentLoadSeq = 0;
 let listTransitionTimer = null;
 let lastDirectoryPath = '';
+let currentRepositoryFormat = 'maven';
+let currentRepoDetailsPromise = null;
+let currentRepoDetails = null;
+let currentRepositoryName = '';
 
 const prefetchCache = new Set();
 
@@ -192,6 +200,28 @@ function setStateVisibility({empty = false, error = false} = {}) {
 }
 
 /**
+ * Switch the main browser column between Maven's file tree and Cargo's package pages.
+ * @param {boolean} cargoMode - Whether the active repository uses Cargo.
+ * @returns {void}
+ */
+function setRepositoryContentMode(cargoMode) {
+    if (fileListContainer) {
+        fileListContainer.hidden = cargoMode;
+        if (cargoMode) {
+            fileListContainer.style.removeProperty('height');
+            fileListContainer.style.removeProperty('overflow');
+            fileListContainer.style.removeProperty('box-sizing');
+            fileListContainer.classList.remove(
+                'is-loading', 'is-exiting', 'is-entering', 'is-ready', 'is-empty', 'is-error',
+                'is-nav-forward', 'is-nav-backward', 'is-nav-fade'
+            );
+        }
+    }
+    if (browserAdjustments instanceof HTMLElement) browserAdjustments.hidden = cargoMode;
+    if (!cargoMode) hideCargoRepositoryView();
+}
+
+/**
  * Animate a file list item out, then remove it from the DOM.
  * @param {HTMLElement|null} item
  * @returns {Promise<void>}
@@ -301,8 +331,16 @@ export function renderBreadcrumb(path) {
     for (let i = 0; i < parts.length; i++) {
         currentPath += '/' + parts[i];
         const isLast = i === parts.length - 1;
+        const decoded = decodePathSegment(parts[i]);
+        const packagesRoute = currentRepositoryFormat === 'cargo' && i === 1 && decoded === 'packages';
         desired.push({type: 'sep', text: '/'});
-        desired.push({type: 'link', href: currentPath, text: decodePathSegment(parts[i]), isCurrent: isLast});
+        desired.push({
+            type: 'link',
+            href: currentPath,
+            text: packagesRoute ? t('cargo.packagesTitle') : decoded,
+            isCurrent: isLast,
+            i18nKey: packagesRoute ? 'cargo.packagesTitle' : undefined
+        });
     }
 
     const existing = Array.from(breadcrumbLinks.children);
@@ -355,7 +393,7 @@ export function renderBreadcrumb(path) {
 
 /**
  * Build a file/directory list item with navigate, delete, and prefetch hooks.
- * @param {{name: string, type: string, content_length?: number, signed?: boolean}} file
+ * @param {{name: string, type: string, content_length?: number, signed?: boolean, format?: string}} file
  * @param {number} index
  * @param {string} path current directory path
  * @returns {HTMLElement}
@@ -364,6 +402,7 @@ function createFileItemElement(file, index, path) {
     const formattedSize = file.type === 'FILE' && file.content_length !== undefined ? formatBytes(file.content_length) : null;
     const item = createFileItem(file, index, path, {
         formattedSize,
+        allowDelete: currentRepositoryFormat !== 'cargo',
         onNavigate: (detail) => navigate(detail.event),
         onDelete: async (detail) => {
             if (await window.showConfirm(t('browser.confirmDelete', {name: detail.fileName}))) {
@@ -388,7 +427,14 @@ function createFileItemElement(file, index, path) {
     const fullPath = (path.endsWith('/') ? path : path + '/') + encodePathSegment(file.name);
     const link = item.querySelector('.file-item-link');
     if (link && file.type === 'DIRECTORY') {
-        link.addEventListener('mouseenter', () => prefetchUrl(`/api/maven/details${fullPath}`), {once: true});
+        /**
+         * Prefetch directory metadata when the user approaches its link.
+         * @returns {void}
+         */
+        function prefetchDirectoryDetails() {
+            prefetchUrl(`/api/repositories/details${fullPath}`);
+        }
+        link.addEventListener('mouseenter', prefetchDirectoryDetails, {once: true});
     }
 
     const previewBtn = item.querySelector('.file-action-btn--docs, .file-action-btn--preview');
@@ -416,7 +462,7 @@ function formatSignatureTime(value) {
  */
 async function openSignatureDetails({fullPath}) {
 	try {
-		const {response, data} = await fetchProto(`/api/maven/signatures${fullPath}`, GpgSignatureDetails);
+		const {response, data} = await fetchProto(`/api/repositories/signatures${fullPath}`, GpgSignatureDetails);
 		if (!response.ok || !data) {
 			showAlert(t('browser.signatureLoadFailed'), 'error');
 			return;
@@ -630,6 +676,10 @@ function renderFileListReconciled(filesToDisplay, path) {
  */
 export async function loadDirectory(path) {
     const seq = ++currentLoadSeq;
+    const pathParts = path.split('/').filter(p => p.length > 0);
+    const repositoryName = pathParts[0] || '';
+    const canReuseCargoDetails = currentRepositoryFormat === 'cargo' &&
+        repositoryName !== '' && repositoryName === currentRepositoryName && currentRepoDetails !== null;
 
     let direction = 'fade';
     const isSameDirectory = (lastDirectoryPath === path);
@@ -644,28 +694,57 @@ export async function loadDirectory(path) {
     }
     lastDirectoryPath = path;
 
-    const exitPromise = isSameDirectory ? Promise.resolve() : beginListTransition(direction);
+    const exitPromise = (isSameDirectory || canReuseCargoDetails)
+        ? Promise.resolve()
+        : beginListTransition(direction);
 
     renderBreadcrumb(path);
-    updateSnippets(path);
 
-    const pathParts = path.split('/').filter(p => p.length > 0);
     let repoDetailsPromise;
     if (pathParts.length >= 1 && pathParts[0] !== 'index.html') {
-        repoDetailsPromise = fetchRepoDetails(pathParts[0]);
-        void updateRepoStats(pathParts[0], repoDetailsPromise);
+        repoDetailsPromise = canReuseCargoDetails
+            ? Promise.resolve(currentRepoDetails)
+            : fetchRepoDetails(pathParts[0]);
+        if (!canReuseCargoDetails) void updateRepoStats(pathParts[0], repoDetailsPromise);
     } else {
+        currentRepoDetails = null;
+        currentRepositoryName = '';
         void hideRepoStats();
     }
-    void updateUploadZone(path, repoDetailsPromise);
+	currentRepoDetailsPromise = repoDetailsPromise || null;
+    if (!canReuseCargoDetails) {
+        void updateSnippets(path, repoDetailsPromise);
+        void updateUploadZone(path, repoDetailsPromise);
+    }
 
     try {
-        const {response, data} = await fetchProto(`/api/maven/details${path}`, FileDetails);
+        const [directoryResult, repoDetails] = await Promise.all([
+            canReuseCargoDetails
+                ? Promise.resolve(null)
+                : fetchProto(`/api/repositories/details${path}`, FileDetails),
+            repoDetailsPromise || Promise.resolve(null)
+        ]);
         await exitPromise;
         if (seq !== currentLoadSeq) return;
 
-        if (!response.ok || !data) {
-            let msg = `HTTP error! status: ${response.status}`;
+        currentRepositoryFormat = getRepositoryFormat(repoDetails?.format).id;
+		currentRepoDetails = repoDetails;
+		currentRepositoryName = repoDetails ? repositoryName : '';
+		const isCargoRepository = currentRepositoryFormat === 'cargo' && pathParts.length >= 1;
+		setRepositoryContentMode(isCargoRepository);
+		updateRepositorySearch(repoDetails ? pathParts[0] : '', currentRepositoryFormat, navigateToPath);
+		renderBreadcrumb(path);
+
+		if (isCargoRepository) {
+			setStateVisibility({empty: false, error: false});
+			await renderCargoRepository(path, repoDetails, navigateToPath);
+			return;
+		}
+
+        const {response, data} = directoryResult || {};
+
+        if (!response?.ok || !data) {
+            let msg = `HTTP error! status: ${response?.status || 500}`;
             try {
                 const text = await response.text();
                 if (text && text.includes('Artifact blocked')) msg = text;
@@ -704,6 +783,8 @@ export async function loadDirectory(path) {
         await exitPromise;
         if (seq !== currentLoadSeq) return;
         console.error('Error fetching directory details:', error);
+		setRepositoryContentMode(false);
+		updateRepositorySearch('', 'maven', navigateToPath);
         if (fileList) fileList.innerHTML = '';
         if (errorState) {
             errorState.textContent = (error.message && error.message.includes('Artifact blocked'))
@@ -716,6 +797,19 @@ export async function loadDirectory(path) {
 }
 
 /**
+ * Navigate to an application path and refresh the format-aware repository view.
+ * @param {string} path - Absolute same-origin path.
+ * @param {boolean} [replace=false] - Replace rather than append browser history.
+ * @returns {void}
+ */
+export function navigateToPath(path, replace = false) {
+    if (!path || typeof path !== 'string' || !path.startsWith('/')) return;
+    if (replace) window.history.replaceState(null, '', path);
+    else window.history.pushState(null, '', path);
+    void loadDirectory(path);
+}
+
+/**
  * Handle in-app navigation from a breadcrumb or file link click.
  * @param {Event} event
  * @returns {void}
@@ -723,17 +817,18 @@ export async function loadDirectory(path) {
 export function navigate(event) {
     event.preventDefault();
     const url = new URL(event.currentTarget.href);
-    const path = url.pathname;
-
-    window.history.pushState(null, '', path);
-    loadDirectory(path);
+    navigateToPath(url.pathname);
 }
 
 window.addEventListener('popstate', () => {
     loadDirectory(window.location.pathname);
 });
 
-window.addEventListener('languageChanged', () => {
+/**
+ * Re-render browser text and format-specific snippets after a locale change.
+ * @returns {void}
+ */
+function handleBrowserLanguageChanged() {
     const path = lastDirectoryPath || window.location.pathname;
     renderBreadcrumb(path);
     updatePageTranslations();
@@ -750,4 +845,8 @@ window.addEventListener('languageChanged', () => {
             }
         });
     }
-});
+	void updateSnippets(path, currentRepoDetailsPromise);
+	localizeRepositorySearch();
+}
+
+window.addEventListener('languageChanged', handleBrowserLanguageChanged);

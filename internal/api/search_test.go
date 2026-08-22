@@ -1,0 +1,89 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package api
+
+import (
+	"path/filepath"
+	"testing"
+
+	"renop/internal/config"
+	"renop/internal/core"
+	"renop/internal/database"
+	"renop/internal/service/index"
+)
+
+func TestSearchMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T) {
+	storagePath := t.TempDir()
+	repo := &config.Repository{Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"}
+	state := core.NewAppState()
+	state.Inner.FileIndex = index.NewFileIndexCustom(true)
+	root := filepath.Join(storagePath, repo.Name)
+	artifact := filepath.Join(root, "org", "example", "demo", "1.0.0", "demo-1.0.0.jar")
+	blocked := filepath.Join(root, "org", "example", "demo", "1.0.0", "demo-1.0.0.pom")
+	state.Inner.FileIndex.EnsureParentDirs(artifact)
+	state.Inner.FileIndex.InsertFile(artifact, index.FileInfo{Size: 123, ModTime: 1})
+	state.Inner.FileIndex.InsertFile(blocked, index.FileInfo{Size: 45, ModTime: 1})
+	state.Inner.FileIndex.BlockFile(blocked)
+
+	response, err := searchMavenRepository(state, storagePath, repo, &config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Format != config.RepositoryFormatMaven || response.Total != 3 {
+		t.Fatalf("unexpected Maven search metadata: %+v", response)
+	}
+	for _, result := range response.Results {
+		if result.Path == "org/example/demo/1.0.0/demo-1.0.0.pom" {
+			t.Fatal("blocked Maven file was exposed by repository search")
+		}
+	}
+	foundArtifact := false
+	for _, result := range response.Results {
+		if result.Path == "org/example/demo/1.0.0/demo-1.0.0.jar" && result.Size == 123 {
+			foundArtifact = true
+		}
+	}
+	if !foundArtifact {
+		t.Fatalf("Maven artifact missing from search results: %+v", response.Results)
+	}
+}
+
+func TestSearchCargoRepositoryReturnsNavigablePublicPackage(t *testing.T) {
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := core.NewAppState()
+	state.Inner.DB = db
+	if err := db.RecordCargoPublication(
+		&core.CargoPackage{Repository: "cargo", Name: "renop-demo", NormalizedName: "renop-demo", Description: "demo crate", CreatedAt: 1, UpdatedAt: 1},
+		&core.CargoVersion{Repository: "cargo", Package: "renop-demo", Version: "1.2.3", Publisher: "alice", CreatedAt: 1},
+		"alice",
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	response, err := searchCargoRepository(state,
+		&config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo},
+		"demo", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Total != 1 || len(response.Results) != 1 {
+		t.Fatalf("unexpected Cargo search response: %+v", response)
+	}
+	result := response.Results[0]
+	if result.Name != "renop-demo" || result.Path != "packages/renop-demo" ||
+		result.Type != "PACKAGE" || result.LatestVersion != "1.2.3" {
+		t.Fatalf("unexpected Cargo search result: %+v", result)
+	}
+}

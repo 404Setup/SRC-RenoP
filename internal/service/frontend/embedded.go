@@ -25,6 +25,8 @@ var (
 	embeddedFileCache syncv2.Map[string, *embeddedFile]
 )
 
+const frontendAssetCacheControl = "no-cache, must-revalidate, max-age=0"
+
 type embeddedFile struct {
 	data        []byte
 	etag        string
@@ -63,12 +65,13 @@ func ServeEmbeddedFile(c fiber.Ctx, path string) error {
 
 	c.Set(fiber.HeaderContentType, file.contentType)
 	c.Set(fiber.HeaderETag, file.etag)
+	c.Set(fiber.HeaderCacheControl, frontendAssetCacheControl)
+	c.Set(fiber.HeaderPragma, "no-cache")
+	c.Set(fiber.HeaderExpires, "0")
 
 	if clientETag := c.Get(fiber.HeaderIfNoneMatch); clientETag != "" && clientETag == file.etag {
 		return c.SendStatus(fiber.StatusNotModified)
 	}
-
-	c.Set(fiber.HeaderCacheControl, "no-cache, must-revalidate")
 
 	return c.Send(file.data)
 }

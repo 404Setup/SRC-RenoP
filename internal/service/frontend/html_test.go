@@ -11,10 +11,15 @@
 package frontend
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
+
 	"renop/internal/config"
+	"renop/internal/core"
 )
 
 func TestBundledAssetsEmbedded(t *testing.T) {
@@ -45,6 +50,8 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 	for _, needle := range []string{
 		`/css/style.css?v={{RENOP.HASH}}`,
 		`/js/main.js?v={{RENOP.HASH}}`,
+		`id="repository-search"`,
+		`id="cargo-repository-view"`,
 	} {
 		if !strings.Contains(html, needle) {
 			t.Fatalf("index.html missing bundled asset reference %q", needle)
@@ -52,6 +59,9 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 	}
 	if strings.Contains(html, "{{RENOP.CSS_LINKS}}") || strings.Contains(html, "{{RENOP.JS_LINKS}}") {
 		t.Fatal("index.html still contains legacy CSS/JS link placeholders")
+	}
+	if strings.Contains(html, `id="cargo-packages-card"`) {
+		t.Fatal("index.html still contains the obsolete Cargo package-management side card")
 	}
 }
 
@@ -63,6 +73,51 @@ func TestAssetsHashStableAndNonEmpty(t *testing.T) {
 	}
 	if h1 != h2 {
 		t.Fatalf("assets hash not stable: %q vs %q", h1, h2)
+	}
+}
+
+func TestIndexAndConditionalAssetsRetainCacheSafetyHeaders(t *testing.T) {
+	state := core.NewAppState()
+	cfg := config.DefaultConfig()
+	state.Inner.Config.Store(cfg)
+	app := fiber.New()
+	app.Get("/", func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	app.Get("/js/*", ServeJs)
+
+	indexResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer indexResponse.Body.Close()
+	if cacheControl := indexResponse.Header.Get(fiber.HeaderCacheControl); cacheControl != frontendIndexCacheControl {
+		t.Fatalf("index Cache-Control = %q, want %q", cacheControl, frontendIndexCacheControl)
+	}
+
+	assetResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/js/main.js", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	etag := assetResponse.Header.Get(fiber.HeaderETag)
+	_ = assetResponse.Body.Close()
+	if etag == "" {
+		t.Fatal("asset response is missing ETag")
+	}
+
+	conditionalRequest := httptest.NewRequest(http.MethodGet, "/js/main.js", nil)
+	conditionalRequest.Header.Set(fiber.HeaderIfNoneMatch, etag)
+	conditionalResponse, err := app.Test(conditionalRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conditionalResponse.Body.Close()
+	if conditionalResponse.StatusCode != http.StatusNotModified {
+		t.Fatalf("conditional asset status = %d, want %d", conditionalResponse.StatusCode, http.StatusNotModified)
+	}
+	if cacheControl := conditionalResponse.Header.Get(fiber.HeaderCacheControl); cacheControl != frontendAssetCacheControl {
+		t.Fatalf("conditional asset Cache-Control = %q, want %q", cacheControl, frontendAssetCacheControl)
+	}
+	if pragma := conditionalResponse.Header.Get(fiber.HeaderPragma); pragma != "no-cache" {
+		t.Fatalf("conditional asset Pragma = %q, want no-cache", pragma)
 	}
 }
 

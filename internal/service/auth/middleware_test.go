@@ -127,6 +127,58 @@ func TestExtractAuthHeader_WithOtherCookie(t *testing.T) {
 	assert.Equal(t, "", string(buf[:n]))
 }
 
+func TestAuthMiddlewareAcceptsOpaqueRegistryToken(t *testing.T) {
+	db := newTestAuthDB(t)
+	state := core.NewAppState()
+	state.Inner.DB = db
+	state.Inner.Config.Store(&config.Config{Maven: config.MavenSettings{Repositories: map[string]*config.Repository{
+		"cargo": {Name: "cargo", Format: config.RepositoryFormatCargo},
+	}}})
+	storeTestToken(t, db, state, &core.AccessToken{
+		Name:        "cargo-publisher",
+		Tokens:      []string{"opaque-cargo-secret"},
+		Permissions: []string{"canupdate:cargo"},
+	})
+
+	app := fiber.New()
+	app.Use(AuthMiddleware(state))
+	app.Get("/cargo/config.json", func(c fiber.Ctx) error {
+		return c.SendString(GetUser(c).Username)
+	})
+	app.Get("/ordinary", func(c fiber.Ctx) error {
+		return c.SendString(GetUser(c).Username)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/cargo/config.json", nil)
+	req.Header.Set(fiber.HeaderAuthorization, "opaque-cargo-secret")
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body := make([]byte, 64)
+	n, err := resp.Body.Read(body)
+	if err != nil && err.Error() != "EOF" {
+		require.NoError(t, err)
+	}
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+	assert.Equal(t, "cargo-publisher", string(body[:n]))
+
+	// Priming Cargo authentication must not make its opaque authorization
+	// value valid on unrelated endpoints through the shared auth cache.
+	ordinaryRequest := httptest.NewRequest(http.MethodGet, "/ordinary", nil)
+	ordinaryRequest.Header.Set(fiber.HeaderAuthorization, "opaque-cargo-secret")
+	ordinaryResponse, err := app.Test(ordinaryRequest)
+	require.NoError(t, err)
+	defer ordinaryResponse.Body.Close()
+	assert.Equal(t, fiber.StatusUnauthorized, ordinaryResponse.StatusCode)
+
+	invalidRequest := httptest.NewRequest(http.MethodGet, "/cargo/config.json", nil)
+	invalidRequest.Header.Set(fiber.HeaderAuthorization, "invalid-cargo-secret")
+	invalidResponse, err := app.Test(invalidRequest)
+	require.NoError(t, err)
+	defer invalidResponse.Body.Close()
+	assert.Equal(t, fiber.StatusForbidden, invalidResponse.StatusCode)
+	assert.Contains(t, invalidResponse.Header.Get(fiber.HeaderContentType), fiber.MIMEApplicationJSON)
+}
+
 func TestPostAuthLogout(t *testing.T) {
 	db := newTestAuthDB(t)
 	app := fiber.New()

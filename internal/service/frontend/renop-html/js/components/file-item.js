@@ -9,6 +9,7 @@
  */
 
 import {t} from '../i18n.js';
+import {getRepositoryFormat} from '../repository-formats.js';
 import {el} from '@renop/ui/dom';
 import {canUpdateRepo, repoNameFromPath} from '../auth.js';
 import {encodePathSegment} from '../browser/utils.js';
@@ -500,7 +501,7 @@ export class RenopFileItem extends HTMLElement {
      * @returns {string[]}
      */
     static get observedAttributes() {
-		return ['file-name', 'file-type', 'file-size', 'index', 'path', 'signed'];
+		return ['file-name', 'file-type', 'file-size', 'index', 'path', 'signed', 'allow-delete', 'repository-format'];
     }
 
     /**
@@ -521,7 +522,7 @@ export class RenopFileItem extends HTMLElement {
      * @returns {void}
      */
     attributeChangedCallback(name, oldValue, newValue) {
-        if (name === 'signed' && oldValue !== newValue && this.isConnected) {
+        if ((name === 'signed' || name === 'allow-delete' || name === 'repository-format') && oldValue !== newValue && this.isConnected) {
             this.render();
         }
     }
@@ -559,8 +560,15 @@ export class RenopFileItem extends HTMLElement {
         if (isRootRepo) {
             category = 'repo';
             iconName = 'box';
-            typeI18nKey = 'browser.repository';
-            typeLabel = t('browser.repository') || t('repos.repository') || 'Repository';
+            const repositoryFormat = this.getAttribute('repository-format');
+            if (repositoryFormat) {
+                const format = getRepositoryFormat(repositoryFormat);
+                typeI18nKey = format.labelKey;
+                typeLabel = t(format.labelKey);
+            } else {
+                typeI18nKey = 'browser.repository';
+                typeLabel = t('browser.repository') || t('repos.repository') || 'Repository';
+            }
         } else if (isDir) {
             category = 'dir';
             iconName = 'folder';
@@ -657,7 +665,7 @@ export class RenopFileItem extends HTMLElement {
             rightDiv.appendChild(el('span', {class: 'file-chevron', 'aria-hidden': 'true'}, createIcon('chevron')));
         }
 
-        if (!isRootRepo && canUpdateRepo(repoNameFromPath(path))) {
+        if (!isRootRepo && this.hasAttribute('allow-delete') && canUpdateRepo(repoNameFromPath(path))) {
             const deleteBtn = el('button', {
                 type: 'button',
                 class: 'file-action-btn file-action-btn--delete',
@@ -685,17 +693,18 @@ if (!customElements.get('renop-file-item')) {
 
 /**
  * Create a browser file/directory list item.
- * @param {{name: string, type: string, signed?: boolean}} file - File entry with name, type, and signature state.
+ * @param {{name: string, type: string, signed?: boolean, format?: string}} file - File entry with name, type, signature state, and optional repository format.
  * @param {number} index - List index for staggered animation.
  * @param {string} path - Parent path of the entry.
  * @param {object} [options={}] - Extra options.
  * @param {string} [options.formattedSize] - Pre-formatted size for files.
+ * @param {boolean} [options.allowDelete=true] - Whether this repository format supports raw deletion.
  * @param {Function} [options.onNavigate] - Handler for directory navigate events.
  * @param {Function} [options.onDelete] - Handler for delete events.
  * @param {Function} [options.onSignature] - Handler for signature-detail events.
  * @returns {HTMLElement}
  */
-export function createFileItem(file, index, path, {formattedSize, onNavigate, onDelete, onSignature} = {}) {
+export function createFileItem(file, index, path, {formattedSize, allowDelete = true, onNavigate, onDelete, onSignature} = {}) {
     const item = document.createElement('renop-file-item');
     item.setAttribute('file-name', file.name);
     item.setAttribute('file-type', file.type);
@@ -704,6 +713,12 @@ export function createFileItem(file, index, path, {formattedSize, onNavigate, on
     }
 	if (file.signed === true) {
 		item.setAttribute('signed', '');
+	}
+	if (file.format) {
+		item.setAttribute('repository-format', file.format);
+	}
+	if (allowDelete) {
+		item.setAttribute('allow-delete', '');
 	}
     item.setAttribute('index', String(index));
     item.setAttribute('path', path);

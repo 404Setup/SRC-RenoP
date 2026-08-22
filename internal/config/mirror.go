@@ -14,6 +14,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -31,16 +32,57 @@ type Mirror struct {
 	ProxyMode string `json:"proxy,omitempty" yaml:"proxy,omitempty"`
 	// Proxy is retained only to read legacy repositories.yaml files. It is not
 	// serialized and is ignored when an API update is applied.
-	Proxy          *MirrorProxy `json:"-" yaml:"-"`
-	Name           string       `json:"name" yaml:"name"`
-	Url            string       `json:"url" yaml:"url"`
-	EnabledDate    string       `json:"enabled_date" yaml:"enabled_date"`
-	AllowArtifacts []string     `json:"allow_artifacts,omitempty" yaml:"allow_artifacts,omitempty"`
-	DenyArtifacts  []string     `json:"deny_artifacts,omitempty" yaml:"deny_artifacts,omitempty"`
-	CacheTtlSecs   uint64       `json:"cache_ttl_secs" yaml:"cache_ttl_secs"`
-	TimeoutSecs    uint64       `json:"timeout_secs" yaml:"timeout_secs"`
-	Persist        bool         `json:"persist" yaml:"persist"`
-	NegativeCache  bool         `json:"negative_cache" yaml:"negative_cache"`
+	Proxy *MirrorProxy `json:"-" yaml:"-"`
+	Name  string       `json:"name" yaml:"name"`
+	Url   string       `json:"url" yaml:"url"`
+	// ArtifactUrl is used by registry formats whose index and artifact
+	// origins differ. Cargo expands {crate} and {version}.
+	ArtifactUrl    string   `json:"artifact_url,omitempty" yaml:"artifact_url,omitempty"`
+	EnabledDate    string   `json:"enabled_date" yaml:"enabled_date"`
+	AllowArtifacts []string `json:"allow_artifacts,omitempty" yaml:"allow_artifacts,omitempty"`
+	DenyArtifacts  []string `json:"deny_artifacts,omitempty" yaml:"deny_artifacts,omitempty"`
+	CacheTtlSecs   uint64   `json:"cache_ttl_secs" yaml:"cache_ttl_secs"`
+	TimeoutSecs    uint64   `json:"timeout_secs" yaml:"timeout_secs"`
+	Persist        bool     `json:"persist" yaml:"persist"`
+	NegativeCache  bool     `json:"negative_cache" yaml:"negative_cache"`
+}
+
+// ValidateArtifactURL validates the optional package artifact template without
+// opening a connection. Cargo templates must identify both package fields.
+func (m *Mirror) ValidateArtifactURL(format string) error {
+	if m == nil || strings.TrimSpace(m.ArtifactUrl) == "" {
+		return nil
+	}
+	template := strings.TrimSpace(m.ArtifactUrl)
+	if len(template) > 4096 {
+		return errors.New("artifact URL template is too long")
+	}
+	if strings.EqualFold(strings.TrimSpace(format), RepositoryFormatCargo) &&
+		(!strings.Contains(template, "{crate}") || !strings.Contains(template, "{version}")) {
+		return errors.New("Cargo artifact URL must contain {crate} and {version}")
+	}
+	authorityStart := strings.Index(template, "://")
+	if authorityStart >= 0 {
+		authority := template[authorityStart+3:]
+		if end := strings.IndexAny(authority, "/?#"); end >= 0 {
+			authority = authority[:end]
+		}
+		if strings.ContainsAny(authority, "{}") {
+			return errors.New("artifact URL placeholders must not appear in the authority")
+		}
+	}
+	probe := strings.NewReplacer("{crate}", "crate", "{version}", "1.0.0").Replace(template)
+	parsed, err := url.ParseRequestURI(probe)
+	if err != nil || parsed.Host == "" {
+		return errors.New("artifact URL template is invalid")
+	}
+	if !strings.EqualFold(parsed.Scheme, "http") && !strings.EqualFold(parsed.Scheme, "https") {
+		return errors.New("artifact URL must use http or https")
+	}
+	if parsed.User != nil || parsed.Fragment != "" {
+		return errors.New("artifact URL must not contain credentials or a fragment")
+	}
+	return nil
 }
 
 type MirrorProxy struct {
@@ -110,6 +152,12 @@ func looksLikeMavenVersion(s string) bool {
 }
 
 func (m *Mirror) IsArtifactAllowed(path string) (bool, string) {
+	return m.IsArtifactAllowedFor(RepositoryFormatMaven, path)
+}
+
+// IsArtifactAllowedFor applies format-specific mirror rules. Maven rules use
+// group or group:artifact prefixes; Cargo rules match normalized crate names.
+func (m *Mirror) IsArtifactAllowedFor(format, path string) (bool, string) {
 	if m == nil {
 		return true, ""
 	}
@@ -124,6 +172,26 @@ func (m *Mirror) IsArtifactAllowed(path string) (bool, string) {
 	}
 
 	clean := strings.Trim(path, "/")
+	if strings.EqualFold(strings.TrimSpace(format), RepositoryFormatCargo) {
+		crate := cargoCrateFromPath(clean)
+		if crate == "" {
+			return true, ""
+		}
+		match := func(pattern string) bool {
+			return normalizeCargoRule(pattern) == crate
+		}
+		if hasAllow {
+			if slices.ContainsFunc(m.AllowArtifacts, match) {
+				return true, ""
+			}
+			return false, "Crate blocked: Not in mirror allow list (" + clean + ")"
+		}
+		if slices.ContainsFunc(m.DenyArtifacts, match) {
+			return false, "Crate blocked: In mirror deny list (" + clean + ")"
+		}
+		return true, ""
+	}
+
 	group, artifactId := parseMavenGroupArtifact(path)
 
 	ga := group
@@ -160,6 +228,22 @@ func (m *Mirror) IsArtifactAllowed(path string) (bool, string) {
 	}
 
 	return true, ""
+}
+
+func cargoCrateFromPath(path string) string {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) >= 6 && parts[0] == "api" && parts[1] == "v1" && parts[2] == "crates" && parts[5] == "download" {
+		return normalizeCargoRule(parts[3])
+	}
+	if len(parts) < 2 || parts[len(parts)-1] == "config.json" {
+		return ""
+	}
+	return normalizeCargoRule(parts[len(parts)-1])
+}
+
+func normalizeCargoRule(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	return strings.ReplaceAll(value, "_", "-")
 }
 
 func (m *Mirror) setDefaults() {
@@ -378,6 +462,7 @@ func (m *Mirror) DeepCopy() Mirror {
 	cloned := Mirror{
 		Name:          strings.Clone(m.Name),
 		Url:           strings.Clone(m.Url),
+		ArtifactUrl:   strings.Clone(m.ArtifactUrl),
 		Persist:       m.Persist,
 		CacheTtlSecs:  m.CacheTtlSecs,
 		NegativeCache: m.NegativeCache,

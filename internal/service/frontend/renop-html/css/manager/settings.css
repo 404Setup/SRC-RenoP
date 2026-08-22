@@ -1909,3 +1909,40 @@ html.dark .cfg-warning-banner {
 .cfg-field-row--top-align .cfg-field-label {
     padding-top: 0.25rem;
 }
+
+.cfg-format-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.16rem 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 22%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--link-hover-color) 8%, transparent);
+    color: var(--link-hover-color);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.cfg-readonly-value {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 0.75rem;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+    color: var(--text-color);
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.repository-create-fields {
+    padding: 0;
+}
+
+.repository-create-fields input {
+    width: 100%;
+    box-sizing: border-box;
+}

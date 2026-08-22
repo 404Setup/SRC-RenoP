@@ -339,16 +339,27 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 
 		authHeader := strings.Clone(extractAuthHeader(c, state))
 		isSessionAuth := strings.HasPrefix(authHeader, "Session ")
+		isCargoRequest := isCargoRepositoryRequest(c, state)
+		isOpaqueCargoAuth := authHeader != "" && isCargoRequest &&
+			!strings.HasPrefix(authHeader, "Basic ") &&
+			!strings.HasPrefix(authHeader, "Session ") &&
+			!strings.HasPrefix(authHeader, "Bearer ")
+		authCacheKey := authHeader
+		if isOpaqueCargoAuth {
+			// A NUL cannot occur in an HTTP header, so this namespace cannot
+			// collide with credentials accepted by non-Cargo routes.
+			authCacheKey = "\x00cargo\x00" + authHeader
+		}
 
 		if authHeader != "" {
 			var tempUser *config.User
 
 			if !isSessionAuth {
-				if val, ok := state.Inner.AuthCache.Load(authHeader); ok {
+				if val, ok := state.Inner.AuthCache.Load(authCacheKey); ok {
 					if time.Now().UnixMilli() < val.ExpiredAt {
 						tempUser = val.User
 					} else {
-						state.DeleteAuthCache(authHeader)
+						state.DeleteAuthCache(authCacheKey)
 					}
 				}
 			}
@@ -361,6 +372,12 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 					tempUser, err = handleSessionAuth(state, authHeader, c)
 				} else if strings.HasPrefix(authHeader, "Bearer ") {
 					tempUser, err = handleBearerAuth(state, authHeader, c)
+				} else if isOpaqueCargoAuth {
+					// Cargo registry credentials are opaque and are sent as the
+					// complete Authorization value without a Bearer prefix.
+					tempUser, err = handleBearerAuth(state, "Bearer "+authHeader, c)
+				} else {
+					return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 				}
 
 				if err != nil {
@@ -370,18 +387,21 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 				if tempUser != nil {
 					authenticatedUser = tempUser
 					if !isSessionAuth {
-						state.StoreAuthCache(authHeader, core.AuthCacheEntry{
+						state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
 							User:      tempUser,
 							ExpiredAt: authCacheExpiry(c, time.Now().UnixMilli()),
 						})
 					}
 				} else if !isSessionAuth {
-					state.StoreAuthCache(authHeader, core.AuthCacheEntry{
+					state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
 						User:      InvalidCredentialsUser,
 						ExpiredAt: time.Now().Add(30 * time.Second).UnixMilli(),
 					})
 				}
 			} else if tempUser == InvalidCredentialsUser {
+				if isCargoRequest {
+					return sendInvalidCargoCredentials(c)
+				}
 				return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 			}
 			authenticatedUser = tempUser
@@ -389,6 +409,9 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 
 		isLogout := c.Path() == "/api/auth/logout"
 		if authHeader != "" && authenticatedUser == nil && !isLogout {
+			if isCargoRequest {
+				return sendInvalidCargoCredentials(c)
+			}
 			return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 		}
 
@@ -405,6 +428,30 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 
 		return c.Next()
 	}
+}
+
+func sendInvalidCargoCredentials(c fiber.Ctx) error {
+	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
+	return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+		"errors": []fiber.Map{{"detail": "Cargo registry credentials are invalid"}},
+	})
+}
+
+func isCargoRepositoryRequest(c fiber.Ctx, state *core.AppState) bool {
+	if state == nil || state.Inner == nil {
+		return false
+	}
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return false
+	}
+	path := strings.TrimPrefix(c.Path(), "/")
+	repository, _, _ := strings.Cut(path, "/")
+	if repository == "" {
+		return false
+	}
+	repo := cfg.Maven.Repositories[repository]
+	return repo != nil && repo.NormalizedFormat() == config.RepositoryFormatCargo
 }
 
 func GetUser(c fiber.Ctx) *config.User {

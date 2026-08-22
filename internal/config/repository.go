@@ -19,12 +19,85 @@ import (
 )
 
 type Repository struct {
-	Name                string    `json:"name" yaml:"name"`
+	Name string `json:"name" yaml:"name"`
+	// Format selects the client protocol. Empty is treated as Maven for
+	// backwards compatibility with existing repositories.yaml files.
+	Format              string    `json:"format,omitempty" yaml:"format,omitempty"`
 	Visibility          string    `json:"visibility" yaml:"visibility"`
 	Mirrors             []Mirror  `json:"mirrors" yaml:"mirrors"`
 	AllowRedeployment   bool      `json:"allow_redeployment" yaml:"allow_redeployment"`
 	RequireGPGSignature bool      `json:"require_gpg_signature" yaml:"require_gpg_signature"`
 	S3                  *S3Config `json:"s3,omitempty" yaml:"s3,omitempty"`
+}
+
+type repositorySerialization struct {
+	Name                string    `json:"name" yaml:"name"`
+	Format              string    `json:"format,omitempty" yaml:"format,omitempty"`
+	Visibility          string    `json:"visibility" yaml:"visibility"`
+	Mirrors             []Mirror  `json:"mirrors" yaml:"mirrors"`
+	AllowRedeployment   *bool     `json:"allow_redeployment,omitempty" yaml:"allow_redeployment,omitempty"`
+	RequireGPGSignature *bool     `json:"require_gpg_signature,omitempty" yaml:"require_gpg_signature,omitempty"`
+	S3                  *S3Config `json:"s3,omitempty" yaml:"s3,omitempty"`
+}
+
+const (
+	RepositoryFormatMaven = "maven"
+	RepositoryFormatCargo = "cargo"
+)
+
+// NormalizedFormat returns the protocol name while preserving the historical
+// empty value as Maven.
+func (r *Repository) NormalizedFormat() string {
+	if r == nil {
+		return RepositoryFormatMaven
+	}
+	format := strings.ToLower(strings.TrimSpace(r.Format))
+	if format == "" {
+		return RepositoryFormatMaven
+	}
+	return format
+}
+
+// serialization returns only fields supported by the repository protocol.
+// Maven keeps its explicit policy booleans; Cargo keeps its artifact URL
+// templates and omits Maven-only publication policy.
+func (r Repository) serialization() repositorySerialization {
+	serialized := repositorySerialization{
+		Name: r.Name, Format: r.Format, Visibility: r.Visibility, S3: r.S3,
+		Mirrors: make([]Mirror, len(r.Mirrors)),
+	}
+	for i := range r.Mirrors {
+		serialized.Mirrors[i] = r.Mirrors[i].DeepCopy()
+	}
+	if r.NormalizedFormat() == RepositoryFormatCargo {
+		return serialized
+	}
+	serialized.AllowRedeployment = &r.AllowRedeployment
+	serialized.RequireGPGSignature = &r.RequireGPGSignature
+	for i := range serialized.Mirrors {
+		serialized.Mirrors[i].ArtifactUrl = ""
+	}
+	return serialized
+}
+
+// MarshalJSON emits protocol-specific repository configuration fields.
+func (r Repository) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.serialization())
+}
+
+// MarshalYAML emits protocol-specific repository configuration fields.
+func (r Repository) MarshalYAML() (any, error) {
+	return r.serialization(), nil
+}
+
+// IsSupportedFormat reports whether the repository protocol is implemented.
+func IsSupportedRepositoryFormat(format string) bool {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "", RepositoryFormatMaven, RepositoryFormatCargo:
+		return true
+	default:
+		return false
+	}
 }
 
 type MirroredRepositorySettings struct {
@@ -139,6 +212,11 @@ func (m *MavenSettings) setDefaults() {
 			m.Repositories[k] = v
 		}
 	}
+	for _, repo := range m.Repositories {
+		if repo != nil && strings.TrimSpace(repo.Format) == "" {
+			repo.Format = RepositoryFormatMaven
+		}
+	}
 	delete(m.Repositories, "snapshot")
 }
 
@@ -191,6 +269,7 @@ func (r *Repository) DeepCopy() *Repository {
 	}
 	cloned := &Repository{
 		Name:                strings.Clone(r.Name),
+		Format:              strings.Clone(r.Format),
 		Visibility:          strings.Clone(r.Visibility),
 		AllowRedeployment:   r.AllowRedeployment,
 		RequireGPGSignature: r.RequireGPGSignature,

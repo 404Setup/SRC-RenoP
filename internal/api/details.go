@@ -23,6 +23,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/cargo"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/utils"
@@ -38,6 +39,7 @@ func toPbFileDetails(d *FileDetails) *pb.FileDetails {
 		Type:   string(d.Type),
 		Name:   d.Name,
 		Signed: d.Signed,
+		Format: d.Format,
 	}
 	if d.ContentLength != nil {
 		msg.ContentLength = d.ContentLength
@@ -206,7 +208,11 @@ func ResolveAndCheckPath(state *core.AppState, user *config.User, repoName strin
 		return "", fiber.ErrBadRequest
 	}
 
-	if !user.CheckReadPermission(repoName, sanitizedPath, repo.Visibility, isDir) {
+	canRead, err := cargo.CanReadRepository(state, user, repo, sanitizedPath, isDir)
+	if err != nil {
+		return "", err
+	}
+	if !canRead {
 		return "", fiber.ErrNotFound
 	}
 
@@ -225,10 +231,15 @@ func GetDetailsAllRepos(c fiber.Ctx, state *core.AppState) error {
 
 	var repos []FileDetails
 	for repoName, repo := range cfg.Maven.Repositories {
-		if user.CheckReadPermission(repoName, "", repo.Visibility, true) {
+		canRead, err := cargo.CanReadRepository(state, user, repo, "", true)
+		if err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+		}
+		if canRead {
 			repos = append(repos, FileDetails{
-				Type: FileDetailsTypeDirectory,
-				Name: repoName,
+				Type:   FileDetailsTypeDirectory,
+				Name:   repoName,
+				Format: repo.NormalizedFormat(),
 			})
 		}
 	}
@@ -247,6 +258,9 @@ func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 
 	localFilePath, err := ResolveAndCheckPath(state, user, repoName, nil)
 	if err != nil {
+		if errors.Is(err, core.ErrDatabaseUnavailable) {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+		}
 		if errors.Is(err, fiber.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).SendString("Not found")
 		}
@@ -271,6 +285,9 @@ func GetDetails(c fiber.Ctx, state *core.AppState) error {
 	pathParam := c.Params("*")
 	localFilePath, err := ResolveAndCheckPath(state, user, repoName, &pathParam)
 	if err != nil {
+		if errors.Is(err, core.ErrDatabaseUnavailable) {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+		}
 		if errors.Is(err, fiber.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).SendString("Not found")
 		}
@@ -309,7 +326,11 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	if !user.CheckReadPermission(repoName, "", repo.Visibility, true) {
+	canRead, err := cargo.CanReadRepository(state, user, repo, "", true)
+	if err != nil {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+	}
+	if !canRead {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
@@ -364,5 +385,6 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 		MetadataCount:       metadataCount,
 		Mirrors:             mirrors,
 		RequireGpgSignature: repo.RequireGPGSignature,
+		Format:              repo.NormalizedFormat(),
 	})
 }

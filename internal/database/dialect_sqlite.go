@@ -190,6 +190,56 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		UNIQUE (recipient, dedupe_key)
 	);`
 
+	cargoPackagesTable := `
+	CREATE TABLE IF NOT EXISTS cargo_packages (
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		package_name VARCHAR(64) NOT NULL,
+		description TEXT NOT NULL DEFAULT '',
+		archived INT NOT NULL DEFAULT 0,
+		admin_archived INT NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, normalized_name)
+	);`
+
+	cargoVersionsTable := `
+	CREATE TABLE IF NOT EXISTS cargo_versions (
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		version VARCHAR(128) NOT NULL,
+		description TEXT NOT NULL DEFAULT '',
+		publisher VARCHAR(255) NOT NULL,
+		yanked INT NOT NULL DEFAULT 0,
+		admin_yanked INT NOT NULL DEFAULT 0,
+		archive_yanked INT NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, normalized_name, version)
+	);`
+
+	cargoMembersTable := `
+	CREATE TABLE IF NOT EXISTS cargo_members (
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		username VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		added_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, normalized_name, username)
+	);`
+
+	cargoInvitationsTable := `
+	CREATE TABLE IF NOT EXISTS cargo_invitations (
+		id CHAR(36) PRIMARY KEY,
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		package_name VARCHAR(64) NOT NULL,
+		inviter VARCHAR(255) NOT NULL,
+		recipient VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		created_at BIGINT NOT NULL,
+		UNIQUE (repository, normalized_name, recipient)
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
@@ -218,6 +268,18 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(userMessagesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoPackagesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoVersionsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoMembersTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoInvitationsTable); err != nil {
 		return err
 	}
 
@@ -260,6 +322,10 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		{name: "idx_user_messages_recipient_time", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_recipient_time ON user_messages(recipient, created_at DESC, id DESC);"},
 		{name: "idx_user_messages_unread", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_unread ON user_messages(recipient, read_at, expires_at);"},
 		{name: "idx_user_messages_action", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_action ON user_messages(action_kind, action_status, expires_at);"},
+		{name: "idx_cargo_packages_search", query: "CREATE INDEX IF NOT EXISTS idx_cargo_packages_search ON cargo_packages(repository, archived, normalized_name);"},
+		{name: "idx_cargo_versions_package", query: "CREATE INDEX IF NOT EXISTS idx_cargo_versions_package ON cargo_versions(repository, normalized_name, created_at DESC);"},
+		{name: "idx_cargo_members_user", query: "CREATE INDEX IF NOT EXISTS idx_cargo_members_user ON cargo_members(username, repository);"},
+		{name: "idx_cargo_invitations_recipient", query: "CREATE INDEX IF NOT EXISTS idx_cargo_invitations_recipient ON cargo_invitations(recipient, created_at);"},
 	}
 	for _, migration := range indexMigrations {
 		if _, err := db.Exec(migration.query); err != nil {

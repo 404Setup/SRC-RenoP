@@ -211,7 +211,7 @@ export function hideRepoStats() {
  * @returns {Promise<object|null>}
  */
 export async function fetchRepoDetails(repoName) {
-    const {response, data} = await fetchProto(`/api/maven/repo-details/${repoName}`, RepoDetailsResponse);
+    const {response, data} = await fetchProto(`/api/repositories/repo-details/${encodeURIComponent(repoName)}`, RepoDetailsResponse);
     return response.ok && data ? data : null;
 }
 

@@ -11,5 +11,6 @@
 @import "./browser/header.css";
 @import "./browser/file-list.css";
 @import "./browser/details.css";
+@import "./browser/cargo.css";
 @import "./browser/upload.css";
 @import "./browser/languages.css";

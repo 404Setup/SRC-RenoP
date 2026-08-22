@@ -196,6 +196,60 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		INDEX idx_user_messages_action (action_kind, action_status, expires_at)
 	);`
 
+	cargoPackagesTable := `
+	CREATE TABLE IF NOT EXISTS cargo_packages (
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		package_name VARCHAR(64) NOT NULL,
+		description TEXT NOT NULL,
+		archived TINYINT(1) NOT NULL DEFAULT 0,
+		admin_archived TINYINT(1) NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, normalized_name),
+		INDEX idx_cargo_packages_search (repository, archived, normalized_name)
+	);`
+
+	cargoVersionsTable := `
+	CREATE TABLE IF NOT EXISTS cargo_versions (
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		version VARCHAR(128) NOT NULL,
+		description TEXT NOT NULL,
+		publisher VARCHAR(255) NOT NULL,
+		yanked TINYINT(1) NOT NULL DEFAULT 0,
+		admin_yanked TINYINT(1) NOT NULL DEFAULT 0,
+		archive_yanked TINYINT(1) NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, normalized_name, version),
+		INDEX idx_cargo_versions_package (repository, normalized_name, created_at)
+	);`
+
+	cargoMembersTable := `
+	CREATE TABLE IF NOT EXISTS cargo_members (
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		username VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		added_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, normalized_name, username),
+		INDEX idx_cargo_members_user (username, repository)
+	);`
+
+	cargoInvitationsTable := `
+	CREATE TABLE IF NOT EXISTS cargo_invitations (
+		id CHAR(36) PRIMARY KEY,
+		repository VARCHAR(64) NOT NULL,
+		normalized_name VARCHAR(64) NOT NULL,
+		package_name VARCHAR(64) NOT NULL,
+		inviter VARCHAR(255) NOT NULL,
+		recipient VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		created_at BIGINT NOT NULL,
+		UNIQUE KEY uq_cargo_invitation (repository, normalized_name, recipient),
+		INDEX idx_cargo_invitations_recipient (recipient, created_at)
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
@@ -224,6 +278,18 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(userMessagesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoPackagesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoVersionsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoMembersTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(cargoInvitationsTable); err != nil {
 		return err
 	}
 

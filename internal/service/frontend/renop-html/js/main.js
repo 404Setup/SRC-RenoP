@@ -25,6 +25,7 @@ import {populateRoles} from './users/modal.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
 import {initMessageCenter} from './messages.js';
+import './cargo-messages.js';
 
 initI18n();
 

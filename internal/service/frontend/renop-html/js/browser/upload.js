@@ -22,6 +22,7 @@ import {
 import {collapseElement, expandElement} from '@renop/ui/height-anim';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {InstanceStatus, RepoDetailsResponse} from '../proto/index.js';
+import {getRepositoryFormat} from '../repository-formats.js';
 
 let pendingFiles = [];
 let uploading = false;
@@ -261,21 +262,28 @@ export async function updateUploadZone(path, detailsPromise) {
     if (!uploadZoneContainer) return;
 
     const pathParts = path.split('/').filter(p => p.length > 0).map(decodePathSegment);
-    const shouldShow = pathParts.length >= 1 && canUpdateRepo(pathParts[0]);
 	const policySeq = ++repositoryPolicySeq;
+	let details = null;
+	try {
+		details = detailsPromise ? await detailsPromise : null;
+		if (!details && pathParts.length >= 1) {
+			const result = await fetchProto(
+				`/api/repositories/repo-details/${encodePathSegment(pathParts[0])}`,
+				RepoDetailsResponse
+			);
+			details = result.response.ok ? result.data : null;
+		}
+	} catch (error) {
+		console.error('Failed to load repository upload policy', error);
+	}
+	if (policySeq !== repositoryPolicySeq) return;
+	const format = getRepositoryFormat(details?.format);
+    const shouldShow = pathParts.length >= 1 && details !== null && format.supportsBrowserUpload && canUpdateRepo(pathParts[0]);
 
     if (shouldShow) {
 		try {
-			let data = await detailsPromise;
-			if (!detailsPromise) {
-				const result = await fetchProto(
-					`/api/maven/repo-details/${encodePathSegment(pathParts[0])}`,
-					RepoDetailsResponse
-				);
-				data = result.response.ok ? result.data : null;
-			}
 			if (policySeq !== repositoryPolicySeq) return;
-			applyRepositoryGPGPolicy(data?.require_gpg_signature === true);
+			applyRepositoryGPGPolicy(details?.require_gpg_signature === true);
 		} catch (error) {
 			if (policySeq !== repositoryPolicySeq) return;
 			applyRepositoryGPGPolicy(false);

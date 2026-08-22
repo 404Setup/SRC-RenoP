@@ -130,6 +130,19 @@ func TestIsValidRepositoryName(t *testing.T) {
 	}
 }
 
+func TestIsValidRepositorySlug(t *testing.T) {
+	for _, name := range []string{"releases", "private-repo", "cargo-packages"} {
+		if !IsValidRepositorySlug(name) {
+			t.Errorf("expected repository slug %q to be valid", name)
+		}
+	}
+	for _, name := range []string{"", "UPPER", "under_score", "cargo2", "r2-packages", "-leading", "trailing-", "double--dash", "api", "javadoc", "仓库"} {
+		if IsValidRepositorySlug(name) {
+			t.Errorf("expected repository slug %q to be invalid", name)
+		}
+	}
+}
+
 func TestIsImageFileSupportedExtensions(t *testing.T) {
 	tests := []string{
 		"image.png",

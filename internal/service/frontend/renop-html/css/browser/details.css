@@ -558,3 +558,302 @@ html.dark .mirror-chip--yes {
 .snippet-content pre::-webkit-scrollbar {
     display: none !important;
 }
+
+.cargo-packages-card {
+    display: none;
+    margin-top: 0;
+    overflow: hidden;
+    animation: none;
+    will-change: height, opacity, margin-top;
+}
+
+.cargo-packages-card.is-visible {
+    margin-top: 1.5rem;
+}
+
+.cargo-packages-content {
+    display: flex;
+    flex-direction: column;
+    padding: 0.45rem;
+    background: var(--snippet-bg);
+    border-top: 1px solid var(--border-color);
+}
+
+.cargo-package-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0.85rem;
+    color: var(--text-color);
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 0.65rem;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.cargo-package-row:hover {
+    background: color-mix(in srgb, var(--link-hover-color) 7%, transparent);
+    border-color: color-mix(in srgb, var(--link-hover-color) 16%, transparent);
+    transform: translateX(2px);
+}
+
+.cargo-package-row-meta,
+.cargo-team-member,
+.cargo-version-meta {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+
+.cargo-package-row-name {
+    font-size: 0.88rem;
+}
+
+.cargo-package-row-description,
+.cargo-team-member > span,
+.cargo-version-meta > span:not(.cargo-state-badge) {
+    overflow: hidden;
+    color: var(--text-color);
+    font-size: 0.75rem;
+    opacity: 0.6;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cargo-package-row-badges,
+.cargo-row-actions,
+.cargo-dialog-actions,
+.cargo-team-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.cargo-package-row-badges svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.45;
+}
+
+.cargo-permission-badge,
+.cargo-state-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 0.18rem 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 22%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--link-hover-color) 9%, transparent);
+    color: var(--link-hover-color);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.cargo-state-badge.is-archived,
+.cargo-state-badge.is-yanked {
+    border-color: color-mix(in srgb, #f59e0b 28%, transparent);
+    background: color-mix(in srgb, #f59e0b 11%, transparent);
+    color: #b45309;
+}
+
+html.dark .cargo-state-badge.is-archived,
+html.dark .cargo-state-badge.is-yanked {
+    color: #fbbf24;
+}
+
+.cargo-packages-empty,
+.cargo-section-empty {
+    margin: 0;
+    padding: 1rem;
+    color: var(--text-color);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    opacity: 0.62;
+    text-align: center;
+}
+
+.cargo-package-modal-body {
+    max-height: min(68vh, 700px);
+    overflow-y: auto;
+    padding: 0 1.35rem 1.35rem;
+}
+
+.cargo-package-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.cargo-dialog-section {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--card-bg) 82%, var(--snippet-bg));
+}
+
+.cargo-package-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.cargo-package-description {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+.cargo-package-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.75rem;
+    opacity: 0.65;
+}
+
+.cargo-dialog-heading {
+    margin: 0 0 0.75rem;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.cargo-version-list,
+.cargo-team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cargo-version-row,
+.cargo-team-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    min-height: 2.6rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.55rem;
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+}
+
+.cargo-version-meta {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.55rem;
+}
+
+.cargo-version-meta > span:not(.cargo-state-badge) {
+    flex-basis: 100%;
+}
+
+.cargo-team-controls .custom-select-wrapper,
+.cargo-invite-controls .custom-select-wrapper {
+    min-width: 9.5rem;
+}
+
+.cargo-operation-note {
+    margin: 0;
+    color: #b45309;
+    font-size: 0.75rem;
+}
+
+.cargo-invite-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.cargo-invite-form-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.82rem;
+}
+
+.cargo-invite-form-heading span {
+    font-size: 0.74rem;
+    opacity: 0.62;
+}
+
+.cargo-invite-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(9.5rem, auto) auto;
+    align-items: start;
+    gap: 0.55rem;
+}
+
+.cargo-invite-input-wrap {
+    position: relative;
+    min-width: 0;
+}
+
+.cargo-invite-input-wrap input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cargo-user-suggestions {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 0.3rem);
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 13rem;
+    overflow-y: auto;
+    padding: 0.3rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.6rem;
+    background: var(--card-bg);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.cargo-user-suggestions[hidden] {
+    display: none;
+}
+
+.cargo-user-suggestion {
+    padding: 0.55rem 0.65rem;
+    color: var(--text-color);
+    text-align: left;
+    border: 0;
+    border-radius: 0.45rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+.cargo-user-suggestion:hover,
+.cargo-user-suggestion.is-active {
+    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+    color: var(--link-hover-color);
+}
+
+@media (max-width: 720px) {
+    .cargo-version-row,
+    .cargo-team-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .cargo-row-actions,
+    .cargo-team-controls,
+    .cargo-dialog-actions {
+        flex-wrap: wrap;
+    }
+
+    .cargo-invite-controls {
+        grid-template-columns: 1fr;
+    }
+}

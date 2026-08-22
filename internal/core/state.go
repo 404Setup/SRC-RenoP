@@ -106,6 +106,22 @@ type StateDB interface {
 	TransitionMessageAction(id, username, expectedStatus, newStatus string, actedAt int64) (bool, error)
 	DeleteUserMessage(id, username string) (bool, error)
 	DeleteUserMessages(username string) (int64, error)
+	GetCargoPackage(repository, normalizedName string) (*CargoPackage, error)
+	GetCargoPackageDetails(repository, normalizedName, username string) (*CargoPackageDetails, error)
+	ListCargoPackages(repository, username string, administrator bool) ([]*CargoPackage, error)
+	SearchCargoPackages(repository, query string, limit, offset int) ([]*CargoPackage, int, error)
+	HasCargoMembership(repository, username string) (bool, error)
+	RecordCargoPublication(pkg *CargoPackage, version *CargoVersion, username string) error
+	SetCargoVersionYanked(repository, normalizedName, version string, yanked, administrator bool) error
+	DeleteCargoVersion(repository, normalizedName, version string) error
+	SetCargoPackageArchived(repository, normalizedName string, archived, administrator bool) error
+	DeleteCargoPackage(repository, normalizedName string, actedAt int64) error
+	DeleteCargoRepository(repository string, actedAt int64) error
+	CreateCargoInvitations(invitations []*CargoInvitation, messages []*UserMessage) error
+	RespondCargoInvitation(id, recipient, repository string, accept bool, actedAt int64) error
+	SetCargoMemberLevel(repository, normalizedName, actor, username string, level int) error
+	RemoveCargoMember(repository, normalizedName, actor, username string) error
+	RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error
 }
 
 type AppStateInner struct {
