@@ -11,7 +11,7 @@
 package config
 
 type DatabaseConfig struct {
-	Driver             string `json:"driver" yaml:"driver"` // "sqlite3" or "mysql"
+	Driver             string `json:"driver" yaml:"driver"` // "sqlite3", "mysql", or "postgres"
 	Dsn                string `json:"dsn" yaml:"dsn"`
 	MaxOpenConns       int    `json:"max_open_conns" yaml:"max_open_conns"`
 	MaxIdleConns       int    `json:"max_idle_conns" yaml:"max_idle_conns"`

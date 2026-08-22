@@ -755,6 +755,24 @@ func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {
 	if updatedCfg.Database.Dsn != "new_renop.db" || updatedCfg.Database.MaxOpenConns != 50 {
 		t.Fatalf("expected Dsn new_renop.db and MaxOpenConns 50, got Dsn=%s MaxOpenConns=%d", updatedCfg.Database.Dsn, updatedCfg.Database.MaxOpenConns)
 	}
+
+	updateServerPg := proto.Clone(&got).(*pb.ServerConfig)
+	updateServerPg.Database = &pb.DatabaseConfig{
+		Enabled:            true,
+		Driver:             "postgres",
+		Dsn:                "postgres://user:pass@localhost:5432/renop?sslmode=disable",
+		MaxOpenConns:       20,
+		MaxIdleConns:       5,
+		ConnMaxLifetimeSec: 300,
+	}
+	respPutPg := protoPUT(t, app, "/domain/server", updateServerPg)
+	if respPutPg.StatusCode != http.StatusOK {
+		t.Fatalf("expected PUT 200 for postgres driver, got %d", respPutPg.StatusCode)
+	}
+	updatedCfgPg := appState.Inner.Config.Load()
+	if updatedCfgPg.Database.Driver != "postgres" || updatedCfgPg.Database.Dsn != "postgres://user:pass@localhost:5432/renop?sslmode=disable" {
+		t.Fatalf("expected postgres driver and DSN, got %v", updatedCfgPg.Database)
+	}
 }
 
 func TestStoragePathChangeRebuildsIndex(t *testing.T) {

@@ -130,7 +130,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		}
 		if msg.Database != nil {
 			driver := strings.ToLower(strings.TrimSpace(msg.Database.Driver))
-			if driver != "sqlite3" && driver != "sqlite" && driver != "mysql" {
+			if driver != "sqlite3" && driver != "sqlite" && driver != "mysql" && driver != "postgres" && driver != "postgresql" && driver != "pgx" && driver != "pg" {
 				return c.Status(fiber.StatusBadRequest).SendString("Invalid database driver")
 			}
 			if strings.TrimSpace(msg.Database.Dsn) == "" {
