@@ -54,9 +54,8 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
 - **`internal/service/status/process_memory_*.go`**: Platform-specific process memory sampling. Linux reuses
   `/proc/self/statm` with a fixed buffer; Windows uses process counters; other supported systems use the platform
   adapter from gopsutil.
-- **`internal/utils/memory_linux.go`**: Linux GC tuning. It resolves the process's cgroup v1/v2 mount and hierarchy,
-  honors the strictest configured memory limit, leaves headroom for non-Go process memory, and applies a direct-build
-  fallback for `GODEBUG=disablethp=1`. An explicit `disablethp` value in `GODEBUG` is preserved.
+- **`internal/utils/memory_*.go`**: Cross-platform memory and GC tuning (`InitMemoryTuning`). Linux resolves cgroup v1/v2 limits or `/proc/meminfo` to configure `debug.SetMemoryLimit` and disable transparent huge pages; Windows queries `GlobalMemoryStatusEx` for soft memory bounding; all platforms tune GC percent to 35% when `GOGC` is unset.
+- **`internal/utils/intern.go`**: Process-wide string interning using Go's `unique.Make` for zero-leak canonical path string deduplication across `FileIndex` and cached mappings.
 - **`pkg/`**: Public/shared Go libraries.
 - **`proto/`**: Protocol Buffers schema definitions (`proto/api/v1/api.proto`).
 - **`web/`**, **`packages/`**, & **`internal/service/frontend/renop-html/`**: Frontend web UI and workspace packages
