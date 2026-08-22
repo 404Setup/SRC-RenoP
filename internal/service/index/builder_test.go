@@ -15,8 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/llxisdsh/pb"
 )
 
 func TestReplaceIndexFromScanAddsAndRemoves(t *testing.T) {
@@ -109,19 +107,17 @@ func TestReplaceIndexFromSuccessfulS3ScanPublishesSnapshot(t *testing.T) {
 	}
 }
 
-func TestInternStringPartialEvictionKeepsPoolUsable(t *testing.T) {
-	pathInternPool = pb.MapOf[string, string]{}
-	pathInternSize.Store(0)
-	for i := range 100 {
-		internString("seed/" + string(rune('a'+i%26)) + "/" + string(rune('0'+i%10)))
-	}
-	pathInternSize.Store(50000)
+func TestInternStringCanonical(t *testing.T) {
+	s1 := "storage/releases/probe"
+	s2 := string([]byte(s1))
 
-	got := internString("storage/releases/partial-evict-probe")
-	if got != "storage/releases/partial-evict-probe" {
-		t.Fatalf("interned value = %q", got)
+	got1 := internString(s1)
+	got2 := internString(s2)
+
+	if got1 != s1 || got2 != s2 {
+		t.Fatalf("interned value mismatch: got1=%q, got2=%q", got1, got2)
 	}
-	if pathInternSize.Load() >= 50000 {
-		t.Fatalf("expected partial eviction to reduce pool size, got %d", pathInternSize.Load())
+	if got1 != got2 {
+		t.Fatalf("expected identical string values")
 	}
 }

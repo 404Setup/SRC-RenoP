@@ -11,47 +11,15 @@
 package utils
 
 import (
-	"strings"
-	"sync/atomic"
-
-	"github.com/llxisdsh/pb"
+	"unique"
 )
 
-var (
-	stringPool pb.MapOf[string, string]
-	poolSize   atomic.Int64
-)
-
-const (
-	maxInternedStrings = 20_000
-	internEvictionBatch = 2_000
-)
-
+// Intern returns the canonical interned representation of the string s.
+// It leverages the Go runtime's weak-reference interning mechanism to deduplicate
+// strings across the entire process while allowing unreferenced strings to be collected.
 func Intern(s string) string {
 	if s == "" {
 		return ""
 	}
-	if val, ok := stringPool.Load(s); ok {
-		return val
-	}
-
-	if poolSize.Load() >= maxInternedStrings {
-		var evicted int64
-		stringPool.Range(func(k string, v string) bool {
-			if _, loaded := stringPool.LoadAndDelete(k); loaded {
-				evicted++
-			}
-			return evicted < internEvictionBatch
-		})
-		if evicted > 0 {
-			poolSize.Add(-evicted)
-		}
-	}
-
-	cloned := strings.Clone(s)
-	actual, loaded := stringPool.LoadOrStore(cloned, cloned)
-	if !loaded {
-		poolSize.Add(1)
-	}
-	return actual
+	return unique.Make(s).Value()
 }

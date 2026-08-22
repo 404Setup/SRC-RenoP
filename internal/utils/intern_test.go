@@ -11,7 +11,6 @@
 package utils
 
 import (
-	"reflect"
 	"testing"
 	"unsafe"
 )
@@ -21,9 +20,9 @@ func TestIntern(t *testing.T) {
 	bytes := []byte(s1)
 	s2 := string(bytes)
 
-	hdr1 := (*reflect.StringHeader)(unsafe.Pointer(&s1))
-	hdr2 := (*reflect.StringHeader)(unsafe.Pointer(&s2))
-	if hdr1.Data == hdr2.Data {
+	ptr1 := unsafe.StringData(s1)
+	ptr2 := unsafe.StringData(s2)
+	if ptr1 == ptr2 {
 		t.Fatalf("test setup error: s1 and s2 should have different data pointers")
 	}
 
@@ -34,11 +33,11 @@ func TestIntern(t *testing.T) {
 		t.Errorf("expected same string content, got %q and %q", interned1, interned2)
 	}
 
-	hdrI1 := (*reflect.StringHeader)(unsafe.Pointer(&interned1))
-	hdrI2 := (*reflect.StringHeader)(unsafe.Pointer(&interned2))
+	ptrI1 := unsafe.StringData(interned1)
+	ptrI2 := unsafe.StringData(interned2)
 
-	if hdrI1.Data != hdrI2.Data {
-		t.Errorf("expected interned strings to share the exact same backing pointer, but got %x and %x", hdrI1.Data, hdrI2.Data)
+	if ptrI1 != ptrI2 {
+		t.Errorf("expected interned strings to share the exact same backing pointer, but got %p and %p", ptrI1, ptrI2)
 	}
 
 	if Intern("") != "" {

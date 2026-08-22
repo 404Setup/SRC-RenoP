@@ -27,6 +27,8 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/llxisdsh/pb"
+
+	"renop/internal/utils"
 )
 
 func toSlashFast(pathStr string) string {
@@ -107,6 +109,7 @@ func readFilesFromJSON(decoder *json.Decoder, idx *FileIndex) error {
 			if !ok {
 				return errors.New("index file path must be a string")
 			}
+			filePath = utils.Intern(filePath)
 			var info FileInfo
 			if err := decoder.Decode(&info); err != nil {
 				return err
@@ -122,6 +125,7 @@ func readFilesFromJSON(decoder *json.Decoder, idx *FileIndex) error {
 		if err := decoder.Decode(&filePath); err != nil {
 			return err
 		}
+		filePath = utils.Intern(filePath)
 		var info FileInfo
 		if stat, statErr := os.Stat(filepath.FromSlash(filePath)); statErr == nil {
 			info = FileInfo{Size: stat.Size(), ModTime: stat.ModTime().UnixNano()}
@@ -145,7 +149,7 @@ func readDirsFromJSON(decoder *json.Decoder, idx *FileIndex) error {
 		if err := decoder.Decode(&dir); err != nil {
 			return err
 		}
-		idx.InsertDir(dir)
+		idx.InsertDir(utils.Intern(dir))
 	}
 	_, err = decoder.Token()
 	return err
@@ -172,7 +176,7 @@ func readNotFoundFromJSON(decoder *json.Decoder, idx *FileIndex) error {
 		if err := decoder.Decode(&expireAt); err != nil {
 			return err
 		}
-		idx.InsertNotFound(filePath, expireAt)
+		idx.InsertNotFound(utils.Intern(filePath), expireAt)
 	}
 	_, err = decoder.Token()
 	return err
@@ -197,37 +201,8 @@ type FileIndex struct {
 	metadataLock sync.Mutex                  `json:"-"`
 }
 
-var (
-	pathInternPool pb.MapOf[string, string]
-	pathInternSize atomic.Int64
-)
-
 func internString(s string) string {
-	if s == "" {
-		return ""
-	}
-	if val, ok := pathInternPool.Load(s); ok {
-		return val
-	}
-	if pathInternSize.Load() >= 50000 {
-		var evicted int64
-		pathInternPool.Range(func(k string, _ string) bool {
-			if _, loaded := pathInternPool.LoadAndDelete(k); loaded {
-				evicted++
-			}
-			return evicted < 5000
-		})
-		if evicted > 0 {
-			pathInternSize.Add(-evicted)
-		}
-	}
-	cloned := strings.Clone(s)
-	actual, loaded := pathInternPool.LoadOrStore(cloned, cloned)
-	if !loaded {
-		pathInternSize.Add(1)
-		return cloned
-	}
-	return actual
+	return utils.Intern(s)
 }
 
 func splitPathParentBase(filePath string) (string, string) {
@@ -346,6 +321,7 @@ func NewFileIndexCustom(isSync bool) *FileIndex {
 
 // putFile stores or replaces a file entry and maintains FilesCount / TotalBytes.
 func (idx *FileIndex) putFile(pathSlash string, info FileInfo) {
+	pathSlash = utils.Intern(pathSlash)
 	if idx.IsBlocked(pathSlash) {
 		return
 	}
@@ -368,6 +344,7 @@ func (idx *FileIndex) putFile(pathSlash string, info FileInfo) {
 
 // deleteFile removes a file entry and maintains FilesCount / TotalBytes.
 func (idx *FileIndex) deleteFile(pathSlash string) bool {
+	pathSlash = utils.Intern(pathSlash)
 	old, loaded := idx.Files.LoadAndDelete(pathSlash)
 	if !loaded {
 		return false
@@ -393,7 +370,7 @@ func (idx *FileIndex) consumerLoop() {
 	for {
 		select {
 		case op := <-idx.OpChan:
-			pathSlash := filepath.ToSlash(op.Path)
+			pathSlash := utils.Intern(filepath.ToSlash(op.Path))
 			switch op.Type {
 			case OpInsertFile:
 				idx.putFile(pathSlash, op.Info)
@@ -565,7 +542,7 @@ func (idx *FileIndex) BlockFile(pathStr string) {
 	if idx == nil || pathStr == "" {
 		return
 	}
-	pathStr = toSlashFast(pathStr)
+	pathStr = utils.Intern(toSlashFast(pathStr))
 	idx.Blocked.Store(pathStr, true)
 	idx.RemoveFile(pathStr)
 }
@@ -576,19 +553,19 @@ func (idx *FileIndex) UnblockFile(pathStr string) {
 	if idx == nil || pathStr == "" {
 		return
 	}
-	idx.Blocked.Delete(toSlashFast(pathStr))
+	idx.Blocked.Delete(utils.Intern(toSlashFast(pathStr)))
 }
 
 func (idx *FileIndex) IsBlocked(pathStr string) bool {
 	if idx == nil || pathStr == "" {
 		return false
 	}
-	_, blocked := idx.Blocked.Load(toSlashFast(pathStr))
+	_, blocked := idx.Blocked.Load(utils.Intern(toSlashFast(pathStr)))
 	return blocked
 }
 
 func (idx *FileIndex) InsertDir(pathStr string) {
-	pathStr = toSlashFast(pathStr)
+	pathStr = utils.Intern(toSlashFast(pathStr))
 	if idx.isSync {
 		if _, loaded := idx.Dirs.LoadOrStore(pathStr, true); !loaded {
 			idx.DirsCount.Add(1)
@@ -672,7 +649,7 @@ func (idx *FileIndex) removeDescendants(dirPath string) {
 }
 
 func (idx *FileIndex) InsertNotFound(pathStr string, expireAt int64) {
-	pathStr = toSlashFast(pathStr)
+	pathStr = utils.Intern(toSlashFast(pathStr))
 	if idx.isSync {
 		currentNotFound := idx.NotFound.Load()
 		if idx.NotFoundCount.Load() >= 10000 {
@@ -931,7 +908,7 @@ func (idx *FileIndex) UnmarshalJSON(data []byte) error {
 	}
 
 	for _, dir := range raw.Dirs {
-		dirSlash := filepath.ToSlash(dir)
+		dirSlash := utils.Intern(filepath.ToSlash(dir))
 		idx.Dirs.Store(dirSlash, true)
 		idx.DirsCount.Add(1)
 		idx.addChild(dirSlash)
@@ -943,7 +920,7 @@ func (idx *FileIndex) UnmarshalJSON(data []byte) error {
 		idx.NotFound.Store(currentNotFound)
 	}
 	for pathStr, expireAt := range raw.NotFound {
-		pathSlash := filepath.ToSlash(pathStr)
+		pathSlash := utils.Intern(filepath.ToSlash(pathStr))
 		currentNotFound.Store(pathSlash, expireAt)
 		idx.NotFoundCount.Add(1)
 	}
@@ -955,7 +932,7 @@ func (idx *FileIndex) UnmarshalJSON(data []byte) error {
 				return err
 			}
 			for _, file := range fileList {
-				fileSlash := filepath.ToSlash(file)
+				fileSlash := utils.Intern(filepath.ToSlash(file))
 				var size int64
 				var modTime int64
 				if info, err := os.Stat(fileSlash); err == nil {
@@ -970,7 +947,7 @@ func (idx *FileIndex) UnmarshalJSON(data []byte) error {
 				return err
 			}
 			for file, info := range fileMap {
-				idx.putFile(filepath.ToSlash(file), info)
+				idx.putFile(utils.Intern(filepath.ToSlash(file)), info)
 			}
 		}
 	}
