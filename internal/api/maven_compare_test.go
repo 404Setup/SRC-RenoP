@@ -214,8 +214,13 @@ func CompareVersionsNew(a, b string) int {
 	return 0
 }
 
+type versionComparisonCase struct {
+	a string
+	b string
+}
+
 func TestEquivalence(t *testing.T) {
-	cases := []struct{ a, b string }{
+	cases := []versionComparisonCase{
 		{a: "1.0.0", b: "1.0.0"},
 		{a: "1.0.0", b: "1.0.1"},
 		{a: "1.0.1", b: "1.0.0"},

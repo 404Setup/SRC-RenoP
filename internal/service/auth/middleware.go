@@ -200,27 +200,12 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 
 	isVerified := false
 	if isValid {
-		for _, t := range accessToken.Tokens {
-			if secretEqual(t, password) {
-				isVerified = true
-				break
-			}
-		}
-		if !isVerified && accessToken.EncryptedSecret != "" {
-			if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(password)); err == nil {
-				isVerified = true
-			}
-		}
+		isVerified = verifyTokenSecret(accessToken, password)
 	}
 
 	if isValid && isVerified {
-		if accessToken.Name != username {
-			tCopy := *accessToken
-			tCopy.Name = username
-			accessToken = &tCopy
-		}
 		setAuthTokenExpiry(c, accessToken)
-		return buildSynthUser(accessToken), nil
+		return synthUserForToken(accessToken, username), nil
 	} else if !isValid {
 		return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
@@ -246,13 +231,7 @@ func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*c
 		return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
-	if accessToken.Name != username {
-		tCopy := *accessToken
-		tCopy.Name = username
-		accessToken = &tCopy
-	}
-
-	return buildSynthUser(accessToken), nil
+	return synthUserForToken(accessToken, username), nil
 }
 
 func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*config.User, error) {
@@ -271,28 +250,9 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 			return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
 		}
 
-		isVerified := false
-		for _, t := range accessToken.Tokens {
-			if secretEqual(t, secret) {
-				isVerified = true
-				break
-			}
-		}
-
-		if !isVerified && accessToken.EncryptedSecret != "" {
-			if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
-				isVerified = true
-			}
-		}
-
-		if isVerified {
-			if accessToken.Name != username {
-				tCopy := *accessToken
-				tCopy.Name = username
-				accessToken = &tCopy
-			}
+		if verifyTokenSecret(accessToken, secret) {
 			setAuthTokenExpiry(c, accessToken)
-			return buildSynthUser(accessToken), nil
+			return synthUserForToken(accessToken, username), nil
 		}
 	} else {
 		matchedUser := state.GetTokenBySecret(bearerAuth)
@@ -472,4 +432,34 @@ func RequireManager(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	return c.Next()
+}
+
+func CurrentSessionToken(c fiber.Ctx) string {
+	if id, ok := c.Locals("current_session_id").(string); ok {
+		return id
+	}
+	return ""
+}
+
+func verifyTokenSecret(accessToken *core.AccessToken, secret string) bool {
+	for _, t := range accessToken.Tokens {
+		if secretEqual(t, secret) {
+			return true
+		}
+	}
+	if accessToken.EncryptedSecret != "" {
+		if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func synthUserForToken(accessToken *core.AccessToken, username string) *config.User {
+	if accessToken.Name != username {
+		tCopy := *accessToken
+		tCopy.Name = username
+		accessToken = &tCopy
+	}
+	return buildSynthUser(accessToken)
 }

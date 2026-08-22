@@ -14,11 +14,18 @@ import (
 	"testing"
 )
 
+type sanitizePathTestCase struct {
+	input    string
+	expected string
+}
+
+type isImageFileTestCase struct {
+	input    string
+	expected bool
+}
+
 func TestSanitizePathValid(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
+	tests := []sanitizePathTestCase{
 		{input: "foo/bar", expected: "foo/bar"},
 		{input: "/foo/bar", expected: "foo/bar"},
 		{input: "foo/bar/", expected: "foo/bar"},
@@ -95,10 +102,7 @@ func TestSanitizePathPercentEncodedInvalid(t *testing.T) {
 }
 
 func TestSanitizePathExtraEdgeCases(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
+	tests := []sanitizePathTestCase{
 		{input: "", expected: ""},
 		{input: ".", expected: ""},
 		{input: "./foo", expected: "foo"},
@@ -214,10 +218,7 @@ func TestIsImageFileNegativeCases(t *testing.T) {
 }
 
 func TestIsImageFileEdgeCases(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected bool
-	}{
+	tests := []isImageFileTestCase{
 		{input: "no_extension", expected: false},
 		{input: "", expected: false},
 		{input: ".", expected: false},

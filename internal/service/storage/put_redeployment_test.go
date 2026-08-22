@@ -19,14 +19,21 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
+type mavenMetadataFileTestCase struct {
+	name    string
+	content []byte
+}
+
+type mutableMetadataPathTestCase struct {
+	path string
+	want bool
+}
+
 func TestPutWithoutRedeploymentAllowsMavenMetadataUpdates(t *testing.T) {
 	app, state, storagePath, repo := setupSnapshotPutApp(t)
 	repo.AllowRedeployment = false
 
-	tests := []struct {
-		name    string
-		content []byte
-	}{
+	tests := []mavenMetadataFileTestCase{
 		{name: "maven-metadata.xml", content: []byte("<metadata>new</metadata>")},
 		{name: "maven-metadata.xml.sha1", content: []byte("new-checksum")},
 		{name: "maven-metadata.xml.asc", content: []byte("new-signature")},
@@ -75,10 +82,7 @@ func TestPutWithoutRedeploymentStillRejectsArtifactOverwrite(t *testing.T) {
 }
 
 func TestMutableMavenMetadataPath(t *testing.T) {
-	tests := []struct {
-		path string
-		want bool
-	}{
+	tests := []mutableMetadataPathTestCase{
 		{path: "org/example/demo/maven-metadata.xml", want: true},
 		{path: "org/example/demo/maven-metadata.xml.md5", want: true},
 		{path: "org/example/demo/maven-metadata.xml.asc.sha256", want: true},

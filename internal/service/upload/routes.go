@@ -288,15 +288,7 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 
 	localFilePath := sess.LocalFilePath
 	lockKey := filepath.ToSlash(storage.GPGUploadLockPath(localFilePath))
-	var upload *core.InFlightDownload
-	for {
-		var loaded bool
-		upload, loaded = state.Inner.InFlightDownloads.LockPath(lockKey)
-		if !loaded {
-			break
-		}
-		state.Inner.InFlightDownloads.Wait(upload)
-	}
+	upload := state.Inner.InFlightDownloads.AcquirePath(lockKey)
 	uploadSucceeded := false
 	defer func() {
 		state.Inner.InFlightDownloads.UnlockPath(lockKey, upload, uploadSucceeded)

@@ -146,11 +146,13 @@ func TestZeroByteSession(t *testing.T) {
 	}
 }
 
+type suggestChunkSizeTestCase struct {
+	size int64
+	want int64
+}
+
 func TestSuggestChunkSize(t *testing.T) {
-	cases := []struct {
-		size int64
-		want int64
-	}{
+	cases := []suggestChunkSizeTestCase{
 		{size: 0, want: DefaultChunkSize},
 		{size: 100, want: 100},
 		{size: 8 << 20, want: 8 << 20},
@@ -237,11 +239,9 @@ func TestBeginCompletionHasSingleWinner(t *testing.T) {
 	var wg sync.WaitGroup
 	results := make(chan error, 2)
 	for range 2 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			results <- sess.BeginCompletion()
-		}()
+		})
 	}
 	wg.Wait()
 	close(results)

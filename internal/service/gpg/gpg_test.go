@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -30,6 +32,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/utils"
 )
 
 func testGPGState(t *testing.T) (*core.AppState, *database.DB) {
@@ -142,10 +145,10 @@ func TestKeyServerAddressMustBePublic(t *testing.T) {
 		"64:ff9b::7f00:1",
 		"2002:7f00:1::",
 	} {
-		assert.False(t, isPublicIP(net.ParseIP(value)), value)
+		assert.False(t, utils.IsPublicIP(net.ParseIP(value)), value)
 	}
 	for _, value := range []string{"1.1.1.1", "2606:4700:4700::1111"} {
-		assert.True(t, isPublicIP(net.ParseIP(value)), value)
+		assert.True(t, utils.IsPublicIP(net.ParseIP(value)), value)
 	}
 }
 

@@ -525,10 +525,7 @@ func newDownloadHTTPClient() *http.Client {
 	}
 }
 
-var sharedDownloadClient struct {
-	sync.Once
-	client *http.Client
-}
+var sharedDownloadClient lazyHTTPClient
 
 // downloadHTTPClient returns the lazily initialized bounded download client.
 // Downloads stream directly to a temporary file, so a shared transport does

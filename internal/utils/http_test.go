@@ -19,14 +19,21 @@ import (
 	"renop/internal/config"
 )
 
+type parseRangeTestCase struct {
+	rangeStr  string
+	fileSize  uint64
+	wantStart uint64
+	wantEnd   uint64
+	wantOk    bool
+}
+
+type normalizeForwardedIPTestCase struct {
+	in   string
+	want string
+}
+
 func TestParseRange(t *testing.T) {
-	tests := []struct {
-		rangeStr  string
-		fileSize  uint64
-		wantStart uint64
-		wantEnd   uint64
-		wantOk    bool
-	}{
+	tests := []parseRangeTestCase{
 		{rangeStr: "bytes=0-499", fileSize: 1000, wantStart: 0, wantEnd: 499, wantOk: true},
 		{rangeStr: "bytes=500-999", fileSize: 1000, wantStart: 500, wantEnd: 999, wantOk: true},
 		{rangeStr: "bytes=-500", fileSize: 1000, wantStart: 500, wantEnd: 999, wantOk: true},
@@ -153,9 +160,7 @@ func TestExtractIPIgnoresInvalidHeaderValues(t *testing.T) {
 }
 
 func TestNormalizeForwardedIP(t *testing.T) {
-	tests := []struct {
-		in, want string
-	}{
+	tests := []normalizeForwardedIPTestCase{
 		{in: "  203.0.113.1  ", want: "203.0.113.1"},
 		{in: `"203.0.113.1"`, want: "203.0.113.1"},
 		{in: "203.0.113.1:8080", want: "203.0.113.1"},

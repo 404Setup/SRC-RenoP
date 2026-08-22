@@ -3,7 +3,9 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 package message
@@ -23,6 +25,10 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 )
+
+type deleteDismissibleMessagesResponse struct {
+	Deleted int64 `json:"deleted"`
+}
 
 func messageTestState(t *testing.T) (*core.AppState, *database.DB) {
 	t.Helper()
@@ -169,9 +175,7 @@ func TestUserClearsOnlyOwnDismissibleMessages(t *testing.T) {
 	require.NoError(t, err)
 	defer response.Body.Close()
 	require.Equal(t, fiber.StatusOK, response.StatusCode)
-	var result struct {
-		Deleted int64 `json:"deleted"`
-	}
+	var result deleteDismissibleMessagesResponse
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&result))
 	require.EqualValues(t, 2, result.Deleted)
 

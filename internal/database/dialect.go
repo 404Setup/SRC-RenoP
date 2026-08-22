@@ -22,6 +22,19 @@ type Dialect interface {
 	UpsertSessionQuery() string
 }
 
+type SchemaMigration struct {
+	Name  string
+	Query string
+}
+
+var sharedColumnMigrations = []SchemaMigration{
+	{Name: "sessions.login_method", Query: "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';"},
+	{Name: "fido_devices.user_present", Query: "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;"},
+	{Name: "fido_devices.user_verified", Query: "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;"},
+	{Name: "fido_devices.backup_eligible", Query: "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;"},
+	{Name: "fido_devices.backup_state", Query: "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;"},
+}
+
 func NewDialect(driver string) Dialect {
 	switch strings.ToLower(strings.TrimSpace(driver)) {
 	case "mysql":

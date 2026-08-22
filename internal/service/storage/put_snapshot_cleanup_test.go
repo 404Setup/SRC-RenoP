@@ -269,15 +269,17 @@ func TestSnapshotMetadataPurgesBuildsNotAdvertisedUpstream(t *testing.T) {
 	}
 }
 
+type uniqueSnapshotBaseNameTestCase struct {
+	name    string
+	ok      bool
+	prefix  string
+	unique  string
+	classif string
+	ext     string
+}
+
 func TestParseUniqueSnapshotBaseName(t *testing.T) {
-	cases := []struct {
-		name    string
-		ok      bool
-		prefix  string
-		unique  string
-		classif string
-		ext     string
-	}{
+	cases := []uniqueSnapshotBaseNameTestCase{
 		{name: "demo-1.0-20240101.120000-1.jar", ok: true, prefix: "demo-1.0", unique: "20240101.120000-1", classif: "", ext: ".jar"},
 		{name: "demo-1.0-20240101.120000-1-sources.jar", ok: true, prefix: "demo-1.0", unique: "20240101.120000-1", classif: "-sources", ext: ".jar"},
 		{name: "demo-1.0.0-2.jar", ok: true, prefix: "demo-1.0.0", unique: "2", classif: "", ext: ".jar"},

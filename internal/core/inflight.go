@@ -47,6 +47,18 @@ func (mgr *InFlightManager) LockPath(path string) (*InFlightDownload, bool) {
 	return dl, false
 }
 
+// AcquirePath repeatedly attempts to lock path, waiting for any in-flight holder
+// to finish before acquiring the lock for the caller.
+func (mgr *InFlightManager) AcquirePath(path string) *InFlightDownload {
+	for {
+		dl, loaded := mgr.LockPath(path)
+		if !loaded {
+			return dl
+		}
+		mgr.Wait(dl)
+	}
+}
+
 func (mgr *InFlightManager) UnlockPath(path string, dl *InFlightDownload, success bool) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()

@@ -55,6 +55,11 @@ const (
 	proxyDiskReserve     = 64 << 20
 )
 
+type multiReadCloser struct {
+	io.Reader
+	io.Closer
+}
+
 func notifyArtifactStored(state *core.AppState, repo *config.Repository, localPath string) {
 	if OnArtifactStored != nil {
 		OnArtifactStored(localPath)
@@ -322,18 +327,12 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 
 			var bodyReader = res.Body
 			if readErr != nil {
-				bodyReader = struct {
-					io.Reader
-					io.Closer
-				}{
+				bodyReader = multiReadCloser{
 					Reader: io.MultiReader(bytes.NewReader(data), errorReader{err: readErr}),
 					Closer: res.Body,
 				}
 			} else if len(data) > 0 {
-				bodyReader = struct {
-					io.Reader
-					io.Closer
-				}{
+				bodyReader = multiReadCloser{
 					Reader: io.MultiReader(bytes.NewReader(data), res.Body),
 					Closer: res.Body,
 				}

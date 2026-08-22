@@ -115,15 +115,7 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	lockKey := filepath.ToSlash(basePath)
-	var upload *core.InFlightDownload
-	for {
-		var loaded bool
-		upload, loaded = state.Inner.InFlightDownloads.LockPath(lockKey)
-		if !loaded {
-			break
-		}
-		state.Inner.InFlightDownloads.Wait(upload)
-	}
+	upload := state.Inner.InFlightDownloads.AcquirePath(lockKey)
 	uploadSucceeded := false
 	defer func() {
 		state.Inner.InFlightDownloads.UnlockPath(lockKey, upload, uploadSucceeded)

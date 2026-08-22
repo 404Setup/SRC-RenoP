@@ -59,6 +59,11 @@ func toPbFileDetails(d *FileDetails) *pb.FileDetails {
 	return msg
 }
 
+type gpgSignatureCandidate struct {
+	detail *FileDetails
+	key    string
+}
+
 func annotateGPGSignatures(state *core.AppState, repository, parentPath string, details *FileDetails) error {
 	if details == nil || state == nil {
 		return nil
@@ -68,16 +73,12 @@ func annotateGPGSignatures(state *core.AppState, repository, parentPath string, 
 		return nil
 	}
 
-	type candidate struct {
-		detail *FileDetails
-		key    string
-	}
-	candidates := make([]candidate, 0, len(details.Files)+1)
+	candidates := make([]gpgSignatureCandidate, 0, len(details.Files)+1)
 	add := func(detail *FileDetails, artifactPath string) {
 		if detail == nil || detail.Type != FileDetailsTypeFile || !gpg.IsProtectedArtifact(artifactPath) {
 			return
 		}
-		candidates = append(candidates, candidate{detail: detail, key: gpg.ArtifactKey(repository, artifactPath)})
+		candidates = append(candidates, gpgSignatureCandidate{detail: detail, key: gpg.ArtifactKey(repository, artifactPath)})
 	}
 
 	if details.Type == FileDetailsTypeFile {
@@ -251,6 +252,16 @@ func GetDetailsAllRepos(c fiber.Ctx, state *core.AppState) error {
 	}))
 }
 
+func handleResolvePathError(c fiber.Ctx, err error) error {
+	if errors.Is(err, core.ErrDatabaseUnavailable) {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+	}
+	if errors.Is(err, fiber.ErrNotFound) {
+		return c.Status(fiber.StatusNotFound).SendString("Not found")
+	}
+	return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+}
+
 func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
 
@@ -258,13 +269,7 @@ func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 
 	localFilePath, err := ResolveAndCheckPath(state, user, repoName, nil)
 	if err != nil {
-		if errors.Is(err, core.ErrDatabaseUnavailable) {
-			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
-		}
-		if errors.Is(err, fiber.ErrNotFound) {
-			return c.Status(fiber.StatusNotFound).SendString("Not found")
-		}
-		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		return handleResolvePathError(c, err)
 	}
 
 	details := CreateFileDetails(state, localFilePath, true)
@@ -285,13 +290,7 @@ func GetDetails(c fiber.Ctx, state *core.AppState) error {
 	pathParam := c.Params("*")
 	localFilePath, err := ResolveAndCheckPath(state, user, repoName, &pathParam)
 	if err != nil {
-		if errors.Is(err, core.ErrDatabaseUnavailable) {
-			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
-		}
-		if errors.Is(err, fiber.ErrNotFound) {
-			return c.Status(fiber.StatusNotFound).SendString("Not found")
-		}
-		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		return handleResolvePathError(c, err)
 	}
 
 	details := CreateFileDetails(state, localFilePath, true)

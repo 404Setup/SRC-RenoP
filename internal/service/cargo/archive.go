@@ -3,7 +3,9 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 package cargo
@@ -24,6 +26,15 @@ const (
 	maxUnpackedSize   = 512 << 20
 	maxManifestSize   = 1 << 20
 )
+
+type cargoManifestPackage struct {
+	Name    string `toml:"name"`
+	Version string `toml:"version"`
+}
+
+type cargoManifestMetadata struct {
+	Package cargoManifestPackage `toml:"package"`
+}
 
 func validateArchive(reader io.Reader, crateName, version string) error {
 	gzipReader, err := gzip.NewReader(reader)
@@ -78,12 +89,7 @@ func validateArchive(reader io.Reader, crateName, version string) error {
 			if header.Size > maxManifestSize {
 				return errors.New("Cargo.toml exceeds the size limit")
 			}
-			var manifestMetadata struct {
-				Package struct {
-					Name    string `toml:"name"`
-					Version string `toml:"version"`
-				} `toml:"package"`
-			}
+			var manifestMetadata cargoManifestMetadata
 			if _, err := toml.NewDecoder(tarReader).Decode(&manifestMetadata); err != nil {
 				return errors.New("Cargo crate contains an invalid Cargo.toml")
 			}

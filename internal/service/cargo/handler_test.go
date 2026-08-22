@@ -3,7 +3,9 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 package cargo
@@ -39,6 +41,11 @@ type memoryStagedFile struct {
 	target string
 	buffer bytes.Buffer
 	closed bool
+}
+
+type cargoPublishResult struct {
+	status int
+	err    error
 }
 
 func newMemoryStore() *memoryStore {
@@ -284,25 +291,20 @@ func TestConcurrentNormalizedCargoNamesCannotCreateSplitPackages(t *testing.T) {
 		}, crate)
 	}
 
-	type publishResult struct {
-		status int
-		err    error
-	}
 	start := make(chan struct{})
-	results := make(chan publishResult, len(names))
+	results := make(chan cargoPublishResult, len(names))
 	for _, body := range bodies {
-		body := body
 		go func() {
 			<-start
 			response, err := app.Test(httptest.NewRequest(
 				http.MethodPut, "http://registry.example/cargo/api/v1/crates/new", bytes.NewReader(body),
 			))
 			if err != nil {
-				results <- publishResult{err: err}
+				results <- cargoPublishResult{err: err}
 				return
 			}
 			defer response.Body.Close()
-			results <- publishResult{status: response.StatusCode}
+			results <- cargoPublishResult{status: response.StatusCode}
 		}()
 	}
 	close(start)

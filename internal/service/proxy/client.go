@@ -40,11 +40,15 @@ type cachedOutboundProxyClient struct {
 	lastUsed uint64
 }
 
-var outboundProxyClients = struct {
+type outboundProxyClientPool struct {
 	sync.Mutex
 	clients map[outboundProxyKey]cachedOutboundProxyClient
 	tick    uint64
-}{clients: make(map[outboundProxyKey]cachedOutboundProxyClient)}
+}
+
+var outboundProxyClients = outboundProxyClientPool{
+	clients: make(map[outboundProxyKey]cachedOutboundProxyClient),
+}
 
 func parseMirrorProxy(proxyConfig *config.MirrorProxy) (*url.URL, error) {
 	if proxyConfig == nil || strings.TrimSpace(proxyConfig.URL) == "" {

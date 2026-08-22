@@ -35,13 +35,15 @@ func TestInitLinuxMemoryTuningIdempotent(t *testing.T) {
 	InitLinuxMemoryTuning()
 }
 
+type runtimeDebugTestCase struct {
+	name        string
+	input       string
+	want        string
+	wantChanged bool
+}
+
 func TestLinuxRuntimeDebugDefaultsAndOverrides(t *testing.T) {
-	tests := []struct {
-		name        string
-		input       string
-		want        string
-		wantChanged bool
-	}{
+	tests := []runtimeDebugTestCase{
 		{name: "empty", want: "disablethp=1", wantChanged: true},
 		{name: "preserve others", input: "madvdontneed=1", want: "madvdontneed=1,disablethp=1", wantChanged: true},
 		{name: "explicit enable", input: "disablethp=1", want: "disablethp=1"},

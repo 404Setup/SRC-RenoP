@@ -917,12 +917,14 @@ func (idx *FileIndex) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+type fileIndexWire struct {
+	Files    json.RawMessage  `json:"files"`
+	Dirs     []string         `json:"dirs"`
+	NotFound map[string]int64 `json:"not_found"`
+}
+
 func (idx *FileIndex) UnmarshalJSON(data []byte) error {
-	var raw struct {
-		Files    json.RawMessage  `json:"files"`
-		Dirs     []string         `json:"dirs"`
-		NotFound map[string]int64 `json:"not_found"`
-	}
+	var raw fileIndexWire
 
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err

@@ -12,11 +12,13 @@ package utils
 
 import "testing"
 
+type contentTypeTestCase struct {
+	ext  string
+	want string
+}
+
 func TestContentTypeByExt(t *testing.T) {
-	cases := []struct {
-		ext  string
-		want string
-	}{
+	cases := []contentTypeTestCase{
 		{ext: ".css", want: "text/css; charset=utf-8"},
 		{ext: "CSS", want: "text/css; charset=utf-8"},
 		{ext: ".js", want: "text/javascript; charset=utf-8"},

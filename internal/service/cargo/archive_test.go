@@ -3,7 +3,9 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 package cargo
@@ -70,11 +72,14 @@ func TestValidateArchive(t *testing.T) {
 	}
 }
 
+type validatePackageTestCase struct {
+	name    string
+	version string
+	valid   bool
+}
+
 func TestValidatePackage(t *testing.T) {
-	for _, test := range []struct {
-		name, version string
-		valid         bool
-	}{
+	for _, test := range []validatePackageTestCase{
 		{name: "serde", version: "1.0.203", valid: true},
 		{name: "my_crate", version: "2.0.0-beta.1+meta", valid: true},
 		{name: "-bad", version: "1.0.0"},

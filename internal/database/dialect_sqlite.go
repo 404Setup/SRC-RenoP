@@ -283,53 +283,40 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 
-	columnMigrations := []struct {
-		name  string
-		query string
-	}{
-		{name: "sessions.login_method", query: "ALTER TABLE sessions ADD COLUMN login_method VARCHAR(64) NOT NULL DEFAULT 'password';"},
-		{name: "fido_devices.user_present", query: "ALTER TABLE fido_devices ADD COLUMN user_present INT NOT NULL DEFAULT 0;"},
-		{name: "fido_devices.user_verified", query: "ALTER TABLE fido_devices ADD COLUMN user_verified INT NOT NULL DEFAULT 0;"},
-		{name: "fido_devices.backup_eligible", query: "ALTER TABLE fido_devices ADD COLUMN backup_eligible INT NOT NULL DEFAULT 0;"},
-		{name: "fido_devices.backup_state", query: "ALTER TABLE fido_devices ADD COLUMN backup_state INT NOT NULL DEFAULT 0;"},
-	}
-	for _, migration := range columnMigrations {
-		if err := execIgnoreDuplicateColumn(db, migration.query); err != nil {
-			return fmt.Errorf("failed to apply migration %s: %w", migration.name, err)
+	for _, migration := range sharedColumnMigrations {
+		if err := execIgnoreDuplicateColumn(db, migration.Query); err != nil {
+			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
 		}
 	}
 
-	indexMigrations := []struct {
-		name  string
-		query string
-	}{
-		{name: "idx_sessions_username", query: "CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);"},
-		{name: "idx_sessions_last_active", query: "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);"},
-		{name: "idx_sessions_user_public", query: "CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);"},
-		{name: "idx_tokens_expires_at", query: "CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;"},
-		{name: "idx_fido_username", query: "CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);"},
-		{name: "idx_fido_credential_id", query: "CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);"},
-		{name: "idx_gpg_alias_fingerprint", query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_fingerprint ON gpg_key_aliases(fingerprint);"},
-		{name: "idx_gpg_alias_identifier", query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_identifier ON gpg_key_aliases(identifier);"},
-		{name: "idx_user_gpg_username", query: "CREATE INDEX IF NOT EXISTS idx_user_gpg_username ON user_gpg_keys(username);"},
-		{name: "idx_gpg_signatures_repository", query: "CREATE INDEX IF NOT EXISTS idx_gpg_signatures_repository ON gpg_signatures(repository);"},
-		{name: "idx_gpg_releases_user_time", query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_user_time ON gpg_releases(uploader, created_at DESC);"},
-		{name: "idx_gpg_releases_queue", query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_queue ON gpg_releases(status, created_at);"},
-		{name: "idx_gpg_releases_cleanup", query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_cleanup ON gpg_releases(cleanup_pending, updated_at);"},
-		{name: "idx_audit_logs_user_time", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);"},
-		{name: "idx_audit_logs_user_id", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);"},
-		{name: "idx_audit_logs_created_at", query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);"},
-		{name: "idx_user_messages_recipient_time", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_recipient_time ON user_messages(recipient, created_at DESC, id DESC);"},
-		{name: "idx_user_messages_unread", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_unread ON user_messages(recipient, read_at, expires_at);"},
-		{name: "idx_user_messages_action", query: "CREATE INDEX IF NOT EXISTS idx_user_messages_action ON user_messages(action_kind, action_status, expires_at);"},
-		{name: "idx_cargo_packages_search", query: "CREATE INDEX IF NOT EXISTS idx_cargo_packages_search ON cargo_packages(repository, archived, normalized_name);"},
-		{name: "idx_cargo_versions_package", query: "CREATE INDEX IF NOT EXISTS idx_cargo_versions_package ON cargo_versions(repository, normalized_name, created_at DESC);"},
-		{name: "idx_cargo_members_user", query: "CREATE INDEX IF NOT EXISTS idx_cargo_members_user ON cargo_members(username, repository);"},
-		{name: "idx_cargo_invitations_recipient", query: "CREATE INDEX IF NOT EXISTS idx_cargo_invitations_recipient ON cargo_invitations(recipient, created_at);"},
+	indexMigrations := []SchemaMigration{
+		{Name: "idx_sessions_username", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);"},
+		{Name: "idx_sessions_last_active", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);"},
+		{Name: "idx_sessions_user_public", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);"},
+		{Name: "idx_tokens_expires_at", Query: "CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;"},
+		{Name: "idx_fido_username", Query: "CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);"},
+		{Name: "idx_fido_credential_id", Query: "CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);"},
+		{Name: "idx_gpg_alias_fingerprint", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_fingerprint ON gpg_key_aliases(fingerprint);"},
+		{Name: "idx_gpg_alias_identifier", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_identifier ON gpg_key_aliases(identifier);"},
+		{Name: "idx_user_gpg_username", Query: "CREATE INDEX IF NOT EXISTS idx_user_gpg_username ON user_gpg_keys(username);"},
+		{Name: "idx_gpg_signatures_repository", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_signatures_repository ON gpg_signatures(repository);"},
+		{Name: "idx_gpg_releases_user_time", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_user_time ON gpg_releases(uploader, created_at DESC);"},
+		{Name: "idx_gpg_releases_queue", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_queue ON gpg_releases(status, created_at);"},
+		{Name: "idx_gpg_releases_cleanup", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_cleanup ON gpg_releases(cleanup_pending, updated_at);"},
+		{Name: "idx_audit_logs_user_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);"},
+		{Name: "idx_audit_logs_user_id", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);"},
+		{Name: "idx_audit_logs_created_at", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);"},
+		{Name: "idx_user_messages_recipient_time", Query: "CREATE INDEX IF NOT EXISTS idx_user_messages_recipient_time ON user_messages(recipient, created_at DESC, id DESC);"},
+		{Name: "idx_user_messages_unread", Query: "CREATE INDEX IF NOT EXISTS idx_user_messages_unread ON user_messages(recipient, read_at, expires_at);"},
+		{Name: "idx_user_messages_action", Query: "CREATE INDEX IF NOT EXISTS idx_user_messages_action ON user_messages(action_kind, action_status, expires_at);"},
+		{Name: "idx_cargo_packages_search", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_packages_search ON cargo_packages(repository, archived, normalized_name);"},
+		{Name: "idx_cargo_versions_package", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_versions_package ON cargo_versions(repository, normalized_name, created_at DESC);"},
+		{Name: "idx_cargo_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_members_user ON cargo_members(username, repository);"},
+		{Name: "idx_cargo_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_invitations_recipient ON cargo_invitations(recipient, created_at);"},
 	}
 	for _, migration := range indexMigrations {
-		if _, err := db.Exec(migration.query); err != nil {
-			return fmt.Errorf("failed to apply migration %s: %w", migration.name, err)
+		if _, err := db.Exec(migration.Query); err != nil {
+			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
 		}
 	}
 	return nil

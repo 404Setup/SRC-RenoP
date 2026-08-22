@@ -107,16 +107,18 @@ func TestCorsPreflightWildcard(t *testing.T) {
 	}
 }
 
+type corsPreflightRejectTestCase struct {
+	name    string
+	method  string
+	headers string
+}
+
 func TestCorsPreflightRejectsUnsupportedMethodAndHeader(t *testing.T) {
 	sc := config.DefaultServerConfig()
 	sc.CorsOrigins = []string{"https://allowed.example"}
 	app := setupCorsApp(t, sc)
 
-	tests := []struct {
-		name    string
-		method  string
-		headers string
-	}{
+	tests := []corsPreflightRejectTestCase{
 		{name: "method", method: "TRACE"},
 		{name: "header", method: "GET", headers: "X-Renop-Internal"},
 	}

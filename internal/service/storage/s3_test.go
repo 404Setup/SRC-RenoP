@@ -21,13 +21,15 @@ import (
 	"renop/internal/utils"
 )
 
+type normalizeS3KeyPrefixTestCase struct {
+	name    string
+	input   string
+	want    string
+	wantErr bool
+}
+
 func TestNormalizeS3KeyPrefix(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    string
-		wantErr bool
-	}{
+	tests := []normalizeS3KeyPrefixTestCase{
 		{name: "empty"},
 		{name: "slashes only", input: "/", want: ""},
 		{name: "trimmed", input: " /renop/production/ ", want: "renop/production"},

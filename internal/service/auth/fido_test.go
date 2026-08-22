@@ -168,7 +168,7 @@ func TestFidoSessionStoreHasGlobalBound(t *testing.T) {
 		fidoSessionMu.Unlock()
 	}()
 
-	for i := 0; i < maxFidoSessions; i++ {
+	for i := range maxFidoSessions {
 		require.True(t, storeFidoSession(strconv.Itoa(i), &webauthn.SessionData{}, "user"))
 	}
 	fidoSessionMu.Lock()
@@ -185,17 +185,19 @@ func TestFidoSessionStoreHasGlobalBound(t *testing.T) {
 	assert.Equal(t, maxFidoSessions-1, remaining)
 }
 
+type webAuthnEngineTestCase struct {
+	name       string
+	headers    map[string]string
+	expectRpID string
+}
+
 func TestGetWebAuthnEngine(t *testing.T) {
 	state := core.NewAppState()
 	cfg := config.DefaultConfig()
 	cfg.Server.Domains = []string{"renop.example.com"}
 	state.Inner.Config.Store(cfg)
 
-	testCases := []struct {
-		name       string
-		headers    map[string]string
-		expectRpID string
-	}{
+	testCases := []webAuthnEngineTestCase{
 		{
 			name:       "Standard Localhost",
 			headers:    map[string]string{"Host": "localhost:3000"},

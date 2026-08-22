@@ -39,11 +39,19 @@ func SetupTokenRoutes(app fiber.Router, state *core.AppState, opChan chan<- Toke
 }
 
 func getUserFromCtx(c fiber.Ctx) *config.User {
-	user := c.Locals("user")
-	if user == nil {
-		return nil
+	if val := c.Locals("user"); val != nil {
+		if u, ok := val.(*config.User); ok {
+			return u
+		}
 	}
-	return user.(*config.User)
+	return nil
+}
+
+func currentSessionToken(c fiber.Ctx) string {
+	if id, ok := c.Locals("current_session_id").(string); ok {
+		return id
+	}
+	return ""
 }
 
 func RequireManager(user *config.User) bool {
@@ -304,13 +312,6 @@ func DeleteToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 
 type GenerateTokenResponse struct {
 	Token string `json:"token"`
-}
-
-func currentSessionToken(c fiber.Ctx) string {
-	if id, ok := c.Locals("current_session_id").(string); ok {
-		return id
-	}
-	return ""
 }
 
 // ListUserSessions lists browser sessions for any account (manager only).

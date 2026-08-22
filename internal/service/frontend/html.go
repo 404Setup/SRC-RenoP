@@ -58,17 +58,18 @@ func readAsset(path string) ([]byte, error) {
 	return Asset.ReadFile(resolveAssetPath(path))
 }
 
+type assetHashEntry struct {
+	embedPath  string
+	publicPath string // empty = hash only (not cached for HTTP)
+}
+
 func GetAssetsHash() string {
 	onceHash.Do(func() {
 		// Hash cache-busting entrypoints via Open+Copy (streaming). Warm the
 		// HTTP embed cache for js/css in the same pass so ServeJs does not
 		// re-read the bundle — one buffer per served asset, not two.
 		hasher := sha256.New()
-		type entry struct {
-			embedPath  string
-			publicPath string // empty = hash only (not cached for HTTP)
-		}
-		for _, e := range []entry{
+		for _, e := range []assetHashEntry{
 			{embedPath: assetRoot + "/index.html"},
 			{embedPath: assetRoot + "/dist/js/main.js", publicPath: "js/main.js"},
 			{embedPath: assetRoot + "/dist/css/style.css", publicPath: "css/style.css"},

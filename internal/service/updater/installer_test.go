@@ -23,14 +23,16 @@ import (
 	"testing"
 )
 
+type downloadValidationTestCase struct {
+	name      string
+	url       string
+	digest    string
+	wantError string
+}
+
 func TestDownloadAndExtractValidatesURLAndDigestBeforeNetwork(t *testing.T) {
 	validDigest := strings.Repeat("0", 64)
-	tests := []struct {
-		name      string
-		url       string
-		digest    string
-		wantError string
-	}{
+	tests := []downloadValidationTestCase{
 		{name: "plain HTTP", url: "http://updates.example/renop.zip", digest: validDigest, wantError: "HTTPS URL"},
 		{name: "URL user info", url: "https://user@updates.example/renop.zip", digest: validDigest, wantError: "without user info"},
 		{name: "missing digest", url: "https://updates.example/renop.zip", digest: "", wantError: "valid SHA-256"},

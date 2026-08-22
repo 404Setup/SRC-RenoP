@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -430,6 +432,11 @@ type stagedGPGCompanion struct {
 	targetPath  string
 }
 
+type stagedGPGCompanionPart struct {
+	stagingName string
+	targetPath  string
+}
+
 func stagedGPGCompanions(state *core.AppState, release *core.GPGRelease, localArtifactPath string) ([]stagedGPGCompanion, error) {
 	dir, err := releaseQuarantineDirectory(state, release)
 	if err != nil {
@@ -437,10 +444,7 @@ func stagedGPGCompanions(state *core.AppState, release *core.GPGRelease, localAr
 	}
 	companions := make([]stagedGPGCompanion, 0, len(gpgChecksumSuffixes)*2)
 	for _, suffix := range gpgChecksumSuffixes {
-		for _, part := range []struct {
-			stagingName string
-			targetPath  string
-		}{
+		for _, part := range []stagedGPGCompanionPart{
 			{stagingName: "artifact" + suffix, targetPath: localArtifactPath + suffix},
 			{stagingName: "signature" + suffix, targetPath: localArtifactPath + ".asc" + suffix},
 		} {

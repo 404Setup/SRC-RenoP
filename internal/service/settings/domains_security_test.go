@@ -19,12 +19,19 @@ import (
 	"renop/internal/utils"
 )
 
+type externalLinkURLTestCase struct {
+	name    string
+	url     string
+	wantErr bool
+}
+
+type publicIPTestCase struct {
+	ip   string
+	want bool
+}
+
 func TestValidateExternalLinkURL(t *testing.T) {
-	tests := []struct {
-		name    string
-		url     string
-		wantErr bool
-	}{
+	tests := []externalLinkURLTestCase{
 		{name: "HTTPS", url: "https://example.com/legal"},
 		{name: "HTTP", url: "http://localhost:8080/legal"},
 		{name: "uppercase scheme", url: "HTTPS://example.com/legal"},
@@ -46,10 +53,7 @@ func TestValidateExternalLinkURL(t *testing.T) {
 }
 
 func TestIsValidPublicIP(t *testing.T) {
-	tests := []struct {
-		ip   string
-		want bool
-	}{
+	tests := []publicIPTestCase{
 		{ip: "8.8.8.8", want: true},
 		{ip: "1.1.1.1", want: true},
 		{ip: "2606:4700:4700::1111", want: true},

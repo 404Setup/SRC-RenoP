@@ -86,12 +86,14 @@ func (c *Config) setDefaults() {
 	c.GPG = c.Server.GPG.DeepCopy()
 }
 
+type legacyConfigGPGWrapper struct {
+	GPG    *GPGConfig      `json:"gpg"`
+	Server json.RawMessage `json:"server"`
+}
+
 func (c *Config) UnmarshalJSON(data []byte) error {
 	c.setDefaults()
-	var legacy struct {
-		GPG    *GPGConfig      `json:"gpg"`
-		Server json.RawMessage `json:"server"`
-	}
+	var legacy legacyConfigGPGWrapper
 	if err := json.Unmarshal(data, &legacy); err != nil {
 		return err
 	}

@@ -19,12 +19,14 @@ import (
 	"renop/internal/config"
 )
 
+type mirrorProxyValidationTestCase struct {
+	name    string
+	proxy   *config.MirrorProxy
+	wantErr bool
+}
+
 func TestValidateMirrorProxy(t *testing.T) {
-	tests := []struct {
-		name    string
-		proxy   *config.MirrorProxy
-		wantErr bool
-	}{
+	tests := []mirrorProxyValidationTestCase{
 		{name: "disabled", proxy: nil},
 		{name: "http", proxy: &config.MirrorProxy{URL: "http://proxy.example:8080"}},
 		{name: "https", proxy: &config.MirrorProxy{URL: "https://proxy.example:8443"}},

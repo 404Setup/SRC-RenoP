@@ -143,12 +143,15 @@ type StorageProviderSettings struct {
 	Value json.RawMessage `json:"-" yaml:"-"`
 }
 
+type storageProviderSettingsAlias StorageProviderSettings
+
+type storageProviderSettingsWire struct {
+	*storageProviderSettingsAlias
+}
+
 func (s *StorageProviderSettings) UnmarshalJSON(data []byte) error {
-	type Alias StorageProviderSettings
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(s),
+	aux := &storageProviderSettingsWire{
+		storageProviderSettingsAlias: (*storageProviderSettingsAlias)(s),
 	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err

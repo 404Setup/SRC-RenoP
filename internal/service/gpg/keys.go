@@ -21,7 +21,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/netip"
 	"net/url"
 	"path"
 	"slices"
@@ -54,40 +53,6 @@ var (
 	errAmbiguousKey        = errors.New("GPG key ID matches multiple public keys; use a full fingerprint")
 	keyFetchSemaphore      = make(chan struct{}, 8)
 )
-
-var nonPublicAddressRanges = []netip.Prefix{
-	netip.MustParsePrefix("100.64.0.0/10"),
-	netip.MustParsePrefix("192.0.0.0/24"),
-	netip.MustParsePrefix("192.0.2.0/24"),
-	netip.MustParsePrefix("192.88.99.0/24"),
-	netip.MustParsePrefix("198.18.0.0/15"),
-	netip.MustParsePrefix("198.51.100.0/24"),
-	netip.MustParsePrefix("203.0.113.0/24"),
-	netip.MustParsePrefix("240.0.0.0/4"),
-	netip.MustParsePrefix("64:ff9b::/96"),
-	netip.MustParsePrefix("64:ff9b:1::/48"),
-	netip.MustParsePrefix("100::/64"),
-	netip.MustParsePrefix("2001::/23"),
-	netip.MustParsePrefix("2001:db8::/32"),
-	netip.MustParsePrefix("2002::/16"),
-}
-
-func isPublicIP(ip net.IP) bool {
-	addr, ok := netip.AddrFromSlice(ip)
-	if !ok {
-		return false
-	}
-	addr = addr.Unmap()
-	if !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsLinkLocalUnicast() {
-		return false
-	}
-	for _, prefix := range nonPublicAddressRanges {
-		if prefix.Contains(addr) {
-			return false
-		}
-	}
-	return true
-}
 
 func NormalizeKeyReference(value string) (string, error) {
 	value = strings.TrimSpace(value)
@@ -292,7 +257,7 @@ func validatedKeyServerAddresses(ips []net.IP, port string) ([]string, error) {
 	ipv6 := make([]string, 0, len(ips))
 	seen := make(map[string]struct{}, len(ips))
 	for _, ip := range ips {
-		if !isPublicIP(ip) {
+		if !utils.IsPublicIP(ip) {
 			return nil, errors.New("GPG key server resolves to a non-public address")
 		}
 		address := net.JoinHostPort(ip.String(), port)
@@ -482,15 +447,7 @@ func RegisterUserKey(ctx context.Context, state *core.AppState, username, refere
 		return nil, core.ErrDatabaseUnavailable
 	}
 	userLockKey := "gpg-user:" + strings.ToLower(strings.TrimSpace(username))
-	var userUpdate *core.InFlightDownload
-	for {
-		var loaded bool
-		userUpdate, loaded = state.Inner.GPGUserKeyUpdates.LockPath(userLockKey)
-		if !loaded {
-			break
-		}
-		state.Inner.GPGUserKeyUpdates.Wait(userUpdate)
-	}
+	userUpdate := state.Inner.GPGUserKeyUpdates.AcquirePath(userLockKey)
 	registrationSucceeded := false
 	defer func() {
 		state.Inner.GPGUserKeyUpdates.UnlockPath(userLockKey, userUpdate, registrationSucceeded)

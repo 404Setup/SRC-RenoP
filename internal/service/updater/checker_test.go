@@ -252,11 +252,13 @@ func TestCommitSubject(t *testing.T) {
 	}
 }
 
+type webOnlyCommitTestCase struct {
+	subject string
+	want    bool
+}
+
 func TestIsWebOnlyCommit(t *testing.T) {
-	cases := []struct {
-		subject string
-		want    bool
-	}{
+	cases := []webOnlyCommitTestCase{
 		{subject: "[web] update homepage", want: true},
 		{subject: "[Web] docs", want: true},
 		{subject: "[WEB] i18n", want: true},
@@ -775,12 +777,14 @@ func TestDecideHasUpdateCurrentOutsideCommitWindow(t *testing.T) {
 	}
 }
 
+type githubCommitStatusTestCase struct {
+	code        int
+	wantExists  bool
+	wantChecked bool
+}
+
 func TestGithubCommitExistsStatusMapping(t *testing.T) {
-	cases := []struct {
-		code        int
-		wantExists  bool
-		wantChecked bool
-	}{
+	cases := []githubCommitStatusTestCase{
 		{code: http.StatusOK, wantExists: true, wantChecked: true},
 		{code: http.StatusNotFound, wantExists: false, wantChecked: true},
 		{code: http.StatusUnprocessableEntity, wantExists: false, wantChecked: true},

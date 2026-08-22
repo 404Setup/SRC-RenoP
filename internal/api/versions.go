@@ -224,6 +224,34 @@ func ResolveLatestPath(state *core.AppState, repoName string, gav string, query 
 	return fullPath, isDir, nil
 }
 
+func parseArtifactDetailsQuery(c fiber.Ctx) ArtifactDetailsQuery {
+	ext := c.Query("extension")
+	cls := c.Query("classifier")
+	flt := c.Query("filter")
+
+	var query ArtifactDetailsQuery
+	if ext != "" {
+		query.Extension = &ext
+	}
+	if cls != "" {
+		query.Classifier = &cls
+	}
+	if flt != "" {
+		query.Filter = &flt
+	}
+	return query
+}
+
+func handleResolveLatestError(c fiber.Ctx, err error) error {
+	if errors.Is(err, fiber.ErrNotFound) {
+		return c.Status(fiber.StatusNotFound).SendString("Not found")
+	}
+	if errors.Is(err, fiber.ErrBadRequest) {
+		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+	}
+	return c.Status(fiber.StatusInternalServerError).SendString("Error")
+}
+
 func LatestDetails(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
 	gav := c.Params("*")
@@ -244,30 +272,10 @@ func LatestDetails(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	ext := c.Query("extension")
-	cls := c.Query("classifier")
-	flt := c.Query("filter")
-
-	var query ArtifactDetailsQuery
-	if ext != "" {
-		query.Extension = &ext
-	}
-	if cls != "" {
-		query.Classifier = &cls
-	}
-	if flt != "" {
-		query.Filter = &flt
-	}
-
+	query := parseArtifactDetailsQuery(c)
 	localFilePath, _, err := ResolveLatestPath(state, repoName, gav, &query)
 	if err != nil {
-		if errors.Is(err, fiber.ErrNotFound) {
-			return c.Status(fiber.StatusNotFound).SendString("Not found")
-		}
-		if errors.Is(err, fiber.ErrBadRequest) {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
-		}
-		return c.Status(fiber.StatusInternalServerError).SendString("Error")
+		return handleResolveLatestError(c, err)
 	}
 
 	var isDirectory bool
@@ -336,30 +344,10 @@ func LatestFile(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	ext := c.Query("extension")
-	cls := c.Query("classifier")
-	flt := c.Query("filter")
-
-	var query ArtifactDetailsQuery
-	if ext != "" {
-		query.Extension = &ext
-	}
-	if cls != "" {
-		query.Classifier = &cls
-	}
-	if flt != "" {
-		query.Filter = &flt
-	}
-
+	query := parseArtifactDetailsQuery(c)
 	localFilePath, isDir, err := ResolveLatestPath(state, repoName, gav, &query)
 	if err != nil {
-		if errors.Is(err, fiber.ErrNotFound) {
-			return c.Status(fiber.StatusNotFound).SendString("Not found")
-		}
-		if errors.Is(err, fiber.ErrBadRequest) {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
-		}
-		return c.Status(fiber.StatusInternalServerError).SendString("Error")
+		return handleResolveLatestError(c, err)
 	}
 
 	if isDir {

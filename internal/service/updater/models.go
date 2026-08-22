@@ -11,9 +11,16 @@
 package updater
 
 import (
+	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 )
+
+type lazyHTTPClient struct {
+	sync.Once
+	client *http.Client
+}
 
 type UpdateMode string
 

@@ -42,12 +42,14 @@ func TestParseProcStatmSanitizesReservedAddressSpace(t *testing.T) {
 	}
 }
 
+type procStatmTestCase struct {
+	name     string
+	data     string
+	pageSize uint64
+}
+
 func TestParseProcStatmRejectsInvalidInput(t *testing.T) {
-	tests := []struct {
-		name     string
-		data     string
-		pageSize uint64
-	}{
+	tests := []procStatmTestCase{
 		{name: "empty"},
 		{name: "missing rss", data: "100\n", pageSize: 4096},
 		{name: "invalid vms", data: "x 100\n", pageSize: 4096},

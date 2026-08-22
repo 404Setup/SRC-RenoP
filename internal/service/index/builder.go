@@ -38,6 +38,16 @@ func isTemporaryPath(pathStr string) bool {
 	return false
 }
 
+func entryFileInfo(entry os.DirEntry) FileInfo {
+	var size int64
+	var modTime int64
+	if info, err := entry.Info(); err == nil {
+		size = info.Size()
+		modTime = info.ModTime().UnixNano()
+	}
+	return FileInfo{Size: size, ModTime: modTime}
+}
+
 func scanSingleDirTree(dirCleaned string, idx *FileIndex) {
 	dirsToVisit := []string{dirCleaned}
 	for len(dirsToVisit) > 0 {
@@ -57,13 +67,7 @@ func scanSingleDirTree(dirCleaned string, idx *FileIndex) {
 				idx.InsertDir(fullPath)
 				dirsToVisit = append(dirsToVisit, fullPath)
 			} else {
-				var size int64
-				var modTime int64
-				if info, err := entry.Info(); err == nil {
-					size = info.Size()
-					modTime = info.ModTime().UnixNano()
-				}
-				idx.InsertFile(fullPath, FileInfo{Size: size, ModTime: modTime})
+				idx.InsertFile(fullPath, entryFileInfo(entry))
 			}
 		}
 	}
@@ -86,13 +90,7 @@ func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
 			idx.InsertDir(fullPath)
 			subdirs = append(subdirs, fullPath)
 		} else if !skipRootFiles {
-			var size int64
-			var modTime int64
-			if info, err := entry.Info(); err == nil {
-				size = info.Size()
-				modTime = info.ModTime().UnixNano()
-			}
-			idx.InsertFile(fullPath, FileInfo{Size: size, ModTime: modTime})
+			idx.InsertFile(fullPath, entryFileInfo(entry))
 		}
 	}
 
@@ -160,13 +158,7 @@ func scanSingleDirTreeMaps(dirCleaned string, out *scanMaps) {
 				out.insertDir(fullPath)
 				dirsToVisit = append(dirsToVisit, fullPath)
 			} else {
-				var size int64
-				var modTime int64
-				if info, err := entry.Info(); err == nil {
-					size = info.Size()
-					modTime = info.ModTime().UnixNano()
-				}
-				out.insertFile(fullPath, FileInfo{Size: size, ModTime: modTime})
+				out.insertFile(fullPath, entryFileInfo(entry))
 			}
 		}
 	}
@@ -189,13 +181,7 @@ func scanLocalDirMaps(dirPath string, out *scanMaps, skipRootFiles bool) {
 			out.insertDir(fullPath)
 			subdirs = append(subdirs, fullPath)
 		} else if !skipRootFiles {
-			var size int64
-			var modTime int64
-			if info, err := entry.Info(); err == nil {
-				size = info.Size()
-				modTime = info.ModTime().UnixNano()
-			}
-			out.insertFile(fullPath, FileInfo{Size: size, ModTime: modTime})
+			out.insertFile(fullPath, entryFileInfo(entry))
 		}
 	}
 

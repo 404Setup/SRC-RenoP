@@ -119,13 +119,6 @@ func GenerateUploadToken(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 	return protohttp.Write(c, &pb.GenerateTokenResponse{Token: newToken})
 }
 
-func currentSessionToken(c fiber.Ctx) string {
-	if id, ok := c.Locals("current_session_id").(string); ok {
-		return id
-	}
-	return ""
-}
-
 func ListSessions(c fiber.Ctx, state *core.AppState) error {
 	userInt := c.Locals("user")
 	if userInt == nil {
@@ -133,7 +126,7 @@ func ListSessions(c fiber.Ctx, state *core.AppState) error {
 	}
 	user := userInt.(*config.User)
 
-	sessions := state.ListUserSessions(user.Username, currentSessionToken(c))
+	sessions := state.ListUserSessions(user.Username, CurrentSessionToken(c))
 	return protohttp.Write(c, pb.FromSessionList(sessions))
 }
 
@@ -145,7 +138,7 @@ func DeleteSession(c fiber.Ctx, state *core.AppState) error {
 	user := userInt.(*config.User)
 	sessionID := c.Params("session_id")
 
-	revoked, wasCurrent, err := state.RevokeUserSessionByPublicID(user.Username, sessionID, currentSessionToken(c))
+	revoked, wasCurrent, err := state.RevokeUserSessionByPublicID(user.Username, sessionID, CurrentSessionToken(c))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke session")
 	}
@@ -175,7 +168,7 @@ func RevokeOtherSessions(c fiber.Ctx, state *core.AppState) error {
 	}
 	user := userInt.(*config.User)
 
-	if _, err := state.RevokeOtherUserSessions(user.Username, currentSessionToken(c)); err != nil {
+	if _, err := state.RevokeOtherUserSessions(user.Username, CurrentSessionToken(c)); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke sessions")
 	}
 

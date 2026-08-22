@@ -41,6 +41,11 @@ import (
 	"renop/internal/utils"
 )
 
+type artifactChecksumEntry struct {
+	ext  string
+	hash string
+}
+
 var bufferPool128k = syncv2.Pool[*[]byte]{
 	New: func() *[]byte {
 		buf := make([]byte, 128*1024)
@@ -73,15 +78,7 @@ func WriteChecksumFile(parent string, baseName string, ext string, hash string, 
 
 func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, localFilePath string) error {
 	lockKey := filepath.ToSlash(GPGUploadLockPath(localFilePath))
-	var upload *core.InFlightDownload
-	for {
-		var loaded bool
-		upload, loaded = state.Inner.InFlightDownloads.LockPath(lockKey)
-		if !loaded {
-			break
-		}
-		state.Inner.InFlightDownloads.Wait(upload)
-	}
+	upload := state.Inner.InFlightDownloads.AcquirePath(lockKey)
 	uploadSucceeded := false
 	defer func() {
 		state.Inner.InFlightDownloads.UnlockPath(lockKey, upload, uploadSucceeded)
@@ -326,10 +323,7 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 	}
 
 	if generateChecksums {
-		checksums := []struct {
-			ext  string
-			hash string
-		}{
+		checksums := []artifactChecksumEntry{
 			{ext: ".md5", hash: digests.MD5},
 			{ext: ".sha1", hash: digests.SHA1},
 			{ext: ".sha256", hash: digests.SHA256},

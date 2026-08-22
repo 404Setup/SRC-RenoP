@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -32,10 +31,7 @@ import (
 
 const maxRemoteJSONBody = 1 << 20
 
-var sharedCheckClient struct {
-	sync.Once
-	client *http.Client
-}
+var sharedCheckClient lazyHTTPClient
 
 func newCheckHTTPClient() *http.Client {
 	return &http.Client{
