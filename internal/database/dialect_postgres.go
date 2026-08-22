@@ -13,28 +13,126 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
-type SQLiteDialect struct{}
+type PostgresDialect struct{}
 
-func (d *SQLiteDialect) Name() string {
-	return "sqlite3"
+func (d *PostgresDialect) Name() string {
+	return "postgres"
 }
 
-func execIgnoreDuplicateColumn(db *sql.DB, query string) error {
-	_, err := db.Exec(query)
-	if err != nil {
-		errStr := strings.ToLower(err.Error())
-		if strings.Contains(errStr, "duplicate column") || strings.Contains(errStr, "already exists") {
-			return nil
-		}
-		return err
+func (d *PostgresDialect) Rebind(query string) string {
+	return RebindPostgres(query)
+}
+
+// RebindPostgres transforms '?' placeholders in a SQL query into positional '$1, $2, ...' placeholders,
+// safely ignoring '?' characters inside single-quoted string literals, double-quoted identifiers,
+// and SQL comments.
+func RebindPostgres(query string) string {
+	if strings.IndexByte(query, '?') == -1 {
+		return query
 	}
-	return nil
+
+	var b strings.Builder
+	b.Grow(len(query) + 16)
+
+	paramIdx := 1
+	inSingleQuote := false
+	inDoubleQuote := false
+	inLineComment := false
+	inBlockComment := false
+
+	for i := 0; i < len(query); i++ {
+		c := query[i]
+
+		if inLineComment {
+			b.WriteByte(c)
+			if c == '\n' {
+				inLineComment = false
+			}
+			continue
+		}
+
+		if inBlockComment {
+			b.WriteByte(c)
+			if c == '*' && i+1 < len(query) && query[i+1] == '/' {
+				b.WriteByte('/')
+				i++
+				inBlockComment = false
+			}
+			continue
+		}
+
+		if inSingleQuote {
+			b.WriteByte(c)
+			if c == '\'' {
+				if i+1 < len(query) && query[i+1] == '\'' {
+					b.WriteByte('\'')
+					i++
+				} else {
+					inSingleQuote = false
+				}
+			}
+			continue
+		}
+
+		if inDoubleQuote {
+			b.WriteByte(c)
+			if c == '"' {
+				if i+1 < len(query) && query[i+1] == '"' {
+					b.WriteByte('"')
+					i++
+				} else {
+					inDoubleQuote = false
+				}
+			}
+			continue
+		}
+
+		if c == '\'' {
+			inSingleQuote = true
+			b.WriteByte(c)
+			continue
+		}
+
+		if c == '"' {
+			inDoubleQuote = true
+			b.WriteByte(c)
+			continue
+		}
+
+		if c == '-' && i+1 < len(query) && query[i+1] == '-' {
+			inLineComment = true
+			b.WriteByte('-')
+			b.WriteByte('-')
+			i++
+			continue
+		}
+
+		if c == '/' && i+1 < len(query) && query[i+1] == '*' {
+			inBlockComment = true
+			b.WriteByte('/')
+			b.WriteByte('*')
+			i++
+			continue
+		}
+
+		if c == '?' {
+			b.WriteByte('$')
+			b.WriteString(strconv.Itoa(paramIdx))
+			paramIdx++
+			continue
+		}
+
+		b.WriteByte(c)
+	}
+
+	return b.String()
 }
 
-func (d *SQLiteDialect) InitTables(db *sql.DB) error {
+func (d *PostgresDialect) InitTables(db *sql.DB) error {
 	tokensTable := `
 	CREATE TABLE IF NOT EXISTS tokens (
 		name VARCHAR(255) PRIMARY KEY,
@@ -66,10 +164,10 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		id VARCHAR(255) PRIMARY KEY,
 		username VARCHAR(255) NOT NULL,
 		name VARCHAR(255) NOT NULL,
-		credential_id BLOB NOT NULL,
-		public_key BLOB NOT NULL,
+		credential_id BYTEA NOT NULL,
+		public_key BYTEA NOT NULL,
 		attestation_type VARCHAR(64) NOT NULL,
-		aaguid BLOB NOT NULL,
+		aaguid BYTEA NOT NULL,
 		sign_count INT NOT NULL,
 		created_at BIGINT NOT NULL,
 		user_present INT NOT NULL DEFAULT 0,
@@ -83,7 +181,7 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		fingerprint VARCHAR(64) PRIMARY KEY,
 		key_id VARCHAR(16) NOT NULL,
 		primary_identity TEXT NOT NULL,
-		public_key BLOB NOT NULL,
+		public_key BYTEA NOT NULL,
 		key_created_at BIGINT NOT NULL,
 		key_expires_at BIGINT NOT NULL DEFAULT 0,
 		fetched_at BIGINT NOT NULL
@@ -159,7 +257,7 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 
 	auditLogsTable := `
 	CREATE TABLE IF NOT EXISTS audit_logs (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id BIGSERIAL PRIMARY KEY,
 		username VARCHAR(255) NOT NULL,
 		operator VARCHAR(255) NOT NULL,
 		action VARCHAR(64) NOT NULL,
@@ -240,47 +338,27 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		UNIQUE (repository, normalized_name, recipient)
 	);`
 
-	if _, err := db.Exec(tokensTable); err != nil {
-		return err
+	tables := []string{
+		tokensTable,
+		sessionsTable,
+		fidoTable,
+		gpgPublicKeysTable,
+		gpgKeyAliasesTable,
+		userGPGKeysTable,
+		gpgSignaturesTable,
+		gpgReleasesTable,
+		auditLogsTable,
+		userMessagesTable,
+		cargoPackagesTable,
+		cargoVersionsTable,
+		cargoMembersTable,
+		cargoInvitationsTable,
 	}
-	if _, err := db.Exec(sessionsTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(fidoTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(gpgPublicKeysTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(gpgKeyAliasesTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(userGPGKeysTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(gpgSignaturesTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(gpgReleasesTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(auditLogsTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(userMessagesTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(cargoPackagesTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(cargoVersionsTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(cargoMembersTable); err != nil {
-		return err
-	}
-	if _, err := db.Exec(cargoInvitationsTable); err != nil {
-		return err
+
+	for _, tbl := range tables {
+		if _, err := db.Exec(tbl); err != nil {
+			return err
+		}
 	}
 
 	for _, migration := range sharedColumnMigrations {
@@ -314,15 +392,17 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		{Name: "idx_cargo_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_members_user ON cargo_members(username, repository);"},
 		{Name: "idx_cargo_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_invitations_recipient ON cargo_invitations(recipient, created_at);"},
 	}
+
 	for _, migration := range indexMigrations {
 		if _, err := db.Exec(migration.Query); err != nil {
 			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
 		}
 	}
+
 	return nil
 }
 
-func (d *SQLiteDialect) UpsertTokenQuery() string {
+func (d *PostgresDialect) UpsertTokenQuery() string {
 	return `INSERT INTO tokens (name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(name) DO UPDATE SET
@@ -330,14 +410,14 @@ func (d *SQLiteDialect) UpsertTokenQuery() string {
 	tokens_json=excluded.tokens_json, created_at=excluded.created_at, description=excluded.description, expires_at=excluded.expires_at, permissions_json=excluded.permissions_json`
 }
 
-func (d *SQLiteDialect) UpsertSessionQuery() string {
+func (d *PostgresDialect) UpsertSessionQuery() string {
 	return `INSERT INTO sessions (session_token, public_id, username, ip, user_agent, created_at, last_active, login_method)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(session_token) DO UPDATE SET
 	public_id=excluded.public_id, username=excluded.username, ip=excluded.ip, user_agent=excluded.user_agent, created_at=excluded.created_at, last_active=excluded.last_active, login_method=excluded.login_method`
 }
 
-func (d *SQLiteDialect) UpsertGPGPublicKeyQuery() string {
+func (d *PostgresDialect) UpsertGPGPublicKeyQuery() string {
 	return `INSERT INTO gpg_public_keys (fingerprint, key_id, primary_identity, public_key, key_created_at, key_expires_at, fetched_at)
 	VALUES (?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(fingerprint) DO UPDATE SET
@@ -345,7 +425,7 @@ func (d *SQLiteDialect) UpsertGPGPublicKeyQuery() string {
 	public_key=excluded.public_key, key_created_at=excluded.key_created_at, key_expires_at=excluded.key_expires_at, fetched_at=excluded.fetched_at`
 }
 
-func (d *SQLiteDialect) UpsertGPGSignatureQuery() string {
+func (d *PostgresDialect) UpsertGPGSignatureQuery() string {
 	return `INSERT INTO gpg_signatures (artifact_key, repository, artifact_path, fingerprint, key_id, primary_identity, uploader, signature_created_at, verified_at, hash_algorithm, public_key_algorithm)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(artifact_key) DO UPDATE SET
@@ -353,8 +433,4 @@ func (d *SQLiteDialect) UpsertGPGSignatureQuery() string {
 	fingerprint=excluded.fingerprint, key_id=excluded.key_id, primary_identity=excluded.primary_identity,
 	uploader=excluded.uploader, signature_created_at=excluded.signature_created_at, verified_at=excluded.verified_at,
 	hash_algorithm=excluded.hash_algorithm, public_key_algorithm=excluded.public_key_algorithm`
-}
-
-func (d *SQLiteDialect) Rebind(query string) string {
-	return query
 }

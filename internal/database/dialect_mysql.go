@@ -316,3 +316,23 @@ func (d *MySQLDialect) UpsertSessionQuery() string {
 	ON DUPLICATE KEY UPDATE
 	public_id=VALUES(public_id), username=VALUES(username), ip=VALUES(ip), user_agent=VALUES(user_agent), created_at=VALUES(created_at), last_active=VALUES(last_active), login_method=VALUES(login_method)`
 }
+
+func (d *MySQLDialect) UpsertGPGPublicKeyQuery() string {
+	return `INSERT INTO gpg_public_keys (fingerprint, key_id, primary_identity, public_key, key_created_at, key_expires_at, fetched_at)
+	VALUES (?, ?, ?, ?, ?, ?, ?)
+	ON DUPLICATE KEY UPDATE key_id=VALUES(key_id), primary_identity=VALUES(primary_identity),
+	public_key=VALUES(public_key), key_created_at=VALUES(key_created_at), key_expires_at=VALUES(key_expires_at), fetched_at=VALUES(fetched_at)`
+}
+
+func (d *MySQLDialect) UpsertGPGSignatureQuery() string {
+	return `INSERT INTO gpg_signatures (artifact_key, repository, artifact_path, fingerprint, key_id, primary_identity, uploader, signature_created_at, verified_at, hash_algorithm, public_key_algorithm)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	ON DUPLICATE KEY UPDATE repository=VALUES(repository), artifact_path=VALUES(artifact_path), fingerprint=VALUES(fingerprint),
+	key_id=VALUES(key_id), primary_identity=VALUES(primary_identity), uploader=VALUES(uploader),
+	signature_created_at=VALUES(signature_created_at), verified_at=VALUES(verified_at),
+	hash_algorithm=VALUES(hash_algorithm), public_key_algorithm=VALUES(public_key_algorithm)`
+}
+
+func (d *MySQLDialect) Rebind(query string) string {
+	return query
+}

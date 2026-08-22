@@ -55,7 +55,7 @@ func (db *DB) GetCargoPackage(repository, normalizedName string) (*core.CargoPac
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
-	result, err := scanCargoPackage(db.SqlDB.QueryRow(
+	result, err := scanCargoPackage(db.QueryRow(
 		`SELECT `+cargoPackageColumns+` FROM cargo_packages WHERE repository = ? AND normalized_name = ?`,
 		repository, normalizedName,
 	))
@@ -75,7 +75,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 	}
 	username = sanitizeCargoUsername(username)
 	if username != "" {
-		err := db.SqlDB.QueryRow(`SELECT permission_level FROM cargo_members
+		err := db.QueryRow(`SELECT permission_level FROM cargo_members
 			WHERE repository = ? AND normalized_name = ? AND username = ?`,
 			pkg.Repository, pkg.NormalizedName, username).Scan(&pkg.PermissionLevel)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -83,7 +83,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		}
 	}
 
-	versionRows, err := db.SqlDB.Query(`SELECT version, description, publisher, yanked, admin_yanked, archive_yanked, created_at
+	versionRows, err := db.Query(`SELECT version, description, publisher, yanked, admin_yanked, archive_yanked, created_at
 		FROM cargo_versions WHERE repository = ? AND normalized_name = ? ORDER BY created_at DESC, version DESC`,
 		pkg.Repository, pkg.NormalizedName)
 	if err != nil {
@@ -113,7 +113,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		return nil, fmt.Errorf("close Cargo versions: %w", err)
 	}
 
-	memberRows, err := db.SqlDB.Query(`SELECT username, permission_level, added_at FROM cargo_members
+	memberRows, err := db.Query(`SELECT username, permission_level, added_at FROM cargo_members
 		WHERE repository = ? AND normalized_name = ? ORDER BY permission_level DESC, username`,
 		pkg.Repository, pkg.NormalizedName)
 	if err != nil {
@@ -152,7 +152,7 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 		query += ` AND m.username IS NOT NULL`
 	}
 	query += ` ORDER BY p.normalized_name`
-	rows, err := db.SqlDB.Query(query, username, repository)
+	rows, err := db.Query(query, username, repository)
 	if err != nil {
 		return nil, fmt.Errorf("list Cargo packages: %w", err)
 	}
@@ -193,11 +193,11 @@ func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) (
 	pattern := "%" + query + "%"
 	where := `repository = ? AND archived = 0 AND (normalized_name LIKE ? OR LOWER(description) LIKE ?)`
 	var total int
-	if err := db.SqlDB.QueryRow(`SELECT COUNT(*) FROM cargo_packages WHERE `+where,
+	if err := db.QueryRow(`SELECT COUNT(*) FROM cargo_packages WHERE `+where,
 		repository, pattern, pattern).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count Cargo search results: %w", err)
 	}
-	rows, err := db.SqlDB.Query(`SELECT `+cargoPackageColumns+` FROM cargo_packages WHERE `+where+
+	rows, err := db.Query(`SELECT `+cargoPackageColumns+` FROM cargo_packages WHERE `+where+
 		` ORDER BY CASE WHEN normalized_name = ? THEN 0 ELSE 1 END, normalized_name LIMIT ? OFFSET ?`,
 		repository, pattern, pattern, query, limit, offset)
 	if err != nil {
@@ -232,7 +232,7 @@ func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) (
 		arguments = append(arguments, pkg.NormalizedName)
 		packagesByName[pkg.NormalizedName] = pkg
 	}
-	versionRows, err := db.SqlDB.Query(`SELECT normalized_name, version FROM cargo_versions
+	versionRows, err := db.Query(`SELECT normalized_name, version FROM cargo_versions
 		WHERE repository = ? AND yanked = 0 AND normalized_name IN (`+strings.Join(placeholders, ",")+`)`, arguments...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list Cargo search versions: %w", err)
@@ -267,7 +267,7 @@ func (db *DB) HasCargoMembership(repository, username string) (bool, error) {
 	repository, _ = sanitizeCargoKey(repository, "")
 	username = sanitizeCargoUsername(username)
 	var exists int
-	err := db.SqlDB.QueryRow(`SELECT 1 FROM cargo_members WHERE repository = ? AND username = ? LIMIT 1`,
+	err := db.QueryRow(`SELECT 1 FROM cargo_members WHERE repository = ? AND username = ? LIMIT 1`,
 		repository, username).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
@@ -293,7 +293,7 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	if repository == "" || normalizedName == "" || username == "" || packageName == "" || versionName == "" {
 		return errors.New("Cargo publication metadata is invalid")
 	}
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo publication: %w", err)
 	}
@@ -366,7 +366,7 @@ func (db *DB) SetCargoVersionYanked(repository, normalizedName, version string, 
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	version = SanitizeInputString(strings.TrimSpace(version), 128)
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo yank update: %w", err)
 	}
@@ -412,7 +412,7 @@ func (db *DB) DeleteCargoVersion(repository, normalizedName, version string) err
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
-	result, err := db.SqlDB.Exec(`DELETE FROM cargo_versions WHERE repository = ? AND normalized_name = ? AND version = ?`,
+	result, err := db.Exec(`DELETE FROM cargo_versions WHERE repository = ? AND normalized_name = ? AND version = ?`,
 		repository, normalizedName, SanitizeInputString(strings.TrimSpace(version), 128))
 	if err != nil {
 		return fmt.Errorf("delete Cargo version: %w", err)
@@ -432,7 +432,7 @@ func (db *DB) SetCargoPackageArchived(repository, normalizedName string, archive
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo package archive update: %w", err)
 	}
@@ -481,7 +481,7 @@ func (db *DB) DeleteCargoPackage(repository, normalizedName string, actedAt int6
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo package deletion: %w", err)
 	}
@@ -512,7 +512,7 @@ func (db *DB) DeleteCargoRepository(repository string, actedAt int64) error {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeCargoKey(repository, "")
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo repository cleanup: %w", err)
 	}
@@ -531,7 +531,7 @@ func (db *DB) DeleteCargoRepository(repository string, actedAt int64) error {
 	return nil
 }
 
-func cancelCargoInvitations(tx *sql.Tx, where string, args []any, actedAt int64) error {
+func cancelCargoInvitations(tx *Tx, where string, args []any, actedAt int64) error {
 	rows, err := tx.Query(`SELECT id FROM cargo_invitations WHERE `+where, args...)
 	if err != nil {
 		return fmt.Errorf("list Cargo invitations for cancellation: %w", err)
@@ -591,7 +591,7 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 			return err
 		}
 	}
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo invitation: %w", err)
 	}
@@ -673,7 +673,7 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 	id = SanitizeInputString(strings.TrimSpace(id), 64)
 	recipient = sanitizeCargoUsername(recipient)
 	repository, _ = sanitizeCargoKey(repository, "")
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo invitation response: %w", err)
 	}
@@ -751,7 +751,7 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	actor = sanitizeCargoUsername(actor)
 	username = sanitizeCargoUsername(username)
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo member update: %w", err)
 	}
@@ -807,7 +807,7 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 		seen[username] = struct{}{}
 		unique = append(unique, username)
 	}
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo member removal: %w", err)
 	}
@@ -850,7 +850,7 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 	return nil
 }
 
-func requireCargoMemberPermission(tx *sql.Tx, repository, normalizedName, username string, required int) error {
+func requireCargoMemberPermission(tx *Tx, repository, normalizedName, username string, required int) error {
 	if tx == nil || username == "" {
 		return core.ErrCargoPermissionDenied
 	}
@@ -867,7 +867,7 @@ func requireCargoMemberPermission(tx *sql.Tx, repository, normalizedName, userna
 	return nil
 }
 
-func requireAnotherFullCargoMember(tx *sql.Tx, repository, normalizedName, excludedUsername string) error {
+func requireAnotherFullCargoMember(tx *Tx, repository, normalizedName, excludedUsername string) error {
 	var count int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members WHERE repository = ? AND normalized_name = ?
 		AND permission_level = ? AND username <> ?`, repository, normalizedName, core.CargoPermissionFull, excludedUsername).Scan(&count); err != nil {

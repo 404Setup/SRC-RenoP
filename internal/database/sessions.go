@@ -40,7 +40,7 @@ func (db *DB) GetSession(sessionToken string) (*core.Session, error) {
 	}
 
 	query := `SELECT public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE session_token = ?`
-	row := db.SqlDB.QueryRow(query, sessionToken)
+	row := db.QueryRow(query, sessionToken)
 
 	var publicId, username, ip, userAgent, loginMethod string
 	var createdAt, lastActive int64
@@ -90,7 +90,7 @@ func (db *DB) SaveSession(session *core.Session, sessionToken string) error {
 	}
 
 	query := db.Dialect.UpsertSessionQuery()
-	_, err := db.SqlDB.Exec(query, sessionToken, session.PublicId, strings.ToLower(session.Username), session.Ip, session.UserAgent, session.CreatedAt, lastActive, loginMethod)
+	_, err := db.Exec(query, sessionToken, session.PublicId, strings.ToLower(session.Username), session.Ip, session.UserAgent, session.CreatedAt, lastActive, loginMethod)
 	if err != nil {
 		return fmt.Errorf("failed to save session (%s): %w", safePrefix(sessionToken, 8), err)
 	}
@@ -118,7 +118,7 @@ func (db *DB) UpdateSessionLastActive(sessionToken string, lastActive int64) err
 		cachedSession = sess
 	}
 
-	_, err := db.SqlDB.Exec(`UPDATE sessions SET last_active = ? WHERE session_token = ?`, lastActive, sessionToken)
+	_, err := db.Exec(`UPDATE sessions SET last_active = ? WHERE session_token = ?`, lastActive, sessionToken)
 	if err != nil {
 		return fmt.Errorf("failed to update session last_active (%s...): %w", safePrefix(sessionToken, 8), err)
 	}
@@ -137,7 +137,7 @@ func (db *DB) DeleteSession(sessionToken string) error {
 		return nil
 	}
 
-	_, err := db.SqlDB.Exec(`DELETE FROM sessions WHERE session_token = ?`, sessionToken)
+	_, err := db.Exec(`DELETE FROM sessions WHERE session_token = ?`, sessionToken)
 	if err != nil {
 		return fmt.Errorf("failed to delete session (%s): %w", safePrefix(sessionToken, 8), err)
 	}
@@ -156,7 +156,7 @@ func (db *DB) DeleteSessionsByUsername(username string) error {
 	}
 
 	lowerName := strings.ToLower(username)
-	_, err := db.SqlDB.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName)
+	_, err := db.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName)
 	if err != nil {
 		return fmt.Errorf("failed to delete sessions for user (%s): %w", lowerName, err)
 	}
@@ -179,7 +179,7 @@ func (db *DB) ListUserSessions(username, currentSessionToken string) ([]core.Ses
 
 	lowerName := strings.ToLower(username)
 	query := `SELECT session_token, public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE username = ?`
-	rows, err := db.SqlDB.Query(query, lowerName)
+	rows, err := db.Query(query, lowerName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list user sessions (%s): %w", lowerName, err)
 	}
@@ -227,7 +227,7 @@ func (db *DB) DeleteExpiredSessions(minActiveTimestamp int64) error {
 		return nil
 	}
 
-	_, err := db.SqlDB.Exec(`DELETE FROM sessions WHERE last_active < ?`, minActiveTimestamp)
+	_, err := db.Exec(`DELETE FROM sessions WHERE last_active < ?`, minActiveTimestamp)
 	if err != nil {
 		return fmt.Errorf("failed to delete expired sessions: %w", err)
 	}
@@ -245,7 +245,7 @@ func (db *DB) DeleteUserSessionByPublicID(username, publicID, currentSessionToke
 
 	lowerName := strings.ToLower(username)
 	var sessionToken string
-	err := db.SqlDB.QueryRow(`SELECT session_token FROM sessions WHERE username = ? AND public_id = ?`, lowerName, publicID).Scan(&sessionToken)
+	err := db.QueryRow(`SELECT session_token FROM sessions WHERE username = ? AND public_id = ?`, lowerName, publicID).Scan(&sessionToken)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", false, false, nil
@@ -279,7 +279,7 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 		args = []any{lowerName, keepSessionToken}
 	}
 
-	rows, err := db.SqlDB.Query(query, args...)
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query sessions for user (%s): %w", lowerName, err)
 	}
@@ -302,9 +302,9 @@ func (db *DB) DeleteOtherUserSessions(username, keepSessionToken string) ([]stri
 	}
 
 	if keepSessionToken == "" {
-		_, err = db.SqlDB.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName)
+		_, err = db.Exec(`DELETE FROM sessions WHERE username = ?`, lowerName)
 	} else {
-		_, err = db.SqlDB.Exec(`DELETE FROM sessions WHERE username = ? AND session_token != ?`, lowerName, keepSessionToken)
+		_, err = db.Exec(`DELETE FROM sessions WHERE username = ? AND session_token != ?`, lowerName, keepSessionToken)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete sessions for user (%s): %w", lowerName, err)
@@ -322,7 +322,7 @@ func (db *DB) GetActiveSessions(minActiveTimestamp int64) ([]core.SessionDbDto, 
 	}
 
 	query := `SELECT session_token, public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE last_active >= ?`
-	rows, err := db.SqlDB.Query(query, minActiveTimestamp)
+	rows, err := db.Query(query, minActiveTimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query active sessions: %w", err)
 	}
@@ -375,7 +375,7 @@ func (db *DB) UpdateSessionsUsername(oldUsername, newUsername string) error {
 	lowerOld := strings.ToLower(oldUsername)
 	lowerNew := strings.ToLower(newUsername)
 
-	_, err := db.SqlDB.Exec(`UPDATE sessions SET username = ? WHERE username = ?`, lowerNew, lowerOld)
+	_, err := db.Exec(`UPDATE sessions SET username = ? WHERE username = ?`, lowerNew, lowerOld)
 	if err != nil {
 		return fmt.Errorf("failed to update session username (%s -> %s): %w", lowerOld, lowerNew, err)
 	}

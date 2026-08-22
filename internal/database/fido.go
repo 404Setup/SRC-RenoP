@@ -30,7 +30,7 @@ func (db *DB) ListFidoDevices(username string) ([]*core.FidoDevice, error) {
 
 	lowerName := strings.ToLower(username)
 	query := `SELECT id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state FROM fido_devices WHERE username = ?`
-	rows, err := db.SqlDB.Query(query, lowerName)
+	rows, err := db.Query(query, lowerName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query fido devices for user (%s): %w", lowerName, err)
 	}
@@ -67,7 +67,7 @@ func (db *DB) GetFidoDeviceByCredentialID(credentialID []byte) (*core.FidoDevice
 	}
 
 	query := `SELECT id, username, name, credential_id, public_key, attestation_type, aaguid, sign_count, created_at, user_present, user_verified, backup_eligible, backup_state FROM fido_devices WHERE credential_id = ?`
-	row := db.SqlDB.QueryRow(query, credentialID)
+	row := db.QueryRow(query, credentialID)
 
 	dev := &core.FidoDevice{}
 	var userPresent, userVerified, backupEligible, backupState int
@@ -126,7 +126,7 @@ func (db *DB) SaveFidoDevice(device *core.FidoDevice) error {
 	if device.BackupState {
 		backupStateInt = 1
 	}
-	_, err := db.SqlDB.Exec(query, device.ID, lowerName, device.Name, device.CredentialID, device.PublicKey, device.AttestationType, device.AAGUID, device.SignCount, device.CreatedAt, userPresentInt, userVerifiedInt, backupEligibleInt, backupStateInt)
+	_, err := db.Exec(query, device.ID, lowerName, device.Name, device.CredentialID, device.PublicKey, device.AttestationType, device.AAGUID, device.SignCount, device.CreatedAt, userPresentInt, userVerifiedInt, backupEligibleInt, backupStateInt)
 	if err != nil {
 		return fmt.Errorf("failed to save fido device (%s): %w", device.ID, err)
 	}
@@ -145,7 +145,7 @@ func (db *DB) DeleteFidoDevice(username, deviceID string) error {
 	}
 
 	lowerName := strings.ToLower(username)
-	_, err := db.SqlDB.Exec(`DELETE FROM fido_devices WHERE username = ? AND id = ?`, lowerName, deviceID)
+	_, err := db.Exec(`DELETE FROM fido_devices WHERE username = ? AND id = ?`, lowerName, deviceID)
 	if err != nil {
 		return fmt.Errorf("failed to delete fido device (%s) for user (%s): %w", deviceID, lowerName, err)
 	}
@@ -163,7 +163,7 @@ func (db *DB) DeleteFidoDevicesByUsername(username string) error {
 	}
 
 	lowerName := strings.ToLower(username)
-	_, err := db.SqlDB.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName)
+	_, err := db.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName)
 	if err != nil {
 		return fmt.Errorf("failed to delete fido devices for user (%s): %w", lowerName, err)
 	}
@@ -177,7 +177,7 @@ func (db *DB) UpdateFidoSignCount(credentialID []byte, signCount uint32) error {
 	}
 
 	query := `UPDATE fido_devices SET sign_count = ? WHERE credential_id = ?`
-	_, err := db.SqlDB.Exec(query, signCount, credentialID)
+	_, err := db.Exec(query, signCount, credentialID)
 	if err != nil {
 		return fmt.Errorf("failed to update fido sign count: %w", err)
 	}
@@ -200,7 +200,7 @@ func (db *DB) UpdateFidoDeviceState(credentialID []byte, signCount uint32, backu
 	}
 
 	query := `UPDATE fido_devices SET sign_count = ?, backup_state = ?, backup_eligible = ? WHERE credential_id = ?`
-	_, err := db.SqlDB.Exec(query, signCount, backupStateInt, backupEligibleInt, credentialID)
+	_, err := db.Exec(query, signCount, backupStateInt, backupEligibleInt, credentialID)
 	if err != nil {
 		return fmt.Errorf("failed to update fido device state: %w", err)
 	}

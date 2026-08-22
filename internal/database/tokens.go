@@ -82,7 +82,7 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 	}
 
 	query := `SELECT name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json FROM tokens WHERE name = ?`
-	row := db.SqlDB.QueryRow(query, lowerName)
+	row := db.QueryRow(query, lowerName)
 
 	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJson, createdAt, description, permissionsJson string
 	var typeValue int32
@@ -121,7 +121,7 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 
 	escapedSecret := escapeJSONLikeSecret(secret)
 	query := `SELECT name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json FROM tokens WHERE tokens_json LIKE ? ESCAPE '\'`
-	rows, err := db.SqlDB.Query(query, "%\""+escapedSecret+"\"%")
+	rows, err := db.Query(query, "%\""+escapedSecret+"\"%")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query token by secret: %w", err)
 	}
@@ -172,7 +172,7 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	}
 
 	query := db.Dialect.UpsertTokenQuery()
-	_, err := db.SqlDB.Exec(query, name, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJson), token.CreatedAt, token.Description, expiresAt, string(permissionsJson))
+	_, err := db.Exec(query, name, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJson), token.CreatedAt, token.Description, expiresAt, string(permissionsJson))
 	if err != nil {
 		return fmt.Errorf("failed to save token (%s): %w", name, err)
 	}
@@ -198,7 +198,7 @@ func (db *DB) DeleteToken(name string) error {
 	}
 
 	lowerName := strings.ToLower(name)
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin token deletion (%s): %w", lowerName, err)
 	}
@@ -273,7 +273,7 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	lowerOld := strings.ToLower(oldName)
 	lowerNew := strings.ToLower(newName)
 
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -355,7 +355,7 @@ func (db *DB) CountTokens() (uint64, error) {
 	}
 
 	var count uint64
-	err := db.SqlDB.QueryRow(`SELECT COUNT(*) FROM tokens`).Scan(&count)
+	err := db.QueryRow(`SELECT COUNT(*) FROM tokens`).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count tokens: %w", err)
 	}
@@ -369,7 +369,7 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 	}
 
 	query := `SELECT name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json FROM tokens`
-	rows, err := db.SqlDB.Query(query)
+	rows, err := db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query all tokens: %w", err)
 	}
@@ -414,7 +414,7 @@ func (db *DB) SearchTokenNames(prefix string, limit int, now int64) ([]string, e
 		limit = 8
 	}
 	escapedPrefix := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(prefix) + "%"
-	rows, err := db.SqlDB.Query(`SELECT name FROM tokens
+	rows, err := db.Query(`SELECT name FROM tokens
 		WHERE name LIKE ? ESCAPE '!' AND (expires_at IS NULL OR expires_at > ?)
 		ORDER BY name ASC LIMIT ?`, escapedPrefix, now, limit)
 	if err != nil {

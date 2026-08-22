@@ -20,6 +20,9 @@ type Dialect interface {
 	InitTables(db *sql.DB) error
 	UpsertTokenQuery() string
 	UpsertSessionQuery() string
+	UpsertGPGPublicKeyQuery() string
+	UpsertGPGSignatureQuery() string
+	Rebind(query string) string
 }
 
 type SchemaMigration struct {
@@ -39,6 +42,8 @@ func NewDialect(driver string) Dialect {
 	switch strings.ToLower(strings.TrimSpace(driver)) {
 	case "mysql":
 		return &MySQLDialect{}
+	case "postgres", "postgresql", "pgx", "pg":
+		return &PostgresDialect{}
 	default:
 		return &SQLiteDialect{}
 	}

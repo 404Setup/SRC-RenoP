@@ -45,7 +45,7 @@ func (db *DB) FindGPGPublicKeys(identifier string) ([]*core.GPGPublicKey, error)
 	if db == nil || db.SqlDB == nil || identifier == "" {
 		return []*core.GPGPublicKey{}, nil
 	}
-	rows, err := db.SqlDB.Query(`SELECT k.`+strings.ReplaceAll(gpgPublicKeyColumns, ", ", ", k.")+`
+	rows, err := db.Query(`SELECT k.`+strings.ReplaceAll(gpgPublicKeyColumns, ", ", ", k.")+`
 		FROM gpg_public_keys k INNER JOIN gpg_key_aliases a ON a.fingerprint = k.fingerprint
 		WHERE a.identifier = ? ORDER BY k.fingerprint`, identifier)
 	if err != nil {
@@ -72,7 +72,7 @@ func (db *DB) GetGPGPublicKey(fingerprint string) (*core.GPGPublicKey, error) {
 	if db == nil || db.SqlDB == nil || fingerprint == "" {
 		return nil, nil
 	}
-	key, err := scanGPGPublicKey(db.SqlDB.QueryRow(
+	key, err := scanGPGPublicKey(db.QueryRow(
 		`SELECT `+gpgPublicKeyColumns+` FROM gpg_public_keys WHERE fingerprint = ?`,
 		fingerprint,
 	))
@@ -90,7 +90,7 @@ func (db *DB) ListUserGPGKeys(username string) ([]*core.UserGPGKey, error) {
 	if db == nil || db.SqlDB == nil || username == "" {
 		return []*core.UserGPGKey{}, nil
 	}
-	rows, err := db.SqlDB.Query(`SELECT k.`+strings.ReplaceAll(gpgPublicKeyColumns, ", ", ", k.")+`, u.requested_id, u.added_at
+	rows, err := db.Query(`SELECT k.`+strings.ReplaceAll(gpgPublicKeyColumns, ", ", ", k.")+`, u.requested_id, u.added_at
 		FROM user_gpg_keys u INNER JOIN gpg_public_keys k ON k.fingerprint = u.fingerprint
 		WHERE u.username = ? ORDER BY u.added_at, k.fingerprint`, username)
 	if err != nil {
@@ -122,17 +122,8 @@ func (db *DB) ListUserGPGKeys(username string) ([]*core.UserGPGKey, error) {
 	return keys, nil
 }
 
-func (db *DB) upsertGPGPublicKey(tx *sql.Tx, key *core.GPGPublicKey) error {
-	var query string
-	if db.Dialect.Name() == "mysql" {
-		query = `INSERT INTO gpg_public_keys (` + gpgPublicKeyColumns + `) VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON DUPLICATE KEY UPDATE key_id=VALUES(key_id), primary_identity=VALUES(primary_identity),
-			public_key=VALUES(public_key), key_created_at=VALUES(key_created_at), key_expires_at=VALUES(key_expires_at), fetched_at=VALUES(fetched_at)`
-	} else {
-		query = `INSERT INTO gpg_public_keys (` + gpgPublicKeyColumns + `) VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT(fingerprint) DO UPDATE SET key_id=excluded.key_id, primary_identity=excluded.primary_identity,
-			public_key=excluded.public_key, key_created_at=excluded.key_created_at, key_expires_at=excluded.key_expires_at, fetched_at=excluded.fetched_at`
-	}
+func (db *DB) upsertGPGPublicKey(tx *Tx, key *core.GPGPublicKey) error {
+	query := db.Dialect.UpsertGPGPublicKeyQuery()
 	_, err := tx.Exec(query,
 		key.Fingerprint,
 		key.KeyID,
@@ -145,7 +136,7 @@ func (db *DB) upsertGPGPublicKey(tx *sql.Tx, key *core.GPGPublicKey) error {
 	return err
 }
 
-func replaceGPGKeyAliases(tx *sql.Tx, fingerprint string, aliases []string) error {
+func replaceGPGKeyAliases(tx *Tx, fingerprint string, aliases []string) error {
 	if _, err := tx.Exec(`DELETE FROM gpg_key_aliases WHERE fingerprint = ?`, fingerprint); err != nil {
 		return err
 	}
@@ -189,7 +180,7 @@ func (db *DB) RegisterUserGPGKey(username, requestedID string, key *core.GPGPubl
 		return errors.New("invalid GPG key registration")
 	}
 
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin GPG key registration: %w", err)
 	}
@@ -235,7 +226,7 @@ func (db *DB) RefreshGPGPublicKey(key *core.GPGPublicKey, aliases []string) erro
 	if db == nil || db.SqlDB == nil || key == nil || key.Fingerprint == "" || len(key.PublicKey) == 0 {
 		return errors.New("invalid GPG public key")
 	}
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -255,7 +246,7 @@ func (db *DB) DeleteUserGPGKey(username, fingerprint string) error {
 	if db == nil || db.SqlDB == nil || username == "" || fingerprint == "" {
 		return nil
 	}
-	_, err := db.SqlDB.Exec(`DELETE FROM user_gpg_keys WHERE username = ? AND fingerprint = ?`, username, fingerprint)
+	_, err := db.Exec(`DELETE FROM user_gpg_keys WHERE username = ? AND fingerprint = ?`, username, fingerprint)
 	if err != nil {
 		return fmt.Errorf("failed to delete GPG key (%s) for user (%s): %w", fingerprint, username, err)
 	}
@@ -288,21 +279,8 @@ func (db *DB) SaveGPGSignature(signature *core.GPGSignature) error {
 	if db == nil || db.SqlDB == nil || signature == nil || len(signature.ArtifactKey) != 64 || signature.Repository == "" || signature.ArtifactPath == "" {
 		return errors.New("invalid GPG signature record")
 	}
-	var query string
-	if db.Dialect.Name() == "mysql" {
-		query = `INSERT INTO gpg_signatures (` + gpgSignatureColumns + `) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-			ON DUPLICATE KEY UPDATE repository=VALUES(repository), artifact_path=VALUES(artifact_path), fingerprint=VALUES(fingerprint),
-			key_id=VALUES(key_id), primary_identity=VALUES(primary_identity), uploader=VALUES(uploader),
-			signature_created_at=VALUES(signature_created_at), verified_at=VALUES(verified_at),
-			hash_algorithm=VALUES(hash_algorithm), public_key_algorithm=VALUES(public_key_algorithm)`
-	} else {
-		query = `INSERT INTO gpg_signatures (` + gpgSignatureColumns + `) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT(artifact_key) DO UPDATE SET repository=excluded.repository, artifact_path=excluded.artifact_path,
-			fingerprint=excluded.fingerprint, key_id=excluded.key_id, primary_identity=excluded.primary_identity,
-			uploader=excluded.uploader, signature_created_at=excluded.signature_created_at, verified_at=excluded.verified_at,
-			hash_algorithm=excluded.hash_algorithm, public_key_algorithm=excluded.public_key_algorithm`
-	}
-	_, err := db.SqlDB.Exec(query,
+	query := db.Dialect.UpsertGPGSignatureQuery()
+	_, err := db.Exec(query,
 		signature.ArtifactKey,
 		signature.Repository,
 		signature.ArtifactPath,
@@ -346,7 +324,7 @@ func (db *DB) GetGPGSignature(artifactKey string) (*core.GPGSignature, error) {
 	if db == nil || db.SqlDB == nil || len(artifactKey) != 64 {
 		return nil, nil
 	}
-	signature, err := scanGPGSignature(db.SqlDB.QueryRow(
+	signature, err := scanGPGSignature(db.QueryRow(
 		`SELECT `+gpgSignatureColumns+` FROM gpg_signatures WHERE artifact_key = ?`, artifactKey,
 	))
 	if errors.Is(err, sql.ErrNoRows) {
@@ -388,7 +366,7 @@ func (db *DB) GetGPGSignatures(artifactKeys []string) ([]*core.GPGSignature, err
 		for i := range batch {
 			args[i] = batch[i]
 		}
-		rows, err := db.SqlDB.Query(`SELECT `+gpgSignatureColumns+` FROM gpg_signatures WHERE artifact_key IN (`+placeholders+`)`, args...)
+		rows, err := db.Query(`SELECT `+gpgSignatureColumns+` FROM gpg_signatures WHERE artifact_key IN (`+placeholders+`)`, args...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list GPG signature records: %w", err)
 		}
@@ -416,7 +394,7 @@ func (db *DB) DeleteGPGSignature(artifactKey string) error {
 	if db == nil || db.SqlDB == nil || len(artifactKey) != 64 {
 		return nil
 	}
-	_, err := db.SqlDB.Exec(`DELETE FROM gpg_signatures WHERE artifact_key = ?`, artifactKey)
+	_, err := db.Exec(`DELETE FROM gpg_signatures WHERE artifact_key = ?`, artifactKey)
 	return err
 }
 
@@ -433,7 +411,7 @@ func (db *DB) DeleteGPGSignaturesByPrefix(repository, artifactPathPrefix string)
 		return nil
 	}
 	likePrefix := escapeLikePrefix(artifactPathPrefix) + "/%"
-	_, err := db.SqlDB.Exec(`DELETE FROM gpg_signatures WHERE repository = ? AND (artifact_path = ? OR artifact_path LIKE ? ESCAPE '!')`,
+	_, err := db.Exec(`DELETE FROM gpg_signatures WHERE repository = ? AND (artifact_path = ? OR artifact_path LIKE ? ESCAPE '!')`,
 		repository, artifactPathPrefix, likePrefix)
 	return err
 }
@@ -443,6 +421,6 @@ func (db *DB) DeleteGPGSignaturesByRepository(repository string) error {
 	if db == nil || db.SqlDB == nil || repository == "" {
 		return nil
 	}
-	_, err := db.SqlDB.Exec(`DELETE FROM gpg_signatures WHERE repository = ?`, repository)
+	_, err := db.Exec(`DELETE FROM gpg_signatures WHERE repository = ?`, repository)
 	return err
 }

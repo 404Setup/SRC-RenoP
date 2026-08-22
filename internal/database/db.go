@@ -18,6 +18,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "modernc.org/sqlite"
 
 	"renop/internal/config"
@@ -30,6 +31,50 @@ type DB struct {
 	tokenCache       *TTLCache[string, *core.AccessToken]
 	tokenSecretCache *TTLCache[string, *core.AccessToken]
 	sessionCache     *TTLCache[string, *core.Session]
+}
+
+type Tx struct {
+	*sql.Tx
+	db *DB
+}
+
+func (db *DB) Rebind(query string) string {
+	if db == nil || db.Dialect == nil {
+		return query
+	}
+	return db.Dialect.Rebind(query)
+}
+
+func (db *DB) Exec(query string, args ...any) (sql.Result, error) {
+	return db.SqlDB.Exec(db.Rebind(query), args...)
+}
+
+func (db *DB) Query(query string, args ...any) (*sql.Rows, error) {
+	return db.SqlDB.Query(db.Rebind(query), args...)
+}
+
+func (db *DB) QueryRow(query string, args ...any) *sql.Row {
+	return db.SqlDB.QueryRow(db.Rebind(query), args...)
+}
+
+func (db *DB) Begin() (*Tx, error) {
+	tx, err := db.SqlDB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return &Tx{Tx: tx, db: db}, nil
+}
+
+func (tx *Tx) Exec(query string, args ...any) (sql.Result, error) {
+	return tx.Tx.Exec(tx.db.Rebind(query), args...)
+}
+
+func (tx *Tx) Query(query string, args ...any) (*sql.Rows, error) {
+	return tx.Tx.Query(tx.db.Rebind(query), args...)
+}
+
+func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
+	return tx.Tx.QueryRow(tx.db.Rebind(query), args...)
 }
 
 func InitDB(cfg config.DatabaseConfig) (*DB, error) {
@@ -49,13 +94,17 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 	var err error
 	actualDriver := driver
 
-	if strings.HasPrefix(driver, "sqlite") {
+	lowerDriver := strings.ToLower(driver)
+	if strings.HasPrefix(lowerDriver, "sqlite") {
 		dsn = buildSQLiteDSN(dsn)
 		sqlDB, err = openAndPing("sqlite3", dsn, cfg)
 		if err != nil {
 			actualDriver = "sqlite"
 			sqlDB, err = openAndPing("sqlite", dsn, cfg)
 		}
+	} else if lowerDriver == "postgres" || lowerDriver == "postgresql" || lowerDriver == "pgx" || lowerDriver == "pg" {
+		actualDriver = "postgres"
+		sqlDB, err = openAndPing("pgx", dsn, cfg)
 	} else {
 		sqlDB, err = openAndPing(driver, dsn, cfg)
 	}

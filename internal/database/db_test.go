@@ -28,10 +28,20 @@ func TestDialects(t *testing.T) {
 	sqliteDialect := database.NewDialect("sqlite3")
 	assert.Equal(t, "sqlite3", sqliteDialect.Name())
 	assert.Contains(t, sqliteDialect.UpsertTokenQuery(), "ON CONFLICT")
+	assert.Contains(t, sqliteDialect.UpsertGPGPublicKeyQuery(), "ON CONFLICT")
+	assert.Contains(t, sqliteDialect.UpsertGPGSignatureQuery(), "ON CONFLICT")
 
 	mysqlDialect := database.NewDialect("mysql")
 	assert.Equal(t, "mysql", mysqlDialect.Name())
 	assert.Contains(t, mysqlDialect.UpsertTokenQuery(), "ON DUPLICATE KEY UPDATE")
+	assert.Contains(t, mysqlDialect.UpsertGPGPublicKeyQuery(), "ON DUPLICATE KEY UPDATE")
+	assert.Contains(t, mysqlDialect.UpsertGPGSignatureQuery(), "ON DUPLICATE KEY UPDATE")
+
+	pgDialect := database.NewDialect("postgres")
+	assert.Equal(t, "postgres", pgDialect.Name())
+	assert.Contains(t, pgDialect.UpsertTokenQuery(), "ON CONFLICT")
+	assert.Contains(t, pgDialect.UpsertGPGPublicKeyQuery(), "ON CONFLICT")
+	assert.Contains(t, pgDialect.UpsertGPGSignatureQuery(), "ON CONFLICT")
 }
 
 func TestSQLiteMigrationsFailOnInvalidSchema(t *testing.T) {

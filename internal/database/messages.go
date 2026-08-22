@@ -92,7 +92,7 @@ func (db *DB) SaveMessages(messages []*core.UserMessage) error {
 	if len(messages) > 100000 {
 		return errors.New("message batch is too large")
 	}
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin message batch: %w", err)
 	}
@@ -139,7 +139,7 @@ func (db *DB) ListMessages(username string, limit int, beforeCreatedAt int64, be
 	}
 	query += ` ORDER BY created_at DESC, id DESC LIMIT ?`
 	args = append(args, limit)
-	rows, err := db.SqlDB.Query(query, args...)
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list messages: %w", err)
 	}
@@ -164,7 +164,7 @@ func (db *DB) CountUnreadMessages(username string, now int64) (int, error) {
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
 	var count int
-	if err := db.SqlDB.QueryRow(`SELECT COUNT(*) FROM user_messages
+	if err := db.QueryRow(`SELECT COUNT(*) FROM user_messages
 		WHERE recipient = ? AND read_at = 0 AND (expires_at = 0 OR expires_at > ?)`, username, now).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count unread messages: %w", err)
 	}
@@ -176,7 +176,7 @@ func (db *DB) GetUserMessage(id, username string, now int64) (*core.UserMessage,
 		return nil, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
-	message, err := scanMessage(db.SqlDB.QueryRow(`SELECT `+messageColumns+` FROM user_messages
+	message, err := scanMessage(db.QueryRow(`SELECT `+messageColumns+` FROM user_messages
 		WHERE id = ? AND recipient = ? AND (expires_at = 0 OR expires_at > ?)`, id, username, now))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -192,7 +192,7 @@ func (db *DB) MarkMessageRead(id, username string, readAt int64) (bool, error) {
 		return false, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
-	result, err := db.SqlDB.Exec(`UPDATE user_messages SET read_at = ? WHERE id = ? AND recipient = ? AND read_at = 0`, readAt, id, username)
+	result, err := db.Exec(`UPDATE user_messages SET read_at = ? WHERE id = ? AND recipient = ? AND read_at = 0`, readAt, id, username)
 	if err != nil {
 		return false, fmt.Errorf("mark message read: %w", err)
 	}
@@ -205,7 +205,7 @@ func (db *DB) MarkAllMessagesRead(username string, readAt int64) (int64, error) 
 		return 0, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
-	result, err := db.SqlDB.Exec(`UPDATE user_messages SET read_at = ? WHERE recipient = ? AND read_at = 0`, readAt, username)
+	result, err := db.Exec(`UPDATE user_messages SET read_at = ? WHERE recipient = ? AND read_at = 0`, readAt, username)
 	if err != nil {
 		return 0, fmt.Errorf("mark all messages read: %w", err)
 	}
@@ -217,7 +217,7 @@ func (db *DB) TransitionMessageAction(id, username, expectedStatus, newStatus st
 		return false, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
-	result, err := db.SqlDB.Exec(`UPDATE user_messages SET action_status = ?, acted_at = ?, read_at = CASE WHEN read_at = 0 THEN ? ELSE read_at END
+	result, err := db.Exec(`UPDATE user_messages SET action_status = ?, acted_at = ?, read_at = CASE WHEN read_at = 0 THEN ? ELSE read_at END
 		WHERE id = ? AND recipient = ? AND action_kind <> '' AND action_status = ?`,
 		newStatus, actedAt, actedAt, id, username, expectedStatus)
 	if err != nil {
@@ -232,7 +232,7 @@ func (db *DB) DeleteUserMessage(id, username string) (bool, error) {
 		return false, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
-	result, err := db.SqlDB.Exec(`DELETE FROM user_messages
+	result, err := db.Exec(`DELETE FROM user_messages
 		WHERE id = ? AND recipient = ? AND (action_kind = '' OR action_status <> ?)`,
 		id, username, core.MessageActionPending)
 	if err != nil {
@@ -249,7 +249,7 @@ func (db *DB) DeleteUserMessages(username string) (int64, error) {
 		return 0, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
-	result, err := db.SqlDB.Exec(`DELETE FROM user_messages
+	result, err := db.Exec(`DELETE FROM user_messages
 		WHERE recipient = ? AND (action_kind = '' OR action_status <> ?)`,
 		username, core.MessageActionPending)
 	if err != nil {

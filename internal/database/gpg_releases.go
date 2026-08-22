@@ -149,7 +149,7 @@ func (db *DB) SaveGPGRelease(release *core.GPGRelease) error {
 	if err := normalizeGPGRelease(release); err != nil {
 		return err
 	}
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin GPG release update: %w", err)
 	}
@@ -196,7 +196,7 @@ func (db *DB) GetActiveGPGRelease(activeKey string) (*core.GPGRelease, error) {
 	if db == nil || db.SqlDB == nil || activeKey == "" {
 		return nil, nil
 	}
-	release, err := scanGPGRelease(db.SqlDB.QueryRow(
+	release, err := scanGPGRelease(db.QueryRow(
 		`SELECT `+gpgReleaseColumns+` FROM gpg_releases WHERE active_key = ?`, activeKey,
 	))
 	if errors.Is(err, sql.ErrNoRows) {
@@ -212,7 +212,7 @@ func (db *DB) ClaimNextGPGRelease(optionalReadyBefore int64) (*core.GPGRelease, 
 	if db == nil || db.SqlDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin GPG release claim: %w", err)
 	}
@@ -259,10 +259,10 @@ func (db *DB) ListGPGReleases(username string, limit, offset int) ([]*core.GPGRe
 	limit = min(max(limit, 1), 100)
 	offset = max(offset, 0)
 	var total int
-	if err := db.SqlDB.QueryRow(`SELECT COUNT(*) FROM gpg_releases WHERE uploader = ?`, username).Scan(&total); err != nil {
+	if err := db.QueryRow(`SELECT COUNT(*) FROM gpg_releases WHERE uploader = ?`, username).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count GPG releases: %w", err)
 	}
-	rows, err := db.SqlDB.Query(`SELECT `+gpgReleaseColumns+` FROM gpg_releases
+	rows, err := db.Query(`SELECT `+gpgReleaseColumns+` FROM gpg_releases
 		WHERE uploader = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, username, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list GPG releases: %w", err)
@@ -286,7 +286,7 @@ func (db *DB) ListPendingGPGReleases() ([]*core.GPGRelease, error) {
 	if db == nil || db.SqlDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	rows, err := db.SqlDB.Query(`SELECT ` + gpgReleaseColumns + ` FROM gpg_releases
+	rows, err := db.Query(`SELECT ` + gpgReleaseColumns + ` FROM gpg_releases
 		WHERE active_key IS NOT NULL OR cleanup_pending = 1 ORDER BY created_at, id`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pending GPG releases: %w", err)
@@ -312,7 +312,7 @@ func (db *DB) CountPendingGPGReleases(username string) (int, int, error) {
 		return 0, 0, core.ErrDatabaseUnavailable
 	}
 	var total, perUser int
-	err := db.SqlDB.QueryRow(`SELECT COUNT(*), COALESCE(SUM(CASE WHEN uploader = ? THEN 1 ELSE 0 END), 0)
+	err := db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(CASE WHEN uploader = ? THEN 1 ELSE 0 END), 0)
 		FROM gpg_releases WHERE active_key IS NOT NULL`, username).Scan(&total, &perUser)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to count pending GPG releases: %w", err)
@@ -324,7 +324,7 @@ func (db *DB) ResetValidatingGPGReleases() error {
 	if db == nil || db.SqlDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	_, err := db.SqlDB.Exec(`UPDATE gpg_releases SET status = ?, updated_at = ? WHERE status = ? AND active_key IS NOT NULL`,
+	_, err := db.Exec(`UPDATE gpg_releases SET status = ?, updated_at = ? WHERE status = ? AND active_key IS NOT NULL`,
 		core.GPGReleaseQueued, time.Now().UnixMilli(), core.GPGReleaseValidating)
 	if err != nil {
 		return fmt.Errorf("failed to recover validating GPG releases: %w", err)

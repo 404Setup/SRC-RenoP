@@ -23,7 +23,7 @@ func (db *DB) SaveAuditLog(entry *core.AuditLogEntry) error {
 	}
 	query := `INSERT INTO audit_logs (username, operator, action, details, auth_method, session_id, ip, created_at)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := db.SqlDB.Exec(query,
+	_, err := db.Exec(query,
 		SanitizeInputString(strings.ToLower(entry.Username), 255),
 		SanitizeInputString(strings.ToLower(entry.Operator), 255),
 		SanitizeInputString(entry.Action, 64),
@@ -63,7 +63,7 @@ func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLog
 		countQuery = "SELECT COUNT(*) FROM audit_logs"
 	}
 
-	err := db.SqlDB.QueryRow(countQuery, args...).Scan(&total)
+	err := db.QueryRow(countQuery, args...).Scan(&total)
 	if err != nil {
 		return []*core.AuditLogEntry{}, 0, err
 	}
@@ -84,7 +84,7 @@ func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLog
 		selectArgs = append(selectArgs, limit, offset)
 	}
 
-	rows, err := db.SqlDB.Query(selectQuery, selectArgs...)
+	rows, err := db.Query(selectQuery, selectArgs...)
 	if err != nil {
 		return []*core.AuditLogEntry{}, 0, err
 	}
@@ -120,7 +120,7 @@ func (db *DB) DeleteAuditLogsByUsername(username string) error {
 	if lowerUser == "" {
 		return nil
 	}
-	_, err := db.SqlDB.Exec("DELETE FROM audit_logs WHERE username = ?", lowerUser)
+	_, err := db.Exec("DELETE FROM audit_logs WHERE username = ?", lowerUser)
 	return err
 }
 
@@ -130,14 +130,14 @@ func (db *DB) CleanExpiredAuditLogs(retentionDays int, maxRows int) error {
 	}
 	if retentionDays > 0 {
 		cutoff := time.Now().AddDate(0, 0, -retentionDays).UnixMilli()
-		if _, err := db.SqlDB.Exec("DELETE FROM audit_logs WHERE created_at < ?", cutoff); err != nil {
+		if _, err := db.Exec("DELETE FROM audit_logs WHERE created_at < ?", cutoff); err != nil {
 			return err
 		}
 	}
 
 	if maxRows > 0 && maxRows < 100000000 {
 		var count int
-		if err := db.SqlDB.QueryRow("SELECT COUNT(*) FROM audit_logs").Scan(&count); err != nil {
+		if err := db.QueryRow("SELECT COUNT(*) FROM audit_logs").Scan(&count); err != nil {
 			return err
 		}
 		if count > maxRows {
@@ -148,7 +148,7 @@ func (db *DB) CleanExpiredAuditLogs(retentionDays int, maxRows int) error {
 					) AS t1
 				) AS t2
 			)`
-			if _, err := db.SqlDB.Exec(trimQuery, maxRows); err != nil {
+			if _, err := db.Exec(trimQuery, maxRows); err != nil {
 				return err
 			}
 		}
