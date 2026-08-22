@@ -87,3 +87,41 @@ func TestSearchCargoRepositoryReturnsNavigablePublicPackage(t *testing.T) {
 		t.Fatalf("unexpected Cargo search result: %+v", result)
 	}
 }
+
+func TestContainsFold(t *testing.T) {
+	cases := []struct {
+		s      string
+		needle string
+		want   bool
+	}{
+		{"com/example/MyArtifact/1.0/MyArtifact-1.0.jar", "myartifact", true},
+		{"com/example/MyArtifact/1.0/MyArtifact-1.0.jar", "MYARTIFACT", false}, // needle must be lowercase
+		{"com/example/foo/bar.jar", "bar", true},
+		{"com/example/foo/bar.jar", "baz", false},
+		{"short", "longerneedle", false},
+		{"exact", "exact", true},
+		{"", "a", false},
+		{"anything", "", true},
+	}
+	for _, c := range cases {
+		got := containsFold(c.s, c.needle)
+		if got != c.want {
+			t.Errorf("containsFold(%q, %q) = %v, want %v", c.s, c.needle, got, c.want)
+		}
+	}
+}
+
+func TestRepositorySearchRank(t *testing.T) {
+	if r := repositorySearchRank("exact", "exact"); r != 0 {
+		t.Errorf("expected 0 for exact match, got %d", r)
+	}
+	if r := repositorySearchRank("Exact", "exact"); r != 0 {
+		t.Errorf("expected 0 for case-insensitive exact match, got %d", r)
+	}
+	if r := repositorySearchRank("exact-prefix", "exact"); r != 1 {
+		t.Errorf("expected 1 for prefix match, got %d", r)
+	}
+	if r := repositorySearchRank("other", "exact"); r != 2 {
+		t.Errorf("expected 2 for other match, got %d", r)
+	}
+}

@@ -121,7 +121,8 @@ func searchCargoRepository(state *core.AppState, repo *config.Repository, query 
 }
 
 func searchMavenRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) (repositorySearchResponse, error) {
-	root := filepath.Join(storagePath, repo.Name)
+	root := filepath.ToSlash(filepath.Clean(filepath.Join(storagePath, repo.Name)))
+	rootPrefix := root + "/"
 	needle := strings.ToLower(query)
 	results := make([]repositorySearchResult, 0, min(limit*4, maxRepositorySearchMatches))
 	total := 0
@@ -134,15 +135,20 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 			scanLimitReached = true
 			return false
 		}
-		if filepath.Clean(indexedPath) == filepath.Clean(root) || state.Inner.FileIndex.IsBlocked(indexedPath) {
+		if indexedPath == root || state.Inner.FileIndex.IsBlocked(indexedPath) {
 			return true
 		}
-		relative, err := filepath.Rel(root, indexedPath)
-		if err != nil || relative == "." || strings.HasPrefix(relative, "..") {
-			return true
+		var relative string
+		if strings.HasPrefix(indexedPath, rootPrefix) {
+			relative = indexedPath[len(rootPrefix):]
+		} else {
+			rel, err := filepath.Rel(root, indexedPath)
+			if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+				return true
+			}
+			relative = filepath.ToSlash(rel)
 		}
-		relative = filepath.ToSlash(relative)
-		if !strings.Contains(strings.ToLower(relative), needle) ||
+		if relative == "" || !containsFold(relative, needle) ||
 			!user.CheckReadPermission(repo.Name, relative, repo.Visibility, isDir) {
 			return true
 		}
@@ -154,7 +160,11 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 		if isDir {
 			resultType = "DIRECTORY"
 		}
-		result := repositorySearchResult{Name: filepath.Base(relative), Path: relative, Type: resultType}
+		name := relative
+		if idx := strings.LastIndexByte(relative, '/'); idx != -1 {
+			name = relative[idx+1:]
+		}
+		result := repositorySearchResult{Name: name, Path: relative, Type: resultType}
 		if !isDir {
 			result.Size = info.Size
 			result.ModifiedAt = time.Unix(0, info.ModTime).UnixMilli()
@@ -164,17 +174,15 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 	})
 
 	sort.SliceStable(results, func(i, j int) bool {
-		leftName := strings.ToLower(results[i].Name)
-		rightName := strings.ToLower(results[j].Name)
-		leftRank := repositorySearchRank(leftName, needle)
-		rightRank := repositorySearchRank(rightName, needle)
+		leftRank := repositorySearchRank(results[i].Name, needle)
+		rightRank := repositorySearchRank(results[j].Name, needle)
 		if leftRank != rightRank {
 			return leftRank < rightRank
 		}
 		if len(results[i].Path) != len(results[j].Path) {
 			return len(results[i].Path) < len(results[j].Path)
 		}
-		return results[i].Path < results[j].Path
+		return strings.ToLower(results[i].Path) < strings.ToLower(results[j].Path)
 	})
 	if len(results) > limit {
 		results = results[:limit]
@@ -185,13 +193,55 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 	}, nil
 }
 
-func repositorySearchRank(name, query string) int {
-	switch {
-	case name == query:
-		return 0
-	case strings.HasPrefix(name, query):
-		return 1
-	default:
-		return 2
+func containsFold(s, substrLower string) bool {
+	if len(substrLower) == 0 {
+		return true
 	}
+	if len(s) < len(substrLower) {
+		return false
+	}
+	maxStart := len(s) - len(substrLower)
+	for i := 0; i <= maxStart; i++ {
+		match := true
+		for j := 0; j < len(substrLower); j++ {
+			c := s[i+j]
+			if c >= 'A' && c <= 'Z' {
+				c += 'a' - 'A'
+			}
+			if c != substrLower[j] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
+}
+
+func repositorySearchRank(name, queryLower string) int {
+	if strings.EqualFold(name, queryLower) {
+		return 0
+	}
+	if hasPrefixFold(name, queryLower) {
+		return 1
+	}
+	return 2
+}
+
+func hasPrefixFold(s, prefixLower string) bool {
+	if len(s) < len(prefixLower) {
+		return false
+	}
+	for i := 0; i < len(prefixLower); i++ {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		if c != prefixLower[i] {
+			return false
+		}
+	}
+	return true
 }
