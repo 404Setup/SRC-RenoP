@@ -178,10 +178,14 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 
-	for ext, hash := range map[string]string{
-		".md5": pomMd5, ".sha1": pomSha1, ".sha256": pomSha256, ".sha512": pomSha512,
-	} {
-		if err := storage.SaveAndUploadChecksum(state, basePath, ext, hash); err != nil {
+	pomChecksums := [...]storage.ArtifactChecksumEntry{
+		{Ext: ".md5", Hash: pomMd5},
+		{Ext: ".sha1", Hash: pomSha1},
+		{Ext: ".sha256", Hash: pomSha256},
+		{Ext: ".sha512", Hash: pomSha512},
+	}
+	for _, cs := range pomChecksums {
+		if err := storage.SaveAndUploadChecksum(state, basePath, cs.Ext, cs.Hash); err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 		}
 	}
@@ -254,10 +258,14 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 			}
 		}
 
-		for ext, hash := range map[string]string{
-			".md5": metaMd5, ".sha1": metaSha1, ".sha256": metaSha256, ".sha512": metaSha512,
-		} {
-			if err := storage.SaveAndUploadChecksum(state, metadataPath, ext, hash); err != nil {
+		metaChecksums := [...]storage.ArtifactChecksumEntry{
+			{Ext: ".md5", Hash: metaMd5},
+			{Ext: ".sha1", Hash: metaSha1},
+			{Ext: ".sha256", Hash: metaSha256},
+			{Ext: ".sha512", Hash: metaSha512},
+		}
+		for _, cs := range metaChecksums {
+			if err := storage.SaveAndUploadChecksum(state, metadataPath, cs.Ext, cs.Hash); err != nil {
 				return err
 			}
 		}

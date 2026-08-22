@@ -95,21 +95,25 @@ func handleChecksumFallback(c fiber.Ctx, localFilePath string, state *core.AppSt
 					sha256Str := hex.EncodeToString(hSha256.Sum(nil))
 					sha512Str := hex.EncodeToString(hSha512.Sum(nil))
 
-					hashes := map[string]string{
-						".md5":    md5Str,
-						".sha1":   sha1Str,
-						".sha256": sha256Str,
-						".sha512": sha512Str,
+					checksums := [...]ArtifactChecksumEntry{
+						{Ext: ".md5", Hash: md5Str},
+						{Ext: ".sha1", Hash: sha1Str},
+						{Ext: ".sha256", Hash: sha256Str},
+						{Ext: ".sha512", Hash: sha512Str},
 					}
 
 					var wg sync.WaitGroup
-					errChan := make(chan error, len(hashes))
-					for cExt, cHash := range hashes {
+					errChan := make(chan error, len(checksums))
+					var reqHashStr string
+					for i := range checksums {
 						wg.Add(1)
-						extStr, hashStr := cExt, cHash
+						cs := checksums[i]
+						if cs.Ext == ext {
+							reqHashStr = cs.Hash
+						}
 						go func() {
 							defer wg.Done()
-							if err := SaveAndUploadChecksum(state, basePath, extStr, hashStr); err != nil {
+							if err := SaveAndUploadChecksum(state, basePath, cs.Ext, cs.Hash); err != nil {
 								errChan <- err
 							}
 						}()
@@ -124,7 +128,6 @@ func handleChecksumFallback(c fiber.Ctx, localFilePath string, state *core.AppSt
 						return false, persistErr
 					}
 					computedSuccess = true
-					reqHashStr := hashes[ext]
 					c.Set(fiber.HeaderContentType, "text/plain")
 					c.Set("Content-Security-Policy", "default-src 'none'; sandbox")
 					return true, c.SendString(reqHashStr)

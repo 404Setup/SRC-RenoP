@@ -41,9 +41,9 @@ import (
 	"renop/internal/utils"
 )
 
-type artifactChecksumEntry struct {
-	ext  string
-	hash string
+type ArtifactChecksumEntry struct {
+	Ext  string
+	Hash string
 }
 
 var bufferPool128k = syncv2.Pool[*[]byte]{
@@ -323,22 +323,22 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 	}
 
 	if generateChecksums {
-		checksums := []artifactChecksumEntry{
-			{ext: ".md5", hash: digests.MD5},
-			{ext: ".sha1", hash: digests.SHA1},
-			{ext: ".sha256", hash: digests.SHA256},
-			{ext: ".sha512", hash: digests.SHA512},
+		checksums := [...]ArtifactChecksumEntry{
+			{Ext: ".md5", Hash: digests.MD5},
+			{Ext: ".sha1", Hash: digests.SHA1},
+			{Ext: ".sha256", Hash: digests.SHA256},
+			{Ext: ".sha512", Hash: digests.SHA512},
 		}
 
 		var wg sync.WaitGroup
 		var firstErr error
 		var errOnce sync.Once
-		for _, cs := range checksums {
+		for i := range checksums {
 			wg.Add(1)
-			checksum := cs
+			idx := i
 			go func() {
 				defer wg.Done()
-				if err := SaveAndUploadChecksum(state, localFilePath, checksum.ext, checksum.hash); err != nil {
+				if err := SaveAndUploadChecksum(state, localFilePath, checksums[idx].Ext, checksums[idx].Hash); err != nil {
 					errOnce.Do(func() { firstErr = err })
 				}
 			}()
@@ -347,8 +347,8 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 
 		if firstErr != nil {
 			cleanupErr := deleteIndexedFile(state, localFilePath)
-			for _, generated := range checksums {
-				checksumPath := localFilePath + generated.ext
+			for i := range checksums {
+				checksumPath := localFilePath + checksums[i].Ext
 				cleanupErr = errors.Join(cleanupErr, deleteIndexedFile(state, checksumPath))
 			}
 			return errors.Join(firstErr, cleanupErr)
