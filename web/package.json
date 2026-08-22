@@ -16,10 +16,10 @@
   },
   "devDependencies": {
     "lightningcss": "^1.33.0",
-    "rolldown": "^1.2.2"
+    "rolldown": "^1.2.5"
   },
   "dependencies": {
     "@renop/ui": "workspace:*",
-    "marked": "^18.0.9"
+    "marked": "^18.0.10"
   }
 }

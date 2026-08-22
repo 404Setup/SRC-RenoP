@@ -12,11 +12,11 @@
   },
   "devDependencies": {
     "lightningcss": "^1.33.0",
-    "protobufjs-cli": "^2.6.1",
-    "rolldown": "^1.2.2"
+    "protobufjs-cli": "^2.6.2",
+    "rolldown": "^1.2.5"
   },
   "dependencies": {
     "@renop/ui": "workspace:*",
-    "protobufjs": "^8.7.1"
+    "protobufjs": "^8.7.2"
   }
 }

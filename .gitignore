@@ -99,6 +99,7 @@ renop
 storage/private
 storage/releases
 storage/snapshots
+storage/rust-id
 .gocache
 .gomodcache
 ## don't remove

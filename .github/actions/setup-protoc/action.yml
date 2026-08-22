@@ -2,9 +2,9 @@ name: Setup protoc
 description: Install the Protocol Buffers compiler (protoc) from official GitHub releases
 inputs:
   version:
-    description: protoc version without a leading "v" (e.g. 35.1)
+    description: protoc version without a leading "v" (e.g. 36.0)
     required: false
-    default: "35.1"
+    default: "36.0"
   install-prefix:
     description: Directory to extract protoc into
     required: false
