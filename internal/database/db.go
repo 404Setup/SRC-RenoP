@@ -136,7 +136,7 @@ func buildSQLiteDSN(dsn string) string {
 	if strings.Contains(dsn, "_pragma") || strings.Contains(dsn, "mode=") {
 		return dsn
 	}
-	pragmas := "_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=cache_size(-8192)&_pragma=temp_store(MEMORY)&_pragma=mmap_size(268435456)"
+	pragmas := "_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=cache_size(-4096)&_pragma=temp_store(MEMORY)&_pragma=mmap_size(268435456)"
 	if strings.Contains(dsn, "?") {
 		return dsn + "&" + pragmas
 	}
@@ -149,15 +149,25 @@ func openAndPing(driver, dsn string, cfg config.DatabaseConfig) (*sql.DB, error)
 		return nil, err
 	}
 
+	isSQLite := strings.HasPrefix(strings.ToLower(driver), "sqlite")
+
 	maxOpen := cfg.MaxOpenConns
 	if maxOpen <= 0 {
-		maxOpen = 25
+		if isSQLite {
+			maxOpen = 10
+		} else {
+			maxOpen = 25
+		}
 	}
 	sqlDB.SetMaxOpenConns(maxOpen)
 
 	maxIdle := cfg.MaxIdleConns
 	if maxIdle <= 0 {
-		maxIdle = 25
+		if isSQLite {
+			maxIdle = min(4, maxOpen)
+		} else {
+			maxIdle = min(5, maxOpen)
+		}
 	}
 	sqlDB.SetMaxIdleConns(maxIdle)
 
@@ -166,7 +176,7 @@ func openAndPing(driver, dsn string, cfg config.DatabaseConfig) (*sql.DB, error)
 		lifetimeSec = 300
 	}
 	sqlDB.SetConnMaxLifetime(time.Duration(lifetimeSec) * time.Second)
-	idleTime := min(time.Duration(lifetimeSec/2)*time.Second, 10*time.Minute)
+	idleTime := min(time.Duration(lifetimeSec/2)*time.Second, 2*time.Minute)
 	sqlDB.SetConnMaxIdleTime(idleTime)
 
 	if err := sqlDB.Ping(); err != nil {
@@ -174,13 +184,13 @@ func openAndPing(driver, dsn string, cfg config.DatabaseConfig) (*sql.DB, error)
 		return nil, err
 	}
 
-	if strings.HasPrefix(driver, "sqlite") {
+	if isSQLite {
 		pragmas := []string{
 			"PRAGMA foreign_keys = ON;",
 			"PRAGMA journal_mode = WAL;",
 			"PRAGMA busy_timeout = 5000;",
 			"PRAGMA synchronous = NORMAL;",
-			"PRAGMA cache_size = -8192;",
+			"PRAGMA cache_size = -4096;",
 			"PRAGMA temp_store = MEMORY;",
 			"PRAGMA mmap_size = 268435456;",
 			"PRAGMA trusted_schema = OFF;",
