@@ -59,6 +59,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 
 	user := auth.GetUser(c)
 	isCargo := repo.NormalizedFormat() == config.RepositoryFormatCargo
+	isDocker := repo.NormalizedFormat() == config.RepositoryFormatDocker
 
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {
@@ -77,7 +78,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		isRoot := strings.HasSuffix(path, "/") || path == "" || isDirOnDisk
 		canRead, err := cargo.CanReadRepository(state, user, repo, sanitized, isRoot)
 		if err != nil {
-			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")
 		}
 		if !canRead {
 			if isCargo && sanitized == "config.json" &&
@@ -92,13 +93,23 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		if isDirOnDisk && TryHTMLFallback(state, c) {
 			return nil
 		}
-	} else if !isCargo {
+	} else if !isCargo && !isDocker {
 		if !user.CheckUpdatePermission(repoName) {
 			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 		}
 	}
 
 	path = sanitized
+	if isDocker {
+		if TryHTMLFallback(state, c) {
+			return nil
+		}
+		if isRead {
+			return c.Status(fiber.StatusOK).SendString("Docker repository must be accessed via Docker client or /v2/ API")
+		}
+		return c.Status(fiber.StatusMethodNotAllowed).SendString("Docker repositories must be modified through the Docker registry API")
+	}
+
 	if isCargo {
 		if handled, err := cargoHandler.Handle(c, state, repo, cfg.StoragePath, path); handled {
 			return err

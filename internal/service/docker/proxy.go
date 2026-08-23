@@ -1,0 +1,390 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package docker
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/goccy/go-json"
+
+	"renop/internal/config"
+	"renop/internal/core"
+	"renop/internal/service/proxy"
+)
+
+var (
+	upstreamTokenCache pbMapOfTokens
+)
+
+type pbMapOfTokens struct {
+	sync.Map
+}
+
+type cachedToken struct {
+	token     string
+	expiresAt time.Time
+}
+
+// FetchUpstreamManifest fetches a manifest from upstream mirrors with authentication and caching.
+func FetchUpstreamManifest(
+	ctx context.Context,
+	state *core.AppState,
+	repo *config.Repository,
+	imageName, reference string,
+) ([]byte, string, string, error) {
+	if repo == nil || len(repo.Mirrors) == 0 {
+		return nil, "", "", errors.New("no mirrors configured")
+	}
+
+	for _, mirror := range repo.Mirrors {
+		if allowed, _ := mirror.IsArtifactAllowedFor(config.RepositoryFormatDocker, imageName); !allowed {
+			continue
+		}
+
+		data, mediaType, digest, err := fetchMirrorManifestSingle(ctx, state, repo, mirror, imageName, reference)
+		if err == nil && len(data) > 0 {
+			return data, mediaType, digest, nil
+		}
+	}
+
+	return nil, "", "", errors.New("manifest not found on any mirror")
+}
+
+func normalizeUpstreamImage(imageName string) string {
+	imageName = strings.Trim(imageName, "/")
+	if !strings.Contains(imageName, "/") {
+		return "library/" + imageName
+	}
+	return imageName
+}
+
+func fetchMirrorManifestSingle(
+	ctx context.Context,
+	state *core.AppState,
+	repo *config.Repository,
+	mirror config.Mirror,
+	imageName, reference string,
+) ([]byte, string, string, error) {
+	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	if base == "" {
+		return nil, "", "", errors.New("empty mirror URL")
+	}
+
+	upstreamImage := imageName
+	if strings.Contains(base, "docker.io") {
+		upstreamImage = normalizeUpstreamImage(imageName)
+	}
+
+	manifestURL := fmt.Sprintf("%s/v2/%s/manifests/%s", base, upstreamImage, url.PathEscape(reference))
+	var proxyCfg config.ProxyConfig
+	if state != nil && state.Inner != nil && state.Inner.Config != nil {
+		if c := state.Inner.Config.Load(); c != nil {
+			proxyCfg = c.Proxy
+		}
+	}
+	client, err := proxy.ClientForMirror(&mirror, proxyCfg)
+	if err != nil || client == nil {
+		client = http.DefaultClient
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, manifestURL, nil)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	req.Header.Set("Accept", strings.Join([]string{
+		MediaTypeDockerManifest2,
+		MediaTypeOCIManifest1,
+		MediaTypeDockerManifestList,
+		MediaTypeOCIIndex1,
+	}, ", "))
+
+	// Apply configured mirror auth or obtain upstream token
+	if err := applyDockerMirrorAuth(ctx, client, req, mirror, upstreamImage, "pull"); err != nil {
+		return nil, "", "", err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", "", fmt.Errorf("upstream returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	mediaType := resp.Header.Get("Content-Type")
+	digest := resp.Header.Get(DockerDigestHeader)
+	if digest == "" {
+		digest = CalculateDigest(body)
+	}
+
+	return body, mediaType, digest, nil
+}
+
+// FetchUpstreamBlob streams a blob from configured upstream mirrors.
+func FetchUpstreamBlob(
+	ctx context.Context,
+	state *core.AppState,
+	repo *config.Repository,
+	imageName, digest string,
+) (io.ReadCloser, int64, error) {
+	if repo == nil || len(repo.Mirrors) == 0 {
+		return nil, 0, errors.New("no mirrors configured")
+	}
+
+	for _, mirror := range repo.Mirrors {
+		if allowed, _ := mirror.IsArtifactAllowedFor(config.RepositoryFormatDocker, imageName); !allowed {
+			continue
+		}
+
+		rc, size, err := fetchMirrorBlobSingle(ctx, state, repo, mirror, imageName, digest)
+		if err == nil && rc != nil {
+			return rc, size, nil
+		}
+	}
+
+	return nil, 0, errors.New("blob not found on any mirror")
+}
+
+func fetchMirrorBlobSingle(
+	ctx context.Context,
+	state *core.AppState,
+	repo *config.Repository,
+	mirror config.Mirror,
+	imageName, digest string,
+) (io.ReadCloser, int64, error) {
+	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	if base == "" {
+		return nil, 0, errors.New("empty mirror URL")
+	}
+
+	upstreamImage := imageName
+	if strings.Contains(base, "docker.io") {
+		upstreamImage = normalizeUpstreamImage(imageName)
+	}
+
+	blobURL := fmt.Sprintf("%s/v2/%s/blobs/%s", base, upstreamImage, digest)
+	var proxyCfg config.ProxyConfig
+	if state != nil && state.Inner != nil && state.Inner.Config != nil {
+		if c := state.Inner.Config.Load(); c != nil {
+			proxyCfg = c.Proxy
+		}
+	}
+	client, err := proxy.ClientForMirror(&mirror, proxyCfg)
+	if err != nil || client == nil {
+		client = http.DefaultClient
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, blobURL, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if err := applyDockerMirrorAuth(ctx, client, req, mirror, upstreamImage, "pull"); err != nil {
+		return nil, 0, err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		_ = resp.Body.Close()
+		return nil, 0, fmt.Errorf("upstream blob returned status %d", resp.StatusCode)
+	}
+
+	return resp.Body, resp.ContentLength, nil
+}
+
+func applyDockerMirrorAuth(
+	ctx context.Context,
+	client *http.Client,
+	req *http.Request,
+	mirror config.Mirror,
+	imageName, action string,
+) error {
+	if mirror.Authorization != nil && strings.ToLower(mirror.Authorization.Method) == "bearer" {
+		return mirror.Authorization.Apply(req)
+	}
+
+	cacheKey := fmt.Sprintf("%s|%s|%s", mirror.Url, imageName, action)
+	if val, ok := upstreamTokenCache.Load(cacheKey); ok {
+		tok := val.(cachedToken)
+		if time.Now().Before(tok.expiresAt) {
+			req.Header.Set("Authorization", "Bearer "+tok.token)
+			return nil
+		}
+	}
+
+	// Probe upstream for auth challenge
+	probeURL := fmt.Sprintf("%s/v2/", strings.TrimRight(mirror.Url, "/"))
+	probeReq, err := http.NewRequestWithContext(ctx, http.MethodGet, probeURL, nil)
+	if err != nil {
+		return err
+	}
+	if mirror.Authorization != nil {
+		_ = mirror.Authorization.Apply(probeReq)
+	}
+
+	probeResp, err := client.Do(probeReq)
+	if err != nil {
+		return err
+	}
+	_ = probeResp.Body.Close()
+
+	if probeResp.StatusCode == http.StatusOK {
+		if mirror.Authorization != nil {
+			return mirror.Authorization.Apply(req)
+		}
+		return nil
+	}
+
+	authHeader := probeResp.Header.Get("Www-Authenticate")
+	if authHeader == "" {
+		if mirror.Authorization != nil {
+			return mirror.Authorization.Apply(req)
+		}
+		return nil
+	}
+
+	token, ttl, err := exchangeUpstreamToken(ctx, client, authHeader, mirror, imageName, action)
+	if err != nil {
+		// Fallback to basic credentials if token exchange fails
+		if mirror.Authorization != nil {
+			return mirror.Authorization.Apply(req)
+		}
+		return err
+	}
+
+	if token != "" {
+		upstreamTokenCache.Store(cacheKey, cachedToken{
+			token:     token,
+			expiresAt: time.Now().Add(time.Duration(ttl-30) * time.Second),
+		})
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return nil
+}
+
+func exchangeUpstreamToken(
+	ctx context.Context,
+	client *http.Client,
+	wwwAuth string,
+	mirror config.Mirror,
+	imageName, action string,
+) (string, int, error) {
+	if !strings.HasPrefix(wwwAuth, "Bearer ") {
+		return "", 0, errors.New("unsupported challenge type")
+	}
+
+	challenge := strings.TrimPrefix(wwwAuth, "Bearer ")
+	params := parseChallengeParams(challenge)
+	realm := params["realm"]
+	service := params["service"]
+	if realm == "" {
+		return "", 0, errors.New("missing realm in challenge")
+	}
+
+	u, err := url.Parse(realm)
+	if err != nil {
+		return "", 0, err
+	}
+
+	q := u.Query()
+	if service != "" {
+		q.Set("service", service)
+	}
+	q.Set("scope", fmt.Sprintf("repository:%s:%s", imageName, action))
+	u.RawQuery = q.Encode()
+
+	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "", 0, err
+	}
+
+	if mirror.Authorization != nil && (mirror.Authorization.Method == "basic" || mirror.Authorization.Method == "username/password") {
+		tokenReq.SetBasicAuth(mirror.Authorization.Login, mirror.Authorization.Password)
+	}
+
+	resp, err := client.Do(tokenReq)
+	if err != nil {
+		return "", 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", 0, fmt.Errorf("token endpoint returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Token       string `json:"token"`
+		AccessToken string `json:"access_token"`
+		ExpiresIn   int    `json:"expires_in"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", 0, err
+	}
+
+	tok := result.Token
+	if tok == "" {
+		tok = result.AccessToken
+	}
+	ttl := result.ExpiresIn
+	if ttl <= 0 {
+		ttl = 300
+	}
+
+	return tok, ttl, nil
+}
+
+func parseChallengeParams(challenge string) map[string]string {
+	params := make(map[string]string)
+	parts := strings.SplitSeq(challenge, ",")
+	for part := range parts {
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) == 2 {
+			k := strings.TrimSpace(kv[0])
+			v := strings.Trim(strings.TrimSpace(kv[1]), `"`)
+			params[k] = v
+		}
+	}
+	return params
+}
+
+// CopyAndHash streams src to dst while computing sha256.
+func CopyAndHash(dst io.Writer, src io.Reader) (string, int64, error) {
+	hasher := sha256.New()
+	mw := io.MultiWriter(dst, hasher)
+	n, err := io.Copy(mw, src)
+	if err != nil {
+		return "", 0, err
+	}
+	return "sha256:" + hex.EncodeToString(hasher.Sum(nil)), n, nil
+}

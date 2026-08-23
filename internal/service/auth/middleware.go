@@ -362,6 +362,10 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 				if isCargoRequest {
 					return sendInvalidCargoCredentials(c)
 				}
+				if isDockerRequest(c) {
+					c.Locals("user", GuestUser)
+					return c.Next()
+				}
 				return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 			}
 			authenticatedUser = tempUser
@@ -371,6 +375,10 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 		if authHeader != "" && authenticatedUser == nil && !isLogout {
 			if isCargoRequest {
 				return sendInvalidCargoCredentials(c)
+			}
+			if isDockerRequest(c) {
+				c.Locals("user", GuestUser)
+				return c.Next()
 			}
 			return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 		}
@@ -412,6 +420,11 @@ func isCargoRepositoryRequest(c fiber.Ctx, state *core.AppState) bool {
 	}
 	repo := cfg.Maven.Repositories[repository]
 	return repo != nil && repo.NormalizedFormat() == config.RepositoryFormatCargo
+}
+
+func isDockerRequest(c fiber.Ctx) bool {
+	p := c.Path()
+	return p == "/v2" || strings.HasPrefix(p, "/v2/")
 }
 
 func GetUser(c fiber.Ctx) *config.User {

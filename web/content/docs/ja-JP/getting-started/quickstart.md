@@ -2,57 +2,53 @@
 title: クイックスタート
 order: 3
 category: はじめに
-description: 初回起動、admin パスワード、デフォルトリポジトリ URL
+description: 初回起動手順、管理者パスワードの設定およびデフォルトリポジトリ
 ---
 
 # クイックスタート
 
-## 初回起動
+## 1. 初回起動と管理者パスワード
 
-初回起動時に `admin` アカウントが作成されます。プロセス起動前に環境変数でパスワードを設定してください。
+初回起動時、RenoP は自動的に管理者アカウント `admin` を作成します。起動前に環境変数でパスワードを指定することを推奨します：
 
 ```bash
-RENOP_DEFAULT_ADMIN_PASSWORD='replace-this-password' ./renop
+# Linux / macOS
+RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password' ./renop
+
+# Windows (PowerShell)
+$env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
+.\renop.exe
 ```
 
-未設定の場合、ランダムなパスワードが生成され、サーバーログに出力されます。起動後は `http://localhost:3000` を開いてください。
+環境変数を設定しなかった場合、起動時にランダムなパスワードがコンソールに表示されます。
 
-`admin` でサインインします。manager または admin 権限を持つアカウントは、Web UI で成果物・ユーザー・リポジトリ・設定を管理できます。
+ブラウザで `http://localhost:3000` にアクセスして管理画面にログインします。
 
-## デフォルトリポジトリ
+## 2. デフォルトリポジトリ
 
-| パス                              | 用途      |
-|-----------------------------------|-----------|
-| `http://localhost:3000/releases`  | Releases  |
-| `http://localhost:3000/snapshots` | Snapshots |
-| `http://localhost:3000/private`   | Private   |
+| エンドポイント                    | 公開設定  | 用途                                           |
+|:----------------------------------|:----------|:-----------------------------------------------|
+| `http://localhost:3000/releases`  | `PUBLIC`  | Maven リリース版リポジトリ（上書き禁止）       |
+| `http://localhost:3000/snapshots` | `PUBLIC`  | Maven スナップショットリポジトリ（上書き許可） |
+| `http://localhost:3000/private`   | `PRIVATE` | Maven プライベートリポジトリ（認証必須）       |
 
-これらの URL を Maven の `<repositories>` または `<distributionManagement>`
-に設定します。例は [Maven クライアント](./maven-client.md) を参照してください。
+- Cargo インデックス: `http://localhost:3000/index/`
+- Docker レジストリ: `http://localhost:3000/v2/`
 
-## ヘルスチェック
+## 3. ヘルスチェック
 
 ```bash
 curl -s http://localhost:3000/api/status/health
-# "UP"
+# 出力: "UP"
 ```
 
-## 環境変数
+## 4. 主な環境変数
 
-| 変数                           | デフォルト          | 用途                                                            |
-|--------------------------------|---------------------|-----------------------------------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | サーバー、フロントエンド、ストレージ、updater                   |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | リポジトリ、ミラー、リポジトリ単位の S3                         |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | アカウントとトークン                                            |
-| `RENOP_INDEX`                  | `index.json`        | 成果物インデックス                                              |
-| `RENOP_SESSIONS`               | `sessions.bin`      | ログインセッション（protobuf。旧 `sessions.json` は移行される） |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 生成                | 最初の admin アカウントのパスワード                             |
-
-多くの設定は管理 UI からも変更できます。待ち受けアドレスまたは TLS を変更したあとはプロセスの再起動が必要です。
-
-## 次の手順
-
-1. [設定](../configuration/overview.md) — 待ち受け、TLS、ブランド
-2. [リポジトリとミラー](../configuration/repositories.md)
-3. [Maven クライアント](./maven-client.md)
-4. [HTTP API](../api/README.md)
+| 変数名                         | デフォルト値        | 説明                                   |
+|:-------------------------------|:--------------------|:---------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | メイン設定ファイルパス                 |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | リポジトリおよびミラー設定ファイルパス |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | 初期ユーザーとトークンファイル         |
+| `RENOP_INDEX`                  | `index.json`        | 検索インデックスキャッシュ             |
+| `RENOP_SESSIONS`               | `sessions.bin`      | セッションデータファイル               |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | *(自動生成)*        | 初期管理者パスワード                   |

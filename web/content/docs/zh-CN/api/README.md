@@ -1,114 +1,69 @@
 ---
 title: API 索引
 order: 1
-category: API
+category: API 接口
+description: RenoP HTTP RESTful 与 RPC API 规范与端点索引
 ---
 
-# RenoP HTTP API
+# RenoP API 概览
 
-默认监听地址：`0.0.0.0:3000`。
+RenoP 提供了完整的 HTTP API，用于自动化管理、客户端接入与系统监控。服务默认监听在 `http://localhost:3000`。
 
-| 路径        | 用途                             |
-|-------------|----------------------------------|
-| `/api/*`    | 管理 API（登录、设置、状态等）   |
-| `/{repo}/…` | Maven 仓库布局（下载/上传/删除） |
+## API 路由前缀划分
 
-错误响应正文多为纯文本（`Unauthorized`、`Forbidden`、`Not found`）。以状态码为准。
+| 路由前缀                        | 用途说明                                             |
+|:--------------------------------|:-----------------------------------------------------|
+| `/api/*`                        | 管理 API（认证、用户与令牌、设置、监控、消息中心等） |
+| `/{repo}/*`                     | Maven 仓库标准路径（制品拉取、上传与删除）           |
+| `/index/*` 或 `/{repo}/index/*` | Cargo 稀疏索引协议端点                               |
+| `/v2/*`                         | Docker 与 OCI Registry v2 规范端点                   |
+| `/javadoc/*`                    | Javadoc 在线 HTML 预览                               |
+| `/cargodoc/*`                   | Cargodoc 在线 HTML 预览                              |
 
-## 索引
+## 数据格式与 Protobuf 支持
 
-| 文件                                     | 内容                                      |
-|------------------------------------------|-------------------------------------------|
-| [authentication.md](./authentication.md) | 登录、会话、权限                          |
-| [tokens.md](./tokens.md)                 | 账户管理（manager）                       |
-| [maven.md](./maven.md)                   | 浏览、版本、徽章、生成 POM                |
-| [gpg.md](./gpg.md)                       | GPG 密钥注册、签名上传与验证              |
-| [status.md](./status.md)                 | 健康检查与运行时状态                      |
-| [settings.md](./settings.md)             | 配置域、仓库、索引重建                    |
-| [updater.md](./updater.md)               | 在线/离线更新                             |
-| [storage.md](./storage.md)               | 仓库路径上的 GET/PUT/DELETE、可选分块上传 |
-| [rate-limit.md](./rate-limit.md)         | IP 限流、认证失败封禁、并发请求上限       |
+大部分管理接口支持标准 JSON 格式。对于高频数据交换接口，RenoP 同时支持 Google Protocol Buffers (`application/x-protobuf`)
+以降低传输开销。
 
-机器可读规范：[openapi.yaml](/assets/openapi.yaml)。 Proto 定义：`proto/api/v1/api.proto`（生成的 Go 代码在 `pb/` 下）。
+客户端可以通过在请求头中指定 `Accept: application/x-protobuf` 或 `Content-Type: application/x-protobuf` 来使用二进制协议。完整的
+Proto 协议定义文件位于仓库中的 `proto/api/v1/api.proto`。
 
-## JSON 与 Protobuf
+## 统一认证头
 
-多数接口仍使用 JSON。下列接口使用 `application/x-protobuf`：
+请求需认证的 API 时，支持以下方式：
 
-| 接口                                         | 方向               |
-|----------------------------------------------|--------------------|
-| `POST /api/auth/login`                       | request + response |
-| `GET /api/auth/me`                           | response           |
-| `GET /api/tokens`                            | response           |
-| `GET /api/status/instance`                   | response           |
-| `GET /api/status/snapshots`                  | response           |
-| `GET /api/updater/status`                    | response           |
-| `POST /api/settings/index/rebuild`           | request            |
-| `GET /api/settings/domains`                  | response           |
-| `GET /api/settings/domain/:name`             | response           |
-| `PUT /api/settings/domain/:name`             | request            |
-| `GET /api/settings/maven/repositories`       | response           |
-| `PUT /api/settings/maven/repositories/:name` | request            |
-| `GET /api/maven/details…`                    | response           |
-| `GET /api/maven/repo-details/:repo`          | response           |
-| `GET /api/maven/signatures…`                 | response           |
-| `GET /api/auth/profile/gpg`                  | response           |
-| `POST /api/auth/profile/gpg`                 | request + response |
-| `GET /api/auth/profile/gpg/releases`         | response           |
-| `POST /api/upload/chunked/`                  | request + response |
-| `POST /api/upload/chunked/:id/complete`      | response           |
+1. **Cookie**：浏览器会话 Cookie `renop_session=<session_id>`
+2. **Session 标头**：`Authorization: Session <session_id>`
+3. **Bearer Token**：`Authorization: Bearer <token>`
+4. **Basic Auth**：`Authorization: Basic <base64(user:password_or_token)>`
+5. **URL 参数（仅限 GET/HEAD）**：`?token=<token>`
 
-字段名与 proto 一致（snake_case）。可用 `protoc` 生成客户端，或参考前端的 `protobufjs` 编解码。
+## 常用状态码说明
 
-```bash
-curl -s http://localhost:3000/api/status/health
-# "UP"
-```
+| 状态码                    | 含义       | 说明                                                         |
+|:--------------------------|:-----------|:-------------------------------------------------------------|
+| `200 OK`                  | 成功       | 请求处理成功并返回数据                                       |
+| `201 Created`             | 创建成功   | 资源或上传任务创建成功                                       |
+| `204 No Content`          | 成功无正文 | 操作成功（如删除或标记状态），无额外响应内容                 |
+| `400 Bad Request`         | 参数错误   | 请求体格式错误或必填字段缺失                                 |
+| `401 Unauthorized`        | 未认证     | 未提供有效认证凭证                                           |
+| `403 Forbidden`           | 无权限     | 权限不足，或因连续认证失败触发 IP 临时封禁                   |
+| `404 Not Found`           | 资源不存在 | 请求的制品或接口不存在（访问无权限的私有仓库也可能返回 404） |
+| `409 Conflict`            | 冲突       | 资源已存在或不可覆盖部署                                     |
+| `429 Too Many Requests`   | 触发限流   | 请求频率超过系统设定阈值                                     |
+| `503 Service Unavailable` | 服务过载   | 当前活跃请求数达到上限                                       |
 
-```bash
-# 登录后 cookie 名为 renop_session
-curl -s -b 'renop_session=<session-id>' \
-  -H 'Accept: application/x-protobuf' \
-  http://localhost:3000/api/auth/me \
-  -o me.bin
-```
+## API 详细文档索引
 
-## 身份认证
-
-支持的传递方式：
-
-1. Cookie：`renop_session=<id>`
-2. `Authorization: Session <id>`
-3. `Authorization: Basic base64(user:password_or_upload_token)`
-4. `Authorization: Bearer <user>:<secret>` 或 `Bearer <upload-token>`
-5. 仅 GET/HEAD：`?token=<session-or-bearer>`
-
-会话在约 **7 天** 空闲后过期，有活动时会续期。
-
-| 角色          | 能力                                        |
-|---------------|---------------------------------------------|
-| 匿名          | 读取 PUBLIC 仓库；管理 API 大多返回 401/403 |
-| 普通用户      | 通过 `canview:`/`canupdate:` 访问仓库       |
-| manager/admin | 用户、设置、更新器等管理 API                |
-
-详情见 [authentication.md](./authentication.md)。
-
-## 状态码
-
-| 码  | 含义                                        |
-|-----|---------------------------------------------|
-| 200 | 成功（正文可能为空或纯文本）                |
-| 201 | 上传已创建                                  |
-| 204 | 成功，无正文                                |
-| 400 | 参数/正文无效                               |
-| 401 | 未认证或凭证无效                            |
-| 403 | 无权限、已过期，或多次 401/403 后 IP 被封禁 |
-| 404 | 不存在，私有读取也可能返回 404 而非 403     |
-| 409 | 冲突（名称占用、更新已在进行）              |
-| 429 | 匿名 IP 超过请求速率限制                    |
-| 503 | 过载（例如并发请求上限）                    |
-| 507 | 磁盘空间不足                                |
-
-限流与异常规则见 [rate-limit.md](./rate-limit.md)。
-
-实例版本：`GET /api/status/instance` 上的 `version`。没有单独的 API 版本字段。
+- [认证与会话 API](./authentication.md)
+- [用户与令牌 API](./tokens.md)
+- [Maven 制品与元数据 API](./maven.md)
+- [Cargo 注册源 API](./cargo.md)
+- [Docker / OCI 镜像库 API](./docker.md)
+- [消息中心 API](./messages.md)
+- [存储与分块上传 API](./storage.md)
+- [系统设置 API](./settings.md)
+- [健康与状态监控 API](./status.md)
+- [GPG 密钥与签名 API](./gpg.md)
+- [限流与安全防御说明](./rate-limit.md)
+- [在线更新 API](./updater.md)

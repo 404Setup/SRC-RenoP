@@ -2,58 +2,67 @@
 title: 快速开始
 order: 3
 category: 快速开始
-description: 首次启动、管理员密码、默认仓库地址
+description: 首次运行、设置管理员密码与默认仓库地址
 ---
 
 # 快速开始
 
-## 首次启动
+## 1. 首次启动
 
-首次启动时会自动创建 `admin` 账户。请在启动前通过环境变量设置管理员密码：
+首次启动时，RenoP 会自动创建 `admin` 账户。建议在启动前通过环境变量指定管理员密码：
 
 ```bash
-RENOP_DEFAULT_ADMIN_PASSWORD='your-secure-password' ./renop
+# Linux / macOS
+RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password' ./renop
+
+# Windows (PowerShell)
+$env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
+.\renop.exe
 ```
 
-若未设置该环境变量，服务将自动生成随机密码并输出到日志中。启动完成后访问 `http://localhost:3000`。
+如果未设置该环境变量，程序将自动生成一条随机密码并在控制台日志中输出。
 
-使用 `admin` 账户登录后，具备 manager/admin 权限的用户可通过 Web 界面管理制品、用户、仓库和系统配置。
+启动后访问 `http://localhost:3000` 进入 Web 管理界面。
 
-## 默认仓库
+## 2. 默认仓库地址
 
-RenoP 默认提供三个仓库：
+RenoP 启动后默认初始化以下仓库：
 
-| 路径                              | 用途       |
-|-----------------------------------|------------|
-| `http://localhost:3000/releases`  | 正式版仓库 |
-| `http://localhost:3000/snapshots` | 快照仓库   |
-| `http://localhost:3000/private`   | 私有仓库   |
+| 仓库路径                          | 可见性    | 用途                                       |
+|:----------------------------------|:----------|:-------------------------------------------|
+| `http://localhost:3000/releases`  | `PUBLIC`  | Maven 正式版仓库（默认禁止覆盖同版本制品） |
+| `http://localhost:3000/snapshots` | `PUBLIC`  | Maven 快照仓库（允许覆盖部署）             |
+| `http://localhost:3000/private`   | `PRIVATE` | Maven 私有仓库（需认证才能访问）           |
 
-将上述地址配置到 Maven 的 `<repositories>` 或 `<distributionManagement>` 中即可使用。配置示例请参见 [Maven 客户端](./maven-client.md)。
+此外，Cargo 稀疏索引和 Docker 镜像端点分别为：
 
-## 健康检查
+- Cargo 索引端点：`http://localhost:3000/index/`（或各仓库对应路径）
+- Docker 端点：`http://localhost:3000/v2/`
+
+## 3. 健康检查
+
+你可以通过 HTTP 接口探测服务是否正常运行：
 
 ```bash
 curl -s http://localhost:3000/api/status/health
-# "UP"
+# 输出: "UP"
 ```
 
-## 环境变量
+## 4. 环境变量列表
 
-| 变量                           | 默认值              | 用途                                                           |
-|--------------------------------|---------------------|----------------------------------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | 服务配置：监听地址、前端品牌、存储路径、更新器                 |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | 仓库配置：仓库列表、镜像配置、S3 存储                          |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | 账户与令牌配置                                                 |
-| `RENOP_INDEX`                  | `index.json`        | 制品索引缓存                                                   |
-| `RENOP_SESSIONS`               | `sessions.bin`      | 登录会话数据（protobuf 格式，旧版 `sessions.json` 自动迁移）   |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自动生成            | 首个 admin 账户的初始密码                                      |
+| 变量名                         | 默认值              | 说明                                             |
+|:-------------------------------|:--------------------|:-------------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | 主配置文件路径                                   |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | 仓库与镜像代理配置文件路径                       |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | 初始用户与静态令牌文件（启动后自动同步到数据库） |
+| `RENOP_INDEX`                  | `index.json`        | 制品搜索索引缓存文件                             |
+| `RENOP_SESSIONS`               | `sessions.bin`      | 会话数据文件（protobuf 格式）                    |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自动生成            | 初始管理员密码                                   |
 
-大部分配置项可在管理界面中修改。修改监听地址或 TLS 相关配置后，需要重启进程才能生效。
+## 5. 后续配置
 
-## 下一步
-
-1. [配置](../configuration/overview.md) — 监听、TLS、品牌
-2. [仓库与镜像](../configuration/repositories.md)
-3. [Maven 客户端](./maven-client.md)
-4. [HTTP API](../api/README.md)
+- [配置概览](../configuration/overview.md) — 端口、TLS、数据库与存储配置
+- [仓库与镜像配置](../configuration/repositories.md) — 新增仓库、设置上游代理与 S3
+- [Maven 客户端指南](../guides/maven-client.md) — 配置 Maven 与 Gradle
+- [Cargo 注册源指南](../guides/cargo-registry.md) — 配置 Rust `config.toml`
+- [Docker 镜像库指南](../guides/docker-registry.md) — 配置 Docker / Podman

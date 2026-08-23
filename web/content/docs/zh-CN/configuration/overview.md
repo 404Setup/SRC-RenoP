@@ -2,140 +2,137 @@
 title: 配置概览
 order: 1
 category: 配置
-description: 配置文件、服务端设置与环境变量
+description: config.yaml 配置项、服务设置与环境变量
 ---
 
 # 配置概览
 
-配置文件与运行时状态保存在进程工作目录中。相关路径可通过环境变量进行覆盖。
+RenoP 的主配置文件为 `config.yaml`。启动时程序会从工作目录中读取该文件，也可以通过环境变量 `RENOP_CONFIG` 指定其他路径。
 
-## 配置文件
+## 配置文件列表
 
-| 文件                | 环境变量             | 用途                                              |
-|---------------------|----------------------|---------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | 监听地址、TLS、前端品牌、存储路径、数据库、更新器 |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | 仓库配置、镜像配置、按仓库的 S3 配置              |
-| `tokens.yaml`       | `RENOP_TOKENS`       | 用户、角色、上传令牌（启动时自动迁移至数据库）    |
-| `renop.db`          | —                    | 内嵌 SQLite 数据库（存储用户令牌与浏览器会话）    |
-| `index.json`        | `RENOP_INDEX`        | 制品索引缓存                                      |
-| `sessions.bin`      | `RENOP_SESSIONS`     | 浏览器会话（加载时自动迁移至数据库）              |
+| 文件名              | 环境变量             | 说明                                                  |
+|:--------------------|:---------------------|:------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | 服务端口、TLS、数据库连接、存储路径、代理与更新器配置 |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | 仓库定义、可见性、上游镜像与 S3 存储桶配置            |
+| `tokens.yaml`       | `RENOP_TOKENS`       | 初始用户与静态 Token（启动后会自动导入数据库）        |
+| `index.json`        | `RENOP_INDEX`        | 制品搜索索引缓存                                      |
+| `sessions.bin`      | `RENOP_SESSIONS`     | 浏览器会话数据缓存                                    |
 
-运行时环境变量：
+## `config.yaml` 详细配置项
 
-| 变量                           | 默认值   | 用途                        |
-|--------------------------------|----------|-----------------------------|
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自动生成 | 首个 `admin` 账户的初始密码 |
+### 基础存储与文档预览
 
-## `config.yaml` 结构
+```yaml
+storage_path: "storage"
+enable_javadoc_preview: true
+javadoc_extract_path: ""
+max_javadoc_size_mb: 48
+```
 
-### 全局存储与 Javadoc 配置
+| 配置项                   | 默认值    | 说明                                               |
+|:-------------------------|:----------|:---------------------------------------------------|
+| `storage_path`           | `storage` | 本地制品存储根目录                                 |
+| `enable_javadoc_preview` | `true`    | 是否启用 Javadoc 在线解压与预览功能                |
+| `javadoc_extract_path`   | `""`      | Javadoc 解压临时目录（留空则使用系统默认缓存目录） |
+| `max_javadoc_size_mb`    | `48`      | 单个 Javadoc JAR 解压大小上限（MB）                |
 
-| 键                       | 默认      | 说明                                       |
-|--------------------------|-----------|--------------------------------------------|
-| `storage_path`           | `storage` | 本地制品存储的根目录                       |
-| `enable_javadoc_preview` | `true`    | 是否启用 Javadoc 在线预览功能              |
-| `javadoc_extract_path`   | `""`      | Javadoc 解压提取目录（留空时使用默认缓存） |
-| `max_javadoc_size_mb`    | `48`      | Javadoc 解压文件最大体积限制（MB）         |
+### `server` 服务端网络与安全
 
-### `server`
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 3000
+  ssl_enabled: false
+  ssl_cert_path: ""
+  ssl_key_path: ""
+  domains:
+    - "localhost"
+  cors_origins: [ ]
+  enable_compression: false
+  file_cache_size_mb: 16
+  max_active_requests: 512
+  trusted_proxies: [ ]
+  cdn_ip_header: "X-Forwarded-For"
+  debug_mode: false
+  gpg:
+    key_servers:
+      - "https://keys.openpgp.org"
+      - "https://keyserver.ubuntu.com"
+```
 
-| 键                    | 默认              | 说明                                                        |
-|-----------------------|-------------------|-------------------------------------------------------------|
-| `host`                | `0.0.0.0`         | 监听地址                                                    |
-| `port`                | `3000`            | 监听端口                                                    |
-| `ssl_enabled`         | `false`           | 是否启用 TLS                                                |
-| `ssl_cert_path`       | `""`              | TLS 证书路径                                                |
-| `ssl_key_path`        | `""`              | TLS 私钥路径                                                |
-| `domains`             | `[localhost]`     | 本实例对外主机名（用于 UI/元数据以及默认 CORS）             |
-| `cors_origins`        | `[]`              | 浏览器 CORS 允许列表（空值 = 仅 `domains`，`*` = 全部）     |
-| `enable_compression`  | `false`           | 是否启用 HTTP 响应压缩                                      |
-| `file_cache_size_mb`  | `16`              | 内存文件缓存大小（MB）                                      |
-| `max_active_requests` | `512`             | 并发请求上限（超限返回 503）                                |
-| `trusted_proxies`     | `[]`              | 额外可信反向代理的 CIDR/IP（环回地址始终可信）              |
-| `cdn_ip_header`       | `X-Forwarded-For` | 经可信代理后读取客户端 IP 的请求头（如 `CF-Connecting-IP`） |
-| `debug_mode`          | `false`           | 是否启用调试分析 API（位于 `/api/debug` 下，需重启生效）    |
-| `audit_log`           | `{}`              | 审计日志配置                                                |
-| `gpg`                 | 默认密钥服务器    | OpenPGP 密钥服务器（嵌套在 `server` 下）                    |
+| 配置项                | 默认值             | 说明                                                                            |
+|:----------------------|:-------------------|:--------------------------------------------------------------------------------|
+| `host`                | `0.0.0.0`          | 监听 IP 地址                                                                    |
+| `port`                | `3000`             | 监听端口                                                                        |
+| `ssl_enabled`         | `false`            | 是否开启内置 TLS/HTTPS                                                          |
+| `ssl_cert_path`       | `""`               | TLS 证书文件路径（`.crt` 或 `.pem`）                                            |
+| `ssl_key_path`        | `""`               | TLS 私钥文件路径（`.key`）                                                      |
+| `domains`             | `["localhost"]`    | 实例对外访问的主机名列表（用于生成下载链接与默认 CORS）                         |
+| `cors_origins`        | `[]`               | 允许跨域访问的 Origin 列表（空表示仅允许 `domains` 中的域名，`*` 表示允许全部） |
+| `enable_compression`  | `false`            | 是否开启 HTTP 响应 gzip/brotli 压缩                                             |
+| `file_cache_size_mb`  | `16`               | 静态小文件与元数据内存缓存大小（MB）                                            |
+| `max_active_requests` | `512`              | 最大并发处理请求数（超出返回 503）                                              |
+| `trusted_proxies`     | `[]`               | 信任的反向代理 IP 或 CIDR 列表（环回地址默认信任）                              |
+| `cdn_ip_header`       | `X-Forwarded-For`  | 从受信任代理获取真实客户端 IP 的 HTTP 标头名称                                  |
+| `debug_mode`          | `false`            | 是否开放 `/api/debug` 性能分析与 pprof 端点（修改后需重启）                     |
+| `gpg.key_servers`     | 默认公共密钥服务器 | 用于验证上传制品签名的 OpenPGP 密钥服务器列表                                   |
 
-#### CORS（`server.cors_origins`）
+> **注意**：修改 `host`、`port` 或 TLS 相关配置后，需重启 RenoP 进程生效。
 
-控制允许跨域访问本服务的浏览器 `Origin`（会话 Cookie 响应会带 `Access-Control-Allow-Credentials` 标头）。
+### `database` 数据库连接
 
-| 取值                      | 效果                                                         |
-|---------------------------|--------------------------------------------------------------|
-| *（空值）*                | 仅允许主机名匹配 `server.domains` 的 Origin（任意协议/端口） |
-| `*.pkg.one`               | 根域 `pkg.one` 及其所有子域（如 `mvnc.pkg.one`）             |
-| `https://app.example.com` | 精确匹配完整 Origin                                          |
-| `partner.example.com`     | 该主机名下的任意协议/端口                                    |
-| `*`                       | 允许任意来源                                                 |
+```yaml
+database:
+  enabled: true
+  driver: "sqlite3"
+  dsn: "renop.db"
+  max_open_conns: 25
+  max_idle_conns: 25
+  conn_max_lifetime_sec: 300
+```
 
-旧配置中的单数形式 `domain: example.com` 仍可加载，会自动迁移为 `domains: [example.com]`。
+支持 `sqlite3`、`mysql` 与 `postgres`。详细配置与参数说明请参阅 [数据库配置](./database.md)。
 
-修改 `host`、`port` 或 TLS 相关配置后，需要重启进程。
+### `proxy` 出站代理
 
-#### GPG（`server.gpg`）
+```yaml
+proxy:
+  selected: ""
+  proxies:
+    corp_proxy:
+      url: "http://proxy.internal:8080"
+```
 
-`server.gpg.key_servers` 配置 1–8 个 HTTPS OpenPGP 密钥服务器，用于解析签名密钥。GPG 现在属于 server 配置， 不再暴露独立的
-`gpg` 配置域。
+用于配置 RenoP 向外拉取上游镜像时的 HTTP/HTTPS/SOCKS5 代理。详细说明请参阅 [出站代理配置](./outbound-proxy.md)。
 
-### `proxy`
+### `frontend` 界面定制
 
-可选的 `proxy` 配置定义命名的 HTTP/HTTPS/SOCKS5 出站代理。`selected` 为空（默认值）表示直连。仓库镜像的
-`proxy` 为空时跟随全局选择，设为 `direct` 可绕过全局代理，也可以填写已配置的代理名称。
+```yaml
+frontend:
+  id: "renop"
+  title: "RenoP Package Registry"
+  description: "Self-hosted package repository"
+  organization_website: ""
+  organization_logo: "/svg/logo.svg"
+  background_url: ""
+  icp_license: ""
+  public_security_filing: ""
+  legal_notice_url: ""
+```
 
-### `database`
+用于自定义 Web 管理界面的标题、Logo、备案号及组织链接。
 
-存储账户令牌与浏览器会话的数据库连接参数：
+### `updater` 在线更新
 
-| 键                      | 默认       | 说明                                    |
-|-------------------------|------------|-----------------------------------------|
-| `enabled`               | `true`     | 是否启用内嵌/外部数据库持久化           |
-| `driver`                | `sqlite3`  | 数据库驱动名称（`sqlite3` 或 `mysql`）  |
-| `dsn`                   | `renop.db` | 数据库连接串（SQLite 路径或 MySQL DSN） |
-| `max_open_conns`        | `25`       | 最大打开连接数                          |
-| `max_idle_conns`        | `25`       | 最大空闲连接数                          |
-| `conn_max_lifetime_sec` | `300`      | 连接最大复用生存时间（秒）              |
-
-### `frontend`
-
-嵌入式仓库浏览器的品牌相关字段：
-
-| 键                       | 说明                           |
-|--------------------------|--------------------------------|
-| `id`                     | 前端 / 站点标识                |
-| `title`                  | 页面标题                       |
-| `description`            | 简短描述                       |
-| `organization_website`   | 组织或产品 URL                 |
-| `organization_logo`      | 标志路径（如 `/svg/logo.svg`） |
-| `background_url`         | 可选背景图 URL                 |
-| `icp_license`            | 可选备案或合规说明文字         |
-| `public_security_filing` | 可选公安联网备案号             |
-| `legal_notice_url`       | 页脚中的可选法律声明 URL       |
-
-### `updater`
-
-| 键        | 默认      | 说明                                 |
-|-----------|-----------|--------------------------------------|
-| `channel` | `release` | `release` 或 `nightly`               |
-| `mode`    | `manual`  | 更新应用方式（例如在界面中手动安装） |
-
-官网[下载](/download)页与实例内更新使用同一 stable/nightly 发行源。
-
-## 管理界面
-
-具备 **manager/admin** 权限的账户可在「设置」与「仓库」页面中修改大部分配置项。部分配置项（如监听地址、TLS 设置）在写入文件后需重启进程才能生效。
-
-## 存储后端
-
-- **本地磁盘**：使用 `storage_path` 指定的路径（默认方式）
-- **S3 兼容对象存储**：在 `repositories.yaml` 中按仓库进行配置
-
-上传时可自动生成 MD5/SHA-1/SHA-256/SHA-512 校验和文件。
-
-可见性、镜像与 S3 字段的详细说明请参见 [仓库与镜像](./repositories.md)。
+```yaml
+updater:
+  channel: "release"    # release 或 nightly
+  mode: "manual"        # manual（手动在界面点击更新）
+```
 
 ## 相关文档
 
-- [快速开始](../getting-started/quickstart.md)
-- [Maven 客户端配置](../getting-started/maven-client.md)
-- [API 索引](../api/README.md)
+- [仓库与镜像配置](./repositories.md)
+- [数据库配置](./database.md)
+- [出站代理配置](./outbound-proxy.md)

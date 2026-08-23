@@ -1,143 +1,65 @@
 ---
-title: 設定の概要
+title: 設定概要
 order: 1
 category: 設定
-description: 設定ファイル、サーバー設定、環境変数
+description: config.yaml の設定パラメータ、サーバー設定、環境変数
 ---
 
-# 設定の概要
+# 設定概要
 
-設定ファイルと実行時の状態は、プロセスの作業ディレクトリに保存されます。パスは環境変数で上書きできます。
+RenoP のメイン設定ファイルは `config.yaml` です。
 
-## ファイル
+## `config.yaml` の設定項目
 
-| ファイル            | 環境変数             | 用途                                                                   |
-|---------------------|----------------------|------------------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | 待ち受け、TLS、フロントブランド、ストレージパス、データベース、updater |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | リポジトリ、ミラー、リポジトリ単位の S3                                |
-| `tokens.yaml`       | `RENOP_TOKENS`       | ユーザー、ロール、アップロードトークン（起動時に自動でDBに移行）       |
-| `renop.db`          | —                    | 組み込み SQLite データベース（トークンとセッションを保存）             |
-| `index.json`        | `RENOP_INDEX`        | 成果物インデックスキャッシュ                                           |
-| `sessions.bin`      | `RENOP_SESSIONS`     | ブラウザログインセッション（起動時に自動でDBに移行）                   |
+### ストレージとドキュメントプレビュー
 
-実行時に関連する変数:
+```yaml
+storage_path: "storage"
+enable_javadoc_preview: true
+javadoc_extract_path: ""
+max_javadoc_size_mb: 48
+```
 
-| 変数                           | 既定     | 用途                                  |
-|--------------------------------|----------|---------------------------------------|
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 自動生成 | 最初の `admin` アカウントのパスワード |
+### サーバーネットワークとセキュリティ (`server`)
 
-## `config.yaml` の構造
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 3000
+  ssl_enabled: false
+  ssl_cert_path: ""
+  ssl_key_path: ""
+  domains:
+    - "localhost"
+  cors_origins: []
+  enable_compression: false
+  file_cache_size_mb: 16
+  max_active_requests: 512
+  trusted_proxies: []
+  cdn_ip_header: "X-Forwarded-For"
+  debug_mode: false
+```
 
-### グローバルストレージと Javadoc 設定
+> **注意**: `host`、`port`、TLS 関連の設定変更を反映するにはプロセスの再起動が必要です。
 
-| キー                     | 既定      | 説明                                                 |
-|--------------------------|-----------|------------------------------------------------------|
-| `storage_path`           | `storage` | ローカル成果物ストレージのルートディレクトリ         |
-| `enable_javadoc_preview` | `true`    | オンライン Javadoc プレビューを有効にするか          |
-| `javadoc_extract_path`   | `""`      | Javadoc 展開パス（空の場合は既定のキャッシュを使用） |
-| `max_javadoc_size_mb`    | `48`      | Javadoc 展開の最大ファイルサイズ制限（MB）           |
+### データベース (`database`)
 
-### `server`
+```yaml
+database:
+  enabled: true
+  driver: "sqlite3"
+  dsn: "renop.db"
+  max_open_conns: 25
+  max_idle_conns: 25
+  conn_max_lifetime_sec: 300
+```
 
-| キー                  | 既定               | 説明                                                                             |
-|-----------------------|--------------------|----------------------------------------------------------------------------------|
-| `host`                | `0.0.0.0`          | 待ち受けアドレス                                                                 |
-| `port`                | `3000`             | 待ち受けポート                                                                   |
-| `ssl_enabled`         | `false`            | TLS を有効にするか                                                               |
-| `ssl_cert_path`       | `""`               | TLS 有効時の証明書パス                                                           |
-| `ssl_key_path`        | `""`               | TLS 有効時の秘密鍵パス                                                           |
-| `domains`             | `[localhost]`      | このインスタンスの公開ホスト名（UI / メタデータおよび既定 CORS）                 |
-| `cors_origins`        | `[]`               | ブラウザ CORS 許可リスト（空 = `domains` のみ、`*` = すべてのオリジン）          |
-| `enable_compression`  | `false`            | HTTP 応答圧縮を有効にするか                                                      |
-| `file_cache_size_mb`  | `16`               | メモリ上のファイルキャッシュサイズ（MB）                                         |
-| `max_active_requests` | `512`              | 同時リクエスト上限（超過時は 503）                                               |
-| `trusted_proxies`     | `[]`               | 追加のリバースプロキシ CIDR/IP（ループバックは常に信頼）                         |
-| `cdn_ip_header`       | `X-Forwarded-For`  | 信頼できるプロキシ背後でクライアント IP を読むヘッダー（例: `CF-Connecting-IP`） |
-| `debug_mode`          | `false`            | `/api/debug` 配下のデバッグ分析 API を有効化（再起動が必要）                     |
-| `audit_log`           | `{}`               | 監査ログ設定                                                                     |
-| `gpg`                 | 既定のキーサーバー | OpenPGP キーサーバー（`server` にネスト）                                        |
+### 送信プロキシ (`proxy`)
 
-#### CORS（`server.cors_origins`）
-
-このサーバーへのクロスオリジン呼び出しを許可するブラウザ `Origin` を制御します。セッション Cookie は
-`Access-Control-Allow-Credentials` 付きで返されます。
-
-| 値                        | 効果                                                                                  |
-|---------------------------|---------------------------------------------------------------------------------------|
-| *（空）*                  | ホストが `server.domains` のいずれかに一致する Origin のみ（任意のスキーム / ポート） |
-| `*.pkg.one`               | 頂点ドメイン `pkg.one` およびすべてのサブドメイン（例: `mvnc.pkg.one`）               |
-| `https://app.example.com` | 完全な Origin の完全一致（スキーム + ホスト + ポート）                                |
-| `partner.example.com`     | そのホスト名で任意のスキーム / ポート                                                 |
-| `*`                       | すべてのオリジンを許可                                                                |
-
-単数形のレガシー設定 `domain: example.com` も読み込み可能で、`domains: [example.com]` へ移行されます。
-
-`host`、`port`、または TLS 関連の設定を変更したあとは、プロセスを再起動してください。
-
-#### GPG（`server.gpg`）
-
-`server.gpg.key_servers` には署名キー解決に使用する HTTPS OpenPGP キーサーバーを 1～8 件指定します。GPG 設定は
-`server` に含まれ、独立した `gpg` ドメインは公開されません。
-
-### `proxy`
-
-任意の `proxy` セクションで名前付き HTTP/HTTPS/SOCKS5 outbound プロキシを定義します。`selected` が空（既定） なら直接接続です。ミラーの
-`proxy` を空にするとグローバル設定を継承し、`direct` ならバイパス、名前ならその プロキシを使用します。
-
-### `database`
-
-アカウントおよびセッションのデータベース接続設定:
-
-| キー                    | 既定       | 説明                                                  |
-|-------------------------|------------|-------------------------------------------------------|
-| `enabled`               | `true`     | 組み込み / 外部データベースの永続化を有効にするか     |
-| `driver`                | `sqlite3`  | データベースドライバー名（`sqlite3` または `mysql`）  |
-| `dsn`                   | `renop.db` | データベース DSN またはファイルパス（例: `renop.db`） |
-| `max_open_conns`        | `25`       | 最大オープン接続数                                    |
-| `max_idle_conns`        | `25`       | 最大アイドル接続数                                    |
-| `conn_max_lifetime_sec` | `300`      | 接続の最大生存期間（秒）                              |
-
-### `frontend`
-
-埋め込みリポジトリブラウザのブランド関連フィールド:
-
-| キー                     | 説明                                 |
-|--------------------------|--------------------------------------|
-| `id`                     | フロントエンド / サイト識別子        |
-| `title`                  | ページタイトル                       |
-| `description`            | 短い説明                             |
-| `organization_website`   | 組織または製品の URL                 |
-| `organization_logo`      | ロゴパス（例: `/svg/logo.svg`）      |
-| `background_url`         | 任意の背景画像 URL                   |
-| `icp_license`            | 任意の ICP / コンプライアンス文言    |
-| `public_security_filing` | 任意の中国公安登録番号               |
-| `legal_notice_url`       | フッターに表示する任意の法的通知 URL |
-
-### `updater`
-
-| キー      | 既定      | 説明                                            |
-|-----------|-----------|-------------------------------------------------|
-| `channel` | `release` | `release` または `nightly`                      |
-| `mode`    | `manual`  | 更新の適用方法（例: UI からの手動インストール） |
-
-サイトの[ダウンロード](/download)ページとインスタンス内更新は、同じ種類の stable / nightly 配信源を使用します。
-
-## 管理 UI
-
-**manager** または **admin**
-権限を持つアカウントは、「設定」および「リポジトリ」で大半の項目を変更できます。一部の設定はファイル書き込み後に再読込またはプロセス再起動が必要です。各設定ドメインの説明を参照してください。
-
-## ストレージ
-
-- **ローカルディスク**: `storage_path` 配下（既定）
-- **S3 互換**オブジェクトストレージ: `repositories.yaml` でリポジトリ単位に設定
-
-アップロード時に MD5 / SHA-1 / SHA-256 / SHA-512 のサイドカーチェックサムを書き込めます。
-
-可視性・ミラー・S3 フィールドについては [リポジトリとミラー](./repositories.md) を参照してください。
-
-## 関連
-
-- [クイックスタート](../getting-started/quickstart.md)
-- [Maven クライアント](../getting-started/maven-client.md)
-- [API 索引](../api/README.md)
+```yaml
+proxy:
+  selected: ""
+  proxies:
+    corp_proxy:
+      url: "http://proxy.internal:8080"
+```

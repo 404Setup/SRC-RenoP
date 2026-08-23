@@ -97,7 +97,10 @@ function humanize(name) {
 const categoryOrder = {
     'getting-started': 10,
     configuration: 20,
-    api: 30,
+    guides: 30,
+    deployment: 40,
+    security: 50,
+    api: 60,
     general: 90,
 };
 

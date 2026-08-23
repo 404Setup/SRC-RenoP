@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -102,6 +104,7 @@ export default Object.freeze({
     "repos.formatDesc": "このリポジトリが提供するパッケージプロトコル",
     "repos.formatMaven": "Maven",
     "repos.formatCargo": "Cargo",
+    "repos.formatDocker": "Docker / OCI",
     "repos.artifactUrl": "アーティファクト URL テンプレート",
     "repos.artifactUrlHint": "{crate} と {version} を含む任意の Cargo ダウンロード元。空欄の場合はインデックス URL を使用します",
     "repos.cargoMirrorAllowListHint": "このミラーから許可する crate の正確な名前を指定します",
@@ -109,10 +112,18 @@ export default Object.freeze({
     "repos.cargoAddRulePlaceholder": "crate 名を入力（Enter またはカンマで追加）",
     "repos.cargoEmptyAllowList": "許可ルールは未設定です（デフォルトではすべての crate を許可）",
     "repos.cargoEmptyDenyList": "拒否ルールは未設定です（デフォルトでは crate をブロックしません）",
+    "repos.dockerMirrorUrl": "Docker レジストリ URL",
+    "repos.dockerMirrorUrlHint": "アップストリームレジストリのベース URL (例: https://registry-1.docker.io)",
+    "repos.dockerMirrorAllowListHint": "このミラーから許可するイメージ名を指定 (例: library/ubuntu, library/*)",
+    "repos.dockerMirrorDenyListHint": "このミラーからブロックするイメージ名を指定",
+    "repos.dockerAddRulePlaceholder": "イメージ名を入力（Enter またはカンマで追加）",
+    "repos.dockerEmptyAllowList": "許可ルールは未設定です（デフォルトですべてのイメージを許可）",
+    "repos.dockerEmptyDenyList": "拒否ルールは未設定です（デフォルトでイメージをブロックしません）",
     "repos.subtitle": "パッケージリポジトリとプロトコル固有の設定を管理します。",
     "repos.addRepoTitle": "パッケージリポジトリを追加",
     "repos.formatMavenDesc": "Maven アーティファクト、メタデータ、ブラウザーアップロード、GPG ポリシー。",
     "repos.formatCargoDesc": "Cargo sparse インデックス、crate の公開、ミラー、パッケージチーム。",
+    "repos.formatDockerDesc": "Docker / OCI コンテナイメージ、マルチアーキテクチャマニフェスト、ミラーキャッシュ。",
     "repos.formatImmutableDesc": "リポジトリ形式は作成後に変更できません。",
     "repos.formatCreateDesc": "クライアントプロトコルを選択します。後から変更することはできません。",
     "repos.name": "リポジトリ名",
@@ -126,6 +137,12 @@ export default Object.freeze({
     "details.cargoSourceTab": "ソース置換",
     "details.cargoLoginTab": "ログイン",
     "details.cargoPublishTab": "公開",
+    "details.dockerTitle": "Docker レジストリ設定",
+    "details.dockerSubtitle": "プル、タグ付け、プッシュ、ログイン認証のコマンド",
+    "details.dockerPullTab": "プル (Pull)",
+    "details.dockerTagTab": "タグ (Tag)",
+    "details.dockerPushTab": "プッシュ (Push)",
+    "details.dockerLoginTab": "ログイン (Login)",
     "cargo.packagesTitle": "Cargo パッケージ",
     "cargo.packagesSubtitle": "バージョン、アーカイブ状態、パッケージチームを管理",
     "cargo.noPackagesAdmin": "このリポジトリにはローカル所有の Cargo パッケージが記録されていません。",

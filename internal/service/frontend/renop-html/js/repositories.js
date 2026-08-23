@@ -509,6 +509,7 @@ function mirrorProxyOptions(selected) {
 function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode) {
 	const format = getRepositoryFormat(repo.format);
 	const isCargo = format.id === 'cargo';
+	const isDocker = format.id === 'docker';
     const block = el('div', {
         class: 'mirror-block',
         style: {
@@ -625,14 +626,46 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         saveRepoSettings(repoKey, repo);
     }
 
+    let mirrorPlaceholder = 'Maven Central';
+    let mirrorUrlLabel = 'repos.mavenMirrorUrl';
+    let mirrorUrlHint = 'repos.mavenMirrorUrlHint';
+    let mirrorUrlPlaceholder = 'https://repo1.maven.org/maven2/';
+    let addRulePlaceholder = 'repos.addRulePlaceholder';
+    let emptyAllowList = 'repos.emptyAllowList';
+    let emptyDenyList = 'repos.emptyDenyList';
+    let allowHint = 'repos.mirrorAllowListHint';
+    let denyHint = 'repos.mirrorDenyListHint';
+
+    if (isCargo) {
+        mirrorPlaceholder = 'crates.io';
+        mirrorUrlLabel = 'repos.cargoMirrorUrl';
+        mirrorUrlHint = 'repos.cargoMirrorUrlHint';
+        mirrorUrlPlaceholder = 'https://index.crates.io/';
+        addRulePlaceholder = 'repos.cargoAddRulePlaceholder';
+        emptyAllowList = 'repos.cargoEmptyAllowList';
+        emptyDenyList = 'repos.cargoEmptyDenyList';
+        allowHint = 'repos.cargoMirrorAllowListHint';
+        denyHint = 'repos.cargoMirrorDenyListHint';
+    } else if (isDocker) {
+        mirrorPlaceholder = 'Docker Hub';
+        mirrorUrlLabel = 'repos.dockerMirrorUrl';
+        mirrorUrlHint = 'repos.dockerMirrorUrlHint';
+        mirrorUrlPlaceholder = 'https://registry-1.docker.io';
+        addRulePlaceholder = 'repos.dockerAddRulePlaceholder';
+        emptyAllowList = 'repos.dockerEmptyAllowList';
+        emptyDenyList = 'repos.dockerEmptyDenyList';
+        allowHint = 'repos.dockerMirrorAllowListHint';
+        denyHint = 'repos.dockerMirrorDenyListHint';
+    }
+
     fields.appendChild(makeFieldRow(t('repos.mirrorName'), t('repos.mirrorNameHint'),
-        makeCfgInput(mirror.name || '', isCargo ? 'crates.io' : 'Maven Central', 'text', handleMirrorNameChange)
+        makeCfgInput(mirror.name || '', mirrorPlaceholder, 'text', handleMirrorNameChange)
     ));
 
     fields.appendChild(makeFieldRow(
-        t(isCargo ? 'repos.cargoMirrorUrl' : 'repos.mavenMirrorUrl'),
-        t(isCargo ? 'repos.cargoMirrorUrlHint' : 'repos.mavenMirrorUrlHint'),
-        makeCfgInput(mirror.url || '', isCargo ? 'https://index.crates.io/' : 'https://repo1.maven.org/maven2/', 'text', handleMirrorUrlChange)
+        t(mirrorUrlLabel),
+        t(mirrorUrlHint),
+        makeCfgInput(mirror.url || '', mirrorUrlPlaceholder, 'text', handleMirrorUrlChange)
     ));
 
     if (format.supportsArtifactTemplate) {
@@ -688,8 +721,8 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     const allowInput = makeTagListInput({
         items: mirror.allow_artifacts || [],
         type: 'allow',
-        placeholder: t(isCargo ? 'repos.cargoAddRulePlaceholder' : 'repos.addRulePlaceholder'),
-        emptyText: t(isCargo ? 'repos.cargoEmptyAllowList' : 'repos.emptyAllowList'),
+        placeholder: t(addRulePlaceholder),
+        emptyText: t(emptyAllowList),
         onChange: (newList) => {
             if (newList.length > 0) mirror.allow_artifacts = newList;
             else delete mirror.allow_artifacts;
@@ -701,8 +734,8 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     const denyInput = makeTagListInput({
         items: mirror.deny_artifacts || [],
         type: 'deny',
-        placeholder: t(isCargo ? 'repos.cargoAddRulePlaceholder' : 'repos.addRulePlaceholder'),
-        emptyText: t(isCargo ? 'repos.cargoEmptyDenyList' : 'repos.emptyDenyList'),
+        placeholder: t(addRulePlaceholder),
+        emptyText: t(emptyDenyList),
         onChange: (newList) => {
             if (newList.length > 0) mirror.deny_artifacts = newList;
             else delete mirror.deny_artifacts;
@@ -713,13 +746,13 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
 
     fields.appendChild(makeFieldRow(
 		t('repos.mirrorAllowList'),
-		t(isCargo ? 'repos.cargoMirrorAllowListHint' : 'repos.mirrorAllowListHint'),
+		t(allowHint),
 		allowInput,
 		'cfg-field-row--top-align'
 	));
     fields.appendChild(makeFieldRow(
 		t('repos.mirrorDenyList'),
-		t(isCargo ? 'repos.cargoMirrorDenyListHint' : 'repos.mirrorDenyListHint'),
+		t(denyHint),
 		denyInput,
 		'cfg-field-row--top-align'
 	));

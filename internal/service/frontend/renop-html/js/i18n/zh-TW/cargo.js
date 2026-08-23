@@ -1,8 +1,19 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
 /* Cargo 儲存庫頁面、搜尋與稽核行為。 */
 export default Object.freeze({
     "search.clear": "清除搜尋",
     "search.mavenPlaceholder": "搜尋 Maven 路徑與構件",
     "search.cargoPlaceholder": "搜尋 Cargo 套件",
+    "search.dockerPlaceholder": "搜尋容器映像",
     "search.searching": "正在搜尋…",
     "search.noResults": "沒有相符的套件或構件。",
     "search.failed": "儲存庫搜尋失敗，請再試一次。",
@@ -10,6 +21,7 @@ export default Object.freeze({
     "search.moreResults": "尚有更多相符項目，請縮小搜尋範圍。",
     "search.directory": "目錄",
     "search.package": "套件",
+    "search.image": "映像",
     "search.file": "檔案",
     "cargo.registryTitle": "Cargo 儲存庫",
     "cargo.registrySubtitle": "透過 sparse 索引瀏覽套件，並以獨立於 Maven 檔案配置的頁面管理版本與團隊。",

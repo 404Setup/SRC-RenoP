@@ -135,8 +135,12 @@ func newOutboundProxyClient(proxyConfig *config.OutboundProxy) (*http.Client, er
 	return &http.Client{Transport: transport, CheckRedirect: checkMirrorRedirect}, nil
 }
 
-// clientForMirror resolves the mirror selector and returns a shared direct
+// ClientForMirror resolves the mirror selector and returns a shared direct
 // client or a bounded cached client for the selected named global proxy.
+func ClientForMirror(mirror *config.Mirror, proxyConfig config.ProxyConfig) (*http.Client, error) {
+	return clientForMirror(mirror, proxyConfig)
+}
+
 func clientForMirror(mirror *config.Mirror, proxyConfig config.ProxyConfig) (*http.Client, error) {
 	selection := ""
 	if mirror != nil {

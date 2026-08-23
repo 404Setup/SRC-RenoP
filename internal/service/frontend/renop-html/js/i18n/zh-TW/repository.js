@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -102,6 +104,7 @@ export default Object.freeze({
     "repos.formatDesc": "此儲存庫對外提供的套件協定",
     "repos.formatMaven": "Maven",
     "repos.formatCargo": "Cargo",
+    "repos.formatDocker": "Docker / OCI",
     "repos.artifactUrl": "成品 URL 範本",
     "repos.artifactUrlHint": "選填的 Cargo 下載來源，須包含 {crate} 與 {version}；留空時使用索引網址",
     "repos.cargoMirrorAllowListHint": "填寫允許從該鏡像下載的正確 crate 名稱",
@@ -109,10 +112,18 @@ export default Object.freeze({
     "repos.cargoAddRulePlaceholder": "輸入 crate 名稱（按 Enter 或逗號新增）",
     "repos.cargoEmptyAllowList": "未設定允許規則（預設允許所有 crate）",
     "repos.cargoEmptyDenyList": "未設定拒絕規則（預設不封鎖任何 crate）",
+    "repos.dockerMirrorUrl": "Docker 註冊表 URL",
+    "repos.dockerMirrorUrlHint": "上游註冊表基礎網址，例如 https://registry-1.docker.io",
+    "repos.dockerMirrorAllowListHint": "填寫允許從該鏡像下載的映像檔名稱（如 library/ubuntu、library/*）",
+    "repos.dockerMirrorDenyListHint": "填寫禁止從該鏡像下載的映像檔名稱",
+    "repos.dockerAddRulePlaceholder": "輸入映像檔名稱（按 Enter 或逗號新增）",
+    "repos.dockerEmptyAllowList": "未設定允許規則（預設允許所有映像檔）",
+    "repos.dockerEmptyDenyList": "未設定拒絕規則（預設不封鎖任何映像檔）",
     "repos.subtitle": "管理套件儲存庫及其通訊協定專用設定。",
     "repos.addRepoTitle": "新增套件儲存庫",
     "repos.formatMavenDesc": "支援 Maven 構件、中繼資料、網頁上傳與 GPG 政策。",
     "repos.formatCargoDesc": "支援 Cargo sparse 索引、crate 發佈、映像及套件團隊。",
+    "repos.formatDockerDesc": "支援 Docker 與 OCI 容器映像檔、多架構 Manifest 與映像檔拉取快取。",
     "repos.formatImmutableDesc": "儲存庫格式建立後無法變更。",
     "repos.formatCreateDesc": "選擇用戶端通訊協定；建立後無法變更。",
     "repos.name": "儲存庫名稱",
@@ -126,6 +137,12 @@ export default Object.freeze({
     "details.cargoSourceTab": "來源替換",
     "details.cargoLoginTab": "登入",
     "details.cargoPublishTab": "發佈",
+    "details.dockerTitle": "Docker 註冊表設定",
+    "details.dockerSubtitle": "拉取、標籤、推送與登入驗證指令",
+    "details.dockerPullTab": "拉取 (Pull)",
+    "details.dockerTagTab": "標籤 (Tag)",
+    "details.dockerPushTab": "推送 (Push)",
+    "details.dockerLoginTab": "登入 (Login)",
     "cargo.packagesTitle": "Cargo 套件",
     "cargo.packagesSubtitle": "管理版本、封存狀態與套件團隊",
     "cargo.noPackagesAdmin": "此儲存庫尚未記錄本機擁有的 Cargo 套件。",

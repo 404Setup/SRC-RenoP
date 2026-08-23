@@ -1,62 +1,72 @@
 ---
-title: Quick start
+title: Quickstart
 order: 3
-category: Getting started
-description: First run, admin password, default repository URLs
+category: Getting Started
+description: Initial startup, administrator password setup, and default repository endpoints
 ---
 
-# Quick start
+# Quickstart
 
-## First start
+## 1. Initial Boot
 
-On first startup, RenoP creates an `admin` account. Set its password with an environment variable before starting the
-process:
+Upon initial startup, RenoP automatically initializes the default security context and creates the super-administrator
+account `admin`.
+
+Set the administrator password beforehand via an environment variable:
 
 ```bash
-RENOP_DEFAULT_ADMIN_PASSWORD='replace-this-password' ./renop
+# Linux / macOS
+RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password' ./renop
+
+# Windows (PowerShell)
+$env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
+.\renop.exe
 ```
 
-If the variable is not set, a random password is generated and written to the server log. After startup, open
-`http://localhost:3000`.
+If this environment variable is not set, RenoP will generate a random secure password and print it to stdout during
+startup.
 
-Sign in as `admin`. Accounts with manager or admin permissions can manage artifacts, users, repositories, and settings
-in the web UI.
+Once started, navigate to `http://localhost:3000` in your web browser.
 
-## Default repositories
+## 2. Default Repository Endpoints
 
-| Path                              | Role      |
-|-----------------------------------|-----------|
-| `http://localhost:3000/releases`  | Releases  |
-| `http://localhost:3000/snapshots` | Snapshots |
-| `http://localhost:3000/private`   | Private   |
+RenoP initializes the following default repositories:
 
-Configure these URLs in Maven `<repositories>` or `<distributionManagement>`. See [Maven client](./maven-client.md) for
-examples.
+| Endpoint URL                      | Visibility | Purpose                                                     |
+|:----------------------------------|:-----------|:------------------------------------------------------------|
+| `http://localhost:3000/releases`  | `PUBLIC`   | Maven release repository (redeployment disabled by default) |
+| `http://localhost:3000/snapshots` | `PUBLIC`   | Maven snapshot repository (redeployment enabled)            |
+| `http://localhost:3000/private`   | `PRIVATE`  | Maven private repository (authentication required)          |
 
-## Health check
+Cargo and Docker endpoints are also ready out of the box:
+
+- Cargo Index: `http://localhost:3000/index/` (or repository-specific paths)
+- Docker Registry: `http://localhost:3000/v2/`
+
+## 3. Health Probes
+
+Verify that the service is running using the health probe endpoint:
 
 ```bash
 curl -s http://localhost:3000/api/status/health
-# "UP"
+# Output: "UP"
 ```
 
-## Environment variables
+## 4. Key Environment Variables
 
-| Variable                       | Default             | Purpose                                                       |
-|--------------------------------|---------------------|---------------------------------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | Server, frontend, storage, updater                            |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repositories, mirrors, per-repository S3                      |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | Accounts and tokens                                           |
-| `RENOP_INDEX`                  | `index.json`        | Artifact index                                                |
-| `RENOP_SESSIONS`               | `sessions.bin`      | Login sessions (protobuf; legacy `sessions.json` is migrated) |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | generated           | Password for the first admin account                          |
+| Variable                       | Default Value       | Description                                            |
+|:-------------------------------|:--------------------|:-------------------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | Primary server configuration file                      |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repository and mirror configurations                   |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | Initial users and static tokens (migrated to database) |
+| `RENOP_INDEX`                  | `index.json`        | Search index cache file                                |
+| `RENOP_SESSIONS`               | `sessions.bin`      | Binary session storage file                            |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | *(Generated)*       | Initial administrator password                         |
 
-Most settings can also be changed in the management UI. Restart the process after changing the listen address or TLS
-settings.
+## 5. Next Steps
 
-## Next steps
-
-1. [Configuration](../configuration/overview.md) — bind address, TLS, branding
-2. [Repositories & mirrors](../configuration/repositories.md)
-3. [Maven client](./maven-client.md)
-4. [HTTP API](../api/README.md)
+- [Configuration Overview](../configuration/overview.md) — Server settings, TLS, databases, and storage
+- [Repositories & Mirrors](../configuration/repositories.md) — Custom repositories, caching rules, and S3 backends
+- [Maven & Gradle Guide](../guides/maven-client.md) — Client integration for Java/Kotlin builds
+- [Cargo Registry Guide](../guides/cargo-registry.md) — Rust / Cargo registry configuration
+- [Docker Registry Guide](../guides/docker-registry.md) — Docker and Podman image management

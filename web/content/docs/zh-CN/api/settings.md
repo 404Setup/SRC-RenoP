@@ -1,178 +1,44 @@
 ---
-title: 设置
-order: 6
-category: API
+title: 系统设置 API
+order: 8
+category: API 接口
+description: 读取与修改服务端配置、仓库设置与重建索引接口
 ---
 
-# 设置与仓库配置
+# 系统设置 API
 
-前缀：`/api/settings`
+## 1. 获取全局配置
 
-读写均需 **manager/admin**。
+- **路径**：`GET /api/settings/config`
+- **认证要求**：Manager 或 Admin 权限
 
-该前缀下携带结构化数据的请求/响应正文均使用 **`application/x-protobuf`**（见 `proto/api/v1/api.proto`
-）。空的成功响应正文仍为纯文本（空字符串）。校验错误返回简短英文文本。
+---
 
-磁盘位置：
+## 2. 修改全局配置
 
-| 内容       | 文件                | 环境变量             |
-|------------|---------------------|----------------------|
-| 域设置     | `config.yaml`       | `RENOP_CONFIG`       |
-| Maven 仓库 | `repositories.yaml` | `RENOP_REPOSITORIES` |
+- **路径**：`PUT /api/settings/config`
+- **认证要求**：Admin 权限
+- **说明**：支持动态更新域名、前端定制、出站代理等配置项。监听端口与 TLS 变更需重启后生效。
 
-监听器/TLS 配置变更需要重启进程才能完全生效。
+---
 
-## 索引
+## 3. 仓库配置管理
 
-### `POST /api/settings/index/rebuild`
+### 获取所有仓库配置
 
-请求：protobuf `RebuildIndexRequest`
+- **路径**：`GET /api/settings/maven/repositories`
+- **认证要求**：Manager 或 Admin 权限
 
-| 字段   | 类型   | 取值             |
-|--------|--------|------------------|
-| `mode` | string | `full` \| `diff` |
+### 修改指定仓库配置
 
-| mode   | 行为                            |
-|--------|---------------------------------|
-| `full` | 异步全量重建，清除 Javadoc 缓存 |
-| `diff` | 差分重建                        |
+- **路径**：`PUT /api/settings/maven/repositories/:name`
+- **认证要求**：Manager 或 Admin 权限
 
-其他值返回 `400`（`Invalid mode. Expected 'full' or 'diff'`）。成功时返回 `200`，空字符串正文。
+---
 
-## 配置域
+## 4. 重建制品索引
 
-### `GET /api/settings/domains`
-
-响应：protobuf `SettingsDomainsResponse`
-
-| 字段      | 类型            |
-|-----------|-----------------|
-| `domains` | repeated string |
-
-典型值：`frontend`、`server`、`proxy`、`storage`、`updater`、`index`。
-
-`index` 当前无可配置字段。
-
-### `GET /api/settings/domain/:name`
-
-响应：该域的 protobuf 消息（Content-Type `application/x-protobuf`）。
-
-**frontend** → `FrontendConfig`
-
-| 字段                     | 类型   |
-|--------------------------|--------|
-| `id`                     | string |
-| `title`                  | string |
-| `description`            | string |
-| `organization_website`   | string |
-| `organization_logo`      | string |
-| `background_url`         | string |
-| `icp_license`            | string |
-| `public_security_filing` | string |
-| `legal_notice_url`       | string |
-
-**server** → `ServerConfig`
-
-| 字段                  | 类型            | 说明                   |
-|-----------------------|-----------------|------------------------|
-| `host`                | string          | 监听 IP 地址           |
-| `port`                | uint32          | 监听端口               |
-| `ssl_enabled`         | bool            | 是否启用 TLS           |
-| `ssl_cert_path`       | string          | TLS 证书文件路径       |
-| `ssl_key_path`        | string          | TLS 私钥文件路径       |
-| `domains`             | repeated string | 本实例对外域名列表     |
-| `enable_compression`  | bool            | 是否启用 HTTP 响应压缩 |
-| `file_cache_size_mb`  | uint32          | 文件内存缓存上限（MB） |
-| `max_active_requests` | uint32          | 并发请求上限           |
-| `trusted_proxies`     | repeated string | 可信代理 CIDR/IP 列表  |
-| `cdn_ip_header`       | string          | 客户端 IP 请求头名称   |
-| `cors_origins`        | repeated string | CORS 允许来源列表      |
-| `debug_mode`          | bool            | 是否启用调试分析 API   |
-| `database`            | DatabaseConfig  | 数据库连接配置         |
-| `audit_log`           | AuditLogConfig  | 审计日志保留配置       |
-| `gpg`                 | GpgConfig       | OpenPGP 密钥服务器配置 |
-
-**DatabaseConfig**：
-
-| 字段                    | 类型   | 说明                                 |
-|-------------------------|--------|--------------------------------------|
-| `enabled`               | bool   | 是否启用数据库持久化                 |
-| `driver`                | string | 数据库驱动（`sqlite3` 或 `mysql`）   |
-| `dsn`                   | string | 数据库 DSN/文件路径（如 `renop.db`） |
-| `max_open_conns`        | int32  | 最大打开连接数                       |
-| `max_idle_conns`        | int32  | 最大空闲连接数                       |
-| `conn_max_lifetime_sec` | int32  | 连接最大复用时间（秒）               |
-
-**AuditLogConfig** 与 **GpgConfig** 均嵌套在 `server` 下；不再提供单独的 `gpg` 配置域。
-
-| 字段                 | 类型            | 说明                               |
-|----------------------|-----------------|------------------------------------|
-| `audit_log.enabled`  | bool            | 是否启用审计日志持久化             |
-| `audit_log.max_rows` | int32           | 最大保留审计日志行数               |
-| `gpg.key_servers`    | repeated string | HTTPS OpenPGP 密钥服务器（1–8 项） |
-
-**proxy** → `ProxyConfig`
-
-该域保存命名的 HTTP/HTTPS/SOCKS5 出站代理。`selected` 默认为空，表示直连；选择命名条目后用于全局出站请求。
-
-**storage** → `StorageConfig`
-
-| 字段                     | 类型   |
-|--------------------------|--------|
-| `storage_path`           | string |
-| `enable_javadoc_preview` | bool   |
-| `javadoc_extract_path`   | string |
-| `max_javadoc_size_mb`    | int64  |
-
-**updater** → `UpdaterConfig`
-
-| 字段      | 类型   | 取值                                                   |
-|-----------|--------|--------------------------------------------------------|
-| `channel` | string | `release`\|`nightly`                                   |
-| `mode`    | string | `manual`\|`auto_check`\|`auto_install`\|`safe_install` |
-
-**index** → 空的 `IndexDomainSettings`
-
-### `PUT /api/settings/domain/:name`
-
-对该域做 **完整替换**。正文为与该域 GET 相同的 protobuf 消息。Proto3 省略字段解码为零值 — 客户端必须发送完整域配置（UI 始终
-POST 完整表单状态）。
-
-成功时返回 `200`，空字符串。
-
-规则：
-
-- `frontend.background_url`：非空时须可达、公网 IP、WebP 格式、≤ 5 MiB，拒绝私有地址
-- `storage.max_javadoc_size_mb`：必须 > 0
-- `storage.storage_path`：改到不同路径时，服务器立即对新根全量重建文件索引（并重启 FS 监视器），清除 Javadoc 缓存
-- `updater.channel` / `updater.mode`：必须是允许的枚举值（空值无效）
-- `index`：无可写内容，返回 `404`
-
-校验失败时返回 `400` + 简短英文错误文本。
-
-## Maven 仓库
-
-### `GET /api/settings/maven/repositories`
-
-响应：protobuf `MavenRepositoriesResponse`（`map<string, Repository>`）。
-
-| 字段                    | 含义                                                             |
-|-------------------------|------------------------------------------------------------------|
-| `name`                  | 仓库名                                                           |
-| `visibility`            | `PUBLIC`/`HIDDEN`/`PRIVATE`                                      |
-| `allow_redeployment`    | 是否允许覆盖已有制品                                             |
-| `require_gpg_signature` | 是否要求受保护制品提供独立 GPG 签名                              |
-| `mirrors[]`             | 上游镜像（含 `proxy` 选择、url、persist、TTL、auth、allow/deny） |
-| `s3`                    | 可选 S3 兼容存储                                                 |
-
-### `PUT /api/settings/maven/repositories/:name`
-
-创建或 **完整替换**。正文为 protobuf `Repository`。路径 `:name` 优先于正文 `name`。
-
-保留名：`css`、`js`、`svg`、`api`、`javadocs`、`assets`，以及包含非法字符的名称。
-
-成功时返回 `200`，空字符串。
-
-### `DELETE /api/settings/maven/repositories/:name`
-
-从配置中移除， **不**删除磁盘上的文件。成功时返回 `200`，空字符串。
+- **路径**：`POST /api/settings/index/rebuild`
+- **认证要求**：Admin 权限
+- **说明**：异步重新扫描存储目录并重建 `index.json` 搜索缓存。
+- **响应**：`202 Accepted`，`{"message": "Index rebuild triggered"}`

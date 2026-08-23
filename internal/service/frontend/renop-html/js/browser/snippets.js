@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -120,6 +122,22 @@ function buildCargoSnippets(repositoryName) {
 }
 
 /**
+ * Build Docker pull, tag, push, and login commands.
+ * @param {string} repositoryName - Repository slug.
+ * @returns {Object.<string, string>} Docker snippets keyed by tab ID.
+ */
+function buildDockerSnippets(repositoryName) {
+    const host = window.location.host;
+    const prefix = `${host}/${repositoryName}`;
+    return {
+        'docker-pull': `docker pull ${prefix}/<image>:<tag>`,
+        'docker-tag': `docker tag <source-image>:<tag> ${prefix}/<image>:<tag>`,
+        'docker-push': `docker push ${prefix}/<image>:<tag>`,
+        'docker-login': `docker login ${host}`
+    };
+}
+
+/**
  * Return the localized tab label for a snippet type.
  * @param {string} type - Catalog snippet tab ID.
  * @returns {string} Localized or product-standard tab label.
@@ -133,6 +151,10 @@ function snippetTabLabel(type) {
         case 'cargo-source': return t('details.cargoSourceTab');
         case 'cargo-login': return t('details.cargoLoginTab');
         case 'cargo-publish': return t('details.cargoPublishTab');
+        case 'docker-pull': return t('details.dockerPullTab');
+        case 'docker-tag': return t('details.dockerTagTab');
+        case 'docker-push': return t('details.dockerPushTab');
+        case 'docker-login': return t('details.dockerLoginTab');
         default: return 'Maven';
     }
 }
@@ -307,11 +329,26 @@ function bindCopyButton() {
  */
 export async function updateSnippets(path, detailsPromise) {
 	const sequence = ++snippetUpdateSequence;
+    const card = document.getElementById('repo-snippets-card');
+    const colRight = document.querySelector('.col-right');
+    const layoutTwoCol = document.querySelector('.layout-two-col');
+    const pathParts = path.split('/').filter(Boolean).map(decodePathSegment);
+
+    if (pathParts.length === 0 || pathParts[0] === 'index.html') {
+        if (card) card.style.display = 'none';
+        if (colRight) colRight.hidden = true;
+        if (layoutTwoCol) layoutTwoCol.classList.add('no-sidebar');
+        return;
+    }
+
+    if (colRight) colRight.hidden = false;
+    if (layoutTwoCol) layoutTwoCol.classList.remove('no-sidebar');
+    if (card) card.style.display = '';
+
     const code = document.getElementById('snippet-code');
     if (!code) return;
     const title = document.getElementById('details-card-title');
     const subtitle = document.getElementById('details-card-subtitle');
-    const pathParts = path.split('/').filter(Boolean).map(decodePathSegment);
     let details = null;
     try {
         details = detailsPromise ? await detailsPromise : null;
@@ -324,6 +361,10 @@ export async function updateSnippets(path, detailsPromise) {
         currentSnippets = buildCargoSnippets(pathParts[0]);
         if (title) title.textContent = t('details.cargoTitle');
         if (subtitle) subtitle.textContent = t('details.cargoSubtitle');
+    } else if (format.id === 'docker' && pathParts.length > 0) {
+        currentSnippets = buildDockerSnippets(pathParts[0]);
+        if (title) title.textContent = t('details.dockerTitle');
+        if (subtitle) subtitle.textContent = t('details.dockerSubtitle');
     } else {
         const snippetState = await buildMavenSnippets(path, pathParts);
 		if (sequence !== snippetUpdateSequence) return;

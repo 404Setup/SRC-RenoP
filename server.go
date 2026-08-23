@@ -28,6 +28,7 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargodocs"
+	"renop/internal/service/docker"
 	"renop/internal/service/frontend"
 	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
@@ -142,6 +143,7 @@ func startServer() {
 	frontend.SetupFrontendRoutes(app, state)
 	javadocs.SetupJavadocRoutes(app, state)
 	cargodocs.SetupCargodocRoutes(app, state)
+	docker.SetupDockerRoutes(app, state, storage.NewDockerStore(cfg.StoragePath))
 	storage.SetupRoutes(app, state)
 
 	listenAddr := cfg.Server.Host + ":" + strconv.Itoa(int(cfg.Server.Port))

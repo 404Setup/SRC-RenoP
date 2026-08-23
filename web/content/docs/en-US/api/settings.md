@@ -1,181 +1,45 @@
 ---
-title: Settings
-order: 6
-category: API
+title: Settings API
+order: 8
+category: API Reference
+description: Server configuration, repository management, and index rebuild endpoints
 ---
 
-# Settings and repository config
+# Settings API
 
-Prefix: `/api/settings`
+## 1. Get Configuration
 
-Read and write require **manager / admin**.
+- **Path**: `GET /api/settings/config`
+- **Auth**: Manager or Admin
 
-All request/response bodies under this prefix that carry structured data use **`application/x-protobuf`** (see
-`proto/api/v1/api.proto`). Success bodies that are empty remain plain text (`""`). Validation errors remain short
-English text.
+---
 
-On-disk locations:
+## 2. Update Configuration
 
-| Content            | File                | Env var              |
-|--------------------|---------------------|----------------------|
-| Domain settings    | `config.yaml`       | `RENOP_CONFIG`       |
-| Maven repositories | `repositories.yaml` | `RENOP_REPOSITORIES` |
+- **Path**: `PUT /api/settings/config`
+- **Auth**: Admin
+- **Description**: Updates server parameters, domain names, proxies, and branding. Host, port, and TLS changes require
+  restarting the process.
 
-Listener / TLS changes need a process restart to fully apply.
+---
 
-## Index
+## 3. Repository Settings
 
-### `POST /api/settings/index/rebuild`
+### Get All Repositories
 
-Request: protobuf `RebuildIndexRequest`
+- **Path**: `GET /api/settings/maven/repositories`
+- **Auth**: Manager or Admin
 
-| Field  | Type   | Values           |
-|--------|--------|------------------|
-| `mode` | string | `full` \| `diff` |
+### Update Repository
 
-| mode   | Behavior                                  |
-|--------|-------------------------------------------|
-| `full` | Async full rebuild; clears Javadoc caches |
-| `diff` | Differential rebuild                      |
+- **Path**: `PUT /api/settings/maven/repositories/:name`
+- **Auth**: Manager or Admin
 
-Anything else → 400 (`Invalid mode. Expected 'full' or 'diff'`). Success: 200, empty string body.
+---
 
-## Config domains
+## 4. Rebuild Search Index
 
-### `GET /api/settings/domains`
-
-Response: protobuf `SettingsDomainsResponse`
-
-| Field     | Type            |
-|-----------|-----------------|
-| `domains` | repeated string |
-
-Typical values: `frontend`, `server`, `proxy`, `storage`, `updater`, `index`.
-
-`index` currently has no configurable fields.
-
-### `GET /api/settings/domain/:name`
-
-Response: protobuf message for that domain (Content-Type `application/x-protobuf`).
-
-**frontend** → `FrontendConfig`
-
-| Field                    | Type   |
-|--------------------------|--------|
-| `id`                     | string |
-| `title`                  | string |
-| `description`            | string |
-| `organization_website`   | string |
-| `organization_logo`      | string |
-| `background_url`         | string |
-| `icp_license`            | string |
-| `public_security_filing` | string |
-| `legal_notice_url`       | string |
-
-**server** → `ServerConfig`
-
-| Field                 | Type            | Description                      |
-|-----------------------|-----------------|----------------------------------|
-| `host`                | string          | Listen IP address                |
-| `port`                | uint32          | Listen port                      |
-| `ssl_enabled`         | bool            | Enable TLS                       |
-| `ssl_cert_path`       | string          | TLS certificate path             |
-| `ssl_key_path`        | string          | TLS key path                     |
-| `domains`             | repeated string | Public instance hostnames        |
-| `enable_compression`  | bool            | Enable HTTP response compression |
-| `file_cache_size_mb`  | uint32          | In-memory file cache limit (MB)  |
-| `max_active_requests` | uint32          | Max concurrent active requests   |
-| `trusted_proxies`     | repeated string | Trusted proxy CIDR/IP list       |
-| `cdn_ip_header`       | string          | Client IP header name            |
-| `cors_origins`        | repeated string | CORS origins allow list          |
-| `debug_mode`          | bool            | Enable debug profiling endpoints |
-| `database`            | DatabaseConfig  | Database connection settings     |
-| `audit_log`           | AuditLogConfig  | Audit log retention settings     |
-| `gpg`                 | GpgConfig       | OpenPGP key-server settings      |
-
-**DatabaseConfig**:
-
-| Field                   | Type   | Description                            |
-|-------------------------|--------|----------------------------------------|
-| `enabled`               | bool   | Enable database persistence            |
-| `driver`                | string | Database driver (`sqlite3` or `mysql`) |
-| `dsn`                   | string | Database DSN or path (e.g. `renop.db`) |
-| `max_open_conns`        | int32  | Maximum open connections               |
-| `max_idle_conns`        | int32  | Maximum idle connections               |
-| `conn_max_lifetime_sec` | int32  | Maximum connection lifetime in seconds |
-
-**AuditLogConfig** and **GpgConfig** are nested under `server`; there is no separate `gpg` domain.
-
-| Field                | Type            | Description                             |
-|----------------------|-----------------|-----------------------------------------|
-| `audit_log.enabled`  | bool            | Enable audit log persistence            |
-| `audit_log.max_rows` | int32           | Maximum retained audit rows             |
-| `gpg.key_servers`    | repeated string | HTTPS OpenPGP key servers (1–8 entries) |
-
-**proxy** → `ProxyConfig`
-
-The proxy domain contains named outbound HTTP/HTTPS/SOCKS5 proxies. An empty `selected` means direct connections; a
-named entry selects that proxy for global outbound work.
-
-**storage** → `StorageConfig`
-
-| Field                    | Type   |
-|--------------------------|--------|
-| `storage_path`           | string |
-| `enable_javadoc_preview` | bool   |
-| `javadoc_extract_path`   | string |
-| `max_javadoc_size_mb`    | int64  |
-
-**updater** → `UpdaterConfig`
-
-| Field     | Type   | Values                                                       |
-|-----------|--------|--------------------------------------------------------------|
-| `channel` | string | `release` \| `nightly`                                       |
-| `mode`    | string | `manual` \| `auto_check` \| `auto_install` \| `safe_install` |
-
-**index** → empty `IndexDomainSettings`
-
-### `PUT /api/settings/domain/:name`
-
-**Full replace** of the domain. Body is the same protobuf message as GET for that domain. Proto3 omitted fields decode
-as zero values — clients must send the complete domain configuration (the UI always POSTs the full form state).
-
-Success: 200, empty string.
-
-Rules:
-
-- `frontend.background_url`: when non-empty, must be reachable, public IP, WebP, ≤ 5 MiB; private addresses rejected
-- `storage.max_javadoc_size_mb`: must be > 0
-- `storage.storage_path`: when changed to a different path, the server immediately fully rebuilds the file index for the
-  new root (and restarts the FS watcher); Javadoc caches are cleared
-- `updater.channel` / `updater.mode`: must be one of the allowed enum values (empty is invalid)
-- `index`: nothing writable → 404
-
-Validation failure → 400 + short English error text.
-
-## Maven repositories
-
-### `GET /api/settings/maven/repositories`
-
-Response: protobuf `MavenRepositoriesResponse` (`map<string, Repository>`).
-
-| Field                   | Meaning                                                                      |
-|-------------------------|------------------------------------------------------------------------------|
-| `name`                  | Repository name                                                              |
-| `visibility`            | `PUBLIC` / `HIDDEN` / `PRIVATE`                                              |
-| `allow_redeployment`    | Whether existing artifacts may be overwritten                                |
-| `require_gpg_signature` | Require detached GPG signatures for protected artifacts                      |
-| `mirrors[]`             | Upstream mirrors (`proxy` selection, url, persist, TTL, auth, allow/deny, …) |
-| `s3`                    | Optional S3-compatible storage                                               |
-
-### `PUT /api/settings/maven/repositories/:name`
-
-Create or **full replace**. Body is protobuf `Repository`. Path `:name` wins over body `name`.
-
-Reserved names: `css`, `js`, `svg`, `api`, `javadocs`, `assets`, plus invalid characters.
-
-Success: 200, empty string.
-
-### `DELETE /api/settings/maven/repositories/:name`
-
-Remove from config; **does not** delete files on disk. Success: 200, empty string.
+- **Path**: `POST /api/settings/index/rebuild`
+- **Auth**: Admin
+- **Description**: Asynchronously scans storage and rebuilds the `index.json` search cache.
+- **Response**: `202 Accepted`, `{"message": "Index rebuild triggered"}`

@@ -142,6 +142,7 @@ function searchResultTypeLabel(type) {
     const normalized = String(type || '').toUpperCase();
     if (normalized === 'DIRECTORY') return t('search.directory');
     if (normalized === 'PACKAGE') return t('search.package');
+    if (normalized === 'IMAGE') return t('search.image');
     return t('search.file');
 }
 
@@ -159,7 +160,8 @@ function buildSearchResult(result) {
         'data-search-path': String(result?.path || ''),
         'data-search-type': type
     });
-    const icon = createIcon(type === 'DIRECTORY' ? 'folder' : type === 'PACKAGE' ? 'box' : 'file');
+    const iconName = type === 'DIRECTORY' ? 'folder' : (type === 'PACKAGE' || type === 'IMAGE') ? 'box' : 'file';
+    const icon = createIcon(iconName);
     icon.classList.add('repository-search-result-icon');
     const copy = el('span', {class: 'repository-search-result-copy'},
         el('strong', {}, String(result?.name || '')),
@@ -340,6 +342,17 @@ function initializeRepositorySearch() {
 }
 
 /**
+ * Return the localized search placeholder for a repository format.
+ * @param {string} format - Repository format identifier.
+ * @returns {string} Localized placeholder copy.
+ */
+function getSearchPlaceholder(format) {
+    if (format === 'cargo') return t('search.cargoPlaceholder');
+    if (format === 'docker') return t('search.dockerPlaceholder') || t('docker.searchPlaceholder');
+    return t('search.mavenPlaceholder');
+}
+
+/**
  * Configure search for the active repository or hide it outside repositories.
  * @param {string} repository - Active repository name, or an empty string.
  * @param {string} format - Normalized repository format.
@@ -356,7 +369,7 @@ export function updateRepositorySearch(repository, format, navigate) {
     activeFormat = format || 'maven';
     activeNavigate = navigate;
     form.hidden = !activeRepository;
-    input.placeholder = t(activeFormat === 'cargo' ? 'search.cargoPlaceholder' : 'search.mavenPlaceholder');
+    input.placeholder = getSearchPlaceholder(activeFormat);
     input.setAttribute('aria-label', input.placeholder);
     if (changed || !activeRepository) clearRepositorySearch();
 }
@@ -368,6 +381,6 @@ export function updateRepositorySearch(repository, format, navigate) {
 export function localizeRepositorySearch() {
     const input = document.getElementById('repository-search-input');
     if (!(input instanceof HTMLInputElement) || !activeRepository) return;
-    input.placeholder = t(activeFormat === 'cargo' ? 'search.cargoPlaceholder' : 'search.mavenPlaceholder');
+    input.placeholder = getSearchPlaceholder(activeFormat);
     input.setAttribute('aria-label', input.placeholder);
 }

@@ -1,0 +1,259 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package docker
+
+import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/3JoB/unsafeConvert"
+	"github.com/goccy/go-json"
+	"github.com/gofiber/fiber/v3"
+	"golang.org/x/crypto/bcrypt"
+
+	"renop/internal/config"
+	"renop/internal/core"
+	"renop/internal/service/auth"
+	"renop/internal/utils"
+)
+
+type AccessEntry struct {
+	Type    string   `json:"type"`
+	Name    string   `json:"name"`
+	Actions []string `json:"actions"`
+}
+
+type TokenClaims struct {
+	Issuer    string        `json:"iss"`
+	Subject   string        `json:"sub"`
+	Audience  string        `json:"aud"`
+	ExpiresAt int64         `json:"exp"`
+	NotBefore int64         `json:"nbf"`
+	IssuedAt  int64         `json:"iat"`
+	Access    []AccessEntry `json:"access"`
+}
+
+// GenerateDockerSecret creates 32 cryptographically secure random bytes for Docker HMAC signing.
+func GenerateDockerSecret() []byte {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return b
+}
+
+// GenerateDockerToken creates a signed JWT for Docker CLI authorization.
+func GenerateDockerToken(signingSecret []byte, subject, audience string, access []AccessEntry, ttl time.Duration) (string, error) {
+	headerJSON, _ := json.Marshal(map[string]string{
+		"typ": "JWT",
+		"alg": "HS256",
+	})
+	headerEncoded := base64.RawURLEncoding.EncodeToString(headerJSON)
+
+	now := time.Now().Unix()
+	claims := TokenClaims{
+		Issuer:    "renop",
+		Subject:   subject,
+		Audience:  audience,
+		ExpiresAt: now + int64(ttl.Seconds()),
+		NotBefore: now - 5,
+		IssuedAt:  now,
+		Access:    access,
+	}
+
+	claimsJSON, err := json.Marshal(claims)
+	if err != nil {
+		return "", err
+	}
+	claimsEncoded := base64.RawURLEncoding.EncodeToString(claimsJSON)
+
+	message := headerEncoded + "." + claimsEncoded
+	mac := hmac.New(sha256.New, signingSecret)
+	mac.Write(unsafeConvert.BytePointer(message))
+	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	return message + "." + signature, nil
+}
+
+// ValidateDockerToken verifies the HMAC signature and expiration of a Docker bearer token.
+func ValidateDockerToken(signingSecret []byte, tokenStr string) (*TokenClaims, error) {
+	parts := strings.Split(tokenStr, ".")
+	if len(parts) != 3 {
+		return nil, errorsNew("invalid token format")
+	}
+
+	message := parts[0] + "." + parts[1]
+	expectedSig := parts[2]
+
+	mac := hmac.New(sha256.New, signingSecret)
+	mac.Write(unsafeConvert.BytePointer(message))
+	actualSig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	if !hmac.Equal([]byte(expectedSig), []byte(actualSig)) {
+		return nil, errorsNew("invalid token signature")
+	}
+
+	claimsBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, errorsNew("invalid claims encoding")
+	}
+
+	var claims TokenClaims
+	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
+		return nil, errorsNew("invalid claims JSON")
+	}
+
+	now := time.Now().Unix()
+	if claims.ExpiresAt < now {
+		return nil, errorsNew("token expired")
+	}
+	if claims.NotBefore > now+60 {
+		return nil, errorsNew("token not yet valid")
+	}
+
+	return &claims, nil
+}
+
+func errorsNew(msg string) error {
+	return fmt.Errorf("%s", msg)
+}
+
+// HandleTokenAuth handles the /v2/token and /v2/auth endpoints.
+func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
+	service := c.Query("service")
+	account := c.Query("account")
+	if account == "" {
+		account = c.Query("client_id")
+	}
+
+	cfg := state.Inner.Config.Load()
+	if service == "" {
+		service = cfg.Server.Host
+	}
+
+	user := auth.GetUser(c)
+	if user == nil || user.Username == "guest" {
+		authHeader := c.Get(fiber.HeaderAuthorization)
+		if after, ok := strings.CutPrefix(authHeader, "Basic "); ok {
+			basicAuth := after
+			if decoded, err := utils.DecodeB64(basicAuth); err == nil {
+				parts := strings.SplitN(unsafeConvert.StringPointer(decoded), ":", 2)
+				if len(parts) == 2 {
+					u := strings.ToLower(parts[0])
+					p := parts[1]
+					if tokenObj := state.GetTokenByName(u); tokenObj != nil {
+						if verifyTokenSecretDirect(tokenObj, p) {
+							user = &config.User{
+								Username: u,
+								Roles:    tokenObj.Permissions,
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (user == nil || user.Username == "guest") && account != "" {
+			password := c.Query("password")
+			if password != "" {
+				u := strings.ToLower(account)
+				if tokenObj := state.GetTokenByName(u); tokenObj != nil {
+					if verifyTokenSecretDirect(tokenObj, password) {
+						user = &config.User{
+							Username: u,
+							Roles:    tokenObj.Permissions,
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if user == nil {
+		user = auth.GuestUser
+	}
+
+	var rawScopes []string
+	for k, v := range c.Request().URI().QueryArgs().All() {
+		if string(k) == "scope" {
+			rawScopes = append(rawScopes, strings.Fields(string(v))...)
+		}
+	}
+	if len(rawScopes) == 0 {
+		if s := c.Query("scope"); s != "" {
+			rawScopes = strings.Fields(s)
+		}
+	}
+
+	var accessList []AccessEntry
+	for _, scope := range rawScopes {
+		scopeParts := strings.SplitN(scope, ":", 3)
+		if len(scopeParts) == 3 && scopeParts[0] == "repository" {
+			repoFullName := scopeParts[1]
+			actionsReq := strings.Split(scopeParts[2], ",")
+
+			repoName, _ := ParseRepositoryAndImage(repoFullName)
+			repo := cfg.Maven.Repositories[repoName]
+
+			var grantedActions []string
+			for _, action := range actionsReq {
+				action = strings.TrimSpace(action)
+				switch action {
+				case "pull":
+					if CanReadDocker(state, user, repo, repoFullName) {
+						grantedActions = append(grantedActions, "pull")
+					}
+				case "push":
+					if CanWriteDocker(state, user, repo, repoName) {
+						grantedActions = append(grantedActions, "push")
+					}
+				}
+			}
+
+			accessList = append(accessList, AccessEntry{
+				Type:    "repository",
+				Name:    repoFullName,
+				Actions: grantedActions,
+			})
+		}
+	}
+
+	signingKey := state.GetDockerSecret()
+	tokenStr, err := GenerateDockerToken(signingKey, user.Username, service, accessList, 2*time.Hour)
+	if err != nil {
+		return RespondError(c, fiber.StatusInternalServerError, ErrCodeDenied, "failed to issue token", nil)
+	}
+
+	c.Set(DockerHeaderVersion, DockerVersionValue)
+	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
+	return c.Status(fiber.StatusOK).JSON(TokenResponse{
+		Token:       tokenStr,
+		AccessToken: tokenStr,
+		ExpiresIn:   7200,
+		IssuedAt:    time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func verifyTokenSecretDirect(accessToken *core.AccessToken, secret string) bool {
+	if slices.Contains(accessToken.Tokens, secret) {
+		return true
+	}
+	if accessToken.EncryptedSecret != "" {
+		if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
+			return true
+		}
+	}
+	return false
+}

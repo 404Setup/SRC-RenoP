@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -102,6 +104,7 @@ export default Object.freeze({
     "repos.formatDesc": "此仓库对外提供的软件包协议",
     "repos.formatMaven": "Maven",
     "repos.formatCargo": "Cargo",
+    "repos.formatDocker": "Docker / OCI",
     "repos.artifactUrl": "制品 URL 模板",
     "repos.artifactUrlHint": "可选的 Cargo 下载源，需包含 {crate} 与 {version}；留空时使用索引地址",
     "repos.cargoMirrorAllowListHint": "填写允许从该镜像下载的准确 crate 名称",
@@ -109,10 +112,18 @@ export default Object.freeze({
     "repos.cargoAddRulePlaceholder": "输入 crate 名称（按回车或逗号添加）",
     "repos.cargoEmptyAllowList": "未配置允许规则（默认允许所有 crate）",
     "repos.cargoEmptyDenyList": "未配置拒绝规则（默认不拦截任何 crate）",
+    "repos.dockerMirrorUrl": "Docker 注册表 URL",
+    "repos.dockerMirrorUrlHint": "上游注册表基础地址，例如 https://registry-1.docker.io",
+    "repos.dockerMirrorAllowListHint": "填写允许从该镜像下载的镜像名（如 library/ubuntu、library/*）",
+    "repos.dockerMirrorDenyListHint": "填写禁止从该镜像下载的镜像名",
+    "repos.dockerAddRulePlaceholder": "输入镜像名称（按回车或逗号添加）",
+    "repos.dockerEmptyAllowList": "未配置允许规则（默认允许所有镜像）",
+    "repos.dockerEmptyDenyList": "未配置拒绝规则（默认不拦截任何镜像）",
     "repos.subtitle": "管理软件包仓库及其协议专用配置。",
     "repos.addRepoTitle": "添加软件包仓库",
     "repos.formatMavenDesc": "支持 Maven 构件、元数据、网页上传与 GPG 策略。",
     "repos.formatCargoDesc": "支持 Cargo sparse 索引、crate 发布、镜像与软件包团队。",
+    "repos.formatDockerDesc": "支持 Docker 与 OCI 容器镜像、多架构 Manifest 与镜像拉取缓存。",
     "repos.formatImmutableDesc": "仓库格式创建后不可更改。",
     "repos.formatCreateDesc": "选择客户端协议；创建后不可更改。",
     "repos.name": "仓库名称",
@@ -126,6 +137,12 @@ export default Object.freeze({
     "details.cargoSourceTab": "源替换",
     "details.cargoLoginTab": "登录",
     "details.cargoPublishTab": "发布",
+    "details.dockerTitle": "Docker 注册表配置",
+    "details.dockerSubtitle": "拉取、打标签、推送与登录验证命令",
+    "details.dockerPullTab": "拉取 (Pull)",
+    "details.dockerTagTab": "标签 (Tag)",
+    "details.dockerPushTab": "推送 (Push)",
+    "details.dockerLoginTab": "登录 (Login)",
     "cargo.packagesTitle": "Cargo 软件包",
     "cargo.packagesSubtitle": "管理版本、封存状态和软件包团队",
     "cargo.noPackagesAdmin": "此仓库中尚未记录本地拥有的 Cargo 软件包。",

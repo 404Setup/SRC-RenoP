@@ -11,6 +11,7 @@
 package core
 
 import (
+	"crypto/rand"
 	"errors"
 	"strings"
 	"sync"
@@ -122,6 +123,23 @@ type StateDB interface {
 	SetCargoMemberLevel(repository, normalizedName, actor, username string, level int) error
 	RemoveCargoMember(repository, normalizedName, actor, username string) error
 	RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error
+	GetDockerImage(repository, imageName string) (*DockerRepositoryImage, error)
+	UpdateDockerImageDescription(repository, imageName, description string) error
+	ListDockerImages(repository, last string, limit int) ([]*DockerRepositoryImage, error)
+	SearchDockerImages(repository, query string, limit, offset int) ([]*DockerRepositoryImage, int, error)
+	GetDockerImageDetails(repository, imageName string) (*DockerImageDetails, error)
+	GetDockerTag(repository, imageName, tag string) (*DockerTag, error)
+	ListDockerTags(repository, imageName, last string, limit int) ([]*DockerTag, error)
+	GetDockerManifest(repository, imageName, digest string) (*DockerManifest, error)
+	PutDockerManifest(manifest *DockerManifest, tag string, username string) error
+	DeleteDockerTag(repository, imageName, tag string) error
+	DeleteDockerManifest(repository, imageName, digest string) error
+	DeleteDockerImage(repository, imageName string) error
+	DeleteDockerRepository(repository string) error
+	RecordDockerBlob(repository, digest string, size int64) error
+	HasDockerBlob(repository, digest string) (bool, int64, error)
+	DeleteDockerBlob(repository, digest string) error
+	GetDockerRepositoryStats(repository string) (totalImages int64, totalTags int64, totalSize int64, err error)
 }
 
 type AppStateInner struct {
@@ -138,6 +156,7 @@ type AppStateInner struct {
 	Sessions           pb.MapOf[string, *Session]
 	AuditLogChan       chan *AuditLogEntry
 	DB                 any
+	DockerSecret       []byte
 
 	FileIndex              *index.FileIndex
 	IndexWatcher           *fsnotify.Watcher
@@ -184,6 +203,21 @@ func (state *AppState) GetDB() StateDB {
 		return sdb
 	}
 	return nil
+}
+
+func (state *AppState) GetDockerSecret() []byte {
+	if state == nil || state.Inner == nil {
+		return []byte("renop-docker-token-secret-fallback")
+	}
+	if len(state.Inner.DockerSecret) == 0 {
+		secret := make([]byte, 32)
+		if _, err := rand.Read(secret); err != nil {
+			state.Inner.DockerSecret = []byte("renop-docker-token-secret-fallback")
+		} else {
+			state.Inner.DockerSecret = secret
+		}
+	}
+	return state.Inner.DockerSecret
 }
 
 func (state *AppState) GetTokenByName(name string) *AccessToken {

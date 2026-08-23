@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -102,6 +104,7 @@ export default Object.freeze({
     "repos.formatDesc": "Протокол пакетов, предоставляемый репозиторием",
     "repos.formatMaven": "Maven",
     "repos.formatCargo": "Cargo",
+    "repos.formatDocker": "Docker / OCI",
     "repos.artifactUrl": "Шаблон URL артефакта",
     "repos.artifactUrlHint": "Необязательный источник загрузки Cargo с {crate} и {version}; оставьте пустым, чтобы использовать URL индекса",
     "repos.cargoMirrorAllowListHint": "Укажите точные имена крейтов, разрешённых для этого зеркала",
@@ -109,10 +112,18 @@ export default Object.freeze({
     "repos.cargoAddRulePlaceholder": "Введите имя крейта (Enter или запятая)",
     "repos.cargoEmptyAllowList": "Правила разрешения не настроены (по умолчанию разрешены все крейты)",
     "repos.cargoEmptyDenyList": "Правила запрета не настроены (по умолчанию крейты не блокируются)",
+    "repos.dockerMirrorUrl": "URL реестра Docker",
+    "repos.dockerMirrorUrlHint": "Базовый URL вышестоящего реестра, например https://registry-1.docker.io",
+    "repos.dockerMirrorAllowListHint": "Укажите имена образов, разрешённых для этого зеркала (например, library/ubuntu, library/*)",
+    "repos.dockerMirrorDenyListHint": "Укажите имена образов, заблокированных для этого зеркала",
+    "repos.dockerAddRulePlaceholder": "Введите имя образа (Enter или запятая)",
+    "repos.dockerEmptyAllowList": "Правила разрешения не настроены (по умолчанию разрешены все образы)",
+    "repos.dockerEmptyDenyList": "Правила запрета не настроены (по умолчанию образы не блокируются)",
     "repos.subtitle": "Управление репозиториями пакетов и настройками для каждого протокола.",
     "repos.addRepoTitle": "Добавить репозиторий пакетов",
     "repos.formatMavenDesc": "Артефакты Maven, метаданные, загрузка через браузер и политика GPG.",
     "repos.formatCargoDesc": "Sparse-индекс Cargo, публикация crates, зеркала и команды пакетов.",
+    "repos.formatDockerDesc": "Образы контейнеров Docker и OCI, мультиархитектурные манифесты и кэширование зеркал.",
     "repos.formatImmutableDesc": "Формат репозитория нельзя изменить после создания.",
     "repos.formatCreateDesc": "Выберите клиентский протокол. Позже изменить его будет нельзя.",
     "repos.name": "Имя репозитория",
@@ -126,6 +137,12 @@ export default Object.freeze({
     "details.cargoSourceTab": "Замена источника",
     "details.cargoLoginTab": "Вход",
     "details.cargoPublishTab": "Публикация",
+    "details.dockerTitle": "Настройка реестра Docker",
+    "details.dockerSubtitle": "Команды для pull, tag, push и аутентификации",
+    "details.dockerPullTab": "Pull",
+    "details.dockerTagTab": "Tag",
+    "details.dockerPushTab": "Push",
+    "details.dockerLoginTab": "Вход",
     "cargo.packagesTitle": "Пакеты Cargo",
     "cargo.packagesSubtitle": "Управление версиями, архивированием и командами пакетов",
     "cargo.noPackagesAdmin": "В этом репозитории нет локально принадлежащих пакетов Cargo.",

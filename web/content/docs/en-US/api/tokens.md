@@ -1,105 +1,101 @@
 ---
-title: Tokens
+title: Tokens & Users API
 order: 3
-category: API
+category: API Reference
+description: Personal Access Tokens (PAT), upload tokens, and user management endpoints
 ---
 
-# Users and access tokens
+# Tokens & Users API
 
-Prefix: `/api/tokens`
+## 1. List Tokens
 
-Every endpoint requires **manager / admin**. Regular users change their own password or upload token via
-`/api/auth/profile/*`.
+- **Path**: `GET /api/tokens`
+- **Auth**: Required (Regular users see own tokens; Managers/Admins see all)
 
-A “token” here is an account record: username, password hash, permissions, optional upload token. Persisted in
-`tokens.yaml`.
-
-## `GET /api/tokens`
-
-List all accounts. Response: `application/x-protobuf`, `AccessTokenList`.
-
-Shape (JSON illustration):
+### Response (JSON)
 
 ```json
 {
   "tokens": [
     {
-      "identifier": {"type": "PERSISTENT", "value": 1},
-      "name": "admin",
-      "created_at": "2026-01-01T00:00:00Z",
-      "description": "…",
-      "expires_at": null,
-      "tokens": ["<upload-token-if-any>"],
-      "permissions": ["manager", "canview:*", "canupdate:*"]
+      "id": "tok_123456",
+      "name": "CI-Deploy-Token",
+      "user": "ci_bot",
+      "token_type": "upload",
+      "scopes": ["canupdate:releases"],
+      "created_at": 1740000000,
+      "expires_at": 1771536000
     }
   ]
 }
 ```
 
-Password hashes are never returned. The `tokens` array holds plaintext upload tokens when present. Forbidden → 403.
+---
 
-## `GET /api/tokens/:name`
+## 2. Create Token
 
-Single account as **protobuf** `AccessTokenDto` (`application/x-protobuf`). Names are case-insensitive (stored
-lowercased). Missing → 404.
+- **Path**: `POST /api/tokens`
+- **Auth**: Required
 
-## `PUT /api/tokens/:name`
+### Request Body (JSON)
 
-Create or update. Body: `application/x-protobuf`, `CreateAccessTokenRequest` (also accepts JSON).
-
-| Field         | Meaning                                                                                  |
-|---------------|------------------------------------------------------------------------------------------|
-| `is_create`   | `true` and name already exists → 409                                                     |
-| `secret`      | On create, omit to generate a UUID password; on update, omit to leave password unchanged |
-| `new_name`    | Rename; target conflict → 409                                                            |
-| `permissions` | Replaces the permission list only when provided                                          |
-
-Response: `application/x-protobuf`, `CreateAccessTokenResponse`
-
-```protobuf
-syntax = "proto3";
-
-message CreateAccessTokenResponse {
-  AccessTokenDto access_token = 1;
-  string secret = 2; // present only when generated or supplied this request
+```json
+{
+  "name": "Local-Maven-Token",
+  "token_type": "pat",
+  "scopes": ["canview:releases", "canupdate:snapshots"],
+  "expires_in_days": 90
 }
 ```
 
-Save `secret` immediately after create — plaintext passwords are not recoverable later.
+### Response
 
-## `DELETE /api/tokens/:name`
+- **Status**: `201 Created`
+- **Body (JSON)**: Returns the raw token string once:
 
-Delete account. `204`. Missing → 404.
+```json
+{
+  "id": "tok_123456",
+  "token": "renop_pat_abcdef1234567890...",
+  "name": "Local-Maven-Token"
+}
+```
 
-## Browser sessions and FIDO devices (manager)
+---
 
-Managers can list and revoke **browser login sessions** and **FIDO security key devices** for any account. Basic/Bearer
-credentials are not sessions. Session secrets are never returned.
+## 3. Revoke Token
 
-### `GET /api/tokens/:name/sessions`
+- **Path**: `DELETE /api/tokens/:id`
+- **Auth**: Token owner or Admin
 
-`SessionList` protobuf. `404` if the account does not exist.
+### Response
 
-### `POST /api/tokens/:name/sessions/revoke-all`
+- **Status**: `204 No Content`
 
-Revoke all browser sessions for that user. When the manager targets their **own** account, the session making this
-request is kept. Response: `StatusOk` protobuf.
+---
 
-### `DELETE /api/tokens/:name/sessions/:session_id`
+## 4. User Accounts Management (Manager / Admin)
 
-Revoke one session by `public_id`. Response: `StatusOk` protobuf. Missing id is a no-op.
+### List Users
 
-### `GET /api/auth/users/:username/fido`
+- **Path**: `GET /api/auth/users`
+- **Auth**: Manager or Admin
 
-Manager endpoint to list registered FIDO devices for the specified user. Response: `FidoDeviceList` protobuf.
+### Create User
 
-### `DELETE /api/auth/users/:username/fido/:device_id`
+- **Path**: `POST /api/auth/users`
+- **Auth**: Manager or Admin
+- **Body**:
+  ```json
+  {
+    "username": "developer1",
+    "password": "InitialPassword123!",
+    "role": "user",
+    "permissions": ["canview:releases", "canupdate:snapshots"]
+  }
+  ```
 
-Manager endpoint to delete a registered FIDO device for the specified user. Response: `StatusOk` protobuf.
+### Delete User
 
-## `POST /api/tokens/:name/token`
-
-Admin re-issues the upload token for a user (replaces the old one). Response: `GenerateTokenResponse` protobuf
-(`token: "<uuid>"`).
-
-Same idea as `/api/auth/profile/token`, but for another user.
+- **Path**: `DELETE /api/auth/users/:username`
+- **Auth**: Admin

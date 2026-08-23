@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@renop/ui": "workspace:*",
+    "marked": "^18.0.10",
     "protobufjs": "^8.7.2"
   }
 }

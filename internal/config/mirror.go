@@ -61,9 +61,9 @@ func (m *Mirror) ValidateArtifactURL(format string) error {
 		(!strings.Contains(template, "{crate}") || !strings.Contains(template, "{version}")) {
 		return errors.New("Cargo artifact URL must contain {crate} and {version}")
 	}
-	authorityStart := strings.Index(template, "://")
-	if authorityStart >= 0 {
-		authority := template[authorityStart+3:]
+	_, after, ok := strings.Cut(template, "://")
+	if ok {
+		authority := after
 		if end := strings.IndexAny(authority, "/?#"); end >= 0 {
 			authority = authority[:end]
 		}
@@ -192,6 +192,34 @@ func (m *Mirror) IsArtifactAllowedFor(format, path string) (bool, string) {
 		return true, ""
 	}
 
+	if strings.EqualFold(strings.TrimSpace(format), RepositoryFormatDocker) {
+		image := dockerImageFromPath(clean)
+		if image == "" {
+			return true, ""
+		}
+		match := func(pattern string) bool {
+			pattern = strings.ToLower(strings.TrimSpace(pattern))
+			if pattern == "" {
+				return false
+			}
+			if before, ok := strings.CutSuffix(pattern, "/*"); ok {
+				prefix := before
+				return strings.HasPrefix(image, prefix+"/")
+			}
+			return pattern == image
+		}
+		if hasAllow {
+			if slices.ContainsFunc(m.AllowArtifacts, match) {
+				return true, ""
+			}
+			return false, "Docker image blocked: Not in mirror allow list (" + clean + ")"
+		}
+		if slices.ContainsFunc(m.DenyArtifacts, match) {
+			return false, "Docker image blocked: In mirror deny list (" + clean + ")"
+		}
+		return true, ""
+	}
+
 	group, artifactId := parseMavenGroupArtifact(path)
 
 	ga := group
@@ -244,6 +272,29 @@ func cargoCrateFromPath(path string) string {
 func normalizeCargoRule(value string) string {
 	value = strings.ToLower(strings.TrimSpace(value))
 	return strings.ReplaceAll(value, "_", "-")
+}
+
+func dockerImageFromPath(path string) string {
+	path = strings.Trim(path, "/")
+	if path == "" {
+		return ""
+	}
+	parts := strings.Split(path, "/")
+	if len(parts) > 0 && parts[0] == "v2" {
+		parts = parts[1:]
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	for i, part := range parts {
+		if part == "manifests" || part == "blobs" || part == "tags" {
+			if i > 0 {
+				return strings.ToLower(strings.Join(parts[:i], "/"))
+			}
+			return ""
+		}
+	}
+	return strings.ToLower(strings.Join(parts, "/"))
 }
 
 func (m *Mirror) setDefaults() {

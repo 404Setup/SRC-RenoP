@@ -348,6 +348,55 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		UNIQUE (repository, normalized_name, recipient)
 	);`
 
+	dockerImagesTable := `
+	CREATE TABLE IF NOT EXISTS docker_images (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		description TEXT NOT NULL DEFAULT '',
+		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name)
+	);`
+
+	dockerTagsTable := `
+	CREATE TABLE IF NOT EXISTS docker_tags (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		tag VARCHAR(128) NOT NULL,
+		digest VARCHAR(128) NOT NULL,
+		media_type VARCHAR(128) NOT NULL DEFAULT '',
+		size BIGINT NOT NULL DEFAULT 0,
+		config_digest VARCHAR(128) NOT NULL DEFAULT '',
+		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name, tag)
+	);`
+
+	dockerManifestsTable := `
+	CREATE TABLE IF NOT EXISTS docker_manifests (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		digest VARCHAR(128) NOT NULL,
+		media_type VARCHAR(128) NOT NULL DEFAULT '',
+		size BIGINT NOT NULL DEFAULT 0,
+		config_digest VARCHAR(128) NOT NULL DEFAULT '',
+		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		raw_json TEXT NOT NULL,
+		created_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name, digest)
+	);`
+
+	dockerBlobsTable := `
+	CREATE TABLE IF NOT EXISTS docker_blobs (
+		repository VARCHAR(64) NOT NULL,
+		digest VARCHAR(128) NOT NULL,
+		size BIGINT NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, digest)
+	);`
+
 	tables := []string{
 		tokensTable,
 		sessionsTable,
@@ -363,6 +412,10 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		cargoVersionsTable,
 		cargoMembersTable,
 		cargoInvitationsTable,
+		dockerImagesTable,
+		dockerTagsTable,
+		dockerManifestsTable,
+		dockerBlobsTable,
 	}
 
 	for _, tbl := range tables {
@@ -401,6 +454,11 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		{Name: "idx_cargo_versions_package", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_versions_package ON cargo_versions(repository, normalized_name, created_at DESC);"},
 		{Name: "idx_cargo_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_members_user ON cargo_members(username, repository);"},
 		{Name: "idx_cargo_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_invitations_recipient ON cargo_invitations(recipient, created_at);"},
+		{Name: "idx_docker_tags_repo_img", Query: "CREATE INDEX IF NOT EXISTS idx_docker_tags_repo_img ON docker_tags(repository, image_name, updated_at DESC);"},
+		{Name: "idx_docker_tags_digest", Query: "CREATE INDEX IF NOT EXISTS idx_docker_tags_digest ON docker_tags(repository, digest);"},
+		{Name: "idx_docker_manifests_repo_img", Query: "CREATE INDEX IF NOT EXISTS idx_docker_manifests_repo_img ON docker_manifests(repository, image_name);"},
+		{Name: "idx_docker_images_search", Query: "CREATE INDEX IF NOT EXISTS idx_docker_images_search ON docker_images(repository, image_name);"},
+		{Name: "idx_docker_blobs_repo", Query: "CREATE INDEX IF NOT EXISTS idx_docker_blobs_repo ON docker_blobs(repository, digest);"},
 	}
 
 	for _, migration := range indexMigrations {

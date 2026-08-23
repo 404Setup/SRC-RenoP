@@ -46,6 +46,9 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "cargo_versions.repository_url", Query: "ALTER TABLE cargo_versions ADD COLUMN repository_url VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_versions.homepage", Query: "ALTER TABLE cargo_versions ADD COLUMN homepage VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_versions.documentation", Query: "ALTER TABLE cargo_versions ADD COLUMN documentation VARCHAR(1024) NOT NULL DEFAULT '';"},
+	{Name: "docker_images.publisher", Query: "ALTER TABLE docker_images ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
+	{Name: "docker_tags.publisher", Query: "ALTER TABLE docker_tags ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
+	{Name: "docker_manifests.publisher", Query: "ALTER TABLE docker_manifests ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
 }
 
 func NewDialect(driver string) Dialect {

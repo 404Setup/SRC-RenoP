@@ -68,9 +68,11 @@ function Get-SourceLineCount {
 $go = Get-SourceLineCount -Filter '*.go'
 $js = Get-SourceLineCount -Filter '*.js'
 $css = Get-SourceLineCount -Filter '*.css'
-$total = $go + $js + $css
+$md = Get-SourceLineCount -Filter '*.md'
+$total = $go + $js + $css + $md
 
 Write-Host "Total: $total"
 Write-Host "Go: $go"
 Write-Host "JS: $js"
 Write-Host "CSS: $css"
+Write-Host "Markdown: $md"

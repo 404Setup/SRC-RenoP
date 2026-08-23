@@ -208,9 +208,19 @@ export class RenopDialog extends HTMLElement {
             if (opts.footerStyle) Object.assign(footerEl.style, opts.footerStyle);
             if (Array.isArray(opts.footer)) {
                 opts.footer.forEach(btnConfig => {
+                    let btnClass = btnConfig.className;
+                    if (!btnClass) {
+                        if (btnConfig.variant === 'primary') {
+                            btnClass = 'action-btn primary-btn';
+                        } else if (btnConfig.variant === 'danger') {
+                            btnClass = 'action-btn primary-btn btn-danger';
+                        } else {
+                            btnClass = 'action-btn';
+                        }
+                    }
                     const btnProps = {
                         type: btnConfig.type || 'button',
-                        class: btnConfig.className || 'action-btn'
+                        class: btnClass
                     };
                     if (btnConfig.id) btnProps.id = btnConfig.id;
                     if (btnConfig.style) btnProps.style = btnConfig.style;

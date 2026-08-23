@@ -46,8 +46,23 @@ func SetupApiRoutes(router fiber.Router, state *core.AppState) {
 	router.Get("/repositories/details/:repo_name", func(c fiber.Ctx) error { return GetDetailsRoot(c, state) })
 	router.Get("/repositories/details/:repo_name/*", func(c fiber.Ctx) error { return GetDetails(c, state) })
 	router.Get("/repositories/repo-details/:repo_name", func(c fiber.Ctx) error { return GetRepoDetails(c, state) })
-	router.Get("/repositories/signatures/:repo_name/*", func(c fiber.Ctx) error { return GetGPGSignature(c, state) })
 	router.Get("/repositories/search/:repo_name", func(c fiber.Ctx) error { return SearchRepository(c, state) })
+
+	router.Get("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error {
+		if c.Query("image") != "" {
+			return GetDockerImageDetailsAPI(c, state)
+		}
+		return ListDockerImagesAPI(c, state)
+	})
+	router.Get("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return GetDockerImageDetailsAPI(c, state) })
+	router.Put("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error { return UpdateDockerImageDescriptionAPI(c, state) })
+	router.Put("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return UpdateDockerImageDescriptionAPI(c, state) })
+	router.Get("/docker/repositories/:repo_name/manifests", func(c fiber.Ctx) error { return GetDockerManifestAPI(c, state) })
+	router.Get("/docker/repositories/:repo_name/manifests/*", func(c fiber.Ctx) error { return GetDockerManifestAPI(c, state) })
+	router.Delete("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error { return DeleteDockerImageAPI(c, state) })
+	router.Delete("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return DeleteDockerImageAPI(c, state) })
+	router.Delete("/docker/repositories/:repo_name/tags", func(c fiber.Ctx) error { return DeleteDockerTagAPI(c, state) })
+	router.Delete("/docker/repositories/:repo_name/tags/*", func(c fiber.Ctx) error { return DeleteDockerTagAPI(c, state) })
 
 	router.Get("/maven/versions/:repo_name/*", func(c fiber.Ctx) error { return FindVersions(c, state) })
 	router.Get("/maven/latest/version/:repo_name/*", func(c fiber.Ctx) error { return LatestVersion(c, state) })

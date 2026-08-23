@@ -73,6 +73,8 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	var response *pb.RepositorySearchResponse
 	if repo.NormalizedFormat() == config.RepositoryFormatCargo {
 		response, err = searchCargoRepository(state, repo, query, limit)
+	} else if repo.NormalizedFormat() == config.RepositoryFormatDocker {
+		response, err = searchDockerRepository(state, repo, query, limit)
 	} else {
 		response, err = searchMavenRepository(state, cfg.StoragePath, repo, user, query, limit)
 	}
@@ -81,6 +83,31 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return protohttp.Write(c, response)
+}
+
+func searchDockerRepository(state *core.AppState, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {
+	db := state.GetDB()
+	if db == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	images, total, err := db.SearchDockerImages(repo.Name, query, limit, 0)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*pb.RepositorySearchResult, 0, len(images))
+	for _, img := range images {
+		if img == nil {
+			continue
+		}
+		results = append(results, &pb.RepositorySearchResult{
+			Name: img.ImageName, Path: img.ImageName, Type: "IMAGE",
+			Description: img.Description, LatestVersion: img.LatestTag,
+			ModifiedAt: img.UpdatedAt,
+		})
+	}
+	return &pb.RepositorySearchResponse{
+		Format: config.RepositoryFormatDocker, Results: results, Total: int32(total), HasMore: total > len(results),
+	}, nil
 }
 
 func searchCargoRepository(state *core.AppState, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {

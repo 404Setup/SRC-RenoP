@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -102,6 +104,7 @@ export default Object.freeze({
     "repos.formatDesc": "Paketprotokoll dieses Repositorys",
     "repos.formatMaven": "Maven",
     "repos.formatCargo": "Cargo",
+    "repos.formatDocker": "Docker / OCI",
     "repos.artifactUrl": "Artefakt-URL-Vorlage",
     "repos.artifactUrlHint": "Optionale Cargo-Downloadquelle mit {crate} und {version}; leer lassen, um die Index-URL zu verwenden",
     "repos.cargoMirrorAllowListHint": "Exakte Crate-Namen angeben, die von diesem Spiegel zugelassen sind",
@@ -109,10 +112,18 @@ export default Object.freeze({
     "repos.cargoAddRulePlaceholder": "Crate-Namen eingeben (Eingabetaste oder Komma)",
     "repos.cargoEmptyAllowList": "Keine Zulassungsregeln konfiguriert (standardmäßig sind alle Crates zugelassen)",
     "repos.cargoEmptyDenyList": "Keine Sperrregeln konfiguriert (standardmäßig werden keine Crates blockiert)",
+    "repos.dockerMirrorUrl": "Docker-Registry-URL",
+    "repos.dockerMirrorUrlHint": "Basis-URL der Upstream-Registry, z. B. https://registry-1.docker.io",
+    "repos.dockerMirrorAllowListHint": "Zulässige Image-Namen für diesen Spiegel angeben (z. B. library/ubuntu, library/*)",
+    "repos.dockerMirrorDenyListHint": "Gesperrte Image-Namen für diesen Spiegel angeben",
+    "repos.dockerAddRulePlaceholder": "Image-Namen eingeben (Eingabetaste oder Komma)",
+    "repos.dockerEmptyAllowList": "Keine Zulassungsregeln konfiguriert (standardmäßig alle Images zugelassen)",
+    "repos.dockerEmptyDenyList": "Keine Sperrregeln konfiguriert (standardmäßig keine Images blockiert)",
     "repos.subtitle": "Paket-Repositories und ihre protokollspezifische Konfiguration verwalten.",
     "repos.addRepoTitle": "Paket-Repository hinzufügen",
     "repos.formatMavenDesc": "Maven-Artefakte, Metadaten, Browser-Uploads und GPG-Richtlinien.",
     "repos.formatCargoDesc": "Cargo-Sparse-Index, Crate-Veröffentlichung, Spiegel und Paketteams.",
+    "repos.formatDockerDesc": "Docker- und OCI-Container-Images, Multi-Architektur-Manifeste und Spiegel-Caching.",
     "repos.formatImmutableDesc": "Das Repository-Format ist nach der Erstellung unveränderlich.",
     "repos.formatCreateDesc": "Clientprotokoll auswählen. Es kann später nicht geändert werden.",
     "repos.name": "Repository-Name",
@@ -126,6 +137,12 @@ export default Object.freeze({
     "details.cargoSourceTab": "Quellenersetzung",
     "details.cargoLoginTab": "Anmelden",
     "details.cargoPublishTab": "Veröffentlichen",
+    "details.dockerTitle": "Docker-Registry einrichten",
+    "details.dockerSubtitle": "Befehle zum Ziehen, Taggen, Pushen und Authentifizieren",
+    "details.dockerPullTab": "Pull",
+    "details.dockerTagTab": "Tag",
+    "details.dockerPushTab": "Push",
+    "details.dockerLoginTab": "Login",
     "cargo.packagesTitle": "Cargo-Pakete",
     "cargo.packagesSubtitle": "Versionen, Archivstatus und Paketteams verwalten",
     "cargo.noPackagesAdmin": "In diesem Repository sind keine lokal verwalteten Cargo-Pakete erfasst.",

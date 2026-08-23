@@ -13,6 +13,9 @@ importers:
       '@renop/ui':
         specifier: workspace:*
         version: link:../../../../packages/renop-ui
+      marked:
+        specifier: ^18.0.10
+        version: 18.0.10
       protobufjs:
         specifier: ^8.7.2
         version: 8.7.2

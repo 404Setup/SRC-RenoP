@@ -1,109 +1,121 @@
 ---
-title: Repositories & mirrors
+title: Repositories & Mirrors
 order: 2
 category: Configuration
-description: repositories.yaml — visibility, mirrors, and S3
+description: repositories.yaml configuration, visibility levels, upstream mirrors, and S3 backends
 ---
 
-# Repositories & mirrors
+# Repositories & Mirrors
 
-File: `repositories.yaml` (override with `RENOP_REPOSITORIES`).
+Repository definitions are stored in `repositories.yaml` (overridden by `RENOP_REPOSITORIES`). Most settings can also be
+modified in the Web console under "Repository Settings".
 
-Default repositories:
-
-| Name        | Role                       |
-|-------------|----------------------------|
-| `releases`  | Releases (usually PUBLIC)  |
-| `snapshots` | Snapshots (usually PUBLIC) |
-| `private`   | Private (PRIVATE)          |
-
-Keyed by name under `repositories:`.
-
-## Repository fields
+## Configuration Example
 
 ```yaml
 repositories:
   releases:
     name: releases
-    visibility: PUBLIC          # PUBLIC | HIDDEN | PRIVATE
+    visibility: PUBLIC
     allow_redeployment: false
-    mirrors: [ ]
+    require_gpg_signature: false
+    mirrors: []
     s3:
       enabled: false
-      endpoint: ""
-      bucket: ""
-      key_prefix: ""
-      region: auto
-      access_key_id: ""
-      secret_access_key: ""
-      force_path_style: true
-      redirect_downloads: false
+
+  snapshots:
+    name: snapshots
+    visibility: PUBLIC
+    allow_redeployment: true
+    require_gpg_signature: false
+    mirrors: []
+    s3:
+      enabled: false
+
+  private:
+    name: private
+    visibility: PRIVATE
+    allow_redeployment: false
+    require_gpg_signature: false
+    mirrors: []
+    s3:
+      enabled: false
 ```
 
-| Field                   | Description                                                                                                     |
-|-------------------------|-----------------------------------------------------------------------------------------------------------------|
-| `name`                  | Repository id (path segment: `http://host:port/{name}/…`)                                                       |
-| `visibility`            | `PUBLIC` anonymous read; `HIDDEN` restricted listing; `PRIVATE` needs read permission                           |
-| `allow_redeployment`    | Whether overwriting an existing artifact path is allowed (defaults: releases/private `false`, snapshots `true`) |
-| `require_gpg_signature` | Require detached GPG signatures for `.jar`, `.pom`, and `.module` uploads; publication waits for verification   |
-| `mirrors`               | Upstream Maven proxies (optional)                                                                               |
-| `s3`                    | Optional S3-compatible backend for this repository                                                              |
+## Repository Fields
 
-Maven layout under each repo is standard: `group/artifact/version/file`.
+| Field                   | Type   | Default  | Description                                                            |
+|:------------------------|:-------|:---------|:-----------------------------------------------------------------------|
+| `name`                  | string | Required | Repository identifier and URL path prefix (`http://host:3000/{name}/`) |
+| `visibility`            | string | `PUBLIC` | Visibility level: `PUBLIC`, `HIDDEN`, or `PRIVATE`                     |
+| `allow_redeployment`    | bool   | `false`  | Allows overwriting existing artifact versions upon re-upload           |
+| `require_gpg_signature` | bool   | `false`  | Enforces detached OpenPGP signatures before releasing artifacts        |
+| `mirrors`               | list   | `[]`     | Upstream proxy mirror configurations                                   |
+| `s3`                    | object | `{}`     | S3-compatible object storage backend configuration                     |
 
-## Mirrors
+### Visibility Levels
 
-On miss, mirrors fetch from upstream and may cache the result.
+- **PUBLIC**: Publicly readable. Anonymous users can download artifacts and view listings without authentication.
+- **HIDDEN**: Restricted listing. Users with direct artifact URLs can download files, but the repository is hidden from
+  unauthenticated public listings.
+- **PRIVATE**: Private repository. Downloading, listing, and uploading all require valid credentials with appropriate
+  permissions.
 
-| Field             | Description                                                                              |
-|-------------------|------------------------------------------------------------------------------------------|
-| `name`            | Display / config name                                                                    |
-| `url`             | Upstream base URL                                                                        |
-| `persist`         | Persist cached artifacts to storage                                                      |
-| `cache_ttl_secs`  | Positive cache TTL (seconds)                                                             |
-| `negative_cache`  | Cache “not found” responses                                                              |
-| `timeout_secs`    | Upstream request timeout                                                                 |
-| `authorization`   | Optional credentials (`method`, `login`, `password`)                                     |
-| `proxy`           | Empty inherits the global proxy; `direct` bypasses it; a name selects a configured proxy |
-| `enabled_date`    | Optional activation date string                                                          |
-| `allow_artifacts` | If set, only matching `group` or `group:artifact` patterns are proxied                   |
-| `deny_artifacts`  | If set, matching coordinates are blocked (do not combine with allow)                     |
+## Upstream Mirror Configuration (`mirrors`)
 
-Authorization methods commonly used: `BASIC` / username-password, or `Bearer` / token.
+When a requested artifact is not present locally, RenoP can proxy the request to upstream repositories and optionally
+cache files locally.
 
-Mirror proxy credentials are no longer stored in `repositories.yaml`. Configure named proxies in the global `proxy`
-settings domain and use the single mirror `proxy` selector described above.
+```yaml
+mirrors:
+  - name: "maven-central"
+    url: "https://repo1.maven.org/maven2"
+    persist: true
+    cache_ttl_secs: 86400
+    negative_cache: true
+    timeout_secs: 30
+    proxy: ""
+    allow_artifacts: []
+    deny_artifacts: []
+```
 
-## Visibility vs permissions
+| Field             | Default  | Description                                                                |
+|:------------------|:---------|:---------------------------------------------------------------------------|
+| `name`            | Required | Mirror identifier                                                          |
+| `url`             | Required | Base URL of upstream repository                                            |
+| `persist`         | `true`   | Caches fetched artifacts to local storage                                  |
+| `cache_ttl_secs`  | `86400`  | Cache retention duration in seconds                                        |
+| `negative_cache`  | `true`   | Caches 404 responses to avoid repetitive upstream misses                   |
+| `timeout_secs`    | `30`     | Upstream request timeout in seconds                                        |
+| `proxy`           | `""`     | Empty = global proxy; `direct` = bypass proxy; or a named proxy identifier |
+| `allow_artifacts` | `[]`     | Whitelist rules (e.g. `com.example`), proxies only matching coordinates    |
+| `deny_artifacts`  | `[]`     | Blacklist rules, blocks proxying matching coordinates                      |
 
-| Visibility | Anonymous read                                      | Notes                                                             |
-|------------|-----------------------------------------------------|-------------------------------------------------------------------|
-| PUBLIC     | Yes                                                 | Open repo                                                         |
-| HIDDEN     | File fetch may work; root listing needs extra roles |                                                                   |
-| PRIVATE    | No                                                  | Needs `canview` / `allview` / `proview`, write rights, or manager |
+## S3-Compatible Object Storage (`s3`)
 
-Writes always require `canupdate` (or manager). See [Authentication](../api/authentication.md).
+To store repository artifacts in AWS S3 or MinIO:
 
-## S3-compatible storage
+```yaml
+s3:
+  enabled: true
+  endpoint: "https://s3.us-east-1.amazonaws.com"
+  bucket: "my-renop-bucket"
+  key_prefix: "releases/"
+  region: "us-east-1"
+  access_key_id: "YOUR_ACCESS_KEY"
+  secret_access_key: "YOUR_SECRET_KEY"
+  force_path_style: false
+  redirect_downloads: false
+```
 
-When `s3.enabled` is true, artifacts for that repository are stored in the given bucket. Typical fields:
-
-| Field                                 | Description                                    |
-|---------------------------------------|------------------------------------------------|
-| `endpoint`                            | S3 API endpoint                                |
-| `bucket`                              | Bucket name                                    |
-| `key_prefix`                          | Optional object key prefix within the bucket   |
-| `region`                              | Region (or `auto`)                             |
-| `access_key_id` / `secret_access_key` | Credentials                                    |
-| `force_path_style`                    | Path-style URLs (common for MinIO)             |
-| `redirect_downloads`                  | Redirect clients to object URLs when supported |
-
-When `key_prefix` is empty, RenoP preserves the legacy object layout. Before adding or changing a prefix on a repository
-that already contains artifacts, move its existing objects to the new prefix; RenoP does not migrate them automatically.
-
-## See also
-
-- [Configuration overview](./overview.md)
-- [Storage API](../api/storage.md)
-- [GPG signatures](../api/gpg.md)
-- [Maven client](../getting-started/maven-client.md)
+| Field                | Default  | Description                                                   |
+|:---------------------|:---------|:--------------------------------------------------------------|
+| `enabled`            | `false`  | Enables S3 storage for this repository                        |
+| `endpoint`           | Required | S3 API endpoint URL                                           |
+| `bucket`             | Required | Bucket name                                                   |
+| `key_prefix`         | `""`     | Object key prefix inside the bucket (e.g. `releases/`)        |
+| `region`             | `auto`   | S3 bucket region                                              |
+| `access_key_id`      | Required | S3 Access Key ID                                              |
+| `secret_access_key`  | Required | S3 Secret Access Key                                          |
+| `force_path_style`   | `true`   | Uses path-style URLs (required for MinIO)                     |
+| `redirect_downloads` | `false`  | Issues 302 redirects to presigned S3 URLs instead of proxying |

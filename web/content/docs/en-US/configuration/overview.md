@@ -1,147 +1,134 @@
 ---
-title: Configuration overview
+title: Configuration Overview
 order: 1
 category: Configuration
-description: Config files, server settings, and environment variables
+description: Overview of config.yaml parameters, server settings, and environment variables
 ---
 
-# Configuration overview
+# Configuration Overview
 
-Configuration files and runtime state are stored in the process working directory. Paths can be overridden with
-environment variables.
+The primary configuration file for RenoP is `config.yaml`. By default, it is read from the process working directory or
+overridden by the `RENOP_CONFIG` environment variable.
 
-## Files
+## Configuration Files
 
-| File                | Environment variable | Purpose                                                                 |
-|---------------------|----------------------|-------------------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | Listen address, TLS, frontend branding, storage path, database, updater |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Repositories, mirrors, per-repository S3                                |
-| `tokens.yaml`       | `RENOP_TOKENS`       | Users, roles, upload tokens (automatically migrated to DB at startup)   |
-| `renop.db`          | —                    | Embedded SQLite database (stores user tokens and sessions)              |
-| `index.json`        | `RENOP_INDEX`        | Artifact index cache                                                    |
-| `sessions.bin`      | `RENOP_SESSIONS`     | Browser login sessions (automatically migrated to DB at startup)        |
+| File                | Environment Variable | Description                                                                |
+|:--------------------|:---------------------|:---------------------------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | Server ports, TLS, database connection, storage path, proxies, and updater |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | Repository definitions, visibility, upstream mirrors, and S3 configs       |
+| `tokens.yaml`       | `RENOP_TOKENS`       | Bootstrap user accounts and static tokens (migrated to DB on startup)      |
+| `index.json`        | `RENOP_INDEX`        | Search metadata index cache                                                |
+| `sessions.bin`      | `RENOP_SESSIONS`     | Active web session cache                                                   |
 
-Runtime-related:
+## `config.yaml` Schema
 
-| Variable                       | Default   | Purpose                                |
-|--------------------------------|-----------|----------------------------------------|
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | generated | Password for the first `admin` account |
+### Storage & Documentation Preview
 
-## `config.yaml` structure
+```yaml
+storage_path: "storage"
+enable_javadoc_preview: true
+javadoc_extract_path: ""
+max_javadoc_size_mb: 48
+```
 
-### Global Storage & Javadoc Settings
+| Parameter                | Default   | Description                                                |
+|:-------------------------|:----------|:-----------------------------------------------------------|
+| `storage_path`           | `storage` | Root directory for local artifact storage                  |
+| `enable_javadoc_preview` | `true`    | Enables HTML extraction and preview of Javadoc JARs        |
+| `javadoc_extract_path`   | `""`      | Extraction cache directory (uses system cache when empty)  |
+| `max_javadoc_size_mb`    | `48`      | Maximum allowable size (MB) for extracted Javadoc archives |
 
-| Key                      | Default   | Description                                         |
-|--------------------------|-----------|-----------------------------------------------------|
-| `storage_path`           | `storage` | Root directory for local artifact storage           |
-| `enable_javadoc_preview` | `true`    | Whether online Javadoc preview is enabled           |
-| `javadoc_extract_path`   | `""`      | Javadoc extraction path (empty uses default cache)  |
-| `max_javadoc_size_mb`    | `48`      | Maximum file size limit for Javadoc extraction (MB) |
+### `server` Network & Security
 
-### `server`
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 3000
+  ssl_enabled: false
+  ssl_cert_path: ""
+  ssl_key_path: ""
+  domains:
+    - "localhost"
+  cors_origins: []
+  enable_compression: false
+  file_cache_size_mb: 16
+  max_active_requests: 512
+  trusted_proxies: []
+  cdn_ip_header: "X-Forwarded-For"
+  debug_mode: false
+  gpg:
+    key_servers:
+      - "https://keys.openpgp.org"
+      - "https://keyserver.ubuntu.com"
+```
 
-| Key                   | Default             | Description                                                                       |
-|-----------------------|---------------------|-----------------------------------------------------------------------------------|
-| `host`                | `0.0.0.0`           | Listen address                                                                    |
-| `port`                | `3000`              | Listen port                                                                       |
-| `ssl_enabled`         | `false`             | Enable TLS                                                                        |
-| `ssl_cert_path`       | `""`                | Certificate path when TLS is enabled                                              |
-| `ssl_key_path`        | `""`                | Private key path when TLS is enabled                                              |
-| `domains`             | `[localhost]`       | Public hostnames for this instance (UI/metadata and default CORS)                 |
-| `cors_origins`        | `[]`                | Browser CORS allow list (empty = `domains` only; `*` = any origin)                |
-| `enable_compression`  | `false`             | Enable HTTP response compression                                                  |
-| `file_cache_size_mb`  | `16`                | In-memory file cache size (MB)                                                    |
-| `max_active_requests` | `512`               | Maximum concurrent requests (overload returns 503)                                |
-| `trusted_proxies`     | `[]`                | Additional reverse-proxy CIDR/IP ranges (loopback is always trusted)              |
-| `cdn_ip_header`       | `X-Forwarded-For`   | Header used for client IP behind a trusted proxy (for example `CF-Connecting-IP`) |
-| `debug_mode`          | `false`             | Enable debug profile dump APIs under `/api/debug` (requires restart)              |
-| `audit_log`           | `{}`                | Audit log settings                                                                |
-| `gpg`                 | default key servers | OpenPGP key servers (nested under `server`)                                       |
+| Parameter             | Default            | Description                                                   |
+|:----------------------|:-------------------|:--------------------------------------------------------------|
+| `host`                | `0.0.0.0`          | IP address to bind                                            |
+| `port`                | `3000`             | Port to listen on                                             |
+| `ssl_enabled`         | `false`            | Enables built-in TLS/HTTPS                                    |
+| `ssl_cert_path`       | `""`               | Path to TLS certificate (`.crt` or `.pem`)                    |
+| `ssl_key_path`        | `""`               | Path to TLS private key (`.key`)                              |
+| `domains`             | `["localhost"]`    | Public hostnames used for download links and default CORS     |
+| `cors_origins`        | `[]`               | Allowed CORS origins (empty = `domains` only, `*` = all)      |
+| `enable_compression`  | `false`            | Enables gzip/brotli HTTP response compression                 |
+| `file_cache_size_mb`  | `16`               | In-memory cache size for small static files and metadata      |
+| `max_active_requests` | `512`              | Max concurrent active requests (returns 503 when exceeded)    |
+| `trusted_proxies`     | `[]`               | Trusted reverse proxy IPs or CIDRs                            |
+| `cdn_ip_header`       | `X-Forwarded-For`  | Request header containing real client IP from trusted proxies |
+| `debug_mode`          | `false`            | Enables `/api/debug` pprof diagnostic endpoints               |
+| `gpg.key_servers`     | Default keyservers | OpenPGP keyservers used for signature verification            |
 
-#### CORS (`server.cors_origins`)
+> **Note**: Modifying `host`, `port`, or TLS settings requires restarting the RenoP process.
 
-Controls which browser `Origin` values may call this server cross-origin. Session cookies are returned with
-`Access-Control-Allow-Credentials`.
+### `database` Connection
 
-| Value                     | Effect                                                                       |
-|---------------------------|------------------------------------------------------------------------------|
-| *(empty)*                 | Only origins whose host matches one of `server.domains` (any scheme or port) |
-| `*.pkg.one`               | Apex domain `pkg.one` and any subdomain (for example `mvnc.pkg.one`)         |
-| `https://app.example.com` | Exact full origin (scheme, host, and port)                                   |
-| `partner.example.com`     | That hostname with any scheme or port                                        |
-| `*`                       | Allow every origin                                                           |
+```yaml
+database:
+  enabled: true
+  driver: "sqlite3"
+  dsn: "renop.db"
+  max_open_conns: 25
+  max_idle_conns: 25
+  conn_max_lifetime_sec: 300
+```
 
-Legacy configurations that use the singular form `domain: example.com` still load and are migrated to
-`domains: [example.com]`.
+Supports `sqlite3`, `mysql`, and `postgres`. See [Database Configuration](./database.md) for details.
 
-Restart the process after changing `host`, `port`, or TLS settings.
+### `proxy` Outbound Proxy
 
-#### GPG (`server.gpg`)
+```yaml
+proxy:
+  selected: ""
+  proxies:
+    corp_proxy:
+      url: "http://proxy.internal:8080"
+```
 
-`server.gpg.key_servers` lists 1–8 HTTPS OpenPGP key servers used to resolve signing keys. GPG settings are part of the
-server section; the former standalone `gpg` settings domain is no longer exposed.
+Configures outbound HTTP/HTTPS/SOCKS5 proxies for upstream mirroring.
+See [Outbound Proxy Configuration](./outbound-proxy.md).
 
-### `proxy`
+### `frontend` Branding
 
-The optional `proxy` section defines named HTTP/HTTPS/SOCKS5 outbound proxies. An empty `selected` value is the default
-and means direct connections. A mirror can set `proxy` to inherit this global selection, use `direct` to bypass it, or
-name a configured proxy.
+```yaml
+frontend:
+  id: "renop"
+  title: "RenoP Package Registry"
+  description: "Self-hosted package repository"
+  organization_website: ""
+  organization_logo: "/svg/logo.svg"
+  background_url: ""
+  icp_license: ""
+  public_security_filing: ""
+  legal_notice_url: ""
+```
 
-### `database`
+Customizes page title, logo, organization URL, and footer compliance text.
 
-Database connection parameters for storing accounts and sessions:
+### `updater` Auto-Updates
 
-| Key                     | Default    | Description                                   |
-|-------------------------|------------|-----------------------------------------------|
-| `enabled`               | `true`     | Enable embedded/external database persistence |
-| `driver`                | `sqlite3`  | Database driver name (`sqlite3` or `mysql`)   |
-| `dsn`                   | `renop.db` | Database DSN or file path (e.g. `renop.db`)   |
-| `max_open_conns`        | `25`       | Maximum open connections                      |
-| `max_idle_conns`        | `25`       | Maximum idle connections                      |
-| `conn_max_lifetime_sec` | `300`      | Maximum connection lifetime in seconds        |
-
-### `frontend`
-
-Branding fields for the embedded repository browser:
-
-| Key                      | Description                             |
-|--------------------------|-----------------------------------------|
-| `id`                     | Frontend / site identifier              |
-| `title`                  | Page title                              |
-| `description`            | Short description                       |
-| `organization_website`   | Organization or product URL             |
-| `organization_logo`      | Logo path (for example `/svg/logo.svg`) |
-| `background_url`         | Optional background image URL           |
-| `icp_license`            | Optional ICP or compliance text         |
-| `public_security_filing` | Optional Chinese public security filing |
-| `legal_notice_url`       | Optional legal notice URL in the footer |
-
-### `updater`
-
-| Key       | Default   | Description                                                    |
-|-----------|-----------|----------------------------------------------------------------|
-| `channel` | `release` | `release` or `nightly`                                         |
-| `mode`    | `manual`  | How updates are applied (for example manual install in the UI) |
-
-The website [Download](/download) page and in-instance updates use the same class of stable and nightly release sources.
-
-## Management UI
-
-Accounts with **manager** or **admin** permissions can change most settings under Settings and Repositories. Some
-configuration changes require a reload or process restart after the file is written. See the documentation for each
-configuration domain.
-
-## Storage
-
-- **Local disk** under `storage_path` (default)
-- **S3-compatible** object storage, configured per repository in `repositories.yaml`
-
-Uploads can write MD5 / SHA-1 / SHA-256 / SHA-512 sidecar checksum files.
-
-For visibility, mirrors, and S3 fields, see [Repositories & mirrors](./repositories.md).
-
-## See also
-
-- [Quick start](../getting-started/quickstart.md)
-- [Maven client](../getting-started/maven-client.md)
-- [API index](../api/README.md)
+```yaml
+updater:
+  channel: "release"    # release or nightly
+  mode: "manual"        # manual updates via UI button
+```

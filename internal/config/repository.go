@@ -41,8 +41,9 @@ type repositorySerialization struct {
 }
 
 const (
-	RepositoryFormatMaven = "maven"
-	RepositoryFormatCargo = "cargo"
+	RepositoryFormatMaven  = "maven"
+	RepositoryFormatCargo  = "cargo"
+	RepositoryFormatDocker = "docker"
 )
 
 // NormalizedFormat returns the protocol name while preserving the historical
@@ -60,7 +61,7 @@ func (r *Repository) NormalizedFormat() string {
 
 // serialization returns only fields supported by the repository protocol.
 // Maven keeps its explicit policy booleans; Cargo keeps its artifact URL
-// templates and omits Maven-only publication policy.
+// templates and omits Maven-only publication policy; Docker omits GPG policy.
 func (r Repository) serialization() repositorySerialization {
 	serialized := repositorySerialization{
 		Name: r.Name, Format: r.Format, Visibility: r.Visibility, S3: r.S3,
@@ -69,7 +70,10 @@ func (r Repository) serialization() repositorySerialization {
 	for i := range r.Mirrors {
 		serialized.Mirrors[i] = r.Mirrors[i].DeepCopy()
 	}
-	if r.NormalizedFormat() == RepositoryFormatCargo {
+	if r.NormalizedFormat() == RepositoryFormatCargo || r.NormalizedFormat() == RepositoryFormatDocker {
+		if r.NormalizedFormat() == RepositoryFormatDocker {
+			serialized.AllowRedeployment = &r.AllowRedeployment
+		}
 		return serialized
 	}
 	serialized.AllowRedeployment = &r.AllowRedeployment
@@ -93,7 +97,7 @@ func (r Repository) MarshalYAML() (any, error) {
 // IsSupportedFormat reports whether the repository protocol is implemented.
 func IsSupportedRepositoryFormat(format string) bool {
 	switch strings.ToLower(strings.TrimSpace(format)) {
-	case "", RepositoryFormatMaven, RepositoryFormatCargo:
+	case "", RepositoryFormatMaven, RepositoryFormatCargo, RepositoryFormatDocker:
 		return true
 	default:
 		return false

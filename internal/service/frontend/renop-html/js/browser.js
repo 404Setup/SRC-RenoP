@@ -30,6 +30,7 @@ import {updateSnippets} from './browser/snippets.js';
 import {initUpload, updateUploadZone} from './browser/upload.js';
 import {fetchRepoDetails, hideRepoStats, updateRepoStats} from './browser/stats.js';
 import {hideCargoRepositoryView, renderCargoRepository} from './browser/cargo.js';
+import {hideDockerRepositoryView, renderDockerRepository} from './browser/docker.js';
 import {localizeRepositorySearch, updateRepositorySearch} from './browser/search.js';
 import {FileDetails, GpgSignatureDetails} from './proto/index.js';
 import {getRepositoryFormat} from './repository-formats.js';
@@ -204,10 +205,10 @@ function setStateVisibility({empty = false, error = false} = {}) {
  * @param {boolean} cargoMode - Whether the active repository uses Cargo.
  * @returns {void}
  */
-function setRepositoryContentMode(cargoMode) {
+function setRepositoryContentMode(customMode) {
     if (fileListContainer) {
-        fileListContainer.hidden = cargoMode;
-        if (cargoMode) {
+        fileListContainer.hidden = customMode;
+        if (customMode) {
             fileListContainer.style.removeProperty('height');
             fileListContainer.style.removeProperty('overflow');
             fileListContainer.style.removeProperty('box-sizing');
@@ -217,8 +218,9 @@ function setRepositoryContentMode(cargoMode) {
             );
         }
     }
-    if (browserAdjustments instanceof HTMLElement) browserAdjustments.hidden = cargoMode;
-    if (!cargoMode) hideCargoRepositoryView();
+    if (browserAdjustments instanceof HTMLElement) browserAdjustments.hidden = customMode;
+    if (currentRepositoryFormat !== 'cargo') hideCargoRepositoryView();
+    if (currentRepositoryFormat !== 'docker') hideDockerRepositoryView();
 }
 
 /**
@@ -678,7 +680,7 @@ export async function loadDirectory(path) {
     const seq = ++currentLoadSeq;
     const pathParts = path.split('/').filter(p => p.length > 0);
     const repositoryName = pathParts[0] || '';
-    const canReuseCargoDetails = currentRepositoryFormat === 'cargo' &&
+    const canReuseCargoDetails = (currentRepositoryFormat === 'cargo' || currentRepositoryFormat === 'docker') &&
         repositoryName !== '' && repositoryName === currentRepositoryName && currentRepoDetails !== null;
 
     let direction = 'fade';
@@ -731,13 +733,20 @@ export async function loadDirectory(path) {
 		currentRepoDetails = repoDetails;
 		currentRepositoryName = repoDetails ? repositoryName : '';
 		const isCargoRepository = currentRepositoryFormat === 'cargo' && pathParts.length >= 1;
-		setRepositoryContentMode(isCargoRepository);
+		const isDockerRepository = currentRepositoryFormat === 'docker' && pathParts.length >= 1;
+		setRepositoryContentMode(isCargoRepository || isDockerRepository);
 		updateRepositorySearch(repoDetails ? pathParts[0] : '', currentRepositoryFormat, navigateToPath);
 		renderBreadcrumb(path);
 
 		if (isCargoRepository) {
 			setStateVisibility({empty: false, error: false});
 			await renderCargoRepository(path, repoDetails, navigateToPath);
+			return;
+		}
+
+		if (isDockerRepository) {
+			setStateVisibility({empty: false, error: false});
+			await renderDockerRepository(path, repoDetails, navigateToPath);
 			return;
 		}
 

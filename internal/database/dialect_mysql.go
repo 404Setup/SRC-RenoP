@@ -260,6 +260,60 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		INDEX idx_cargo_invitations_recipient (recipient, created_at)
 	);`
 
+	dockerImagesTable := `
+	CREATE TABLE IF NOT EXISTS docker_images (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		description TEXT NOT NULL,
+		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name),
+		INDEX idx_docker_images_search (repository, image_name)
+	);`
+
+	dockerTagsTable := `
+	CREATE TABLE IF NOT EXISTS docker_tags (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		tag VARCHAR(128) NOT NULL,
+		digest VARCHAR(128) NOT NULL,
+		media_type VARCHAR(128) NOT NULL DEFAULT '',
+		size BIGINT NOT NULL DEFAULT 0,
+		config_digest VARCHAR(128) NOT NULL DEFAULT '',
+		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name, tag),
+		INDEX idx_docker_tags_repo_img (repository, image_name, updated_at DESC),
+		INDEX idx_docker_tags_digest (repository, digest)
+	);`
+
+	dockerManifestsTable := `
+	CREATE TABLE IF NOT EXISTS docker_manifests (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		digest VARCHAR(128) NOT NULL,
+		media_type VARCHAR(128) NOT NULL DEFAULT '',
+		size BIGINT NOT NULL DEFAULT 0,
+		config_digest VARCHAR(128) NOT NULL DEFAULT '',
+		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		raw_json MEDIUMTEXT NOT NULL,
+		created_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name, digest),
+		INDEX idx_docker_manifests_repo_img (repository, image_name)
+	);`
+
+	dockerBlobsTable := `
+	CREATE TABLE IF NOT EXISTS docker_blobs (
+		repository VARCHAR(64) NOT NULL,
+		digest VARCHAR(128) NOT NULL,
+		size BIGINT NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, digest),
+		INDEX idx_docker_blobs_repo (repository, digest)
+	);`
+
 	if _, err := db.Exec(tokensTable); err != nil {
 		return err
 	}
@@ -300,6 +354,18 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(cargoInvitationsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dockerImagesTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dockerTagsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dockerManifestsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dockerBlobsTable); err != nil {
 		return err
 	}
 

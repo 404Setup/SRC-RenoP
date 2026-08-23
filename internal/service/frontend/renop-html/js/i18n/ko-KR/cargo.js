@@ -1,8 +1,19 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
 /* Cargo 저장소 페이지, 검색 및 감사 작업. */
 export default Object.freeze({
     "search.clear": "검색 지우기",
     "search.mavenPlaceholder": "Maven 경로 및 아티팩트 검색",
     "search.cargoPlaceholder": "Cargo 패키지 검색",
+    "search.dockerPlaceholder": "컨테이너 이미지 검색",
     "search.searching": "검색 중…",
     "search.noResults": "일치하는 패키지 또는 아티팩트가 없습니다.",
     "search.failed": "저장소 검색에 실패했습니다. 다시 시도해 주세요.",
@@ -10,6 +21,7 @@ export default Object.freeze({
     "search.moreResults": "일치하는 항목이 더 있습니다. 검색 범위를 좁혀 주세요.",
     "search.directory": "디렉터리",
     "search.package": "패키지",
+    "search.image": "이미지",
     "search.file": "파일",
     "cargo.registryTitle": "Cargo 레지스트리",
     "cargo.registrySubtitle": "sparse 인덱스로 패키지를 탐색하고 Maven 파일 구조와 별도로 버전 및 팀을 관리합니다.",

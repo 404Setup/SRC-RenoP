@@ -1,42 +1,37 @@
 ---
-title: Installation
+title: Installation et compilation
 order: 2
-category: Premiers pas
-description: Télécharger le binaire RenoP
+category: Pour commencer
+description: Téléchargement des binaires, niveaux de microarchitecture et compilation
 ---
 
-# Installation
+# Installation et compilation
 
-## Téléchargement
+## 1. Téléchargement des binaires
 
-[Page de téléchargement](/download), ou zip direct :
+- **Version stable (Stable)** : `https://mvnc.pkg.one/update/renop/stable/`
+- **Version nightly (Nightly)** : `https://mvnc.pkg.one/update/renop/nightly/`
 
-- Stable : `https://mvnc.pkg.one/update/renop/stable/`
-- Preview : `https://mvnc.pkg.one/update/renop/nightly/`
+## 2. Niveaux de microarchitecture x86-64
 
-## Depuis un zip
+| Niveau                       | Instructions                        | Recommandation                                                    |
+|:-----------------------------|:------------------------------------|:------------------------------------------------------------------|
+| **x86-64-v1**                | Base 64 bits                        | Tout processeur x86 64 bits                                       |
+| **x86-64-v2**                | SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT | Processeurs depuis 2008                                           |
+| **x86-64-v3** *(Recommandé)* | AVX, AVX2, BMI1, BMI2, FMA3         | Intel Haswell (2013+), AMD Zen 2 (2019+). **Idéal en production** |
+| **x86-64-v4**                | AVX-512                             | Serveurs compatibles AVX-512                                      |
+| **ARM64**                    | NEON, Crypto                        | Apple Silicon, AWS Graviton et serveurs ARM64                     |
 
-1. Extraire dans un répertoire de travail
-2. `renop.exe` (Windows) ou `./renop` (Unix)
+## 3. Vérification et exécution
 
-Écoute `0.0.0.0:3000` par défaut. Définir `RENOP_DEFAULT_ADMIN_PASSWORD` avant le premier
-démarrage — [démarrage rapide](./quickstart.md).
-
-## Compiler
-
-Utilisez [notre fork de Go](https://github.com/404Setup/go/releases), pas la version officielle. PowerShell 7 et Node.js
-sont également requis.
-
-1. Relevez la version `go` dans `go.mod`.
-2. Téléchargez la dernière release `go<version>` pour votre système et votre architecture.
-3. Vérifiez l'archive avec le fichier `SHA256SUMS` de la même release.
-4. Extrayez-la, définissez `GOROOT` sur le répertoire `go`, ajoutez `GOROOT/bin` au `PATH`, puis lancez `go version`.
-
-```powershell
-pwsh ./build.ps1
-pwsh ./build.ps1 s
-pwsh ./build.ps1 c
-pwsh ./build.ps1 c nb
+```bash
+sha256sum -c SHA256SUMS --ignore-missing
+./renop
 ```
 
-Voir le `README.md` du dépôt.
+## 4. Installation comme service système
+
+```bash
+./renop --install
+./renop --uninstall
+```

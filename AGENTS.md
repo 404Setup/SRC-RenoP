@@ -16,6 +16,7 @@
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, and schema migrations.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   upstream proxying, and sandboxed documentation extraction/viewer (`/cargodoc/...`).
+- **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based Bearer authentication, chunked blob uploads, cross-repository mounting, upstream registry mirror proxying, and catalog management.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
@@ -48,6 +49,7 @@
 | **Local Dev Build** (unzipped binary)   | `pwsh ./build.ps1 c nb`                                                          |
 | **Packaged Release Build** (current OS) | `pwsh ./build.ps1 c`                                                             |
 | **Full Matrix Release Build**           | `pwsh ./build.ps1`                                                               |
+| **Website & Docs Build**               | `pnpm run build:web`                                                             |
 | **Frontend Build & Embed**              | `pnpm install --frozen-lockfile && pnpm run build:frontend && go generate ./...` |
 | **Protobuf Generation**                 | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
 | **Run All Tests**                       | `go test ./...`                                                                  |

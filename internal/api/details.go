@@ -24,6 +24,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargo"
+	"renop/internal/service/docker"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/utils"
@@ -264,8 +265,19 @@ func handleResolvePathError(c fiber.Ctx, err error) error {
 
 func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
-
 	user := auth.GetUser(c)
+
+	cfg := state.Inner.Config.Load()
+	if repo, exists := cfg.Maven.Repositories[repoName]; exists && repo.NormalizedFormat() == config.RepositoryFormatDocker {
+		if !docker.CanReadDocker(state, user, repo, repoName) {
+			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+		}
+		return protohttp.Write(c, toPbFileDetails(&FileDetails{
+			Type:   FileDetailsTypeDirectory,
+			Name:   repoName,
+			Format: config.RepositoryFormatDocker,
+		}))
+	}
 
 	localFilePath, err := ResolveAndCheckPath(state, user, repoName, nil)
 	if err != nil {
@@ -286,6 +298,18 @@ func GetDetailsRoot(c fiber.Ctx, state *core.AppState) error {
 func GetDetails(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
 	user := auth.GetUser(c)
+
+	cfg := state.Inner.Config.Load()
+	if repo, exists := cfg.Maven.Repositories[repoName]; exists && repo.NormalizedFormat() == config.RepositoryFormatDocker {
+		if !docker.CanReadDocker(state, user, repo, repoName) {
+			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+		}
+		return protohttp.Write(c, toPbFileDetails(&FileDetails{
+			Type:   FileDetailsTypeDirectory,
+			Name:   repoName,
+			Format: config.RepositoryFormatDocker,
+		}))
+	}
 
 	pathParam := c.Params("*")
 	localFilePath, err := ResolveAndCheckPath(state, user, repoName, &pathParam)
@@ -342,24 +366,37 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 
 	repoDir := filepath.Join(cfg.StoragePath, repoName)
 
-	state.Inner.FileIndex.Walk(repoDir, func(filePath string, fileInfo index.FileInfo, isDir bool) bool {
-		if isDir {
+	if repo.NormalizedFormat() == config.RepositoryFormatDocker {
+		if db := state.GetDB(); db != nil {
+			totalImages, totalTags, blobSize, err := db.GetDockerRepositoryStats(repoName)
+			if err == nil {
+				totalFiles = totalImages + totalTags
+				artifactCount = totalImages
+				metadataCount = totalTags
+				totalSize = blobSize
+				artifactSize = blobSize
+			}
+		}
+	} else {
+		state.Inner.FileIndex.Walk(repoDir, func(filePath string, fileInfo index.FileInfo, isDir bool) bool {
+			if isDir {
+				return true
+			}
+
+			totalFiles++
+			totalSize += fileInfo.Size
+
+			filename := filepath.Base(filePath)
+			if isChecksumOrMetadata(filename) {
+				metadataCount++
+				metadataSize += fileInfo.Size
+			} else {
+				artifactCount++
+				artifactSize += fileInfo.Size
+			}
 			return true
-		}
-
-		totalFiles++
-		totalSize += fileInfo.Size
-
-		filename := filepath.Base(filePath)
-		if isChecksumOrMetadata(filename) {
-			metadataCount++
-			metadataSize += fileInfo.Size
-		} else {
-			artifactCount++
-			artifactSize += fileInfo.Size
-		}
-		return true
-	})
+		})
+	}
 
 	mirrors := make([]*pb.RepoMirrorInfo, 0, len(repo.Mirrors))
 	for _, m := range repo.Mirrors {

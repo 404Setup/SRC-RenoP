@@ -1,78 +1,54 @@
 ---
-title: 状态
-order: 5
-category: API
+title: 状态与监控 API
+order: 9
+category: API 接口
+description: 存活检查、系统运行时指标与性能分析端点
 ---
 
-# 状态与健康检查
+# 状态与监控 API
 
-前缀：`/api/status`
+## 1. 健康检查
 
-无需身份认证。
+- **路径**：`GET /api/status/health`
+- **认证要求**：无（公开端点）
+- **响应**：`200 OK`，正文为文本 `"UP"`
 
-## `GET /api/status/health`
+---
+
+## 2. 系统运行状态
+
+- **路径**：`GET /api/status/system`
+- **认证要求**：需登录（或 Manager 权限）
+
+### 响应示例 (JSON)
 
 ```json
-"UP"
+{
+  "version": "1.0.0",
+  "go_version": "go1.28-404setup",
+  "uptime_seconds": 86400,
+  "memory": {
+    "alloc_bytes": 33554432,
+    "total_alloc_bytes": 1073741824,
+    "sys_bytes": 67108864,
+    "num_gc": 120
+  },
+  "storage": {
+    "total_artifacts": 1540,
+    "storage_used_bytes": 5242880000
+  }
+}
 ```
 
-存活探针。
+---
 
-## `GET /api/status/hash`
+## 3. 性能分析端点 (`debug_mode: true`)
 
-前端资源内容哈希，JSON 字符串（用于缓存破坏）。
+当在 `config.yaml` 中开启 `server.debug_mode: true` 时，RenoP 会在 `/api/debug/` 下开放标准 pprof 性能分析接口：
 
-## `GET /api/status/instance`
+- `GET /api/debug/pprof/`：pprof 索引页面
+- `GET /api/debug/pprof/profile`：CPU 采样分析
+- `GET /api/debug/pprof/heap`：堆内存分配采样
+- `GET /api/debug/pprof/goroutine`：当前协程堆栈
 
-响应：`application/x-protobuf`，`InstanceStatus`。
-
-| 字段                                                   | 含义                                        |
-|--------------------------------------------------------|---------------------------------------------|
-| `version`                                              | 二进制版本                                  |
-| `development`                                          | 开发构建标志                                |
-| `uptime`                                               | 自启动以来的毫秒数                          |
-| `used_memory` / `total_memory`                         | 物理内存使用量与总量（字节）                |
-| `vss_memory`                                           | 虚拟内存大小（字节）                        |
-| `renop_used_disk`                                      | RenoP 存储占用                              |
-| `disk_used` / `disk_total`                             | 磁盘使用量与总量                            |
-| `used_threads` / `available_threads` / `total_threads` | Goroutine 及并发限制相关线程数              |
-| `architecture` / `os`                                  | GOARCH / GOOS                               |
-| `logical_cores` / `physical_cores`                     | 逻辑与物理 CPU 核心数                       |
-| `failures_count`                                       | 运行时失败计数                              |
-| `update_state`                                         | 更新器状态，详见 [updater.md](./updater.md) |
-| `debug_mode`                                           | 进程启动时是否激活了调试模式                |
-
-## `GET /api/status/snapshots`
-
-历史采样。响应：protobuf `StatusSnapshotList`。
-
-| 字段           | 含义       |
-|----------------|------------|
-| `timestamp`    | Unix 毫秒  |
-| `used_memory`  | 内存       |
-| `used_threads` | 线程数     |
-| `open_files`   | 打开文件数 |
-
-无数据时返回空列表（不是 404）。
-
-## 调试分析 API（`/api/debug`）
-
-需具备 **manager** 权限，且配置文件中启用 `server.debug_mode: true` 并在启动时加载生效。未开启调试模式或权限不足时返回
-`403`。
-
-### `GET /api/debug/memory/heap`
-
-导出 Go 运行时堆内存分析文件（pprof 格式）。支持查询参数 `gc=1`（默认执行垃圾回收后再采样）。
-
-### `GET /api/debug/memory/allocs`
-
-导出历史内存分配 Profile 文件（pprof 格式）。
-
-### `GET /api/debug/memory/goroutine`
-
-导出当前 Goroutine 堆栈分析文件（pprof 格式）。
-
-### `GET /api/debug/memory/runtime`
-
-获取 Go 运行时内存、堆/栈细分以及 Off-heap 评估数据。响应：`application/x-protobuf`，`RuntimeMemoryBreakdown`。包含
-`process_rss`、`process_vss`、`go_retained`、`heap_inuse`、`heap_alloc`、`heap_sys`、`off_heap_runtime_estimate` 等字段。
+> **安全提示**：由于 pprof 会暴露运行时内部状态，生产环境中非排查问题时请保持 `debug_mode: false`。

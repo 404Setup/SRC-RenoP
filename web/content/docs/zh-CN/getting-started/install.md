@@ -1,40 +1,88 @@
 ---
-title: 安装
+title: 安装与构建
 order: 2
 category: 快速开始
-description: 下载 RenoP 二进制
+description: 下载二进制、微架构选型与源码编译
 ---
 
-# 安装
+# 安装与构建
 
-## 下载
+## 1. 下载预编译二进制
 
-访问 [下载页](/download) 或直接从以下地址获取 zip 包：
+你可以从 Web 界面中的 [下载页面](/download) 或以下地址获取预编译压缩包：
 
-- 稳定版：`https://mvnc.pkg.one/update/renop/stable/`
-- 开发版：`https://mvnc.pkg.one/update/renop/nightly/`
+- **稳定版 (Stable)**：`https://mvnc.pkg.one/update/renop/stable/`
+- **开发版 (Nightly)**：`https://mvnc.pkg.one/update/renop/nightly/`
 
-## 从 zip 包安装
+## 2. x86-64 微架构等级说明
 
-1. 将 zip 包解压到目标工作目录
-2. Windows 系统执行 `renop.exe`，其他系统执行 `./renop`
+RenoP 针对 64 位 x86 架构提供了不同指令集等级的构建版本：
 
-服务默认监听 `0.0.0.0:3000`。首次启动前建议设置环境变量 `RENOP_DEFAULT_ADMIN_PASSWORD`，详见[快速开始](./quickstart.md)。
+| 等级                  | 指令集支持                          | 适用场景                                                                         |
+|:----------------------|:------------------------------------|:---------------------------------------------------------------------------------|
+| **x86-64-v1**         | 通用 64 位基线指令集                | 兼容所有 64 位 x86 处理器，适用于较旧的 CPU 或老旧虚拟机                         |
+| **x86-64-v2**         | SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT | 适用于 2008 年及之后的主流 Intel 与 AMD 处理器                                   |
+| **x86-64-v3**（推荐） | AVX, AVX2, BMI1, BMI2, FMA3         | 适用于 Intel Haswell (2013+)、AMD Zen 2 (2019+) 及更新的处理器，推荐生产环境使用 |
+| **x86-64-v4**         | AVX-512 基础与扩展指令集            | 适用于支持 AVX-512 的服务器级 CPU（如 Intel Skylake-X/Ice Lake, AMD Zen 4 等）   |
+| **ARM64**             | NEON, Crypto                        | 适用于 Apple Silicon、AWS Graviton 及各类 ARM64 Linux 服务器                     |
 
-## 从源码构建
+## 3. 校验与运行
 
-从源码构建时，必须使用 [我们维护的 Go fork](https://github.com/404Setup/go/releases)，不可使用官方 Go 发行版。此外还需安装 PowerShell 7 和 Node.js。
+每个 Release 均附带 `SHA256SUMS` 文件。建议在解压前校验文件完整性：
 
-1. 查看 `go.mod` 中指定的 `go` 版本
-2. 在 releases 页面找到对应的 `go<版本>` tag，下载适合当前系统架构的文件
-3. 使用同一 release 中提供的 `SHA256SUMS` 文件校验下载文件的完整性
-4. 解压后将环境变量 `GOROOT` 指向 `go` 目录，将 `GOROOT/bin` 添加到 `PATH`，然后运行 `go version` 确认版本正确
+```bash
+# Linux
+sha256sum -c SHA256SUMS --ignore-missing
 
-```powershell
-pwsh ./build.ps1      # 完整交叉编译（所有平台）
-pwsh ./build.ps1 s    # 主流平台（Linux/Windows amd64/amd64v4/arm64）
-pwsh ./build.ps1 c    # 仅当前平台
-pwsh ./build.ps1 c nb # 当前平台，无打包（直接输出二进制）
+# Windows (PowerShell)
+Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.zip
 ```
 
-详细构建说明请参阅仓库根目录的 `README.md`。
+解压后直接运行可执行文件：
+
+- **Linux / macOS**：`./renop`
+- **Windows**：`.\renop.exe`
+
+服务默认监听 `0.0.0.0:3000`。首次启动建议先设置管理员密码，参见 [快速开始](./quickstart.md)。
+
+## 4. 注册为系统服务
+
+RenoP 内置了跨平台的系统服务安装与卸载功能：
+
+```bash
+# 安装并注册为开机自启系统服务
+./renop --install
+
+# 停止并移除系统服务
+./renop --uninstall
+```
+
+支持 Windows 服务（SCM）、Linux systemd / OpenRC、macOS LaunchDaemons 及 BSD
+rc.d。详细说明请参考 [系统服务管理](../deployment/daemon.md)。
+
+## 5. 从源码构建
+
+如需从源码编译 RenoP，需要准备以下环境：
+
+- **Go 编译器**：请使用我们维护的 [404Setup/go](https://github.com/404Setup/go/releases) 分支（不可使用 Go 官方标准发行版）。
+- **前端工具**：Node.js 18+ 与 pnpm。
+- **脚本环境**：PowerShell 7 (`pwsh`)。
+- **Protobuf**：`protoc` 与 `protoc-gen-go`（用于更新 API 协议定义）。
+
+### 构建步骤
+
+```powershell
+# 1. 确保 GOROOT 指向 404Setup/go 目录
+$env:GOROOT = "D:\tools\go"
+$env:PATH = "$env:GOROOT\bin;$env:PATH"
+
+# 2. 安装依赖并构建前端
+pnpm install --frozen-lockfile
+pnpm run build:frontend
+
+# 3. 编译二进制
+pwsh ./build.ps1 c nb    # 仅编译当前平台，直接输出二进制（不压缩打包）
+pwsh ./build.ps1 c       # 仅编译当前平台并生成 zip 压缩包
+pwsh ./build.ps1 s       # 编译主流平台 (Linux/Windows amd64/amd64v3/arm64)
+pwsh ./build.ps1         # 完整全平台矩阵交叉编译
+```

@@ -128,8 +128,17 @@ header.main-header {
     gap: 2rem;
 }
 
+.layout-two-col.no-sidebar,
+.layout-two-col:has(.col-right[hidden]) {
+    grid-template-columns: 1fr;
+}
+
 .col-left, .col-right {
     min-width: 0;
+}
+
+.col-right[hidden] {
+    display: none !important;
 }
 
 footer {

@@ -1,8 +1,19 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
 /* Страницы, поиск и действия аудита репозиториев Cargo. */
 export default Object.freeze({
     "search.clear": "Очистить поиск",
     "search.mavenPlaceholder": "Поиск путей и артефактов Maven",
     "search.cargoPlaceholder": "Поиск пакетов Cargo",
+    "search.dockerPlaceholder": "Поиск образов контейнеров",
     "search.searching": "Выполняется поиск…",
     "search.noResults": "Подходящие пакеты или артефакты не найдены.",
     "search.failed": "Не удалось выполнить поиск по репозиторию. Повторите попытку.",
@@ -10,6 +21,7 @@ export default Object.freeze({
     "search.moreResults": "Найдены дополнительные совпадения. Уточните поисковый запрос.",
     "search.directory": "Каталог",
     "search.package": "Пакет",
+    "search.image": "Образ",
     "search.file": "Файл",
     "cargo.registryTitle": "Реестр Cargo",
     "cargo.registrySubtitle": "Просматривайте пакеты через sparse-индекс и управляйте версиями и командами отдельно от файловой структуры Maven.",

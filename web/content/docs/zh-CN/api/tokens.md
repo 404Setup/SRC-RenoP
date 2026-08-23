@@ -1,100 +1,101 @@
 ---
-title: 令牌
+title: 令牌与用户 API
 order: 3
-category: API
+category: API 接口
+description: 个人访问令牌 (PAT)、上传令牌与用户账号管理接口
 ---
 
-# 用户与访问令牌
+# 令牌与用户 API
 
-前缀：`/api/tokens`
+## 1. 获取令牌列表
 
-所有接口需要 **manager/admin** 权限。普通用户通过 `/api/auth/profile/*` 修改自己的密码或上传令牌。
+- **路径**：`GET /api/tokens`
+- **认证要求**：需已登录（普通用户获取自身令牌，Manager/Admin 获取全部或指定用户令牌）
 
-此处的「令牌」指账户记录：用户名、密码哈希、权限以及可选的上传令牌。数据持久化在数据库中。
-
-## `GET /api/tokens`
-
-列出全部账户。响应：`application/x-protobuf`，`AccessTokenList`。
-
-形状（JSON 示意）：
+### 响应 (JSON)
 
 ```json
 {
   "tokens": [
     {
-      "identifier": {"type": "PERSISTENT", "value": 1},
-      "name": "admin",
-      "created_at": "2026-01-01T00:00:00Z",
-      "description": "…",
-      "expires_at": null,
-      "tokens": ["<upload-token-if-any>"],
-      "permissions": ["manager", "canview:*", "canupdate:*"]
+      "id": "tok_123456",
+      "name": "CI-Deploy-Token",
+      "user": "ci_bot",
+      "token_type": "upload",
+      "scopes": ["canupdate:releases"],
+      "created_at": 1740000000,
+      "expires_at": 1771536000
     }
   ]
 }
 ```
 
-不返回密码哈希。`tokens` 数组在存在时包含明文上传令牌。权限不足时返回 `403`。
+---
 
-## `GET /api/tokens/:name`
+## 2. 创建新令牌
 
-单个账户， **protobuf** `AccessTokenDto` (`application/x-protobuf`)。名称不区分大小写（以小写形式存储）。账户不存在时返回
-`404`。
+- **路径**：`POST /api/tokens`
+- **认证要求**：需已登录
 
-## `PUT /api/tokens/:name`
+### 请求体 (JSON)
 
-创建或更新。正文：`application/x-protobuf`，`CreateAccessTokenRequest`（兼容 JSON 格式输入）。
-
-| 字段          | 含义                                                       |
-|---------------|------------------------------------------------------------|
-| `is_create`   | 设为 `true` 且名称已存在时返回 `409`                       |
-| `secret`      | 创建时省略则自动生成 UUID 密码；更新时省略则保持原密码不变 |
-| `new_name`    | 用于重命名；目标名称已存在时返回 `409`                     |
-| `permissions` | 仅在提供时替换权限列表                                     |
-
-响应：`application/x-protobuf`，`CreateAccessTokenResponse`
-
-```protobuf
-syntax = "proto3";
-
-message CreateAccessTokenResponse {
-  AccessTokenDto access_token = 1;
-  string secret = 2; // 仅在本次请求生成或提供时存在
+```json
+{
+  "name": "Local-Maven-Token",
+  "token_type": "pat",
+  "scopes": ["canview:releases", "canupdate:snapshots"],
+  "expires_in_days": 90
 }
 ```
 
-创建后请立即保存 `secret` — 明文密码之后无法再次获取。
+### 响应
 
-## `DELETE /api/tokens/:name`
+- **状态码**：`201 Created`
+- **响应体**：返回生成的明文令牌（仅此一次返回完整明文，后续不可重新读取）：
 
-删除账户。成功返回 `204`。账户不存在时返回 `404`。
+```json
+{
+  "id": "tok_123456",
+  "token": "renop_pat_abcdef1234567890...",
+  "name": "Local-Maven-Token"
+}
+```
 
-## 浏览器会话与 FIDO 设备（管理员）
+---
 
-管理员可列出并撤销任意账户的 **浏览器登录会话**与 **FIDO 安全密钥设备**。Basic/Bearer 认证不属于会话，Session 密钥永不返回。
+## 3. 吊销/删除令牌
 
-### `GET /api/tokens/:name/sessions`
+- **路径**：`DELETE /api/tokens/:id`
+- **认证要求**：令牌所有者或 Admin 权限
 
-返回 `SessionList` protobuf。账户不存在时返回 `404`。
+### 响应
 
-### `POST /api/tokens/:name/sessions/revoke-all`
+- **状态码**：`204 No Content`
 
-撤销该用户全部浏览器会话。管理员操作 **自己的**账户时保留当前请求的会话。响应：`StatusOk` protobuf。
+---
 
-### `DELETE /api/tokens/:name/sessions/:session_id`
+## 4. 用户账号管理 (Manager / Admin)
 
-按 `public_id` 撤销单个会话。响应：`StatusOk` protobuf。会话 ID 不存在时为空操作（不报错）。
+### 查询所有用户
 
-### `GET /api/auth/users/:username/fido`
+- **路径**：`GET /api/auth/users`
+- **认证要求**：Manager 或 Admin 权限
 
-管理员查看指定用户已绑定的 FIDO 设备列表。响应：`FidoDeviceList` protobuf。
+### 创建新用户
 
-### `DELETE /api/auth/users/:username/fido/:device_id`
+- **路径**：`POST /api/auth/users`
+- **认证要求**：Manager 或 Admin 权限
+- **请求体**：
+  ```json
+  {
+    "username": "developer1",
+    "password": "InitialPassword123!",
+    "role": "user",
+    "permissions": ["canview:releases", "canupdate:snapshots"]
+  }
+  ```
 
-管理员删除指定用户的指定 FIDO 设备。响应：`StatusOk` protobuf。
+### 删除用户
 
-## `POST /api/tokens/:name/token`
-
-管理员为指定用户重新签发上传令牌（替换旧值）。响应：`GenerateTokenResponse` protobuf (`token: "<uuid>"`)。
-
-与 `/api/auth/profile/token` 功能相同，但面向其他用户。
+- **路径**：`DELETE /api/auth/users/:username`
+- **认证要求**：Admin 权限

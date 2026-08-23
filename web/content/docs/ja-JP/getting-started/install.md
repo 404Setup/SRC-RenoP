@@ -1,41 +1,72 @@
 ---
-title: インストール
+title: インストールとビルド
 order: 2
 category: はじめに
-description: RenoP バイナリの入手
+description: バイナリのダウンロード、マイクロアーキテクチャの選択、ソースコードからのビルド
 ---
 
-# インストール
+# インストールとビルド
 
-## ダウンロード
+## 1. ビルド済みバイナリのダウンロード
 
-[ダウンロードページ](/download)、または zip を直接取得:
+Web 管理画面の [ダウンロードページ](/download) または公式配布チャンネルから取得できます：
 
-- 安定版: `https://mvnc.pkg.one/update/renop/stable/`
-- プレビュー: `https://mvnc.pkg.one/update/renop/nightly/`
+- **安定版 (Stable)**: 本番環境推奨
+  `https://mvnc.pkg.one/update/renop/stable/`
+- **開発版 (Nightly)**: 最新機能を含む日次ビルド
+  `https://mvnc.pkg.one/update/renop/nightly/`
 
-## zip から
+## 2. x86-64 マイクロアーキテクチャの選択
 
-1. 作業ディレクトリに展開
-2. Windows は `renop.exe`、それ以外は `./renop`
+RenoP は x86-64 CPU 向けに最適化されたビルドを提供しています：
 
-デフォルトで `0.0.0.0:3000`。初回起動前に `RENOP_DEFAULT_ADMIN_PASSWORD` を設定 — [クイックスタート](./quickstart.md)。
+| レベル                 | 命令セット対応                      | 推奨シナリオ                                                    |
+|:-----------------------|:------------------------------------|:----------------------------------------------------------------|
+| **x86-64-v1**          | 基本 64bit x86 命令                 | すべての 64bit x86 CPU に対応。古いハードウェアや仮想マシン向け |
+| **x86-64-v2**          | SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT | 2008年以降の主要な Intel / AMD プロセッサ                       |
+| **x86-64-v3** *(推奨)* | AVX, AVX2, BMI1, BMI2, FMA3         | Intel Haswell (2013+)、AMD Zen 2 (2019+) 以降。**本番環境推奨** |
+| **x86-64-v4**          | AVX-512 基本および拡張              | AVX-512 対応サーバー (Intel Skylake-X/Ice Lake, AMD Zen 4)      |
+| **ARM64**              | NEON, Crypto                        | Apple Silicon、AWS Graviton、64bit ARM Linux サーバー           |
 
-## ソースからビルド
+## 3. 検証と実行
 
-公式版 Go ではなく、[404Setup の Go fork](https://github.com/404Setup/go/releases)を使用してください。 PowerShell 7 と
-Node.js も必要です。
+各リリースには `SHA256SUMS` ファイルが付属しています：
 
-1. `go.mod` の `go` バージョンを確認します。
-2. OS とアーキテクチャに合う最新の `go<バージョン>` release をダウンロードします。
-3. 同じ release の `SHA256SUMS` で archive を確認します。
-4. 展開後、`GOROOT` を `go` ディレクトリに設定し、`GOROOT/bin` を `PATH` に追加して `go version` を 実行します。
+```bash
+# Linux
+sha256sum -c SHA256SUMS --ignore-missing
 
-```powershell
-pwsh ./build.ps1
-pwsh ./build.ps1 s
-pwsh ./build.ps1 c
-pwsh ./build.ps1 c nb
+# Windows (PowerShell)
+Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.zip
 ```
 
-詳細はリポジトリの `README.md`。
+解凍後、実行ファイルを実行します：
+
+- **Linux / macOS**: `./renop`
+- **Windows**: `.\renop.exe`
+
+デフォルトで `0.0.0.0:3000` でリッスンします。初期起動時は [クイックスタート](./quickstart.md) を参照して管理者パスワードを設定してください。
+
+## 4. システムサービスへの登録
+
+```bash
+# システムサービスとして登録（自動起動設定）
+./renop --install
+
+# サービスを停止して削除
+./renop --uninstall
+```
+
+## 5. ソースからのビルド
+
+- **Go コンパイラ**: [404Setup/go](https://github.com/404Setup/go/releases) 専用フォークが必要です。
+- **フロントエンドツール**: Node.js 18+ および pnpm。
+- **シェル環境**: PowerShell 7 (`pwsh`)。
+
+```powershell
+# ビルドコマンド
+pnpm install --frozen-lockfile
+pnpm run build:frontend
+pwsh ./build.ps1 c nb    # 現在のプラットフォーム向け単一バイナリを出力
+pwsh ./build.ps1 c       # 現在のプラットフォーム向け zip パッケージ作成
+```

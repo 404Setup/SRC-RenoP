@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -102,6 +104,7 @@ export default Object.freeze({
     "repos.formatDesc": "Protocolo de paquetes expuesto por este repositorio",
     "repos.formatMaven": "Maven",
     "repos.formatCargo": "Cargo",
+    "repos.formatDocker": "Docker / OCI",
     "repos.artifactUrl": "Plantilla de URL de artefactos",
     "repos.artifactUrlHint": "Origen de descarga Cargo opcional con {crate} y {version}; déjelo vacío para usar la URL del índice",
     "repos.cargoMirrorAllowListHint": "Especifique los nombres exactos de los crates permitidos desde este espejo",
@@ -109,10 +112,18 @@ export default Object.freeze({
     "repos.cargoAddRulePlaceholder": "Introduzca un nombre de crate (pulse Intro o una coma)",
     "repos.cargoEmptyAllowList": "No hay reglas de autorización (todos los crates se permiten de forma predeterminada)",
     "repos.cargoEmptyDenyList": "No hay reglas de bloqueo (ningún crate se bloquea de forma predeterminada)",
+    "repos.dockerMirrorUrl": "URL del registro Docker",
+    "repos.dockerMirrorUrlHint": "URL base del registro upstream, p. ej. https://registry-1.docker.io",
+    "repos.dockerMirrorAllowListHint": "Especifique los nombres de imagen permitidos desde este espejo (p. ej. library/ubuntu, library/*)",
+    "repos.dockerMirrorDenyListHint": "Especifique los nombres de imagen bloqueados desde este espejo",
+    "repos.dockerAddRulePlaceholder": "Introduzca un nombre de imagen (pulse Intro o una coma)",
+    "repos.dockerEmptyAllowList": "No hay reglas de autorización (todas las imágenes se permiten de forma predeterminada)",
+    "repos.dockerEmptyDenyList": "No hay reglas de bloqueo (ninguna imagen se bloquea de forma predeterminada)",
     "repos.subtitle": "Gestione repositorios de paquetes y su configuración específica de protocolo.",
     "repos.addRepoTitle": "Añadir un repositorio de paquetes",
     "repos.formatMavenDesc": "Artefactos Maven, metadatos, cargas web y política GPG.",
     "repos.formatCargoDesc": "Índice sparse de Cargo, publicación de crates, espejos y equipos de paquetes.",
+    "repos.formatDockerDesc": "Imágenes de contenedores Docker y OCI, manifiestos multiarquitectura y almacenamiento en caché de espejos.",
     "repos.formatImmutableDesc": "El formato del repositorio queda fijado después de crearlo.",
     "repos.formatCreateDesc": "Elija el protocolo del cliente. No podrá cambiarse después.",
     "repos.name": "Nombre del repositorio",
@@ -126,6 +137,12 @@ export default Object.freeze({
     "details.cargoSourceTab": "Sustitución de fuente",
     "details.cargoLoginTab": "Inicio de sesión",
     "details.cargoPublishTab": "Publicación",
+    "details.dockerTitle": "Configuración del registro Docker",
+    "details.dockerSubtitle": "Comandos para pull, tag, push y autenticación",
+    "details.dockerPullTab": "Pull",
+    "details.dockerTagTab": "Tag",
+    "details.dockerPushTab": "Push",
+    "details.dockerLoginTab": "Inicio de sesión",
     "cargo.packagesTitle": "Paquetes Cargo",
     "cargo.packagesSubtitle": "Gestione versiones, archivado y equipos de paquetes",
     "cargo.noPackagesAdmin": "No hay paquetes Cargo de propiedad local registrados en este repositorio.",

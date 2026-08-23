@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -102,6 +104,7 @@ export default Object.freeze({
     "repos.formatDesc": "이 저장소가 제공하는 패키지 프로토콜",
     "repos.formatMaven": "Maven",
     "repos.formatCargo": "Cargo",
+    "repos.formatDocker": "Docker / OCI",
     "repos.artifactUrl": "아티팩트 URL 템플릿",
     "repos.artifactUrlHint": "{crate} 및 {version}을 포함하는 선택적 Cargo 다운로드 원본입니다. 비워 두면 인덱스 URL을 사용합니다",
     "repos.cargoMirrorAllowListHint": "이 미러에서 허용할 정확한 crate 이름을 지정합니다",
@@ -109,10 +112,18 @@ export default Object.freeze({
     "repos.cargoAddRulePlaceholder": "crate 이름 입력(Enter 또는 쉼표로 추가)",
     "repos.cargoEmptyAllowList": "허용 규칙 미설정(기본적으로 모든 crate 허용)",
     "repos.cargoEmptyDenyList": "거부 규칙 미설정(기본적으로 차단되는 crate 없음)",
+    "repos.dockerMirrorUrl": "Docker 레지스트리 URL",
+    "repos.dockerMirrorUrlHint": "업스트림 레지스트리 기본 URL(예: https://registry-1.docker.io)",
+    "repos.dockerMirrorAllowListHint": "이 미러에서 허용할 이미지 이름 지정(예: library/ubuntu, library/*)",
+    "repos.dockerMirrorDenyListHint": "이 미러에서 차단할 이미지 이름 지정",
+    "repos.dockerAddRulePlaceholder": "이미지 이름 입력(Enter 또는 쉼표로 추가)",
+    "repos.dockerEmptyAllowList": "허용 규칙 미설정(기본적으로 모든 이미지 허용)",
+    "repos.dockerEmptyDenyList": "거부 규칙 미설정(기본적으로 차단되는 이미지 없음)",
     "repos.subtitle": "패키지 저장소와 프로토콜별 구성을 관리합니다.",
     "repos.addRepoTitle": "패키지 저장소 추가",
     "repos.formatMavenDesc": "Maven 아티팩트, 메타데이터, 브라우저 업로드 및 GPG 정책입니다.",
     "repos.formatCargoDesc": "Cargo sparse 인덱스, crate 게시, 미러 및 패키지 팀입니다.",
+    "repos.formatDockerDesc": "Docker 및 OCI 컨테이너 이미지, 다중 아키텍처 매니페스트, 미러 캐싱 지원.",
     "repos.formatImmutableDesc": "저장소 형식은 만든 후 변경할 수 없습니다.",
     "repos.formatCreateDesc": "클라이언트 프로토콜을 선택하세요. 나중에 변경할 수 없습니다.",
     "repos.name": "저장소 이름",
@@ -126,6 +137,12 @@ export default Object.freeze({
     "details.cargoSourceTab": "소스 대체",
     "details.cargoLoginTab": "로그인",
     "details.cargoPublishTab": "게시",
+    "details.dockerTitle": "Docker 레지스트리 설정",
+    "details.dockerSubtitle": "풀, 태그 지정, 푸시 및 로그인 인증 명령",
+    "details.dockerPullTab": "풀 (Pull)",
+    "details.dockerTagTab": "태그 (Tag)",
+    "details.dockerPushTab": "푸시 (Push)",
+    "details.dockerLoginTab": "로그인 (Login)",
     "cargo.packagesTitle": "Cargo 패키지",
     "cargo.packagesSubtitle": "버전, 보관 상태 및 패키지 팀 관리",
     "cargo.noPackagesAdmin": "이 저장소에 로컬 소유 Cargo 패키지가 기록되어 있지 않습니다.",
