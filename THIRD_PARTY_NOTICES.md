@@ -6,7 +6,7 @@ RenoP itself is licensed under the [Mozilla Public License 2.0](LICENSE). Third-
 licenses. This file is intended to satisfy attribution and notice obligations when RenoP is distributed in source or
 binary form.
 
-Versions below reflect the dependency set used to produce this notice (reviewed 2026-08-22). For an authoritative
+Versions below reflect the dependency set used to produce this notice (reviewed 2026-08-23). For an authoritative
 build-time inventory, see `go.mod` / `go.sum`, `pnpm-lock.yaml`, and the workspace `package.json` files under
 `internal/service/frontend/renop-html/`, `web/`, and `packages/`.
 
@@ -63,7 +63,7 @@ installation.
 | `github.com/golang-jwt/jwt/v5`        | v5.3.1                             | MIT                                        | Copyright (c) 2020-present Go Language JWT Authors                                                             |
 | `github.com/google/go-tpm`            | v0.9.8                             | Apache-2.0                                 | Copyright (c) Google LLC                                                                                       |
 | `github.com/google/uuid`              | v1.6.0                             | BSD-3-Clause                               | Copyright (c) 2009, 2014 Google Inc.                                                                           |
-| `github.com/jackc/pgpassfile`          | v1.0.0                             | MIT                                        | Copyright (c) 2019 Jack Christensen                                                                            |
+| `github.com/jackc/pgpassfile`         | v1.0.0                             | MIT                                        | Copyright (c) 2019 Jack Christensen                                                                            |
 | `github.com/jackc/pgservicefile`      | v0.0.0-20240606120523-5a60cdf6a761 | MIT                                        | Copyright (c) 2019 Jack Christensen                                                                            |
 | `github.com/jackc/pgx/v5`             | v5.10.0                            | MIT                                        | Copyright (c) 2013-2024 Jack Christensen                                                                       |
 | `github.com/jackc/puddle/v2`          | v2.2.2                             | MIT                                        | Copyright (c) 2019 Jack Christensen                                                                            |
@@ -91,6 +91,7 @@ installation.
 | `golang.org/x/crypto`                 | v0.55.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/mod`                    | v0.40.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/net`                    | v0.58.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
+| `golang.org/x/sync`                   | v0.22.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/sys`                    | v0.47.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/text`                   | v0.41.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
 | `golang.org/x/time`                   | v0.15.0                            | BSD-3-Clause                               | Copyright 2009 The Go Authors                                                                                  |
@@ -128,15 +129,15 @@ the source tree:
 The management UI is embedded into the server binary after bundling. Website packages under `web/` are used for the
 marketing site and documentation, not the server binary.
 
-| Package                                                  | Version | SPDX         | Role                                       |
-|----------------------------------------------------------|---------|--------------|--------------------------------------------|
-| [Feather Icons](https://github.com/feathericons/feather) | —       | MIT          | Interface icon design reference / assets   |
-| `rolldown`                                               | 1.2.5   | MIT          | JS/CSS bundler (build-time)                |
-| `lightningcss`                                           | 1.33.0  | MPL-2.0      | CSS transformer (build-time)               |
-| `protobufjs`                                             | 8.7.2   | BSD-3-Clause | Frontend protobuf runtime / codegen        |
-| `long`                                                   | 5.3.2   | Apache-2.0   | Transitive protobufjs runtime dependency   |
-| `protobufjs-cli`                                         | 2.6.2   | BSD-3-Clause | Frontend protobuf codegen (dev)            |
-| `marked`                                                 | 18.0.10 | MIT          | Markdown rendering on the official website |
+| Package                                                  | Version | SPDX         | Role                                         |
+|----------------------------------------------------------|---------|--------------|----------------------------------------------|
+| [Feather Icons](https://github.com/feathericons/feather) | —       | MIT          | Interface icon design reference / assets     |
+| `rolldown`                                               | 1.2.5   | MIT          | JS/CSS bundler (build-time)                  |
+| `lightningcss`                                           | 1.33.0  | MPL-2.0      | CSS transformer (build-time)                 |
+| `protobufjs`                                             | 8.7.2   | BSD-3-Clause | Frontend protobuf runtime / codegen          |
+| `long`                                                   | 5.3.2   | Apache-2.0   | Transitive protobufjs runtime dependency     |
+| `protobufjs-cli`                                         | 2.6.2   | BSD-3-Clause | Frontend protobuf codegen (dev)              |
+| `marked`                                                 | 18.0.10 | MIT          | Markdown rendering (frontend docs & website) |
 
 ---
 

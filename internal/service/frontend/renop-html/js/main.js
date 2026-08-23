@@ -26,6 +26,7 @@ import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
 import {initMessageCenter} from './messages.js';
 import './cargo-messages.js';
+import './docker-messages.js';
 
 initI18n();
 

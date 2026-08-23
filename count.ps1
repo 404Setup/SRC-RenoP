@@ -15,60 +15,41 @@ $excludeDirNames = [System.Collections.Generic.HashSet[string]]::new(
     [System.StringComparer]::OrdinalIgnoreCase
 )
 
-function Get-SourceFiles {
-    param(
-        [string]$Root,
-        [string]$Filter
-    )
+$go = 0
+$js = 0
+$css = 0
+$md = 0
 
-    $results = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
-    $queue = [System.Collections.Generic.Queue[string]]::new()
-    $queue.Enqueue($Root)
+$root = (Get-Location).Path
+$queue = [System.Collections.Generic.Queue[System.IO.DirectoryInfo]]::new()
+$queue.Enqueue([System.IO.DirectoryInfo]::new($root))
 
-    while ($queue.Count -gt 0) {
-        $dir = $queue.Dequeue()
-        try {
-            foreach ($file in [System.IO.Directory]::EnumerateFiles($dir, $Filter)) {
-                $results.Add([System.IO.FileInfo]::new($file))
-            }
-            foreach ($sub in [System.IO.Directory]::EnumerateDirectories($dir)) {
-                $name = [System.IO.Path]::GetFileName($sub)
-                if (-not $excludeDirNames.Contains($name)) {
-                    $queue.Enqueue($sub)
+while ($queue.Count -gt 0) {
+    $cur = $queue.Dequeue()
+    try {
+        foreach ($item in $cur.EnumerateFileSystemInfos()) {
+            if ($item -is [System.IO.DirectoryInfo]) {
+                if (-not $excludeDirNames.Contains($item.Name)) {
+                    $queue.Enqueue($item)
+                }
+            } else {
+                $ext = $item.Extension
+                if ($ext.Equals('.go', [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $go += [System.Linq.Enumerable]::Count([System.IO.File]::ReadLines($item.FullName))
+                } elseif ($ext.Equals('.js', [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $js += [System.Linq.Enumerable]::Count([System.IO.File]::ReadLines($item.FullName))
+                } elseif ($ext.Equals('.css', [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $css += [System.Linq.Enumerable]::Count([System.IO.File]::ReadLines($item.FullName))
+                } elseif ($ext.Equals('.md', [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $md += [System.Linq.Enumerable]::Count([System.IO.File]::ReadLines($item.FullName))
                 }
             }
-        } catch {
-            # Skip unreadable directories
         }
+    } catch {
+        # Skip unreadable directories
     }
-
-    return $results
 }
 
-function Get-SourceLineCount {
-    param([string]$Filter)
-
-    $root = (Get-Location).Path
-    $files = Get-SourceFiles -Root $root -Filter $Filter
-    if ($files.Count -eq 0) {
-        return 0
-    }
-
-    $lines = 0
-    foreach ($file in $files) {
-        try {
-            $lines += [System.IO.File]::ReadAllLines($file.FullName).Length
-        } catch {
-            # Skip unreadable files
-        }
-    }
-    return $lines
-}
-
-$go = Get-SourceLineCount -Filter '*.go'
-$js = Get-SourceLineCount -Filter '*.js'
-$css = Get-SourceLineCount -Filter '*.css'
-$md = Get-SourceLineCount -Filter '*.md'
 $total = $go + $js + $css + $md
 
 Write-Host "Total: $total"

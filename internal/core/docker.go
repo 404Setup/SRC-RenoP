@@ -12,16 +12,28 @@ package core
 
 import "errors"
 
+// Permission levels for Docker container images, mirrored after the Cargo permission system.
+const (
+	DockerPermissionRead    = 0
+	DockerPermissionPublish = 1
+	DockerPermissionManage  = 2
+	DockerPermissionTeam    = 3
+	DockerPermissionOwner   = 4
+	DockerPermissionFull    = 4
+)
+
 // DockerRepositoryImage represents a container image within a Docker repository.
 type DockerRepositoryImage struct {
-	Repository  string `json:"repository"`
-	ImageName   string `json:"image_name"`
-	Description string `json:"description"`
-	Publisher   string `json:"publisher"`
-	TagCount    int    `json:"tag_count"`
-	LatestTag   string `json:"latest_tag"`
-	CreatedAt   int64  `json:"created_at"`
-	UpdatedAt   int64  `json:"updated_at"`
+	Repository      string `json:"repository"`
+	ImageName       string `json:"image_name"`
+	Description     string `json:"description"`
+	Publisher       string `json:"publisher"`
+	TagCount        int    `json:"tag_count"`
+	LatestTag       string `json:"latest_tag"`
+	PullCount       int64  `json:"pull_count"`
+	PermissionLevel int    `json:"permission_level,omitempty"`
+	CreatedAt       int64  `json:"created_at"`
+	UpdatedAt       int64  `json:"updated_at"`
 }
 
 // DockerTag represents a named image tag pointing to a specific manifest digest.
@@ -51,6 +63,24 @@ type DockerManifest struct {
 	CreatedAt    int64  `json:"created_at"`
 }
 
+// DockerMember represents an authorized collaborator for a container image.
+type DockerMember struct {
+	Username string `json:"username"`
+	Level    int    `json:"level"`
+	AddedAt  int64  `json:"added_at"`
+}
+
+// DockerInvitation represents a pending invitation to collaborate on a container image.
+type DockerInvitation struct {
+	ID         string `json:"id"`
+	Repository string `json:"repository"`
+	ImageName  string `json:"image_name"`
+	Inviter    string `json:"inviter"`
+	Recipient  string `json:"recipient"`
+	Level      int    `json:"level"`
+	CreatedAt  int64  `json:"created_at"`
+}
+
 // DockerBlob represents an immutable content-addressed layer or configuration blob.
 type DockerBlob struct {
 	Repository string `json:"repository"`
@@ -61,11 +91,14 @@ type DockerBlob struct {
 
 // DockerImageDetails holds full inspection details for an image in the repository.
 type DockerImageDetails struct {
-	Image       *DockerRepositoryImage `json:"image"`
-	Tags        []*DockerTag           `json:"tags"`
-	Manifest    *DockerManifest        `json:"manifest,omitempty"`
-	TotalSize   int64                  `json:"total_size"`
-	LayersCount int                    `json:"layers_count"`
+	Image           *DockerRepositoryImage `json:"image"`
+	Tags            []*DockerTag           `json:"tags"`
+	Manifest        *DockerManifest        `json:"manifest,omitempty"`
+	Members         []*DockerMember        `json:"members,omitempty"`
+	PermissionLevel int                    `json:"permission_level"`
+	Administrator   bool                   `json:"administrator"`
+	TotalSize       int64                  `json:"total_size"`
+	LayersCount     int                    `json:"layers_count"`
 }
 
 var (
@@ -80,4 +113,8 @@ var (
 	ErrDockerPermissionDenied   = errors.New("Docker permission denied")
 	ErrDockerManifestInvalid    = errors.New("invalid manifest format")
 	ErrDockerBlobUploadRange    = errors.New("invalid upload range")
+	ErrDockerMemberExists       = errors.New("user is already a member of this Docker image")
+	ErrDockerInvitationExists   = errors.New("invitation already pending for this user")
+	ErrDockerInvitationInvalid  = errors.New("invitation is invalid or has expired")
+	ErrDockerLastFullMember     = errors.New("cannot remove or demote the last L4 owner of this Docker image")
 )

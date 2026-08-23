@@ -34,7 +34,7 @@ func ParseRepositoryAndImage(fullName string) (string, string) {
 	return parts[0], strings.Join(parts[1:], "/")
 }
 
-// CanReadDocker checks whether a user has read access to a Docker repository.
+// CanReadDocker checks whether a user has read access to a Docker repository or specific image.
 func CanReadDocker(state *core.AppState, user *config.User, repo *config.Repository, path string) bool {
 	if repo == nil {
 		return false
@@ -45,15 +45,51 @@ func CanReadDocker(state *core.AppState, user *config.User, repo *config.Reposit
 	if user != nil && user.CheckReadPermission(repo.Name, path, repo.Visibility, false) {
 		return true
 	}
+	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
+		return false
+	}
+	if state == nil {
+		return false
+	}
+	db := state.GetDB()
+	if db == nil {
+		return false
+	}
+	allowed, err := db.HasDockerMembership(repo.Name, user.Username)
+	if err == nil && allowed {
+		return true
+	}
 	return false
 }
 
-// CanWriteDocker checks whether a user has push/mutate access to a Docker repository.
-func CanWriteDocker(state *core.AppState, user *config.User, repo *config.Repository, repoName string) bool {
+// CanWriteDocker checks whether a user has push/mutate access to a Docker repository or specific image.
+func CanWriteDocker(state *core.AppState, user *config.User, repo *config.Repository, repoFullName string) bool {
 	if repo == nil || user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return false
 	}
-	return user.CheckUpdatePermission(repoName)
+	if user.IsManager() || user.CheckUpdatePermission(repo.Name) {
+		return true
+	}
+	if state == nil {
+		return false
+	}
+	db := state.GetDB()
+	if db == nil {
+		return false
+	}
+	_, imageName := ParseRepositoryAndImage(repoFullName)
+	if imageName != "" {
+		level, err := db.GetDockerMemberLevel(repo.Name, imageName, user.Username)
+		if err == nil && level >= core.DockerPermissionPublish {
+			return true
+		}
+	} else {
+		allowed, err := db.HasDockerMembership(repo.Name, user.Username)
+		if err == nil && allowed {
+			return true
+		}
+	}
+	return false
 }
 
 // SendAuthChallenge issues a WWW-Authenticate header directing the Docker CLI to the token endpoint.

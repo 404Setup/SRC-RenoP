@@ -83,6 +83,7 @@ export default Object.freeze({
     "audit.action.CARGO_PACKAGE_ARCHIVE": "Cargo パッケージをアーカイブ",
     "audit.action.CARGO_PACKAGE_RESTORE": "Cargo パッケージを復元",
     "audit.action.CARGO_PACKAGE_DELETE": "Cargo パッケージを削除",
+    "audit.action.CARGO_TEAM_ADD": "Cargoチームメンバー追加",
     "audit.action.CARGO_TEAM_INVITE": "Cargo チームへの招待",
     "audit.action.CARGO_TEAM_REMOVE": "Cargo チームメンバーを削除",
     "audit.action.CARGO_TEAM_LEVEL": "Cargo チーム権限を更新",

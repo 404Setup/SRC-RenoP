@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -11,9 +13,12 @@ package core
 import "errors"
 
 const (
+	CargoPermissionRead    = 0
 	CargoPermissionPublish = 1
 	CargoPermissionVersion = 2
-	CargoPermissionFull    = 3
+	CargoPermissionManage  = 3
+	CargoPermissionOwner   = 4
+	CargoPermissionFull    = 4
 )
 
 var (
@@ -24,7 +29,7 @@ var (
 	ErrCargoPackageArchived   = errors.New("Cargo package is archived")
 	ErrCargoAdminArchived     = errors.New("Cargo package was archived by an administrator")
 	ErrCargoAdminYanked       = errors.New("Cargo package version was yanked by an administrator")
-	ErrCargoLastFullMember    = errors.New("Cargo package must retain at least one L3 member")
+	ErrCargoLastFullMember    = errors.New("Cargo package must retain at least one L4 owner")
 	ErrCargoMemberExists      = errors.New("Cargo package member already exists")
 	ErrCargoInvitationExists  = errors.New("Cargo package invitation is already pending")
 	ErrCargoInvitationInvalid = errors.New("Cargo package invitation is no longer valid")

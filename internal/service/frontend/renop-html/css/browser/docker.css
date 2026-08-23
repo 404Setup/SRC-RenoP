@@ -901,3 +901,158 @@
     margin: 0;
 }
 
+.docker-card-pulls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.docker-card-pulls .icon-svg,
+.docker-card-pulls renop-icon {
+    width: 13px;
+    height: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.docker-team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+}
+
+.docker-team-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--text-color) 2%, var(--card-bg));
+    gap: 1rem;
+    flex-wrap: wrap;
+    transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.docker-team-row:hover {
+    border-color: color-mix(in srgb, var(--link-hover-color) 40%, var(--border-color));
+}
+
+.docker-team-member {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.docker-team-username {
+    font-size: 0.92rem;
+    color: var(--text-color);
+}
+
+.docker-team-time {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.docker-team-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-shrink: 0;
+}
+
+.docker-permission-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 650;
+    line-height: 1.2;
+    background: color-mix(in srgb, var(--link-color) 12%, transparent);
+    color: var(--link-color);
+    border: 1px solid color-mix(in srgb, var(--link-color) 25%, transparent);
+}
+
+.docker-invite-form {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.docker-invite-input {
+    flex: 1;
+    min-width: 180px;
+    height: 32px;
+    padding: 0 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color, var(--card-bg));
+    color: var(--text-color);
+    font-size: 0.84rem;
+    box-sizing: border-box;
+    transition: border-color 0.16s ease;
+}
+
+.docker-invite-input:focus {
+    border-color: var(--link-hover-color);
+    outline: none;
+}
+
+.docker-user-suggestions {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+    max-height: 220px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.docker-user-suggestions.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.docker-user-suggestions.is-leaving {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+.docker-user-suggestion {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.84rem;
+    color: var(--text-color);
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.docker-user-suggestion:hover,
+.docker-user-suggestion.is-active {
+    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+    color: var(--link-hover-color);
+}
+
+

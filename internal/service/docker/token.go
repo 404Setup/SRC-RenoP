@@ -216,7 +216,7 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 						grantedActions = append(grantedActions, "pull")
 					}
 				case "push":
-					if CanWriteDocker(state, user, repo, repoName) {
+					if CanWriteDocker(state, user, repo, repoFullName) {
 						grantedActions = append(grantedActions, "push")
 					}
 				}

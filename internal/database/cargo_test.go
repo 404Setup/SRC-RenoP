@@ -65,7 +65,7 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	require.Len(t, details.Members, 1)
 	err = db.DeleteToken("alice")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "last L3 member")
+	require.Contains(t, err.Error(), "last L4 member")
 
 	err = db.RecordCargoPublication(pkg, &core.CargoVersion{
 		Repository: "cargo", Package: "demo", Version: "1.1.0", Publisher: "bob", CreatedAt: now + 1,

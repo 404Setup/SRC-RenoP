@@ -25,6 +25,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 )
 
@@ -52,6 +53,20 @@ func (h *Handler) getRepo(state *core.AppState, repoName string) (*config.Reposi
 	return repo, true
 }
 
+func logDockerAudit(c fiber.Ctx, state *core.AppState, action, details string) {
+	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username:   username,
+		Operator:   operator,
+		AuthMethod: authMethod,
+		SessionID:  sessionID,
+		IP:         ip,
+		Action:     action,
+		Details:    details,
+		CreatedAt:  time.Now().UnixMilli(),
+	})
+}
+
 func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, repo *config.Repository, repoFullName string, isWrite bool) (*config.User, error) {
 	user := auth.GetUser(c)
 
@@ -63,6 +78,9 @@ func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, re
 		if err == nil && claims != nil {
 			user = &config.User{
 				Username: claims.Subject,
+			}
+			if tokenObj := state.GetTokenByName(claims.Subject); tokenObj != nil {
+				user.Roles = tokenObj.Permissions
 			}
 			actionRequired := "pull"
 			if isWrite {
@@ -80,13 +98,14 @@ func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, re
 				}
 			}
 			if hasAccess {
+				c.Locals("user", user)
 				return user, nil
 			}
 		}
 	}
 
 	if isWrite {
-		if !CanWriteDocker(state, user, repo, repo.Name) {
+		if !CanWriteDocker(state, user, repo, repoFullName) {
 			if user.Username == "guest" {
 				scope := fmt.Sprintf("repository:%s:pull,push", repoFullName)
 				_ = SendAuthChallenge(c, c.Host(), scope)
@@ -107,6 +126,7 @@ func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, re
 		}
 	}
 
+	c.Locals("user", user)
 	return user, nil
 }
 
@@ -262,6 +282,7 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 				if c.Method() == fiber.MethodHead {
 					return c.SendStatus(fiber.StatusOK)
 				}
+				GetPullCounter(state).RecordPull(repoName, imageName)
 				return c.Status(fiber.StatusOK).Send(upstreamData)
 			}
 			return RespondError(c, fiber.StatusNotFound, ErrCodeManifestUnknown, "manifest not found", map[string]string{"reference": reference})
@@ -305,6 +326,7 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 		return c.SendStatus(fiber.StatusOK)
 	}
 
+	GetPullCounter(state).RecordPull(repoName, imageName)
 	return c.Status(fiber.StatusOK).Send(rawJSON)
 }
 
@@ -372,6 +394,8 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to record manifest", nil)
 	}
 
+	logDockerAudit(c, state, "DOCKER_MANIFEST_PUT", fmt.Sprintf("Repository: %s, image: %s, tag: %s, digest: %s", repoName, imageName, tag, parsed.Digest))
+
 	c.Set(DockerDigestHeader, parsed.Digest)
 	c.Set("Location", fmt.Sprintf("/v2/%s/manifests/%s", name, parsed.Digest))
 	return c.SendStatus(fiber.StatusCreated)
@@ -414,6 +438,8 @@ func (h *Handler) HandleDeleteManifest(c fiber.Ctx, state *core.AppState) error 
 		}
 		_ = h.Store.DeleteManifest(state, repoName, imageName, reference)
 	}
+
+	logDockerAudit(c, state, "DOCKER_MANIFEST_DELETE", fmt.Sprintf("Repository: %s, image: %s, reference: %s", repoName, imageName, reference))
 
 	return c.SendStatus(fiber.StatusAccepted)
 }
@@ -525,6 +551,8 @@ func (h *Handler) HandleDeleteBlob(c fiber.Ctx, state *core.AppState) error {
 	}
 	_ = h.Store.DeleteBlob(state, repoName, digest)
 
+	logDockerAudit(c, state, "DOCKER_BLOB_DELETE", fmt.Sprintf("Repository: %s, digest: %s", repoName, digest))
+
 	return c.SendStatus(fiber.StatusAccepted)
 }
 
@@ -532,7 +560,7 @@ func (h *Handler) HandleDeleteBlob(c fiber.Ctx, state *core.AppState) error {
 func (h *Handler) HandlePostUpload(c fiber.Ctx, state *core.AppState) error {
 	c.Set(DockerHeaderVersion, DockerVersionValue)
 	name := getParam(c, "name")
-	repoName, _ := ParseRepositoryAndImage(name)
+	repoName, imageName := ParseRepositoryAndImage(name)
 	repo, ok := h.getRepo(state, repoName)
 	if !ok {
 		return RespondError(c, fiber.StatusNotFound, ErrCodeNameUnknown, "repository not found", nil)
@@ -553,6 +581,7 @@ func (h *Handler) HandlePostUpload(c fiber.Ctx, state *core.AppState) error {
 				_, size, _ := h.Store.BlobExists(fromRepoName, mountDigest)
 				_ = db.RecordDockerBlob(repoName, mountDigest, size)
 			}
+			logDockerAudit(c, state, "DOCKER_BLOB_MOUNT", fmt.Sprintf("Repository: %s, image: %s, digest: %s, from: %s", repoName, imageName, mountDigest, fromRepoName))
 			c.Set(DockerDigestHeader, mountDigest)
 			c.Set("Location", fmt.Sprintf("/v2/%s/blobs/%s", name, mountDigest))
 			return c.SendStatus(fiber.StatusCreated)
@@ -585,6 +614,7 @@ func (h *Handler) HandlePostUpload(c fiber.Ctx, state *core.AppState) error {
 		if db != nil {
 			_ = db.RecordDockerBlob(repoName, singleDigest, committedSize)
 		}
+		logDockerAudit(c, state, "DOCKER_BLOB_UPLOAD", fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, singleDigest, committedSize))
 		c.Set(DockerDigestHeader, singleDigest)
 		c.Set("Location", fmt.Sprintf("/v2/%s/blobs/%s", name, singleDigest))
 		return c.SendStatus(fiber.StatusCreated)
@@ -646,7 +676,7 @@ func (h *Handler) HandlePutUpload(c fiber.Ctx, state *core.AppState) error {
 		return RespondError(c, fiber.StatusBadRequest, ErrCodeDigestInvalid, "missing digest query parameter", nil)
 	}
 
-	repoName, _ := ParseRepositoryAndImage(name)
+	repoName, imageName := ParseRepositoryAndImage(name)
 	repo, ok := h.getRepo(state, repoName)
 	if !ok {
 		return RespondError(c, fiber.StatusNotFound, ErrCodeNameUnknown, "repository not found", nil)
@@ -692,6 +722,8 @@ func (h *Handler) HandlePutUpload(c fiber.Ctx, state *core.AppState) error {
 	if db != nil {
 		_ = db.RecordDockerBlob(repoName, digest, committedSize)
 	}
+
+	logDockerAudit(c, state, "DOCKER_BLOB_UPLOAD", fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, digest, committedSize))
 
 	c.Set(DockerDigestHeader, digest)
 	c.Set("Location", fmt.Sprintf("/v2/%s/blobs/%s", name, digest))

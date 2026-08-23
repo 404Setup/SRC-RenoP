@@ -210,17 +210,37 @@ func (db *DB) DeleteToken(name string) error {
 			WHERE other_member.repository = current_member.repository
 			AND other_member.normalized_name = current_member.normalized_name
 			AND other_member.permission_level = ? AND other_member.username <> current_member.username
-		)`, lowerName, core.CargoPermissionFull, core.CargoPermissionFull).Scan(&soleCargoOwnerships); err != nil {
+		)`, lowerName, core.CargoPermissionOwner, core.CargoPermissionOwner).Scan(&soleCargoOwnerships); err != nil {
 		return fmt.Errorf("failed to inspect Cargo package ownership for token (%s): %w", lowerName, err)
 	}
 	if soleCargoOwnerships > 0 {
-		return fmt.Errorf("cannot delete token %s: user is the last L3 member of %d Cargo package(s)", lowerName, soleCargoOwnerships)
+		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Cargo package(s)", lowerName, soleCargoOwnerships)
 	}
 	if err := cancelCargoInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
 		return fmt.Errorf("failed to cancel Cargo invitations for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM cargo_members WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete Cargo memberships for token (%s): %w", lowerName, err)
+	}
+
+	var soleDockerOwnerships int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM docker_members current_member
+		WHERE current_member.username = ? AND current_member.permission_level = ? AND NOT EXISTS (
+			SELECT 1 FROM docker_members other_member
+			WHERE other_member.repository = current_member.repository
+			AND other_member.image_name = current_member.image_name
+			AND other_member.permission_level = ? AND other_member.username <> current_member.username
+		)`, lowerName, core.DockerPermissionOwner, core.DockerPermissionOwner).Scan(&soleDockerOwnerships); err != nil {
+		return fmt.Errorf("failed to inspect Docker image ownership for token (%s): %w", lowerName, err)
+	}
+	if soleDockerOwnerships > 0 {
+		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Docker image(s)", lowerName, soleDockerOwnerships)
+	}
+	if err := cancelDockerInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("failed to cancel Docker invitations for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM docker_members WHERE username = ?`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete Docker memberships for token (%s): %w", lowerName, err)
 	}
 
 	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {
@@ -329,6 +349,24 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 	}
 	if _, err := tx.Exec(`UPDATE cargo_invitations SET recipient = ? WHERE recipient = ?`, lowerNew, lowerOld); err != nil {
 		return fmt.Errorf("failed to rename Cargo invitation recipients from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE docker_members SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Docker memberships from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE docker_images SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Docker image publishers from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE docker_tags SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Docker tag publishers from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE docker_manifests SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Docker manifest publishers from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE docker_invitations SET inviter = ? WHERE inviter = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Docker invitation senders from %s to %s: %w", lowerOld, lowerNew, err)
+	}
+	if _, err := tx.Exec(`UPDATE docker_invitations SET recipient = ? WHERE recipient = ?`, lowerNew, lowerOld); err != nil {
+		return fmt.Errorf("failed to rename Docker invitation recipients from %s to %s: %w", lowerOld, lowerNew, err)
 	}
 
 	if err := tx.Commit(); err != nil {

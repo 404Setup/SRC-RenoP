@@ -83,6 +83,7 @@ export default Object.freeze({
     "audit.action.CARGO_PACKAGE_ARCHIVE": "Paquet Cargo archivé",
     "audit.action.CARGO_PACKAGE_RESTORE": "Paquet Cargo restauré",
     "audit.action.CARGO_PACKAGE_DELETE": "Paquet Cargo supprimé",
+    "audit.action.CARGO_TEAM_ADD": "Membre d'équipe Cargo ajouté",
     "audit.action.CARGO_TEAM_INVITE": "Invitation à l’équipe Cargo",
     "audit.action.CARGO_TEAM_REMOVE": "Membre de l’équipe Cargo supprimé",
     "audit.action.CARGO_TEAM_LEVEL": "Autorisation de l’équipe Cargo mise à jour",

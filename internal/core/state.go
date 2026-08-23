@@ -123,11 +123,12 @@ type StateDB interface {
 	SetCargoMemberLevel(repository, normalizedName, actor, username string, level int) error
 	RemoveCargoMember(repository, normalizedName, actor, username string) error
 	RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error
+	ForceAddCargoMembers(repository, normalizedName, crateName, actor string, usernames []string, level int) error
 	GetDockerImage(repository, imageName string) (*DockerRepositoryImage, error)
 	UpdateDockerImageDescription(repository, imageName, description string) error
 	ListDockerImages(repository, last string, limit int) ([]*DockerRepositoryImage, error)
 	SearchDockerImages(repository, query string, limit, offset int) ([]*DockerRepositoryImage, int, error)
-	GetDockerImageDetails(repository, imageName string) (*DockerImageDetails, error)
+	GetDockerImageDetails(repository, imageName string, username ...string) (*DockerImageDetails, error)
 	GetDockerTag(repository, imageName, tag string) (*DockerTag, error)
 	ListDockerTags(repository, imageName, last string, limit int) ([]*DockerTag, error)
 	GetDockerManifest(repository, imageName, digest string) (*DockerManifest, error)
@@ -140,6 +141,17 @@ type StateDB interface {
 	HasDockerBlob(repository, digest string) (bool, int64, error)
 	DeleteDockerBlob(repository, digest string) error
 	GetDockerRepositoryStats(repository string) (totalImages int64, totalTags int64, totalSize int64, err error)
+	IncrementDockerPullCount(repository, imageName string) error
+	BatchIncrementDockerPullCount(repository, imageName string, delta int64) error
+	HasDockerMembership(repository, username string) (bool, error)
+	GetDockerMemberLevel(repository, imageName, username string) (int, error)
+	ListDockerMembers(repository, imageName string) ([]*DockerMember, error)
+	CreateDockerInvitations(invitations []*DockerInvitation, messages []*UserMessage) error
+	RespondDockerInvitation(id, recipient, repository string, accept bool, actedAt int64) error
+	SetDockerMemberLevel(repository, imageName, actor, username string, level int) error
+	RemoveDockerMember(repository, imageName, actor, username string) error
+	RemoveDockerMembers(repository, imageName, actor string, usernames []string) error
+	ForceAddDockerMembers(repository, imageName, actor string, usernames []string, level int) error
 }
 
 type AppStateInner struct {

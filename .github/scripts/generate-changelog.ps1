@@ -117,7 +117,11 @@ if (-not [string]::IsNullOrWhiteSpace($raw)) {
         if ([string]::IsNullOrWhiteSpace($chunk)) { continue }
         $line = Get-FirstParagraphLine -Message $chunk
         if (Test-OmitSubject -Subject $line) { continue }
-        $entry = if ($line.StartsWith('- ')) { $line } else { "- $line" }
+        $entry = if ($isReleaseCommit) {
+            if ($line.StartsWith('- ')) { $line } else { "- $line" }
+        } else {
+            $line
+        }
         if (-not $entries.Contains($entry)) {
             $entries.Add($entry)
         }

@@ -256,6 +256,7 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		image_name VARCHAR(255) NOT NULL,
 		description TEXT NOT NULL DEFAULT '',
 		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		pull_count BIGINT NOT NULL DEFAULT 0,
 		created_at BIGINT NOT NULL,
 		updated_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, image_name)
@@ -297,6 +298,28 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		size BIGINT NOT NULL DEFAULT 0,
 		created_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, digest)
+	);`
+
+	dockerMembersTable := `
+	CREATE TABLE IF NOT EXISTS docker_members (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		username VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		added_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name, username)
+	);`
+
+	dockerInvitationsTable := `
+	CREATE TABLE IF NOT EXISTS docker_invitations (
+		id CHAR(36) PRIMARY KEY,
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		inviter VARCHAR(255) NOT NULL,
+		recipient VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		created_at BIGINT NOT NULL,
+		UNIQUE (repository, image_name, recipient)
 	);`
 
 	if _, err := db.Exec(tokensTable); err != nil {
@@ -353,6 +376,12 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if _, err := db.Exec(dockerBlobsTable); err != nil {
 		return err
 	}
+	if _, err := db.Exec(dockerMembersTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dockerInvitationsTable); err != nil {
+		return err
+	}
 
 	for _, migration := range sharedColumnMigrations {
 		if err := execIgnoreDuplicateColumn(db, migration.Query); err != nil {
@@ -389,6 +418,8 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		{Name: "idx_docker_manifests_repo_img", Query: "CREATE INDEX IF NOT EXISTS idx_docker_manifests_repo_img ON docker_manifests(repository, image_name);"},
 		{Name: "idx_docker_images_search", Query: "CREATE INDEX IF NOT EXISTS idx_docker_images_search ON docker_images(repository, image_name);"},
 		{Name: "idx_docker_blobs_repo", Query: "CREATE INDEX IF NOT EXISTS idx_docker_blobs_repo ON docker_blobs(repository, digest);"},
+		{Name: "idx_docker_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_docker_members_user ON docker_members(username, repository);"},
+		{Name: "idx_docker_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_docker_invitations_recipient ON docker_invitations(recipient, created_at);"},
 	}
 	for _, migration := range indexMigrations {
 		if _, err := db.Exec(migration.Query); err != nil {

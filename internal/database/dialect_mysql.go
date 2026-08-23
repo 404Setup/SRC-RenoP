@@ -266,6 +266,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		image_name VARCHAR(255) NOT NULL,
 		description TEXT NOT NULL,
 		publisher VARCHAR(255) NOT NULL DEFAULT '',
+		pull_count BIGINT NOT NULL DEFAULT 0,
 		created_at BIGINT NOT NULL,
 		updated_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, image_name),
@@ -312,6 +313,30 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		created_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, digest),
 		INDEX idx_docker_blobs_repo (repository, digest)
+	);`
+
+	dockerMembersTable := `
+	CREATE TABLE IF NOT EXISTS docker_members (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		username VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		added_at BIGINT NOT NULL,
+		PRIMARY KEY (repository, image_name, username),
+		INDEX idx_docker_members_user (username, repository)
+	);`
+
+	dockerInvitationsTable := `
+	CREATE TABLE IF NOT EXISTS docker_invitations (
+		id CHAR(36) PRIMARY KEY,
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		inviter VARCHAR(255) NOT NULL,
+		recipient VARCHAR(255) NOT NULL,
+		permission_level INT NOT NULL,
+		created_at BIGINT NOT NULL,
+		UNIQUE KEY uq_docker_invitation (repository, image_name, recipient),
+		INDEX idx_docker_invitations_recipient (recipient, created_at)
 	);`
 
 	if _, err := db.Exec(tokensTable); err != nil {
@@ -366,6 +391,12 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(dockerBlobsTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dockerMembersTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(dockerInvitationsTable); err != nil {
 		return err
 	}
 

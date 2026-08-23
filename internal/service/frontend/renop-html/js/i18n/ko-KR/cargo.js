@@ -83,6 +83,7 @@ export default Object.freeze({
     "audit.action.CARGO_PACKAGE_ARCHIVE": "Cargo 패키지 보관",
     "audit.action.CARGO_PACKAGE_RESTORE": "Cargo 패키지 복원",
     "audit.action.CARGO_PACKAGE_DELETE": "Cargo 패키지 삭제",
+    "audit.action.CARGO_TEAM_ADD": "Cargo 팀 멤버 추가됨",
     "audit.action.CARGO_TEAM_INVITE": "Cargo 팀 초대",
     "audit.action.CARGO_TEAM_REMOVE": "Cargo 팀 구성원 제거",
     "audit.action.CARGO_TEAM_LEVEL": "Cargo 팀 권한 변경",

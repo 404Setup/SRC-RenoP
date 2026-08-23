@@ -61,8 +61,15 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	isCargo := repo.NormalizedFormat() == config.RepositoryFormatCargo
 	isDocker := repo.NormalizedFormat() == config.RepositoryFormatDocker
 
+	if (isDocker || isCargo || c.Method() == fiber.MethodGet) && TryHTMLFallback(state, c) {
+		return nil
+	}
+
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {
+		if TryHTMLFallback(state, c) {
+			return nil
+		}
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 

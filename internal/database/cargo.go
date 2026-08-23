@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -13,7 +15,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/goccy/go-json"
+	"github.com/google/uuid"
 	"golang.org/x/mod/semver"
 
 	"renop/internal/core"
@@ -601,7 +606,7 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 		invitation.Package = SanitizeInputString(strings.TrimSpace(invitation.Package), 64)
 		invitation.Inviter = sanitizeCargoUsername(invitation.Inviter)
 		invitation.Recipient = sanitizeCargoUsername(invitation.Recipient)
-		if invitation.Level < core.CargoPermissionPublish || invitation.Level > core.CargoPermissionFull {
+		if invitation.Level < core.CargoPermissionPublish || invitation.Level > core.CargoPermissionOwner {
 			return errors.New("Cargo invitation permission level is invalid")
 		}
 		if invitation.ID == "" || invitation.ID != message.ID || invitation.Recipient != strings.ToLower(strings.TrimSpace(message.Recipient)) {
@@ -620,7 +625,7 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 	var inviterLevel int
 	if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
 		WHERE repository = ? AND normalized_name = ? AND username = ?`,
-		first.Repository, first.NormalizedName, first.Inviter).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionFull {
+		first.Repository, first.NormalizedName, first.Inviter).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
 		return core.ErrCargoPermissionDenied
 	} else if err != nil {
 		return fmt.Errorf("inspect Cargo inviter permission: %w", err)
@@ -650,7 +655,7 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 			&existingID, &existingStatus, &existingExpiry, &existingInviterLevel,
 		)
 		if err == nil && existingStatus == core.MessageActionPending &&
-			existingExpiry > invitation.CreatedAt && existingInviterLevel >= core.CargoPermissionFull {
+			existingExpiry > invitation.CreatedAt && existingInviterLevel >= core.CargoPermissionManage {
 			return core.ErrCargoInvitationExists
 		}
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -686,6 +691,80 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 	return nil
 }
 
+func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, actor string, usernames []string, level int) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	if len(usernames) == 0 || len(usernames) > 20 {
+		return errors.New("Cargo member addition batch is invalid")
+	}
+	if level < core.CargoPermissionPublish || level > core.CargoPermissionOwner {
+		return errors.New("Cargo permission level is invalid")
+	}
+	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
+	packageName = SanitizeInputString(strings.TrimSpace(packageName), 64)
+	actor = sanitizeCargoUsername(actor)
+	now := time.Now().UnixMilli()
+
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Cargo force member addition: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, candidate := range usernames {
+		username := sanitizeCargoUsername(candidate)
+		if username == "" {
+			continue
+		}
+		if level == core.CargoPermissionOwner {
+			if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
+				WHERE repository = ? AND normalized_name = ? AND permission_level = ? AND username != ?`,
+				core.CargoPermissionManage, repository, normalizedName, core.CargoPermissionOwner, username); err != nil {
+				return fmt.Errorf("demote previous Cargo L4 owner: %w", err)
+			}
+		}
+
+		var existingLevel int
+		err := tx.QueryRow(`SELECT permission_level FROM cargo_members WHERE repository = ? AND normalized_name = ? AND username = ?`,
+			repository, normalizedName, username).Scan(&existingLevel)
+		if errors.Is(err, sql.ErrNoRows) {
+			if _, err := tx.Exec(`INSERT INTO cargo_members (repository, normalized_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
+				repository, normalizedName, username, level, now); err != nil {
+				return fmt.Errorf("insert Cargo member: %w", err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("check Cargo member: %w", err)
+		} else {
+			if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ? WHERE repository = ? AND normalized_name = ? AND username = ?`,
+				level, repository, normalizedName, username); err != nil {
+				return fmt.Errorf("update Cargo member: %w", err)
+			}
+		}
+
+		_ = cancelCargoInvitations(tx, `repository = ? AND normalized_name = ? AND recipient = ?`, []any{repository, normalizedName, username}, now)
+
+		msgID := uuid.NewString()
+		payloadBytes, _ := json.Marshal(map[string]any{
+			"repository": repository,
+			"package":    packageName,
+			"inviter":    actor,
+			"level":      level,
+		})
+		_, _ = tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			msgID, username, actor, "cargo_package_invite", "info",
+			"Cargo crate package membership added",
+			fmt.Sprintf("%s added you to collaborate on %s with L%d permission.", actor, packageName, level),
+			string(payloadBytes), "cargo_package_invite", core.MessageActionAccepted,
+			now, 0, now, now+7*24*3600*1000, nil)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Cargo force member addition: %w", err)
+	}
+	return nil
+}
+
 func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bool, actedAt int64) error {
 	if db == nil || db.SqlDB == nil {
 		return core.ErrDatabaseUnavailable
@@ -714,11 +793,20 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 		var inviterLevel int
 		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
 			WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			invitation.Repository, invitation.NormalizedName, invitation.Inviter).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionFull {
+			invitation.Repository, invitation.NormalizedName, invitation.Inviter).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
 			return core.ErrCargoInvitationInvalid
 		} else if err != nil {
 			return fmt.Errorf("validate Cargo inviter: %w", err)
 		}
+
+		if invitation.Level == core.CargoPermissionOwner {
+			if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
+				WHERE repository = ? AND normalized_name = ? AND permission_level = ? AND username != ?`,
+				core.CargoPermissionManage, invitation.Repository, invitation.NormalizedName, core.CargoPermissionOwner, recipient); err != nil {
+				return fmt.Errorf("demote previous Cargo L4 owner: %w", err)
+			}
+		}
+
 		var memberLevel int
 		err := tx.QueryRow(`SELECT permission_level FROM cargo_members
 			WHERE repository = ? AND normalized_name = ? AND username = ?`,
@@ -731,6 +819,11 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 			}
 		} else if err != nil {
 			return fmt.Errorf("inspect Cargo invitation membership: %w", err)
+		} else {
+			if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ? WHERE repository = ? AND normalized_name = ? AND username = ?`,
+				invitation.Level, invitation.Repository, invitation.NormalizedName, recipient); err != nil {
+				return fmt.Errorf("update Cargo membership: %w", err)
+			}
 		}
 	}
 	status := core.MessageActionRejected
@@ -765,7 +858,7 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 	if db == nil || db.SqlDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	if level < core.CargoPermissionPublish || level > core.CargoPermissionFull {
+	if level < core.CargoPermissionPublish || level > core.CargoPermissionOwner {
 		return errors.New("Cargo permission level is invalid")
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
@@ -776,8 +869,10 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 		return fmt.Errorf("begin Cargo member update: %w", err)
 	}
 	defer tx.Rollback()
-	if err := requireCargoMemberPermission(tx, repository, normalizedName, actor, core.CargoPermissionFull); err != nil {
-		return err
+	if actor != "" {
+		if err := requireCargoMemberPermission(tx, repository, normalizedName, actor, core.CargoPermissionManage); err != nil {
+			return err
+		}
 	}
 	var current int
 	if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
@@ -786,9 +881,16 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 	} else if err != nil {
 		return fmt.Errorf("inspect Cargo member: %w", err)
 	}
-	if current == core.CargoPermissionFull && level < core.CargoPermissionFull {
+	if current == core.CargoPermissionOwner && level < core.CargoPermissionOwner {
 		if err := requireAnotherFullCargoMember(tx, repository, normalizedName, username); err != nil {
 			return err
+		}
+	}
+	if level == core.CargoPermissionOwner {
+		if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
+			WHERE repository = ? AND normalized_name = ? AND permission_level = ? AND username != ?`,
+			core.CargoPermissionManage, repository, normalizedName, core.CargoPermissionOwner, username); err != nil {
+			return fmt.Errorf("demote previous Cargo L4 owner: %w", err)
 		}
 	}
 	if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
@@ -832,8 +934,10 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 		return fmt.Errorf("begin Cargo member removal: %w", err)
 	}
 	defer tx.Rollback()
-	if err := requireCargoMemberPermission(tx, repository, normalizedName, actor, core.CargoPermissionFull); err != nil {
-		return err
+	if actor != "" {
+		if err := requireCargoMemberPermission(tx, repository, normalizedName, actor, core.CargoPermissionManage); err != nil {
+			return err
+		}
 	}
 	fullRemoved := 0
 	for _, username := range unique {
@@ -844,15 +948,15 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 		} else if err != nil {
 			return fmt.Errorf("inspect Cargo member removal: %w", err)
 		}
-		if current == core.CargoPermissionFull {
+		if current == core.CargoPermissionOwner {
 			fullRemoved++
 		}
 	}
 	if fullRemoved > 0 {
 		var fullCount int
 		if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members WHERE repository = ? AND normalized_name = ? AND permission_level = ?`,
-			repository, normalizedName, core.CargoPermissionFull).Scan(&fullCount); err != nil {
-			return fmt.Errorf("count Cargo L3 members: %w", err)
+			repository, normalizedName, core.CargoPermissionOwner).Scan(&fullCount); err != nil {
+			return fmt.Errorf("count Cargo L4 members: %w", err)
 		}
 		if fullRemoved >= fullCount {
 			return core.ErrCargoLastFullMember
@@ -890,8 +994,8 @@ func requireCargoMemberPermission(tx *Tx, repository, normalizedName, username s
 func requireAnotherFullCargoMember(tx *Tx, repository, normalizedName, excludedUsername string) error {
 	var count int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members WHERE repository = ? AND normalized_name = ?
-		AND permission_level = ? AND username <> ?`, repository, normalizedName, core.CargoPermissionFull, excludedUsername).Scan(&count); err != nil {
-		return fmt.Errorf("count Cargo L3 members: %w", err)
+		AND permission_level = ? AND username <> ?`, repository, normalizedName, core.CargoPermissionOwner, excludedUsername).Scan(&count); err != nil {
+		return fmt.Errorf("count Cargo L4 members: %w", err)
 	}
 	if count == 0 {
 		return core.ErrCargoLastFullMember

@@ -82,7 +82,7 @@ if ([string]::IsNullOrWhiteSpace($Changelog)) {
     }
 }
 $Changelog = if ($null -ne $Changelog) { $Changelog.Trim() } else { '' }
-if (-not [string]::IsNullOrWhiteSpace($Changelog)) {
+if (-not [string]::IsNullOrWhiteSpace($Changelog) -and $Channel -eq 'stable') {
     $clLines = @($Changelog -split "`r?`n")
     $formattedLines = @(
         foreach ($cl in $clLines) {

@@ -8,26 +8,27 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-package database
+package database_test
 
 import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/database"
 )
 
-func newTestDockerDB(t *testing.T) *DB {
+func newTestDockerDB(t *testing.T) *database.DB {
 	t.Helper()
 	dir := t.TempDir()
-	db, err := InitDB(config.DatabaseConfig{
+	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite",
 		Dsn:    filepath.Join(dir, "docker_test.db"),
 	})
-	if err != nil {
-		t.Fatalf("InitDB failed: %v", err)
-	}
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()
 	})
@@ -140,6 +141,69 @@ func TestDockerDatabaseOperations(t *testing.T) {
 	deletedTag, err := db.GetDockerTag("docker-local", "ubuntu", "22.04")
 	if err != nil || deletedTag != nil {
 		t.Fatalf("expected tag to be deleted, got: %v", deletedTag)
+	}
+
+	if err := db.IncrementDockerPullCount("docker-local", "ubuntu"); err != nil {
+		t.Fatalf("IncrementDockerPullCount failed: %v", err)
+	}
+	imgAfterPull, err := db.GetDockerImage("docker-local", "ubuntu")
+	if err != nil || imgAfterPull == nil || imgAfterPull.PullCount != 1 {
+		t.Fatalf("expected pull count 1, got %+v", imgAfterPull)
+	}
+
+	invitationID := "inv-docker-001"
+	now := int64(1700000000000)
+	invMsg := &core.UserMessage{
+		ID:           invitationID,
+		Recipient:    "bob",
+		Sender:       "admin",
+		Kind:         "docker_image_invite",
+		Severity:     "info",
+		Title:        "Docker Invitation",
+		Body:         "admin invited you to collaborate on ubuntu",
+		Payload:      []byte(`{"repository":"docker-local","image":"ubuntu","inviter":"admin","level":2}`),
+		ActionKind:   "docker_image_invite",
+		ActionStatus: core.MessageActionPending,
+		CreatedAt:    now,
+		ExpiresAt:    now + 86400000,
+	}
+	inv := &core.DockerInvitation{
+		ID:         invitationID,
+		Repository: "docker-local",
+		ImageName:  "ubuntu",
+		Inviter:    "admin",
+		Recipient:  "bob",
+		Level:      2,
+		CreatedAt:  now,
+	}
+
+	if err := db.CreateDockerInvitations([]*core.DockerInvitation{inv}, []*core.UserMessage{invMsg}); err != nil {
+		t.Fatalf("CreateDockerInvitations failed: %v", err)
+	}
+
+	if err := db.RespondDockerInvitation(invitationID, "bob", "docker-local", true, now+1000); err != nil {
+		t.Fatalf("RespondDockerInvitation failed: %v", err)
+	}
+
+	bobLevel, err := db.GetDockerMemberLevel("docker-local", "ubuntu", "bob")
+	if err != nil || bobLevel != 2 {
+		t.Fatalf("expected bob level 2, got %d (err: %v)", bobLevel, err)
+	}
+
+	if err := db.SetDockerMemberLevel("docker-local", "ubuntu", "admin", "bob", 1); err != nil {
+		t.Fatalf("SetDockerMemberLevel failed: %v", err)
+	}
+	bobLevel, _ = db.GetDockerMemberLevel("docker-local", "ubuntu", "bob")
+	if bobLevel != 1 {
+		t.Fatalf("expected bob level 1, got %d", bobLevel)
+	}
+
+	if err := db.RemoveDockerMember("docker-local", "ubuntu", "admin", "bob"); err != nil {
+		t.Fatalf("RemoveDockerMember failed: %v", err)
+	}
+	bobLevel, _ = db.GetDockerMemberLevel("docker-local", "ubuntu", "bob")
+	if bobLevel != 0 {
+		t.Fatalf("expected bob level 0, got %d", bobLevel)
 	}
 
 	if err := db.DeleteDockerManifest("docker-local", "ubuntu", manifest.Digest); err != nil {

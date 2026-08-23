@@ -11,16 +11,29 @@
 import {marked} from 'marked';
 import {el} from '@renop/ui/dom';
 import {morphElementHeight} from '@renop/ui/height-anim';
+import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createMetaGrid, createSkeleton, RenopDialog} from '../components.js';
 import {t} from '../i18n.js';
-import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
+import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 
 let dockerViewContainer = null;
 let activeRepository = '';
 let activeNavigate = null;
 let dockerLoadSequence = 0;
+
+let inviteSuggestionPanel = null;
+let inviteInput = null;
+let inviteSuggestionTimer = 0;
+let inviteCloseTimer = 0;
+let inviteSuggestions = [];
+let activeInviteSuggestion = -1;
+let inviteSuggestionVersion = 0;
+let inviteLevel = 1;
+
+const INVITE_SEARCH_DELAY_MS = 140;
+const INVITE_CLOSE_DELAY_MS = 160;
 
 marked.setOptions({
     gfm: true,
@@ -63,6 +76,7 @@ export function hideDockerRepositoryView() {
         dockerViewContainer.classList.remove('is-updating', 'is-entering');
         dockerViewContainer.replaceChildren();
     }
+    closeInviteSuggestions(true);
 }
 
 /**
@@ -212,7 +226,7 @@ function openReadmeEditor(repoName, imageName, currentDescription, onSaved) {
                             showAlert(t('docker.readmeSaved') || 'README updated successfully.');
                             if (typeof onSaved === 'function') onSaved(newDescription);
                         } else {
-                            showAlert('Failed to update README.');
+                            showAlert(t('docker.updateReadmeFailed') || 'Failed to update README.');
                         }
                     } catch (err) {
                         showAlert(String(err.message || err));
@@ -341,18 +355,22 @@ async function renderCatalogView(container, repoName, seq) {
 
         const grid = el('div', {class: 'docker-image-grid'});
         for (const img of images) {
-            const publisherMeta = img.publisher
-                ? el('span', {class: 'docker-card-publisher'},
-                    createIcon('user', {class: 'icon-svg'}),
-                    el('span', {}, img.publisher)
-                )
-                : null;
+            const pubName = img.publisher || t('docker.unspecifiedPublisher') || 'Unspecified';
+            const publisherMeta = el('span', {class: 'docker-card-publisher'},
+                createIcon('user', {class: 'icon-svg'}),
+                el('span', {}, pubName)
+            );
+
+            const pullMeta = el('span', {class: 'docker-card-pulls'},
+                createIcon('download', {class: 'icon-svg'}),
+                el('span', {}, t('docker.pullCount', {count: img.pull_count || 0}))
+            );
 
             const card = el('div', {
                 class: 'docker-image-card',
                 onclick: () => {
                     if (activeNavigate) {
-                        activeNavigate(`/${encodePathSegment(repoName)}/${encodePathSegment(img.image_name)}`);
+                        activeNavigate(`/${encodePathSegment(repoName)}/${encodeRelativePath(img.image_name)}`);
                     }
                 }
             },
@@ -366,6 +384,7 @@ async function renderCatalogView(container, repoName, seq) {
                 el('div', {class: 'docker-image-meta'},
                     el('span', {class: 'docker-tag-badge'}, img.latest_tag ? `tag: ${img.latest_tag}` : `${img.tag_count || 0} tags`),
                     publisherMeta,
+                    pullMeta,
                     el('span', {}, t('docker.tagCount', {count: img.tag_count || 0}))
                 )
             );
@@ -388,12 +407,153 @@ async function renderCatalogView(container, repoName, seq) {
         await morphElementHeight(container, () => {
             container.replaceChildren(
                 el('div', {class: 'docker-page-hero'},
-                    el('p', {class: 'error-text'}, String(err.message || err))
+                    el('p', {class: 'error-text'}, t('docker.loadFailed') || String(err.message || err))
                 )
             );
             container.classList.remove('is-updating');
         }, {duration: 260});
     }
+}
+
+/**
+ * Return the body-level username suggestion panel for Docker invitation.
+ * @returns {HTMLElement} Suggestion panel.
+ */
+function ensureInviteSuggestionPanel() {
+    if (inviteSuggestionPanel?.isConnected) return inviteSuggestionPanel;
+    inviteSuggestionPanel = el('div', {
+        id: 'docker-invite-suggestions',
+        class: 'docker-user-suggestions',
+        role: 'listbox',
+        hidden: true
+    });
+    inviteSuggestionPanel.addEventListener('click', handleSuggestionClick);
+    document.body.appendChild(inviteSuggestionPanel);
+    return inviteSuggestionPanel;
+}
+
+/**
+ * Position the suggestion panel anchored beneath the invite input.
+ * @returns {void}
+ */
+function positionInviteSuggestions() {
+    const panel = ensureInviteSuggestionPanel();
+    if (!(inviteInput instanceof HTMLInputElement) || panel.hidden) return;
+    const rect = inviteInput.getBoundingClientRect();
+    panel.style.left = `${Math.max(10, rect.left)}px`;
+    panel.style.width = `${Math.min(rect.width, window.innerWidth - 20)}px`;
+    panel.style.top = `${rect.bottom + 6}px`;
+}
+
+/**
+ * Hide suggestion panel with animation.
+ * @param {boolean} [immediate=false] - Skip exit transition.
+ * @returns {void}
+ */
+function closeInviteSuggestions(immediate = false) {
+    const panel = ensureInviteSuggestionPanel();
+    if (inviteCloseTimer) clearTimeout(inviteCloseTimer);
+    panel.classList.remove('is-visible');
+    inviteInput?.setAttribute('aria-expanded', 'false');
+    if (immediate || panel.hidden) {
+        panel.hidden = true;
+        panel.classList.remove('is-leaving');
+        inviteCloseTimer = 0;
+        return;
+    }
+    panel.classList.add('is-leaving');
+    inviteCloseTimer = setTimeout(() => {
+        panel.hidden = true;
+        panel.classList.remove('is-leaving');
+        inviteCloseTimer = 0;
+    }, INVITE_CLOSE_DELAY_MS);
+}
+
+/**
+ * Handle username autocomplete typing.
+ * @param {InputEvent} event - Input event.
+ * @returns {void}
+ */
+function handleInviteInput(event) {
+    if (inviteSuggestionTimer) clearTimeout(inviteSuggestionTimer);
+    const query = String(event.currentTarget.value || '').trim();
+    if (!query) {
+        renderInviteSuggestions([]);
+        return;
+    }
+    const version = ++inviteSuggestionVersion;
+    inviteSuggestionTimer = setTimeout(() => fetchInviteSuggestions(query, version), INVITE_SEARCH_DELAY_MS);
+}
+
+/**
+ * Fetch username suggestions from API.
+ * @param {string} query - Query string.
+ * @param {number} version - Request version.
+ * @returns {Promise<void>}
+ */
+async function fetchInviteSuggestions(query, version) {
+    if (!activeRepository) return;
+    try {
+        const res = await apiRequest(`/api/docker/repositories/${encodeURIComponent(activeRepository)}/users/search?q=${encodeURIComponent(query)}`);
+        if (version !== inviteSuggestionVersion) return;
+        if (res.ok) {
+            const data = await res.json();
+            renderInviteSuggestions(Array.isArray(data?.users) ? data.users : []);
+        } else {
+            renderInviteSuggestions([]);
+        }
+    } catch {
+        renderInviteSuggestions([]);
+    }
+}
+
+/**
+ * Render username suggestions in panel.
+ * @param {string[]} users - User list.
+ * @returns {void}
+ */
+function renderInviteSuggestions(users) {
+    const panel = ensureInviteSuggestionPanel();
+    inviteSuggestions = users.slice(0, 8);
+    activeInviteSuggestion = -1;
+    panel.replaceChildren();
+    for (const username of inviteSuggestions) {
+        panel.appendChild(el('button', {
+            type: 'button',
+            role: 'option',
+            class: 'docker-user-suggestion',
+            'data-suggestion': username
+        }, username));
+    }
+    if (inviteSuggestions.length === 0) {
+        closeInviteSuggestions();
+        return;
+    }
+    if (inviteCloseTimer) {
+        clearTimeout(inviteCloseTimer);
+        inviteCloseTimer = 0;
+    }
+    panel.hidden = false;
+    panel.classList.remove('is-leaving');
+    inviteInput?.setAttribute('aria-expanded', 'true');
+    positionInviteSuggestions();
+    requestAnimationFrame(() => panel.classList.add('is-visible'));
+}
+
+/**
+ * Apply selected suggestion.
+ * @param {MouseEvent} event - Click event.
+ * @returns {void}
+ */
+function handleSuggestionClick(event) {
+    const opt = event.target.closest('[data-suggestion]');
+    if (!opt) return;
+    const username = opt.dataset.suggestion;
+    if (inviteInput instanceof HTMLInputElement) {
+        inviteInput.value = username;
+        inviteInput.focus();
+    }
+    closeInviteSuggestions();
 }
 
 /**
@@ -431,6 +591,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const details = await response.json();
         let image = details.image || {};
         const tags = details.tags || [];
+        const members = details.members || [];
+        const permissionLevel = Number(details.permission_level || 0);
+        const isAdministrator = Boolean(details.administrator);
+
+        const canManageL2 = isAdministrator || permissionLevel >= 2;
+        const canManageL3 = isAdministrator || permissionLevel >= 3;
+
         const latestTag = tags[0]?.tag || 'latest';
         const pullCmd = `docker pull ${window.location.host}/${repoName}/${imageName}:${latestTag}`;
 
@@ -447,25 +614,30 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             el('span', {class: 'docker-page-kicker'}, t('docker.kickerImage') || 'Container Image')
         );
 
-        const deleteImgBtn = el('button', {
-            class: 'docker-btn-danger',
-            type: 'button',
-            title: t('docker.deleteImage') || 'Delete Image',
-            onclick: async () => {
-                const confirmed = await showConfirm(
-                    t('docker.deleteImageConfirm', {image: imageName}) || `Delete image "${imageName}"?`
-                );
-                if (confirmed) {
-                    const delResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`, {
-                        method: 'DELETE'
-                    });
-                    if (delResp.ok) {
-                        showAlert(t('docker.imageDeleted') || 'Image deleted.');
-                        if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
+        let deleteImgBtn = null;
+        if (canManageL3) {
+            deleteImgBtn = el('button', {
+                class: 'docker-btn-danger',
+                type: 'button',
+                title: t('docker.deleteImage') || 'Delete Image',
+                onclick: async () => {
+                    const confirmed = await showConfirm(
+                        t('docker.deleteImageConfirm', {image: imageName}) || `Delete image "${imageName}"?`
+                    );
+                    if (confirmed) {
+                        const delResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`, {
+                            method: 'DELETE'
+                        });
+                        if (delResp.ok) {
+                            showAlert(t('docker.imageDeleted') || 'Image deleted.');
+                            if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
+                        } else {
+                            showAlert(t('docker.deleteImageFailed') || 'Failed to delete image.');
+                        }
                     }
                 }
-            }
-        }, createIcon('delete', {class: 'icon-svg'}), el('span', {}, t('docker.deleteImage') || 'Delete Image'));
+            }, createIcon('delete', {class: 'icon-svg'}), el('span', {}, t('docker.deleteImage') || 'Delete Image'));
+        }
 
         const metaRow = el('div', {class: 'docker-hero-meta-row'},
             el('div', {class: 'docker-meta-chip'},
@@ -474,14 +646,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             )
         );
 
-        if (image.publisher) {
-            metaRow.appendChild(
-                el('div', {class: 'docker-meta-chip'},
-                    createIcon('user', {class: 'icon-svg'}),
-                    el('span', {}, t('docker.publishedBy', {name: image.publisher}) || image.publisher)
-                )
-            );
-        }
+        const heroPubName = image.publisher || t('docker.unspecifiedPublisher') || 'Unspecified';
+        metaRow.appendChild(
+            el('div', {class: 'docker-meta-chip'},
+                createIcon('user', {class: 'icon-svg'}),
+                el('span', {}, t('docker.publishedBy', {name: heroPubName}) || `Published by ${heroPubName}`)
+            )
+        );
 
         metaRow.appendChild(
             el('div', {class: 'docker-meta-chip'},
@@ -494,6 +665,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             el('div', {class: 'docker-meta-chip'},
                 createIcon('box', {class: 'icon-svg'}),
                 el('span', {}, t('docker.totalTags', {count: tags.length}))
+            )
+        );
+
+        metaRow.appendChild(
+            el('div', {class: 'docker-meta-chip'},
+                createIcon('download', {class: 'icon-svg'}),
+                el('span', {}, t('docker.pullCount', {count: image.pull_count || 0}))
             )
         );
 
@@ -559,7 +737,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 const shortDigest = tObj.digest ? tObj.digest.slice(0, 19) + '…' : '';
                 const sizeStr = tObj.size > 0 ? formatBytes(tObj.size) : '';
                 const timeStr = tObj.updated_at ? dockerDate(tObj.updated_at) : (tObj.created_at ? dockerDate(tObj.created_at) : '');
-                const tagPublisher = tObj.publisher || '';
+                const tagPublisher = tObj.publisher || image.publisher || t('docker.unspecifiedPublisher') || 'Unspecified';
 
                 const digestPill = shortDigest
                     ? el('span', {
@@ -569,12 +747,10 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     }, createIcon('fileHash', {class: 'icon-svg'}), el('span', {}, shortDigest))
                     : null;
 
-                const publisherChip = tagPublisher
-                    ? el('span', {class: 'docker-tag-publisher'},
-                        createIcon('user', {class: 'icon-svg'}),
-                        el('span', {}, tagPublisher)
-                    )
-                    : null;
+                const publisherChip = el('span', {class: 'docker-tag-publisher'},
+                    createIcon('user', {class: 'icon-svg'}),
+                    el('span', {}, tagPublisher)
+                );
 
                 const timeChip = timeStr
                     ? el('span', {class: 'docker-tag-time'},
@@ -583,27 +759,23 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     )
                     : null;
 
-                const row = el('div', {class: 'docker-tag-row'},
-                    el('div', {class: 'docker-tag-left'},
-                        el('span', {class: 'docker-tag-badge'}, tObj.tag),
-                        digestPill,
-                        sizeStr ? el('span', {class: 'docker-tag-size'}, sizeStr) : null,
-                        publisherChip,
-                        timeChip
-                    ),
-                    el('div', {class: 'docker-tag-actions'},
-                        el('button', {
-                            class: 'docker-action-btn',
-                            type: 'button',
-                            title: t('docker.copyPull') || 'Copy pull command',
-                            onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
-                        }, createIcon('copy', {class: 'icon-svg'})),
-                        el('button', {
-                            class: 'docker-action-btn',
-                            type: 'button',
-                            title: t('docker.inspect') || 'Inspect Manifest',
-                            onclick: () => openManifestDetails(repoName, imageName, tObj.digest, tObj.tag)
-                        }, createIcon('eye', {class: 'icon-svg'})),
+                const actionsWrap = el('div', {class: 'docker-tag-actions'},
+                    el('button', {
+                        class: 'docker-action-btn',
+                        type: 'button',
+                        title: t('docker.copyPull') || 'Copy pull command',
+                        onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
+                    }, createIcon('copy', {class: 'icon-svg'})),
+                    el('button', {
+                        class: 'docker-action-btn',
+                        type: 'button',
+                        title: t('docker.inspect') || 'Inspect Manifest',
+                        onclick: () => openManifestDetails(repoName, imageName, tObj.digest, tObj.tag)
+                    }, createIcon('eye', {class: 'icon-svg'}))
+                );
+
+                if (canManageL2) {
+                    actionsWrap.appendChild(
                         el('button', {
                             class: 'docker-action-btn docker-action-btn--delete',
                             type: 'button',
@@ -619,11 +791,24 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                                     if (delResp.ok) {
                                         showAlert(t('docker.tagDeleted') || 'Tag deleted.');
                                         renderImageDetailsView(container, repoName, imageName, seq);
+                                    } else {
+                                        showAlert(t('docker.deleteTagFailed') || 'Failed to delete tag.');
                                     }
                                 }
                             }
                         }, createIcon('delete', {class: 'icon-svg'}))
-                    )
+                    );
+                }
+
+                const row = el('div', {class: 'docker-tag-row'},
+                    el('div', {class: 'docker-tag-left'},
+                        el('span', {class: 'docker-tag-badge'}, tObj.tag),
+                        digestPill,
+                        sizeStr ? el('span', {class: 'docker-tag-size'}, sizeStr) : null,
+                        publisherChip,
+                        timeChip
+                    ),
+                    actionsWrap
                 );
                 tagListEl.appendChild(row);
             }
@@ -653,17 +838,20 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         };
         updateReadmeView(image.description);
 
-        const editReadmeBtn = el('button', {
-            class: 'docker-btn-secondary',
-            type: 'button',
-            title: t('docker.editReadme') || 'Edit README',
-            onclick: () => {
-                openReadmeEditor(repoName, imageName, image.description || '', (newDesc) => {
-                    image.description = newDesc;
-                    updateReadmeView(newDesc);
-                });
-            }
-        }, createIcon('edit', {class: 'icon-svg'}), el('span', {}, t('docker.editReadme') || 'Edit README'));
+        let editReadmeBtn = null;
+        if (canManageL2) {
+            editReadmeBtn = el('button', {
+                class: 'docker-btn-secondary',
+                type: 'button',
+                title: t('docker.editReadme') || 'Edit README',
+                onclick: () => {
+                    openReadmeEditor(repoName, imageName, image.description || '', (newDesc) => {
+                        image.description = newDesc;
+                        updateReadmeView(newDesc);
+                    });
+                }
+            }, createIcon('edit', {class: 'icon-svg'}), el('span', {}, t('docker.editReadme') || 'Edit README'));
+        }
 
         const readmeSection = el('div', {class: 'docker-readme-card'},
             el('div', {class: 'docker-readme-header'},
@@ -676,8 +864,202 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             readmeContent
         );
 
+        // Team / Collaborators Section
+        let teamSection = null;
+        if (members.length > 0 || canManageL3) {
+            const teamListEl = el('div', {class: 'docker-team-list'});
+
+            for (const member of members) {
+                const memberLevel = Number(member.level || 1);
+                const levelLabel = memberLevel === 4
+                    ? (t('docker.permissionL4') || 'L4 (Owner)')
+                    : (memberLevel === 3
+                        ? (t('docker.permissionL3') || 'L3 (Team)')
+                        : (memberLevel === 2 ? (t('docker.permissionL2') || 'L2 (Manage)') : (t('docker.permissionL1') || 'L1 (Push)')));
+
+                const memberControls = el('div', {class: 'docker-team-controls'});
+
+                if (canManageL3) {
+                    const levelSelect = makeCustomSelect(
+                        [
+                            { value: '1', label: t('docker.permissionL1') || 'L1 (Push)' },
+                            { value: '2', label: t('docker.permissionL2') || 'L2 (Manage)' },
+                            { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' },
+                            { value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }
+                        ],
+                        String(memberLevel),
+                        async (newVal) => {
+                            const newLevel = parseInt(newVal, 10);
+                            try {
+                                const updateResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
+                                    method: 'PUT',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({level: newLevel})
+                                });
+                                if (updateResp.ok) {
+                                    member.level = newLevel;
+                                    showAlert(t('docker.memberUpdated') || 'Permission level updated.', 'success');
+                                    renderImageDetailsView(container, repoName, imageName, seq);
+                                } else {
+                                    const errMsg = await updateResp.text();
+                                    showAlert(t('docker.updateMemberFailed') || errMsg || 'Failed to update member permission.');
+                                    if (typeof levelSelect.setValue === 'function') levelSelect.setValue(String(memberLevel));
+                                }
+                            } catch (err) {
+                                showAlert(String(err.message || err));
+                                if (typeof levelSelect.setValue === 'function') levelSelect.setValue(String(memberLevel));
+                            }
+                        }
+                    );
+                    levelSelect.classList.add('docker-permission-select');
+                    memberControls.appendChild(levelSelect);
+
+                    const removeBtn = el('button', {
+                        class: 'docker-action-btn docker-action-btn--delete',
+                        type: 'button',
+                        title: t('docker.removeMember') || 'Remove Member',
+                        onclick: async () => {
+                            const confirmed = await showConfirm(
+                                t('docker.removeMemberConfirm', {name: member.username}) || `Remove member "${member.username}"?`
+                            );
+                            if (confirmed) {
+                                const remResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
+                                    method: 'DELETE'
+                                });
+                                if (remResp.ok) {
+                                    showAlert(t('docker.memberRemoved') || 'Member removed.', 'success');
+                                    renderImageDetailsView(container, repoName, imageName, seq);
+                                } else {
+                                    const errMsg = await remResp.text();
+                                    showAlert(t('docker.removeMemberFailed') || errMsg || 'Failed to remove member.');
+                                }
+                            }
+                        }
+                    }, createIcon('delete', {class: 'icon-svg'}));
+                    memberControls.appendChild(removeBtn);
+                } else {
+                    memberControls.appendChild(
+                        el('span', {class: 'docker-permission-badge'}, levelLabel)
+                    );
+                }
+
+                const memberRow = el('div', {class: 'docker-team-row'},
+                    el('div', {class: 'docker-team-member'},
+                        el('strong', {class: 'docker-team-username'}, member.username),
+                        member.added_at ? el('span', {class: 'docker-team-time'}, dockerDate(member.added_at)) : null
+                    ),
+                    memberControls
+                );
+                teamListEl.appendChild(memberRow);
+            }
+
+            let inviteForm = null;
+            if (canManageL3) {
+                inviteInput = el('input', {
+                    type: 'text',
+                    class: 'docker-invite-input',
+                    placeholder: t('docker.invitePlaceholder') || 'Enter username to invite...',
+                    autocomplete: 'off',
+                    oninput: handleInviteInput,
+                    onkeydown: (e) => {
+                        if (e.key === 'Escape') closeInviteSuggestions();
+                    }
+                });
+
+                inviteLevel = 1;
+                const inviteLevelSelect = makeCustomSelect(
+                    [
+                        { value: '1', label: t('docker.permissionL1') || 'L1 (Push)' },
+                        { value: '2', label: t('docker.permissionL2') || 'L2 (Manage)' },
+                        { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' },
+                        { value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }
+                    ],
+                    '1',
+                    (val) => {
+                        inviteLevel = parseInt(val, 10) || 1;
+                    }
+                );
+                inviteLevelSelect.classList.add('docker-permission-select');
+
+                const sendInviteBtn = el('button', {
+                    type: 'submit',
+                    class: 'docker-btn-secondary primary-btn',
+                    title: t('docker.invite') || 'Invite'
+                }, createIcon('userPlus', {class: 'icon-svg'}), el('span', {}, t('docker.invite') || 'Invite'));
+
+                inviteForm = el('form', {
+                    class: 'docker-invite-form',
+                    onsubmit: async (e) => {
+                        e.preventDefault();
+                        const userToInvite = inviteInput.value.trim();
+                        if (!userToInvite) {
+                            showAlert(t('docker.inviteUsernameRequired') || 'Please enter a username to invite.', 'warning');
+                            return;
+                        }
+                        const currentUser = localStorage.getItem('username') || '';
+                        if (currentUser && userToInvite.toLowerCase() === currentUser.toLowerCase()) {
+                            showAlert(t('docker.cannotInviteSelf') || 'You cannot invite yourself.', 'warning');
+                            return;
+                        }
+                        sendInviteBtn.disabled = true;
+                        try {
+                            const inviteResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners?image=${encodeURIComponent(imageName)}`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({
+                                    users: [userToInvite],
+                                    level: inviteLevel
+                                })
+                            });
+                            if (inviteResp.ok) {
+                                inviteInput.value = '';
+                                closeInviteSuggestions();
+                                const respData = await inviteResp.json().catch(() => null);
+                                showAlert(respData?.message || t('docker.inviteSent', {name: userToInvite}) || `Invitation sent to ${userToInvite}.`, 'success');
+                                renderImageDetailsView(container, repoName, imageName, seq);
+                            } else {
+                                const errStatus = inviteResp.status;
+                                const errText = await inviteResp.text();
+                                let msg = t('docker.sendInviteFailed') || 'Failed to send invitation.';
+                                if (errText.includes('already a member')) {
+                                    msg = t('docker.memberAlreadyExists') || 'User is already a member of this image team.';
+                                } else if (errText.includes('pending')) {
+                                    msg = t('docker.invitationAlreadyPending') || 'An active invitation is already pending for this user.';
+                                } else if (errText.includes('does not exist')) {
+                                    msg = t('docker.userNotFound', {name: userToInvite}) || `User "${userToInvite}" does not exist.`;
+                                } else if (errText.includes('yourself')) {
+                                    msg = t('docker.cannotInviteSelf') || 'You cannot invite yourself.';
+                                } else if (errStatus === 403) {
+                                    msg = t('docker.permissionDenied') || 'Permission denied.';
+                                }
+                                showAlert(msg);
+                            }
+                        } catch (err) {
+                            showAlert(String(err.message || err));
+                        } finally {
+                            sendInviteBtn.disabled = false;
+                        }
+                    }
+                }, inviteInput, inviteLevelSelect, sendInviteBtn);
+            }
+
+            teamSection = el('div', {class: 'docker-page-section'},
+                el('div', {style: {display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem'}},
+                    el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.teamTitle') || 'Team & Collaborators'),
+                    el('span', {class: 'docker-tag-badge'}, `${members.length}`)
+                ),
+                teamListEl,
+                inviteForm
+            );
+        }
+
+        const sections = [hero, tagsSection, readmeSection];
+        if (teamSection) {
+            sections.push(teamSection);
+        }
+
         await morphElementHeight(container, () => {
-            container.replaceChildren(hero, tagsSection, readmeSection);
+            container.replaceChildren(...sections);
             container.classList.remove('is-updating');
             container.classList.add('is-entering');
             setTimeout(() => container.classList.remove('is-entering'), 400);
@@ -687,7 +1069,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         await morphElementHeight(container, () => {
             container.replaceChildren(
                 el('div', {class: 'docker-page-hero'},
-                    el('p', {class: 'error-text'}, String(err.message || err))
+                    el('p', {class: 'error-text'}, t('docker.imageNotFound') || String(err.message || err))
                 )
             );
             container.classList.remove('is-updating');

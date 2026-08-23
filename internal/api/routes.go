@@ -63,6 +63,12 @@ func SetupApiRoutes(router fiber.Router, state *core.AppState) {
 	router.Delete("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return DeleteDockerImageAPI(c, state) })
 	router.Delete("/docker/repositories/:repo_name/tags", func(c fiber.Ctx) error { return DeleteDockerTagAPI(c, state) })
 	router.Delete("/docker/repositories/:repo_name/tags/*", func(c fiber.Ctx) error { return DeleteDockerTagAPI(c, state) })
+	router.Get("/docker/repositories/:repo_name/owners", func(c fiber.Ctx) error { return ListDockerOwnersAPI(c, state) })
+	router.Post("/docker/repositories/:repo_name/owners", func(c fiber.Ctx) error { return InviteDockerOwnersAPI(c, state) })
+	router.Put("/docker/repositories/:repo_name/owners/:username", func(c fiber.Ctx) error { return SetDockerOwnerLevelAPI(c, state) })
+	router.Delete("/docker/repositories/:repo_name/owners/:username", func(c fiber.Ctx) error { return RemoveDockerOwnerAPI(c, state) })
+	router.Get("/docker/repositories/:repo_name/users/search", func(c fiber.Ctx) error { return SearchDockerUsersAPI(c, state) })
+	router.Post("/docker/repositories/:repo_name/invitations/:id/:decision", func(c fiber.Ctx) error { return RespondDockerInvitationAPI(c, state) })
 
 	router.Get("/maven/versions/:repo_name/*", func(c fiber.Ctx) error { return FindVersions(c, state) })
 	router.Get("/maven/latest/version/:repo_name/*", func(c fiber.Ctx) error { return LatestVersion(c, state) })

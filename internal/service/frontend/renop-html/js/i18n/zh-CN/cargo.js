@@ -83,6 +83,7 @@ export default Object.freeze({
     "audit.action.CARGO_PACKAGE_ARCHIVE": "封存 Cargo 包",
     "audit.action.CARGO_PACKAGE_RESTORE": "恢复 Cargo 包",
     "audit.action.CARGO_PACKAGE_DELETE": "删除 Cargo 包",
+    "audit.action.CARGO_TEAM_ADD": "已添加 Cargo 团队成员",
     "audit.action.CARGO_TEAM_INVITE": "邀请 Cargo 团队成员",
     "audit.action.CARGO_TEAM_REMOVE": "移除 Cargo 团队成员",
     "audit.action.CARGO_TEAM_LEVEL": "更新 Cargo 团队权限",

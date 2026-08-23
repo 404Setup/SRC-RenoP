@@ -893,7 +893,7 @@ function buildMemberLevelSelect(member) {
     const username = String(member.login || '');
     const level = Number(member.level);
 	const select = makeCustomSelect(
-		[1, 2, 3].map(buildPermissionOption), String(level),
+		[1, 2, 3, 4].map(buildPermissionOption), String(level),
 		handleMemberLevelChange.bind(null, username)
     );
     select.classList.add('cargo-permission-select');
@@ -907,7 +907,7 @@ function buildMemberLevelSelect(member) {
  */
 function buildCargoTeamSection() {
     const packageRecord = activePackageDetails.package;
-    const canManageTeam = Number(packageRecord.permission_level) >= 3;
+    const canManageTeam = activeAdministrator || Number(packageRecord.permission_level) >= 3;
     const section = el('section', {class: 'cargo-page-section'},
         el('h3', {class: 'cargo-section-title'}, t('cargo.team'))
     );
@@ -960,7 +960,7 @@ function buildCargoInviteForm() {
     inviteInput.addEventListener('input', handleCargoInviteInput);
     inviteInput.addEventListener('keydown', handleCargoInviteKeydown);
     const inputWrap = el('div', {class: 'cargo-invite-input-wrap'}, inviteInput);
-    const levelSelect = makeCustomSelect([1, 2, 3].map(buildPermissionOption), '1', handleInviteLevelChange);
+    const levelSelect = makeCustomSelect([1, 2, 3, 4].map(buildPermissionOption), '1', handleInviteLevelChange);
     levelSelect.classList.add('cargo-invite-permission-select');
     const form = el('form', {class: 'cargo-invite-form', action: 'javascript:void(0);'},
         el('div', {class: 'cargo-invite-form-heading'},
@@ -1672,13 +1672,13 @@ async function removeCargoMember(packageName, username) {
 /**
  * Update one package team member's permission without rebuilding sibling controls.
  * @param {string} username - Team username.
- * @param {number} level - Permission level 1 through 3.
+ * @param {number} level - Permission level 1 through 4.
  * @returns {Promise<void>}
  */
 async function updateCargoMemberLevel(username, level) {
 	const member = activePackageDetails?.members?.find(candidate => candidate?.login === username);
 	const previousLevel = Number(member?.level);
-	if (!activePackageDetails?.package || level < 1 || level > 3 || level === previousLevel) return;
+	if (!activePackageDetails?.package || level < 1 || level > 4 || level === previousLevel) return;
     const selector = activeView?.querySelector(`[data-cargo-permission-user="${CSS.escape(username)}"]`);
     try {
         await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners', username), {
@@ -1686,6 +1686,9 @@ async function updateCargoMemberLevel(username, level) {
         });
 		if (member) member.level = level;
         showAlert(t('cargo.memberUpdated'), 'success');
+        if (level === 4) {
+            await refreshCargoPackagePage();
+        }
     } catch (error) {
         console.error('Failed to update Cargo member permission', error);
         if (selector && typeof selector.setValue === 'function') selector.setValue(String(previousLevel));
@@ -1748,7 +1751,7 @@ function closeInviteSuggestions(immediate = false) {
         panel.hidden = true;
         panel.classList.remove('is-leaving');
         inviteCloseTimer = 0;
-    }, INVITE_CLOSE_DELAY_MS);
+    }, 180);
 }
 
 /**
@@ -1885,14 +1888,17 @@ async function submitCargoInvitation(event) {
     const submit = form.querySelector('button[type="submit"]');
     if (submit) submit.disabled = true;
     try {
-        await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners'), {
+        const resp = await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners'), {
             method: 'PUT', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({users: [username], level: inviteLevel})
         });
         if (inviteInput instanceof HTMLInputElement) inviteInput.value = '';
         inviteSuggestions = [];
         closeInviteSuggestions();
-        showAlert(t('cargo.inviteSent', {name: username}), 'success');
+        showAlert(resp?.message || t('cargo.inviteSent', {name: username}), 'success');
+        if (activeAdministrator) {
+            await refreshCargoPackagePage();
+        }
     } catch (error) {
         console.error('Failed to invite Cargo package member', error);
         showAlert(error.message || t('cargo.operationFailed'), 'error');
