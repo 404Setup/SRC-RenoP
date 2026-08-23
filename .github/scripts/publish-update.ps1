@@ -121,70 +121,7 @@ function Get-RemoteInfoJson {
     }
 }
 
-function Delete-VersionTreeAsync {
-    param(
-        [Parameter(Mandatory = $true)][string]$Ver,
-        [string]$ChannelPath
-    )
-    if ([string]::IsNullOrWhiteSpace($Ver)) { return $null }
-    $dirUrl = "$BaseUrl/$ChannelPath/$Ver"
-    Write-Host "Deleting previous package tree from mvnc: $dirUrl"
-    return [System.Threading.Tasks.Task]::Run([System.Action]{
-        try {
-            $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Delete, $dirUrl)
-            $resp = $httpClient.SendAsync($req).GetAwaiter().GetResult()
-            $code = [int]$resp.StatusCode
-            if ($code -ne 200 -and $code -ne 204 -and $code -ne 404) {
-                Write-Warning "DELETE $dirUrl returned unexpected status $code ($($resp.ReasonPhrase))"
-            }
-        } catch {
-            Write-Warning "DELETE $dirUrl failed: $($_.Exception.Message)"
-        }
-    })
-}
 
-function Upload-PackageFileAsync {
-    param(
-        [Parameter(Mandatory = $true)][object]$Target,
-        [Parameter(Mandatory = $true)][string]$DestUrl,
-        [System.Threading.SemaphoreSlim]$Semaphore
-    )
-    return [System.Threading.Tasks.Task]::Run([System.Action]{
-        if ($null -ne $Semaphore) {
-            $Semaphore.Wait()
-        }
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        try {
-            Write-Host "PUT $($Target.file) -> $DestUrl ($($Target.size) bytes)"
-            $fs = [System.IO.File]::OpenRead($Target.path)
-            try {
-                $content = [System.Net.Http.StreamContent]::new($fs, 131072)
-                $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('application/zip')
-
-                $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Put, $DestUrl)
-                $req.Content = $content
-
-                $resp = $httpClient.SendAsync($req).GetAwaiter().GetResult()
-                $code = [int]$resp.StatusCode
-                if ($code -ne 200 -and $code -ne 201 -and $code -ne 204) {
-                    throw "PUT $DestUrl returned unexpected status $code ($($resp.ReasonPhrase))"
-                }
-                $sw.Stop()
-                $elapsedSec = [Math]::Max($sw.Elapsed.TotalSeconds, 0.001)
-                $speedMBs = [Math]::Round(($Target.size / 1048576) / $elapsedSec, 2)
-                Write-Host "Uploaded $($Target.file) in $($sw.ElapsedMilliseconds)ms ($speedMBs MB/s)"
-            } finally {
-                $fs.Dispose()
-            }
-        } catch {
-            throw "Failed to upload $($Target.file): $($_.Exception.Message)"
-        } finally {
-            if ($null -ne $Semaphore) {
-                $Semaphore.Release() | Out-Null
-            }
-        }
-    })
-}
 
 $zipFiles = @(Get-ChildItem -LiteralPath $DistDir -Filter '*.zip' -File | Sort-Object Name)
 if ($zipFiles.Count -eq 0) {
@@ -453,32 +390,63 @@ if ($Channel -eq 'nightly') {
     }
 }
 
-$versionsToDelete = [System.Collections.Generic.List[string]]::new()
+$allDeletes = [System.Collections.Generic.List[string]]::new()
 foreach ($c in $candidatesToDelete) {
     if (-not $allowedMvncVersions.Contains($c) -and $c -ne $Version -and -not [string]::IsNullOrWhiteSpace($c)) {
-        $versionsToDelete.Add($c)
+        $allDeletes.Add($c)
     }
 }
-
-$deleteTasks = [System.Collections.Generic.List[System.Threading.Tasks.Task]]::new()
-foreach ($oldVer in $versionsToDelete) {
-    $dt = Delete-VersionTreeAsync -Ver $oldVer -ChannelPath $channelRoot
-    if ($null -ne $dt) { $deleteTasks.Add($dt) }
-}
-$curDelete = Delete-VersionTreeAsync -Ver $Version -ChannelPath $channelRoot
-if ($null -ne $curDelete) { $deleteTasks.Add($curDelete) }
-
-if ($deleteTasks.Count -gt 0) {
-    [System.Threading.Tasks.Task]::WaitAll($deleteTasks.ToArray())
+if (-not [string]::IsNullOrWhiteSpace($Version) -and -not $allDeletes.Contains($Version)) {
+    $allDeletes.Add($Version)
 }
 
-$uploadTasks = [System.Collections.Generic.List[System.Threading.Tasks.Task]]::new()
-$uploadSemaphore = [System.Threading.SemaphoreSlim]::new(8, 8)
-foreach ($t in $targets) {
-    $dest = "$BaseUrl/$channelRoot/$Version/$($t.file)"
-    $uploadTasks.Add((Upload-PackageFileAsync -Target $t -DestUrl $dest -Semaphore $uploadSemaphore))
+if ($allDeletes.Count -gt 0) {
+    $allDeletes | ForEach-Object -Parallel {
+        $oldVer = $_
+        if ([string]::IsNullOrWhiteSpace($oldVer)) { return }
+        $dirUrl = "$using:BaseUrl/$using:channelRoot/$oldVer"
+        Write-Host "Deleting previous package tree from mvnc: $dirUrl"
+        try {
+            $client = $using:httpClient
+            $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Delete, $dirUrl)
+            $resp = $client.SendAsync($req).GetAwaiter().GetResult()
+            $code = [int]$resp.StatusCode
+            if ($code -ne 200 -and $code -ne 204 -and $code -ne 404) {
+                Write-Warning "DELETE $dirUrl returned unexpected status $code ($($resp.ReasonPhrase))"
+            }
+        } catch {
+            Write-Warning "DELETE $dirUrl failed: $($_.Exception.Message)"
+        }
+    } -ThrottleLimit 16
 }
-[System.Threading.Tasks.Task]::WaitAll($uploadTasks.ToArray())
+
+$targets | ForEach-Object -Parallel {
+    $t = $_
+    $dest = "$using:BaseUrl/$using:channelRoot/$using:Version/$($t.file)"
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Host "PUT $($t.file) -> $dest ($($t.size) bytes)"
+    $fs = [System.IO.File]::OpenRead($t.path)
+    try {
+        $client = $using:httpClient
+        $content = [System.Net.Http.StreamContent]::new($fs, 131072)
+        $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('application/zip')
+
+        $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Put, $dest)
+        $req.Content = $content
+
+        $resp = $client.SendAsync($req).GetAwaiter().GetResult()
+        $code = [int]$resp.StatusCode
+        if ($code -ne 200 -and $code -ne 201 -and $code -ne 204) {
+            throw "PUT $dest returned unexpected status $code ($($resp.ReasonPhrase))"
+        }
+        $sw.Stop()
+        $elapsedSec = [Math]::Max($sw.Elapsed.TotalSeconds, 0.001)
+        $speedMBs = [Math]::Round(($t.size / 1048576) / $elapsedSec, 2)
+        Write-Host "Uploaded $($t.file) in $($sw.ElapsedMilliseconds)ms ($speedMBs MB/s)"
+    } finally {
+        $fs.Dispose()
+    }
+} -ThrottleLimit 8
 
 $info = [ordered]@{
     releases = $updatedReleases

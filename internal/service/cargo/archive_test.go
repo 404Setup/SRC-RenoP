@@ -46,28 +46,29 @@ func TestValidateArchive(t *testing.T) {
 		"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
 		"demo-1.0.0/src/lib.rs": "pub fn demo() {}\n",
 	})
-	if err := validateArchive(bytes.NewReader(valid), "demo", "1.0.0"); err != nil {
+	manifest, err := validateArchive(bytes.NewReader(valid), "demo", "1.0.0")
+	if err != nil || manifest == nil || manifest.Name != "demo" {
 		t.Fatalf("valid crate rejected: %v", err)
 	}
 
 	unsafe := makeCrateArchive(t, map[string]string{
 		"../Cargo.toml": "[package]\n",
 	})
-	if err := validateArchive(bytes.NewReader(unsafe), "demo", "1.0.0"); err == nil {
+	if _, err := validateArchive(bytes.NewReader(unsafe), "demo", "1.0.0"); err == nil {
 		t.Fatal("expected unsafe path rejection")
 	}
 
 	missingManifest := makeCrateArchive(t, map[string]string{
 		"demo-1.0.0/src/lib.rs": "pub fn demo() {}\n",
 	})
-	if err := validateArchive(bytes.NewReader(missingManifest), "demo", "1.0.0"); err == nil {
+	if _, err := validateArchive(bytes.NewReader(missingManifest), "demo", "1.0.0"); err == nil {
 		t.Fatal("expected missing Cargo.toml rejection")
 	}
 
 	mismatchedManifest := makeCrateArchive(t, map[string]string{
 		"demo-1.0.0/Cargo.toml": "[package]\nname = \"other\"\nversion = \"1.0.0\"\n",
 	})
-	if err := validateArchive(bytes.NewReader(mismatchedManifest), "demo", "1.0.0"); err == nil {
+	if _, err := validateArchive(bytes.NewReader(mismatchedManifest), "demo", "1.0.0"); err == nil {
 		t.Fatal("expected mismatched Cargo.toml rejection")
 	}
 }

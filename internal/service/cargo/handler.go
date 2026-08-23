@@ -59,7 +59,7 @@ func (h Handler) handleCrateAPI(c fiber.Ctx, state *core.AppState, repo *config.
 	crateName := parts[3]
 	switch {
 	case len(parts) == 4 && c.Method() == fiber.MethodGet:
-		return true, h.packageInfo(c, state, repo, crateName)
+		return true, h.packageInfo(c, state, repo, storagePath, crateName)
 	case len(parts) == 4 && c.Method() == fiber.MethodDelete:
 		return true, h.deletePackage(c, state, repo, storagePath, crateName)
 	case len(parts) == 5 && parts[4] == "owners" && c.Method() == fiber.MethodGet:

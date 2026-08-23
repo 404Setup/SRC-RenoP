@@ -28,18 +28,27 @@ const (
 )
 
 type cargoManifestPackage struct {
-	Name    string `toml:"name"`
-	Version string `toml:"version"`
+	Name          string `toml:"name"`
+	Version       string `toml:"version"`
+	Description   string `toml:"description"`
+	License       string `toml:"license"`
+	LicenseFile   string `toml:"license-file"`
+	Documentation string `toml:"documentation"`
+	Homepage      string `toml:"homepage"`
+	Repository    string `toml:"repository"`
+	RustVersion   string `toml:"rust-version"`
+	Edition       string `toml:"edition"`
+	Links         string `toml:"links"`
 }
 
 type cargoManifestMetadata struct {
 	Package cargoManifestPackage `toml:"package"`
 }
 
-func validateArchive(reader io.Reader, crateName, version string) error {
+func validateArchive(reader io.Reader, crateName, version string) (*cargoManifestPackage, error) {
 	gzipReader, err := gzip.NewReader(reader)
 	if err != nil {
-		return errors.New("Cargo crate is not a valid gzip archive")
+		return nil, errors.New("Cargo crate is not a valid gzip archive")
 	}
 	defer gzipReader.Close()
 
@@ -50,57 +59,57 @@ func validateArchive(reader io.Reader, crateName, version string) error {
 	seenPaths := make(map[string]struct{})
 	root := crateName + "-" + version
 	manifest := root + "/Cargo.toml"
+	var manifestMetadata cargoManifestMetadata
 	for {
 		header, err := tarReader.Next()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			return errors.New("Cargo crate contains an invalid tar archive")
+			return nil, errors.New("Cargo crate contains an invalid tar archive")
 		}
 		entries++
 		if entries > maxArchiveEntries {
-			return errors.New("Cargo crate contains too many files")
+			return nil, errors.New("Cargo crate contains too many files")
 		}
 		if strings.ContainsAny(header.Name, "\\\x00") {
-			return errors.New("Cargo crate contains an unsafe path")
+			return nil, errors.New("Cargo crate contains an unsafe path")
 		}
 		clean := path.Clean(header.Name)
 		if clean == "." || strings.HasPrefix(clean, "../") || strings.HasPrefix(clean, "/") || strings.Contains(clean, ":") ||
 			(clean != root && !strings.HasPrefix(clean, root+"/")) {
-			return errors.New("Cargo crate contains an unsafe path")
+			return nil, errors.New("Cargo crate contains an unsafe path")
 		}
 		canonicalName := strings.TrimSuffix(header.Name, "/")
 		if canonicalName == "" || clean != canonicalName {
-			return errors.New("Cargo crate contains a non-canonical path")
+			return nil, errors.New("Cargo crate contains a non-canonical path")
 		}
 		if _, exists := seenPaths[clean]; exists {
-			return errors.New("Cargo crate contains a duplicate path")
+			return nil, errors.New("Cargo crate contains a duplicate path")
 		}
 		seenPaths[clean] = struct{}{}
 		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA && header.Typeflag != tar.TypeDir {
-			return errors.New("Cargo crate contains an unsupported file type")
+			return nil, errors.New("Cargo crate contains an unsupported file type")
 		}
 		if header.Size < 0 || unpacked > maxUnpackedSize-header.Size {
-			return errors.New("Cargo crate expands beyond the size limit")
+			return nil, errors.New("Cargo crate expands beyond the size limit")
 		}
 		unpacked += header.Size
 		if clean == manifest && (header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA) {
 			if header.Size > maxManifestSize {
-				return errors.New("Cargo.toml exceeds the size limit")
+				return nil, errors.New("Cargo.toml exceeds the size limit")
 			}
-			var manifestMetadata cargoManifestMetadata
 			if _, err := toml.NewDecoder(tarReader).Decode(&manifestMetadata); err != nil {
-				return errors.New("Cargo crate contains an invalid Cargo.toml")
+				return nil, errors.New("Cargo crate contains an invalid Cargo.toml")
 			}
 			if manifestMetadata.Package.Name != crateName || !sameVersion(manifestMetadata.Package.Version, version) {
-				return errors.New("Cargo.toml package name or version does not match publish metadata")
+				return nil, errors.New("Cargo.toml package name or version does not match publish metadata")
 			}
 			hasManifest = true
 		}
 	}
 	if !hasManifest {
-		return errors.New("Cargo crate does not contain Cargo.toml")
+		return nil, errors.New("Cargo crate does not contain Cargo.toml")
 	}
-	return nil
+	return &manifestMetadata.Package, nil
 }

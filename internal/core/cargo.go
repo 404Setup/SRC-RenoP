@@ -30,12 +30,28 @@ var (
 	ErrCargoInvitationInvalid = errors.New("Cargo package invitation is no longer valid")
 )
 
+// CargoDependency represents one dependency requirement in an index entry or package detail.
+type CargoDependency struct {
+	Name            string   `json:"name"`
+	Requirement     string   `json:"req"`
+	Features        []string `json:"features,omitempty"`
+	Optional        bool     `json:"optional"`
+	DefaultFeatures bool     `json:"default_features"`
+	Target          *string  `json:"target,omitempty"`
+	Kind            string   `json:"kind"`
+	Registry        *string  `json:"registry,omitempty"`
+	Package         *string  `json:"package,omitempty"`
+}
+
 // CargoPackage is durable registry metadata for a locally owned crate.
 type CargoPackage struct {
 	Repository      string `json:"repository"`
 	Name            string `json:"name"`
 	NormalizedName  string `json:"-"`
 	Description     string `json:"description"`
+	RepositoryURL   string `json:"repository_url,omitempty"`
+	Homepage        string `json:"homepage,omitempty"`
+	Documentation   string `json:"documentation,omitempty"`
 	Archived        bool   `json:"archived"`
 	AdminArchived   bool   `json:"admin_archived"`
 	CreatedAt       int64  `json:"created_at"`
@@ -46,15 +62,25 @@ type CargoPackage struct {
 
 // CargoVersion tracks local versions and the origin of yank state.
 type CargoVersion struct {
-	Repository    string `json:"-"`
-	Package       string `json:"-"`
-	Version       string `json:"version"`
-	Description   string `json:"description,omitempty"`
-	Publisher     string `json:"publisher"`
-	Yanked        bool   `json:"yanked"`
-	AdminYanked   bool   `json:"admin_yanked"`
-	ArchiveYanked bool   `json:"-"`
-	CreatedAt     int64  `json:"created_at"`
+	Repository    string              `json:"-"`
+	Package       string              `json:"-"`
+	Version       string              `json:"version"`
+	Description   string              `json:"description,omitempty"`
+	Publisher     string              `json:"publisher"`
+	Yanked        bool                `json:"yanked"`
+	AdminYanked   bool                `json:"admin_yanked"`
+	ArchiveYanked bool                `json:"-"`
+	CreatedAt     int64               `json:"created_at"`
+	Size          int64               `json:"size,omitempty"`
+	Checksum      string              `json:"checksum,omitempty"`
+	RustVersion   string              `json:"rust_version,omitempty"`
+	License       string              `json:"license,omitempty"`
+	Documentation string              `json:"documentation,omitempty"`
+	Homepage      string              `json:"homepage,omitempty"`
+	RepositoryURL string              `json:"repository_url,omitempty"`
+	Deps          []CargoDependency   `json:"deps,omitempty"`
+	Features      map[string][]string `json:"features,omitempty"`
+	Links         *string             `json:"links,omitempty"`
 }
 
 // CargoMember is one package-team membership.

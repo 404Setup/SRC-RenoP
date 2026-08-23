@@ -102,11 +102,17 @@
     margin-left: auto;
 }
 
-.copy-btn:hover {
+.copy-btn:hover,
+.copy-btn:focus-visible {
     opacity: 1;
     background-color: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
     border-color: var(--link-hover-color);
     transform: scale(1.05);
+    outline: none;
+}
+
+.copy-btn:focus:not(:focus-visible) {
+    outline: none;
 }
 
 .copy-btn:active {

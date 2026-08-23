@@ -146,7 +146,7 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	if err != nil {
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to validate Cargo crate")
 	}
-	archiveErr := validateArchive(archiveReader, metadata.Name, metadata.Version)
+	manifest, archiveErr := validateArchive(archiveReader, metadata.Name, metadata.Version)
 	closeErr := archiveReader.Close()
 	if archiveErr != nil {
 		return errorResponse(c, fiber.StatusBadRequest, archiveErr.Error())
@@ -155,11 +155,43 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to validate Cargo crate")
 	}
 
+	license := ""
+	homepageURL := ""
+	repoURL := ""
+	docURL := ""
+	rustVersion := ""
+	if metadata.RustVersion != nil {
+		rustVersion = *metadata.RustVersion
+	}
+	if manifest != nil {
+		if manifest.License != "" {
+			license = manifest.License
+		} else if manifest.LicenseFile != "" {
+			license = manifest.LicenseFile
+		}
+		if manifest.Documentation != "" {
+			docURL = manifest.Documentation
+		}
+		if manifest.Homepage != "" {
+			homepageURL = manifest.Homepage
+		}
+		if manifest.Repository != "" {
+			repoURL = manifest.Repository
+		}
+		if rustVersion == "" && manifest.RustVersion != "" {
+			rustVersion = manifest.RustVersion
+		}
+	}
+	var rustVerPtr *string
+	if rustVersion != "" {
+		rustVerPtr = &rustVersion
+	}
+
 	entry := IndexEntry{
 		Name: packageName, Version: metadata.Version, Deps: dependencies,
 		Checksum: hex.EncodeToString(digest.Sum(nil)), Features: metadata.Features,
 		Yanked: false, Links: metadata.Links, Features2: metadata.Features2,
-		RustVersion: metadata.RustVersion,
+		RustVersion: rustVerPtr,
 	}
 	if entry.Features == nil {
 		entry.Features = map[string][]string{}
@@ -212,10 +244,14 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	now := time.Now().UnixMilli()
 	if err := db.RecordCargoPublication(&core.CargoPackage{
 		Repository: repo.Name, Name: packageName, NormalizedName: normalizedName,
-		Description: metadata.Description, CreatedAt: now, UpdatedAt: now,
+		Description: metadata.Description, RepositoryURL: repoURL, Homepage: homepageURL,
+		Documentation: docURL, CreatedAt: now, UpdatedAt: now,
 	}, &core.CargoVersion{
 		Repository: repo.Name, Package: normalizedName, Version: metadata.Version,
-		Description: metadata.Description, Publisher: user.Username, CreatedAt: now,
+		Description: metadata.Description, Publisher: user.Username, Size: crateLength,
+		Checksum: entry.Checksum, RustVersion: rustVersion, License: license,
+		Documentation: docURL, Homepage: homepageURL, RepositoryURL: repoURL,
+		CreatedAt: now,
 	}, user.Username); err != nil {
 		if rollbackErr := h.rollbackPublication(state, indexFilePath, cratePath, metadata.Version, indexExisted); rollbackErr != nil {
 			log.Printf("failed to roll back Cargo publication %s/%s@%s: %v", repo.Name, packageName, metadata.Version, rollbackErr)

@@ -454,10 +454,15 @@ func TestCargoPackageInfoIsPublicAndHidesTeamFromNonMembers(t *testing.T) {
 	owner := &config.User{Username: "owner", Roles: []string{"canupdate:cargo"}}
 	ownerApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, owner)
 	crate := makeCrateArchive(t, map[string]string{
-		"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+		"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\nlicense = \"MIT\"\nrepository = \"https://github.com/example/demo\"\n",
 	})
 	body := makePublishBody(t, PublishMetadata{
-		Name: "demo", Version: "1.0.0", Description: "Public package", Deps: []PublishDependency{}, Features: map[string][]string{},
+		Name: "demo", Version: "1.0.0", Description: "Public package",
+		Deps: []PublishDependency{
+			{Name: "serde", VersionReq: "^1.0", Kind: "normal"},
+			{Name: "tokio", VersionReq: "1.0", Kind: "dev", Optional: true},
+		},
+		Features: map[string][]string{"default": {"std"}, "std": {}},
 	}, crate)
 	publishResponse, err := ownerApp.Test(httptest.NewRequest(
 		http.MethodPut, "http://registry.example/cargo/api/v1/crates/new", bytes.NewReader(body),
@@ -488,6 +493,10 @@ func TestCargoPackageInfoIsPublicAndHidesTeamFromNonMembers(t *testing.T) {
 	}
 	if payload.Admin || payload.Package.PermissionLevel != 0 || len(payload.Members) != 0 {
 		t.Fatalf("guest package info exposed management data: %+v", payload)
+	}
+	v := payload.Versions[0]
+	if v.License != "MIT" || v.RepositoryURL != "https://github.com/example/demo" || len(v.Deps) != 2 || len(v.Features) != 2 || v.Checksum == "" || v.Size == 0 {
+		t.Fatalf("version metadata not enriched properly: %+v", v)
 	}
 }
 

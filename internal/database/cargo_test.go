@@ -37,15 +37,28 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	}))
 	pkg := &core.CargoPackage{
 		Repository: "cargo", Name: "demo", NormalizedName: "demo",
-		Description: "Demo crate", CreatedAt: now, UpdatedAt: now,
+		Description: "Demo crate", RepositoryURL: "https://github.com/example/demo",
+		Homepage: "https://example.com/demo", Documentation: "https://docs.rs/demo",
+		CreatedAt: now, UpdatedAt: now,
 	}
 	require.NoError(t, db.RecordCargoPublication(pkg, &core.CargoVersion{
-		Repository: "cargo", Package: "demo", Version: "1.0.0", Publisher: "alice", CreatedAt: now,
+		Repository: "cargo", Package: "demo", Version: "1.0.0", Publisher: "alice",
+		Size: 1024, Checksum: "abcdef123456", RustVersion: "1.70.0", License: "MIT",
+		Documentation: "https://docs.rs/demo", Homepage: "https://example.com/demo",
+		RepositoryURL: "https://github.com/example/demo", CreatedAt: now,
 	}, "alice"))
 
 	details, err := db.GetCargoPackageDetails("cargo", "demo", "alice")
 	require.NoError(t, err)
 	require.Equal(t, core.CargoPermissionFull, details.Package.PermissionLevel)
+	require.Equal(t, "https://github.com/example/demo", details.Package.RepositoryURL)
+	require.Equal(t, "https://example.com/demo", details.Package.Homepage)
+	require.Equal(t, "https://docs.rs/demo", details.Package.Documentation)
+	require.Len(t, details.Versions, 1)
+	require.Equal(t, int64(1024), details.Versions[0].Size)
+	require.Equal(t, "abcdef123456", details.Versions[0].Checksum)
+	require.Equal(t, "1.70.0", details.Versions[0].RustVersion)
+	require.Equal(t, "MIT", details.Versions[0].License)
 	require.Len(t, details.Members, 1)
 	err = db.DeleteToken("alice")
 	require.Error(t, err)

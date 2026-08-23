@@ -70,6 +70,8 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
   they never expose Maven's raw file-tree management view. The overview is a bounded, paginated public package catalog
   that merges management state only for authorized sessions. Package metadata and versions are readable under normal
   repository visibility rules, while team membership and mutation controls remain collaborator/administrator-only.
+  Package subpages render rich metadata (homepage, documentation, repository links, license, MSRV, crate size, checksum with copy),
+  interactive tool commands (`cargo add`, `Cargo.toml`, `cargo install` with copy actions), version switcher, and detailed dependencies/features inspection.
   Cargo subpage navigation preserves the previous content and reuses immutable repository-format metadata until the
   next route is ready. Package-team autocomplete and permission menus are body-attached or fixed-width controls to
   avoid resizing their page containers. Repository settings select Maven versus Cargo mirror URL labels and hints from

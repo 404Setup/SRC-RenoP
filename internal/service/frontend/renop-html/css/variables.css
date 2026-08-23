@@ -35,7 +35,7 @@ html.dark .btn-danger:hover:not(:disabled) {
     background-color: #b91c1c;
 }
 
-html.dark .icon-svg {
+html.dark img.icon-svg {
     filter: invert(1);
 }
 

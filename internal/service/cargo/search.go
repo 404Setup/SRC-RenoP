@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/config"
@@ -70,7 +71,7 @@ func (h Handler) listManagedPackages(c fiber.Ctx, state *core.AppState, repo *co
 	return c.JSON(packageListResponse{Packages: packages, Admin: user.IsManager()})
 }
 
-func (h Handler) packageInfo(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName string) error {
+func (h Handler) packageInfo(c fiber.Ctx, state *core.AppState, repo *config.Repository, storagePath, crateName string) error {
 	user := auth.GetUser(c)
 	username := ""
 	administrator := false
@@ -87,6 +88,67 @@ func (h Handler) packageInfo(c fiber.Ctx, state *core.AppState, repo *config.Rep
 		// reserved for collaborators and administrators.
 		details.Members = []*core.CargoMember{}
 	}
+
+	h.enrichPackageVersionsFromIndex(repo, storagePath, details)
+
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(packageInfoResponse{CargoPackageDetails: details, Admin: administrator})
+}
+
+func (h Handler) enrichPackageVersionsFromIndex(repo *config.Repository, storagePath string, details *core.CargoPackageDetails) {
+	if details == nil || details.Package == nil || h.Store == nil {
+		return
+	}
+	indexFilePath := cargoIndexPath(storagePath, repo, details.Package.Name)
+	reader, found, err := h.Store.Open(indexFilePath)
+	if err != nil || !found || reader == nil {
+		return
+	}
+	defer reader.Close()
+
+	indexEntries := make(map[string]IndexEntry)
+	_ = scanIndex(reader, func(line []byte) error {
+		var entry IndexEntry
+		if json.Unmarshal(line, &entry) == nil && entry.Version != "" {
+			indexEntries[entry.Version] = entry
+		}
+		return nil
+	})
+
+	for _, v := range details.Versions {
+		if v == nil {
+			continue
+		}
+		if entry, ok := indexEntries[v.Version]; ok {
+			if v.Checksum == "" {
+				v.Checksum = entry.Checksum
+			}
+			if v.RustVersion == "" && entry.RustVersion != nil {
+				v.RustVersion = *entry.RustVersion
+			}
+			if v.Links == nil {
+				v.Links = entry.Links
+			}
+			if v.Features == nil {
+				v.Features = entry.Features
+			}
+			if len(v.Deps) == 0 && len(entry.Deps) > 0 {
+				deps := make([]core.CargoDependency, 0, len(entry.Deps))
+				for _, dep := range entry.Deps {
+					deps = append(deps, core.CargoDependency{
+						Name:            dep.Name,
+						Requirement:     dep.Requirement,
+						Features:        dep.Features,
+						Optional:        dep.Optional,
+						DefaultFeatures: dep.DefaultFeatures,
+						Target:          dep.Target,
+						Kind:            dep.Kind,
+						Registry:        dep.Registry,
+						Package:         dep.Package,
+					})
+				}
+				v.Deps = deps
+			}
+		}
+	}
 }

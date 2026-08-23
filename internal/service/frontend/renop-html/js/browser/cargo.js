@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -15,11 +17,12 @@ import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createSkeleton} from '../components.js';
 import {t} from '../i18n.js';
 import {getRepositoryFormat} from '../repository-formats.js';
-import {decodePathSegment} from './utils.js';
+import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 
 const INVITE_SEARCH_DELAY_MS = 160;
 const INVITE_CLOSE_DELAY_MS = 150;
 const CARGO_CATALOG_PAGE_SIZE = 50;
+const CARGO_VERSION_PAGE_SIZE = 5;
 let cargoLoadSequence = 0;
 let activeRepository = '';
 let activeAdministrator = false;
@@ -28,9 +31,19 @@ let activePackageList = [];
 let activePublicPackageNames = new Set();
 let activePublicPackageTotal = 0;
 let activeCatalogPage = 1;
+let activeVersionListPage = 1;
 let activeNavigate = null;
 let activeView = null;
 let activeRouteKind = '';
+let activeSelectedVersion = '';
+let activePackageTab = 'dependencies';
+let activeCommandFormat = 'cargo-add';
+let activePackageHeroUpdater = null;
+let activeCommandsUpdater = null;
+let activeFactsUpdater = null;
+let activeInspectionUpdater = null;
+let activeVersionsUpdater = null;
+let activeVersionsObserver = null;
 let listenersInitialized = false;
 let inviteLevel = 1;
 let inviteSuggestionTimer = 0;
@@ -40,6 +53,30 @@ let inviteSuggestions = [];
 let activeInviteSuggestion = -1;
 let inviteSuggestionPanel = null;
 let inviteInput = null;
+
+/**
+ * Trigger copy animation with toast feedback on a copy button.
+ * @param {HTMLButtonElement} button - Copy button.
+ * @param {string} text - Text to copy to clipboard.
+ * @returns {void}
+ */
+function triggerCargoCopy(button, text) {
+    if (!button || !text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const originalTitle = button.title;
+        button.classList.add('copied');
+        button.title = t('details.copied') || 'Copied!';
+        button.replaceChildren(createIcon('check', {class: 'icon-svg'}));
+        const toast = el('span', {class: 'copy-toast'}, t('details.copied') || 'Copied!');
+        button.appendChild(toast);
+        setTimeout(() => {
+            if (!button.isConnected) return;
+            button.classList.remove('copied');
+            button.title = originalTitle;
+            button.replaceChildren(createIcon('copy', {class: 'icon-svg'}));
+        }, 2000);
+    }).catch(() => {});
+}
 
 /**
  * Extract a useful bounded error from a Cargo JSON or text response.
@@ -235,87 +272,573 @@ function renderCargoOverview() {
 }
 
 /**
- * Build a compact package summary and package-level controls.
- * @returns {HTMLElement} Summary section.
+ * Return the active selected version record or default to the newest non-yanked version.
+ * @returns {object|null} Active version record.
  */
-function buildCargoPackageSummary() {
-    const packageRecord = activePackageDetails.package;
-    const canManagePackage = activeAdministrator || Number(packageRecord.permission_level) >= 3;
-    const summary = el('section', {class: 'cargo-page-section cargo-package-summary'},
-        el('h3', {class: 'cargo-section-title'}, t('cargo.packageDetails')),
-        el('p', {class: 'cargo-package-description'},
-            String(packageRecord.description || t('cargo.noDescription'))
-        )
-    );
-    const permissionLevel = Number(packageRecord.permission_level);
-    const accessLabel = activeAdministrator
-        ? t('cargo.administratorAccess')
-        : permissionLevel > 0 ? cargoPermissionLabel(permissionLevel) : t('cargo.readOnlyAccess');
-    const facts = el('div', {class: 'cargo-package-facts'},
-        el('span', {}, t('cargo.updatedAt', {date: cargoDate(packageRecord.updated_at)})),
-        el('span', {}, accessLabel)
-    );
-    summary.appendChild(facts);
-    if (canManagePackage) {
-        const actions = el('div', {class: 'cargo-page-actions'});
-        const restoreLocked = packageRecord.archived && packageRecord.admin_archived && !activeAdministrator;
-        actions.appendChild(el('button', {
-            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
-            'data-cargo-action': 'toggle-package-archive', disabled: restoreLocked
-        }, packageRecord.archived ? t('cargo.restorePackage') : t('cargo.archivePackage')));
-        actions.appendChild(el('button', {
-            type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
-            'data-cargo-action': 'delete-package'
-        }, t('cargo.deletePackage')));
-        summary.appendChild(actions);
-        if (restoreLocked) summary.appendChild(el('p', {class: 'cargo-operation-note'}, t('cargo.adminRestoreOnly')));
+function getSelectedVersion() {
+    const versions = Array.isArray(activePackageDetails?.versions) ? activePackageDetails.versions : [];
+    if (!versions.length) return null;
+    if (activeSelectedVersion) {
+        const found = versions.find(v => v.version === activeSelectedVersion);
+        if (found) return found;
     }
-    return summary;
+    const defaultVer = versions.find(v => !v.yanked) || versions[0];
+    activeSelectedVersion = defaultVer?.version || '';
+    return defaultVer;
 }
 
 /**
- * Build the version list with L2/L3 or administrator operations.
+ * Build the interactive tool commands snippet section with in-place format switching.
+ * @param {string} packageName - Package name.
+ * @returns {HTMLElement} Commands section.
+ */
+function buildCargoCommandsSection(packageName) {
+    const section = el('section', {class: 'cargo-page-section cargo-commands-section'},
+        el('div', {class: 'cargo-section-header'},
+            el('div', {},
+                el('h3', {}, t('cargo.installAndUse')),
+                el('p', {}, t('cargo.toolCommands'))
+            )
+        )
+    );
+
+    const commandTabs = el('div', {class: 'cargo-command-tabs', role: 'tablist'});
+    const formats = [
+        {id: 'cargo-add', label: t('cargo.commandCargoAdd')},
+        {id: 'cargo-toml', label: t('cargo.commandCargoToml')},
+        {id: 'cargo-install', label: t('cargo.commandCargoInstall')}
+    ];
+
+    const tabButtons = [];
+    const codeEl = el('code', {});
+    const pre = el('pre', {}, codeEl);
+
+    let currentSnippet = '';
+
+    function computeSnippet() {
+        const activeVersion = getSelectedVersion();
+        const version = activeVersion?.version || '1.0.0';
+        const versions = Array.isArray(activePackageDetails?.versions) ? activePackageDetails.versions : [];
+        const isLatest = versions.length > 0 && versions[0]?.version === version;
+
+        switch (activeCommandFormat) {
+            case 'cargo-toml':
+                return `[dependencies]\n${packageName} = { version = "${version}", registry = "${activeRepository}" }`;
+            case 'cargo-install':
+                return isLatest
+                    ? `cargo install ${packageName} --registry ${activeRepository}`
+                    : `cargo install ${packageName} --version ${version} --registry ${activeRepository}`;
+            case 'cargo-add':
+            default:
+                return isLatest
+                    ? `cargo add ${packageName} --registry ${activeRepository}`
+                    : `cargo add ${packageName}@${version} --registry ${activeRepository}`;
+        }
+    }
+
+    function updateCommands(animate = true) {
+        for (const item of tabButtons) {
+            const isActive = activeCommandFormat === item.id;
+            item.btn.classList.toggle('is-active', isActive);
+            item.btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        }
+        currentSnippet = computeSnippet();
+        if (animate) {
+            morphElementHeight(codeBox, () => {
+                codeEl.textContent = currentSnippet;
+                codeEl.style.animation = 'none';
+                void codeEl.offsetWidth;
+                codeEl.style.animation = 'cargoSnippetFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both';
+            }, {duration: 200});
+        } else {
+            codeEl.textContent = currentSnippet;
+            codeEl.style.animation = '';
+        }
+    }
+
+    for (const fmt of formats) {
+        const tabBtn = el('button', {
+            type: 'button',
+            class: `cargo-command-tab-btn${activeCommandFormat === fmt.id ? ' is-active' : ''}`,
+            role: 'tab',
+            'aria-selected': activeCommandFormat === fmt.id ? 'true' : 'false'
+        }, fmt.label);
+        tabBtn.addEventListener('click', () => {
+            if (activeCommandFormat === fmt.id) return;
+            activeCommandFormat = fmt.id;
+            updateCommands(true);
+        });
+        tabButtons.push({btn: tabBtn, id: fmt.id});
+        commandTabs.appendChild(tabBtn);
+    }
+    section.appendChild(commandTabs);
+
+    const codeBox = el('div', {class: 'cargo-code-snippet-box'});
+    const copyBtn = el('button', {
+        type: 'button', class: 'cargo-snippet-copy-btn',
+        title: t('cargo.copyCommand'), 'aria-label': t('cargo.copyCommand')
+    }, createIcon('copy', {class: 'icon-svg'}));
+    copyBtn.addEventListener('click', () => {
+        triggerCargoCopy(copyBtn, currentSnippet);
+    });
+    codeBox.append(pre, copyBtn);
+    section.appendChild(codeBox);
+
+    updateCommands(false);
+    activeCommandsUpdater = updateCommands;
+
+    return section;
+}
+
+/**
+ * Build the metadata facts grid for the active version with in-place updates.
+ * @returns {HTMLElement} Facts section.
+ */
+function buildCargoVersionFactsSection() {
+    const section = el('section', {class: 'cargo-page-section cargo-facts-section'},
+        el('h3', {class: 'cargo-section-title'}, t('cargo.packageDetails'))
+    );
+
+    const grid = el('div', {class: 'cargo-facts-grid'});
+    section.appendChild(grid);
+
+    function updateFacts(animate = false) {
+        const activeVersion = getSelectedVersion();
+        const packageRecord = activePackageDetails?.package;
+        const permissionLevel = Number(packageRecord?.permission_level);
+        const accessLabel = activeAdministrator
+            ? t('cargo.administratorAccess')
+            : permissionLevel > 0 ? cargoPermissionLabel(permissionLevel) : t('cargo.readOnlyAccess');
+
+        const licenseVal = activeVersion?.license || t('cargo.unspecified');
+        const msrvVal = activeVersion?.rust_version || t('cargo.unspecified');
+        const sizeVal = activeVersion?.size && Number(activeVersion.size) > 0 ? formatBytes(Number(activeVersion.size)) : t('common.unknown');
+        const pubDate = activeVersion?.created_at ? cargoDate(activeVersion.created_at) : cargoDate(packageRecord?.updated_at);
+        const publisher = activeVersion?.publisher || t('common.unknown');
+
+        const items = [
+            el('div', {class: 'cargo-fact-item'},
+                el('span', {class: 'cargo-fact-label'}, t('cargo.license')),
+                el('span', {class: 'cargo-fact-value'}, licenseVal)
+            ),
+            el('div', {class: 'cargo-fact-item'},
+                el('span', {class: 'cargo-fact-label'}, t('cargo.msrv')),
+                el('span', {class: 'cargo-fact-value'}, msrvVal)
+            ),
+            el('div', {class: 'cargo-fact-item'},
+                el('span', {class: 'cargo-fact-label'}, t('cargo.crateSize')),
+                el('span', {class: 'cargo-fact-value'}, sizeVal)
+            ),
+            el('div', {class: 'cargo-fact-item'},
+                el('span', {class: 'cargo-fact-label'}, t('cargo.published')),
+                el('span', {class: 'cargo-fact-value'}, pubDate)
+            ),
+            el('div', {class: 'cargo-fact-item'},
+                el('span', {class: 'cargo-fact-label'}, t('cargo.publisher')),
+                el('span', {class: 'cargo-fact-value'}, publisher)
+            ),
+            el('div', {class: 'cargo-fact-item'},
+                el('span', {class: 'cargo-fact-label'}, t('cargo.readOnlyAccess')),
+                el('span', {class: 'cargo-fact-value'}, accessLabel)
+            )
+        ];
+
+        if (activeVersion?.checksum) {
+            const cksum = String(activeVersion.checksum);
+            const cksumEl = el('div', {class: 'cargo-fact-item cargo-fact-item--checksum'},
+                el('span', {class: 'cargo-fact-label'}, t('cargo.checksum')),
+                el('div', {class: 'cargo-checksum-wrap'},
+                    el('code', {class: 'cargo-checksum-code'}, cksum),
+                    el('button', {
+                        type: 'button', class: 'cargo-checksum-copy-btn',
+                        title: t('cargo.copyChecksum'), 'aria-label': t('cargo.copyChecksum')
+                    }, createIcon('copy', {class: 'icon-svg'}))
+                )
+            );
+            const btn = cksumEl.querySelector('.cargo-checksum-copy-btn');
+            btn?.addEventListener('click', () => {
+                triggerCargoCopy(btn, cksum);
+            });
+            items.push(cksumEl);
+        }
+
+        if (animate) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].style.animation = `cargoFactFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) ${i * 22}ms both`;
+            }
+        }
+
+        grid.replaceChildren(...items);
+    }
+
+    updateFacts(false);
+    activeFactsUpdater = updateFacts;
+
+    return section;
+}
+
+/**
+ * Build the dependencies and features breakdown tabs section with in-place switching.
+ * @returns {HTMLElement} Inspection section.
+ */
+function buildCargoInspectionSection() {
+    const section = el('section', {class: 'cargo-page-section cargo-inspection-section'});
+
+    const tabsHeader = el('div', {class: 'cargo-command-tabs cargo-inspection-tabs', role: 'tablist'});
+    const depTabBtn = el('button', {
+        type: 'button', class: 'cargo-command-tab-btn', role: 'tab'
+    });
+    const featTabBtn = el('button', {
+        type: 'button', class: 'cargo-command-tab-btn', role: 'tab'
+    });
+    tabsHeader.append(depTabBtn, featTabBtn);
+    section.appendChild(tabsHeader);
+
+    const contentWrap = el('div', {class: 'cargo-inspection-content'});
+    section.appendChild(contentWrap);
+
+    function updateInspection(animate = true) {
+        const activeVersion = getSelectedVersion();
+        const deps = Array.isArray(activeVersion?.deps) ? activeVersion.deps : [];
+        const featuresMap = (activeVersion?.features && typeof activeVersion.features === 'object') ? activeVersion.features : {};
+        const featureKeys = Object.keys(featuresMap);
+
+        depTabBtn.textContent = `${t('cargo.dependencies')} (${deps.length})`;
+        depTabBtn.classList.toggle('is-active', activePackageTab === 'dependencies');
+        depTabBtn.setAttribute('aria-selected', activePackageTab === 'dependencies' ? 'true' : 'false');
+
+        featTabBtn.textContent = `${t('cargo.features')} (${featureKeys.length})`;
+        featTabBtn.classList.toggle('is-active', activePackageTab === 'features');
+        featTabBtn.setAttribute('aria-selected', activePackageTab === 'features' ? 'true' : 'false');
+
+        const mutate = () => {
+            if (activePackageTab === 'features') {
+                if (featureKeys.length === 0) {
+                    contentWrap.replaceChildren(el('p', {class: 'cargo-section-empty'}, t('cargo.noFeatures')));
+                } else {
+                    const list = el('div', {class: 'cargo-feature-list'});
+                    for (const key of featureKeys) {
+                        const subFeatures = Array.isArray(featuresMap[key]) ? featuresMap[key] : [];
+                        const row = el('div', {class: 'cargo-feature-row'},
+                            el('div', {class: 'cargo-feature-name'},
+                                el('strong', {}, key),
+                                key === 'default' ? el('span', {class: 'cargo-dep-badge is-optional'}, 'default') : null
+                            )
+                        );
+                        if (subFeatures.length > 0) {
+                            const subsWrap = el('div', {class: 'cargo-feature-subs'});
+                            for (const sub of subFeatures) {
+                                subsWrap.appendChild(el('span', {class: 'cargo-feature-sub-badge'}, sub));
+                            }
+                            row.appendChild(subsWrap);
+                        }
+                        list.appendChild(row);
+                    }
+                    contentWrap.replaceChildren(list);
+                }
+            } else {
+                if (deps.length === 0) {
+                    contentWrap.replaceChildren(el('p', {class: 'cargo-section-empty'}, t('cargo.noDependencies')));
+                } else {
+                    const groups = [
+                        {kind: 'normal', title: t('cargo.runtimeDependencies')},
+                        {kind: 'dev', title: t('cargo.devDependencies')},
+                        {kind: 'build', title: t('cargo.buildDependencies')}
+                    ];
+                    const list = el('div', {class: 'cargo-dependency-list'});
+                    for (const group of groups) {
+                        const groupDeps = deps.filter(d => (d.kind || 'normal') === group.kind);
+                        if (groupDeps.length === 0) continue;
+
+                        const groupHeader = el('div', {class: 'cargo-dep-group-header'},
+                            el('span', {class: 'cargo-dep-group-title'}, `${group.title} (${groupDeps.length})`)
+                        );
+                        list.appendChild(groupHeader);
+
+                        for (const dep of groupDeps) {
+                            const depName = String(dep.name || '');
+                            const depPackage = dep.package ? String(dep.package) : depName;
+                            const depRow = el('div', {class: 'cargo-dep-row'});
+
+                            const nameWrap = el('div', {class: 'cargo-dep-name-wrap'});
+                            const nameLink = el('a', {
+                                href: cargoPagePath(depPackage),
+                                class: 'cargo-dep-link'
+                            }, depName);
+                            nameLink.addEventListener('click', handleCargoRouteLink);
+                            nameWrap.appendChild(nameLink);
+
+                            if (dep.package && dep.package !== depName) {
+                                nameWrap.appendChild(el('span', {class: 'cargo-dep-renamed'}, `(crate: ${dep.package})`));
+                            }
+                            depRow.appendChild(nameWrap);
+
+                            const badgesWrap = el('div', {class: 'cargo-dep-badges-wrap'});
+                            const reqStr = dep.req || dep.requirement;
+                            if (reqStr) {
+                                badgesWrap.appendChild(el('span', {class: 'cargo-dep-req'}, String(reqStr)));
+                            }
+                            if (dep.optional) {
+                                badgesWrap.appendChild(el('span', {class: 'cargo-dep-badge is-optional'}, t('cargo.optional')));
+                            }
+                            if (dep.target) {
+                                badgesWrap.appendChild(el('span', {class: 'cargo-dep-badge is-target'}, `target: ${dep.target}`));
+                            }
+                            if (dep.default_features === false) {
+                                badgesWrap.appendChild(el('span', {class: 'cargo-dep-badge'}, 'default-features: false'));
+                            }
+                            if (Array.isArray(dep.features) && dep.features.length > 0) {
+                                badgesWrap.appendChild(el('span', {class: 'cargo-dep-badge'}, `features: [${dep.features.join(', ')}]`));
+                            }
+                            depRow.appendChild(badgesWrap);
+                            list.appendChild(depRow);
+                        }
+                    }
+                    contentWrap.replaceChildren(list);
+                }
+            }
+            if (animate) {
+                contentWrap.classList.remove('cargo-inspection-anim');
+                void contentWrap.offsetWidth;
+                contentWrap.classList.add('cargo-inspection-anim');
+            }
+        };
+
+        if (animate) {
+            morphElementHeight(contentWrap, mutate, {duration: 220});
+        } else {
+            mutate();
+        }
+    }
+
+    depTabBtn.addEventListener('click', () => {
+        if (activePackageTab === 'dependencies') return;
+        activePackageTab = 'dependencies';
+        updateInspection(true);
+    });
+
+    featTabBtn.addEventListener('click', () => {
+        if (activePackageTab === 'features') return;
+        activePackageTab = 'features';
+        updateInspection(true);
+    });
+
+    updateInspection(false);
+    activeInspectionUpdater = updateInspection;
+
+    return section;
+}
+
+/**
+ * Build the version list with selection, sliding highlight indicator, pagination, and L2/L3 operations.
  * @returns {HTMLElement} Version section.
  */
 function buildCargoVersionsSection() {
     const packageRecord = activePackageDetails.package;
     const canManageVersions = activeAdministrator || Number(packageRecord.permission_level) >= 2;
     const section = el('section', {class: 'cargo-page-section'},
-        el('h3', {class: 'cargo-section-title'}, t('cargo.versions'))
+        el('div', {class: 'cargo-section-header'},
+            el('div', {},
+                el('h3', {}, t('cargo.versions')),
+                el('p', {}, t('cargo.packageCatalogSubtitle'))
+            ),
+            el('span', {class: 'cargo-section-count'}, String(activePackageDetails.versions?.length || 0))
+        )
     );
     const versions = Array.isArray(activePackageDetails.versions) ? activePackageDetails.versions : [];
     if (versions.length === 0) {
         section.appendChild(el('p', {class: 'cargo-section-empty'}, t('cargo.noVersions')));
         return section;
     }
+
+    const listWrap = el('div', {class: 'cargo-version-list-wrap'});
     const list = el('div', {class: 'cargo-version-list'});
-    for (const version of versions) {
-        const row = el('div', {class: 'cargo-version-row'});
-        const meta = el('div', {class: 'cargo-version-meta'},
-            el('strong', {}, String(version.version || '')),
-            el('span', {}, t('cargo.publishedBy', {name: version.publisher || t('common.unknown')}))
-        );
-        if (version.yanked) meta.appendChild(el('span', {class: 'cargo-state-badge is-yanked'}, t('cargo.yanked')));
-        row.appendChild(meta);
-        if (canManageVersions) {
-            const actions = el('div', {class: 'cargo-row-actions'});
-            const restoreLocked = version.yanked && (
-                (version.admin_yanked && !activeAdministrator) || packageRecord.archived
-            );
-            actions.appendChild(el('button', {
-                type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
-                'data-cargo-action': version.yanked ? 'unyank-version' : 'yank-version',
-                'data-cargo-version': String(version.version || ''), disabled: restoreLocked
-            }, version.yanked ? t('cargo.restoreVersion') : t('cargo.yankVersion')));
-            actions.appendChild(el('button', {
-                type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
-                'data-cargo-action': 'delete-version', 'data-cargo-version': String(version.version || '')
-            }, t('common.delete')));
-            row.appendChild(actions);
+    listWrap.appendChild(list);
+    section.appendChild(listWrap);
+
+    const paginationWrap = el('div', {class: 'cargo-version-pagination'});
+    section.appendChild(paginationWrap);
+
+    let versionRows = [];
+    let versionIndicator = null;
+
+    /**
+     * Update active version highlighting and smoothly position the selection indicator.
+     * @param {boolean} [animate=true] - Whether to animate the selection indicator transition.
+     * @returns {void}
+     */
+    function updateVersionSelection(animate = true) {
+        const curVer = getSelectedVersion();
+        const activeItem = versionRows.find(item => curVer && item.version === curVer.version);
+        for (const item of versionRows) {
+            const isSelected = curVer && item.version === curVer.version;
+            item.row.classList.toggle('is-selected', isSelected);
+            item.badge.hidden = !isSelected;
+            if (isSelected && animate) {
+                item.badge.style.animation = 'none';
+                void item.badge.offsetWidth;
+                item.badge.style.animation = 'cargoBadgePop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both';
+            }
         }
-        list.appendChild(row);
+        if (activeItem && list.contains(activeItem.row) && activeItem.row.offsetHeight > 0) {
+            if (!versionIndicator) {
+                versionIndicator = el('div', {class: 'cargo-version-indicator'});
+                list.appendChild(versionIndicator);
+            }
+            list.classList.add('has-indicator');
+            const row = activeItem.row;
+            const top = row.offsetTop;
+            const height = row.offsetHeight;
+            const width = row.offsetWidth;
+            versionIndicator.style.display = 'block';
+            versionIndicator.style.opacity = '1';
+            if (!animate) {
+                versionIndicator.style.transition = 'none';
+                versionIndicator.style.transform = `translateY(${top}px)`;
+                versionIndicator.style.height = `${height}px`;
+                versionIndicator.style.width = `${width}px`;
+                void versionIndicator.offsetHeight;
+                versionIndicator.style.transition = '';
+            } else {
+                versionIndicator.style.transform = `translateY(${top}px)`;
+                versionIndicator.style.height = `${height}px`;
+                versionIndicator.style.width = `${width}px`;
+            }
+        } else if (versionIndicator) {
+            versionIndicator.style.opacity = '0';
+        }
     }
-    section.appendChild(list);
+
+    /**
+     * Render the paginated version rows for the current page.
+     * @param {boolean} [animate=false] - Whether to animate the container height change.
+     * @returns {void}
+     */
+    function renderVersionPage(animate = false) {
+        const totalPages = Math.ceil(versions.length / CARGO_VERSION_PAGE_SIZE) || 1;
+        if (activeVersionListPage > totalPages) activeVersionListPage = totalPages;
+        if (activeVersionListPage < 1) activeVersionListPage = 1;
+
+        const startIdx = (activeVersionListPage - 1) * CARGO_VERSION_PAGE_SIZE;
+        const pageVersions = versions.slice(startIdx, startIdx + CARGO_VERSION_PAGE_SIZE);
+
+        versionRows = [];
+        const nextRows = [];
+
+        for (const version of pageVersions) {
+            const row = el('div', {class: 'cargo-version-row'});
+            const badge = el('span', {class: 'cargo-version-badge is-active-badge'}, t('cargo.activeVersionBadge'));
+            badge.hidden = true;
+
+            row.addEventListener('click', (event) => {
+                if (event.target.closest('button, a')) return;
+                if (activeSelectedVersion === version.version) return;
+                activeSelectedVersion = version.version;
+                updateVersionSelection(true);
+                activePackageHeroUpdater?.(true);
+                activeCommandsUpdater?.(true);
+                activeFactsUpdater?.(true);
+                activeInspectionUpdater?.(true);
+            });
+
+            const titleLine = el('div', {class: 'cargo-version-title-line'},
+                el('strong', {}, String(version.version || '')),
+                badge
+            );
+            if (version.yanked) {
+                titleLine.appendChild(el('span', {class: 'cargo-state-badge is-yanked'}, t('cargo.yanked')));
+            }
+            const meta = el('div', {class: 'cargo-version-meta'},
+                titleLine,
+                el('span', {class: 'cargo-version-publisher'}, t('cargo.publishedBy', {name: version.publisher || t('common.unknown')}))
+            );
+            row.appendChild(meta);
+            if (canManageVersions) {
+                const actions = el('div', {class: 'cargo-row-actions'});
+                const restoreLocked = version.yanked && (
+                    (version.admin_yanked && !activeAdministrator) || packageRecord.archived
+                );
+                actions.appendChild(el('button', {
+                    type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+                    'data-cargo-action': version.yanked ? 'unyank-version' : 'yank-version',
+                    'data-cargo-version': String(version.version || ''), disabled: restoreLocked
+                }, version.yanked ? t('cargo.restoreVersion') : t('cargo.yankVersion')));
+                actions.appendChild(el('button', {
+                    type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
+                    'data-cargo-action': 'delete-version', 'data-cargo-version': String(version.version || '')
+                }, t('common.delete')));
+                row.appendChild(actions);
+            }
+            versionRows.push({row, badge, version: version.version});
+            nextRows.push(row);
+        }
+
+        const mutateDOM = () => {
+            list.replaceChildren(...nextRows);
+            versionIndicator = null;
+            updateVersionSelection(false);
+            if (totalPages > 1) {
+                const prevBtn = el('button', {
+                    type: 'button',
+                    class: 'cargo-pagination-btn',
+                    disabled: activeVersionListPage <= 1,
+                    title: t('users.paginationPrev') || 'Previous',
+                    'aria-label': t('users.paginationPrev') || 'Previous'
+                }, createIcon('chevronLeft'));
+                prevBtn.addEventListener('click', () => {
+                    if (activeVersionListPage > 1) {
+                        activeVersionListPage--;
+                        renderVersionPage(true);
+                    }
+                });
+
+                const pageInfo = el('span', {class: 'cargo-pagination-info'}, `${activeVersionListPage} / ${totalPages}`);
+
+                const nextBtn = el('button', {
+                    type: 'button',
+                    class: 'cargo-pagination-btn',
+                    disabled: activeVersionListPage >= totalPages,
+                    title: t('users.paginationNext') || 'Next',
+                    'aria-label': t('users.paginationNext') || 'Next'
+                }, createIcon('chevronRight'));
+                nextBtn.addEventListener('click', () => {
+                    if (activeVersionListPage < totalPages) {
+                        activeVersionListPage++;
+                        renderVersionPage(true);
+                    }
+                });
+
+                paginationWrap.hidden = false;
+                paginationWrap.replaceChildren(prevBtn, pageInfo, nextBtn);
+            } else {
+                paginationWrap.hidden = true;
+                paginationWrap.replaceChildren();
+            }
+        };
+
+        if (animate) {
+            morphElementHeight(listWrap, mutateDOM, {duration: 200});
+        } else {
+            mutateDOM();
+        }
+    }
+
+    if (activeVersionsObserver) {
+        activeVersionsObserver.disconnect();
+        activeVersionsObserver = null;
+    }
+    if (typeof ResizeObserver !== 'undefined') {
+        activeVersionsObserver = new ResizeObserver(() => {
+            updateVersionSelection(false);
+        });
+        activeVersionsObserver.observe(list);
+    }
+
+    renderVersionPage(false);
+    activeVersionsUpdater = (animate = true) => {
+        updateVersionSelection(animate);
+    };
+
     return section;
 }
 
@@ -430,22 +953,120 @@ function buildCargoInviteForm() {
 }
 
 /**
- * Build the package-management page header and back link.
- * @returns {HTMLElement} Page header.
+ * Build the package page header, links, and direct download / action buttons.
+ * @returns {HTMLElement} Page header element.
  */
 function buildCargoPackageHero() {
-    const packageName = String(activePackageDetails?.package?.name || '');
+    const packageRecord = activePackageDetails?.package;
+    const packageName = String(packageRecord?.name || '');
+    const activeVersion = getSelectedVersion();
     const back = el('a', {href: cargoPagePath(), class: 'cargo-page-back'},
         createIcon('chevronLeft'), el('span', {}, t('cargo.backToPackages'))
     );
     back.addEventListener('click', handleCargoRouteLink);
-    const title = el('div', {class: 'cargo-package-title-row'}, el('h2', {}, packageName));
-    if (activePackageDetails?.package?.archived) {
-        title.appendChild(el('span', {class: 'cargo-state-badge is-archived'}, t('cargo.archived')));
-    }
-    return el('header', {class: 'cargo-page-hero cargo-package-hero'},
-        back, title, el('p', {}, t('cargo.packagePageSubtitle'))
+
+    const titleRow = el('div', {class: 'cargo-package-title-row'},
+        el('h2', {}, packageName)
     );
+    const versionBadge = el('span', {class: 'cargo-version-badge'}, activeVersion?.version ? `v${activeVersion.version}` : '');
+    if (!activeVersion?.version) versionBadge.hidden = true;
+    titleRow.appendChild(versionBadge);
+
+    const archivedBadge = el('span', {class: 'cargo-state-badge is-archived'}, t('cargo.archived'));
+    archivedBadge.hidden = !packageRecord?.archived;
+    titleRow.appendChild(archivedBadge);
+
+    const yankedBadge = el('span', {class: 'cargo-state-badge is-yanked'}, t('cargo.yanked'));
+    yankedBadge.hidden = !activeVersion?.yanked;
+    titleRow.appendChild(yankedBadge);
+
+    const hero = el('header', {class: 'cargo-page-hero cargo-package-hero'}, back, titleRow);
+
+    const homepage = packageRecord?.homepage || activeVersion?.homepage;
+    const documentation = packageRecord?.documentation || activeVersion?.documentation;
+    const repository = packageRecord?.repository_url || activeVersion?.repository_url;
+    if (homepage || documentation || repository) {
+        const linksList = el('div', {class: 'cargo-package-links'});
+        if (homepage) {
+            linksList.appendChild(el('a', {
+                href: homepage, target: '_blank', rel: 'noopener noreferrer', class: 'cargo-package-link'
+            }, createIcon('fileWeb'), el('span', {}, t('cargo.homepage'))));
+        }
+        if (documentation) {
+            linksList.appendChild(el('a', {
+                href: documentation, target: '_blank', rel: 'noopener noreferrer', class: 'cargo-package-link'
+            }, createIcon('docs'), el('span', {}, t('cargo.documentation'))));
+        }
+        if (repository) {
+            linksList.appendChild(el('a', {
+                href: repository, target: '_blank', rel: 'noopener noreferrer', class: 'cargo-package-link'
+            }, createIcon('fileCode'), el('span', {}, t('cargo.repository'))));
+        }
+        hero.appendChild(linksList);
+    }
+
+    const descriptionText = String(packageRecord?.description || activeVersion?.description || t('cargo.noDescription'));
+    hero.appendChild(el('p', {class: 'cargo-package-description'}, descriptionText));
+
+    const actions = el('div', {class: 'cargo-page-actions'});
+    const downloadBtn = el('a', {class: 'pill-btn pill-btn--primary pill-btn--sm'});
+    const downloadIcon = createIcon('download');
+    const downloadLabel = el('span', {});
+    downloadBtn.append(downloadIcon, downloadLabel);
+
+    function updateDownloadBtn(curVer) {
+        if (!curVer?.version) {
+            downloadBtn.hidden = true;
+            return;
+        }
+        downloadBtn.hidden = false;
+        downloadBtn.href = `/${encodePathSegment(activeRepository)}/api/v1/crates/${encodePathSegment(packageName)}/${encodePathSegment(curVer.version)}/download`;
+        downloadBtn.download = `${packageName}-${curVer.version}.crate`;
+        downloadLabel.textContent = curVer.size && Number(curVer.size) > 0
+            ? `${t('cargo.downloadCrate')} (${formatBytes(Number(curVer.size))})`
+            : t('cargo.downloadCrate');
+    }
+    updateDownloadBtn(activeVersion);
+    actions.appendChild(downloadBtn);
+
+    const canManagePackage = activeAdministrator || Number(packageRecord?.permission_level) >= 3;
+    if (canManagePackage) {
+        const restoreLocked = packageRecord.archived && packageRecord.admin_archived && !activeAdministrator;
+        actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+            'data-cargo-action': 'toggle-package-archive', disabled: restoreLocked
+        }, packageRecord.archived ? t('cargo.restorePackage') : t('cargo.archivePackage')));
+        actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
+            'data-cargo-action': 'delete-package'
+        }, t('cargo.deletePackage')));
+    }
+    hero.appendChild(actions);
+
+    activePackageHeroUpdater = (animate = false) => {
+        const curVer = getSelectedVersion();
+        if (curVer?.version) {
+            versionBadge.textContent = `v${curVer.version}`;
+            versionBadge.hidden = false;
+            if (animate) {
+                versionBadge.classList.remove('cargo-badge-anim');
+                void versionBadge.offsetWidth;
+                versionBadge.classList.add('cargo-badge-anim');
+            }
+        } else {
+            versionBadge.hidden = true;
+        }
+        archivedBadge.hidden = !activePackageDetails?.package?.archived;
+        yankedBadge.hidden = !curVer?.yanked;
+        updateDownloadBtn(curVer);
+        if (animate && downloadBtn && !downloadBtn.hidden) {
+            downloadBtn.classList.remove('cargo-badge-anim');
+            void downloadBtn.offsetWidth;
+            downloadBtn.classList.add('cargo-badge-anim');
+        }
+    };
+
+    return hero;
 }
 
 /**
@@ -456,8 +1077,13 @@ function renderCargoPackagePage() {
     if (!activeView || !activePackageDetails?.package) return;
     closeInviteSuggestions(true);
     activeRouteKind = 'package';
+    const packageName = String(activePackageDetails.package.name || '');
     const sections = [
-        buildCargoPackageHero(), buildCargoPackageSummary(), buildCargoVersionsSection()
+        buildCargoPackageHero(),
+        buildCargoCommandsSection(packageName),
+        buildCargoVersionFactsSection(),
+        buildCargoInspectionSection(),
+        buildCargoVersionsSection()
     ];
     if (activeAdministrator || Number(activePackageDetails.package.permission_level) > 0) {
         sections.push(buildCargoTeamSection());
@@ -586,11 +1212,24 @@ async function loadCargoCatalog(sequence) {
  */
 async function loadCargoOverview(sequence) {
     activePackageDetails = null;
+    activeSelectedVersion = '';
+    activeVersionListPage = 1;
+    activePackageHeroUpdater = null;
+    activeCommandsUpdater = null;
+    activeFactsUpdater = null;
+    activeInspectionUpdater = null;
+    activeVersionsUpdater = null;
+    if (activeVersionsObserver) {
+        activeVersionsObserver.disconnect();
+        activeVersionsObserver = null;
+    }
     beginCargoRouteLoad(t('cargo.loadingPackages'));
     try {
         await loadCargoCatalog(sequence);
         if (sequence !== cargoLoadSequence) return;
+        activeView?.classList.add('is-entering');
         await morphElementHeight(activeView, renderCargoOverview, {duration: 300});
+        setTimeout(() => activeView?.classList.remove('is-entering'), 350);
     } catch (error) {
         if (sequence !== cargoLoadSequence) return;
         console.error('Failed to load Cargo packages', error);
@@ -607,13 +1246,25 @@ async function loadCargoOverview(sequence) {
  * @returns {Promise<void>}
  */
 async function loadCargoPackage(packageName, sequence) {
+    activePackageHeroUpdater = null;
+    activeCommandsUpdater = null;
+    activeFactsUpdater = null;
+    activeInspectionUpdater = null;
+    activeVersionsUpdater = null;
+    if (activeVersionsObserver) {
+        activeVersionsObserver.disconnect();
+        activeVersionsObserver = null;
+    }
+    activeVersionListPage = 1;
     beginCargoRouteLoad(t('cargo.loadingPackage'));
     try {
         const details = await cargoRequest(cargoAPIPath('crates', packageName));
         if (sequence !== cargoLoadSequence) return;
         activePackageDetails = details;
         activeAdministrator = details?.administrator === true;
+        activeView?.classList.add('is-entering');
         await morphElementHeight(activeView, renderCargoPackagePage, {duration: 300});
+        setTimeout(() => activeView?.classList.remove('is-entering'), 350);
     } catch (error) {
         if (sequence !== cargoLoadSequence) return;
         console.error('Failed to load Cargo package', error);
@@ -651,7 +1302,7 @@ async function loadMoreCargoPackages() {
 }
 
 /**
- * Refresh active package details and animate page-height changes.
+ * Refresh active package details without tearing down outer container dimensions.
  * @returns {Promise<void>}
  */
 async function refreshCargoPackagePage() {
@@ -659,7 +1310,7 @@ async function refreshCargoPackagePage() {
     const nextDetails = await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name));
     activePackageDetails = nextDetails;
     activeAdministrator = nextDetails?.administrator === true;
-    await morphElementHeight(activeView, renderCargoPackagePage, {duration: 300});
+    renderCargoPackagePage();
 }
 
 /**
@@ -1117,11 +1768,21 @@ export function hideCargoRepositoryView() {
     activePublicPackageNames = new Set();
     activePublicPackageTotal = 0;
     activeCatalogPage = 1;
+    activeVersionListPage = 1;
     activeNavigate = null;
-    activeRouteKind = '';
+    activeSelectedVersion = '';
+    activePackageHeroUpdater = null;
+    activeCommandsUpdater = null;
+    activeFactsUpdater = null;
+    activeInspectionUpdater = null;
+    activeVersionsUpdater = null;
+    if (activeVersionsObserver) {
+        activeVersionsObserver.disconnect();
+        activeVersionsObserver = null;
+    }
     activeView = document.getElementById('cargo-repository-view');
     if (activeView) {
-        activeView.classList.remove('is-visible', 'is-updating');
+        activeView.classList.remove('is-visible', 'is-updating', 'is-entering');
         activeView.removeAttribute('aria-busy');
         activeView.hidden = true;
         activeView.replaceChildren();

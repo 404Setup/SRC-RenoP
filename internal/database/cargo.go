@@ -20,6 +20,7 @@ import (
 )
 
 const cargoPackageColumns = `repository, normalized_name, package_name, description,
+	repository_url, homepage, documentation,
 	archived, admin_archived, created_at, updated_at`
 
 type cargoPackageScanner interface {
@@ -31,6 +32,7 @@ func scanCargoPackage(scanner cargoPackageScanner) (*core.CargoPackage, error) {
 	var archived, adminArchived int
 	if err := scanner.Scan(
 		&result.Repository, &result.NormalizedName, &result.Name, &result.Description,
+		&result.RepositoryURL, &result.Homepage, &result.Documentation,
 		&archived, &adminArchived, &result.CreatedAt, &result.UpdatedAt,
 	); err != nil {
 		return nil, err
@@ -83,7 +85,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		}
 	}
 
-	versionRows, err := db.Query(`SELECT version, description, publisher, yanked, admin_yanked, archive_yanked, created_at
+	versionRows, err := db.Query(`SELECT version, description, publisher, size, checksum, rust_version, license, repository_url, homepage, documentation, yanked, admin_yanked, archive_yanked, created_at
 		FROM cargo_versions WHERE repository = ? AND normalized_name = ? ORDER BY created_at DESC, version DESC`,
 		pkg.Repository, pkg.NormalizedName)
 	if err != nil {
@@ -94,8 +96,10 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		version := &core.CargoVersion{Repository: pkg.Repository, Package: pkg.NormalizedName}
 		var yanked, adminYanked, archiveYanked int
 		if err := versionRows.Scan(
-			&version.Version, &version.Description, &version.Publisher, &yanked,
-			&adminYanked, &archiveYanked, &version.CreatedAt,
+			&version.Version, &version.Description, &version.Publisher,
+			&version.Size, &version.Checksum, &version.RustVersion, &version.License,
+			&version.RepositoryURL, &version.Homepage, &version.Documentation,
+			&yanked, &adminYanked, &archiveYanked, &version.CreatedAt,
 		); err != nil {
 			_ = versionRows.Close()
 			return nil, fmt.Errorf("scan Cargo version: %w", err)
@@ -145,6 +149,7 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 	repository, _ = sanitizeCargoKey(repository, "")
 	username = sanitizeCargoUsername(username)
 	query := `SELECT p.repository, p.normalized_name, p.package_name, p.description,
+		p.repository_url, p.homepage, p.documentation,
 		p.archived, p.admin_archived, p.created_at, p.updated_at, COALESCE(m.permission_level, 0)
 		FROM cargo_packages p LEFT JOIN cargo_members m ON m.repository = p.repository
 		AND m.normalized_name = p.normalized_name AND m.username = ? WHERE p.repository = ?`
@@ -163,6 +168,7 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 		var archived, adminArchived int
 		if err := rows.Scan(
 			&pkg.Repository, &pkg.NormalizedName, &pkg.Name, &pkg.Description,
+			&pkg.RepositoryURL, &pkg.Homepage, &pkg.Documentation,
 			&archived, &adminArchived, &pkg.CreatedAt, &pkg.UpdatedAt, &pkg.PermissionLevel,
 		); err != nil {
 			return nil, fmt.Errorf("scan Cargo package list: %w", err)
@@ -293,6 +299,15 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	if repository == "" || normalizedName == "" || username == "" || packageName == "" || versionName == "" {
 		return errors.New("Cargo publication metadata is invalid")
 	}
+	repoURL := SanitizeInputString(strings.TrimSpace(pkg.RepositoryURL), 1024)
+	homepageURL := SanitizeInputString(strings.TrimSpace(pkg.Homepage), 1024)
+	docURL := SanitizeInputString(strings.TrimSpace(pkg.Documentation), 1024)
+	license := SanitizeInputString(strings.TrimSpace(version.License), 255)
+	rustVersion := SanitizeInputString(strings.TrimSpace(version.RustVersion), 64)
+	checksum := SanitizeInputString(strings.TrimSpace(version.Checksum), 64)
+	vRepoURL := SanitizeInputString(strings.TrimSpace(version.RepositoryURL), 1024)
+	vHomepageURL := SanitizeInputString(strings.TrimSpace(version.Homepage), 1024)
+	vDocURL := SanitizeInputString(strings.TrimSpace(version.Documentation), 1024)
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo publication: %w", err)
@@ -306,9 +321,9 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		if _, err = tx.Exec(`INSERT INTO cargo_packages
-			(repository, normalized_name, package_name, description, archived, admin_archived, created_at, updated_at)
-			VALUES (?, ?, ?, ?, 0, 0, ?, ?)`,
-			repository, normalizedName, packageName, description, pkg.CreatedAt, pkg.UpdatedAt); err != nil {
+			(repository, normalized_name, package_name, description, repository_url, homepage, documentation, archived, admin_archived, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
+			repository, normalizedName, packageName, description, repoURL, homepageURL, docURL, pkg.CreatedAt, pkg.UpdatedAt); err != nil {
 			return fmt.Errorf("create Cargo package: %w", err)
 		}
 		if _, err = tx.Exec(`INSERT INTO cargo_members
@@ -345,13 +360,18 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 		return fmt.Errorf("inspect Cargo version: %w", err)
 	}
 	if _, err = tx.Exec(`INSERT INTO cargo_versions
-		(repository, normalized_name, version, description, publisher, yanked, admin_yanked, archive_yanked, created_at)
-		VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?)`,
-		repository, normalizedName, versionName, description, username, version.CreatedAt); err != nil {
+		(repository, normalized_name, version, description, publisher, size, checksum, rust_version, license, repository_url, homepage, documentation, yanked, admin_yanked, archive_yanked, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)`,
+		repository, normalizedName, versionName, description, username, version.Size, checksum, rustVersion, license, vRepoURL, vHomepageURL, vDocURL, version.CreatedAt); err != nil {
 		return fmt.Errorf("record Cargo version: %w", err)
 	}
-	if _, err = tx.Exec(`UPDATE cargo_packages SET description = ?, updated_at = ?
-		WHERE repository = ? AND normalized_name = ?`, description, pkg.UpdatedAt, repository, normalizedName); err != nil {
+	if _, err = tx.Exec(`UPDATE cargo_packages SET description = ?,
+		repository_url = CASE WHEN ? != '' THEN ? ELSE repository_url END,
+		homepage = CASE WHEN ? != '' THEN ? ELSE homepage END,
+		documentation = CASE WHEN ? != '' THEN ? ELSE documentation END,
+		updated_at = ?
+		WHERE repository = ? AND normalized_name = ?`,
+		description, repoURL, repoURL, homepageURL, homepageURL, docURL, docURL, pkg.UpdatedAt, repository, normalizedName); err != nil {
 		return fmt.Errorf("update Cargo package: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
