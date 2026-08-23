@@ -82,6 +82,22 @@ if ([string]::IsNullOrWhiteSpace($Changelog)) {
     }
 }
 $Changelog = if ($null -ne $Changelog) { $Changelog.Trim() } else { '' }
+if (-not [string]::IsNullOrWhiteSpace($Changelog)) {
+    $clLines = @($Changelog -split "`r?`n")
+    $formattedLines = @(
+        foreach ($cl in $clLines) {
+            $trimmed = $cl.Trim()
+            if ([string]::IsNullOrWhiteSpace($trimmed)) {
+                $cl
+            } elseif ($trimmed.StartsWith('- ') -or $trimmed.StartsWith('* ') -or $trimmed.StartsWith('#')) {
+                $cl
+            } else {
+                "- $trimmed"
+            }
+        }
+    )
+    $Changelog = ($formattedLines -join "`n").Trim()
+}
 
 $channelRoot = "update/renop/$Channel"
 $infoPath = "$channelRoot/info.json"
@@ -330,72 +346,69 @@ if ($Channel -eq 'nightly') {
     }
 }
 
-$candidatesToDelete = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+$candidatesToDelete = [System.Collections.Generic.List[string]]::new()
+
+function Add-DeleteCandidate {
+    param([string]$ver)
+    $trimmed = if ($ver) { $ver.Trim() } else { '' }
+    if (-not [string]::IsNullOrWhiteSpace($trimmed) -and -not $candidatesToDelete.Contains($trimmed)) {
+        $candidatesToDelete.Add($trimmed)
+    }
+}
 
 foreach ($r in $existingReleases) {
-    if ($r.version) { $candidatesToDelete.Add([string]$r.version) | Out-Null }
+    if ($r.version) { Add-DeleteCandidate ([string]$r.version) }
 }
 if ($remoteInfo -and $remoteInfo.version) {
-    $candidatesToDelete.Add([string]$remoteInfo.version) | Out-Null
+    Add-DeleteCandidate ([string]$remoteInfo.version)
 }
 
 $freshRemoteInfo = Get-RemoteInfoJson -Url $infoUrl
 if ($null -ne $freshRemoteInfo) {
     $freshReleases = Extract-ReleasesFromInfo -infoObj $freshRemoteInfo
     foreach ($fr in $freshReleases) {
-        if ($fr.version) { $candidatesToDelete.Add([string]$fr.version) | Out-Null }
+        if ($fr.version) { Add-DeleteCandidate ([string]$fr.version) }
     }
     if ($freshRemoteInfo.version) {
-        $candidatesToDelete.Add([string]$freshRemoteInfo.version) | Out-Null
+        Add-DeleteCandidate ([string]$freshRemoteInfo.version)
     }
 }
 
 if ($Channel -eq 'nightly') {
     try {
-        $recentShorts = & git log -n 100 --format=%h 2>$null
-        foreach ($s in $recentShorts) {
-            $trimmed = $s.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
-                $candidatesToDelete.Add($trimmed) | Out-Null
-            }
-        }
-        $recent7 = & git log -n 100 --abbrev=7 --format=%h 2>$null
-        foreach ($s in $recent7) {
-            $trimmed = $s.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
-                $candidatesToDelete.Add($trimmed) | Out-Null
-            }
-        }
-        $recentFulls = & git log -n 100 --format=%H 2>$null
-        foreach ($f in $recentFulls) {
-            $trimmed = $f.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
-                $candidatesToDelete.Add($trimmed) | Out-Null
-            }
+        $recentCommits = & git log -n 5 --skip=1 --format=%h 2>$null
+        foreach ($s in $recentCommits) {
+            Add-DeleteCandidate $s
         }
     } catch {
         Write-Warning "Could not inspect git commit log for old nightly versions: $($_.Exception.Message)"
     }
 } else {
     try {
-        $gitTags = & git tag -l 2>$null
+        $gitTags = & git tag -l --sort=-creatordate 2>$null | Select-Object -First 5
         foreach ($t in $gitTags) {
-            $trimmed = $t.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
-                $candidatesToDelete.Add($trimmed) | Out-Null
-            }
+            Add-DeleteCandidate $t
         }
     } catch {
         Write-Warning "Could not inspect git tags: $($_.Exception.Message)"
     }
 }
 
-$allDeletes = [System.Collections.Generic.List[string]]::new()
+$oldDeletes = [System.Collections.Generic.List[string]]::new()
 foreach ($c in $candidatesToDelete) {
     if (-not $allowedMvncVersions.Contains($c) -and $c -ne $Version -and -not [string]::IsNullOrWhiteSpace($c)) {
-        $allDeletes.Add($c)
+        if (-not $oldDeletes.Contains($c)) {
+            $oldDeletes.Add($c)
+        }
     }
 }
+
+$allDeletes = [System.Collections.Generic.List[string]]::new()
+$maxOldDeletes = 5
+for ($i = 0; $i -lt [Math]::Min($oldDeletes.Count, $maxOldDeletes); $i++) {
+    $allDeletes.Add($oldDeletes[$i])
+}
+
 if (-not [string]::IsNullOrWhiteSpace($Version) -and -not $allDeletes.Contains($Version)) {
     $allDeletes.Add($Version)
 }
@@ -417,7 +430,7 @@ if ($allDeletes.Count -gt 0) {
         } catch {
             Write-Warning "DELETE $dirUrl failed: $($_.Exception.Message)"
         }
-    } -ThrottleLimit 16
+    } -ThrottleLimit 6
 }
 
 $targets | ForEach-Object -Parallel {

@@ -80,7 +80,7 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
   operators can override this with `GODEBUG=disablethp=0`.
 - **`.github/actions/setup-go-runtime/`**: Composite Action that resolves, verifies, installs, and caches the prebuilt
   custom Go runtime from `404Setup/go` releases. Automatically purges obsolete Go runtimes and module/build caches from GitHub Actions Cache API and the local runner toolcache when the Go version changes.
-- **`.github/scripts/publish-update.ps1`**: High-performance publishing script for `mvnc.pkg.one`. Uses a connection-pooled HTTP/2 client with throttled parallel uploads and concurrent version deletions. Retains up to 100 nightly releases and all stable releases in `info.json`, cleanly omitting the `targets` field when downloads are not provided, and robustly cleans up old nightly directories across rapid commits.
+- **`.github/scripts/publish-update.ps1`**: High-performance publishing script for `mvnc.pkg.one`. Uses a connection-pooled HTTP/2 client with throttled parallel uploads and bounded concurrent version deletions (up to 5 obsolete versions per run to prevent server overload). Retains up to 100 nightly releases and all stable releases in `info.json`, cleanly omitting the `targets` field when downloads are not provided, and robustly cleans up old nightly directories across rapid commits.
 
 ---
 

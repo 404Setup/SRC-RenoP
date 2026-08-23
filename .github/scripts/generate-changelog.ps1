@@ -10,8 +10,8 @@
 
     Output shape (one entry per commit, newest first):
 
-      feat: something
-      fix: something else
+      - feat: something
+      - fix: something else
 
 .PARAMETER Commit
     End of the range (full or short SHA, or HEAD). Default: HEAD.
@@ -117,8 +117,9 @@ if (-not [string]::IsNullOrWhiteSpace($raw)) {
         if ([string]::IsNullOrWhiteSpace($chunk)) { continue }
         $line = Get-FirstParagraphLine -Message $chunk
         if (Test-OmitSubject -Subject $line) { continue }
-        if (-not $entries.Contains($line)) {
-            $entries.Add($line)
+        $entry = if ($line.StartsWith('- ')) { $line } else { "- $line" }
+        if (-not $entries.Contains($entry)) {
+            $entries.Add($entry)
         }
     }
 }
