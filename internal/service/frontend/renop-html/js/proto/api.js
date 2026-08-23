@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
 /*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-mixed-operators, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, default-case, jsdoc/require-param*/
 import $protobuf from "protobufjs/minimal.js";
 
@@ -14110,6 +14120,9 @@ export const renop = $root.renop = (() => {
                  * @property {boolean|null} [enable_javadoc_preview] StorageConfig enable_javadoc_preview
                  * @property {string|null} [javadoc_extract_path] StorageConfig javadoc_extract_path
                  * @property {number|Long|null} [max_javadoc_size_mb] StorageConfig max_javadoc_size_mb
+                 * @property {boolean|null} [enable_cargodoc_preview] StorageConfig enable_cargodoc_preview
+                 * @property {string|null} [cargodoc_extract_path] StorageConfig cargodoc_extract_path
+                 * @property {number|Long|null} [max_cargodoc_size_mb] StorageConfig max_cargodoc_size_mb
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -14174,6 +14187,30 @@ export const renop = $root.renop = (() => {
                 StorageConfig.prototype.max_javadoc_size_mb = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
                 /**
+                 * StorageConfig enable_cargodoc_preview.
+                 * @member {boolean} enable_cargodoc_preview
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 */
+                StorageConfig.prototype.enable_cargodoc_preview = false;
+
+                /**
+                 * StorageConfig cargodoc_extract_path.
+                 * @member {string} cargodoc_extract_path
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 */
+                StorageConfig.prototype.cargodoc_extract_path = "";
+
+                /**
+                 * StorageConfig max_cargodoc_size_mb.
+                 * @member {number|Long} max_cargodoc_size_mb
+                 * @memberof renop.api.v1.StorageConfig
+                 * @instance
+                 */
+                StorageConfig.prototype.max_cargodoc_size_mb = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
                  * Creates a new StorageConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.StorageConfig
@@ -14213,6 +14250,12 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 3, wireType 2 =*/26).string(message.javadoc_extract_path);
                     if (message.max_javadoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_javadoc_size_mb") && (typeof message.max_javadoc_size_mb === "object" ? message.max_javadoc_size_mb.low || message.max_javadoc_size_mb.high : message.max_javadoc_size_mb !== 0))
                         writer.uint32(/* id 4, wireType 0 =*/32).int64(message.max_javadoc_size_mb);
+                    if (message.enable_cargodoc_preview != null && $Object.hasOwnProperty.call(message, "enable_cargodoc_preview") && message.enable_cargodoc_preview !== false)
+                        writer.uint32(/* id 5, wireType 0 =*/40).bool(message.enable_cargodoc_preview);
+                    if (message.cargodoc_extract_path != null && $Object.hasOwnProperty.call(message, "cargodoc_extract_path") && message.cargodoc_extract_path !== "")
+                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.cargodoc_extract_path);
+                    if (message.max_cargodoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_cargodoc_size_mb") && (typeof message.max_cargodoc_size_mb === "object" ? message.max_cargodoc_size_mb.low || message.max_cargodoc_size_mb.high : message.max_cargodoc_size_mb !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).int64(message.max_cargodoc_size_mb);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -14296,6 +14339,33 @@ export const renop = $root.renop = (() => {
                                     delete message.max_javadoc_size_mb;
                                 continue;
                             }
+                        case 5: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.enable_cargodoc_preview = value;
+                                else
+                                    delete message.enable_cargodoc_preview;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.cargodoc_extract_path = value;
+                                else
+                                    delete message.cargodoc_extract_path;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.max_cargodoc_size_mb = value;
+                                else
+                                    delete message.max_cargodoc_size_mb;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -14351,6 +14421,15 @@ export const renop = $root.renop = (() => {
                     if (message.max_javadoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_javadoc_size_mb"))
                         if (!$util.isInteger(message.max_javadoc_size_mb) && !(message.max_javadoc_size_mb && $util.isInteger(message.max_javadoc_size_mb.low) && $util.isInteger(message.max_javadoc_size_mb.high)))
                             return "max_javadoc_size_mb: integer|Long expected";
+                    if (message.enable_cargodoc_preview != null && $Object.hasOwnProperty.call(message, "enable_cargodoc_preview"))
+                        if (typeof message.enable_cargodoc_preview !== "boolean")
+                            return "enable_cargodoc_preview: boolean expected";
+                    if (message.cargodoc_extract_path != null && $Object.hasOwnProperty.call(message, "cargodoc_extract_path"))
+                        if (!$util.isString(message.cargodoc_extract_path))
+                            return "cargodoc_extract_path: string expected";
+                    if (message.max_cargodoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_cargodoc_size_mb"))
+                        if (!$util.isInteger(message.max_cargodoc_size_mb) && !(message.max_cargodoc_size_mb && $util.isInteger(message.max_cargodoc_size_mb.low) && $util.isInteger(message.max_cargodoc_size_mb.high)))
+                            return "max_cargodoc_size_mb: integer|Long expected";
                     return null;
                 };
 
@@ -14391,6 +14470,22 @@ export const renop = $root.renop = (() => {
                                 message.max_javadoc_size_mb = object.max_javadoc_size_mb;
                             else if (typeof object.max_javadoc_size_mb === "object")
                                 message.max_javadoc_size_mb = new $util.LongBits(object.max_javadoc_size_mb.low >>> 0, object.max_javadoc_size_mb.high >>> 0).toNumber();
+                    if (object.enable_cargodoc_preview != null)
+                        if (object.enable_cargodoc_preview)
+                            message.enable_cargodoc_preview = $Boolean(object.enable_cargodoc_preview);
+                    if (object.cargodoc_extract_path != null)
+                        if (typeof object.cargodoc_extract_path !== "string" || object.cargodoc_extract_path.length)
+                            message.cargodoc_extract_path = $String(object.cargodoc_extract_path);
+                    if (object.max_cargodoc_size_mb != null)
+                        if (typeof object.max_cargodoc_size_mb === "object" ? object.max_cargodoc_size_mb.low || object.max_cargodoc_size_mb.high : $Number(object.max_cargodoc_size_mb) !== 0)
+                            if ($util.Long)
+                                message.max_cargodoc_size_mb = $util.Long.fromValue(object.max_cargodoc_size_mb, false);
+                            else if (typeof object.max_cargodoc_size_mb === "string")
+                                message.max_cargodoc_size_mb = $parseInt(object.max_cargodoc_size_mb, 10);
+                            else if (typeof object.max_cargodoc_size_mb === "number")
+                                message.max_cargodoc_size_mb = object.max_cargodoc_size_mb;
+                            else if (typeof object.max_cargodoc_size_mb === "object")
+                                message.max_cargodoc_size_mb = new $util.LongBits(object.max_cargodoc_size_mb.low >>> 0, object.max_cargodoc_size_mb.high >>> 0).toNumber();
                     return message;
                 };
 
@@ -14420,6 +14515,13 @@ export const renop = $root.renop = (() => {
                             object.max_javadoc_size_mb = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
                         } else
                             object.max_javadoc_size_mb = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.enable_cargodoc_preview = false;
+                        object.cargodoc_extract_path = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.max_cargodoc_size_mb = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.max_cargodoc_size_mb = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
                     }
                     if (message.storage_path != null && $Object.hasOwnProperty.call(message, "storage_path"))
                         object.storage_path = message.storage_path;
@@ -14434,6 +14536,17 @@ export const renop = $root.renop = (() => {
                             object.max_javadoc_size_mb = options.longs === $String ? $String(message.max_javadoc_size_mb) : message.max_javadoc_size_mb;
                         else
                             object.max_javadoc_size_mb = options.longs === $String ? $util.Long.prototype.toString.call(message.max_javadoc_size_mb) : options.longs === $Number ? new $util.LongBits(message.max_javadoc_size_mb.low >>> 0, message.max_javadoc_size_mb.high >>> 0).toNumber() : message.max_javadoc_size_mb;
+                    if (message.enable_cargodoc_preview != null && $Object.hasOwnProperty.call(message, "enable_cargodoc_preview"))
+                        object.enable_cargodoc_preview = message.enable_cargodoc_preview;
+                    if (message.cargodoc_extract_path != null && $Object.hasOwnProperty.call(message, "cargodoc_extract_path"))
+                        object.cargodoc_extract_path = message.cargodoc_extract_path;
+                    if (message.max_cargodoc_size_mb != null && $Object.hasOwnProperty.call(message, "max_cargodoc_size_mb"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.max_cargodoc_size_mb = typeof message.max_cargodoc_size_mb === "number" ? $BigInt(message.max_cargodoc_size_mb) : $util.Long.fromBits(message.max_cargodoc_size_mb.low >>> 0, message.max_cargodoc_size_mb.high >>> 0, false).toBigInt();
+                        else if (typeof message.max_cargodoc_size_mb === "number")
+                            object.max_cargodoc_size_mb = options.longs === $String ? $String(message.max_cargodoc_size_mb) : message.max_cargodoc_size_mb;
+                        else
+                            object.max_cargodoc_size_mb = options.longs === $String ? $util.Long.prototype.toString.call(message.max_cargodoc_size_mb) : options.longs === $Number ? new $util.LongBits(message.max_cargodoc_size_mb.low >>> 0, message.max_cargodoc_size_mb.high >>> 0).toNumber() : message.max_cargodoc_size_mb;
                     return object;
                 };
 
@@ -22350,6 +22463,4609 @@ export const renop = $root.renop = (() => {
                 };
 
                 return PomDetails;
+            })();
+
+            v1.AuditLogEntryDto = (function() {
+
+                /**
+                 * Properties of an AuditLogEntryDto.
+                 * @typedef {Object} renop.api.v1.AuditLogEntryDto.$Properties
+                 * @property {number|Long|null} [id] AuditLogEntryDto id
+                 * @property {string|null} [username] AuditLogEntryDto username
+                 * @property {string|null} [operator] AuditLogEntryDto operator
+                 * @property {string|null} [action] AuditLogEntryDto action
+                 * @property {string|null} [details] AuditLogEntryDto details
+                 * @property {string|null} [auth_method] AuditLogEntryDto auth_method
+                 * @property {string|null} [session_id] AuditLogEntryDto session_id
+                 * @property {string|null} [ip] AuditLogEntryDto ip
+                 * @property {number|Long|null} [created_at] AuditLogEntryDto created_at
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an AuditLogEntryDto.
+                 * @memberof renop.api.v1
+                 * @interface IAuditLogEntryDto
+                 * @augments renop.api.v1.AuditLogEntryDto.$Properties
+                 * @deprecated Use renop.api.v1.AuditLogEntryDto.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an AuditLogEntryDto.
+                 * @typedef {renop.api.v1.AuditLogEntryDto.$Properties} renop.api.v1.AuditLogEntryDto.$Shape
+                 */
+
+                /**
+                 * Constructs a new AuditLogEntryDto.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an AuditLogEntryDto.
+                 * @constructor
+                 * @param {renop.api.v1.AuditLogEntryDto.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const AuditLogEntryDto = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * AuditLogEntryDto id.
+                 * @member {number|Long} id
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * AuditLogEntryDto username.
+                 * @member {string} username
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.username = "";
+
+                /**
+                 * AuditLogEntryDto operator.
+                 * @member {string} operator
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.operator = "";
+
+                /**
+                 * AuditLogEntryDto action.
+                 * @member {string} action
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.action = "";
+
+                /**
+                 * AuditLogEntryDto details.
+                 * @member {string} details
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.details = "";
+
+                /**
+                 * AuditLogEntryDto auth_method.
+                 * @member {string} auth_method
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.auth_method = "";
+
+                /**
+                 * AuditLogEntryDto session_id.
+                 * @member {string} session_id
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.session_id = "";
+
+                /**
+                 * AuditLogEntryDto ip.
+                 * @member {string} ip
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.ip = "";
+
+                /**
+                 * AuditLogEntryDto created_at.
+                 * @member {number|Long} created_at
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 */
+                AuditLogEntryDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new AuditLogEntryDto instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {renop.api.v1.AuditLogEntryDto.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.AuditLogEntryDto} AuditLogEntryDto instance
+                 * @type {{
+                 *   (properties: renop.api.v1.AuditLogEntryDto.$Shape): renop.api.v1.AuditLogEntryDto & renop.api.v1.AuditLogEntryDto.$Shape;
+                 *   (properties?: renop.api.v1.AuditLogEntryDto.$Properties): renop.api.v1.AuditLogEntryDto;
+                 * }}
+                 */
+                AuditLogEntryDto.create = function(properties) {
+                    return new AuditLogEntryDto(properties);
+                };
+
+                /**
+                 * Encodes the specified AuditLogEntryDto message. Does not implicitly {@link renop.api.v1.AuditLogEntryDto.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {renop.api.v1.AuditLogEntryDto.$Properties} message AuditLogEntryDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AuditLogEntryDto.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id") && (typeof message.id === "object" ? message.id.low || message.id.high : message.id !== 0))
+                        writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username") && message.username !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.username);
+                    if (message.operator != null && $Object.hasOwnProperty.call(message, "operator") && message.operator !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.operator);
+                    if (message.action != null && $Object.hasOwnProperty.call(message, "action") && message.action !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.action);
+                    if (message.details != null && $Object.hasOwnProperty.call(message, "details") && message.details !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.details);
+                    if (message.auth_method != null && $Object.hasOwnProperty.call(message, "auth_method") && message.auth_method !== "")
+                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.auth_method);
+                    if (message.session_id != null && $Object.hasOwnProperty.call(message, "session_id") && message.session_id !== "")
+                        writer.uint32(/* id 7, wireType 2 =*/58).string(message.session_id);
+                    if (message.ip != null && $Object.hasOwnProperty.call(message, "ip") && message.ip !== "")
+                        writer.uint32(/* id 8, wireType 2 =*/66).string(message.ip);
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at") && (typeof message.created_at === "object" ? message.created_at.low || message.created_at.high : message.created_at !== 0))
+                        writer.uint32(/* id 9, wireType 0 =*/72).int64(message.created_at);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AuditLogEntryDto message, length delimited. Does not implicitly {@link renop.api.v1.AuditLogEntryDto.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {renop.api.v1.AuditLogEntryDto.$Properties} message AuditLogEntryDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AuditLogEntryDto.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an AuditLogEntryDto message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.AuditLogEntryDto & renop.api.v1.AuditLogEntryDto.$Shape} AuditLogEntryDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AuditLogEntryDto.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AuditLogEntryDto(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.id = value;
+                                else
+                                    delete message.id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.username = value;
+                                else
+                                    delete message.username;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.operator = value;
+                                else
+                                    delete message.operator;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.action = value;
+                                else
+                                    delete message.action;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.details = value;
+                                else
+                                    delete message.details;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.auth_method = value;
+                                else
+                                    delete message.auth_method;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.session_id = value;
+                                else
+                                    delete message.session_id;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.ip = value;
+                                else
+                                    delete message.ip;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.created_at = value;
+                                else
+                                    delete message.created_at;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an AuditLogEntryDto message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.AuditLogEntryDto & renop.api.v1.AuditLogEntryDto.$Shape} AuditLogEntryDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AuditLogEntryDto.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AuditLogEntryDto message.
+                 * @function verify
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AuditLogEntryDto.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                            return "id: integer|Long expected";
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        if (!$util.isString(message.username))
+                            return "username: string expected";
+                    if (message.operator != null && $Object.hasOwnProperty.call(message, "operator"))
+                        if (!$util.isString(message.operator))
+                            return "operator: string expected";
+                    if (message.action != null && $Object.hasOwnProperty.call(message, "action"))
+                        if (!$util.isString(message.action))
+                            return "action: string expected";
+                    if (message.details != null && $Object.hasOwnProperty.call(message, "details"))
+                        if (!$util.isString(message.details))
+                            return "details: string expected";
+                    if (message.auth_method != null && $Object.hasOwnProperty.call(message, "auth_method"))
+                        if (!$util.isString(message.auth_method))
+                            return "auth_method: string expected";
+                    if (message.session_id != null && $Object.hasOwnProperty.call(message, "session_id"))
+                        if (!$util.isString(message.session_id))
+                            return "session_id: string expected";
+                    if (message.ip != null && $Object.hasOwnProperty.call(message, "ip"))
+                        if (!$util.isString(message.ip))
+                            return "ip: string expected";
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (!$util.isInteger(message.created_at) && !(message.created_at && $util.isInteger(message.created_at.low) && $util.isInteger(message.created_at.high)))
+                            return "created_at: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an AuditLogEntryDto message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.AuditLogEntryDto} AuditLogEntryDto
+                 */
+                AuditLogEntryDto.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.AuditLogEntryDto)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.AuditLogEntryDto: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.AuditLogEntryDto();
+                    if (object.id != null)
+                        if (typeof object.id === "object" ? object.id.low || object.id.high : $Number(object.id) !== 0)
+                            if ($util.Long)
+                                message.id = $util.Long.fromValue(object.id, false);
+                            else if (typeof object.id === "string")
+                                message.id = $parseInt(object.id, 10);
+                            else if (typeof object.id === "number")
+                                message.id = object.id;
+                            else if (typeof object.id === "object")
+                                message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+                    if (object.username != null)
+                        if (typeof object.username !== "string" || object.username.length)
+                            message.username = $String(object.username);
+                    if (object.operator != null)
+                        if (typeof object.operator !== "string" || object.operator.length)
+                            message.operator = $String(object.operator);
+                    if (object.action != null)
+                        if (typeof object.action !== "string" || object.action.length)
+                            message.action = $String(object.action);
+                    if (object.details != null)
+                        if (typeof object.details !== "string" || object.details.length)
+                            message.details = $String(object.details);
+                    if (object.auth_method != null)
+                        if (typeof object.auth_method !== "string" || object.auth_method.length)
+                            message.auth_method = $String(object.auth_method);
+                    if (object.session_id != null)
+                        if (typeof object.session_id !== "string" || object.session_id.length)
+                            message.session_id = $String(object.session_id);
+                    if (object.ip != null)
+                        if (typeof object.ip !== "string" || object.ip.length)
+                            message.ip = $String(object.ip);
+                    if (object.created_at != null)
+                        if (typeof object.created_at === "object" ? object.created_at.low || object.created_at.high : $Number(object.created_at) !== 0)
+                            if ($util.Long)
+                                message.created_at = $util.Long.fromValue(object.created_at, false);
+                            else if (typeof object.created_at === "string")
+                                message.created_at = $parseInt(object.created_at, 10);
+                            else if (typeof object.created_at === "number")
+                                message.created_at = object.created_at;
+                            else if (typeof object.created_at === "object")
+                                message.created_at = new $util.LongBits(object.created_at.low >>> 0, object.created_at.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AuditLogEntryDto message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {renop.api.v1.AuditLogEntryDto} message AuditLogEntryDto
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AuditLogEntryDto.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.id = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.id = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        object.username = "";
+                        object.operator = "";
+                        object.action = "";
+                        object.details = "";
+                        object.auth_method = "";
+                        object.session_id = "";
+                        object.ip = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.created_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.created_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.id = typeof message.id === "number" ? $BigInt(message.id) : $util.Long.fromBits(message.id.low >>> 0, message.id.high >>> 0, false).toBigInt();
+                        else if (typeof message.id === "number")
+                            object.id = options.longs === $String ? $String(message.id) : message.id;
+                        else
+                            object.id = options.longs === $String ? $util.Long.prototype.toString.call(message.id) : options.longs === $Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+                    if (message.username != null && $Object.hasOwnProperty.call(message, "username"))
+                        object.username = message.username;
+                    if (message.operator != null && $Object.hasOwnProperty.call(message, "operator"))
+                        object.operator = message.operator;
+                    if (message.action != null && $Object.hasOwnProperty.call(message, "action"))
+                        object.action = message.action;
+                    if (message.details != null && $Object.hasOwnProperty.call(message, "details"))
+                        object.details = message.details;
+                    if (message.auth_method != null && $Object.hasOwnProperty.call(message, "auth_method"))
+                        object.auth_method = message.auth_method;
+                    if (message.session_id != null && $Object.hasOwnProperty.call(message, "session_id"))
+                        object.session_id = message.session_id;
+                    if (message.ip != null && $Object.hasOwnProperty.call(message, "ip"))
+                        object.ip = message.ip;
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.created_at = typeof message.created_at === "number" ? $BigInt(message.created_at) : $util.Long.fromBits(message.created_at.low >>> 0, message.created_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.created_at === "number")
+                            object.created_at = options.longs === $String ? $String(message.created_at) : message.created_at;
+                        else
+                            object.created_at = options.longs === $String ? $util.Long.prototype.toString.call(message.created_at) : options.longs === $Number ? new $util.LongBits(message.created_at.low >>> 0, message.created_at.high >>> 0).toNumber() : message.created_at;
+                    return object;
+                };
+
+                /**
+                 * Converts this AuditLogEntryDto to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AuditLogEntryDto.prototype.toJSON = function() {
+                    return AuditLogEntryDto.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for AuditLogEntryDto
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.AuditLogEntryDto
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                AuditLogEntryDto.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.AuditLogEntryDto";
+                };
+
+                return AuditLogEntryDto;
+            })();
+
+            v1.AuditLogList = (function() {
+
+                /**
+                 * Properties of an AuditLogList.
+                 * @typedef {Object} renop.api.v1.AuditLogList.$Properties
+                 * @property {Array.<renop.api.v1.AuditLogEntryDto.$Properties>|null} [logs] AuditLogList logs
+                 * @property {number|null} [total] AuditLogList total
+                 * @property {number|null} [page] AuditLogList page
+                 * @property {number|null} [page_size] AuditLogList page_size
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an AuditLogList.
+                 * @memberof renop.api.v1
+                 * @interface IAuditLogList
+                 * @augments renop.api.v1.AuditLogList.$Properties
+                 * @deprecated Use renop.api.v1.AuditLogList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an AuditLogList.
+                 * @typedef {renop.api.v1.AuditLogList.$Properties} renop.api.v1.AuditLogList.$Shape
+                 */
+
+                /**
+                 * Constructs a new AuditLogList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an AuditLogList.
+                 * @constructor
+                 * @param {renop.api.v1.AuditLogList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const AuditLogList = function (properties) {
+                    this.logs = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * AuditLogList logs.
+                 * @member {Array.<renop.api.v1.AuditLogEntryDto.$Properties>} logs
+                 * @memberof renop.api.v1.AuditLogList
+                 * @instance
+                 */
+                AuditLogList.prototype.logs = $util.emptyArray;
+
+                /**
+                 * AuditLogList total.
+                 * @member {number} total
+                 * @memberof renop.api.v1.AuditLogList
+                 * @instance
+                 */
+                AuditLogList.prototype.total = 0;
+
+                /**
+                 * AuditLogList page.
+                 * @member {number} page
+                 * @memberof renop.api.v1.AuditLogList
+                 * @instance
+                 */
+                AuditLogList.prototype.page = 0;
+
+                /**
+                 * AuditLogList page_size.
+                 * @member {number} page_size
+                 * @memberof renop.api.v1.AuditLogList
+                 * @instance
+                 */
+                AuditLogList.prototype.page_size = 0;
+
+                /**
+                 * Creates a new AuditLogList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {renop.api.v1.AuditLogList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.AuditLogList} AuditLogList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.AuditLogList.$Shape): renop.api.v1.AuditLogList & renop.api.v1.AuditLogList.$Shape;
+                 *   (properties?: renop.api.v1.AuditLogList.$Properties): renop.api.v1.AuditLogList;
+                 * }}
+                 */
+                AuditLogList.create = function(properties) {
+                    return new AuditLogList(properties);
+                };
+
+                /**
+                 * Encodes the specified AuditLogList message. Does not implicitly {@link renop.api.v1.AuditLogList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {renop.api.v1.AuditLogList.$Properties} message AuditLogList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AuditLogList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.logs != null && message.logs.length)
+                        for (let i = 0; i < message.logs.length; ++i)
+                            $root.renop.api.v1.AuditLogEntryDto.encode(message.logs[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total") && message.total !== 0)
+                        writer.uint32(/* id 2, wireType 0 =*/16).int32(message.total);
+                    if (message.page != null && $Object.hasOwnProperty.call(message, "page") && message.page !== 0)
+                        writer.uint32(/* id 3, wireType 0 =*/24).int32(message.page);
+                    if (message.page_size != null && $Object.hasOwnProperty.call(message, "page_size") && message.page_size !== 0)
+                        writer.uint32(/* id 4, wireType 0 =*/32).int32(message.page_size);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified AuditLogList message, length delimited. Does not implicitly {@link renop.api.v1.AuditLogList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {renop.api.v1.AuditLogList.$Properties} message AuditLogList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                AuditLogList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an AuditLogList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.AuditLogList & renop.api.v1.AuditLogList.$Shape} AuditLogList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AuditLogList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AuditLogList(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.logs && message.logs.length))
+                                    message.logs = [];
+                                message.logs.push($root.renop.api.v1.AuditLogEntryDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.total = value;
+                                else
+                                    delete message.total;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.page = value;
+                                else
+                                    delete message.page;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.page_size = value;
+                                else
+                                    delete message.page_size;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an AuditLogList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.AuditLogList & renop.api.v1.AuditLogList.$Shape} AuditLogList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                AuditLogList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an AuditLogList message.
+                 * @function verify
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                AuditLogList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.logs != null && $Object.hasOwnProperty.call(message, "logs")) {
+                        if (!$Array.isArray(message.logs))
+                            return "logs: array expected";
+                        for (let i = 0; i < message.logs.length; ++i) {
+                            let error = $root.renop.api.v1.AuditLogEntryDto.verify(message.logs[i], _depth + 1);
+                            if (error)
+                                return "logs." + error;
+                        }
+                    }
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total"))
+                        if (!$util.isInteger(message.total))
+                            return "total: integer expected";
+                    if (message.page != null && $Object.hasOwnProperty.call(message, "page"))
+                        if (!$util.isInteger(message.page))
+                            return "page: integer expected";
+                    if (message.page_size != null && $Object.hasOwnProperty.call(message, "page_size"))
+                        if (!$util.isInteger(message.page_size))
+                            return "page_size: integer expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an AuditLogList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.AuditLogList} AuditLogList
+                 */
+                AuditLogList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.AuditLogList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.AuditLogList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.AuditLogList();
+                    if (object.logs) {
+                        if (!$Array.isArray(object.logs))
+                            throw $TypeError(".renop.api.v1.AuditLogList.logs: array expected");
+                        message.logs = $Array(object.logs.length);
+                        for (let i = 0; i < object.logs.length; ++i) {
+                            if (!$util.isObject(object.logs[i]))
+                                throw $TypeError(".renop.api.v1.AuditLogList.logs: object expected");
+                            message.logs[i] = $root.renop.api.v1.AuditLogEntryDto.fromObject(object.logs[i], _depth + 1);
+                        }
+                    }
+                    if (object.total != null)
+                        if ($Number(object.total) !== 0)
+                            message.total = object.total | 0;
+                    if (object.page != null)
+                        if ($Number(object.page) !== 0)
+                            message.page = object.page | 0;
+                    if (object.page_size != null)
+                        if ($Number(object.page_size) !== 0)
+                            message.page_size = object.page_size | 0;
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an AuditLogList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {renop.api.v1.AuditLogList} message AuditLogList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                AuditLogList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.logs = [];
+                    if (options.defaults) {
+                        object.total = 0;
+                        object.page = 0;
+                        object.page_size = 0;
+                    }
+                    if (message.logs && message.logs.length) {
+                        object.logs = $Array(message.logs.length);
+                        for (let j = 0; j < message.logs.length; ++j)
+                            object.logs[j] = $root.renop.api.v1.AuditLogEntryDto.toObject(message.logs[j], options, _depth + 1);
+                    }
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total"))
+                        object.total = message.total;
+                    if (message.page != null && $Object.hasOwnProperty.call(message, "page"))
+                        object.page = message.page;
+                    if (message.page_size != null && $Object.hasOwnProperty.call(message, "page_size"))
+                        object.page_size = message.page_size;
+                    return object;
+                };
+
+                /**
+                 * Converts this AuditLogList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.AuditLogList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                AuditLogList.prototype.toJSON = function() {
+                    return AuditLogList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for AuditLogList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.AuditLogList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                AuditLogList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.AuditLogList";
+                };
+
+                return AuditLogList;
+            })();
+
+            v1.UserMessageDto = (function() {
+
+                /**
+                 * Properties of a UserMessageDto.
+                 * @typedef {Object} renop.api.v1.UserMessageDto.$Properties
+                 * @property {string|null} [id] UserMessageDto id
+                 * @property {string|null} [recipient] UserMessageDto recipient
+                 * @property {string|null} [sender] UserMessageDto sender
+                 * @property {string|null} [kind] UserMessageDto kind
+                 * @property {string|null} [severity] UserMessageDto severity
+                 * @property {string|null} [title] UserMessageDto title
+                 * @property {string|null} [body] UserMessageDto body
+                 * @property {string|null} [payload] UserMessageDto payload
+                 * @property {string|null} [action_kind] UserMessageDto action_kind
+                 * @property {string|null} [action_status] UserMessageDto action_status
+                 * @property {number|Long|null} [created_at] UserMessageDto created_at
+                 * @property {number|Long|null} [read_at] UserMessageDto read_at
+                 * @property {number|Long|null} [acted_at] UserMessageDto acted_at
+                 * @property {number|Long|null} [expires_at] UserMessageDto expires_at
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a UserMessageDto.
+                 * @memberof renop.api.v1
+                 * @interface IUserMessageDto
+                 * @augments renop.api.v1.UserMessageDto.$Properties
+                 * @deprecated Use renop.api.v1.UserMessageDto.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a UserMessageDto.
+                 * @typedef {renop.api.v1.UserMessageDto.$Properties} renop.api.v1.UserMessageDto.$Shape
+                 */
+
+                /**
+                 * Constructs a new UserMessageDto.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a UserMessageDto.
+                 * @constructor
+                 * @param {renop.api.v1.UserMessageDto.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const UserMessageDto = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * UserMessageDto id.
+                 * @member {string} id
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.id = "";
+
+                /**
+                 * UserMessageDto recipient.
+                 * @member {string} recipient
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.recipient = "";
+
+                /**
+                 * UserMessageDto sender.
+                 * @member {string} sender
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.sender = "";
+
+                /**
+                 * UserMessageDto kind.
+                 * @member {string} kind
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.kind = "";
+
+                /**
+                 * UserMessageDto severity.
+                 * @member {string} severity
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.severity = "";
+
+                /**
+                 * UserMessageDto title.
+                 * @member {string} title
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.title = "";
+
+                /**
+                 * UserMessageDto body.
+                 * @member {string} body
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.body = "";
+
+                /**
+                 * UserMessageDto payload.
+                 * @member {string} payload
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.payload = "";
+
+                /**
+                 * UserMessageDto action_kind.
+                 * @member {string} action_kind
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.action_kind = "";
+
+                /**
+                 * UserMessageDto action_status.
+                 * @member {string} action_status
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.action_status = "";
+
+                /**
+                 * UserMessageDto created_at.
+                 * @member {number|Long} created_at
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * UserMessageDto read_at.
+                 * @member {number|Long} read_at
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.read_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * UserMessageDto acted_at.
+                 * @member {number|Long} acted_at
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.acted_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * UserMessageDto expires_at.
+                 * @member {number|Long} expires_at
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 */
+                UserMessageDto.prototype.expires_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new UserMessageDto instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {renop.api.v1.UserMessageDto.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.UserMessageDto} UserMessageDto instance
+                 * @type {{
+                 *   (properties: renop.api.v1.UserMessageDto.$Shape): renop.api.v1.UserMessageDto & renop.api.v1.UserMessageDto.$Shape;
+                 *   (properties?: renop.api.v1.UserMessageDto.$Properties): renop.api.v1.UserMessageDto;
+                 * }}
+                 */
+                UserMessageDto.create = function(properties) {
+                    return new UserMessageDto(properties);
+                };
+
+                /**
+                 * Encodes the specified UserMessageDto message. Does not implicitly {@link renop.api.v1.UserMessageDto.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {renop.api.v1.UserMessageDto.$Properties} message UserMessageDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UserMessageDto.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id") && message.id !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
+                    if (message.recipient != null && $Object.hasOwnProperty.call(message, "recipient") && message.recipient !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.recipient);
+                    if (message.sender != null && $Object.hasOwnProperty.call(message, "sender") && message.sender !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.sender);
+                    if (message.kind != null && $Object.hasOwnProperty.call(message, "kind") && message.kind !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.kind);
+                    if (message.severity != null && $Object.hasOwnProperty.call(message, "severity") && message.severity !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.severity);
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title") && message.title !== "")
+                        writer.uint32(/* id 6, wireType 2 =*/50).string(message.title);
+                    if (message.body != null && $Object.hasOwnProperty.call(message, "body") && message.body !== "")
+                        writer.uint32(/* id 7, wireType 2 =*/58).string(message.body);
+                    if (message.payload != null && $Object.hasOwnProperty.call(message, "payload") && message.payload !== "")
+                        writer.uint32(/* id 8, wireType 2 =*/66).string(message.payload);
+                    if (message.action_kind != null && $Object.hasOwnProperty.call(message, "action_kind") && message.action_kind !== "")
+                        writer.uint32(/* id 9, wireType 2 =*/74).string(message.action_kind);
+                    if (message.action_status != null && $Object.hasOwnProperty.call(message, "action_status") && message.action_status !== "")
+                        writer.uint32(/* id 10, wireType 2 =*/82).string(message.action_status);
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at") && (typeof message.created_at === "object" ? message.created_at.low || message.created_at.high : message.created_at !== 0))
+                        writer.uint32(/* id 11, wireType 0 =*/88).int64(message.created_at);
+                    if (message.read_at != null && $Object.hasOwnProperty.call(message, "read_at") && (typeof message.read_at === "object" ? message.read_at.low || message.read_at.high : message.read_at !== 0))
+                        writer.uint32(/* id 12, wireType 0 =*/96).int64(message.read_at);
+                    if (message.acted_at != null && $Object.hasOwnProperty.call(message, "acted_at") && (typeof message.acted_at === "object" ? message.acted_at.low || message.acted_at.high : message.acted_at !== 0))
+                        writer.uint32(/* id 13, wireType 0 =*/104).int64(message.acted_at);
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at") && (typeof message.expires_at === "object" ? message.expires_at.low || message.expires_at.high : message.expires_at !== 0))
+                        writer.uint32(/* id 14, wireType 0 =*/112).int64(message.expires_at);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified UserMessageDto message, length delimited. Does not implicitly {@link renop.api.v1.UserMessageDto.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {renop.api.v1.UserMessageDto.$Properties} message UserMessageDto message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UserMessageDto.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a UserMessageDto message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.UserMessageDto & renop.api.v1.UserMessageDto.$Shape} UserMessageDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UserMessageDto.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UserMessageDto(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.id = value;
+                                else
+                                    delete message.id;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.recipient = value;
+                                else
+                                    delete message.recipient;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.sender = value;
+                                else
+                                    delete message.sender;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.kind = value;
+                                else
+                                    delete message.kind;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.severity = value;
+                                else
+                                    delete message.severity;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.title = value;
+                                else
+                                    delete message.title;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.body = value;
+                                else
+                                    delete message.body;
+                                continue;
+                            }
+                        case 8: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.payload = value;
+                                else
+                                    delete message.payload;
+                                continue;
+                            }
+                        case 9: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.action_kind = value;
+                                else
+                                    delete message.action_kind;
+                                continue;
+                            }
+                        case 10: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.action_status = value;
+                                else
+                                    delete message.action_status;
+                                continue;
+                            }
+                        case 11: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.created_at = value;
+                                else
+                                    delete message.created_at;
+                                continue;
+                            }
+                        case 12: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.read_at = value;
+                                else
+                                    delete message.read_at;
+                                continue;
+                            }
+                        case 13: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.acted_at = value;
+                                else
+                                    delete message.acted_at;
+                                continue;
+                            }
+                        case 14: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.expires_at = value;
+                                else
+                                    delete message.expires_at;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a UserMessageDto message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.UserMessageDto & renop.api.v1.UserMessageDto.$Shape} UserMessageDto
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UserMessageDto.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a UserMessageDto message.
+                 * @function verify
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                UserMessageDto.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        if (!$util.isString(message.id))
+                            return "id: string expected";
+                    if (message.recipient != null && $Object.hasOwnProperty.call(message, "recipient"))
+                        if (!$util.isString(message.recipient))
+                            return "recipient: string expected";
+                    if (message.sender != null && $Object.hasOwnProperty.call(message, "sender"))
+                        if (!$util.isString(message.sender))
+                            return "sender: string expected";
+                    if (message.kind != null && $Object.hasOwnProperty.call(message, "kind"))
+                        if (!$util.isString(message.kind))
+                            return "kind: string expected";
+                    if (message.severity != null && $Object.hasOwnProperty.call(message, "severity"))
+                        if (!$util.isString(message.severity))
+                            return "severity: string expected";
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title"))
+                        if (!$util.isString(message.title))
+                            return "title: string expected";
+                    if (message.body != null && $Object.hasOwnProperty.call(message, "body"))
+                        if (!$util.isString(message.body))
+                            return "body: string expected";
+                    if (message.payload != null && $Object.hasOwnProperty.call(message, "payload"))
+                        if (!$util.isString(message.payload))
+                            return "payload: string expected";
+                    if (message.action_kind != null && $Object.hasOwnProperty.call(message, "action_kind"))
+                        if (!$util.isString(message.action_kind))
+                            return "action_kind: string expected";
+                    if (message.action_status != null && $Object.hasOwnProperty.call(message, "action_status"))
+                        if (!$util.isString(message.action_status))
+                            return "action_status: string expected";
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (!$util.isInteger(message.created_at) && !(message.created_at && $util.isInteger(message.created_at.low) && $util.isInteger(message.created_at.high)))
+                            return "created_at: integer|Long expected";
+                    if (message.read_at != null && $Object.hasOwnProperty.call(message, "read_at"))
+                        if (!$util.isInteger(message.read_at) && !(message.read_at && $util.isInteger(message.read_at.low) && $util.isInteger(message.read_at.high)))
+                            return "read_at: integer|Long expected";
+                    if (message.acted_at != null && $Object.hasOwnProperty.call(message, "acted_at"))
+                        if (!$util.isInteger(message.acted_at) && !(message.acted_at && $util.isInteger(message.acted_at.low) && $util.isInteger(message.acted_at.high)))
+                            return "acted_at: integer|Long expected";
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at"))
+                        if (!$util.isInteger(message.expires_at) && !(message.expires_at && $util.isInteger(message.expires_at.low) && $util.isInteger(message.expires_at.high)))
+                            return "expires_at: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a UserMessageDto message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.UserMessageDto} UserMessageDto
+                 */
+                UserMessageDto.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.UserMessageDto)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.UserMessageDto: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.UserMessageDto();
+                    if (object.id != null)
+                        if (typeof object.id !== "string" || object.id.length)
+                            message.id = $String(object.id);
+                    if (object.recipient != null)
+                        if (typeof object.recipient !== "string" || object.recipient.length)
+                            message.recipient = $String(object.recipient);
+                    if (object.sender != null)
+                        if (typeof object.sender !== "string" || object.sender.length)
+                            message.sender = $String(object.sender);
+                    if (object.kind != null)
+                        if (typeof object.kind !== "string" || object.kind.length)
+                            message.kind = $String(object.kind);
+                    if (object.severity != null)
+                        if (typeof object.severity !== "string" || object.severity.length)
+                            message.severity = $String(object.severity);
+                    if (object.title != null)
+                        if (typeof object.title !== "string" || object.title.length)
+                            message.title = $String(object.title);
+                    if (object.body != null)
+                        if (typeof object.body !== "string" || object.body.length)
+                            message.body = $String(object.body);
+                    if (object.payload != null)
+                        if (typeof object.payload !== "string" || object.payload.length)
+                            message.payload = $String(object.payload);
+                    if (object.action_kind != null)
+                        if (typeof object.action_kind !== "string" || object.action_kind.length)
+                            message.action_kind = $String(object.action_kind);
+                    if (object.action_status != null)
+                        if (typeof object.action_status !== "string" || object.action_status.length)
+                            message.action_status = $String(object.action_status);
+                    if (object.created_at != null)
+                        if (typeof object.created_at === "object" ? object.created_at.low || object.created_at.high : $Number(object.created_at) !== 0)
+                            if ($util.Long)
+                                message.created_at = $util.Long.fromValue(object.created_at, false);
+                            else if (typeof object.created_at === "string")
+                                message.created_at = $parseInt(object.created_at, 10);
+                            else if (typeof object.created_at === "number")
+                                message.created_at = object.created_at;
+                            else if (typeof object.created_at === "object")
+                                message.created_at = new $util.LongBits(object.created_at.low >>> 0, object.created_at.high >>> 0).toNumber();
+                    if (object.read_at != null)
+                        if (typeof object.read_at === "object" ? object.read_at.low || object.read_at.high : $Number(object.read_at) !== 0)
+                            if ($util.Long)
+                                message.read_at = $util.Long.fromValue(object.read_at, false);
+                            else if (typeof object.read_at === "string")
+                                message.read_at = $parseInt(object.read_at, 10);
+                            else if (typeof object.read_at === "number")
+                                message.read_at = object.read_at;
+                            else if (typeof object.read_at === "object")
+                                message.read_at = new $util.LongBits(object.read_at.low >>> 0, object.read_at.high >>> 0).toNumber();
+                    if (object.acted_at != null)
+                        if (typeof object.acted_at === "object" ? object.acted_at.low || object.acted_at.high : $Number(object.acted_at) !== 0)
+                            if ($util.Long)
+                                message.acted_at = $util.Long.fromValue(object.acted_at, false);
+                            else if (typeof object.acted_at === "string")
+                                message.acted_at = $parseInt(object.acted_at, 10);
+                            else if (typeof object.acted_at === "number")
+                                message.acted_at = object.acted_at;
+                            else if (typeof object.acted_at === "object")
+                                message.acted_at = new $util.LongBits(object.acted_at.low >>> 0, object.acted_at.high >>> 0).toNumber();
+                    if (object.expires_at != null)
+                        if (typeof object.expires_at === "object" ? object.expires_at.low || object.expires_at.high : $Number(object.expires_at) !== 0)
+                            if ($util.Long)
+                                message.expires_at = $util.Long.fromValue(object.expires_at, false);
+                            else if (typeof object.expires_at === "string")
+                                message.expires_at = $parseInt(object.expires_at, 10);
+                            else if (typeof object.expires_at === "number")
+                                message.expires_at = object.expires_at;
+                            else if (typeof object.expires_at === "object")
+                                message.expires_at = new $util.LongBits(object.expires_at.low >>> 0, object.expires_at.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a UserMessageDto message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {renop.api.v1.UserMessageDto} message UserMessageDto
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                UserMessageDto.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.id = "";
+                        object.recipient = "";
+                        object.sender = "";
+                        object.kind = "";
+                        object.severity = "";
+                        object.title = "";
+                        object.body = "";
+                        object.payload = "";
+                        object.action_kind = "";
+                        object.action_status = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.created_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.created_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.read_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.read_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.acted_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.acted_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.expires_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.expires_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
+                        object.id = message.id;
+                    if (message.recipient != null && $Object.hasOwnProperty.call(message, "recipient"))
+                        object.recipient = message.recipient;
+                    if (message.sender != null && $Object.hasOwnProperty.call(message, "sender"))
+                        object.sender = message.sender;
+                    if (message.kind != null && $Object.hasOwnProperty.call(message, "kind"))
+                        object.kind = message.kind;
+                    if (message.severity != null && $Object.hasOwnProperty.call(message, "severity"))
+                        object.severity = message.severity;
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title"))
+                        object.title = message.title;
+                    if (message.body != null && $Object.hasOwnProperty.call(message, "body"))
+                        object.body = message.body;
+                    if (message.payload != null && $Object.hasOwnProperty.call(message, "payload"))
+                        object.payload = message.payload;
+                    if (message.action_kind != null && $Object.hasOwnProperty.call(message, "action_kind"))
+                        object.action_kind = message.action_kind;
+                    if (message.action_status != null && $Object.hasOwnProperty.call(message, "action_status"))
+                        object.action_status = message.action_status;
+                    if (message.created_at != null && $Object.hasOwnProperty.call(message, "created_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.created_at = typeof message.created_at === "number" ? $BigInt(message.created_at) : $util.Long.fromBits(message.created_at.low >>> 0, message.created_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.created_at === "number")
+                            object.created_at = options.longs === $String ? $String(message.created_at) : message.created_at;
+                        else
+                            object.created_at = options.longs === $String ? $util.Long.prototype.toString.call(message.created_at) : options.longs === $Number ? new $util.LongBits(message.created_at.low >>> 0, message.created_at.high >>> 0).toNumber() : message.created_at;
+                    if (message.read_at != null && $Object.hasOwnProperty.call(message, "read_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.read_at = typeof message.read_at === "number" ? $BigInt(message.read_at) : $util.Long.fromBits(message.read_at.low >>> 0, message.read_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.read_at === "number")
+                            object.read_at = options.longs === $String ? $String(message.read_at) : message.read_at;
+                        else
+                            object.read_at = options.longs === $String ? $util.Long.prototype.toString.call(message.read_at) : options.longs === $Number ? new $util.LongBits(message.read_at.low >>> 0, message.read_at.high >>> 0).toNumber() : message.read_at;
+                    if (message.acted_at != null && $Object.hasOwnProperty.call(message, "acted_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.acted_at = typeof message.acted_at === "number" ? $BigInt(message.acted_at) : $util.Long.fromBits(message.acted_at.low >>> 0, message.acted_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.acted_at === "number")
+                            object.acted_at = options.longs === $String ? $String(message.acted_at) : message.acted_at;
+                        else
+                            object.acted_at = options.longs === $String ? $util.Long.prototype.toString.call(message.acted_at) : options.longs === $Number ? new $util.LongBits(message.acted_at.low >>> 0, message.acted_at.high >>> 0).toNumber() : message.acted_at;
+                    if (message.expires_at != null && $Object.hasOwnProperty.call(message, "expires_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.expires_at = typeof message.expires_at === "number" ? $BigInt(message.expires_at) : $util.Long.fromBits(message.expires_at.low >>> 0, message.expires_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.expires_at === "number")
+                            object.expires_at = options.longs === $String ? $String(message.expires_at) : message.expires_at;
+                        else
+                            object.expires_at = options.longs === $String ? $util.Long.prototype.toString.call(message.expires_at) : options.longs === $Number ? new $util.LongBits(message.expires_at.low >>> 0, message.expires_at.high >>> 0).toNumber() : message.expires_at;
+                    return object;
+                };
+
+                /**
+                 * Converts this UserMessageDto to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                UserMessageDto.prototype.toJSON = function() {
+                    return UserMessageDto.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for UserMessageDto
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.UserMessageDto
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                UserMessageDto.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.UserMessageDto";
+                };
+
+                return UserMessageDto;
+            })();
+
+            v1.UserMessageList = (function() {
+
+                /**
+                 * Properties of a UserMessageList.
+                 * @typedef {Object} renop.api.v1.UserMessageList.$Properties
+                 * @property {Array.<renop.api.v1.UserMessageDto.$Properties>|null} [messages] UserMessageList messages
+                 * @property {number|null} [unread_count] UserMessageList unread_count
+                 * @property {string|null} [next_cursor] UserMessageList next_cursor
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a UserMessageList.
+                 * @memberof renop.api.v1
+                 * @interface IUserMessageList
+                 * @augments renop.api.v1.UserMessageList.$Properties
+                 * @deprecated Use renop.api.v1.UserMessageList.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a UserMessageList.
+                 * @typedef {renop.api.v1.UserMessageList.$Properties} renop.api.v1.UserMessageList.$Shape
+                 */
+
+                /**
+                 * Constructs a new UserMessageList.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a UserMessageList.
+                 * @constructor
+                 * @param {renop.api.v1.UserMessageList.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const UserMessageList = function (properties) {
+                    this.messages = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * UserMessageList messages.
+                 * @member {Array.<renop.api.v1.UserMessageDto.$Properties>} messages
+                 * @memberof renop.api.v1.UserMessageList
+                 * @instance
+                 */
+                UserMessageList.prototype.messages = $util.emptyArray;
+
+                /**
+                 * UserMessageList unread_count.
+                 * @member {number} unread_count
+                 * @memberof renop.api.v1.UserMessageList
+                 * @instance
+                 */
+                UserMessageList.prototype.unread_count = 0;
+
+                /**
+                 * UserMessageList next_cursor.
+                 * @member {string} next_cursor
+                 * @memberof renop.api.v1.UserMessageList
+                 * @instance
+                 */
+                UserMessageList.prototype.next_cursor = "";
+
+                /**
+                 * Creates a new UserMessageList instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {renop.api.v1.UserMessageList.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.UserMessageList} UserMessageList instance
+                 * @type {{
+                 *   (properties: renop.api.v1.UserMessageList.$Shape): renop.api.v1.UserMessageList & renop.api.v1.UserMessageList.$Shape;
+                 *   (properties?: renop.api.v1.UserMessageList.$Properties): renop.api.v1.UserMessageList;
+                 * }}
+                 */
+                UserMessageList.create = function(properties) {
+                    return new UserMessageList(properties);
+                };
+
+                /**
+                 * Encodes the specified UserMessageList message. Does not implicitly {@link renop.api.v1.UserMessageList.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {renop.api.v1.UserMessageList.$Properties} message UserMessageList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UserMessageList.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.messages != null && message.messages.length)
+                        for (let i = 0; i < message.messages.length; ++i)
+                            $root.renop.api.v1.UserMessageDto.encode(message.messages[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                    if (message.unread_count != null && $Object.hasOwnProperty.call(message, "unread_count") && message.unread_count !== 0)
+                        writer.uint32(/* id 2, wireType 0 =*/16).int32(message.unread_count);
+                    if (message.next_cursor != null && $Object.hasOwnProperty.call(message, "next_cursor") && message.next_cursor !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.next_cursor);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified UserMessageList message, length delimited. Does not implicitly {@link renop.api.v1.UserMessageList.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {renop.api.v1.UserMessageList.$Properties} message UserMessageList message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UserMessageList.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a UserMessageList message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.UserMessageList & renop.api.v1.UserMessageList.$Shape} UserMessageList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UserMessageList.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UserMessageList(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.messages && message.messages.length))
+                                    message.messages = [];
+                                message.messages.push($root.renop.api.v1.UserMessageDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.unread_count = value;
+                                else
+                                    delete message.unread_count;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.next_cursor = value;
+                                else
+                                    delete message.next_cursor;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a UserMessageList message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.UserMessageList & renop.api.v1.UserMessageList.$Shape} UserMessageList
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UserMessageList.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a UserMessageList message.
+                 * @function verify
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                UserMessageList.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.messages != null && $Object.hasOwnProperty.call(message, "messages")) {
+                        if (!$Array.isArray(message.messages))
+                            return "messages: array expected";
+                        for (let i = 0; i < message.messages.length; ++i) {
+                            let error = $root.renop.api.v1.UserMessageDto.verify(message.messages[i], _depth + 1);
+                            if (error)
+                                return "messages." + error;
+                        }
+                    }
+                    if (message.unread_count != null && $Object.hasOwnProperty.call(message, "unread_count"))
+                        if (!$util.isInteger(message.unread_count))
+                            return "unread_count: integer expected";
+                    if (message.next_cursor != null && $Object.hasOwnProperty.call(message, "next_cursor"))
+                        if (!$util.isString(message.next_cursor))
+                            return "next_cursor: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a UserMessageList message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.UserMessageList} UserMessageList
+                 */
+                UserMessageList.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.UserMessageList)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.UserMessageList: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.UserMessageList();
+                    if (object.messages) {
+                        if (!$Array.isArray(object.messages))
+                            throw $TypeError(".renop.api.v1.UserMessageList.messages: array expected");
+                        message.messages = $Array(object.messages.length);
+                        for (let i = 0; i < object.messages.length; ++i) {
+                            if (!$util.isObject(object.messages[i]))
+                                throw $TypeError(".renop.api.v1.UserMessageList.messages: object expected");
+                            message.messages[i] = $root.renop.api.v1.UserMessageDto.fromObject(object.messages[i], _depth + 1);
+                        }
+                    }
+                    if (object.unread_count != null)
+                        if ($Number(object.unread_count) !== 0)
+                            message.unread_count = object.unread_count | 0;
+                    if (object.next_cursor != null)
+                        if (typeof object.next_cursor !== "string" || object.next_cursor.length)
+                            message.next_cursor = $String(object.next_cursor);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a UserMessageList message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {renop.api.v1.UserMessageList} message UserMessageList
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                UserMessageList.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.messages = [];
+                    if (options.defaults) {
+                        object.unread_count = 0;
+                        object.next_cursor = "";
+                    }
+                    if (message.messages && message.messages.length) {
+                        object.messages = $Array(message.messages.length);
+                        for (let j = 0; j < message.messages.length; ++j)
+                            object.messages[j] = $root.renop.api.v1.UserMessageDto.toObject(message.messages[j], options, _depth + 1);
+                    }
+                    if (message.unread_count != null && $Object.hasOwnProperty.call(message, "unread_count"))
+                        object.unread_count = message.unread_count;
+                    if (message.next_cursor != null && $Object.hasOwnProperty.call(message, "next_cursor"))
+                        object.next_cursor = message.next_cursor;
+                    return object;
+                };
+
+                /**
+                 * Converts this UserMessageList to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.UserMessageList
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                UserMessageList.prototype.toJSON = function() {
+                    return UserMessageList.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for UserMessageList
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.UserMessageList
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                UserMessageList.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.UserMessageList";
+                };
+
+                return UserMessageList;
+            })();
+
+            v1.UnreadCountResponse = (function() {
+
+                /**
+                 * Properties of an UnreadCountResponse.
+                 * @typedef {Object} renop.api.v1.UnreadCountResponse.$Properties
+                 * @property {number|null} [unread_count] UnreadCountResponse unread_count
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of an UnreadCountResponse.
+                 * @memberof renop.api.v1
+                 * @interface IUnreadCountResponse
+                 * @augments renop.api.v1.UnreadCountResponse.$Properties
+                 * @deprecated Use renop.api.v1.UnreadCountResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of an UnreadCountResponse.
+                 * @typedef {renop.api.v1.UnreadCountResponse.$Properties} renop.api.v1.UnreadCountResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new UnreadCountResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents an UnreadCountResponse.
+                 * @constructor
+                 * @param {renop.api.v1.UnreadCountResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const UnreadCountResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * UnreadCountResponse unread_count.
+                 * @member {number} unread_count
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @instance
+                 */
+                UnreadCountResponse.prototype.unread_count = 0;
+
+                /**
+                 * Creates a new UnreadCountResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {renop.api.v1.UnreadCountResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.UnreadCountResponse} UnreadCountResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.UnreadCountResponse.$Shape): renop.api.v1.UnreadCountResponse & renop.api.v1.UnreadCountResponse.$Shape;
+                 *   (properties?: renop.api.v1.UnreadCountResponse.$Properties): renop.api.v1.UnreadCountResponse;
+                 * }}
+                 */
+                UnreadCountResponse.create = function(properties) {
+                    return new UnreadCountResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified UnreadCountResponse message. Does not implicitly {@link renop.api.v1.UnreadCountResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {renop.api.v1.UnreadCountResponse.$Properties} message UnreadCountResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UnreadCountResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.unread_count != null && $Object.hasOwnProperty.call(message, "unread_count") && message.unread_count !== 0)
+                        writer.uint32(/* id 1, wireType 0 =*/8).int32(message.unread_count);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified UnreadCountResponse message, length delimited. Does not implicitly {@link renop.api.v1.UnreadCountResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {renop.api.v1.UnreadCountResponse.$Properties} message UnreadCountResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UnreadCountResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes an UnreadCountResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.UnreadCountResponse & renop.api.v1.UnreadCountResponse.$Shape} UnreadCountResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UnreadCountResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UnreadCountResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.unread_count = value;
+                                else
+                                    delete message.unread_count;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes an UnreadCountResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.UnreadCountResponse & renop.api.v1.UnreadCountResponse.$Shape} UnreadCountResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UnreadCountResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies an UnreadCountResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                UnreadCountResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.unread_count != null && $Object.hasOwnProperty.call(message, "unread_count"))
+                        if (!$util.isInteger(message.unread_count))
+                            return "unread_count: integer expected";
+                    return null;
+                };
+
+                /**
+                 * Creates an UnreadCountResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.UnreadCountResponse} UnreadCountResponse
+                 */
+                UnreadCountResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.UnreadCountResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.UnreadCountResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.UnreadCountResponse();
+                    if (object.unread_count != null)
+                        if ($Number(object.unread_count) !== 0)
+                            message.unread_count = object.unread_count | 0;
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from an UnreadCountResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {renop.api.v1.UnreadCountResponse} message UnreadCountResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                UnreadCountResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults)
+                        object.unread_count = 0;
+                    if (message.unread_count != null && $Object.hasOwnProperty.call(message, "unread_count"))
+                        object.unread_count = message.unread_count;
+                    return object;
+                };
+
+                /**
+                 * Converts this UnreadCountResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                UnreadCountResponse.prototype.toJSON = function() {
+                    return UnreadCountResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for UnreadCountResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.UnreadCountResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                UnreadCountResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.UnreadCountResponse";
+                };
+
+                return UnreadCountResponse;
+            })();
+
+            v1.MarkAllReadResponse = (function() {
+
+                /**
+                 * Properties of a MarkAllReadResponse.
+                 * @typedef {Object} renop.api.v1.MarkAllReadResponse.$Properties
+                 * @property {boolean|null} [ok] MarkAllReadResponse ok
+                 * @property {number|Long|null} [updated] MarkAllReadResponse updated
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a MarkAllReadResponse.
+                 * @memberof renop.api.v1
+                 * @interface IMarkAllReadResponse
+                 * @augments renop.api.v1.MarkAllReadResponse.$Properties
+                 * @deprecated Use renop.api.v1.MarkAllReadResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a MarkAllReadResponse.
+                 * @typedef {renop.api.v1.MarkAllReadResponse.$Properties} renop.api.v1.MarkAllReadResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new MarkAllReadResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a MarkAllReadResponse.
+                 * @constructor
+                 * @param {renop.api.v1.MarkAllReadResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const MarkAllReadResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * MarkAllReadResponse ok.
+                 * @member {boolean} ok
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @instance
+                 */
+                MarkAllReadResponse.prototype.ok = false;
+
+                /**
+                 * MarkAllReadResponse updated.
+                 * @member {number|Long} updated
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @instance
+                 */
+                MarkAllReadResponse.prototype.updated = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new MarkAllReadResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {renop.api.v1.MarkAllReadResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.MarkAllReadResponse} MarkAllReadResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.MarkAllReadResponse.$Shape): renop.api.v1.MarkAllReadResponse & renop.api.v1.MarkAllReadResponse.$Shape;
+                 *   (properties?: renop.api.v1.MarkAllReadResponse.$Properties): renop.api.v1.MarkAllReadResponse;
+                 * }}
+                 */
+                MarkAllReadResponse.create = function(properties) {
+                    return new MarkAllReadResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified MarkAllReadResponse message. Does not implicitly {@link renop.api.v1.MarkAllReadResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {renop.api.v1.MarkAllReadResponse.$Properties} message MarkAllReadResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MarkAllReadResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok") && message.ok !== false)
+                        writer.uint32(/* id 1, wireType 0 =*/8).bool(message.ok);
+                    if (message.updated != null && $Object.hasOwnProperty.call(message, "updated") && (typeof message.updated === "object" ? message.updated.low || message.updated.high : message.updated !== 0))
+                        writer.uint32(/* id 2, wireType 0 =*/16).int64(message.updated);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified MarkAllReadResponse message, length delimited. Does not implicitly {@link renop.api.v1.MarkAllReadResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {renop.api.v1.MarkAllReadResponse.$Properties} message MarkAllReadResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                MarkAllReadResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a MarkAllReadResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.MarkAllReadResponse & renop.api.v1.MarkAllReadResponse.$Shape} MarkAllReadResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MarkAllReadResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MarkAllReadResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.ok = value;
+                                else
+                                    delete message.ok;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.updated = value;
+                                else
+                                    delete message.updated;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a MarkAllReadResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.MarkAllReadResponse & renop.api.v1.MarkAllReadResponse.$Shape} MarkAllReadResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                MarkAllReadResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a MarkAllReadResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                MarkAllReadResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok"))
+                        if (typeof message.ok !== "boolean")
+                            return "ok: boolean expected";
+                    if (message.updated != null && $Object.hasOwnProperty.call(message, "updated"))
+                        if (!$util.isInteger(message.updated) && !(message.updated && $util.isInteger(message.updated.low) && $util.isInteger(message.updated.high)))
+                            return "updated: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a MarkAllReadResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.MarkAllReadResponse} MarkAllReadResponse
+                 */
+                MarkAllReadResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.MarkAllReadResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.MarkAllReadResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.MarkAllReadResponse();
+                    if (object.ok != null)
+                        if (object.ok)
+                            message.ok = $Boolean(object.ok);
+                    if (object.updated != null)
+                        if (typeof object.updated === "object" ? object.updated.low || object.updated.high : $Number(object.updated) !== 0)
+                            if ($util.Long)
+                                message.updated = $util.Long.fromValue(object.updated, false);
+                            else if (typeof object.updated === "string")
+                                message.updated = $parseInt(object.updated, 10);
+                            else if (typeof object.updated === "number")
+                                message.updated = object.updated;
+                            else if (typeof object.updated === "object")
+                                message.updated = new $util.LongBits(object.updated.low >>> 0, object.updated.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a MarkAllReadResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {renop.api.v1.MarkAllReadResponse} message MarkAllReadResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                MarkAllReadResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.ok = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.updated = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.updated = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok"))
+                        object.ok = message.ok;
+                    if (message.updated != null && $Object.hasOwnProperty.call(message, "updated"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.updated = typeof message.updated === "number" ? $BigInt(message.updated) : $util.Long.fromBits(message.updated.low >>> 0, message.updated.high >>> 0, false).toBigInt();
+                        else if (typeof message.updated === "number")
+                            object.updated = options.longs === $String ? $String(message.updated) : message.updated;
+                        else
+                            object.updated = options.longs === $String ? $util.Long.prototype.toString.call(message.updated) : options.longs === $Number ? new $util.LongBits(message.updated.low >>> 0, message.updated.high >>> 0).toNumber() : message.updated;
+                    return object;
+                };
+
+                /**
+                 * Converts this MarkAllReadResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                MarkAllReadResponse.prototype.toJSON = function() {
+                    return MarkAllReadResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for MarkAllReadResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.MarkAllReadResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                MarkAllReadResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.MarkAllReadResponse";
+                };
+
+                return MarkAllReadResponse;
+            })();
+
+            v1.ClearMessagesResponse = (function() {
+
+                /**
+                 * Properties of a ClearMessagesResponse.
+                 * @typedef {Object} renop.api.v1.ClearMessagesResponse.$Properties
+                 * @property {boolean|null} [ok] ClearMessagesResponse ok
+                 * @property {number|Long|null} [deleted] ClearMessagesResponse deleted
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a ClearMessagesResponse.
+                 * @memberof renop.api.v1
+                 * @interface IClearMessagesResponse
+                 * @augments renop.api.v1.ClearMessagesResponse.$Properties
+                 * @deprecated Use renop.api.v1.ClearMessagesResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a ClearMessagesResponse.
+                 * @typedef {renop.api.v1.ClearMessagesResponse.$Properties} renop.api.v1.ClearMessagesResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new ClearMessagesResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a ClearMessagesResponse.
+                 * @constructor
+                 * @param {renop.api.v1.ClearMessagesResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const ClearMessagesResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * ClearMessagesResponse ok.
+                 * @member {boolean} ok
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @instance
+                 */
+                ClearMessagesResponse.prototype.ok = false;
+
+                /**
+                 * ClearMessagesResponse deleted.
+                 * @member {number|Long} deleted
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @instance
+                 */
+                ClearMessagesResponse.prototype.deleted = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new ClearMessagesResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {renop.api.v1.ClearMessagesResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.ClearMessagesResponse} ClearMessagesResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.ClearMessagesResponse.$Shape): renop.api.v1.ClearMessagesResponse & renop.api.v1.ClearMessagesResponse.$Shape;
+                 *   (properties?: renop.api.v1.ClearMessagesResponse.$Properties): renop.api.v1.ClearMessagesResponse;
+                 * }}
+                 */
+                ClearMessagesResponse.create = function(properties) {
+                    return new ClearMessagesResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified ClearMessagesResponse message. Does not implicitly {@link renop.api.v1.ClearMessagesResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {renop.api.v1.ClearMessagesResponse.$Properties} message ClearMessagesResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ClearMessagesResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok") && message.ok !== false)
+                        writer.uint32(/* id 1, wireType 0 =*/8).bool(message.ok);
+                    if (message.deleted != null && $Object.hasOwnProperty.call(message, "deleted") && (typeof message.deleted === "object" ? message.deleted.low || message.deleted.high : message.deleted !== 0))
+                        writer.uint32(/* id 2, wireType 0 =*/16).int64(message.deleted);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified ClearMessagesResponse message, length delimited. Does not implicitly {@link renop.api.v1.ClearMessagesResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {renop.api.v1.ClearMessagesResponse.$Properties} message ClearMessagesResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                ClearMessagesResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a ClearMessagesResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.ClearMessagesResponse & renop.api.v1.ClearMessagesResponse.$Shape} ClearMessagesResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ClearMessagesResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ClearMessagesResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.ok = value;
+                                else
+                                    delete message.ok;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.deleted = value;
+                                else
+                                    delete message.deleted;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a ClearMessagesResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.ClearMessagesResponse & renop.api.v1.ClearMessagesResponse.$Shape} ClearMessagesResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                ClearMessagesResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a ClearMessagesResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                ClearMessagesResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok"))
+                        if (typeof message.ok !== "boolean")
+                            return "ok: boolean expected";
+                    if (message.deleted != null && $Object.hasOwnProperty.call(message, "deleted"))
+                        if (!$util.isInteger(message.deleted) && !(message.deleted && $util.isInteger(message.deleted.low) && $util.isInteger(message.deleted.high)))
+                            return "deleted: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a ClearMessagesResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.ClearMessagesResponse} ClearMessagesResponse
+                 */
+                ClearMessagesResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.ClearMessagesResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.ClearMessagesResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.ClearMessagesResponse();
+                    if (object.ok != null)
+                        if (object.ok)
+                            message.ok = $Boolean(object.ok);
+                    if (object.deleted != null)
+                        if (typeof object.deleted === "object" ? object.deleted.low || object.deleted.high : $Number(object.deleted) !== 0)
+                            if ($util.Long)
+                                message.deleted = $util.Long.fromValue(object.deleted, false);
+                            else if (typeof object.deleted === "string")
+                                message.deleted = $parseInt(object.deleted, 10);
+                            else if (typeof object.deleted === "number")
+                                message.deleted = object.deleted;
+                            else if (typeof object.deleted === "object")
+                                message.deleted = new $util.LongBits(object.deleted.low >>> 0, object.deleted.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a ClearMessagesResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {renop.api.v1.ClearMessagesResponse} message ClearMessagesResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                ClearMessagesResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.ok = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.deleted = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.deleted = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok"))
+                        object.ok = message.ok;
+                    if (message.deleted != null && $Object.hasOwnProperty.call(message, "deleted"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.deleted = typeof message.deleted === "number" ? $BigInt(message.deleted) : $util.Long.fromBits(message.deleted.low >>> 0, message.deleted.high >>> 0, false).toBigInt();
+                        else if (typeof message.deleted === "number")
+                            object.deleted = options.longs === $String ? $String(message.deleted) : message.deleted;
+                        else
+                            object.deleted = options.longs === $String ? $util.Long.prototype.toString.call(message.deleted) : options.longs === $Number ? new $util.LongBits(message.deleted.low >>> 0, message.deleted.high >>> 0).toNumber() : message.deleted;
+                    return object;
+                };
+
+                /**
+                 * Converts this ClearMessagesResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                ClearMessagesResponse.prototype.toJSON = function() {
+                    return ClearMessagesResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for ClearMessagesResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.ClearMessagesResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                ClearMessagesResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.ClearMessagesResponse";
+                };
+
+                return ClearMessagesResponse;
+            })();
+
+            v1.SendNotificationRequest = (function() {
+
+                /**
+                 * Properties of a SendNotificationRequest.
+                 * @typedef {Object} renop.api.v1.SendNotificationRequest.$Properties
+                 * @property {Array.<string>|null} [recipients] SendNotificationRequest recipients
+                 * @property {boolean|null} [all] SendNotificationRequest all
+                 * @property {string|null} [severity] SendNotificationRequest severity
+                 * @property {string|null} [title] SendNotificationRequest title
+                 * @property {string|null} [body] SendNotificationRequest body
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a SendNotificationRequest.
+                 * @memberof renop.api.v1
+                 * @interface ISendNotificationRequest
+                 * @augments renop.api.v1.SendNotificationRequest.$Properties
+                 * @deprecated Use renop.api.v1.SendNotificationRequest.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a SendNotificationRequest.
+                 * @typedef {renop.api.v1.SendNotificationRequest.$Properties} renop.api.v1.SendNotificationRequest.$Shape
+                 */
+
+                /**
+                 * Constructs a new SendNotificationRequest.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a SendNotificationRequest.
+                 * @constructor
+                 * @param {renop.api.v1.SendNotificationRequest.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const SendNotificationRequest = function (properties) {
+                    this.recipients = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * SendNotificationRequest recipients.
+                 * @member {Array.<string>} recipients
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @instance
+                 */
+                SendNotificationRequest.prototype.recipients = $util.emptyArray;
+
+                /**
+                 * SendNotificationRequest all.
+                 * @member {boolean} all
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @instance
+                 */
+                SendNotificationRequest.prototype.all = false;
+
+                /**
+                 * SendNotificationRequest severity.
+                 * @member {string} severity
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @instance
+                 */
+                SendNotificationRequest.prototype.severity = "";
+
+                /**
+                 * SendNotificationRequest title.
+                 * @member {string} title
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @instance
+                 */
+                SendNotificationRequest.prototype.title = "";
+
+                /**
+                 * SendNotificationRequest body.
+                 * @member {string} body
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @instance
+                 */
+                SendNotificationRequest.prototype.body = "";
+
+                /**
+                 * Creates a new SendNotificationRequest instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {renop.api.v1.SendNotificationRequest.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.SendNotificationRequest} SendNotificationRequest instance
+                 * @type {{
+                 *   (properties: renop.api.v1.SendNotificationRequest.$Shape): renop.api.v1.SendNotificationRequest & renop.api.v1.SendNotificationRequest.$Shape;
+                 *   (properties?: renop.api.v1.SendNotificationRequest.$Properties): renop.api.v1.SendNotificationRequest;
+                 * }}
+                 */
+                SendNotificationRequest.create = function(properties) {
+                    return new SendNotificationRequest(properties);
+                };
+
+                /**
+                 * Encodes the specified SendNotificationRequest message. Does not implicitly {@link renop.api.v1.SendNotificationRequest.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {renop.api.v1.SendNotificationRequest.$Properties} message SendNotificationRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SendNotificationRequest.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.recipients != null && message.recipients.length)
+                        for (let i = 0; i < message.recipients.length; ++i)
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.recipients[i]);
+                    if (message.all != null && $Object.hasOwnProperty.call(message, "all") && message.all !== false)
+                        writer.uint32(/* id 2, wireType 0 =*/16).bool(message.all);
+                    if (message.severity != null && $Object.hasOwnProperty.call(message, "severity") && message.severity !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.severity);
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title") && message.title !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.title);
+                    if (message.body != null && $Object.hasOwnProperty.call(message, "body") && message.body !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.body);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified SendNotificationRequest message, length delimited. Does not implicitly {@link renop.api.v1.SendNotificationRequest.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {renop.api.v1.SendNotificationRequest.$Properties} message SendNotificationRequest message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SendNotificationRequest.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a SendNotificationRequest message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.SendNotificationRequest & renop.api.v1.SendNotificationRequest.$Shape} SendNotificationRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SendNotificationRequest.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SendNotificationRequest(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.recipients && message.recipients.length))
+                                    message.recipients = [];
+                                message.recipients.push(reader.stringVerify());
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.all = value;
+                                else
+                                    delete message.all;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.severity = value;
+                                else
+                                    delete message.severity;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.title = value;
+                                else
+                                    delete message.title;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.body = value;
+                                else
+                                    delete message.body;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a SendNotificationRequest message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.SendNotificationRequest & renop.api.v1.SendNotificationRequest.$Shape} SendNotificationRequest
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SendNotificationRequest.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a SendNotificationRequest message.
+                 * @function verify
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                SendNotificationRequest.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.recipients != null && $Object.hasOwnProperty.call(message, "recipients")) {
+                        if (!$Array.isArray(message.recipients))
+                            return "recipients: array expected";
+                        for (let i = 0; i < message.recipients.length; ++i)
+                            if (!$util.isString(message.recipients[i]))
+                                return "recipients: string[] expected";
+                    }
+                    if (message.all != null && $Object.hasOwnProperty.call(message, "all"))
+                        if (typeof message.all !== "boolean")
+                            return "all: boolean expected";
+                    if (message.severity != null && $Object.hasOwnProperty.call(message, "severity"))
+                        if (!$util.isString(message.severity))
+                            return "severity: string expected";
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title"))
+                        if (!$util.isString(message.title))
+                            return "title: string expected";
+                    if (message.body != null && $Object.hasOwnProperty.call(message, "body"))
+                        if (!$util.isString(message.body))
+                            return "body: string expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a SendNotificationRequest message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.SendNotificationRequest} SendNotificationRequest
+                 */
+                SendNotificationRequest.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.SendNotificationRequest)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.SendNotificationRequest: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.SendNotificationRequest();
+                    if (object.recipients) {
+                        if (!$Array.isArray(object.recipients))
+                            throw $TypeError(".renop.api.v1.SendNotificationRequest.recipients: array expected");
+                        message.recipients = $Array(object.recipients.length);
+                        for (let i = 0; i < object.recipients.length; ++i)
+                            message.recipients[i] = $String(object.recipients[i]);
+                    }
+                    if (object.all != null)
+                        if (object.all)
+                            message.all = $Boolean(object.all);
+                    if (object.severity != null)
+                        if (typeof object.severity !== "string" || object.severity.length)
+                            message.severity = $String(object.severity);
+                    if (object.title != null)
+                        if (typeof object.title !== "string" || object.title.length)
+                            message.title = $String(object.title);
+                    if (object.body != null)
+                        if (typeof object.body !== "string" || object.body.length)
+                            message.body = $String(object.body);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a SendNotificationRequest message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {renop.api.v1.SendNotificationRequest} message SendNotificationRequest
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                SendNotificationRequest.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.recipients = [];
+                    if (options.defaults) {
+                        object.all = false;
+                        object.severity = "";
+                        object.title = "";
+                        object.body = "";
+                    }
+                    if (message.recipients && message.recipients.length) {
+                        object.recipients = $Array(message.recipients.length);
+                        for (let j = 0; j < message.recipients.length; ++j)
+                            object.recipients[j] = message.recipients[j];
+                    }
+                    if (message.all != null && $Object.hasOwnProperty.call(message, "all"))
+                        object.all = message.all;
+                    if (message.severity != null && $Object.hasOwnProperty.call(message, "severity"))
+                        object.severity = message.severity;
+                    if (message.title != null && $Object.hasOwnProperty.call(message, "title"))
+                        object.title = message.title;
+                    if (message.body != null && $Object.hasOwnProperty.call(message, "body"))
+                        object.body = message.body;
+                    return object;
+                };
+
+                /**
+                 * Converts this SendNotificationRequest to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                SendNotificationRequest.prototype.toJSON = function() {
+                    return SendNotificationRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for SendNotificationRequest
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.SendNotificationRequest
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                SendNotificationRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.SendNotificationRequest";
+                };
+
+                return SendNotificationRequest;
+            })();
+
+            v1.SendNotificationResponse = (function() {
+
+                /**
+                 * Properties of a SendNotificationResponse.
+                 * @typedef {Object} renop.api.v1.SendNotificationResponse.$Properties
+                 * @property {boolean|null} [ok] SendNotificationResponse ok
+                 * @property {number|Long|null} [sent] SendNotificationResponse sent
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a SendNotificationResponse.
+                 * @memberof renop.api.v1
+                 * @interface ISendNotificationResponse
+                 * @augments renop.api.v1.SendNotificationResponse.$Properties
+                 * @deprecated Use renop.api.v1.SendNotificationResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a SendNotificationResponse.
+                 * @typedef {renop.api.v1.SendNotificationResponse.$Properties} renop.api.v1.SendNotificationResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new SendNotificationResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a SendNotificationResponse.
+                 * @constructor
+                 * @param {renop.api.v1.SendNotificationResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const SendNotificationResponse = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * SendNotificationResponse ok.
+                 * @member {boolean} ok
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @instance
+                 */
+                SendNotificationResponse.prototype.ok = false;
+
+                /**
+                 * SendNotificationResponse sent.
+                 * @member {number|Long} sent
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @instance
+                 */
+                SendNotificationResponse.prototype.sent = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new SendNotificationResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {renop.api.v1.SendNotificationResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.SendNotificationResponse} SendNotificationResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.SendNotificationResponse.$Shape): renop.api.v1.SendNotificationResponse & renop.api.v1.SendNotificationResponse.$Shape;
+                 *   (properties?: renop.api.v1.SendNotificationResponse.$Properties): renop.api.v1.SendNotificationResponse;
+                 * }}
+                 */
+                SendNotificationResponse.create = function(properties) {
+                    return new SendNotificationResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified SendNotificationResponse message. Does not implicitly {@link renop.api.v1.SendNotificationResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {renop.api.v1.SendNotificationResponse.$Properties} message SendNotificationResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SendNotificationResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok") && message.ok !== false)
+                        writer.uint32(/* id 1, wireType 0 =*/8).bool(message.ok);
+                    if (message.sent != null && $Object.hasOwnProperty.call(message, "sent") && (typeof message.sent === "object" ? message.sent.low || message.sent.high : message.sent !== 0))
+                        writer.uint32(/* id 2, wireType 0 =*/16).int64(message.sent);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified SendNotificationResponse message, length delimited. Does not implicitly {@link renop.api.v1.SendNotificationResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {renop.api.v1.SendNotificationResponse.$Properties} message SendNotificationResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                SendNotificationResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a SendNotificationResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.SendNotificationResponse & renop.api.v1.SendNotificationResponse.$Shape} SendNotificationResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SendNotificationResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SendNotificationResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.ok = value;
+                                else
+                                    delete message.ok;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.sent = value;
+                                else
+                                    delete message.sent;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a SendNotificationResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.SendNotificationResponse & renop.api.v1.SendNotificationResponse.$Shape} SendNotificationResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                SendNotificationResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a SendNotificationResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                SendNotificationResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok"))
+                        if (typeof message.ok !== "boolean")
+                            return "ok: boolean expected";
+                    if (message.sent != null && $Object.hasOwnProperty.call(message, "sent"))
+                        if (!$util.isInteger(message.sent) && !(message.sent && $util.isInteger(message.sent.low) && $util.isInteger(message.sent.high)))
+                            return "sent: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a SendNotificationResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.SendNotificationResponse} SendNotificationResponse
+                 */
+                SendNotificationResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.SendNotificationResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.SendNotificationResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.SendNotificationResponse();
+                    if (object.ok != null)
+                        if (object.ok)
+                            message.ok = $Boolean(object.ok);
+                    if (object.sent != null)
+                        if (typeof object.sent === "object" ? object.sent.low || object.sent.high : $Number(object.sent) !== 0)
+                            if ($util.Long)
+                                message.sent = $util.Long.fromValue(object.sent, false);
+                            else if (typeof object.sent === "string")
+                                message.sent = $parseInt(object.sent, 10);
+                            else if (typeof object.sent === "number")
+                                message.sent = object.sent;
+                            else if (typeof object.sent === "object")
+                                message.sent = new $util.LongBits(object.sent.low >>> 0, object.sent.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a SendNotificationResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {renop.api.v1.SendNotificationResponse} message SendNotificationResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                SendNotificationResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.ok = false;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.sent = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.sent = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.ok != null && $Object.hasOwnProperty.call(message, "ok"))
+                        object.ok = message.ok;
+                    if (message.sent != null && $Object.hasOwnProperty.call(message, "sent"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.sent = typeof message.sent === "number" ? $BigInt(message.sent) : $util.Long.fromBits(message.sent.low >>> 0, message.sent.high >>> 0, false).toBigInt();
+                        else if (typeof message.sent === "number")
+                            object.sent = options.longs === $String ? $String(message.sent) : message.sent;
+                        else
+                            object.sent = options.longs === $String ? $util.Long.prototype.toString.call(message.sent) : options.longs === $Number ? new $util.LongBits(message.sent.low >>> 0, message.sent.high >>> 0).toNumber() : message.sent;
+                    return object;
+                };
+
+                /**
+                 * Converts this SendNotificationResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                SendNotificationResponse.prototype.toJSON = function() {
+                    return SendNotificationResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for SendNotificationResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.SendNotificationResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                SendNotificationResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.SendNotificationResponse";
+                };
+
+                return SendNotificationResponse;
+            })();
+
+            v1.UserSearchResponse = (function() {
+
+                /**
+                 * Properties of a UserSearchResponse.
+                 * @typedef {Object} renop.api.v1.UserSearchResponse.$Properties
+                 * @property {Array.<string>|null} [users] UserSearchResponse users
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a UserSearchResponse.
+                 * @memberof renop.api.v1
+                 * @interface IUserSearchResponse
+                 * @augments renop.api.v1.UserSearchResponse.$Properties
+                 * @deprecated Use renop.api.v1.UserSearchResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a UserSearchResponse.
+                 * @typedef {renop.api.v1.UserSearchResponse.$Properties} renop.api.v1.UserSearchResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new UserSearchResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a UserSearchResponse.
+                 * @constructor
+                 * @param {renop.api.v1.UserSearchResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const UserSearchResponse = function (properties) {
+                    this.users = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * UserSearchResponse users.
+                 * @member {Array.<string>} users
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @instance
+                 */
+                UserSearchResponse.prototype.users = $util.emptyArray;
+
+                /**
+                 * Creates a new UserSearchResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {renop.api.v1.UserSearchResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.UserSearchResponse} UserSearchResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.UserSearchResponse.$Shape): renop.api.v1.UserSearchResponse & renop.api.v1.UserSearchResponse.$Shape;
+                 *   (properties?: renop.api.v1.UserSearchResponse.$Properties): renop.api.v1.UserSearchResponse;
+                 * }}
+                 */
+                UserSearchResponse.create = function(properties) {
+                    return new UserSearchResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified UserSearchResponse message. Does not implicitly {@link renop.api.v1.UserSearchResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {renop.api.v1.UserSearchResponse.$Properties} message UserSearchResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UserSearchResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.users != null && message.users.length)
+                        for (let i = 0; i < message.users.length; ++i)
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.users[i]);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified UserSearchResponse message, length delimited. Does not implicitly {@link renop.api.v1.UserSearchResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {renop.api.v1.UserSearchResponse.$Properties} message UserSearchResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                UserSearchResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a UserSearchResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.UserSearchResponse & renop.api.v1.UserSearchResponse.$Shape} UserSearchResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UserSearchResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UserSearchResponse();
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.users && message.users.length))
+                                    message.users = [];
+                                message.users.push(reader.stringVerify());
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a UserSearchResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.UserSearchResponse & renop.api.v1.UserSearchResponse.$Shape} UserSearchResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                UserSearchResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a UserSearchResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                UserSearchResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.users != null && $Object.hasOwnProperty.call(message, "users")) {
+                        if (!$Array.isArray(message.users))
+                            return "users: array expected";
+                        for (let i = 0; i < message.users.length; ++i)
+                            if (!$util.isString(message.users[i]))
+                                return "users: string[] expected";
+                    }
+                    return null;
+                };
+
+                /**
+                 * Creates a UserSearchResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.UserSearchResponse} UserSearchResponse
+                 */
+                UserSearchResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.UserSearchResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.UserSearchResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.UserSearchResponse();
+                    if (object.users) {
+                        if (!$Array.isArray(object.users))
+                            throw $TypeError(".renop.api.v1.UserSearchResponse.users: array expected");
+                        message.users = $Array(object.users.length);
+                        for (let i = 0; i < object.users.length; ++i)
+                            message.users[i] = $String(object.users[i]);
+                    }
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a UserSearchResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {renop.api.v1.UserSearchResponse} message UserSearchResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                UserSearchResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.users = [];
+                    if (message.users && message.users.length) {
+                        object.users = $Array(message.users.length);
+                        for (let j = 0; j < message.users.length; ++j)
+                            object.users[j] = message.users[j];
+                    }
+                    return object;
+                };
+
+                /**
+                 * Converts this UserSearchResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                UserSearchResponse.prototype.toJSON = function() {
+                    return UserSearchResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for UserSearchResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.UserSearchResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                UserSearchResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.UserSearchResponse";
+                };
+
+                return UserSearchResponse;
+            })();
+
+            v1.RepositorySearchResult = (function() {
+
+                /**
+                 * Properties of a RepositorySearchResult.
+                 * @typedef {Object} renop.api.v1.RepositorySearchResult.$Properties
+                 * @property {string|null} [name] RepositorySearchResult name
+                 * @property {string|null} [path] RepositorySearchResult path
+                 * @property {string|null} [type] RepositorySearchResult type
+                 * @property {string|null} [description] RepositorySearchResult description
+                 * @property {string|null} [latest_version] RepositorySearchResult latest_version
+                 * @property {number|Long|null} [size] RepositorySearchResult size
+                 * @property {number|Long|null} [modified_at] RepositorySearchResult modified_at
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a RepositorySearchResult.
+                 * @memberof renop.api.v1
+                 * @interface IRepositorySearchResult
+                 * @augments renop.api.v1.RepositorySearchResult.$Properties
+                 * @deprecated Use renop.api.v1.RepositorySearchResult.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a RepositorySearchResult.
+                 * @typedef {renop.api.v1.RepositorySearchResult.$Properties} renop.api.v1.RepositorySearchResult.$Shape
+                 */
+
+                /**
+                 * Constructs a new RepositorySearchResult.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a RepositorySearchResult.
+                 * @constructor
+                 * @param {renop.api.v1.RepositorySearchResult.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const RepositorySearchResult = function (properties) {
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * RepositorySearchResult name.
+                 * @member {string} name
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 */
+                RepositorySearchResult.prototype.name = "";
+
+                /**
+                 * RepositorySearchResult path.
+                 * @member {string} path
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 */
+                RepositorySearchResult.prototype.path = "";
+
+                /**
+                 * RepositorySearchResult type.
+                 * @member {string} type
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 */
+                RepositorySearchResult.prototype.type = "";
+
+                /**
+                 * RepositorySearchResult description.
+                 * @member {string} description
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 */
+                RepositorySearchResult.prototype.description = "";
+
+                /**
+                 * RepositorySearchResult latest_version.
+                 * @member {string} latest_version
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 */
+                RepositorySearchResult.prototype.latest_version = "";
+
+                /**
+                 * RepositorySearchResult size.
+                 * @member {number|Long} size
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 */
+                RepositorySearchResult.prototype.size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * RepositorySearchResult modified_at.
+                 * @member {number|Long} modified_at
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 */
+                RepositorySearchResult.prototype.modified_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                /**
+                 * Creates a new RepositorySearchResult instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResult.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.RepositorySearchResult} RepositorySearchResult instance
+                 * @type {{
+                 *   (properties: renop.api.v1.RepositorySearchResult.$Shape): renop.api.v1.RepositorySearchResult & renop.api.v1.RepositorySearchResult.$Shape;
+                 *   (properties?: renop.api.v1.RepositorySearchResult.$Properties): renop.api.v1.RepositorySearchResult;
+                 * }}
+                 */
+                RepositorySearchResult.create = function(properties) {
+                    return new RepositorySearchResult(properties);
+                };
+
+                /**
+                 * Encodes the specified RepositorySearchResult message. Does not implicitly {@link renop.api.v1.RepositorySearchResult.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResult.$Properties} message RepositorySearchResult message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepositorySearchResult.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name") && message.name !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path") && message.path !== "")
+                        writer.uint32(/* id 2, wireType 2 =*/18).string(message.path);
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type") && message.type !== "")
+                        writer.uint32(/* id 3, wireType 2 =*/26).string(message.type);
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description") && message.description !== "")
+                        writer.uint32(/* id 4, wireType 2 =*/34).string(message.description);
+                    if (message.latest_version != null && $Object.hasOwnProperty.call(message, "latest_version") && message.latest_version !== "")
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.latest_version);
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size") && (typeof message.size === "object" ? message.size.low || message.size.high : message.size !== 0))
+                        writer.uint32(/* id 6, wireType 0 =*/48).int64(message.size);
+                    if (message.modified_at != null && $Object.hasOwnProperty.call(message, "modified_at") && (typeof message.modified_at === "object" ? message.modified_at.low || message.modified_at.high : message.modified_at !== 0))
+                        writer.uint32(/* id 7, wireType 0 =*/56).int64(message.modified_at);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified RepositorySearchResult message, length delimited. Does not implicitly {@link renop.api.v1.RepositorySearchResult.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResult.$Properties} message RepositorySearchResult message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepositorySearchResult.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a RepositorySearchResult message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.RepositorySearchResult & renop.api.v1.RepositorySearchResult.$Shape} RepositorySearchResult
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepositorySearchResult.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepositorySearchResult(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.name = value;
+                                else
+                                    delete message.name;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.path = value;
+                                else
+                                    delete message.path;
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.type = value;
+                                else
+                                    delete message.type;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.description = value;
+                                else
+                                    delete message.description;
+                                continue;
+                            }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.latest_version = value;
+                                else
+                                    delete message.latest_version;
+                                continue;
+                            }
+                        case 6: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.size = value;
+                                else
+                                    delete message.size;
+                                continue;
+                            }
+                        case 7: {
+                                if (wireType !== 0)
+                                    break;
+                                if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                    message.modified_at = value;
+                                else
+                                    delete message.modified_at;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a RepositorySearchResult message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.RepositorySearchResult & renop.api.v1.RepositorySearchResult.$Shape} RepositorySearchResult
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepositorySearchResult.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a RepositorySearchResult message.
+                 * @function verify
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                RepositorySearchResult.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        if (!$util.isString(message.name))
+                            return "name: string expected";
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        if (!$util.isString(message.path))
+                            return "path: string expected";
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
+                        if (!$util.isString(message.type))
+                            return "type: string expected";
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description"))
+                        if (!$util.isString(message.description))
+                            return "description: string expected";
+                    if (message.latest_version != null && $Object.hasOwnProperty.call(message, "latest_version"))
+                        if (!$util.isString(message.latest_version))
+                            return "latest_version: string expected";
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size"))
+                        if (!$util.isInteger(message.size) && !(message.size && $util.isInteger(message.size.low) && $util.isInteger(message.size.high)))
+                            return "size: integer|Long expected";
+                    if (message.modified_at != null && $Object.hasOwnProperty.call(message, "modified_at"))
+                        if (!$util.isInteger(message.modified_at) && !(message.modified_at && $util.isInteger(message.modified_at.low) && $util.isInteger(message.modified_at.high)))
+                            return "modified_at: integer|Long expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a RepositorySearchResult message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.RepositorySearchResult} RepositorySearchResult
+                 */
+                RepositorySearchResult.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.RepositorySearchResult)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.RepositorySearchResult: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.RepositorySearchResult();
+                    if (object.name != null)
+                        if (typeof object.name !== "string" || object.name.length)
+                            message.name = $String(object.name);
+                    if (object.path != null)
+                        if (typeof object.path !== "string" || object.path.length)
+                            message.path = $String(object.path);
+                    if (object.type != null)
+                        if (typeof object.type !== "string" || object.type.length)
+                            message.type = $String(object.type);
+                    if (object.description != null)
+                        if (typeof object.description !== "string" || object.description.length)
+                            message.description = $String(object.description);
+                    if (object.latest_version != null)
+                        if (typeof object.latest_version !== "string" || object.latest_version.length)
+                            message.latest_version = $String(object.latest_version);
+                    if (object.size != null)
+                        if (typeof object.size === "object" ? object.size.low || object.size.high : $Number(object.size) !== 0)
+                            if ($util.Long)
+                                message.size = $util.Long.fromValue(object.size, false);
+                            else if (typeof object.size === "string")
+                                message.size = $parseInt(object.size, 10);
+                            else if (typeof object.size === "number")
+                                message.size = object.size;
+                            else if (typeof object.size === "object")
+                                message.size = new $util.LongBits(object.size.low >>> 0, object.size.high >>> 0).toNumber();
+                    if (object.modified_at != null)
+                        if (typeof object.modified_at === "object" ? object.modified_at.low || object.modified_at.high : $Number(object.modified_at) !== 0)
+                            if ($util.Long)
+                                message.modified_at = $util.Long.fromValue(object.modified_at, false);
+                            else if (typeof object.modified_at === "string")
+                                message.modified_at = $parseInt(object.modified_at, 10);
+                            else if (typeof object.modified_at === "number")
+                                message.modified_at = object.modified_at;
+                            else if (typeof object.modified_at === "object")
+                                message.modified_at = new $util.LongBits(object.modified_at.low >>> 0, object.modified_at.high >>> 0).toNumber();
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a RepositorySearchResult message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResult} message RepositorySearchResult
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                RepositorySearchResult.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.defaults) {
+                        object.name = "";
+                        object.path = "";
+                        object.type = "";
+                        object.description = "";
+                        object.latest_version = "";
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.size = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.size = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                        if ($util.Long) {
+                            let long = new $util.Long(0, 0, false);
+                            object.modified_at = options.longs === $String ? long.toString() : options.longs === $Number ? long.toNumber() : typeof $BigInt !== "undefined" && options.longs === $BigInt ? long.toBigInt() : long;
+                        } else
+                            object.modified_at = options.longs === $String ? "0" : typeof $BigInt !== "undefined" && options.longs === $BigInt ? $BigInt("0") : 0;
+                    }
+                    if (message.name != null && $Object.hasOwnProperty.call(message, "name"))
+                        object.name = message.name;
+                    if (message.path != null && $Object.hasOwnProperty.call(message, "path"))
+                        object.path = message.path;
+                    if (message.type != null && $Object.hasOwnProperty.call(message, "type"))
+                        object.type = message.type;
+                    if (message.description != null && $Object.hasOwnProperty.call(message, "description"))
+                        object.description = message.description;
+                    if (message.latest_version != null && $Object.hasOwnProperty.call(message, "latest_version"))
+                        object.latest_version = message.latest_version;
+                    if (message.size != null && $Object.hasOwnProperty.call(message, "size"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.size = typeof message.size === "number" ? $BigInt(message.size) : $util.Long.fromBits(message.size.low >>> 0, message.size.high >>> 0, false).toBigInt();
+                        else if (typeof message.size === "number")
+                            object.size = options.longs === $String ? $String(message.size) : message.size;
+                        else
+                            object.size = options.longs === $String ? $util.Long.prototype.toString.call(message.size) : options.longs === $Number ? new $util.LongBits(message.size.low >>> 0, message.size.high >>> 0).toNumber() : message.size;
+                    if (message.modified_at != null && $Object.hasOwnProperty.call(message, "modified_at"))
+                        if (typeof $BigInt !== "undefined" && options.longs === $BigInt)
+                            object.modified_at = typeof message.modified_at === "number" ? $BigInt(message.modified_at) : $util.Long.fromBits(message.modified_at.low >>> 0, message.modified_at.high >>> 0, false).toBigInt();
+                        else if (typeof message.modified_at === "number")
+                            object.modified_at = options.longs === $String ? $String(message.modified_at) : message.modified_at;
+                        else
+                            object.modified_at = options.longs === $String ? $util.Long.prototype.toString.call(message.modified_at) : options.longs === $Number ? new $util.LongBits(message.modified_at.low >>> 0, message.modified_at.high >>> 0).toNumber() : message.modified_at;
+                    return object;
+                };
+
+                /**
+                 * Converts this RepositorySearchResult to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                RepositorySearchResult.prototype.toJSON = function() {
+                    return RepositorySearchResult.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for RepositorySearchResult
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.RepositorySearchResult
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                RepositorySearchResult.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.RepositorySearchResult";
+                };
+
+                return RepositorySearchResult;
+            })();
+
+            v1.RepositorySearchResponse = (function() {
+
+                /**
+                 * Properties of a RepositorySearchResponse.
+                 * @typedef {Object} renop.api.v1.RepositorySearchResponse.$Properties
+                 * @property {string|null} [format] RepositorySearchResponse format
+                 * @property {Array.<renop.api.v1.RepositorySearchResult.$Properties>|null} [results] RepositorySearchResponse results
+                 * @property {number|null} [total] RepositorySearchResponse total
+                 * @property {boolean|null} [has_more] RepositorySearchResponse has_more
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+
+                /**
+                 * Properties of a RepositorySearchResponse.
+                 * @memberof renop.api.v1
+                 * @interface IRepositorySearchResponse
+                 * @augments renop.api.v1.RepositorySearchResponse.$Properties
+                 * @deprecated Use renop.api.v1.RepositorySearchResponse.$Properties instead.
+                 */
+
+                /**
+                 * Shape of a RepositorySearchResponse.
+                 * @typedef {renop.api.v1.RepositorySearchResponse.$Properties} renop.api.v1.RepositorySearchResponse.$Shape
+                 */
+
+                /**
+                 * Constructs a new RepositorySearchResponse.
+                 * @memberof renop.api.v1
+                 * @classdesc Represents a RepositorySearchResponse.
+                 * @constructor
+                 * @param {renop.api.v1.RepositorySearchResponse.$Properties=} [properties] Properties to set
+                 * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
+                 */
+                const RepositorySearchResponse = function (properties) {
+                    this.results = [];
+                    if (properties)
+                        for (let keys = $Object.keys(properties), i = 0; i < keys.length; ++i)
+                            if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                this[keys[i]] = properties[keys[i]];
+                };
+
+                /**
+                 * RepositorySearchResponse format.
+                 * @member {string} format
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @instance
+                 */
+                RepositorySearchResponse.prototype.format = "";
+
+                /**
+                 * RepositorySearchResponse results.
+                 * @member {Array.<renop.api.v1.RepositorySearchResult.$Properties>} results
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @instance
+                 */
+                RepositorySearchResponse.prototype.results = $util.emptyArray;
+
+                /**
+                 * RepositorySearchResponse total.
+                 * @member {number} total
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @instance
+                 */
+                RepositorySearchResponse.prototype.total = 0;
+
+                /**
+                 * RepositorySearchResponse has_more.
+                 * @member {boolean} has_more
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @instance
+                 */
+                RepositorySearchResponse.prototype.has_more = false;
+
+                /**
+                 * Creates a new RepositorySearchResponse instance using the specified properties.
+                 * @function create
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResponse.$Properties=} [properties] Properties to set
+                 * @returns {renop.api.v1.RepositorySearchResponse} RepositorySearchResponse instance
+                 * @type {{
+                 *   (properties: renop.api.v1.RepositorySearchResponse.$Shape): renop.api.v1.RepositorySearchResponse & renop.api.v1.RepositorySearchResponse.$Shape;
+                 *   (properties?: renop.api.v1.RepositorySearchResponse.$Properties): renop.api.v1.RepositorySearchResponse;
+                 * }}
+                 */
+                RepositorySearchResponse.create = function(properties) {
+                    return new RepositorySearchResponse(properties);
+                };
+
+                /**
+                 * Encodes the specified RepositorySearchResponse message. Does not implicitly {@link renop.api.v1.RepositorySearchResponse.verify|verify} messages.
+                 * @function encode
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResponse.$Properties} message RepositorySearchResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepositorySearchResponse.encode = function (message, writer, _depth) {
+                    if (!writer)
+                        writer = $Writer.create();
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format") && message.format !== "")
+                        writer.uint32(/* id 1, wireType 2 =*/10).string(message.format);
+                    if (message.results != null && message.results.length)
+                        for (let i = 0; i < message.results.length; ++i)
+                            $root.renop.api.v1.RepositorySearchResult.encode(message.results[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim();
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total") && message.total !== 0)
+                        writer.uint32(/* id 3, wireType 0 =*/24).int32(message.total);
+                    if (message.has_more != null && $Object.hasOwnProperty.call(message, "has_more") && message.has_more !== false)
+                        writer.uint32(/* id 4, wireType 0 =*/32).bool(message.has_more);
+                    if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
+                        for (let i = 0; i < message.$unknowns.length; ++i)
+                            writer.raw(message.$unknowns[i]);
+                    return writer;
+                };
+
+                /**
+                 * Encodes the specified RepositorySearchResponse message, length delimited. Does not implicitly {@link renop.api.v1.RepositorySearchResponse.verify|verify} messages.
+                 * @function encodeDelimited
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResponse.$Properties} message RepositorySearchResponse message or plain object to encode
+                 * @param {$protobuf.Writer} [writer] Writer to encode to
+                 * @returns {$protobuf.Writer} Writer
+                 */
+                RepositorySearchResponse.encodeDelimited = function(message, writer) {
+                    return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
+                };
+
+                /**
+                 * Decodes a RepositorySearchResponse message from the specified reader or buffer.
+                 * @function decode
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @param {number} [length] Message length if known beforehand
+                 * @returns {renop.api.v1.RepositorySearchResponse & renop.api.v1.RepositorySearchResponse.$Shape} RepositorySearchResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepositorySearchResponse.decode = function (reader, length, _end, _depth, _target) {
+                    if (!(reader instanceof $Reader))
+                        reader = $Reader.create(reader);
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepositorySearchResponse(), value;
+                    while (reader.pos < end) {
+                        let start = reader.pos;
+                        let tag = reader.tag();
+                        if (tag === _end) {
+                            _end = $undefined;
+                            break;
+                        }
+                        let wireType = tag & 7;
+                        switch (tag >>>= 3) {
+                        case 1: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.format = value;
+                                else
+                                    delete message.format;
+                                continue;
+                            }
+                        case 2: {
+                                if (wireType !== 2)
+                                    break;
+                                if (!(message.results && message.results.length))
+                                    message.results = [];
+                                message.results.push($root.renop.api.v1.RepositorySearchResult.decode(reader, reader.uint32(), $undefined, _depth + 1));
+                                continue;
+                            }
+                        case 3: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.int32())
+                                    message.total = value;
+                                else
+                                    delete message.total;
+                                continue;
+                            }
+                        case 4: {
+                                if (wireType !== 0)
+                                    break;
+                                if (value = reader.bool())
+                                    message.has_more = value;
+                                else
+                                    delete message.has_more;
+                                continue;
+                            }
+                        }
+                        reader.skipType(wireType, _depth, tag);
+                        if (!reader.discardUnknown) {
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
+                        }
+                    }
+                    if (_end !== $undefined)
+                        throw $Error("missing end group");
+                    return message;
+                };
+
+                /**
+                 * Decodes a RepositorySearchResponse message from the specified reader or buffer, length delimited.
+                 * @function decodeDelimited
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                 * @returns {renop.api.v1.RepositorySearchResponse & renop.api.v1.RepositorySearchResponse.$Shape} RepositorySearchResponse
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                RepositorySearchResponse.decodeDelimited = function(reader) {
+                    if (!(reader instanceof $Reader))
+                        reader = new $Reader(reader);
+                    return this.decode(reader, reader.uint32());
+                };
+
+                /**
+                 * Verifies a RepositorySearchResponse message.
+                 * @function verify
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {Object.<string,*>} message Plain object to verify
+                 * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                 */
+                RepositorySearchResponse.verify = function (message, _depth) {
+                    if (typeof message !== "object" || message === null)
+                        return "object expected";
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        return "max depth exceeded";
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        if (!$util.isString(message.format))
+                            return "format: string expected";
+                    if (message.results != null && $Object.hasOwnProperty.call(message, "results")) {
+                        if (!$Array.isArray(message.results))
+                            return "results: array expected";
+                        for (let i = 0; i < message.results.length; ++i) {
+                            let error = $root.renop.api.v1.RepositorySearchResult.verify(message.results[i], _depth + 1);
+                            if (error)
+                                return "results." + error;
+                        }
+                    }
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total"))
+                        if (!$util.isInteger(message.total))
+                            return "total: integer expected";
+                    if (message.has_more != null && $Object.hasOwnProperty.call(message, "has_more"))
+                        if (typeof message.has_more !== "boolean")
+                            return "has_more: boolean expected";
+                    return null;
+                };
+
+                /**
+                 * Creates a RepositorySearchResponse message from a plain object. Also converts values to their respective internal types.
+                 * @function fromObject
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {Object.<string,*>} object Plain object
+                 * @returns {renop.api.v1.RepositorySearchResponse} RepositorySearchResponse
+                 */
+                RepositorySearchResponse.fromObject = function (object, _depth) {
+                    if (object instanceof $root.renop.api.v1.RepositorySearchResponse)
+                        return object;
+                    if (!$util.isObject(object))
+                        throw $TypeError(".renop.api.v1.RepositorySearchResponse: object expected");
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let message = new $root.renop.api.v1.RepositorySearchResponse();
+                    if (object.format != null)
+                        if (typeof object.format !== "string" || object.format.length)
+                            message.format = $String(object.format);
+                    if (object.results) {
+                        if (!$Array.isArray(object.results))
+                            throw $TypeError(".renop.api.v1.RepositorySearchResponse.results: array expected");
+                        message.results = $Array(object.results.length);
+                        for (let i = 0; i < object.results.length; ++i) {
+                            if (!$util.isObject(object.results[i]))
+                                throw $TypeError(".renop.api.v1.RepositorySearchResponse.results: object expected");
+                            message.results[i] = $root.renop.api.v1.RepositorySearchResult.fromObject(object.results[i], _depth + 1);
+                        }
+                    }
+                    if (object.total != null)
+                        if ($Number(object.total) !== 0)
+                            message.total = object.total | 0;
+                    if (object.has_more != null)
+                        if (object.has_more)
+                            message.has_more = $Boolean(object.has_more);
+                    return message;
+                };
+
+                /**
+                 * Creates a plain object from a RepositorySearchResponse message. Also converts values to other types if specified.
+                 * @function toObject
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {renop.api.v1.RepositorySearchResponse} message RepositorySearchResponse
+                 * @param {$protobuf.IConversionOptions} [options] Conversion options
+                 * @returns {Object.<string,*>} Plain object
+                 */
+                RepositorySearchResponse.toObject = function (message, options, _depth) {
+                    if (!options)
+                        options = {};
+                    if (_depth === $undefined)
+                        _depth = 0;
+                    if (_depth > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    let object = {};
+                    if (options.arrays || options.defaults)
+                        object.results = [];
+                    if (options.defaults) {
+                        object.format = "";
+                        object.total = 0;
+                        object.has_more = false;
+                    }
+                    if (message.format != null && $Object.hasOwnProperty.call(message, "format"))
+                        object.format = message.format;
+                    if (message.results && message.results.length) {
+                        object.results = $Array(message.results.length);
+                        for (let j = 0; j < message.results.length; ++j)
+                            object.results[j] = $root.renop.api.v1.RepositorySearchResult.toObject(message.results[j], options, _depth + 1);
+                    }
+                    if (message.total != null && $Object.hasOwnProperty.call(message, "total"))
+                        object.total = message.total;
+                    if (message.has_more != null && $Object.hasOwnProperty.call(message, "has_more"))
+                        object.has_more = message.has_more;
+                    return object;
+                };
+
+                /**
+                 * Converts this RepositorySearchResponse to JSON.
+                 * @function toJSON
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @instance
+                 * @returns {Object.<string,*>} JSON object
+                 */
+                RepositorySearchResponse.prototype.toJSON = function() {
+                    return RepositorySearchResponse.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                /**
+                 * Gets the type url for RepositorySearchResponse
+                 * @function getTypeUrl
+                 * @memberof renop.api.v1.RepositorySearchResponse
+                 * @static
+                 * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                 * @returns {string} The type url
+                 */
+                RepositorySearchResponse.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/renop.api.v1.RepositorySearchResponse";
+                };
+
+                return RepositorySearchResponse;
             })();
 
             return v1;

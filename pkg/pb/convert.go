@@ -308,10 +308,13 @@ func FromStorageConfig(c *config.Config) *StorageConfig {
 		return &StorageConfig{}
 	}
 	return &StorageConfig{
-		StoragePath:          c.StoragePath,
-		EnableJavadocPreview: c.EnableJavadocPreview,
-		JavadocExtractPath:   c.JavadocExtractPath,
-		MaxJavadocSizeMb:     c.MaxJavadocSizeMb,
+		StoragePath:           c.StoragePath,
+		EnableJavadocPreview:  c.EnableJavadocPreview,
+		JavadocExtractPath:    c.JavadocExtractPath,
+		MaxJavadocSizeMb:      c.MaxJavadocSizeMb,
+		EnableCargodocPreview: c.EnableCargodocPreview,
+		CargodocExtractPath:   c.CargodocExtractPath,
+		MaxCargodocSizeMb:     c.MaxCargodocSizeMb,
 	}
 }
 
@@ -324,6 +327,9 @@ func ApplyStorageConfig(dst *config.Config, src *StorageConfig) {
 	dst.EnableJavadocPreview = src.EnableJavadocPreview
 	dst.JavadocExtractPath = src.JavadocExtractPath
 	dst.MaxJavadocSizeMb = src.MaxJavadocSizeMb
+	dst.EnableCargodocPreview = src.EnableCargodocPreview
+	dst.CargodocExtractPath = src.CargodocExtractPath
+	dst.MaxCargodocSizeMb = src.MaxCargodocSizeMb
 }
 
 func FromGPGConfig(g config.GPGConfig) *GpgConfig {
@@ -662,5 +668,110 @@ func FromCreateAccessTokenResponse(res core.CreateAccessTokenResponse) *CreateAc
 	return &CreateAccessTokenResponse{
 		AccessToken: FromAccessTokenDto(res.AccessToken),
 		Secret:      res.Secret,
+	}
+}
+
+func FromAuditLogEntry(e *core.AuditLogEntry) *AuditLogEntryDto {
+	if e == nil {
+		return nil
+	}
+	return &AuditLogEntryDto{
+		Id:         e.ID,
+		Username:   e.Username,
+		Operator:   e.Operator,
+		Action:     e.Action,
+		Details:    e.Details,
+		AuthMethod: e.AuthMethod,
+		SessionId:  e.SessionID,
+		Ip:         e.IP,
+		CreatedAt:  e.CreatedAt,
+	}
+}
+
+func FromAuditLogList(logs []*core.AuditLogEntry, total, page, pageSize int) *AuditLogList {
+	out := &AuditLogList{
+		Logs:     make([]*AuditLogEntryDto, 0, len(logs)),
+		Total:    int32(total),
+		Page:     int32(page),
+		PageSize: int32(pageSize),
+	}
+	for _, l := range logs {
+		if converted := FromAuditLogEntry(l); converted != nil {
+			out.Logs = append(out.Logs, converted)
+		}
+	}
+	return out
+}
+
+func FromUserMessage(m *core.UserMessage) *UserMessageDto {
+	if m == nil {
+		return nil
+	}
+	payload := ""
+	if len(m.Payload) > 0 {
+		payload = string(m.Payload)
+	}
+	return &UserMessageDto{
+		Id:           m.ID,
+		Recipient:    m.Recipient,
+		Sender:       m.Sender,
+		Kind:         m.Kind,
+		Severity:     m.Severity,
+		Title:        m.Title,
+		Body:         m.Body,
+		Payload:      payload,
+		ActionKind:   m.ActionKind,
+		ActionStatus: m.ActionStatus,
+		CreatedAt:    m.CreatedAt,
+		ReadAt:       m.ReadAt,
+		ActedAt:      m.ActedAt,
+		ExpiresAt:    m.ExpiresAt,
+	}
+}
+
+func FromUserMessageList(messages []*core.UserMessage, unreadCount int, nextCursor string) *UserMessageList {
+	out := &UserMessageList{
+		Messages:    make([]*UserMessageDto, 0, len(messages)),
+		UnreadCount: int32(unreadCount),
+		NextCursor:  nextCursor,
+	}
+	for _, m := range messages {
+		if converted := FromUserMessage(m); converted != nil {
+			out.Messages = append(out.Messages, converted)
+		}
+	}
+	return out
+}
+
+func FromUnreadCount(count int) *UnreadCountResponse {
+	return &UnreadCountResponse{
+		UnreadCount: int32(count),
+	}
+}
+
+func FromMarkAllRead(updated int64) *MarkAllReadResponse {
+	return &MarkAllReadResponse{
+		Ok:      true,
+		Updated: updated,
+	}
+}
+
+func FromClearMessages(deleted int64) *ClearMessagesResponse {
+	return &ClearMessagesResponse{
+		Ok:      true,
+		Deleted: deleted,
+	}
+}
+
+func FromSendNotification(sent int64) *SendNotificationResponse {
+	return &SendNotificationResponse{
+		Ok:   true,
+		Sent: sent,
+	}
+}
+
+func FromUserSearch(users []string) *UserSearchResponse {
+	return &UserSearchResponse{
+		Users: append([]string(nil), users...),
 	}
 }

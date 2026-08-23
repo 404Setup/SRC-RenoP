@@ -3,7 +3,9 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 // Package message exposes the user message center and a small delivery API for
@@ -29,6 +31,8 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
 
 const (
@@ -132,13 +136,13 @@ func list(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to count messages")
 	}
-	response := listResponse{Messages: messages, UnreadCount: unread}
+	nextCursor := ""
 	if len(messages) == limit {
 		last := messages[len(messages)-1]
-		response.NextCursor = encodeCursor(last.CreatedAt, last.ID)
+		nextCursor = encodeCursor(last.CreatedAt, last.ID)
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(response)
+	return protohttp.Write(c, pb.FromUserMessageList(messages, unread, nextCursor))
 }
 
 func unreadCount(c fiber.Ctx, state *core.AppState) error {
@@ -155,7 +159,7 @@ func unreadCount(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to count messages")
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(fiber.Map{"unread_count": count})
+	return protohttp.Write(c, pb.FromUnreadCount(count))
 }
 
 func markRead(c fiber.Ctx, state *core.AppState) error {
@@ -184,7 +188,7 @@ func markRead(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusNotFound).SendString("Message not found")
 		}
 	}
-	return c.JSON(fiber.Map{"ok": true})
+	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
 func markAllRead(c fiber.Ctx, state *core.AppState) error {
@@ -200,7 +204,7 @@ func markAllRead(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update messages")
 	}
-	return c.JSON(fiber.Map{"ok": true, "updated": updated})
+	return protohttp.Write(c, pb.FromMarkAllRead(updated))
 }
 
 func clear(c fiber.Ctx, state *core.AppState) error {
@@ -216,7 +220,7 @@ func clear(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to clear messages")
 	}
-	return c.JSON(fiber.Map{"ok": true, "deleted": deleted})
+	return protohttp.Write(c, pb.FromClearMessages(deleted))
 }
 
 func remove(c fiber.Ctx, state *core.AppState) error {
@@ -244,7 +248,7 @@ func remove(c fiber.Ctx, state *core.AppState) error {
 		}
 		return c.Status(fiber.StatusNotFound).SendString("Message not found")
 	}
-	return c.JSON(fiber.Map{"ok": true})
+	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
 func sendNotification(c fiber.Ctx, state *core.AppState) error {
@@ -252,9 +256,22 @@ func sendNotification(c fiber.Ctx, state *core.AppState) error {
 	if sender == nil || !sender.IsManager() {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
+	var protoReq pb.SendNotificationRequest
+	readErr := protohttp.Read(c, &protoReq)
+	if readErr == fiber.ErrRequestEntityTooLarge {
+		return readErr
+	}
 	var request notificationRequest
-	if err := decodeJSONRequest(c, &request); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid notification")
+	if readErr == nil && (len(protoReq.Recipients) > 0 || protoReq.All || protoReq.Title != "" || protoReq.Body != "") {
+		request.Recipients = protoReq.Recipients
+		request.All = protoReq.All
+		request.Severity = protoReq.Severity
+		request.Title = protoReq.Title
+		request.Body = protoReq.Body
+	} else {
+		if err := decodeJSONRequest(c, &request); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid notification")
+		}
 	}
 	request.Title = strings.TrimSpace(request.Title)
 	request.Body = strings.TrimSpace(request.Body)
@@ -297,7 +314,7 @@ func sendNotification(c fiber.Ctx, state *core.AppState) error {
 		Details:    "Sent a notification to " + strconv.Itoa(len(messages)) + " user(s)",
 		AuthMethod: authMethod, SessionID: sessionID, IP: ip,
 	})
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"ok": true, "sent": len(messages)})
+	return protohttp.WriteStatus(c, fiber.StatusCreated, pb.FromSendNotification(int64(len(messages))))
 }
 
 func searchUsers(c fiber.Ctx, state *core.AppState) error {
@@ -308,7 +325,7 @@ func searchUsers(c fiber.Ctx, state *core.AppState) error {
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	query := strings.ToLower(strings.TrimSpace(c.Query("q")))
 	if query == "" {
-		return c.JSON(userSearchResponse{Users: []string{}})
+		return protohttp.Write(c, pb.FromUserSearch([]string{}))
 	}
 	if !validMessageText(query, 255, false) {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid user search")
@@ -321,7 +338,7 @@ func searchUsers(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to search users")
 	}
-	return c.JSON(userSearchResponse{Users: users})
+	return protohttp.Write(c, pb.FromUserSearch(users))
 }
 
 func resolveRecipients(state *core.AppState, request notificationRequest) ([]string, error) {

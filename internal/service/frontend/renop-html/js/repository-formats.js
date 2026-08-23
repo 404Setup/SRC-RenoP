@@ -29,7 +29,7 @@ const FORMAT_CATALOG = Object.freeze({
     })
 });
 
-const RESERVED_REPOSITORY_NAMES = new Set(['api', 'assets', 'css', 'js', 'svg', 'javadoc', 'javadocs']);
+const RESERVED_REPOSITORY_NAMES = new Set(['api', 'assets', 'css', 'js', 'svg', 'javadoc', 'javadocs', 'cargodoc', 'cargodocs', 'cratedoc', 'cratedocs']);
 
 /**
  * Return the canonical descriptor for a repository format.

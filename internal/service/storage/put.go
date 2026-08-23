@@ -85,11 +85,16 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	}()
 
 	contentLength := c.Request().Header.ContentLength()
+	bodyReader := c.Request().BodyStream()
+	var bodyData []byte
 	var estimatedSize int64
-	if contentLength > 0 {
-		estimatedSize = int64(contentLength)
+	if bodyReader != nil {
+		if contentLength > 0 {
+			estimatedSize = int64(contentLength)
+		}
 	} else {
-		estimatedSize = int64(len(c.Body()))
+		bodyData = c.Body()
+		estimatedSize = int64(len(bodyData))
 	}
 	estimatedRequired := EstimateUploadDiskSpace(localFilePath, estimatedSize)
 	if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isSignature && estimatedSize > gpg.MaxDetachedSignatureSize {
@@ -154,9 +159,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		writeDest = bufWriter
 	}
 
-	bodyReader := c.Request().BodyStream()
 	if bodyReader == nil {
-		bodyData := c.Body()
 		if _, err := writeDest.Write(bodyData); err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 		}

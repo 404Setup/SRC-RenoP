@@ -9,11 +9,12 @@
  */
 
 import {t} from './i18n.js';
-import {apiRequest} from './api.js';
+import {apiRequest, fetchProto} from './api.js';
 import {showAlert} from './alert.js';
 import {el} from '@renop/ui/dom';
 import {RenopDialog} from './components.js';
 import {enableDragToScroll} from '@renop/ui/scroll';
+import {AuditLogList} from './proto/index.js';
 
 let currentAuditModal = null;
 
@@ -133,8 +134,8 @@ export async function openAuditLogsDialog(options = {}) {
                 ? `/api/auth/profile/audit-logs?page=${page}&page_size=${pageSize}`
                 : `/api/auth/users/${encodeURIComponent(targetUsername)}/audit-logs?page=${page}&page_size=${pageSize}`;
 
-            const res = await apiRequest(endpoint);
-            if (!res.ok) {
+            const {response: res, data} = await fetchProto(endpoint, AuditLogList);
+            if (!res.ok || !data) {
                 contentArea.classList.remove('is-busy');
                 if (!hasLoadedOnce) {
                     contentArea.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444; font-size: 0.9rem;">${t('common.error') || 'Failed to load activity logs'}</div>`;
@@ -144,7 +145,6 @@ export async function openAuditLogsDialog(options = {}) {
                 return;
             }
 
-            const data = await res.json();
             const logs = data.logs || [];
             const total = data.total || 0;
 

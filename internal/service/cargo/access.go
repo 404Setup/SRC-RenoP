@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -31,10 +33,13 @@ func authenticatedUser(c fiber.Ctx) (*config.User, error) {
 // Cargo package membership grant read access to the rest of a private Cargo
 // registry, which is required to resolve package dependencies.
 func CanReadRepository(state *core.AppState, user *config.User, repo *config.Repository, path string, isRoot bool) (bool, error) {
-	if user == nil || repo == nil {
+	if repo == nil {
 		return false, nil
 	}
-	if user.CheckReadPermission(repo.Name, path, repo.Visibility, isRoot) {
+	if strings.EqualFold(repo.Visibility, "PUBLIC") || strings.EqualFold(repo.Visibility, "HIDDEN") {
+		return true, nil
+	}
+	if user != nil && user.CheckReadPermission(repo.Name, path, repo.Visibility, isRoot) {
 		return true, nil
 	}
 	if repo.NormalizedFormat() != config.RepositoryFormatCargo || user.Username == "" || strings.EqualFold(user.Username, "guest") {
@@ -81,11 +86,8 @@ func authorizePackageMutation(c fiber.Ctx, state *core.AppState, repository, cra
 	if err != nil {
 		return nil, nil, err
 	}
-	if user.IsManager() {
-		if administratorAllowed {
-			return user, details, nil
-		}
-		return nil, nil, core.ErrCargoPermissionDenied
+	if user.IsManager() && administratorAllowed {
+		return user, details, nil
 	}
 	if details.Package.PermissionLevel < level {
 		return nil, nil, core.ErrCargoPermissionDenied

@@ -11,17 +11,20 @@
 package audit
 
 import (
+	"io"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
 
 func newTestAuditDB(t *testing.T) *database.DB {
@@ -107,11 +110,15 @@ func TestAuditLogFlow(t *testing.T) {
 		resp, err := app.Test(req)
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode)
+		assert.Equal(t, protohttp.ContentType, resp.Header.Get(fiber.HeaderContentType))
 
-		var res AuditLogListResponse
-		err = json.NewDecoder(resp.Body).Decode(&res)
+		body, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		assert.Equal(t, 2, res.Total)
+
+		var res pb.AuditLogList
+		err = proto.Unmarshal(body, &res)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 2, res.Total)
 
 		for _, l := range res.Logs {
 			if l.Action == "USER_PERMISSION_UPDATE" {
@@ -134,11 +141,15 @@ func TestAuditLogFlow(t *testing.T) {
 		resp, err := app.Test(req)
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode)
+		assert.Equal(t, protohttp.ContentType, resp.Header.Get(fiber.HeaderContentType))
 
-		var res AuditLogListResponse
-		err = json.NewDecoder(resp.Body).Decode(&res)
+		body, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		assert.Equal(t, 2, res.Total)
+
+		var res pb.AuditLogList
+		err = proto.Unmarshal(body, &res)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 2, res.Total)
 
 		foundAdminOp := false
 		for _, l := range res.Logs {
@@ -156,6 +167,7 @@ func TestAuditLogFlow(t *testing.T) {
 		resp, err := app.Test(req)
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode)
+		assert.Equal(t, protohttp.ContentType, resp.Header.Get(fiber.HeaderContentType))
 
 		req2 := httptest.NewRequest("GET", "/api/auth/users/user1/audit-logs", nil)
 		req2.Header.Set("X-Test-User", "admin")
@@ -163,8 +175,11 @@ func TestAuditLogFlow(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp2.StatusCode)
 
-		var res2 AuditLogListResponse
-		_ = json.NewDecoder(resp2.Body).Decode(&res2)
+		body2, err := io.ReadAll(resp2.Body)
+		assert.NoError(t, err)
+
+		var res2 pb.AuditLogList
+		_ = proto.Unmarshal(body2, &res2)
 		// After clearing, only the LOG_CLEAR entry itself should remain (added by DeleteUserAuditLogs)
 		for _, l := range res2.Logs {
 			assert.NotEqual(t, "LOGIN", l.Action)

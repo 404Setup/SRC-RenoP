@@ -33,6 +33,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/cargodocs"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
@@ -114,6 +115,8 @@ func init() {
 	}
 	javadocs.IsS3Enabled = IsS3Enabled
 	javadocs.DownloadFromS3 = DownloadFromS3
+	cargodocs.IsS3Enabled = IsS3Enabled
+	cargodocs.DownloadFromS3 = DownloadFromS3
 }
 
 func InitS3(cfg *config.Config) {

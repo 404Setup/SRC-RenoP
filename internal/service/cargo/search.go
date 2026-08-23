@@ -18,6 +18,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/cargodocs"
 )
 
 func (h Handler) search(c fiber.Ctx, state *core.AppState, repo *config.Repository) error {
@@ -89,14 +90,22 @@ func (h Handler) packageInfo(c fiber.Ctx, state *core.AppState, repo *config.Rep
 		details.Members = []*core.CargoMember{}
 	}
 
-	h.enrichPackageVersionsFromIndex(repo, storagePath, details)
+	h.enrichPackageVersionsFromIndex(state, repo, storagePath, details)
 
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(packageInfoResponse{CargoPackageDetails: details, Admin: administrator})
 }
 
-func (h Handler) enrichPackageVersionsFromIndex(repo *config.Repository, storagePath string, details *core.CargoPackageDetails) {
-	if details == nil || details.Package == nil || h.Store == nil {
+func (h Handler) enrichPackageVersionsFromIndex(state *core.AppState, repo *config.Repository, storagePath string, details *core.CargoPackageDetails) {
+	if details == nil || details.Package == nil {
+		return
+	}
+	for _, v := range details.Versions {
+		if v != nil {
+			v.HasDocs = cargodocs.HasCargodoc(state, repo.Name, details.Package.Name, v.Version)
+		}
+	}
+	if h.Store == nil {
 		return
 	}
 	indexFilePath := cargoIndexPath(storagePath, repo, details.Package.Name)

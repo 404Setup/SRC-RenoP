@@ -58,6 +58,18 @@ export const CreateAccessTokenResponse = v1.CreateAccessTokenResponse;
 export const VersionsResponse = v1.VersionsResponse;
 export const LatestVersionResponse = v1.LatestVersionResponse;
 export const PomDetails = v1.PomDetails;
+export const AuditLogEntryDto = v1.AuditLogEntryDto;
+export const AuditLogList = v1.AuditLogList;
+export const UserMessageDto = v1.UserMessageDto;
+export const UserMessageList = v1.UserMessageList;
+export const UnreadCountResponse = v1.UnreadCountResponse;
+export const MarkAllReadResponse = v1.MarkAllReadResponse;
+export const ClearMessagesResponse = v1.ClearMessagesResponse;
+export const SendNotificationRequest = v1.SendNotificationRequest;
+export const SendNotificationResponse = v1.SendNotificationResponse;
+export const UserSearchResponse = v1.UserSearchResponse;
+export const RepositorySearchResult = v1.RepositorySearchResult;
+export const RepositorySearchResponse = v1.RepositorySearchResponse;
 
 /** Options so decoded objects keep snake_case and numeric 64-bit fields. */
 export const protoObjectOptions = {

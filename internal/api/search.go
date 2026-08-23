@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -23,6 +25,8 @@ import (
 	"renop/internal/service/cargo"
 	"renop/internal/service/index"
 	"renop/internal/utils"
+	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
 
 const (
@@ -31,23 +35,6 @@ const (
 	maxRepositorySearchScan      = 100000
 	maxRepositorySearchMatches   = 500
 )
-
-type repositorySearchResult struct {
-	Name          string `json:"name"`
-	Path          string `json:"path"`
-	Type          string `json:"type"`
-	Description   string `json:"description,omitempty"`
-	LatestVersion string `json:"latest_version,omitempty"`
-	Size          int64  `json:"size,omitempty"`
-	ModifiedAt    int64  `json:"modified_at,omitempty"`
-}
-
-type repositorySearchResponse struct {
-	Format  string                   `json:"format"`
-	Results []repositorySearchResult `json:"results"`
-	Total   int                      `json:"total"`
-	HasMore bool                     `json:"has_more"`
-}
 
 // SearchRepository provides one bounded, format-aware search endpoint for the
 // repository browser. Cargo searches package metadata; Maven searches the
@@ -83,7 +70,7 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
 	}
 
-	var response repositorySearchResponse
+	var response *pb.RepositorySearchResponse
 	if repo.NormalizedFormat() == config.RepositoryFormatCargo {
 		response, err = searchCargoRepository(state, repo, query, limit)
 	} else {
@@ -93,38 +80,38 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Repository search failed")
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(response)
+	return protohttp.Write(c, response)
 }
 
-func searchCargoRepository(state *core.AppState, repo *config.Repository, query string, limit int) (repositorySearchResponse, error) {
+func searchCargoRepository(state *core.AppState, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {
 	db := state.GetDB()
 	if db == nil {
-		return repositorySearchResponse{}, core.ErrDatabaseUnavailable
+		return nil, core.ErrDatabaseUnavailable
 	}
 	packages, total, err := db.SearchCargoPackages(repo.Name, query, limit, 0)
 	if err != nil {
-		return repositorySearchResponse{}, err
+		return nil, err
 	}
-	results := make([]repositorySearchResult, 0, len(packages))
+	results := make([]*pb.RepositorySearchResult, 0, len(packages))
 	for _, pkg := range packages {
 		if pkg == nil {
 			continue
 		}
-		results = append(results, repositorySearchResult{
+		results = append(results, &pb.RepositorySearchResult{
 			Name: pkg.Name, Path: "packages/" + pkg.Name, Type: "PACKAGE",
 			Description: pkg.Description, LatestVersion: pkg.MaxVersion,
 		})
 	}
-	return repositorySearchResponse{
-		Format: config.RepositoryFormatCargo, Results: results, Total: total, HasMore: total > len(results),
+	return &pb.RepositorySearchResponse{
+		Format: config.RepositoryFormatCargo, Results: results, Total: int32(total), HasMore: total > len(results),
 	}, nil
 }
 
-func searchMavenRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) (repositorySearchResponse, error) {
+func searchMavenRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) (*pb.RepositorySearchResponse, error) {
 	root := filepath.ToSlash(filepath.Clean(filepath.Join(storagePath, repo.Name)))
 	rootPrefix := root + "/"
 	needle := strings.ToLower(query)
-	results := make([]repositorySearchResult, 0, min(limit*4, maxRepositorySearchMatches))
+	results := make([]*pb.RepositorySearchResult, 0, min(limit*4, maxRepositorySearchMatches))
 	total := 0
 	visited := 0
 	scanLimitReached := false
@@ -164,7 +151,7 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 		if idx := strings.LastIndexByte(relative, '/'); idx != -1 {
 			name = relative[idx+1:]
 		}
-		result := repositorySearchResult{Name: name, Path: relative, Type: resultType}
+		result := &pb.RepositorySearchResult{Name: name, Path: relative, Type: resultType}
 		if !isDir {
 			result.Size = info.Size
 			result.ModifiedAt = time.Unix(0, info.ModTime).UnixMilli()
@@ -187,8 +174,8 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 	if len(results) > limit {
 		results = results[:limit]
 	}
-	return repositorySearchResponse{
-		Format: config.RepositoryFormatMaven, Results: results, Total: total,
+	return &pb.RepositorySearchResponse{
+		Format: config.RepositoryFormatMaven, Results: results, Total: int32(total),
 		HasMore: scanLimitReached || total > len(results),
 	}, nil
 }

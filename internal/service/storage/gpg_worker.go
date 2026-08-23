@@ -351,7 +351,7 @@ func cleanupOrphanGPGQuarantine(state *core.AppState, releases []*core.GPGReleas
 		if !utils.IsSubPath(root, entryPath) {
 			return errors.New("invalid GPG quarantine entry")
 		}
-		if err := os.RemoveAll(entryPath); err != nil {
+		if err := utils.RemoveAll(entryPath); err != nil {
 			return err
 		}
 	}
@@ -688,7 +688,7 @@ func removeReleaseStagingFiles(state *core.AppState, release *core.GPGRelease) e
 	if err != nil {
 		return err
 	}
-	return os.RemoveAll(dir)
+	return utils.RemoveAll(dir)
 }
 
 func cleanupPublishedReleaseFiles(state *core.AppState, release *core.GPGRelease) error {

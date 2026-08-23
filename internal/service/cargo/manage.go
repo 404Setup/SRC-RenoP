@@ -18,6 +18,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/cargodocs"
 	"renop/internal/utils"
 )
 
@@ -67,6 +68,13 @@ func (h Handler) deleteVersion(c fiber.Ctx, state *core.AppState, repo *config.R
 	if err := h.Store.Delete(state, cratePath); err != nil {
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to delete Cargo crate")
 	}
+	for _, cand := range candidateDocStoragePaths(storagePath, repo, details.Package.Name, version) {
+		exists, err := h.Store.Exists(cand)
+		if err == nil && exists {
+			_ = h.Store.Delete(state, cand)
+		}
+	}
+	cargodocs.CleanupCargodoc(repo.Name, details.Package.Name, version)
 	if err := state.GetDB().DeleteCargoVersion(repo.Name, details.Package.NormalizedName, version); err != nil {
 		return cargoError(c, err)
 	}
@@ -252,6 +260,13 @@ func (h Handler) deletePackage(c fiber.Ctx, state *core.AppState, repo *config.R
 		if err := h.Store.Delete(state, cratePath); err != nil {
 			return errorResponse(c, fiber.StatusInternalServerError, "Failed to delete Cargo crate")
 		}
+		for _, cand := range candidateDocStoragePaths(storagePath, repo, details.Package.Name, version.Version) {
+			exists, err := h.Store.Exists(cand)
+			if err == nil && exists {
+				_ = h.Store.Delete(state, cand)
+			}
+		}
+		cargodocs.CleanupCargodoc(repo.Name, details.Package.Name, version.Version)
 	}
 	if err := h.Store.Delete(state, indexFilePath); err != nil {
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to delete Cargo index")

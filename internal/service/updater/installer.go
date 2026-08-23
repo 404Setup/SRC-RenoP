@@ -11,7 +11,6 @@
 package updater
 
 import (
-	"archive/zip"
 	"bufio"
 	"context"
 	"crypto/sha256"
@@ -36,6 +35,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/klauspost/compress/zip"
 
 	"renop/internal/utils"
 )

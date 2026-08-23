@@ -11,10 +11,10 @@
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
-import {apiRequest} from '../api.js';
+import {apiRequest, getAuthHeaders} from '../api.js';
 import {cachedIsLoggedIn} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
-import {createIcon, createSkeleton} from '../components.js';
+import {createDropzone, createFileCard, createIcon, createSkeleton, RenopDialog} from '../components.js';
 import {t} from '../i18n.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
@@ -191,7 +191,7 @@ function buildCargoPackageRow(packageRecord) {
     if (packageRecord?.archived) {
         badges.appendChild(el('span', {class: 'cargo-state-badge is-archived'}, t('cargo.archived')));
     }
-    if (!activeAdministrator && Number(packageRecord?.permission_level) > 0) {
+    if (Number(packageRecord?.permission_level) > 0) {
         badges.appendChild(el('span', {class: 'cargo-permission-badge'}, `L${Number(packageRecord.permission_level)}`));
     }
     if (packageRecord?.max_version) {
@@ -753,11 +753,34 @@ function buildCargoVersionsSection() {
                 el('span', {class: 'cargo-version-publisher'}, t('cargo.publishedBy', {name: version.publisher || t('common.unknown')}))
             );
             row.appendChild(meta);
+            const actions = el('div', {class: 'cargo-row-actions'});
+            if (version.has_docs === true) {
+                const docLink = el('a', {
+                    class: 'pill-btn pill-btn--soft pill-btn--sm',
+                    href: `/cargodoc/${encodePathSegment(activeRepository)}/${encodePathSegment(packageRecord.name)}/${encodePathSegment(version.version)}/`,
+                    target: '_blank', rel: 'noopener noreferrer'
+                }, createIcon('docs'), el('span', {}, t('cargo.viewDocs')));
+                actions.appendChild(docLink);
+            }
+
             if (canManageVersions) {
-                const actions = el('div', {class: 'cargo-row-actions'});
                 const restoreLocked = version.yanked && (
                     (version.admin_yanked && !activeAdministrator) || packageRecord.archived
                 );
+                if (!version.has_docs) {
+                    actions.appendChild(el('button', {
+                        type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+                        'data-cargo-action': 'upload-docs',
+                        'data-cargo-version': String(version.version || '')
+                    }, createIcon('upload'), el('span', {}, t('cargo.uploadDocs'))));
+                }
+                if (version.has_docs === true) {
+                    actions.appendChild(el('button', {
+                        type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+                        'data-cargo-action': 'delete-docs',
+                        'data-cargo-version': String(version.version || '')
+                    }, t('cargo.deleteDocs')));
+                }
                 actions.appendChild(el('button', {
                     type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
                     'data-cargo-action': version.yanked ? 'unyank-version' : 'yank-version',
@@ -767,8 +790,8 @@ function buildCargoVersionsSection() {
                     type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
                     'data-cargo-action': 'delete-version', 'data-cargo-version': String(version.version || '')
                 }, t('common.delete')));
-                row.appendChild(actions);
             }
+            row.appendChild(actions);
             versionRows.push({row, badge, version: version.version});
             nextRows.push(row);
         }
@@ -884,7 +907,7 @@ function buildMemberLevelSelect(member) {
  */
 function buildCargoTeamSection() {
     const packageRecord = activePackageDetails.package;
-    const canManageTeam = !activeAdministrator && Number(packageRecord.permission_level) >= 3;
+    const canManageTeam = Number(packageRecord.permission_level) >= 3;
     const section = el('section', {class: 'cargo-page-section'},
         el('h3', {class: 'cargo-section-title'}, t('cargo.team'))
     );
@@ -1029,6 +1052,35 @@ function buildCargoPackageHero() {
     updateDownloadBtn(activeVersion);
     actions.appendChild(downloadBtn);
 
+    const docBtn = el('a', {
+        class: 'pill-btn pill-btn--soft pill-btn--sm',
+        target: '_blank', rel: 'noopener noreferrer'
+    }, createIcon('docs'), el('span', {}, t('cargo.viewDocs')));
+    docBtn.hidden = true;
+    actions.appendChild(docBtn);
+
+    const canModifyPackage = activeAdministrator || Number(packageRecord?.permission_level) >= 1;
+    let uploadDocBtn = null;
+    if (canModifyPackage) {
+        uploadDocBtn = el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+            'data-cargo-action': 'upload-docs'
+        }, createIcon('upload'), el('span', {}, t('cargo.uploadDocs')));
+        actions.appendChild(uploadDocBtn);
+    }
+
+    function updateDocsButtons(curVer) {
+        if (curVer?.has_docs === true) {
+            docBtn.href = `/cargodoc/${encodePathSegment(activeRepository)}/${encodePathSegment(packageName)}/${encodePathSegment(curVer.version)}/`;
+            docBtn.hidden = false;
+            if (uploadDocBtn) uploadDocBtn.hidden = true;
+        } else {
+            docBtn.hidden = true;
+            if (uploadDocBtn) uploadDocBtn.hidden = !canModifyPackage;
+        }
+    }
+    updateDocsButtons(activeVersion);
+
     const canManagePackage = activeAdministrator || Number(packageRecord?.permission_level) >= 3;
     if (canManagePackage) {
         const restoreLocked = packageRecord.archived && packageRecord.admin_archived && !activeAdministrator;
@@ -1059,10 +1111,18 @@ function buildCargoPackageHero() {
         archivedBadge.hidden = !activePackageDetails?.package?.archived;
         yankedBadge.hidden = !curVer?.yanked;
         updateDownloadBtn(curVer);
-        if (animate && downloadBtn && !downloadBtn.hidden) {
-            downloadBtn.classList.remove('cargo-badge-anim');
-            void downloadBtn.offsetWidth;
-            downloadBtn.classList.add('cargo-badge-anim');
+        updateDocsButtons(curVer);
+        if (animate) {
+            if (downloadBtn && !downloadBtn.hidden) {
+                downloadBtn.classList.remove('cargo-badge-anim');
+                void downloadBtn.offsetWidth;
+                downloadBtn.classList.add('cargo-badge-anim');
+            }
+            if (docBtn && !docBtn.hidden) {
+                docBtn.classList.remove('cargo-badge-anim');
+                void docBtn.offsetWidth;
+                docBtn.classList.add('cargo-badge-anim');
+            }
         }
     };
 
@@ -1373,6 +1433,16 @@ async function handleCargoPageClick(event) {
             case 'remove-member':
                 await removeCargoMember(packageName, username);
                 break;
+            case 'upload-docs': {
+                const targetVer = version || getSelectedVersion()?.version || activePackageDetails.versions?.[0]?.version || '';
+                await showCargoDocUploadDialog(packageName, targetVer);
+                break;
+            }
+            case 'delete-docs': {
+                const targetVer = version || getSelectedVersion()?.version || activePackageDetails.versions?.[0]?.version || '';
+                await deleteCargoDocs(packageName, targetVer);
+                break;
+            }
             default:
                 break;
         }
@@ -1382,6 +1452,178 @@ async function handleCargoPageClick(event) {
     } finally {
         if (button.isConnected) button.disabled = false;
     }
+}
+
+/**
+ * Show a modal dialog allowing users to upload a cargo doc archive (.tar.gz, .zip).
+ * Reuses the standard Renop modal dropzone and progress styling from offline updates.
+ * @param {string} packageName - Cargo crate name.
+ * @param {string} version - Target crate version.
+ * @returns {Promise<boolean>}
+ */
+export function showCargoDocUploadDialog(packageName, version) {
+    if (!packageName || !version) return Promise.resolve(false);
+
+    let selectedFile = null;
+
+    const getBtn = () => {
+        const dlg = document.getElementById('cargo-doc-upload-dialog');
+        return dlg ? dlg.querySelector('.primary-btn') : null;
+    };
+
+    const disableBtn = () => {
+        const btn = getBtn();
+        if (btn) btn.disabled = true;
+    };
+
+    const enableBtn = () => {
+        const btn = getBtn();
+        if (btn) btn.disabled = false;
+    };
+
+    const dropzone = createDropzone({
+        title: t('cargo.uploadDocsHint'),
+        hint: '.tar.gz, .tgz, .zip',
+        accept: '.tar.gz,.tgz,.zip',
+        onSelect: (file) => updateFileDisplay(file)
+    });
+
+    const fileCard = el('div', {class: 'file-info-card', style: {display: 'none'}});
+    const dropzoneContainer = el('div', {class: 'dropzone-container'}, dropzone, fileCard);
+
+    const progressMsg = el('span', {class: 'modal-notes-label'});
+    const progressFill = el('div', {class: 'upload-progress-fill'});
+    const progressBar = el('div', {
+        class: 'upload-progress-bar',
+        style: {position: 'relative', height: '6px', borderRadius: '3px', marginTop: '4px'}
+    }, progressFill);
+
+    const progressContainer = el('div', {
+        class: 'modal-notes-container',
+        style: {display: 'none'}
+    }, progressMsg, progressBar);
+
+    const updateFileDisplay = (file) => {
+        disableBtn();
+        if (!file) {
+            selectedFile = null;
+            fileCard.style.display = 'none';
+            dropzone.style.display = 'flex';
+            return;
+        }
+
+        const lowerName = file.name.toLowerCase();
+        if (!lowerName.endsWith('.tar.gz') && !lowerName.endsWith('.tgz') && !lowerName.endsWith('.zip')) {
+            showAlert(t('cargo.uploadDocsHint') + ' (.tar.gz, .tgz, .zip)', 'error');
+            return;
+        }
+
+        selectedFile = file;
+        dropzone.style.display = 'none';
+        fileCard.style.display = 'flex';
+        fileCard.innerHTML = '';
+
+        const card = createFileCard(file.name, formatBytes(file.size), {
+            icon: 'box',
+            onRemove: () => updateFileDisplay(null)
+        });
+        fileCard.appendChild(card);
+        enableBtn();
+    };
+
+    const btnOkConfig = {
+        text: t('cargo.uploadDocs'),
+        className: 'action-btn primary-btn',
+        disabled: true,
+        onClick: async (e, dialog) => {
+            if (!selectedFile) return;
+
+            const btnOk = dialog.querySelector('.primary-btn');
+            const btnCancel = dialog.querySelector('.action-btn:not(.primary-btn)');
+            const closeBtn = dialog.querySelector('.close-btn');
+
+            if (btnOk) btnOk.disabled = true;
+            if (btnCancel) btnCancel.disabled = true;
+            if (closeBtn) closeBtn.disabled = true;
+
+            progressContainer.style.display = 'flex';
+            progressMsg.textContent = t('common.loading') || 'Uploading…';
+            progressFill.style.width = '30%';
+
+            const resetProgressUI = () => {
+                progressContainer.style.display = 'none';
+                progressFill.style.width = '0%';
+                progressMsg.textContent = '';
+                if (btnOk) btnOk.disabled = false;
+                if (btnCancel) btnCancel.disabled = false;
+                if (closeBtn) closeBtn.disabled = false;
+            };
+
+            try {
+                const targetUrl = cargoAPIPath('crates', packageName, version, 'docs');
+                const headers = getAuthHeaders();
+                headers['Content-Type'] = 'application/octet-stream';
+
+                const response = await fetch(targetUrl, {
+                    method: 'PUT',
+                    headers,
+                    body: selectedFile
+                });
+
+                if (response.ok) {
+                    progressFill.style.width = '100%';
+                    showAlert(t('cargo.docsUploaded'), 'success');
+                    dialog.close(true);
+                    await refreshCargoPackagePage();
+                } else {
+                    const text = await response.text().catch(() => '');
+                    showAlert(text || `HTTP ${response.status}`, 'error');
+                    resetProgressUI();
+                }
+            } catch (err) {
+                showAlert(err.message || t('common.unknown'), 'error');
+                resetProgressUI();
+            }
+        }
+    };
+
+    return RenopDialog.show({
+        id: 'cargo-doc-upload-dialog',
+        glass: true,
+        size: 'md',
+        centered: true,
+        title: `${t('cargo.uploadDocsTitle')} (${packageName} v${version})`,
+        bodyClass: 'modal-body modal-body-flex',
+        body: [dropzoneContainer, progressContainer],
+        footer: [
+            {
+                text: t('common.cancel'),
+                className: 'action-btn',
+                onClick: (e, d) => {
+                    d.close(false);
+                }
+            },
+            btnOkConfig
+        ]
+    });
+}
+
+/**
+ * Delete cargo documentation for a specific package version after confirmation.
+ * @param {string} packageName - Cargo package name.
+ * @param {string} version - Version string.
+ * @returns {Promise<void>}
+ */
+async function deleteCargoDocs(packageName, version) {
+    const confirmed = await showConfirm(t('cargo.confirmDeleteDocs', {version}), {
+        title: t('cargo.deleteDocs'),
+        confirmText: t('common.delete'),
+        danger: true
+    });
+    if (!confirmed) return;
+    await cargoRequest(cargoAPIPath('crates', packageName, version, 'docs'), {method: 'DELETE'});
+    showAlert(t('cargo.docsDeleted'), 'success');
+    await refreshCargoPackagePage();
 }
 
 /**

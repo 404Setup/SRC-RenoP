@@ -243,3 +243,31 @@ func TestIsPreviewableTextFileIncludesGradleModuleMetadata(t *testing.T) {
 		}
 	}
 }
+
+func TestIsReservedRepositoryName(t *testing.T) {
+	reserved := []string{
+		"api", "assets", "css", "js", "svg",
+		"javadoc", "javadocs",
+		"cargodoc", "cargodocs",
+		"cratedoc", "cratedocs",
+		"CRATEDOC", "CargoDoc", "JAVADOCS",
+	}
+	for _, name := range reserved {
+		if !IsReservedRepositoryName(name) {
+			t.Errorf("Expected IsReservedRepositoryName(%q) = true", name)
+		}
+		if IsValidRepositorySlug(name) {
+			t.Errorf("Expected IsValidRepositorySlug(%q) = false", name)
+		}
+	}
+
+	valid := []string{"releases", "snapshots", "crates", "my-repo", "cargo-pkg"}
+	for _, name := range valid {
+		if IsReservedRepositoryName(name) {
+			t.Errorf("Expected IsReservedRepositoryName(%q) = false", name)
+		}
+		if !IsValidRepositorySlug(name) {
+			t.Errorf("Expected IsValidRepositorySlug(%q) = true", name)
+		}
+	}
+}

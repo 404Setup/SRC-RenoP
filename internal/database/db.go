@@ -284,5 +284,8 @@ func (db *DB) Close() error {
 	if db.SqlDB == nil {
 		return nil
 	}
+	if db.Dialect != nil && strings.HasPrefix(db.Dialect.Name(), "sqlite") {
+		_, _ = db.SqlDB.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+	}
 	return db.SqlDB.Close()
 }

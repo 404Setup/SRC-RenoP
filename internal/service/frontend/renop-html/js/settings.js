@@ -1336,6 +1336,30 @@ function renderStorageSettings(container, data) {
     });
     fields.appendChild(createFieldRow(t('settings.maxJavadocSize'), t('settings.maxJavadocSizeHint'), maxJavadocSizeInput));
 
+    fields.appendChild(createToggleRow(
+        t('settings.enableCargodocPreview'),
+        t('settings.enableCargodocPreviewDesc'),
+        data.enable_cargodoc_preview === true,
+        checked => {
+            currentConfig.enable_cargodoc_preview = checked;
+            enableSave();
+        }
+    ));
+
+    const cargodocPathInput = buildInput('text', data.cargodoc_extract_path || '', t('settings.cargodocExtractPathHint'), e => {
+        currentConfig.cargodoc_extract_path = e.target.value;
+        enableSave();
+    });
+    fields.appendChild(createFieldRow(t('settings.cargodocExtractPath'), t('settings.cargodocExtractPathHint'), cargodocPathInput));
+
+    const maxCargodocSizeInput = buildInput('number', data.max_cargodoc_size_mb, '256', e => {
+        const n = Number(e.target.value);
+        if (!Number.isFinite(n) || n < 1) return;
+        currentConfig.max_cargodoc_size_mb = Math.trunc(n);
+        enableSave();
+    });
+    fields.appendChild(createFieldRow(t('settings.maxCargodocSize'), t('settings.maxCargodocSizeHint'), maxCargodocSizeInput));
+
     wrap.appendChild(storageSection);
     container.appendChild(wrap);
 }

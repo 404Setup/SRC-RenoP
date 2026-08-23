@@ -20,6 +20,7 @@ import (
 
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/service/cargodocs"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/status"
@@ -68,6 +69,7 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	state.Inner.DB = dbInstance
 	storage.InitS3(cfg)
 	javadocs.InitJavadocs(cfg)
+	cargodocs.InitCargodocs(cfg)
 
 	concurrencyLimit := int(cfg.Server.MaxActiveRequests)
 	if concurrencyLimit <= 0 {

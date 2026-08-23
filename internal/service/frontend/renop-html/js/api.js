@@ -21,8 +21,6 @@ export const PROTO_CONTENT_TYPE = 'application/x-protobuf';
  * @returns {Object} Empty headers object (credentials are sent via cookies).
  */
 export function getAuthHeaders() {
-    // Browser sessions use a server-managed HttpOnly cookie. Keeping the
-    // session secret out of localStorage prevents script access to it.
     return {};
 }
 
@@ -114,21 +112,25 @@ export async function fetchProto(url, MessageType, options = {}) {
  *
  * @param {string} url
  * @param {string} method
- * @param {{create: Function, encode: Function}} RequestType
- * @param {object} requestPayload plain object matching proto fields
+ * @param {{create: Function, encode: Function}|null} [RequestType]
+ * @param {object} [requestPayload] plain object matching proto fields
  * @param {{decode: Function, toObject: Function}|null} [ResponseType]
  * @param {RequestInit} [options]
  */
-export async function sendProto(url, method, RequestType, requestPayload, ResponseType = null, options = {}) {
-    const body = RequestType.encode(RequestType.create(requestPayload)).finish();
+export async function sendProto(url, method, RequestType = null, requestPayload = null, ResponseType = null, options = {}) {
+    const headers = {
+        Accept: PROTO_CONTENT_TYPE,
+        ...(options.headers || {}),
+    };
+    let body;
+    if (RequestType) {
+        body = RequestType.encode(RequestType.create(requestPayload || {})).finish();
+        headers['Content-Type'] = PROTO_CONTENT_TYPE;
+    }
     const response = await fetch(url, withCredentials({
         method,
         ...options,
-        headers: {
-            'Content-Type': PROTO_CONTENT_TYPE,
-            Accept: PROTO_CONTENT_TYPE,
-            ...(options.headers || {}),
-        },
+        headers,
         body,
     }));
     if (!response.ok || !ResponseType) {
@@ -142,12 +144,12 @@ export async function sendProto(url, method, RequestType, requestPayload, Respon
  * POST a protobuf request body and optionally decode a protobuf response.
  *
  * @param {string} url
- * @param {{create: Function, encode: Function}} RequestType
- * @param {object} requestPayload plain object matching proto fields
+ * @param {{create: Function, encode: Function}|null} [RequestType]
+ * @param {object} [requestPayload] plain object matching proto fields
  * @param {{decode: Function, toObject: Function}|null} [ResponseType]
  * @param {RequestInit} [options]
  */
-export async function postProto(url, RequestType, requestPayload, ResponseType = null, options = {}) {
+export async function postProto(url, RequestType = null, requestPayload = null, ResponseType = null, options = {}) {
     return sendProto(url, 'POST', RequestType, requestPayload, ResponseType, options);
 }
 
@@ -155,11 +157,11 @@ export async function postProto(url, RequestType, requestPayload, ResponseType =
  * PUT a protobuf request body and optionally decode a protobuf response.
  *
  * @param {string} url
- * @param {{create: Function, encode: Function}} RequestType
- * @param {object} requestPayload plain object matching proto fields
+ * @param {{create: Function, encode: Function}|null} [RequestType]
+ * @param {object} [requestPayload] plain object matching proto fields
  * @param {{decode: Function, toObject: Function}|null} [ResponseType]
  * @param {RequestInit} [options]
  */
-export async function putProto(url, RequestType, requestPayload, ResponseType = null, options = {}) {
+export async function putProto(url, RequestType = null, requestPayload = null, ResponseType = null, options = {}) {
     return sendProto(url, 'PUT', RequestType, requestPayload, ResponseType, options);
 }

@@ -3,13 +3,16 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 import {el} from '@renop/ui/dom';
-import {apiRequest} from '../api.js';
+import {fetchProto} from '../api.js';
 import {createIcon} from '../components.js';
 import {t} from '../i18n.js';
+import {RepositorySearchResponse} from '../proto/index.js';
 
 const SEARCH_DELAY_MS = 180;
 const SEARCH_CLOSE_MS = 150;
@@ -205,20 +208,21 @@ async function fetchRepositorySearch(query, version) {
     if (requestController) requestController.abort();
     requestController = new AbortController();
     try {
-        const response = await apiRequest(
+        const {response, data: payload} = await fetchProto(
             `/api/repositories/search/${encodeURIComponent(activeRepository)}?q=${encodeURIComponent(query)}&limit=20`,
-            {signal: requestController.signal},
-            {logoutOnForbidden: false}
+            RepositorySearchResponse,
+            {signal: requestController.signal}
         );
         if (version !== searchVersion) return;
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        renderSearchResults(await response.json());
+        if (!response.ok || !payload) throw new Error(`HTTP ${response.status}`);
+        renderSearchResults(payload);
     } catch (error) {
         if (error?.name === 'AbortError' || version !== searchVersion) return;
         console.error('Repository search failed', error);
         renderSearchStatus(t('search.failed'), true);
     }
 }
+
 
 /**
  * Debounce repository search as the user types.

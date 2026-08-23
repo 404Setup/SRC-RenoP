@@ -270,7 +270,13 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 		}
 
 		if status == fiber.StatusUnauthorized || status == fiber.StatusForbidden {
-			if state.Inner.AnomalyFailures != nil {
+			authHeader := c.Get(fiber.HeaderAuthorization, "")
+			cookie := c.Cookies("renop_session", "")
+			isAuthPath := strings.HasPrefix(c.Path(), "/api/auth/") || strings.HasPrefix(c.Path(), "/api/token/")
+			// Only count as anomaly failure when authentication credentials were provided and failed,
+			// or when attempting authentication on an auth endpoint.
+			// Unauthenticated guest requests receiving 401 challenges or forbidden repo checks must not trigger global IP ban.
+			if (authHeader != "" || cookie != "" || isAuthPath) && state.Inner.AnomalyFailures != nil {
 				state.Inner.AnomalyFailures.Increment(ip)
 			}
 		}

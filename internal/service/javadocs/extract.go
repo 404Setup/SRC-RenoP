@@ -11,7 +11,6 @@
 package javadocs
 
 import (
-	"archive/zip"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +18,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/klauspost/compress/zip"
 
 	"github.com/gofiber/fiber/v3"
 

@@ -62,14 +62,14 @@ func TestInitDB_SQLite(t *testing.T) {
 	cfg := config.DatabaseConfig{
 		Driver:       "sqlite3",
 		Dsn:          dbFile,
-		MaxOpenConns: 5,
-		MaxIdleConns: 5,
+		MaxOpenConns: 1,
+		MaxIdleConns: 1,
 	}
 
 	db, err := database.InitDB(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, db)
-	defer db.Close()
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	t.Run("Token Operations with TTL Cache", func(t *testing.T) {
 		exp := time.Now().Add(time.Hour).UnixMilli()

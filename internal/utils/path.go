@@ -13,16 +13,34 @@ package utils
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/3JoB/unsafeConvert"
 )
+
+// RemoveAll removes path and any children it contains with retry logic on Windows.
+func RemoveAll(path string) error {
+	var err error
+	for range 5 {
+		err = os.RemoveAll(path)
+		if err == nil || errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		if runtime.GOOS != "windows" {
+			return err
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return err
+}
 
 func SafeRename(oldpath, newpath string) error {
 	// Unix can atomically replace the destination. Windows cannot, so only
@@ -158,7 +176,7 @@ func IsValidRepositorySlug(name string) bool {
 // embedded assets rather than repository storage.
 func IsReservedRepositoryName(name string) bool {
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "api", "assets", "css", "js", "svg", "javadoc", "javadocs":
+	case "api", "assets", "css", "js", "svg", "javadoc", "javadocs", "cargodoc", "cargodocs", "cratedoc", "cratedocs":
 		return true
 	default:
 		return false

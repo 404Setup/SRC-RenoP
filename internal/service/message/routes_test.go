@@ -12,7 +12,7 @@ package message
 
 import (
 	"bytes"
-	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -20,15 +20,14 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
-
-type deleteDismissibleMessagesResponse struct {
-	Deleted int64 `json:"deleted"`
-}
 
 func messageTestState(t *testing.T) (*core.AppState, *database.DB) {
 	t.Helper()
@@ -62,14 +61,28 @@ func TestManagerSendsTargetedNotification(t *testing.T) {
 	defer db.Close()
 	saveMessageTestToken(t, db, "alice")
 	app := messageTestApp(state, &config.User{Username: "admin", Roles: []string{"manager"}})
-	body, err := json.Marshal(notificationRequest{Recipients: []string{"alice"}, Title: "Maintenance", Body: "Tonight", Severity: "warning"})
+	reqMsg := &pb.SendNotificationRequest{
+		Recipients: []string{"alice"},
+		Title:      "Maintenance",
+		Body:       "Tonight",
+		Severity:   "warning",
+	}
+	reqData, err := proto.Marshal(reqMsg)
 	require.NoError(t, err)
-	request := httptest.NewRequest(http.MethodPost, "/api/messages/admin", bytes.NewReader(body))
-	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	request := httptest.NewRequest(http.MethodPost, "/api/messages/admin", bytes.NewReader(reqData))
+	request.Header.Set(fiber.HeaderContentType, protohttp.ContentType)
 	response, err := app.Test(request)
 	require.NoError(t, err)
 	defer response.Body.Close()
 	require.Equal(t, fiber.StatusCreated, response.StatusCode)
+	require.Equal(t, protohttp.ContentType, response.Header.Get(fiber.HeaderContentType))
+
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	var respMsg pb.SendNotificationResponse
+	require.NoError(t, proto.Unmarshal(body, &respMsg))
+	require.True(t, respMsg.Ok)
+	require.EqualValues(t, 1, respMsg.Sent)
 
 	messages, err := db.ListMessages("alice", 10, 0, "", 1)
 	require.NoError(t, err)
@@ -89,8 +102,12 @@ func TestUserCannotReadAnotherUsersMessage(t *testing.T) {
 	require.NoError(t, err)
 	defer response.Body.Close()
 	require.Equal(t, fiber.StatusOK, response.StatusCode)
-	var payload listResponse
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&payload))
+	require.Equal(t, protohttp.ContentType, response.Header.Get(fiber.HeaderContentType))
+
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	var payload pb.UserMessageList
+	require.NoError(t, proto.Unmarshal(body, &payload))
 	require.Empty(t, payload.Messages)
 }
 
@@ -98,8 +115,11 @@ func TestNonManagerCannotSendNotification(t *testing.T) {
 	state, db := messageTestState(t)
 	defer db.Close()
 	app := messageTestApp(state, &config.User{Username: "alice", Roles: []string{"base"}})
-	request := httptest.NewRequest(http.MethodPost, "/api/messages/admin", bytes.NewBufferString(`{"all":true,"title":"No","body":"No"}`))
-	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	reqMsg := &pb.SendNotificationRequest{All: true, Title: "No", Body: "No"}
+	reqData, err := proto.Marshal(reqMsg)
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodPost, "/api/messages/admin", bytes.NewReader(reqData))
+	request.Header.Set(fiber.HeaderContentType, protohttp.ContentType)
 	response, err := app.Test(request)
 	require.NoError(t, err)
 	defer response.Body.Close()
@@ -117,8 +137,12 @@ func TestManagerSearchesNotificationRecipientsByPrefix(t *testing.T) {
 	require.NoError(t, err)
 	defer response.Body.Close()
 	require.Equal(t, fiber.StatusOK, response.StatusCode)
-	var payload userSearchResponse
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&payload))
+	require.Equal(t, protohttp.ContentType, response.Header.Get(fiber.HeaderContentType))
+
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	var payload pb.UserSearchResponse
+	require.NoError(t, proto.Unmarshal(body, &payload))
 	require.Equal(t, []string{"bob", "bobby"}, payload.Users)
 }
 
@@ -145,19 +169,27 @@ func TestMessageListCursorReturnsTheNextPage(t *testing.T) {
 	firstResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/api/messages?limit=2", nil))
 	require.NoError(t, err)
 	defer firstResponse.Body.Close()
-	var firstPage listResponse
-	require.NoError(t, json.NewDecoder(firstResponse.Body).Decode(&firstPage))
+	require.Equal(t, protohttp.ContentType, firstResponse.Header.Get(fiber.HeaderContentType))
+
+	firstBody, err := io.ReadAll(firstResponse.Body)
+	require.NoError(t, err)
+	var firstPage pb.UserMessageList
+	require.NoError(t, proto.Unmarshal(firstBody, &firstPage))
 	require.Len(t, firstPage.Messages, 2)
 	require.NotEmpty(t, firstPage.NextCursor)
 
 	secondResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/api/messages?limit=2&cursor="+firstPage.NextCursor, nil))
 	require.NoError(t, err)
 	defer secondResponse.Body.Close()
-	var secondPage listResponse
-	require.NoError(t, json.NewDecoder(secondResponse.Body).Decode(&secondPage))
+	require.Equal(t, protohttp.ContentType, secondResponse.Header.Get(fiber.HeaderContentType))
+
+	secondBody, err := io.ReadAll(secondResponse.Body)
+	require.NoError(t, err)
+	var secondPage pb.UserMessageList
+	require.NoError(t, proto.Unmarshal(secondBody, &secondPage))
 	require.Len(t, secondPage.Messages, 1)
 	require.Empty(t, secondPage.NextCursor)
-	require.NotEqual(t, firstPage.Messages[1].ID, secondPage.Messages[0].ID)
+	require.NotEqual(t, firstPage.Messages[1].Id, secondPage.Messages[0].Id)
 }
 
 func TestUserClearsOnlyOwnDismissibleMessages(t *testing.T) {
@@ -175,8 +207,13 @@ func TestUserClearsOnlyOwnDismissibleMessages(t *testing.T) {
 	require.NoError(t, err)
 	defer response.Body.Close()
 	require.Equal(t, fiber.StatusOK, response.StatusCode)
-	var result deleteDismissibleMessagesResponse
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&result))
+	require.Equal(t, protohttp.ContentType, response.Header.Get(fiber.HeaderContentType))
+
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	var result pb.ClearMessagesResponse
+	require.NoError(t, proto.Unmarshal(body, &result))
+	require.True(t, result.Ok)
 	require.EqualValues(t, 2, result.Deleted)
 
 	aliceMessages, err := db.ListMessages("alice", 10, 0, "", 1)

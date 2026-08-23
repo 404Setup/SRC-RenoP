@@ -81,6 +81,7 @@ type CargoVersion struct {
 	Deps          []CargoDependency   `json:"deps,omitempty"`
 	Features      map[string][]string `json:"features,omitempty"`
 	Links         *string             `json:"links,omitempty"`
+	HasDocs       bool                `json:"has_docs,omitempty"`
 }
 
 // CargoMember is one package-team membership.

@@ -30,6 +30,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	"renop/internal/service/cargodocs"
 	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/outboundproxy"
@@ -252,6 +253,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		state.Inner.Config.Store(newConfig)
 		storage.InitS3(newConfig)
 		javadocs.InitJavadocs(newConfig)
+		cargodocs.InitCargodocs(newConfig)
 		return nil
 	})
 

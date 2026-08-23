@@ -307,6 +307,9 @@ message StorageConfig {
   bool enable_javadoc_preview = 2;
   string javadoc_extract_path = 3;
   int64 max_javadoc_size_mb = 4;
+  bool enable_cargodoc_preview = 5;
+  string cargodoc_extract_path = 6;
+  int64 max_cargodoc_size_mb = 7;
 }
 
 message UpdaterConfig {
@@ -465,5 +468,95 @@ message PomDetails {
   string group_id = 1;
   string artifact_id = 2;
   string version = 3;
+}
+
+message AuditLogEntryDto {
+  int64 id = 1;
+  string username = 2;
+  string operator = 3;
+  string action = 4;
+  string details = 5;
+  string auth_method = 6;
+  string session_id = 7;
+  string ip = 8;
+  int64 created_at = 9;
+}
+
+message AuditLogList {
+  repeated AuditLogEntryDto logs = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message UserMessageDto {
+  string id = 1;
+  string recipient = 2;
+  string sender = 3;
+  string kind = 4;
+  string severity = 5;
+  string title = 6;
+  string body = 7;
+  string payload = 8;
+  string action_kind = 9;
+  string action_status = 10;
+  int64 created_at = 11;
+  int64 read_at = 12;
+  int64 acted_at = 13;
+  int64 expires_at = 14;
+}
+
+message UserMessageList {
+  repeated UserMessageDto messages = 1;
+  int32 unread_count = 2;
+  string next_cursor = 3;
+}
+
+message UnreadCountResponse {
+  int32 unread_count = 1;
+}
+
+message MarkAllReadResponse {
+  bool ok = 1;
+  int64 updated = 2;
+}
+
+message ClearMessagesResponse {
+  bool ok = 1;
+  int64 deleted = 2;
+}
+
+message SendNotificationRequest {
+  repeated string recipients = 1;
+  bool all = 2;
+  string severity = 3;
+  string title = 4;
+  string body = 5;
+}
+
+message SendNotificationResponse {
+  bool ok = 1;
+  int64 sent = 2;
+}
+
+message UserSearchResponse {
+  repeated string users = 1;
+}
+
+message RepositorySearchResult {
+  string name = 1;
+  string path = 2;
+  string type = 3;
+  string description = 4;
+  string latest_version = 5;
+  int64 size = 6;
+  int64 modified_at = 7;
+}
+
+message RepositorySearchResponse {
+  string format = 1;
+  repeated RepositorySearchResult results = 2;
+  int32 total = 3;
+  bool has_more = 4;
 }
 

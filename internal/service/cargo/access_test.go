@@ -20,11 +20,12 @@ import (
 )
 
 func TestPrivateCargoMembershipGrantsRegistryReadAccess(t *testing.T) {
-	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-access.db")})
+	tempDir := t.TempDir()
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(tempDir, "cargo-access.db")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = db.Close() }()
+	t.Cleanup(func() { _ = db.Close() })
 
 	state := core.NewAppState()
 	state.Inner.DB = db
@@ -49,6 +50,13 @@ func TestPrivateCargoMembershipGrantsRegistryReadAccess(t *testing.T) {
 	}
 	if allowed {
 		t.Fatal("unrelated user unexpectedly received private Cargo registry access")
+	}
+
+	// Hidden Cargo repositories should allow direct route read access
+	hiddenRepo := &config.Repository{Name: "cargo-hidden", Format: config.RepositoryFormatCargo, Visibility: "HIDDEN"}
+	allowed, err = CanReadRepository(state, &config.User{Username: "guest"}, hiddenRepo, "config.json", false)
+	if err != nil || !allowed {
+		t.Fatalf("Hidden Cargo repository should allow read access, got %v, err=%v", allowed, err)
 	}
 
 	repo.Format = config.RepositoryFormatMaven

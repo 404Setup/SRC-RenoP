@@ -84,6 +84,12 @@ func (h Handler) handleCrateAPI(c fiber.Ctx, state *core.AppState, repo *config.
 		return true, h.setYanked(c, state, repo, storagePath, crateName, parts[4], true)
 	case len(parts) == 6 && parts[5] == "unyank" && c.Method() == fiber.MethodPut:
 		return true, h.setYanked(c, state, repo, storagePath, crateName, parts[4], false)
+	case len(parts) == 6 && parts[5] == "docs" && c.Method() == fiber.MethodGet:
+		return true, h.getDocStatus(c, state, repo, storagePath, crateName, parts[4])
+	case len(parts) == 6 && parts[5] == "docs" && (c.Method() == fiber.MethodPut || c.Method() == fiber.MethodPost):
+		return true, h.uploadDocs(c, state, repo, storagePath, crateName, parts[4])
+	case len(parts) == 6 && parts[5] == "docs" && c.Method() == fiber.MethodDelete:
+		return true, h.deleteDocs(c, state, repo, storagePath, crateName, parts[4])
 	default:
 		return false, nil
 	}

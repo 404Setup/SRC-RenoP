@@ -3,7 +3,9 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 import {el} from '@renop/ui/dom';
@@ -11,11 +13,21 @@ import {makeCustomSelect} from '@renop/ui/custom-select';
 import {collapseElement, expandElement, morphElementHeight, prefersReducedMotion} from '@renop/ui/height-anim';
 import {openModalWithAnim} from '@renop/ui/modal';
 import {createToggle} from '@renop/ui/toggle';
-import {apiRequest} from './api.js';
+import {fetchProto, postProto, sendProto} from './api.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {cachedIsLoggedIn, cachedIsManager} from './auth.js';
 import {showAlert, showConfirm} from './alert.js';
 import {t} from './i18n.js';
+import {
+    ClearMessagesResponse,
+    MarkAllReadResponse,
+    SendNotificationRequest,
+    SendNotificationResponse,
+    StatusOk,
+    UnreadCountResponse,
+    UserMessageList,
+    UserSearchResponse
+} from './proto/index.js';
 
 const actionHandlers = new Map();
 const messageRenderers = new Map();
@@ -138,18 +150,17 @@ async function fetchMessages(reset, requestedCursor = '') {
     try {
         const cursor = reset ? '' : requestedCursor;
         const url = cursor ? `/api/messages?limit=30&cursor=${encodeURIComponent(cursor)}` : '/api/messages?limit=30';
-        const response = await apiRequest(url);
+        const {response, data: payload} = await fetchProto(url, UserMessageList);
         if (!response.ok) throw new Error(await responseError(response));
-        const payload = await response.json();
-        const page = Array.isArray(payload.messages) ? payload.messages : [];
+        const page = Array.isArray(payload?.messages) ? payload.messages : [];
         let firstAddedMessageID = '';
         if (reset) {
             messages = page;
         } else {
             firstAddedMessageID = appendUniqueMessagePage(page);
         }
-        nextCursor = typeof payload.next_cursor === 'string' ? payload.next_cursor : '';
-        setUnreadCount(Number(payload.unread_count) || 0);
+        nextCursor = typeof payload?.next_cursor === 'string' ? payload.next_cursor : '';
+        setUnreadCount(Number(payload?.unread_count) || 0);
         renderMessages(firstAddedMessageID, true, reset);
     } catch (error) {
         console.error('Failed to load messages', error);
@@ -435,7 +446,7 @@ async function handleMessageListClick(event) {
  */
 async function markMessageRead(message) {
     try {
-        const response = await apiRequest(`/api/messages/${encodeURIComponent(message.id)}/read`, {method: 'POST'});
+        const {response} = await postProto(`/api/messages/${encodeURIComponent(message.id)}/read`, null, null, StatusOk);
         if (!response.ok) throw new Error(await responseError(response));
         message.read_at = Date.now();
         setUnreadCount(Math.max(0, unreadCount - 1));
@@ -451,7 +462,7 @@ async function markMessageRead(message) {
  */
 async function markAllRead() {
     try {
-        const response = await apiRequest('/api/messages/read-all', {method: 'POST'});
+        const {response, data: payload} = await postProto('/api/messages/read-all', null, null, MarkAllReadResponse);
         if (!response.ok) throw new Error(await responseError(response));
         const now = Date.now();
         for (const message of messages) message.read_at = message.read_at || now;
@@ -480,12 +491,11 @@ async function clearAllMessages() {
         });
         if (!confirmed) return;
         setClearMessagesBusy(true);
-        const response = await apiRequest('/api/messages', {method: 'DELETE'});
+        const {response, data: payload} = await sendProto('/api/messages', 'DELETE', null, null, ClearMessagesResponse);
         if (!response.ok) throw new Error(await responseError(response));
-        const payload = await response.json();
         await animateDismissibleMessagesOut();
         await fetchMessages(true);
-        showAlert(t('messages.cleared', {count: Number(payload.deleted) || 0}), 'success');
+        showAlert(t('messages.cleared', {count: Number(payload?.deleted) || 0}), 'success');
     } catch (error) {
         console.error('Failed to clear messages', error);
         showAlert(t('messages.clearFailed'), 'error');
@@ -526,7 +536,7 @@ function updateMessageToolbarState() {
  */
 async function deleteMessage(message) {
     try {
-        const response = await apiRequest(`/api/messages/${encodeURIComponent(message.id)}`, {method: 'DELETE'});
+        const {response} = await sendProto(`/api/messages/${encodeURIComponent(message.id)}`, 'DELETE', null, null, StatusOk);
         if (!response.ok) throw new Error(await responseError(response));
         const remainingMessages = [];
         for (const candidate of messages) {
@@ -552,6 +562,7 @@ async function deleteMessage(message) {
         showAlert(t('messages.deleteFailed'), 'error');
     }
 }
+
 
 /**
  * Collapse and fade a message before removing it from local state.
@@ -927,14 +938,14 @@ async function executeMessageAction(message, decision) {
 async function refreshUnreadCount() {
     if (!cachedIsLoggedIn) return;
     try {
-        const response = await apiRequest('/api/messages/unread-count');
-        if (!response.ok) return;
-        const payload = await response.json();
+        const {response, data: payload} = await fetchProto('/api/messages/unread-count', UnreadCountResponse);
+        if (!response.ok || !payload) return;
         setUnreadCount(Number(payload.unread_count) || 0);
     } catch (error) {
         console.error('Failed to refresh unread messages', error);
     }
 }
+
 
 /**
  * Update the bell badge with a bounded display value.
@@ -1240,17 +1251,17 @@ async function fetchRecipientSuggestions() {
     if (!cachedIsManager || !input || input.disabled || !query) return;
     const version = recipientSuggestionVersion;
     try {
-        const response = await apiRequest(`/api/messages/admin/users?q=${encodeURIComponent(query)}`);
+        const {response, data: payload} = await fetchProto(`/api/messages/admin/users?q=${encodeURIComponent(query)}`, UserSearchResponse);
         if (!response.ok) throw new Error(await responseError(response));
-        const payload = await response.json();
         if (version !== recipientSuggestionVersion || query !== currentRecipientQuery(input)) return;
-        renderRecipientSuggestions(Array.isArray(payload.users) ? payload.users : []);
+        renderRecipientSuggestions(Array.isArray(payload?.users) ? payload.users : []);
     } catch (error) {
         if (version !== recipientSuggestionVersion) return;
         console.error('Failed to suggest notification recipients', error);
         hideRecipientSuggestions();
     }
 }
+
 
 /**
  * Render username suggestions using the application's dropdown item style.
@@ -1454,16 +1465,16 @@ async function submitNotification(event) {
     notificationSending = true;
     setNotificationSubmitState('sending');
     try {
-        const response = await apiRequest('/api/messages/admin', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({all, recipients, severity, title, body})
-        });
+        const {response, data: payload} = await postProto(
+            '/api/messages/admin',
+            SendNotificationRequest,
+            {all, recipients, severity, title, body},
+            SendNotificationResponse
+        );
         if (!response.ok) throw new Error(await responseError(response));
-        const payload = await response.json();
         notificationSending = false;
         setNotificationSubmitState('success');
-        showAlert(t('messages.sent', {count: payload.sent || 0}), 'success');
+        showAlert(t('messages.sent', {count: Number(payload?.sent) || 0}), 'success');
         notificationCompletionTimer = window.setTimeout(completeSuccessfulNotification, 650);
     } catch (error) {
         notificationSending = false;
@@ -1472,6 +1483,7 @@ async function submitNotification(event) {
         showAlert(t('messages.sendFailed'), 'error');
     }
 }
+
 
 /**
  * Extract a bounded error string from an API response.

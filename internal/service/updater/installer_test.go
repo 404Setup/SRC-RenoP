@@ -11,7 +11,6 @@
 package updater
 
 import (
-	"archive/zip"
 	"context"
 	"debug/elf"
 	"encoding/binary"
@@ -21,6 +20,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/klauspost/compress/zip"
 )
 
 type downloadValidationTestCase struct {

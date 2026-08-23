@@ -23,7 +23,7 @@ import (
 func TestUserMessageLifecycle(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "messages.db")})
 	require.NoError(t, err)
-	defer db.Close()
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	now := time.Now().UnixMilli()
 	messages := []*core.UserMessage{
@@ -67,7 +67,7 @@ func TestUserMessageLifecycle(t *testing.T) {
 func TestPendingActionMessageCannotBeDeleted(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "pending.db")})
 	require.NoError(t, err)
-	defer db.Close()
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 	message := &core.UserMessage{
 		ID: "00000000-0000-4000-8000-000000000004", Recipient: "alice", Sender: "admin",

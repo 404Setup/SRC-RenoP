@@ -135,18 +135,31 @@ func decodeJSONLimited(r io.Reader, contentLength, max int64, dst any) error {
 		return utils.ErrResponseTooLarge
 	}
 
-	var data []byte
-	var err error
-	if contentLength >= 0 {
-		data = make([]byte, contentLength)
-		_, err = io.ReadFull(r, data)
-	} else {
-		data, err = utils.ReadAllLimited(r, max)
-	}
-	if err != nil {
+	lr := &io.LimitedReader{R: r, N: max + 1}
+	dec := json.NewDecoder(lr)
+	if err := dec.Decode(dst); err != nil {
+		if lr.N <= 0 {
+			return utils.ErrResponseTooLarge
+		}
 		return err
 	}
-	return json.Unmarshal(data, dst)
+	var trailing any
+	if err := dec.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if lr.N <= 0 {
+			return utils.ErrResponseTooLarge
+		}
+		if err == nil {
+			return errors.New("unexpected trailing data after JSON object")
+		}
+		if _, readErr := io.Copy(io.Discard, lr); readErr != nil || lr.N <= 0 {
+			return utils.ErrResponseTooLarge
+		}
+		return err
+	}
+	if _, readErr := io.Copy(io.Discard, lr); readErr != nil || lr.N <= 0 {
+		return utils.ErrResponseTooLarge
+	}
+	return nil
 }
 
 func doGitHubJSON(ctx context.Context, client *http.Client, url string, dst any) (statusCode int, err error) {

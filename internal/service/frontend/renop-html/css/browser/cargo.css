@@ -443,7 +443,7 @@ html.dark .cargo-state-badge.is-yanked {
 .cargo-invite-controls {
     display: grid;
     grid-template-columns: minmax(8rem, 1fr) 12.5rem auto;
-    align-items: start;
+    align-items: center;
     gap: 0.55rem;
 }
 
@@ -454,6 +454,30 @@ html.dark .cargo-state-badge.is-yanked {
 .cargo-invite-input-wrap input {
     width: 100%;
     box-sizing: border-box;
+    padding: 0.55rem 0.85rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-size: 0.875rem;
+    font-family: inherit;
+    line-height: 1.25;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.cargo-invite-input-wrap input:hover {
+    border-color: color-mix(in srgb, var(--border-color) 70%, var(--link-hover-color));
+}
+
+.cargo-invite-input-wrap input:focus {
+    border-color: var(--link-hover-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 18%, transparent);
+    background-color: var(--bg-color);
+}
+
+.cargo-invite-input-wrap input::placeholder {
+    color: color-mix(in srgb, var(--text-color) 45%, transparent);
 }
 
 .cargo-user-suggestions {
@@ -1160,6 +1184,67 @@ html.dark .cargo-dep-badge.is-target {
         width: 100%;
         max-width: 100%;
     }
+}
+
+.cargo-doc-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem 1.5rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cargo-doc-dropzone:hover,
+.cargo-doc-dropzone.is-dragover {
+    border-color: var(--link-hover-color);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.cargo-doc-dropzone-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--muted-text);
+}
+
+.cargo-doc-dropzone-text {
+    font-size: 0.95rem;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.cargo-doc-dropzone-hint {
+    font-size: 0.8rem;
+    color: var(--muted-text);
+}
+
+.cargo-doc-file-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--card-bg);
+    margin-top: 1rem;
+}
+
+.cargo-doc-file-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+
+.cargo-doc-file-size {
+    font-size: 0.8rem;
+    color: var(--muted-text);
 }
 
 @media (prefers-reduced-motion: reduce) {

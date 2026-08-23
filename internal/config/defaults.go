@@ -176,17 +176,20 @@ func DefaultAuditLogConfig() AuditLogConfig {
 
 func DefaultConfig() *Config {
 	return &Config{
-		StoragePath:          "storage",
-		EnableJavadocPreview: true,
-		JavadocExtractPath:   "",
-		MaxJavadocSizeMb:     256,
-		Frontend:             DefaultFrontendConfig(),
-		Maven:                DefaultMavenSettings(),
-		Server:               DefaultServerConfig(),
-		Updater:              DefaultUpdaterConfig(),
-		Database:             DefaultDatabaseConfig(),
-		AuditLog:             DefaultAuditLogConfig(),
-		GPG:                  GPGConfig{KeyServers: DefaultGPGKeyServers()},
-		Proxy:                ProxyConfig{},
+		StoragePath:           "storage",
+		EnableJavadocPreview:  true,
+		JavadocExtractPath:    "",
+		MaxJavadocSizeMb:      256,
+		EnableCargodocPreview: true,
+		CargodocExtractPath:   "",
+		MaxCargodocSizeMb:     256,
+		Frontend:              DefaultFrontendConfig(),
+		Maven:                 DefaultMavenSettings(),
+		Server:                DefaultServerConfig(),
+		Updater:               DefaultUpdaterConfig(),
+		Database:              DefaultDatabaseConfig(),
+		AuditLog:              DefaultAuditLogConfig(),
+		GPG:                   GPGConfig{KeyServers: DefaultGPGKeyServers()},
+		Proxy:                 ProxyConfig{},
 	}
 }

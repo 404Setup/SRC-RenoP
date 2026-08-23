@@ -586,3 +586,81 @@ func TestCargoAdministratorLifecycleLocksCannotBeRestoredByOwner(t *testing.T) {
 		t.Fatalf("administrator package restore status = %d", status)
 	}
 }
+
+func TestCargoAdministratorWithL3CanManageTeam(t *testing.T) {
+	storagePath := t.TempDir()
+	store := newMemoryStore()
+	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
+	state := core.NewAppState()
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-admin-l3.db")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+	if err := db.SaveToken(&core.AccessToken{Name: "alice", Identifier: core.AccessTokenIdentifier{Type: core.Persistent}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SaveToken(&core.AccessToken{Name: "bob", Identifier: core.AccessTokenIdentifier{Type: core.Persistent}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SaveToken(&core.AccessToken{Name: "admin", Identifier: core.AccessTokenIdentifier{Type: core.Persistent}}); err != nil {
+		t.Fatal(err)
+	}
+
+	alice := &config.User{Username: "alice", Roles: []string{"canupdate:cargo"}}
+	aliceApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, alice)
+	crate := makeCrateArchive(t, map[string]string{
+		"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+	})
+	body := makePublishBody(t, PublishMetadata{
+		Name: "demo", Version: "1.0.0", Deps: []PublishDependency{}, Features: map[string][]string{},
+	}, crate)
+	publishResponse, err := aliceApp.Test(httptest.NewRequest(
+		http.MethodPut, "http://registry.example/cargo/api/v1/crates/new", bytes.NewReader(body),
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = publishResponse.Body.Close()
+	if publishResponse.StatusCode != fiber.StatusOK {
+		t.Fatalf("alice publish status = %d", publishResponse.StatusCode)
+	}
+
+	admin := &config.User{Username: "admin", Roles: []string{"manager"}}
+	inviteAdmin := httptest.NewRequest("PUT", "http://registry.example/cargo/api/v1/crates/demo/owners", strings.NewReader(`{"users":["admin"],"level":3}`))
+	inviteAdmin.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	inviteAdminRes, err := aliceApp.Test(inviteAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = inviteAdminRes.Body.Close()
+	if inviteAdminRes.StatusCode != fiber.StatusOK {
+		t.Fatalf("invite admin status = %d", inviteAdminRes.StatusCode)
+	}
+
+	messages, err := db.ListMessages("admin", 10, 0, "", time.Now().UnixMilli())
+	if err != nil || len(messages) != 1 {
+		t.Fatalf("admin messages count = %d, err = %v", len(messages), err)
+	}
+	adminApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, admin)
+	acceptRes, err := adminApp.Test(httptest.NewRequest("POST", "http://registry.example/cargo/api/v1/invitations/"+messages[0].ID+"/accept", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = acceptRes.Body.Close()
+	if acceptRes.StatusCode != fiber.StatusOK {
+		t.Fatalf("admin accept status = %d", acceptRes.StatusCode)
+	}
+
+	inviteBob := httptest.NewRequest("PUT", "http://registry.example/cargo/api/v1/crates/demo/owners", strings.NewReader(`{"users":["bob"],"level":2}`))
+	inviteBob.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	inviteBobRes, err := adminApp.Test(inviteBob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = inviteBobRes.Body.Close()
+	if inviteBobRes.StatusCode != fiber.StatusOK {
+		t.Fatalf("admin invite bob status = %d, want 200", inviteBobRes.StatusCode)
+	}
+}

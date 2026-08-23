@@ -24,6 +24,7 @@ import (
 	"renop/internal/middleware"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/cargodocs"
 	"renop/internal/service/frontend"
 	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
@@ -103,6 +104,7 @@ func main() {
 	storage.HTMLFallback = frontend.ServeIndex
 	frontend.SetupFrontendRoutes(app, state)
 	javadocs.SetupJavadocRoutes(app, state)
+	cargodocs.SetupCargodocRoutes(app, state)
 	storage.SetupRoutes(app, state)
 
 	listenAddr := cfg.Server.Host + ":" + strconv.Itoa(int(cfg.Server.Port))

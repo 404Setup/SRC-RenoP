@@ -18,6 +18,8 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/utils/protohttp"
+	"renop/pkg/pb"
 )
 
 type AuditLogListResponse struct {
@@ -85,12 +87,7 @@ func GetSelfAuditLogs(c fiber.Ctx, state *core.AppState) error {
 		maskedLogs[i] = &lCopy
 	}
 
-	return c.JSON(AuditLogListResponse{
-		Logs:     maskedLogs,
-		Total:    total,
-		Page:     page,
-		PageSize: pageSize,
-	})
+	return protohttp.Write(c, pb.FromAuditLogList(maskedLogs, total, page, pageSize))
 }
 
 func DeleteSelfAuditLogs(c fiber.Ctx) error {
@@ -118,12 +115,7 @@ func GetUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
 
-	return c.JSON(AuditLogListResponse{
-		Logs:     logs,
-		Total:    total,
-		Page:     page,
-		PageSize: pageSize,
-	})
+	return protohttp.Write(c, pb.FromAuditLogList(logs, total, page, pageSize))
 }
 
 func DeleteUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
@@ -154,7 +146,7 @@ func DeleteUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 		IP:         ip,
 	})
 
-	return c.JSON(fiber.Map{"status": "ok"})
+	return protohttp.Write(c, pb.StatusOkSuccess())
 }
 
 func fetchLogs(state *core.AppState, username string, limit, offset int) ([]*core.AuditLogEntry, int, error) {
