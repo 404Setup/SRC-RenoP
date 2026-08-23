@@ -24,6 +24,7 @@
   administrator notices.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (Maven file index vs. Cargo package catalog),
   anomaly detection, and brute-force mitigation.
+- **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`, `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
 - **`web/` & `internal/service/frontend/`**: Embedded SPA. Modular i18n catalogs under `js/i18n/<locale>/` compiled via
@@ -51,6 +52,8 @@
 | **Protobuf Generation**                 | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
 | **Run All Tests**                       | `go test ./...`                                                                  |
 | **Run Package Tests**                   | `go test -v ./internal/...`                                                      |
+| **Install as Service**                  | `./renop --install`                                                              |
+| **Uninstall Service**                   | `./renop --uninstall`                                                            |
 
 ---
 

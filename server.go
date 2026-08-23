@@ -11,7 +11,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 
 	"renop/internal/api"
 	"renop/internal/bootstrap"
+	"renop/internal/daemon"
 	"renop/internal/middleware"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
@@ -45,6 +48,40 @@ func init() {
 func main() {
 	utils.InitMemoryTuning()
 
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "--install", "-install":
+			if err := daemon.Install(); err != nil {
+				log.Fatalf("Failed to install RenoP service: %v", err)
+			}
+			return
+		case "--uninstall", "-uninstall", "--remove", "-remove":
+			if err := daemon.Uninstall(); err != nil {
+				log.Fatalf("Failed to uninstall RenoP service: %v", err)
+			}
+			return
+		case "--help", "-help", "-h", "/?":
+			fmt.Println("RenoP - High-performance self-hosted package repository server")
+			fmt.Println("\nUsage:")
+			fmt.Println("  renop                 Start RenoP server")
+			fmt.Println("  renop --install       Install and start RenoP as a system service")
+			fmt.Println("  renop --uninstall     Stop and remove the RenoP system service")
+			fmt.Println("  renop --help          Show help information")
+			return
+		}
+	}
+
+	if daemon.IsWindowsService() {
+		if err := daemon.RunWindowsService(startServer); err != nil {
+			log.Fatalf("Windows service error: %v", err)
+		}
+		return
+	}
+
+	startServer()
+}
+
+func startServer() {
 	state, context := bootstrap.Initialize()
 	bootstrap.StartServices(state, context)
 	cfg := state.Inner.Config.Load()
