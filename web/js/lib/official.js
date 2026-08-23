@@ -317,7 +317,7 @@ export async function fetchStableRelease() {
 }
 
 /**
- * Fetch up to 10 preview releases from info.json.
+ * Fetch up to 100 preview releases from info.json.
  * @returns {Promise<Array<{
  *   id: string,
  *   tag: string,
@@ -332,7 +332,7 @@ export async function fetchStableRelease() {
  */
 export async function fetchPreviewReleases() {
     const info = await fetchChannelInfo('nightly');
-    const items = info.releases.slice(0, 10);
+    const items = info.releases.slice(0, 100);
     return items.map((rel, index) => {
         const short = (rel.commit || rel.version || '').slice(0, 7) || rel.version;
         const name = rel.version.startsWith('nightly-') ? rel.version : `nightly-${short}`;

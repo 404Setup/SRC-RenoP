@@ -61,6 +61,25 @@ runs:
           -ToolCache $env:RUNNER_TOOL_CACHE `
           -OutputFile $env:GITHUB_OUTPUT
 
+    - name: Clean obsolete Go runtime and caches
+      if: inputs.cache == 'true'
+      shell: pwsh
+      env:
+        SETUP_CURRENT_TAG: ${{ steps.resolve.outputs.tag }}
+        SETUP_RUNNER_OS: ${{ runner.os }}
+        SETUP_RUNNER_ARCH: ${{ runner.arch }}
+        SETUP_TOOL_CACHE: ${{ runner.tool_cache }}
+        SETUP_GITHUB_REPOSITORY: ${{ github.repository }}
+        SETUP_GO_TOKEN: ${{ inputs.github-token || github.token }}
+      run: |
+        & (Join-Path $env:GITHUB_ACTION_PATH 'clean-obsolete-cache.ps1') `
+          -CurrentTag $env:SETUP_CURRENT_TAG `
+          -RunnerOS $env:SETUP_RUNNER_OS `
+          -RunnerArchitecture $env:SETUP_RUNNER_ARCH `
+          -ToolCache $env:SETUP_TOOL_CACHE `
+          -GithubRepository $env:SETUP_GITHUB_REPOSITORY `
+          -Token $env:SETUP_GO_TOKEN
+
     - name: Restore Go runtime cache
       if: inputs.cache == 'true'
       uses: actions/cache@v6
@@ -113,4 +132,3 @@ runs:
         key: go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-${{ hashFiles(inputs.cache-dependency-path) }}
         restore-keys: |
           go-cache-${{ runner.os }}-${{ runner.arch }}-${{ steps.resolve.outputs.tag }}-
-          go-cache-${{ runner.os }}-${{ runner.arch }}-

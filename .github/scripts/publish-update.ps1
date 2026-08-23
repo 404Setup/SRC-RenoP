@@ -86,81 +86,104 @@ $Changelog = if ($null -ne $Changelog) { $Changelog.Trim() } else { '' }
 $channelRoot = "update/renop/$Channel"
 $infoPath = "$channelRoot/info.json"
 $infoUrl = "$BaseUrl/$infoPath"
-$authHeaders = @{
-    Authorization = "Bearer $token"
-    'User-Agent'  = 'RenoP-Publish'
-}
 
-function Invoke-MvncRequest {
-    param(
-        [Parameter(Mandatory = $true)][string]$Method,
-        [Parameter(Mandatory = $true)][string]$Uri,
-        [hashtable]$Headers = @{},
-        [string]$InFile,
-        [byte[]]$BodyBytes,
-        [string]$ContentType,
-        [int[]]$OkStatus = @(200, 201, 204)
-    )
-    $merged = @{}
-    foreach ($k in $authHeaders.Keys) { $merged[$k] = $authHeaders[$k] }
-    foreach ($k in $Headers.Keys) { $merged[$k] = $Headers[$k] }
+$httpHandler = [System.Net.Http.SocketsHttpHandler]::new()
+$httpHandler.PooledConnectionLifetime = [TimeSpan]::FromMinutes(5)
+$httpHandler.PooledConnectionIdleTimeout = [TimeSpan]::FromSeconds(30)
+$httpHandler.MaxConnectionsPerServer = 16
+$httpHandler.EnableMultipleHttp2Connections = $true
 
-    $params = @{
-        Method      = $Method
-        Uri         = $Uri
-        Headers     = $merged
-        TimeoutSec  = 600
-    }
-    if ($ContentType) { $params['ContentType'] = $ContentType }
-    if ($InFile) { $params['InFile'] = $InFile }
-    if ($null -ne $BodyBytes) { $params['Body'] = $BodyBytes }
+$httpClient = [System.Net.Http.HttpClient]::new($httpHandler)
+$httpClient.Timeout = [TimeSpan]::FromSeconds(600)
+$httpClient.DefaultRequestHeaders.UserAgent.ParseAdd('RenoP-Publish')
+$httpClient.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer', $token)
 
+function Get-RemoteInfoJson {
+    param([string]$Url)
     try {
-        $resp = Invoke-WebRequest @params -UseBasicParsing
-        if ($OkStatus -notcontains [int]$resp.StatusCode) {
-            throw "Unexpected status $([int]$resp.StatusCode) for $Method $Uri"
-        }
-        return $resp
-    } catch {
-        $status = $null
-        if ($_.Exception.Response) {
-            $status = [int]$_.Exception.Response.StatusCode
-        }
-        if ($null -ne $status -and $OkStatus -contains $status) {
+        $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $Url)
+        $resp = $httpClient.SendAsync($req).GetAwaiter().GetResult()
+        if ($resp.StatusCode -eq [System.Net.HttpStatusCode]::NotFound) {
             return $null
         }
-        throw
-    }
-}
-
-function Get-RemoteInfo {
-    try {
-        $resp = Invoke-WebRequest -Method GET -Uri $infoUrl -Headers @{ 'User-Agent' = 'RenoP-Publish' } -TimeoutSec 30 -UseBasicParsing
-        if ([int]$resp.StatusCode -ne 200 -or [string]::IsNullOrWhiteSpace($resp.Content)) {
+        if (-not $resp.IsSuccessStatusCode) {
+            Write-Warning "Failed to read remote info.json from $Url (HTTP $([int]$resp.StatusCode))."
             return $null
         }
-        return ($resp.Content | ConvertFrom-Json)
-    } catch {
-        $status = $null
-        if ($_.Exception.Response) {
-            $status = [int]$_.Exception.Response.StatusCode
+        $jsonStr = $resp.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+        if ([string]::IsNullOrWhiteSpace($jsonStr)) {
+            return $null
         }
-        if ($status -eq 404) { return $null }
+        return ($jsonStr | ConvertFrom-Json)
+    } catch {
         Write-Warning "Failed to read remote info.json: $($_.Exception.Message)"
         return $null
     }
 }
 
-function Remove-VersionTree {
-    param([Parameter(Mandatory = $true)][string]$Ver)
-    if ([string]::IsNullOrWhiteSpace($Ver)) { return }
-    $dirUrl = "$BaseUrl/$channelRoot/$Ver"
+function Delete-VersionTreeAsync {
+    param(
+        [Parameter(Mandatory = $true)][string]$Ver,
+        [string]$ChannelPath
+    )
+    if ([string]::IsNullOrWhiteSpace($Ver)) { return $null }
+    $dirUrl = "$BaseUrl/$ChannelPath/$Ver"
     Write-Host "Deleting previous package tree from mvnc: $dirUrl"
-    try {
-        Invoke-MvncRequest -Method DELETE -Uri $dirUrl -OkStatus @(200, 204, 404) | Out-Null
-    } catch {
-        Write-Warning "DELETE $dirUrl failed: $($_.Exception.Message)"
-    }
+    return [System.Threading.Tasks.Task]::Run([System.Action]{
+        try {
+            $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Delete, $dirUrl)
+            $resp = $httpClient.SendAsync($req).GetAwaiter().GetResult()
+            $code = [int]$resp.StatusCode
+            if ($code -ne 200 -and $code -ne 204 -and $code -ne 404) {
+                Write-Warning "DELETE $dirUrl returned unexpected status $code ($($resp.ReasonPhrase))"
+            }
+        } catch {
+            Write-Warning "DELETE $dirUrl failed: $($_.Exception.Message)"
+        }
+    })
+}
+
+function Upload-PackageFileAsync {
+    param(
+        [Parameter(Mandatory = $true)][object]$Target,
+        [Parameter(Mandatory = $true)][string]$DestUrl,
+        [System.Threading.SemaphoreSlim]$Semaphore
+    )
+    return [System.Threading.Tasks.Task]::Run([System.Action]{
+        if ($null -ne $Semaphore) {
+            $Semaphore.Wait()
+        }
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        try {
+            Write-Host "PUT $($Target.file) -> $DestUrl ($($Target.size) bytes)"
+            $fs = [System.IO.File]::OpenRead($Target.path)
+            try {
+                $content = [System.Net.Http.StreamContent]::new($fs, 131072)
+                $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('application/zip')
+
+                $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Put, $DestUrl)
+                $req.Content = $content
+
+                $resp = $httpClient.SendAsync($req).GetAwaiter().GetResult()
+                $code = [int]$resp.StatusCode
+                if ($code -ne 200 -and $code -ne 201 -and $code -ne 204) {
+                    throw "PUT $DestUrl returned unexpected status $code ($($resp.ReasonPhrase))"
+                }
+                $sw.Stop()
+                $elapsedSec = [Math]::Max($sw.Elapsed.TotalSeconds, 0.001)
+                $speedMBs = [Math]::Round(($Target.size / 1048576) / $elapsedSec, 2)
+                Write-Host "Uploaded $($Target.file) in $($sw.ElapsedMilliseconds)ms ($speedMBs MB/s)"
+            } finally {
+                $fs.Dispose()
+            }
+        } catch {
+            throw "Failed to upload $($Target.file): $($_.Exception.Message)"
+        } finally {
+            if ($null -ne $Semaphore) {
+                $Semaphore.Release() | Out-Null
+            }
+        }
+    })
 }
 
 $zipFiles = @(Get-ChildItem -LiteralPath $DistDir -Filter '*.zip' -File | Sort-Object Name)
@@ -251,18 +274,21 @@ $currentRelease = [ordered]@{
     targets      = $currentReleaseTargets
 }
 
-$remoteInfo = Get-RemoteInfo
+$remoteInfo = Get-RemoteInfoJson -Url $infoUrl
 
-$existingReleases = [System.Collections.Generic.List[object]]::new()
-if ($null -ne $remoteInfo) {
-    if ($remoteInfo.releases -and $remoteInfo.releases.Count -gt 0) {
-        foreach ($r in $remoteInfo.releases) {
-            $existingReleases.Add($r)
+function Extract-ReleasesFromInfo {
+    param([object]$infoObj)
+    $list = [System.Collections.Generic.List[object]]::new()
+    if ($null -eq $infoObj) { return $list }
+
+    if ($infoObj.releases -and $infoObj.releases.Count -gt 0) {
+        foreach ($r in $infoObj.releases) {
+            $list.Add($r)
         }
-    } elseif ($remoteInfo.version) {
+    } elseif ($infoObj.version) {
         $oldTargets = @()
-        if ($remoteInfo.targets) {
-            foreach ($ot in $remoteInfo.targets) {
+        if ($infoObj.targets) {
+            foreach ($ot in $infoObj.targets) {
                 $oldTargets += [ordered]@{
                     os           = [string]$ot.os
                     arch         = [string]$ot.arch
@@ -273,51 +299,50 @@ if ($null -ne $remoteInfo) {
                 }
             }
         }
-        $existingReleases.Add([ordered]@{
-            version      = [string]$remoteInfo.version
-            commit       = [string]$remoteInfo.commit
-            channel      = [string]$remoteInfo.channel
-            development  = [bool]$remoteInfo.development
-            published_at = [string]$remoteInfo.published_at
-            changelog    = [string]$remoteInfo.changelog
+        $list.Add([ordered]@{
+            version      = [string]$infoObj.version
+            commit       = [string]$infoObj.commit
+            channel      = [string]$infoObj.channel
+            development  = [bool]$infoObj.development
+            published_at = [string]$infoObj.published_at
+            changelog    = [string]$infoObj.changelog
             targets      = $oldTargets
         })
     }
+    return $list
 }
 
-$filtered = [System.Collections.Generic.List[object]]::new()
-foreach ($r in $existingReleases) {
-    if ([string]$r.version -ne $Version) {
-        $filtered.Add($r)
-    }
-}
+$existingReleases = Extract-ReleasesFromInfo -infoObj $remoteInfo
+
+$seenVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+$seenVersions.Add($Version) | Out-Null
 
 $updatedReleases = [System.Collections.Generic.List[object]]::new()
 $updatedReleases.Add($currentRelease)
-foreach ($r in $filtered) {
-    $updatedReleases.Add($r)
+
+foreach ($r in $existingReleases) {
+    $v = [string]$r.version
+    if (-not [string]::IsNullOrWhiteSpace($v) -and $seenVersions.Add($v)) {
+        $updatedReleases.Add($r)
+    }
 }
 
 if ($Channel -eq 'nightly') {
-    if ($updatedReleases.Count -gt 10) {
-        $updatedReleases = [System.Collections.Generic.List[object]]($updatedReleases.GetRange(0, 10))
+    # Retain up to 100 nightly releases in info.json
+    if ($updatedReleases.Count -gt 100) {
+        $updatedReleases = [System.Collections.Generic.List[object]]($updatedReleases.GetRange(0, 100))
     }
+    # Older nightly builds do not provide downloads -> strip targets field completely
     for ($i = 1; $i -lt $updatedReleases.Count; $i++) {
         $rel = $updatedReleases[$i]
-        $relTargets = [System.Collections.Generic.List[object]]::new()
-        if ($rel.targets) {
-            foreach ($t in $rel.targets) {
-                $relTargets.Add([ordered]@{
-                    os           = [string]$t.os
-                    arch         = [string]$t.arch
-                    file         = [string]$t.file
-                    sha256       = [string]$t.sha256
-                    size         = [int64]$t.size
-                    download_url = ''
-                })
-            }
+        $updatedReleases[$i] = [ordered]@{
+            version      = [string]$rel.version
+            commit       = [string]$rel.commit
+            channel      = [string]$rel.channel
+            development  = [bool]$rel.development
+            published_at = [string]$rel.published_at
+            changelog    = [string]$rel.changelog
         }
-        $rel.targets = $relTargets
     }
 } else {
     for ($i = 0; $i -lt $updatedReleases.Count; $i++) {
@@ -343,7 +368,18 @@ if ($Channel -eq 'nightly') {
                 })
             }
         }
-        $rel.targets = $relTargets
+        if ($relTargets.Count -gt 0) {
+            $rel.targets = $relTargets
+        } else {
+            $updatedReleases[$i] = [ordered]@{
+                version      = [string]$rel.version
+                commit       = [string]$rel.commit
+                channel      = [string]$rel.channel
+                development  = [bool]$rel.development
+                published_at = [string]$rel.published_at
+                changelog    = [string]$rel.changelog
+            }
+        }
     }
 }
 
@@ -357,27 +393,92 @@ if ($Channel -eq 'nightly') {
     }
 }
 
-$previousMvncVersions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+$candidatesToDelete = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
 foreach ($r in $existingReleases) {
-    if ($r.version) { $previousMvncVersions.Add([string]$r.version) | Out-Null }
+    if ($r.version) { $candidatesToDelete.Add([string]$r.version) | Out-Null }
 }
 if ($remoteInfo -and $remoteInfo.version) {
-    $previousMvncVersions.Add([string]$remoteInfo.version) | Out-Null
+    $candidatesToDelete.Add([string]$remoteInfo.version) | Out-Null
 }
 
-foreach ($oldVer in $previousMvncVersions) {
-    if (-not $allowedMvncVersions.Contains($oldVer)) {
-        Remove-VersionTree -Ver $oldVer
+$freshRemoteInfo = Get-RemoteInfoJson -Url $infoUrl
+if ($null -ne $freshRemoteInfo) {
+    $freshReleases = Extract-ReleasesFromInfo -infoObj $freshRemoteInfo
+    foreach ($fr in $freshReleases) {
+        if ($fr.version) { $candidatesToDelete.Add([string]$fr.version) | Out-Null }
+    }
+    if ($freshRemoteInfo.version) {
+        $candidatesToDelete.Add([string]$freshRemoteInfo.version) | Out-Null
     }
 }
 
-Remove-VersionTree -Ver $Version
+if ($Channel -eq 'nightly') {
+    try {
+        $recentShorts = & git log -n 100 --format=%h 2>$null
+        foreach ($s in $recentShorts) {
+            $trimmed = $s.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
+                $candidatesToDelete.Add($trimmed) | Out-Null
+            }
+        }
+        $recent7 = & git log -n 100 --abbrev=7 --format=%h 2>$null
+        foreach ($s in $recent7) {
+            $trimmed = $s.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
+                $candidatesToDelete.Add($trimmed) | Out-Null
+            }
+        }
+        $recentFulls = & git log -n 100 --format=%H 2>$null
+        foreach ($f in $recentFulls) {
+            $trimmed = $f.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
+                $candidatesToDelete.Add($trimmed) | Out-Null
+            }
+        }
+    } catch {
+        Write-Warning "Could not inspect git commit log for old nightly versions: $($_.Exception.Message)"
+    }
+} else {
+    try {
+        $gitTags = & git tag -l 2>$null
+        foreach ($t in $gitTags) {
+            $trimmed = $t.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
+                $candidatesToDelete.Add($trimmed) | Out-Null
+            }
+        }
+    } catch {
+        Write-Warning "Could not inspect git tags: $($_.Exception.Message)"
+    }
+}
 
+$versionsToDelete = [System.Collections.Generic.List[string]]::new()
+foreach ($c in $candidatesToDelete) {
+    if (-not $allowedMvncVersions.Contains($c) -and $c -ne $Version -and -not [string]::IsNullOrWhiteSpace($c)) {
+        $versionsToDelete.Add($c)
+    }
+}
+
+$deleteTasks = [System.Collections.Generic.List[System.Threading.Tasks.Task]]::new()
+foreach ($oldVer in $versionsToDelete) {
+    $dt = Delete-VersionTreeAsync -Ver $oldVer -ChannelPath $channelRoot
+    if ($null -ne $dt) { $deleteTasks.Add($dt) }
+}
+$curDelete = Delete-VersionTreeAsync -Ver $Version -ChannelPath $channelRoot
+if ($null -ne $curDelete) { $deleteTasks.Add($curDelete) }
+
+if ($deleteTasks.Count -gt 0) {
+    [System.Threading.Tasks.Task]::WaitAll($deleteTasks.ToArray())
+}
+
+$uploadTasks = [System.Collections.Generic.List[System.Threading.Tasks.Task]]::new()
+$uploadSemaphore = [System.Threading.SemaphoreSlim]::new(8, 8)
 foreach ($t in $targets) {
     $dest = "$BaseUrl/$channelRoot/$Version/$($t.file)"
-    Write-Host "PUT $($t.file) -> $dest ($($t.size) bytes)"
-    Invoke-MvncRequest -Method PUT -Uri $dest -InFile $t.path -ContentType 'application/zip' -OkStatus @(200, 201, 204) | Out-Null
+    $uploadTasks.Add((Upload-PackageFileAsync -Target $t -DestUrl $dest -Semaphore $uploadSemaphore))
 }
+[System.Threading.Tasks.Task]::WaitAll($uploadTasks.ToArray())
 
 $info = [ordered]@{
     releases = $updatedReleases
@@ -385,8 +486,18 @@ $info = [ordered]@{
 $infoJson = $info | ConvertTo-Json -Depth 8
 $infoLocal = Join-Path $DistDir 'info.json'
 [System.IO.File]::WriteAllText($infoLocal, $infoJson, [System.Text.UTF8Encoding]::new($false))
+
 Write-Host "PUT info.json -> $infoUrl"
 $infoBytes = [System.Text.Encoding]::UTF8.GetBytes($infoJson)
-Invoke-MvncRequest -Method PUT -Uri $infoUrl -BodyBytes $infoBytes -ContentType 'application/json' -OkStatus @(200, 201, 204) | Out-Null
+$infoContent = [System.Net.Http.ByteArrayContent]::new($infoBytes)
+$infoContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('application/json')
+$infoReq = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Put, $infoUrl)
+$infoReq.Content = $infoContent
+
+$infoResp = $httpClient.SendAsync($infoReq).GetAwaiter().GetResult()
+$infoCode = [int]$infoResp.StatusCode
+if ($infoCode -ne 200 -and $infoCode -ne 201 -and $infoCode -ne 204) {
+    throw "PUT $infoUrl returned unexpected status $infoCode ($($infoResp.ReasonPhrase))"
+}
 
 Write-Host "Published $Channel $Version ($($targets.Count) targets) to $BaseUrl/$channelRoot/"

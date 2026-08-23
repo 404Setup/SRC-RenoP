@@ -110,7 +110,7 @@ type ChannelInfoRelease struct {
 	Development bool                `json:"development,omitempty"`
 	PublishedAt string              `json:"published_at"`
 	Changelog   string              `json:"changelog,omitempty"`
-	Targets     []ChannelInfoTarget `json:"targets"`
+	Targets     []ChannelInfoTarget `json:"targets,omitempty"`
 }
 
 // ChannelInfo is the hosted update/renop/{channel}/info.json document.

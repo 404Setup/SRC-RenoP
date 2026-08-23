@@ -73,12 +73,12 @@ update this `AGENTS.md` file in the same turn** to ensure future AI agents recei
   Cargo subpage navigation preserves the previous content and reuses immutable repository-format metadata until the
   next route is ready. Package-team autocomplete and permission menus are body-attached or fixed-width controls to
   avoid resizing their page containers. Repository settings select Maven versus Cargo mirror URL labels and hints from
-  the immutable format rather than presenting protocol-specific fields globally.
 - **`build.ps1`**: PowerShell 7 build script for single and cross-platform builds. Linux targets link
   `runtime.godebugDefault=disablethp=1` so transparent huge pages are disabled before the first Go heap mapping;
   operators can override this with `GODEBUG=disablethp=0`.
 - **`.github/actions/setup-go-runtime/`**: Composite Action that resolves, verifies, installs, and caches the prebuilt
-  custom Go runtime from `404Setup/go` releases.
+  custom Go runtime from `404Setup/go` releases. Automatically purges obsolete Go runtimes and module/build caches from GitHub Actions Cache API and the local runner toolcache when the Go version changes.
+- **`.github/scripts/publish-update.ps1`**: High-performance publishing script for `mvnc.pkg.one`. Uses a connection-pooled HTTP/2 client with throttled parallel uploads and concurrent version deletions. Retains up to 100 nightly releases and all stable releases in `info.json`, cleanly omitting the `targets` field when downloads are not provided, and robustly cleans up old nightly directories across rapid commits.
 
 ---
 
