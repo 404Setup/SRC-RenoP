@@ -97,7 +97,6 @@ const BASE_ROLES = ['admin', 'base', 'showing', 'allview', 'canview:*', 'canupda
  */
 function ensureSecretStrengthMeter() {
     const secretInput = document.getElementById('token-secret');
-    const nicknameInput = document.getElementById('token-nickname');
     if (!secretInput) return null;
     if (!secretStrengthCtrl) {
         secretStrengthCtrl = attachPasswordStrength(secretInput);
@@ -214,6 +213,7 @@ async function handleUserSubmit(e, dialog) {
     e.preventDefault();
     const originalNameInput = document.getElementById('token-original-name');
     const nameInput = document.getElementById('token-name');
+    const nicknameInput = document.getElementById('token-nickname');
     const secretInput = document.getElementById('token-secret');
 
     const originalName = originalNameInput ? originalNameInput.value.trim() : '';
@@ -251,6 +251,11 @@ async function handleUserSubmit(e, dialog) {
     if (newName !== originalName) payload.new_name = newName;
     if (secret) payload.secret = secret;
 
+    const submitButton = e.currentTarget?.querySelector('button[type="submit"]');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.setAttribute('aria-busy', 'true');
+    }
     try {
         const {
             response,
@@ -279,6 +284,12 @@ async function handleUserSubmit(e, dialog) {
         }
     } catch (err) {
         console.error('Failed to save user', err);
+        showAlert(t('users.failedSaveUser'), 'error');
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.removeAttribute('aria-busy');
+        }
     }
 }
 

@@ -22,8 +22,8 @@
 
 .modal-content .submit-btn {
     width: 100%;
-    background-color: var(--text-color);
-    color: var(--bg-color);
+    background-color: #3b82f6;
+    color: #ffffff;
     border: none;
     padding: 0.75rem;
     border-radius: 8px;
@@ -33,7 +33,7 @@
 }
 
 .modal-content .submit-btn:hover {
-    background-color: var(--link-hover-color);
+    background-color: #2563eb;
     color: #ffffff;
 }
 
