@@ -49,6 +49,16 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		permissions_json TEXT NOT NULL
 	);`
 
+	userProfilesTable := `
+	CREATE TABLE IF NOT EXISTS user_profiles (
+		user_id VARCHAR(36) PRIMARY KEY,
+		username VARCHAR(255) NOT NULL UNIQUE,
+		nickname VARCHAR(144) NOT NULL DEFAULT '',
+		rename_window_started_at BIGINT NOT NULL DEFAULT 0,
+		rename_count INT NOT NULL DEFAULT 0,
+		updated_at BIGINT NOT NULL DEFAULT 0
+	);`
+
 	sessionsTable := `
 	CREATE TABLE IF NOT EXISTS sessions (
 		session_token VARCHAR(512) PRIMARY KEY,
@@ -232,6 +242,7 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		repository VARCHAR(64) NOT NULL,
 		normalized_name VARCHAR(64) NOT NULL,
 		username VARCHAR(255) NOT NULL,
+		user_id VARCHAR(36) NULL,
 		permission_level INT NOT NULL,
 		added_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, normalized_name, username)
@@ -305,6 +316,7 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 		repository VARCHAR(64) NOT NULL,
 		image_name VARCHAR(255) NOT NULL,
 		username VARCHAR(255) NOT NULL,
+		user_id VARCHAR(36) NULL,
 		permission_level INT NOT NULL,
 		added_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, image_name, username)
@@ -323,6 +335,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	);`
 
 	if _, err := db.Exec(tokensTable); err != nil {
+		return err
+	}
+	if _, err := db.Exec(userProfilesTable); err != nil {
 		return err
 	}
 	if _, err := db.Exec(sessionsTable); err != nil {

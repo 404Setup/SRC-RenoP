@@ -24,16 +24,19 @@ const (
 	OpTokenDelete
 	OpTokenUpdate
 	OpTokenRename
+	OpUserProfileUpdate
 )
 
 type TokenOp struct {
-	Type     TokenOpType
-	Name     string
-	NewName  string // used by OpTokenRename
-	Token    *core.AccessToken
-	UpdateFn func(*core.AccessToken)
-	ErrChan  chan error
-	State    *core.AppState // used by OpTokenRename to update sessions
+	Type      TokenOpType
+	Name      string
+	NewName   string // used by OpTokenRename
+	Token     *core.AccessToken
+	UpdateFn  func(*core.AccessToken)
+	Nickname  string
+	ChangedAt int64
+	ErrChan   chan error
+	State     *core.AppState // used by OpTokenRename to update sessions
 }
 
 func cloneAccessToken(token *core.AccessToken) *core.AccessToken {
@@ -89,6 +92,12 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			existing, err := db.GetTokenByName(safeName)
 			if err == nil {
 				err = db.SaveToken(clonedToken)
+			}
+			if err == nil && op.Nickname != "" {
+				_, err = db.UpdateUserProfile(safeName, safeName, op.Nickname, clonedToken, op.ChangedAt)
+				if err != nil && existing == nil {
+					_ = db.DeleteToken(safeName)
+				}
 			}
 			if err != nil {
 				completeTokenOp(op, err)
@@ -210,6 +219,42 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			} else {
 				completeTokenOp(op, errors.New("token not found"))
 			}
+
+		case OpUserProfileUpdate:
+			oldName := strings.Clone(op.Name)
+			newName := strings.Clone(op.NewName)
+			db := state.GetDB()
+			if db == nil {
+				completeTokenOp(op, core.ErrDatabaseUnavailable)
+				continue
+			}
+			value, err := db.GetTokenByName(oldName)
+			if err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
+			if value == nil {
+				completeTokenOp(op, core.ErrUserProfileNotFound)
+				continue
+			}
+			clonedToken := cloneAccessToken(op.Token)
+			if clonedToken == nil {
+				clonedToken = cloneAccessToken(value)
+			}
+			if _, err := db.UpdateUserProfile(oldName, newName, op.Nickname, clonedToken, op.ChangedAt); err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
+			if oldName != newName {
+				state.Inner.Sessions.Range(func(_ string, session *core.Session) bool {
+					if session != nil && strings.EqualFold(session.Username, oldName) {
+						session.Username = newName
+					}
+					return true
+				})
+			}
+			state.ClearAuthCache()
+			completeTokenOp(op, nil)
 		}
 	}
 }

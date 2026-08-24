@@ -12,6 +12,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -176,14 +177,11 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	if err != nil {
 		return fmt.Errorf("failed to save token (%s): %w", name, err)
 	}
-
-	db.tokenCache.Set(name, token, 10*time.Minute)
-	db.tokenSecretCache.DeleteFunc(func(_ string, val *core.AccessToken) bool {
-		return val == nil || strings.EqualFold(val.Name, name)
-	})
-	for _, t := range token.Tokens {
-		db.tokenSecretCache.Set(t, token, 10*time.Minute)
+	if _, err := db.ensureUserProfile(name); err != nil {
+		return err
 	}
+
+	db.finishTokenUpdate(name, token)
 
 	return nil
 }
@@ -203,14 +201,18 @@ func (db *DB) DeleteToken(name string) error {
 		return fmt.Errorf("failed to begin token deletion (%s): %w", lowerName, err)
 	}
 	defer tx.Rollback()
+	var userID string
+	if err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, lowerName).Scan(&userID); err != nil {
+		return fmt.Errorf("failed to resolve stable identity for token (%s): %w", lowerName, err)
+	}
 	var soleCargoOwnerships int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members current_member
-		WHERE current_member.username = ? AND current_member.permission_level = ? AND NOT EXISTS (
+		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
 			SELECT 1 FROM cargo_members other_member
 			WHERE other_member.repository = current_member.repository
 			AND other_member.normalized_name = current_member.normalized_name
-			AND other_member.permission_level = ? AND other_member.username <> current_member.username
-		)`, lowerName, core.CargoPermissionOwner, core.CargoPermissionOwner).Scan(&soleCargoOwnerships); err != nil {
+			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+		)`, userID, core.CargoPermissionOwner, core.CargoPermissionOwner).Scan(&soleCargoOwnerships); err != nil {
 		return fmt.Errorf("failed to inspect Cargo package ownership for token (%s): %w", lowerName, err)
 	}
 	if soleCargoOwnerships > 0 {
@@ -219,18 +221,18 @@ func (db *DB) DeleteToken(name string) error {
 	if err := cancelCargoInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
 		return fmt.Errorf("failed to cancel Cargo invitations for token (%s): %w", lowerName, err)
 	}
-	if _, err := tx.Exec(`DELETE FROM cargo_members WHERE username = ?`, lowerName); err != nil {
+	if _, err := tx.Exec(`DELETE FROM cargo_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete Cargo memberships for token (%s): %w", lowerName, err)
 	}
 
 	var soleDockerOwnerships int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM docker_members current_member
-		WHERE current_member.username = ? AND current_member.permission_level = ? AND NOT EXISTS (
+		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
 			SELECT 1 FROM docker_members other_member
 			WHERE other_member.repository = current_member.repository
 			AND other_member.image_name = current_member.image_name
-			AND other_member.permission_level = ? AND other_member.username <> current_member.username
-		)`, lowerName, core.DockerPermissionOwner, core.DockerPermissionOwner).Scan(&soleDockerOwnerships); err != nil {
+			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+		)`, userID, core.DockerPermissionOwner, core.DockerPermissionOwner).Scan(&soleDockerOwnerships); err != nil {
 		return fmt.Errorf("failed to inspect Docker image ownership for token (%s): %w", lowerName, err)
 	}
 	if soleDockerOwnerships > 0 {
@@ -239,7 +241,7 @@ func (db *DB) DeleteToken(name string) error {
 	if err := cancelDockerInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
 		return fmt.Errorf("failed to cancel Docker invitations for token (%s): %w", lowerName, err)
 	}
-	if _, err := tx.Exec(`DELETE FROM docker_members WHERE username = ?`, lowerName); err != nil {
+	if _, err := tx.Exec(`DELETE FROM docker_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete Docker memberships for token (%s): %w", lowerName, err)
 	}
 
@@ -262,6 +264,9 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM user_messages WHERE recipient = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete messages for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM user_profiles WHERE username = ?`, lowerName); err != nil {
+		return fmt.Errorf("failed to delete user profile for token (%s): %w", lowerName, err)
+	}
 	if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete token (%s): %w", lowerName, err)
 	}
@@ -281,110 +286,145 @@ func (db *DB) DeleteToken(name string) error {
 }
 
 func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) error {
-	if db == nil || db.SqlDB == nil || oldName == "" || newName == "" {
-		return nil
+	if db == nil || db.SqlDB == nil || token == nil {
+		return core.ErrDatabaseUnavailable
 	}
-	oldName = SanitizeInputString(strings.TrimSpace(oldName), maxTokenNameLen)
-	newName = SanitizeInputString(strings.TrimSpace(newName), maxTokenNameLen)
-	if oldName == "" || newName == "" {
-		return nil
+	lowerOld := strings.ToLower(SanitizeInputString(strings.TrimSpace(oldName), maxTokenNameLen))
+	lowerNew := strings.ToLower(SanitizeInputString(strings.TrimSpace(newName), maxTokenNameLen))
+	if lowerOld == "" || lowerNew == "" {
+		return errors.New("token name is invalid")
 	}
-
-	lowerOld := strings.ToLower(oldName)
-	lowerNew := strings.ToLower(newName)
+	if lowerOld == lowerNew {
+		token.Name = lowerNew
+		return db.SaveToken(token)
+	}
 
 	tx, err := db.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("begin token rename: %w", err)
 	}
 	defer tx.Rollback()
-
-	if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, lowerOld); err != nil {
+	if err := db.renameTokenInTx(tx, lowerOld, lowerNew, token); err != nil {
 		return err
 	}
-
-	if token != nil {
-		tokensJson, _ := json.Marshal(token.Tokens)
-		permissionsJson, _ := json.Marshal(token.Permissions)
-
-		var expiresAt sql.NullInt64
-		if token.ExpiresAt != nil {
-			expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
-		}
-
-		query := db.Dialect.UpsertTokenQuery()
-		if _, err := tx.Exec(query, lowerNew, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJson), token.CreatedAt, token.Description, expiresAt, string(permissionsJson)); err != nil {
-			return err
-		}
+	if _, err := tx.Exec(`UPDATE user_profiles SET username = ?, updated_at = ? WHERE username = ?`,
+		lowerNew, time.Now().UnixMilli(), lowerOld); err != nil {
+		return fmt.Errorf("rename user profile from %s to %s: %w", lowerOld, lowerNew, err)
 	}
-	if _, err := tx.Exec(`UPDATE sessions SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename sessions from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE fido_devices SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename fido devices from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE user_gpg_keys SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename GPG keys from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE gpg_signatures SET uploader = ? WHERE uploader = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename GPG signature uploader from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE gpg_releases SET uploader = ? WHERE uploader = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename GPG release uploader from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE user_messages SET recipient = ? WHERE recipient = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename message recipient from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE user_messages SET sender = ? WHERE sender = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename message sender from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE cargo_members SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Cargo memberships from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE cargo_versions SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Cargo publishers from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE cargo_invitations SET inviter = ? WHERE inviter = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Cargo invitation senders from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE cargo_invitations SET recipient = ? WHERE recipient = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Cargo invitation recipients from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE docker_members SET username = ? WHERE username = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Docker memberships from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE docker_images SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Docker image publishers from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE docker_tags SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Docker tag publishers from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE docker_manifests SET publisher = ? WHERE publisher = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Docker manifest publishers from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE docker_invitations SET inviter = ? WHERE inviter = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Docker invitation senders from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-	if _, err := tx.Exec(`UPDATE docker_invitations SET recipient = ? WHERE recipient = ?`, lowerNew, lowerOld); err != nil {
-		return fmt.Errorf("failed to rename Docker invitation recipients from %s to %s: %w", lowerOld, lowerNew, err)
-	}
-
 	if err := tx.Commit(); err != nil {
-		return err
+		return fmt.Errorf("commit token rename: %w", err)
+	}
+	db.finishTokenRename(lowerOld, lowerNew, token)
+	return nil
+}
+
+func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.AccessToken) error {
+	var exists int
+	if err := tx.QueryRow(`SELECT 1 FROM tokens WHERE name = ?`, newName).Scan(&exists); err == nil {
+		return core.ErrUsernameAlreadyExists
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect target username %s: %w", newName, err)
+	}
+	tokensJSON, err := json.Marshal(token.Tokens)
+	if err != nil {
+		return fmt.Errorf("encode token secrets: %w", err)
+	}
+	permissionsJSON, err := json.Marshal(token.Permissions)
+	if err != nil {
+		return fmt.Errorf("encode token permissions: %w", err)
+	}
+	var expiresAt sql.NullInt64
+	if token.ExpiresAt != nil {
+		expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
+	}
+	if _, err := tx.Exec(`INSERT INTO tokens
+		(name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		newName, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash,
+		string(tokensJSON), token.CreatedAt, token.Description, expiresAt, string(permissionsJSON)); err != nil {
+		return fmt.Errorf("create renamed token %s: %w", newName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM tokens WHERE name = ?`, oldName); err != nil {
+		return fmt.Errorf("remove previous token %s: %w", oldName, err)
 	}
 
-	db.tokenCache.Delete(lowerOld)
-	db.tokenSecretCache.DeleteFunc(func(_ string, val *core.AccessToken) bool {
-		return val == nil || strings.EqualFold(val.Name, lowerOld)
-	})
-	if token != nil {
-		db.tokenCache.Set(lowerNew, token, 10*time.Minute)
-		for _, t := range token.Tokens {
-			db.tokenSecretCache.Set(t, token, 10*time.Minute)
+	updates := []struct {
+		query string
+		name  string
+	}{
+		{`UPDATE sessions SET username = ? WHERE username = ?`, "sessions"},
+		{`UPDATE fido_devices SET username = ? WHERE username = ?`, "FIDO devices"},
+		{`UPDATE user_gpg_keys SET username = ? WHERE username = ?`, "GPG keys"},
+		{`UPDATE gpg_signatures SET uploader = ? WHERE uploader = ?`, "GPG signatures"},
+		{`UPDATE gpg_releases SET uploader = ? WHERE uploader = ?`, "GPG releases"},
+		{`UPDATE audit_logs SET username = ? WHERE username = ?`, "audit subjects"},
+		{`UPDATE audit_logs SET operator = ? WHERE operator = ?`, "audit operators"},
+		{`UPDATE user_messages SET recipient = ? WHERE recipient = ?`, "message recipients"},
+		{`UPDATE user_messages SET sender = ? WHERE sender = ?`, "message senders"},
+		{`UPDATE cargo_members SET username = ? WHERE username = ?`, "Cargo memberships"},
+		{`UPDATE cargo_versions SET publisher = ? WHERE publisher = ?`, "Cargo publishers"},
+		{`UPDATE cargo_invitations SET inviter = ? WHERE inviter = ?`, "Cargo invitation senders"},
+		{`UPDATE cargo_invitations SET recipient = ? WHERE recipient = ?`, "Cargo invitation recipients"},
+		{`UPDATE docker_members SET username = ? WHERE username = ?`, "Docker memberships"},
+		{`UPDATE docker_images SET publisher = ? WHERE publisher = ?`, "Docker image publishers"},
+		{`UPDATE docker_tags SET publisher = ? WHERE publisher = ?`, "Docker tag publishers"},
+		{`UPDATE docker_manifests SET publisher = ? WHERE publisher = ?`, "Docker manifest publishers"},
+		{`UPDATE docker_invitations SET inviter = ? WHERE inviter = ?`, "Docker invitation senders"},
+		{`UPDATE docker_invitations SET recipient = ? WHERE recipient = ?`, "Docker invitation recipients"},
+	}
+	for _, update := range updates {
+		if _, err := tx.Exec(update.query, newName, oldName); err != nil {
+			return fmt.Errorf("rename %s from %s to %s: %w", update.name, oldName, newName, err)
 		}
 	}
-
 	return nil
+}
+
+func (db *DB) saveTokenInTx(tx *Tx, name string, token *core.AccessToken) error {
+	tokensJSON, err := json.Marshal(token.Tokens)
+	if err != nil {
+		return fmt.Errorf("encode token secrets: %w", err)
+	}
+	permissionsJSON, err := json.Marshal(token.Permissions)
+	if err != nil {
+		return fmt.Errorf("encode token permissions: %w", err)
+	}
+	var expiresAt sql.NullInt64
+	if token.ExpiresAt != nil {
+		expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
+	}
+	if _, err := tx.Exec(db.Dialect.UpsertTokenQuery(), name, string(token.Identifier.Type), token.Identifier.Value,
+		token.EncryptedSecret, token.PasswordHash, string(tokensJSON), token.CreatedAt, token.Description,
+		expiresAt, string(permissionsJSON)); err != nil {
+		return fmt.Errorf("update token %s with profile: %w", name, err)
+	}
+	return nil
+}
+
+func (db *DB) finishTokenRename(oldName, newName string, token *core.AccessToken) {
+	token.Name = newName
+	db.tokenCache.Delete(oldName)
+	db.tokenSecretCache.DeleteFunc(func(_ string, val *core.AccessToken) bool {
+		return val == nil || strings.EqualFold(val.Name, oldName)
+	})
+	db.sessionCache.DeleteFunc(func(_ string, session *core.Session) bool {
+		return session == nil || strings.EqualFold(session.Username, oldName)
+	})
+	db.tokenCache.Set(newName, token, 10*time.Minute)
+	for _, secret := range token.Tokens {
+		db.tokenSecretCache.Set(secret, token, 10*time.Minute)
+	}
+}
+
+func (db *DB) finishTokenUpdate(name string, token *core.AccessToken) {
+	token.Name = name
+	db.tokenCache.Set(name, token, 10*time.Minute)
+	db.tokenSecretCache.DeleteFunc(func(_ string, value *core.AccessToken) bool {
+		return value == nil || strings.EqualFold(value.Name, name)
+	})
+	for _, secret := range token.Tokens {
+		db.tokenSecretCache.Set(secret, token, 10*time.Minute)
+	}
 }
 
 func (db *DB) CountTokens() (uint64, error) {

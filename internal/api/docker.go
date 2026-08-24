@@ -602,13 +602,25 @@ type dockerLevelRequest struct {
 	Level int `json:"level"`
 }
 
+func resolveDockerMemberReference(db core.StateDB, reference string) (string, error) {
+	reference = strings.TrimSpace(reference)
+	if _, err := uuid.Parse(reference); err != nil {
+		return reference, nil
+	}
+	profile, err := db.GetUserProfileByID(reference)
+	if err != nil {
+		return "", err
+	}
+	return profile.Username, nil
+}
+
 // SetDockerOwnerLevelAPI handles PUT /api/docker/repositories/:repo_name/owners/:username?image=...
 func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
-	targetUsername := strings.TrimSpace(c.Params("username"))
+	targetReference := strings.TrimSpace(c.Params("username"))
 	imageName := strings.Trim(c.Query("image"), "/")
 
-	if !utils.IsValidRepositoryName(repoName) || imageName == "" || targetUsername == "" {
+	if !utils.IsValidRepositoryName(repoName) || imageName == "" || targetReference == "" {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid parameters")
 	}
 
@@ -621,6 +633,10 @@ func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+	}
+	targetUsername, err := resolveDockerMemberReference(db, targetReference)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Member not found")
 	}
 
 	user := auth.GetUser(c)
@@ -666,10 +682,10 @@ func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 // RemoveDockerOwnerAPI handles DELETE /api/docker/repositories/:repo_name/owners/:username?image=...
 func RemoveDockerOwnerAPI(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
-	targetUsername := strings.TrimSpace(c.Params("username"))
+	targetReference := strings.TrimSpace(c.Params("username"))
 	imageName := strings.Trim(c.Query("image"), "/")
 
-	if !utils.IsValidRepositoryName(repoName) || imageName == "" || targetUsername == "" {
+	if !utils.IsValidRepositoryName(repoName) || imageName == "" || targetReference == "" {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid parameters")
 	}
 
@@ -682,6 +698,10 @@ func RemoveDockerOwnerAPI(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+	}
+	targetUsername, err := resolveDockerMemberReference(db, targetReference)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Member not found")
 	}
 
 	user := auth.GetUser(c)

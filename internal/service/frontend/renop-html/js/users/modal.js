@@ -21,6 +21,7 @@ import {
     RenopDialog
 } from '../components.js';
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError} from '../password-strength.js';
+import {getUserProfile, invalidateUserProfiles} from '../user-profiles.js';
 
 let secretStrengthCtrl = null;
 let currentDialogInstance = null;
@@ -96,6 +97,7 @@ const BASE_ROLES = ['admin', 'base', 'showing', 'allview', 'canview:*', 'canupda
  */
 function ensureSecretStrengthMeter() {
     const secretInput = document.getElementById('token-secret');
+    const nicknameInput = document.getElementById('token-nickname');
     if (!secretInput) return null;
     if (!secretStrengthCtrl) {
         secretStrengthCtrl = attachPasswordStrength(secretInput);
@@ -217,6 +219,15 @@ async function handleUserSubmit(e, dialog) {
     const originalName = originalNameInput ? originalNameInput.value.trim() : '';
     const newName = nameInput ? nameInput.value.trim() : '';
     const secret = secretInput ? secretInput.value.trim() : '';
+    const nickname = nicknameInput ? nicknameInput.value.trim() : '';
+	if ((!originalName || newName.toLowerCase() !== originalName.toLowerCase()) && !/^[A-Za-z0-9_]{4,18}$/.test(newName)) {
+		showAlert(t('profile.usernameHint'), 'error');
+		return;
+	}
+	if (Array.from(nickname).length > 36) {
+		showAlert(t('profile.nicknameHint'), 'error');
+		return;
+	}
 
     if (secret) {
         const lengthError = getPasswordLengthError(secret);
@@ -233,7 +244,7 @@ async function handleUserSubmit(e, dialog) {
     const roles = Array.from(checkboxes).map(cb => cb.value);
 
     const targetName = originalName || newName;
-    const payload = {permissions: roles};
+    const payload = {permissions: roles, nickname};
     if (!originalName) {
         payload.is_create = true;
     }
@@ -249,6 +260,7 @@ async function handleUserSubmit(e, dialog) {
         if (response.ok && data) {
             const generatedSecret = (data.secret && data.secret !== secret) ? data.secret : null;
 
+            invalidateUserProfiles(originalName, newName);
             dialog.close(true);
             if (generatedSecret) {
                 showUserResultModal(generatedSecret);
@@ -258,7 +270,12 @@ async function handleUserSubmit(e, dialog) {
             refreshTokensList();
         } else {
             const errText = await response.text();
-            showAlert(errText || t('users.failedSaveUser'), 'error');
+			const message = response.status === 409
+				? t('profile.usernameExists')
+				: (response.status === 429
+					? t('profile.renameRateLimited')
+					: (response.status === 400 ? t('profile.identityInvalid') : errText));
+            showAlert(message || t('users.failedSaveUser'), 'error');
         }
     } catch (err) {
         console.error('Failed to save user', err);
@@ -272,6 +289,15 @@ async function handleUserSubmit(e, dialog) {
  */
 export async function openUserModal(token = null) {
     const isEdit = !!token;
+	let currentProfile = null;
+	if (isEdit) {
+		try {
+			currentProfile = await getUserProfile(token.name, {refresh: true});
+		} catch {
+			showAlert(t('profile.loadFailed'), 'error');
+			return;
+		}
+	}
 
     const originalNameInput = el('input', {type: 'hidden', id: 'token-original-name', value: isEdit ? token.name : ''});
 
@@ -292,6 +318,16 @@ export async function openUserModal(token = null) {
         usernameLabel.appendChild(el('span', {class: 'token-form-field-hint'}, usernameHint));
     }
     const usernameGroup = el('div', {class: 'form-group'}, usernameLabel, usernameInput);
+
+	const nicknameInput = el('input', {
+		type: 'text', id: 'token-nickname', autocomplete: 'nickname',
+		placeholder: t('profile.nicknamePlaceholder'), value: currentProfile?.nickname || ''
+	});
+	const nicknameLabel = el('label', {htmlFor: 'token-nickname'},
+		el('span', {}, t('profile.nicknameLabel')),
+		el('span', {class: 'token-form-field-hint'}, t('profile.nicknameHint'))
+	);
+	const nicknameGroup = el('div', {class: 'form-group'}, nicknameLabel, nicknameInput);
 
     const secretInput = el('input', {
         type: 'password',
@@ -324,6 +360,7 @@ export async function openUserModal(token = null) {
         el('div', {class: 'token-form-section-header'}, accountTitleWrap),
         el('div', {class: 'token-form-fields'},
             usernameGroup,
+			nicknameGroup,
             secretGroup
         )
     );

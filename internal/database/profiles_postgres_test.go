@@ -1,0 +1,111 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package database_test
+
+import (
+	"database/sql"
+	"fmt"
+	"net/url"
+	"os"
+	"testing"
+	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/stretchr/testify/require"
+
+	"renop/internal/config"
+	"renop/internal/core"
+	"renop/internal/database"
+)
+
+func TestPostgresUserProfileIntegration(t *testing.T) {
+	dsn := os.Getenv("RENOP_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("RENOP_TEST_POSTGRES_DSN is not configured")
+	}
+	parsed, err := url.Parse(dsn)
+	require.NoError(t, err)
+	schema := fmt.Sprintf("renop_profile_test_%d", time.Now().UnixNano())
+	admin, err := sql.Open("pgx", dsn)
+	require.NoError(t, err)
+	require.NoError(t, admin.Ping())
+	_, err = admin.Exec(`CREATE SCHEMA "` + schema + `"`)
+	require.NoError(t, err)
+	_, err = admin.Exec(`CREATE TABLE "` + schema + `".user_profiles (
+		username VARCHAR(255) PRIMARY KEY,
+		nickname VARCHAR(144) NOT NULL DEFAULT '',
+		rename_window_started_at BIGINT NOT NULL DEFAULT 0,
+		rename_count INT NOT NULL DEFAULT 0,
+		updated_at BIGINT NOT NULL DEFAULT 0
+	)`)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, dropErr := admin.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
+		require.NoError(t, dropErr)
+		require.NoError(t, admin.Close())
+	})
+	query := parsed.Query()
+	query.Set("search_path", schema)
+	parsed.RawQuery = query.Encode()
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "postgres", Dsn: parsed.String(), MaxOpenConns: 2, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	account := &core.AccessToken{
+		Identifier: core.AccessTokenIdentifier{Type: core.Persistent, Value: 1},
+		Name:       "profile_pg", CreatedAt: "2026-08-24T00:00:00Z", Permissions: []string{"base"},
+	}
+	require.NoError(t, db.SaveToken(account))
+	const changedAt int64 = 1_800_000_100_000
+	profile, err := db.UpdateUserProfile("profile_pg", "profile_pg", "PostgreSQL User", account, changedAt)
+	require.NoError(t, err)
+	require.Equal(t, "PostgreSQL User", profile.Nickname)
+	stableUserID := profile.UserID
+	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
+		Repository: "cargo", Name: "profile-pg-crate", NormalizedName: "profile-pg-crate",
+		CreatedAt: changedAt, UpdatedAt: changedAt,
+	}, &core.CargoVersion{
+		Repository: "cargo", Package: "profile-pg-crate", Version: "1.0.0",
+		Publisher: account.Name, CreatedAt: changedAt,
+	}, account.Name))
+	require.NoError(t, db.PutDockerManifest(&core.DockerManifest{
+		Repository: "docker", ImageName: "profile/pg",
+		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdee",
+		MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(`{"schemaVersion":2}`),
+	}, "latest", account.Name))
+	profile, err = db.UpdateUserProfile("profile_pg", "profile_pg_one", profile.Nickname, account, changedAt+1)
+	require.NoError(t, err)
+	require.Equal(t, stableUserID, profile.UserID)
+	profile, err = db.UpdateUserProfile("profile_pg_one", "profile_pg_two", profile.Nickname,
+		mustToken(t, db, "profile_pg_one"), changedAt+2)
+	require.NoError(t, err)
+	require.Equal(t, stableUserID, profile.UserID)
+	_, err = db.UpdateUserProfile("profile_pg_two", "profile_pg_three", profile.Nickname,
+		mustToken(t, db, "profile_pg_two"), changedAt+3)
+	require.ErrorIs(t, err, core.ErrUsernameChangeRateLimited)
+	loaded, err := db.GetUserProfiles([]string{"profile_pg_two", "missing"})
+	require.NoError(t, err)
+	require.Len(t, loaded, 1)
+	require.Equal(t, "PostgreSQL User", loaded["profile_pg_two"].Nickname)
+	byID, err := db.GetUserProfileByID(stableUserID)
+	require.NoError(t, err)
+	require.Equal(t, "profile_pg_two", byID.Username)
+	cargoMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatCargo)
+	require.NoError(t, err)
+	require.Len(t, cargoMemberships, 1)
+	require.Equal(t, "profile-pg-crate", cargoMemberships[0].Name)
+	dockerMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatDocker)
+	require.NoError(t, err)
+	require.Len(t, dockerMemberships, 1)
+	require.Equal(t, "profile/pg", dockerMemberships[0].Name)
+}

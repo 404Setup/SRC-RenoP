@@ -82,9 +82,13 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 	}
 	username = sanitizeCargoUsername(username)
 	if username != "" {
+		userID, identityErr := db.userIDForUsername(username)
+		if identityErr != nil && !errors.Is(identityErr, core.ErrUserProfileNotFound) {
+			return nil, identityErr
+		}
 		err := db.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			pkg.Repository, pkg.NormalizedName, username).Scan(&pkg.PermissionLevel)
+			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			pkg.Repository, pkg.NormalizedName, userID).Scan(&pkg.PermissionLevel)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("get Cargo package permission: %w", err)
 		}
@@ -122,8 +126,9 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		return nil, fmt.Errorf("close Cargo versions: %w", err)
 	}
 
-	memberRows, err := db.Query(`SELECT username, permission_level, added_at FROM cargo_members
-		WHERE repository = ? AND normalized_name = ? ORDER BY permission_level DESC, username`,
+	memberRows, err := db.Query(`SELECT m.user_id, COALESCE(p.username, m.username), m.permission_level, m.added_at
+		FROM cargo_members m LEFT JOIN user_profiles p ON p.user_id = m.user_id
+		WHERE m.repository = ? AND m.normalized_name = ? ORDER BY m.permission_level DESC, COALESCE(p.username, m.username)`,
 		pkg.Repository, pkg.NormalizedName)
 	if err != nil {
 		return nil, fmt.Errorf("list Cargo members: %w", err)
@@ -131,7 +136,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 	members := make([]*core.CargoMember, 0)
 	for memberRows.Next() {
 		member := &core.CargoMember{}
-		if err := memberRows.Scan(&member.Username, &member.Level, &member.AddedAt); err != nil {
+		if err := memberRows.Scan(&member.UserID, &member.Username, &member.Level, &member.AddedAt); err != nil {
 			_ = memberRows.Close()
 			return nil, fmt.Errorf("scan Cargo member: %w", err)
 		}
@@ -153,16 +158,20 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 	}
 	repository, _ = sanitizeCargoKey(repository, "")
 	username = sanitizeCargoUsername(username)
+	userID, identityErr := db.userIDForUsername(username)
+	if identityErr != nil && !errors.Is(identityErr, core.ErrUserProfileNotFound) {
+		return nil, identityErr
+	}
 	query := `SELECT p.repository, p.normalized_name, p.package_name, p.description,
 		p.repository_url, p.homepage, p.documentation,
 		p.archived, p.admin_archived, p.created_at, p.updated_at, COALESCE(m.permission_level, 0)
 		FROM cargo_packages p LEFT JOIN cargo_members m ON m.repository = p.repository
-		AND m.normalized_name = p.normalized_name AND m.username = ? WHERE p.repository = ?`
+		AND m.normalized_name = p.normalized_name AND m.user_id = ? WHERE p.repository = ?`
 	if !administrator {
 		query += ` AND m.username IS NOT NULL`
 	}
 	query += ` ORDER BY p.normalized_name`
-	rows, err := db.Query(query, username, repository)
+	rows, err := db.Query(query, userID, repository)
 	if err != nil {
 		return nil, fmt.Errorf("list Cargo packages: %w", err)
 	}
@@ -277,9 +286,16 @@ func (db *DB) HasCargoMembership(repository, username string) (bool, error) {
 	}
 	repository, _ = sanitizeCargoKey(repository, "")
 	username = sanitizeCargoUsername(username)
+	userID, err := db.userIDForUsername(username)
+	if errors.Is(err, core.ErrUserProfileNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
 	var exists int
-	err := db.QueryRow(`SELECT 1 FROM cargo_members WHERE repository = ? AND username = ? LIMIT 1`,
-		repository, username).Scan(&exists)
+	err = db.QueryRow(`SELECT 1 FROM cargo_members WHERE repository = ? AND user_id = ? LIMIT 1`,
+		repository, userID).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -303,6 +319,10 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	versionName := SanitizeInputString(strings.TrimSpace(version.Version), 128)
 	if repository == "" || normalizedName == "" || username == "" || packageName == "" || versionName == "" {
 		return errors.New("Cargo publication metadata is invalid")
+	}
+	userID, err := db.ensureUserProfile(username)
+	if err != nil {
+		return core.ErrCargoPermissionDenied
 	}
 	repoURL := SanitizeInputString(strings.TrimSpace(pkg.RepositoryURL), 1024)
 	homepageURL := SanitizeInputString(strings.TrimSpace(pkg.Homepage), 1024)
@@ -332,8 +352,8 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 			return fmt.Errorf("create Cargo package: %w", err)
 		}
 		if _, err = tx.Exec(`INSERT INTO cargo_members
-			(repository, normalized_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
-			repository, normalizedName, username, core.CargoPermissionFull, pkg.CreatedAt); err != nil {
+			(repository, normalized_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
+			repository, normalizedName, username, userID, core.CargoPermissionFull, pkg.CreatedAt); err != nil {
 			return fmt.Errorf("create Cargo package owner: %w", err)
 		}
 	case err != nil:
@@ -347,8 +367,8 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 		}
 		var level int
 		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			repository, normalizedName, username).Scan(&level); errors.Is(err, sql.ErrNoRows) || level < core.CargoPermissionPublish {
+			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			repository, normalizedName, userID).Scan(&level); errors.Is(err, sql.ErrNoRows) || level < core.CargoPermissionPublish {
 			return core.ErrCargoPermissionDenied
 		} else if err != nil {
 			return fmt.Errorf("inspect Cargo package permission: %w", err)
@@ -616,19 +636,31 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 			return err
 		}
 	}
+	first := invitations[0]
+	inviterID, err := db.ensureUserProfile(first.Inviter)
+	if err != nil {
+		return core.ErrCargoPermissionDenied
+	}
+	recipientIDs := make(map[string]string, len(invitations))
+	for _, invitation := range invitations {
+		recipientID, identityErr := db.ensureUserProfile(invitation.Recipient)
+		if identityErr != nil {
+			return core.ErrCargoPermissionDenied
+		}
+		recipientIDs[invitation.Recipient] = recipientID
+	}
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo invitation: %w", err)
 	}
 	defer tx.Rollback()
-	first := invitations[0]
 	if err := lockCargoPackageTeam(tx, first.Repository, first.NormalizedName); err != nil {
 		return err
 	}
 	var inviterLevel int
 	if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-		WHERE repository = ? AND normalized_name = ? AND username = ?`,
-		first.Repository, first.NormalizedName, first.Inviter).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
+		WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+		first.Repository, first.NormalizedName, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
 		return core.ErrCargoPermissionDenied
 	} else if err != nil {
 		return fmt.Errorf("inspect Cargo inviter permission: %w", err)
@@ -641,9 +673,10 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 		if invitation.Level == core.CargoPermissionOwner && inviterLevel < core.CargoPermissionOwner {
 			return core.ErrCargoPermissionDenied
 		}
+		recipientID := recipientIDs[invitation.Recipient]
 		var exists int
-		if err := tx.QueryRow(`SELECT 1 FROM cargo_members WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			invitation.Repository, invitation.NormalizedName, invitation.Recipient).Scan(&exists); err == nil {
+		if err := tx.QueryRow(`SELECT 1 FROM cargo_members WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			invitation.Repository, invitation.NormalizedName, recipientID).Scan(&exists); err == nil {
 			return core.ErrCargoMemberExists
 		} else if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("inspect Cargo invitation recipient: %w", err)
@@ -654,8 +687,9 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 		err := tx.QueryRow(`SELECT i.id, COALESCE(m.action_status, ''), COALESCE(m.expires_at, 0),
 			COALESCE(inviter.permission_level, 0) FROM cargo_invitations i
 			LEFT JOIN user_messages m ON m.id = i.id AND m.recipient = i.recipient
+			LEFT JOIN user_profiles inviter_profile ON inviter_profile.username = i.inviter
 			LEFT JOIN cargo_members inviter ON inviter.repository = i.repository
-				AND inviter.normalized_name = i.normalized_name AND inviter.username = i.inviter
+				AND inviter.normalized_name = i.normalized_name AND inviter.user_id = inviter_profile.user_id
 			WHERE i.repository = ? AND i.normalized_name = ? AND i.recipient = ?`,
 			invitation.Repository, invitation.NormalizedName, invitation.Recipient).Scan(
 			&existingID, &existingStatus, &existingExpiry, &existingInviterLevel,
@@ -711,6 +745,7 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 	packageName = SanitizeInputString(strings.TrimSpace(packageName), 64)
 	actor = sanitizeCargoUsername(actor)
 	normalizedUsers := make([]string, 0, len(usernames))
+	userIDs := make(map[string]string, len(usernames))
 	seen := make(map[string]struct{}, len(usernames))
 	for _, candidate := range usernames {
 		username := sanitizeCargoUsername(candidate)
@@ -721,6 +756,11 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 			continue
 		}
 		seen[username] = struct{}{}
+		userID, err := db.ensureUserProfile(username)
+		if err != nil {
+			return core.ErrUserProfileNotFound
+		}
+		userIDs[username] = userID
 		normalizedUsers = append(normalizedUsers, username)
 	}
 	if len(normalizedUsers) == 0 || (level == core.CargoPermissionOwner && len(normalizedUsers) != 1) {
@@ -739,8 +779,8 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 	}
 	for _, username := range normalizedUsers {
 		var existingLevel int
-		err := tx.QueryRow(`SELECT permission_level FROM cargo_members WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			repository, normalizedName, username).Scan(&existingLevel)
+		err := tx.QueryRow(`SELECT permission_level FROM cargo_members WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			repository, normalizedName, userIDs[username]).Scan(&existingLevel)
 		if err == nil {
 			return core.ErrCargoMemberExists
 		}
@@ -756,8 +796,8 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 		}
 	}
 	for _, username := range normalizedUsers {
-		if _, err := tx.Exec(`INSERT INTO cargo_members (repository, normalized_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
-			repository, normalizedName, username, level, now); err != nil {
+		if _, err := tx.Exec(`INSERT INTO cargo_members (repository, normalized_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
+			repository, normalizedName, username, userIDs[username], level, now); err != nil {
 			return fmt.Errorf("insert Cargo member: %w", err)
 		}
 
@@ -819,10 +859,18 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 		return err
 	}
 	if accept {
+		inviterID, identityErr := userIDForUsernameTx(tx, invitation.Inviter)
+		if identityErr != nil {
+			return core.ErrCargoInvitationInvalid
+		}
+		recipientID, identityErr := userIDForUsernameTx(tx, recipient)
+		if identityErr != nil {
+			return core.ErrCargoInvitationInvalid
+		}
 		var inviterLevel int
 		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			invitation.Repository, invitation.NormalizedName, invitation.Inviter).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
+			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			invitation.Repository, invitation.NormalizedName, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
 			return core.ErrCargoInvitationInvalid
 		} else if err != nil {
 			return fmt.Errorf("validate Cargo inviter: %w", err)
@@ -833,8 +881,8 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 
 		var memberLevel int
 		err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			invitation.Repository, invitation.NormalizedName, recipient).Scan(&memberLevel)
+			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			invitation.Repository, invitation.NormalizedName, recipientID).Scan(&memberLevel)
 		if err == nil {
 			return core.ErrCargoMemberExists
 		}
@@ -844,14 +892,14 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 
 		if invitation.Level == core.CargoPermissionOwner {
 			if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
-				WHERE repository = ? AND normalized_name = ? AND permission_level = ? AND username != ?`,
-				core.CargoPermissionManage, invitation.Repository, invitation.NormalizedName, core.CargoPermissionOwner, recipient); err != nil {
+				WHERE repository = ? AND normalized_name = ? AND permission_level = ? AND user_id != ?`,
+				core.CargoPermissionManage, invitation.Repository, invitation.NormalizedName, core.CargoPermissionOwner, recipientID); err != nil {
 				return fmt.Errorf("demote previous Cargo L4 owner: %w", err)
 			}
 		}
 		if _, err := tx.Exec(`INSERT INTO cargo_members
-			(repository, normalized_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
-			invitation.Repository, invitation.NormalizedName, recipient, invitation.Level, actedAt); err != nil {
+			(repository, normalized_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
+			invitation.Repository, invitation.NormalizedName, recipient, recipientID, invitation.Level, actedAt); err != nil {
 			return fmt.Errorf("accept Cargo membership: %w", err)
 		}
 	}
@@ -893,6 +941,17 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	actor = sanitizeCargoUsername(actor)
 	username = sanitizeCargoUsername(username)
+	targetID, err := db.userIDForUsername(username)
+	if err != nil {
+		return core.ErrCargoPackageNotFound
+	}
+	actorID := ""
+	if actor != "" {
+		actorID, err = db.userIDForUsername(actor)
+		if err != nil {
+			return core.ErrCargoPermissionDenied
+		}
+	}
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Cargo member update: %w", err)
@@ -903,24 +962,24 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 	}
 	actorLevel := 0
 	if actor != "" {
-		if err := requireCargoMemberPermission(tx, repository, normalizedName, actor, core.CargoPermissionManage); err != nil {
+		if err := requireCargoMemberPermission(tx, repository, normalizedName, actorID, core.CargoPermissionManage); err != nil {
 			return err
 		}
 		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			repository, normalizedName, actor).Scan(&actorLevel); err != nil {
+			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			repository, normalizedName, actorID).Scan(&actorLevel); err != nil {
 			return fmt.Errorf("inspect Cargo actor permission: %w", err)
 		}
 	}
 	var current int
 	if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-		WHERE repository = ? AND normalized_name = ? AND username = ?`, repository, normalizedName, username).Scan(&current); errors.Is(err, sql.ErrNoRows) {
+		WHERE repository = ? AND normalized_name = ? AND user_id = ?`, repository, normalizedName, targetID).Scan(&current); errors.Is(err, sql.ErrNoRows) {
 		return core.ErrCargoPackageNotFound
 	} else if err != nil {
 		return fmt.Errorf("inspect Cargo member: %w", err)
 	}
 	if current == core.CargoPermissionOwner && level < core.CargoPermissionOwner {
-		if err := requireAnotherFullCargoMember(tx, repository, normalizedName, username); err != nil {
+		if err := requireAnotherFullCargoMember(tx, repository, normalizedName, targetID); err != nil {
 			return err
 		}
 	}
@@ -930,18 +989,18 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 				return core.ErrCargoPermissionDenied
 			}
 			if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
-				WHERE repository = ? AND normalized_name = ? AND username = ?`,
-				current, repository, normalizedName, actor); err != nil {
+				WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+				current, repository, normalizedName, actorID); err != nil {
 				return fmt.Errorf("exchange previous Cargo L4 owner permission: %w", err)
 			}
 		} else if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
-			WHERE repository = ? AND normalized_name = ? AND permission_level = ? AND username != ?`,
-			core.CargoPermissionManage, repository, normalizedName, core.CargoPermissionOwner, username); err != nil {
+			WHERE repository = ? AND normalized_name = ? AND permission_level = ? AND user_id != ?`,
+			core.CargoPermissionManage, repository, normalizedName, core.CargoPermissionOwner, targetID); err != nil {
 			return fmt.Errorf("demote previous Cargo L4 owner: %w", err)
 		}
 	}
 	if _, err := tx.Exec(`UPDATE cargo_members SET permission_level = ?
-		WHERE repository = ? AND normalized_name = ? AND username = ?`, level, repository, normalizedName, username); err != nil {
+		WHERE repository = ? AND normalized_name = ? AND user_id = ?`, level, repository, normalizedName, targetID); err != nil {
 		return fmt.Errorf("update Cargo member: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -964,6 +1023,7 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	actor = sanitizeCargoUsername(actor)
 	unique := make([]string, 0, len(usernames))
+	userIDs := make(map[string]string, len(usernames))
 	seen := make(map[string]struct{}, len(usernames))
 	for _, candidate := range usernames {
 		username := sanitizeCargoUsername(candidate)
@@ -974,7 +1034,20 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 			continue
 		}
 		seen[username] = struct{}{}
+		userID, err := db.userIDForUsername(username)
+		if err != nil {
+			return core.ErrCargoPackageNotFound
+		}
+		userIDs[username] = userID
 		unique = append(unique, username)
+	}
+	actorID := ""
+	if actor != "" {
+		var err error
+		actorID, err = db.userIDForUsername(actor)
+		if err != nil {
+			return core.ErrCargoPermissionDenied
+		}
 	}
 	tx, err := db.Begin()
 	if err != nil {
@@ -987,8 +1060,8 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 	if actor != "" {
 		var actorLevel int
 		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			repository, normalizedName, actor).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
+			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			repository, normalizedName, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
 			return core.ErrCargoPermissionDenied
 		} else if err != nil {
 			return fmt.Errorf("inspect Cargo removal actor: %w", err)
@@ -1006,7 +1079,7 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 	for _, username := range unique {
 		var current int
 		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND username = ?`, repository, normalizedName, username).Scan(&current); errors.Is(err, sql.ErrNoRows) {
+			WHERE repository = ? AND normalized_name = ? AND user_id = ?`, repository, normalizedName, userIDs[username]).Scan(&current); errors.Is(err, sql.ErrNoRows) {
 			return core.ErrCargoPackageNotFound
 		} else if err != nil {
 			return fmt.Errorf("inspect Cargo member removal: %w", err)
@@ -1026,8 +1099,8 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 		}
 	}
 	for _, username := range unique {
-		if _, err := tx.Exec(`DELETE FROM cargo_members WHERE repository = ? AND normalized_name = ? AND username = ?`,
-			repository, normalizedName, username); err != nil {
+		if _, err := tx.Exec(`DELETE FROM cargo_members WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+			repository, normalizedName, userIDs[username]); err != nil {
 			return fmt.Errorf("remove Cargo member: %w", err)
 		}
 	}
@@ -1037,14 +1110,14 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 	return nil
 }
 
-func requireCargoMemberPermission(tx *Tx, repository, normalizedName, username string, required int) error {
-	if tx == nil || username == "" {
+func requireCargoMemberPermission(tx *Tx, repository, normalizedName, userID string, required int) error {
+	if tx == nil || userID == "" {
 		return core.ErrCargoPermissionDenied
 	}
 	var level int
 	err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-		WHERE repository = ? AND normalized_name = ? AND username = ?`,
-		repository, normalizedName, username).Scan(&level)
+		WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
+		repository, normalizedName, userID).Scan(&level)
 	if errors.Is(err, sql.ErrNoRows) || level < required {
 		return core.ErrCargoPermissionDenied
 	}
@@ -1069,10 +1142,10 @@ func lockCargoPackageTeam(tx *Tx, repository, normalizedName string) error {
 	return nil
 }
 
-func requireAnotherFullCargoMember(tx *Tx, repository, normalizedName, excludedUsername string) error {
+func requireAnotherFullCargoMember(tx *Tx, repository, normalizedName, excludedUserID string) error {
 	var count int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members WHERE repository = ? AND normalized_name = ?
-		AND permission_level = ? AND username <> ?`, repository, normalizedName, core.CargoPermissionOwner, excludedUsername).Scan(&count); err != nil {
+		AND permission_level = ? AND user_id <> ?`, repository, normalizedName, core.CargoPermissionOwner, excludedUserID).Scan(&count); err != nil {
 		return fmt.Errorf("count Cargo L4 members: %w", err)
 	}
 	if count == 0 {

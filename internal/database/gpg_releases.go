@@ -156,8 +156,12 @@ func (db *DB) SaveGPGRelease(release *core.GPGRelease) error {
 	defer tx.Rollback()
 
 	values := gpgReleaseValues(release)
-	updateArgs := append(append([]any(nil), values[1:]...), release.ID)
-	result, err := tx.Exec(`UPDATE gpg_releases SET active_key = ?, repository = ?, artifact_path = ?, uploader = ?,
+	// Uploader identity is immutable during worker updates so a concurrent username rename cannot be reverted.
+	updateArgs := make([]any, 0, len(values)-1)
+	updateArgs = append(updateArgs, values[1:4]...)
+	updateArgs = append(updateArgs, values[5:]...)
+	updateArgs = append(updateArgs, release.ID)
+	result, err := tx.Exec(`UPDATE gpg_releases SET active_key = ?, repository = ?, artifact_path = ?,
 		status = ?, failure_reason = ?, require_signature = ?, artifact_staging_path = ?, signature_staging_path = ?,
 		artifact_size = ?, artifact_mod_time = ?, signature_size = ?, signature_mod_time = ?, artifact_existed = ?,
 		signature_existed = ?, artifact_generate_checksums = ?, signature_generate_checksums = ?, artifact_md5 = ?,

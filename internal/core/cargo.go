@@ -92,6 +92,7 @@ type CargoVersion struct {
 
 // CargoMember is one package-team membership.
 type CargoMember struct {
+	UserID   string `json:"user_id"`
 	Username string `json:"login"`
 	Level    int    `json:"level"`
 	AddedAt  int64  `json:"added_at"`

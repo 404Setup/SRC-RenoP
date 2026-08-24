@@ -127,6 +127,10 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 		_ = sqlDB.Close()
 		return nil, fmt.Errorf("failed to initialize database tables: %w", err)
 	}
+	if err := db.initializeUserIdentities(); err != nil {
+		_ = sqlDB.Close()
+		return nil, fmt.Errorf("failed to initialize stable user identities: %w", err)
+	}
 
 	log.Printf("Database initialized successfully (driver: %s, dsn: %s)", actualDriver, sanitizeDSN(dsn))
 	return db, nil

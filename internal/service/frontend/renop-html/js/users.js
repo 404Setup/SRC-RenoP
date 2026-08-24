@@ -118,7 +118,7 @@ function setupUsersSortHeaders() {
     const sortConfig = [
         {index: 0, key: 'name', i18n: 'users.thUser'},
         {index: 1, key: 'permissions', i18n: 'users.thPermissions'},
-        {index: 3, key: 'created_at', i18n: 'users.thCreatedAt'},
+        {index: 2, key: 'created_at', i18n: 'users.thCreatedAt'},
     ];
 
     sortConfig.forEach(({index, key, i18n}) => {
@@ -573,7 +573,7 @@ function renderUsersPage(direction = null) {
     tbody.innerHTML = '';
     if (pageTokens.length === 0) {
         const emptyTr = document.createElement('tr');
-        emptyTr.innerHTML = `<td colspan="5" style="text-align: center; padding: 2rem; opacity: 0.6;">${t('common.none') || 'None'}</td>`;
+        emptyTr.innerHTML = `<td colspan="4" style="text-align: center; padding: 2rem; opacity: 0.6;">${t('common.none') || 'None'}</td>`;
         tbody.appendChild(emptyTr);
     } else {
         pageTokens.forEach(token => {

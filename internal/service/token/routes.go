@@ -11,6 +11,7 @@
 package token
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -133,11 +134,12 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 	if readErr == fiber.ErrRequestEntityTooLarge {
 		return readErr
 	}
-	if readErr == nil && (len(reqMsg.Permissions) > 0 || reqMsg.NewName != nil || reqMsg.Secret != nil || reqMsg.IsCreate) {
+	if readErr == nil && (len(reqMsg.Permissions) > 0 || reqMsg.NewName != nil || reqMsg.Secret != nil || reqMsg.Nickname != nil || reqMsg.IsCreate) {
 		createReq.Permissions = reqMsg.Permissions
 		createReq.NewName = reqMsg.NewName
 		createReq.Secret = reqMsg.Secret
 		createReq.IsCreate = reqMsg.IsCreate
+		createReq.Nickname = reqMsg.Nickname
 	} else {
 		if err := c.Bind().JSON(&createReq); err != nil {
 			return c.Status(fiber.StatusBadRequest).SendString("Bad request")
@@ -156,7 +158,12 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 	if createReq.NewName != nil && *createReq.NewName != "" {
 		targetName = strings.Clone(strings.ToLower(*createReq.NewName))
 	}
-	if targetName != name {
+	if isNew || targetName != name {
+		normalizedName, valid := core.NormalizeUsername(targetName)
+		if !valid {
+			return c.Status(fiber.StatusBadRequest).SendString("Username must contain 4 to 18 letters, numbers, or underscores")
+		}
+		targetName = normalizedName
 		if state.GetTokenByName(targetName) != nil {
 			return c.Status(fiber.StatusConflict).SendString("Token name already exists")
 		}
@@ -216,6 +223,25 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		}
 		token.Permissions = clonedPerms
 	}
+	nickname := ""
+	if isExisting {
+		db := state.GetDB()
+		if db == nil {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+		}
+		profile, err := db.GetUserProfile(name)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to load user profile")
+		}
+		nickname = profile.Nickname
+	}
+	if createReq.Nickname != nil {
+		var valid bool
+		nickname, valid = core.NormalizeNickname(*createReq.Nickname)
+		if !valid {
+			return c.Status(fiber.StatusBadRequest).SendString("Nickname must not exceed 36 characters or contain control characters")
+		}
+	}
 
 	dto := core.AccessTokenDto{
 		Identifier:  token.Identifier,
@@ -228,25 +254,28 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 	}
 
 	errChan := make(chan error, 1)
-	if !isNew && targetName != name {
+	if !isNew {
 		opChan <- TokenOp{
-			Type:    OpTokenRename,
-			Name:    strings.Clone(name),
-			NewName: strings.Clone(targetName),
-			Token:   token,
-			ErrChan: errChan,
-			State:   state,
+			Type: OpUserProfileUpdate, Name: strings.Clone(name), NewName: strings.Clone(targetName),
+			Token: token, Nickname: nickname,
+			ChangedAt: time.Now().UnixMilli(),
+			ErrChan:   errChan,
 		}
 	} else {
 		opChan <- TokenOp{
-			Type:    OpTokenStore,
-			Name:    strings.Clone(targetName),
-			Token:   token,
-			ErrChan: errChan,
+			Type: OpTokenStore, Name: strings.Clone(targetName), Token: token,
+			Nickname: nickname, ChangedAt: time.Now().UnixMilli(), ErrChan: errChan,
 		}
 	}
 	if err := <-errChan; err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to save token")
+		switch {
+		case errors.Is(err, core.ErrUsernameAlreadyExists):
+			return c.Status(fiber.StatusConflict).SendString("Username is already in use")
+		case errors.Is(err, core.ErrUsernameChangeRateLimited):
+			return c.Status(fiber.StatusTooManyRequests).SendString("Username can only be changed twice per 24-hour window")
+		default:
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to save token")
+		}
 	}
 
 	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)

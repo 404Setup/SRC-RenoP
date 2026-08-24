@@ -447,6 +447,7 @@ message CreateAccessTokenRequest {
   optional string new_name = 2;
   optional string secret = 3;
   bool is_create = 4;
+  optional string nickname = 5;
 }
 
 message CreateAccessTokenResponse {

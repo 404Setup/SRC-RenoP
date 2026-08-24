@@ -31,7 +31,7 @@ if (!customElements.get('renop-meta-grid')) {
 
 /**
  * Create a meta grid of labeled rows.
- * @param {Array<{label: string, value: string, isCode?: boolean, colon?: boolean}>} [items=[]] - Grid items.
+ * @param {Array<{label: string, value: string|Node, isCode?: boolean, colon?: boolean}>} [items=[]] - Grid items.
  * @returns {HTMLElement}
  */
 export function createMetaGrid(items = []) {
@@ -44,7 +44,9 @@ export function createMetaGrid(items = []) {
         if (item.isCode) {
             row.appendChild(el('code', {class: 'code-badge'}, item.value));
         } else {
-            row.appendChild(el('span', {class: 'modal-meta-value'}, item.value));
+            const value = el('span', {class: 'modal-meta-value'});
+            value.append(item.value instanceof Node ? item.value : document.createTextNode(String(item.value ?? '')));
+            row.appendChild(value);
         }
         grid.appendChild(row);
     });

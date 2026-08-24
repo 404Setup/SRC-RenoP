@@ -50,6 +50,9 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "docker_images.pull_count", Query: "ALTER TABLE docker_images ADD COLUMN pull_count BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "docker_tags.publisher", Query: "ALTER TABLE docker_tags ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
 	{Name: "docker_manifests.publisher", Query: "ALTER TABLE docker_manifests ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
+	{Name: "user_profiles.user_id", Query: "ALTER TABLE user_profiles ADD COLUMN user_id VARCHAR(36) NULL;"},
+	{Name: "cargo_members.user_id", Query: "ALTER TABLE cargo_members ADD COLUMN user_id VARCHAR(36) NULL;"},
+	{Name: "docker_members.user_id", Query: "ALTER TABLE docker_members ADD COLUMN user_id VARCHAR(36) NULL;"},
 }
 
 func NewDialect(driver string) Dialect {

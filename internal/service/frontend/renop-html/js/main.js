@@ -27,13 +27,16 @@ import {loadDirectory} from './browser.js';
 import {initMessageCenter} from './messages.js';
 import './cargo-messages.js';
 import './docker-messages.js';
+import {navigateToUsernameProfile, profileRouteFromPath} from './user-profiles.js';
 
 initI18n();
 
 window.addEventListener('languageChanged', async () => {
     updateCopyrightFooter();
 
-    const currentTab = localStorage.getItem('selectedTab') || 'overview';
+    const currentTab = profileRouteFromPath(window.location.pathname)
+        ? 'profile'
+        : (localStorage.getItem('selectedTab') || 'overview');
     await switchTab(currentTab);
 
     if (currentTab === 'dashboard') {
@@ -197,6 +200,9 @@ const tabContents = document.querySelectorAll('.tab-content');
  * @returns {Promise<void>}
  */
 export async function switchTab(tabId) {
+    if (tabId === 'overview' && profileRouteFromPath(window.location.pathname)) {
+        tabId = 'profile';
+    }
     let activeTabElement = null;
     tabs.forEach(tab => {
         if (tab.dataset.tab === tabId) {
@@ -225,7 +231,7 @@ export async function switchTab(tabId) {
         }
     });
 
-    localStorage.setItem('selectedTab', tabId);
+    if (tabId !== 'profile') localStorage.setItem('selectedTab', tabId);
 
     if (tabId === 'dashboard') {
         startDashboardRefresh();
@@ -247,7 +253,7 @@ export async function switchTab(tabId) {
         fetchTokens();
     }
     if (tabId === 'profile') {
-        setupProfile();
+        await setupProfile(profileRouteFromPath(window.location.pathname));
     }
     if (tabId === 'overview') {
         loadDirectory(window.location.pathname);
@@ -260,8 +266,19 @@ tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
         e.preventDefault();
         if (tab.classList.contains('active')) return;
+        if (profileRouteFromPath(window.location.pathname)) {
+            window.history.pushState(null, '', '/');
+        }
         switchTab(tab.dataset.tab);
     });
+});
+
+window.addEventListener('popstate', () => {
+    if (profileRouteFromPath(window.location.pathname)) {
+        void switchTab('profile');
+        return;
+    }
+    void switchTab('overview');
 });
 
 document.addEventListener('keydown', (e) => {
@@ -365,12 +382,24 @@ async function initializeApplication() {
             registerTabContainer(mainTabs);
         }
 
-        let savedTab = localStorage.getItem('selectedTab') || 'overview';
-        const tabEl = document.querySelector(`.tabs .tab[data-tab="${savedTab}"]`);
-        if (!cachedIsLoggedIn || (tabEl && tabEl.classList.contains('manager-only') && !cachedIsManager)) {
+        const profileRoute = profileRouteFromPath(window.location.pathname);
+        let savedTab = profileRoute ? 'profile' : (localStorage.getItem('selectedTab') || 'overview');
+        if (!profileRoute && savedTab === 'profile') {
+            localStorage.setItem('selectedTab', 'overview');
             savedTab = 'overview';
         }
-        switchTab(savedTab);
+        const tabEl = document.querySelector(`.tabs .tab[data-tab="${savedTab}"]`);
+        if (!profileRoute && (!cachedIsLoggedIn || (tabEl && tabEl.classList.contains('manager-only') && !cachedIsManager))) {
+            savedTab = 'overview';
+        }
+        await switchTab(savedTab);
+
+        const profileTrigger = document.getElementById('profile-trigger');
+        if (profileTrigger) {
+            profileTrigger.addEventListener('click', () => {
+                void navigateToUsernameProfile(localStorage.getItem('username') || '');
+            });
+        }
 
         const reloadBtn = document.getElementById('reload-btn');
         if (reloadBtn) {

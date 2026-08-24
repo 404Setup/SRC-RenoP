@@ -19,6 +19,9 @@ import (
 func SetupFrontendRoutes(app fiber.Router, state *core.AppState) {
 	app.Get("/", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/index.html", func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	app.Get("/user/:username", func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	app.Get("/user/:username/cargo", func(c fiber.Ctx) error { return ServeIndex(c, state) })
+	app.Get("/user/:username/docker", func(c fiber.Ctx) error { return ServeIndex(c, state) })
 	app.Get("/assets/*", ServeAsset)
 	app.Get("/js/*", ServeJs)
 	app.Get("/css/*", ServeCss)

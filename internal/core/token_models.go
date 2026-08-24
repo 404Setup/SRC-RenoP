@@ -85,6 +85,7 @@ type CreateAccessTokenRequest struct {
 	NewName     *string  `json:"new_name"`
 	Secret      *string  `json:"secret"`
 	IsCreate    bool     `json:"is_create"`
+	Nickname    *string  `json:"nickname"`
 }
 
 type CreateAccessTokenResponse struct {

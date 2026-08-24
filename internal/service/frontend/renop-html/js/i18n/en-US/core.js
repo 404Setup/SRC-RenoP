@@ -18,7 +18,6 @@ export default {
     "language.modalSubtitle": "Choose your preferred interface language",
 
     "tabs.overview": "Overview",
-    "tabs.profile": "Profile",
     "tabs.dashboard": "Dashboard",
     "tabs.users": "Users",
     "tabs.repositories": "Repositories",
@@ -402,7 +401,6 @@ export default {
     "users.createUserBtn": "Create User",
     "users.thUser": "User",
     "users.thPermissions": "Permissions",
-    "users.thTokenPrefix": "Token Prefix",
     "users.thCreatedAt": "Created At",
     "users.thActions": "Actions",
     "users.usernameLabel": "Username",

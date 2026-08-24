@@ -18,7 +18,6 @@ export default {
     "language.modalSubtitle": "选择您偏好的界面语言",
 
     "tabs.overview": "概览",
-    "tabs.profile": "个人资料",
     "tabs.dashboard": "仪表盘",
     "tabs.users": "用户管理",
     "tabs.repositories": "仓库管理",
@@ -405,7 +404,6 @@ export default {
     "users.createUserBtn": "创建用户",
     "users.thUser": "用户",
     "users.thPermissions": "权限",
-    "users.thTokenPrefix": "Token 前缀",
     "users.thCreatedAt": "创建时间",
     "users.thActions": "操作",
     "users.usernameLabel": "用户名",

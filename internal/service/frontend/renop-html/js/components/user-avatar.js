@@ -42,7 +42,7 @@ export class RenopUserAvatar extends HTMLElement {
     render() {
         const name = this.getAttribute('name') || '';
         this.className = 'user-avatar';
-        this.textContent = name.substring(0, 2).toUpperCase();
+        this.textContent = Array.from(name).slice(0, 2).join('').toUpperCase();
 
         const colors = [
             'linear-gradient(135deg, #6366f1, #a855f7)',

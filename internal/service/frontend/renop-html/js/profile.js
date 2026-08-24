@@ -28,9 +28,17 @@ import {
 } from './proto/index.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
-import {morphElementHeight} from '@renop/ui/height-anim';
+import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
+import {
+	getUserProfile,
+	invalidateUserProfiles,
+	navigateToUserProfile,
+	profileRouteFromPath,
+	profileDisplayName,
+} from './user-profiles.js';
 
 let profileFidoLoadSeq = 0;
+let profilePageLoadSeq = 0;
 
 /**
  * Format a GPG timestamp for the current locale.
@@ -553,10 +561,480 @@ export async function addFidoDevice() {
 }
 
 /**
- * Wire up the profile page: password change, upload token generation, sessions, and FIDO devices.
+ * Format the account creation timestamp for the current locale.
+ * @param {string} value - RFC 3339 timestamp.
+ * @returns {string} Localized date or a fallback label.
  */
-export function setupProfile() {
-    const username = localStorage.getItem('username') || '';
+function formatProfileCreatedAt(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? t('common.unknown') : date.toLocaleDateString();
+}
+
+/**
+ * Return the first visible character for the profile avatar.
+ * @param {object} profile - Public profile payload.
+ * @returns {string} Uppercase avatar character.
+ */
+function profileAvatarLetter(profile) {
+    const characters = Array.from(profileDisplayName(profile));
+    return characters[0]?.toUpperCase() || '?';
+}
+
+/**
+ * Leave the profile route while preserving normal browser history.
+ * @returns {void}
+ */
+function leaveUserProfileRoute() {
+    const route = profileRouteFromPath(window.location.pathname);
+    if (window.history.state?.renopProfileCanGoBack) {
+        window.history.back();
+        return;
+    }
+    if (route?.section) {
+        window.history.replaceState({
+            renopProfileReturnPath: '/',
+            renopProfileCanGoBack: false
+        }, '', `/user/${encodeURIComponent(route.username)}`);
+    } else {
+        window.history.replaceState(null, '', window.history.state?.renopProfileReturnPath || '/');
+    }
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
+/**
+ * Navigate from a profile membership row into the repository browser.
+ * @param {MouseEvent} event - Membership link click.
+ * @returns {void}
+ */
+function openProfilePackage(event) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const path = new URL(event.currentTarget.href).pathname;
+    window.history.pushState(null, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
+/**
+ * Build the repository-browser path for one public membership entry.
+ * @param {object} membership - Membership payload.
+ * @returns {string} Encoded application path.
+ */
+function profileMembershipTarget(membership) {
+    const repository = encodeURIComponent(String(membership.repository || ''));
+    const name = String(membership.name || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    return membership.format === 'cargo'
+        ? `/${repository}/packages/${name}`
+        : `/${repository}/${name}`;
+}
+
+/**
+ * Format a package-team role without hiding its numeric level.
+ * @param {'cargo'|'docker'} format - Repository format.
+ * @param {number|string} level - Team permission level.
+ * @returns {string} Localized role label.
+ */
+function profileMembershipRole(format, level) {
+    const numericLevel = Math.max(0, Number(level) || 0);
+    const label = t(`${format}.permissionL${numericLevel}`);
+    if (!label || label === `${format}.permissionL${numericLevel}`) return `L${numericLevel}`;
+    const wrapped = new RegExp(`^L${numericLevel}\\s*[（(](.*)[）)]$`).exec(label);
+    return `L${numericLevel} · ${wrapped ? wrapped[1] : label}`;
+}
+
+/**
+ * Render a username-scoped Cargo or Docker membership list.
+ * @param {object} profile - Public profile payload.
+ * @param {'cargo'|'docker'} format - Requested membership format.
+ * @param {number} sequence - Profile load generation.
+ * @returns {Promise<void>}
+ */
+async function renderProfileMemberships(profile, format, sequence) {
+    const publicView = document.getElementById('profile-public-view');
+    if (!publicView) return;
+    const displayName = profileDisplayName(profile);
+    const titleKey = format === 'cargo'
+        ? 'profile.cargoMembershipsTitle'
+        : 'profile.dockerMembershipsTitle';
+    const list = el('div', {class: 'profile-membership-list'},
+        el('div', {class: 'profile-route-loading'},
+            el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
+            el('span', {}, t('common.loading'))
+        )
+    );
+    publicView.replaceChildren(
+        el('button', {type: 'button', class: 'profile-route-back', onclick: leaveUserProfileRoute},
+            createIcon('chevronLeft'), el('span', {}, t('profile.backToProfile'))),
+        el('section', {class: 'profile-memberships-card'},
+            el('header', {class: 'profile-memberships-header'},
+                el('span', {class: `profile-memberships-icon is-${format}`, 'aria-hidden': 'true'},
+                    createIcon(format === 'cargo' ? 'fileCargo' : 'fileDocker')),
+                el('div', {},
+                    el('h2', {}, t(titleKey, {name: displayName})),
+                    el('p', {}, `@${profile.username}`)
+                )
+            ),
+            list
+        )
+    );
+    try {
+        const response = await apiRequest(
+            `/api/users/${encodeURIComponent(profile.username)}/memberships?format=${encodeURIComponent(format)}`
+        );
+        if (sequence !== profilePageLoadSeq) return;
+        if (!response.ok) throw new Error(await response.text());
+        const payload = await response.json();
+        const memberships = Array.isArray(payload.memberships) ? payload.memberships : [];
+        await morphElementHeight(list, () => {
+            list.replaceChildren();
+            if (memberships.length === 0) {
+                list.appendChild(el('div', {class: 'profile-memberships-empty'}, t('profile.membershipsEmpty')));
+                return;
+            }
+            memberships.forEach(membership => {
+                const link = el('a', {
+                    class: 'profile-membership-row',
+                    href: profileMembershipTarget(membership)
+                },
+                el('span', {class: 'profile-membership-main'},
+                    el('strong', {}, String(membership.name || '')),
+                    el('span', {}, membership.description || membership.repository)
+                ),
+                el('span', {class: 'profile-membership-meta'},
+                    el('span', {class: 'profile-membership-repository'}, membership.repository || ''),
+                    el('span', {class: 'profile-membership-role'},
+                        profileMembershipRole(format, membership.permission_level)),
+                    createIcon('chevron')
+                ));
+                link.addEventListener('click', openProfilePackage);
+                list.appendChild(link);
+            });
+        }, {duration: 280});
+    } catch (error) {
+        if (sequence !== profilePageLoadSeq) return;
+        console.error('Failed to load profile memberships', error);
+        await morphElementHeight(list, () => {
+            list.replaceChildren(el('div', {class: 'profile-memberships-empty is-error'},
+                t('profile.membershipsLoadFailed')));
+        }, {duration: 240});
+    }
+}
+
+/**
+ * Render the default public-facing profile page.
+ * @param {object} profile - Public profile payload.
+ * @returns {void}
+ */
+function renderPublicProfile(profile) {
+    const publicView = document.getElementById('profile-public-view');
+    const editView = document.getElementById('profile-edit-view');
+    if (!publicView || !editView) return;
+    editView.hidden = true;
+    publicView.hidden = false;
+    const displayName = profileDisplayName(profile);
+    const actions = el('div', {class: 'profile-public-actions'});
+    if (profile.own_profile) {
+        actions.appendChild(el('button', {
+            type: 'button',
+            class: 'pill-btn pill-btn--primary',
+            onclick: () => showProfileEdit(profile)
+        }, createIcon('edit'), el('span', {}, t('common.edit'))));
+    }
+    publicView.replaceChildren(
+        el('button', {
+            type: 'button', class: 'profile-route-back', onclick: leaveUserProfileRoute
+        }, createIcon('chevronLeft'), el('span', {}, t('profile.back'))),
+        el('article', {class: 'profile-public-card'},
+            el('div', {class: 'profile-public-banner', 'aria-hidden': 'true'}),
+            el('div', {class: 'profile-public-content'},
+                el('div', {class: 'profile-public-avatar', 'aria-hidden': 'true'}, profileAvatarLetter(profile)),
+                el('div', {class: 'profile-public-heading'},
+                    el('div', {class: 'profile-public-name-row'},
+                        el('h2', {class: 'profile-public-name', title: displayName}, displayName),
+                        actions
+                    ),
+                    el('p', {class: 'profile-public-username'}, `@${profile.username}`),
+                    el('p', {class: 'profile-public-description'}, t('profile.publicDescription'))
+                ),
+                el('dl', {class: 'profile-public-meta'},
+                    el('div', {class: 'profile-public-meta-item'},
+                        el('dt', {}, t('profile.usernameLabel')),
+                        el('dd', {}, profile.username)
+                    ),
+                    el('div', {class: 'profile-public-meta-item'},
+                        el('dt', {}, t('profile.memberSince')),
+                        el('dd', {}, formatProfileCreatedAt(profile.created_at))
+                    ),
+                    el('div', {class: 'profile-public-meta-item'},
+                        el('dt', {}, t('profile.cargoPackages')),
+                        el('dd', {}, el('a', {
+                            class: 'profile-public-meta-link',
+                            href: `/user/${encodeURIComponent(profile.username)}/cargo`,
+                            onclick: event => {
+                                event.preventDefault();
+                                navigateToUserProfile(profile.username, 'cargo');
+                            }
+                        }, el('span', {}, String(profile.cargo_package_count || 0)), createIcon('chevron')))
+                    ),
+                    el('div', {class: 'profile-public-meta-item'},
+                        el('dt', {}, t('profile.dockerImages')),
+                        el('dd', {}, el('a', {
+                            class: 'profile-public-meta-link',
+                            href: `/user/${encodeURIComponent(profile.username)}/docker`,
+                            onclick: event => {
+                                event.preventDefault();
+                                navigateToUserProfile(profile.username, 'docker');
+                            }
+                        }, el('span', {}, String(profile.docker_image_count || 0)), createIcon('chevron')))
+                    )
+                )
+            )
+        )
+    );
+}
+
+/**
+ * Reset a profile disclosure without animation.
+ * @param {HTMLDetailsElement} card - Collapsible settings section.
+ * @returns {void}
+ */
+function resetProfileDisclosure(card) {
+    const body = card.querySelector('.profile-section-body');
+    const summary = card.querySelector('.profile-collapsible-summary');
+    card.open = false;
+    card.dataset.disclosureAnimating = 'false';
+    if (summary) summary.setAttribute('aria-expanded', 'false');
+    if (body) {
+        body.hidden = true;
+        body.classList.remove('is-visible');
+        body.style.display = 'none';
+        body.style.height = '';
+        body.style.overflow = '';
+        body.style.opacity = '';
+        body.style.transition = '';
+    }
+}
+
+/**
+ * Add an animated, accessible toggle to one profile settings section.
+ * @param {HTMLDetailsElement} card - Collapsible settings section.
+ * @returns {void}
+ */
+function wireProfileDisclosure(card) {
+    if (card.dataset.disclosureWired === 'true') return;
+    const summary = card.querySelector('.profile-collapsible-summary');
+    const body = card.querySelector('.profile-section-body');
+    if (!summary || !body) return;
+    card.dataset.disclosureWired = 'true';
+    summary.setAttribute('aria-expanded', 'false');
+    summary.addEventListener('click', async event => {
+        event.preventDefault();
+        if (card.dataset.disclosureAnimating === 'true') return;
+        card.dataset.disclosureAnimating = 'true';
+        if (card.open) {
+            summary.setAttribute('aria-expanded', 'false');
+            await collapseElement(body, {duration: 240, marginTop: false});
+            card.open = false;
+        } else {
+            card.open = true;
+            summary.setAttribute('aria-expanded', 'true');
+            await expandElement(body, {duration: 280});
+        }
+        card.dataset.disclosureAnimating = 'false';
+    });
+}
+
+/**
+ * Build and insert the identity editor above the security settings.
+ * @param {object} profile - Own profile payload.
+ * @returns {HTMLDetailsElement|null} Identity section.
+ */
+function buildProfileIdentityEditor(profile) {
+    const settingsCard = document.querySelector('#profile-edit-view .profile-settings-card');
+    if (!settingsCard) return null;
+    settingsCard.querySelector('.profile-identity-card')?.remove();
+    const nicknameInput = el('input', {
+        id: 'profile-nickname', class: 'profile-input', type: 'text',
+        autocomplete: 'nickname', value: profile.nickname || '',
+        placeholder: t('profile.nicknamePlaceholder')
+    });
+    const nicknameCounter = el('span', {class: 'profile-character-count'});
+    const updateCounter = () => {
+        const count = Array.from(nicknameInput.value).length;
+        nicknameCounter.textContent = t('profile.nicknameCount', {count});
+        nicknameInput.setCustomValidity(count > 36 ? t('profile.nicknameHint') : '');
+    };
+    nicknameInput.addEventListener('input', updateCounter);
+    updateCounter();
+    const usernameInput = el('input', {
+        id: 'profile-username', class: 'profile-input', type: 'text',
+        autocomplete: 'username', value: profile.username,
+        'aria-describedby': 'profile-username-hint'
+    });
+    usernameInput.addEventListener('input', () => usernameInput.setCustomValidity(''));
+    const remaining = Number(profile.username_changes_remaining || 0);
+    const resetAt = Number(profile.username_change_window_resets_at || 0);
+    const rateHint = remaining > 0
+        ? t('profile.renameRemaining', {count: remaining})
+        : t('profile.renameUnavailable', {
+            date: resetAt > 0 ? new Date(resetAt).toLocaleString() : t('profile.later')
+        });
+    const saveButton = el('button', {
+        type: 'submit', class: 'pill-btn pill-btn--primary'
+    }, t('users.saveBtn'));
+    const form = el('form', {class: 'profile-identity-form', action: 'javascript:void(0);'},
+        el('div', {class: 'profile-field'},
+            el('div', {class: 'profile-field-label-row'},
+                el('label', {for: 'profile-nickname'}, t('profile.nicknameLabel')),
+                nicknameCounter
+            ),
+            nicknameInput,
+            el('p', {class: 'profile-field-hint'}, t('profile.nicknameHint'))
+        ),
+        el('div', {class: 'profile-field'},
+            el('label', {for: 'profile-username'}, t('profile.usernameLabel')),
+            usernameInput,
+            el('p', {id: 'profile-username-hint', class: 'profile-field-hint'}, t('profile.usernameHint')),
+            el('p', {class: 'profile-rate-hint'}, rateHint)
+        ),
+        el('div', {class: 'profile-identity-actions'}, saveButton)
+    );
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const requestedUsername = usernameInput.value.trim().toLowerCase();
+        const requestedNickname = nicknameInput.value.trim();
+        if (requestedUsername !== profile.username && !/^[A-Za-z0-9_]{4,18}$/.test(requestedUsername)) {
+            usernameInput.setCustomValidity(t('profile.usernameHint'));
+        }
+        if (!form.reportValidity()) return;
+        if (requestedUsername !== profile.username) {
+            const confirmed = await window.showConfirm(t('profile.renameConfirm', {name: requestedUsername}), {
+                title: t('profile.renameTitle'), confirmText: t('profile.renameAction')
+            });
+            if (!confirmed) return;
+        }
+        saveButton.disabled = true;
+        try {
+            const response = await apiRequest('/api/auth/profile', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: requestedUsername, nickname: requestedNickname})
+            });
+            if (!response.ok) {
+                const responseMessage = await response.text();
+                const message = response.status === 409
+                    ? t('profile.usernameExists')
+                    : (response.status === 429
+                        ? t('profile.renameRateLimited')
+                        : (response.status === 400 ? t('profile.identityInvalid') : responseMessage));
+                throw new Error(message || t('profile.updateFailed'));
+            }
+            const updated = await response.json();
+            const oldUsername = profile.username;
+            localStorage.setItem('username', updated.username);
+            invalidateUserProfiles(oldUsername, updated.username);
+            window.dispatchEvent(new CustomEvent('profileUpdated', {
+                detail: {...updated, old_username: oldUsername}
+            }));
+            showAlert(t('profile.updated'), 'success');
+            navigateToUserProfile(updated.username, '', true);
+        } catch (error) {
+            showAlert(error.message || t('profile.updateFailed'), 'error');
+        } finally {
+            saveButton.disabled = false;
+        }
+    });
+    const card = el('details', {class: 'profile-settings-section profile-identity-card profile-collapsible-card'},
+        el('summary', {class: 'profile-section-card-header profile-collapsible-summary'},
+            el('div', {class: 'profile-section-icon'}, createIcon('user')),
+            el('div', {class: 'profile-section-meta'},
+                el('h3', {class: 'profile-section-title'}, t('profile.identityTitle')),
+                el('p', {class: 'profile-section-desc'}, t('profile.identityDescription'))
+            ),
+            createIcon('chevronDown', {class: 'profile-collapse-chevron'})
+        ),
+        el('div', {class: 'profile-section-body', hidden: true}, form)
+    );
+    settingsCard.prepend(card);
+    return card;
+}
+
+/**
+ * Switch an own profile from its public view to editing controls.
+ * @param {object} profile - Own profile payload.
+ * @returns {void}
+ */
+function showProfileEdit(profile) {
+    const publicView = document.getElementById('profile-public-view');
+    const editView = document.getElementById('profile-edit-view');
+    if (!publicView || !editView) return;
+    publicView.hidden = true;
+    editView.hidden = false;
+    const displayName = profileDisplayName(profile);
+    const avatar = document.getElementById('profile-avatar-initials');
+    const heading = document.getElementById('profile-display-name');
+    const subtitle = editView.querySelector('.profile-hero-sub');
+    if (avatar) avatar.textContent = profileAvatarLetter(profile);
+    if (heading) heading.textContent = displayName;
+    if (subtitle) subtitle.textContent = `@${profile.username} · ${t('profile.editSubtitle')}`;
+    buildProfileIdentityEditor(profile);
+    editView.querySelectorAll('details.profile-collapsible-card').forEach(card => {
+        resetProfileDisclosure(card);
+        wireProfileDisclosure(card);
+    });
+    wireProfileEditActions(profile);
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+/**
+ * Load and render a username-based profile route.
+ * @param {{username: string, section: ''|'cargo'|'docker'}|null} [route=null] - Parsed profile route.
+ * @returns {Promise<void>}
+ */
+export async function setupProfile(route = null) {
+    const targetRoute = route || profileRouteFromPath(window.location.pathname);
+    const targetUsername = String(targetRoute?.username || '').trim().toLowerCase();
+    const publicView = document.getElementById('profile-public-view');
+    const editView = document.getElementById('profile-edit-view');
+    if (!publicView || !editView) return;
+    editView.hidden = true;
+    publicView.hidden = false;
+    const sequence = ++profilePageLoadSeq;
+    publicView.replaceChildren(el('div', {class: 'profile-route-loading'},
+        el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
+        el('span', {}, t('common.loading'))
+    ));
+    if (!targetUsername) {
+        publicView.replaceChildren(el('div', {class: 'profile-route-error'}, t('profile.notFound')));
+        return;
+    }
+    try {
+        const profile = await getUserProfile(targetUsername, {refresh: true});
+        if (sequence !== profilePageLoadSeq) return;
+        if (targetRoute?.section === 'cargo' || targetRoute?.section === 'docker') {
+            await renderProfileMemberships(profile, targetRoute.section, sequence);
+        } else {
+            renderPublicProfile(profile);
+        }
+    } catch (error) {
+        if (sequence !== profilePageLoadSeq) return;
+        publicView.replaceChildren(
+            el('button', {type: 'button', class: 'profile-route-back', onclick: leaveUserProfileRoute},
+                createIcon('chevronLeft'), el('span', {}, t('profile.back'))),
+            el('div', {class: 'profile-route-error'},
+                createIcon('alertCircle'),
+                el('h2', {}, error.status === 404 ? t('profile.notFound') : t('profile.loadFailed'))
+            )
+        );
+    }
+}
+
+/**
+ * Wire up the profile page: password change, upload token generation, sessions, and FIDO devices.
+ * @param {object} profile - Own profile payload.
+ * @returns {void}
+ */
+function wireProfileEditActions(profile) {
+    const username = profile?.username || localStorage.getItem('username') || '';
     const avatarEl = document.getElementById('profile-avatar-initials');
     const displayNameEl = document.getElementById('profile-display-name');
     const usernameHiddenEl = document.getElementById('profile-username-hidden');
@@ -564,10 +1042,10 @@ export function setupProfile() {
         usernameHiddenEl.value = username;
     }
     if (avatarEl) {
-        avatarEl.textContent = username ? username.charAt(0).toUpperCase() : '?';
+        avatarEl.textContent = profileAvatarLetter(profile);
     }
-    if (displayNameEl && username) {
-        displayNameEl.textContent = username;
+    if (displayNameEl) {
+        displayNameEl.textContent = profileDisplayName(profile);
     }
 
     const passwordInput = document.getElementById('profile-new-password');

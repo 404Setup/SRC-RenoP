@@ -13,7 +13,8 @@
 
 - **`server.go`**: Application entry point and server lifecycle.
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
-  zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, and schema migrations.
+  zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
+  profiles, immutable user identities for package ownership, and durable username-change throttling.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   upstream proxying, and sandboxed documentation extraction/viewer (`/cargodoc/...`).
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based Bearer authentication, chunked blob uploads, cross-repository mounting, upstream registry mirror proxying, and catalog management.
@@ -28,8 +29,11 @@
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`, `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
-- **`web/` & `internal/service/frontend/`**: Embedded SPA. Modular i18n catalogs under `js/i18n/<locale>/` compiled via
-  `pnpm run build:frontend`.
+- **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile and package
+  membership routes plus shared nickname-first identity components. Database ownership uses immutable user IDs, which
+  remain hidden from the visible interface. `js/main.js` is the single owner of browser `popstate` dispatch to prevent
+  concurrent route loads. Modular i18n catalogs, including dedicated profile fragments, live under `js/i18n/<locale>/`
+  and are compiled via `pnpm run build:frontend`.
 
 ---
 

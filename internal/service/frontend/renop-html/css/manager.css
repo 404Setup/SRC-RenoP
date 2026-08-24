@@ -9,6 +9,7 @@
  */
 
 @import "./manager/dashboard.css";
+@import "./manager/profile.css";
 @import "./manager/users.css";
 @import "./manager/settings.css";
 @import "./manager/pagination.css";

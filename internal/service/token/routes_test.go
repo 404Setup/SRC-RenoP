@@ -183,8 +183,10 @@ func TestUpsertToken(t *testing.T) {
 
 	SetupTokenRoutes(app, state, opChan)
 
+	initialNickname := "Initial Nickname"
 	payload := core.CreateAccessTokenRequest{
 		Permissions: []string{"base"},
+		Nickname:    &initialNickname,
 	}
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPut, "/tokens/instan", bytes.NewReader(body))
@@ -197,9 +199,21 @@ func TestUpsertToken(t *testing.T) {
 	val := state.GetTokenByName("instan")
 	assert.NotNil(t, val)
 	assert.Equal(t, "instan", val.Name)
+	profile, err := db.GetUserProfile("instan")
+	require.NoError(t, err)
+	assert.Equal(t, initialNickname, profile.Nickname)
+	stableUserID := profile.UserID
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
+		Repository: "cargo", Name: "admin-rename", NormalizedName: "admin-rename", CreatedAt: now, UpdatedAt: now,
+	}, &core.CargoVersion{
+		Repository: "cargo", Package: "admin-rename", Version: "1.0.0", Publisher: "instan", CreatedAt: now,
+	}, "instan"))
 
+	updatedNickname := "Updated Nickname"
 	payload2 := core.CreateAccessTokenRequest{
 		Permissions: []string{"base", "showing"},
+		Nickname:    &updatedNickname,
 	}
 	body2, _ := json.Marshal(payload2)
 	req2 := httptest.NewRequest(http.MethodPut, "/tokens/instan", bytes.NewReader(body2))
@@ -211,6 +225,9 @@ func TestUpsertToken(t *testing.T) {
 
 	allTokens := state.GetAllTokens()
 	assert.Equal(t, 1, len(allTokens))
+	profile, err = db.GetUserProfile("instan")
+	require.NoError(t, err)
+	assert.Equal(t, updatedNickname, profile.Nickname)
 
 	newName := "instan2"
 	payload3 := core.CreateAccessTokenRequest{
@@ -229,6 +246,12 @@ func TestUpsertToken(t *testing.T) {
 	assert.Equal(t, 1, len(allTokens))
 	assert.Nil(t, state.GetTokenByName("instan"))
 	assert.NotNil(t, state.GetTokenByName("instan2"))
+	renamedProfile, err := db.GetUserProfile("instan2")
+	require.NoError(t, err)
+	assert.Equal(t, stableUserID, renamedProfile.UserID)
+	packageDetails, err := db.GetCargoPackageDetails("cargo", "admin-rename", "instan2")
+	require.NoError(t, err)
+	assert.Equal(t, core.CargoPermissionOwner, packageDetails.Package.PermissionLevel)
 
 	payloadCreateDup := core.CreateAccessTokenRequest{
 		Permissions: []string{"base"},
@@ -241,6 +264,23 @@ func TestUpsertToken(t *testing.T) {
 	respDup, err := app.Test(reqDup)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusConflict, respDup.StatusCode)
+
+	renameUser := func(oldName, newName string) int {
+		t.Helper()
+		payload := core.CreateAccessTokenRequest{NewName: &newName, Permissions: []string{"base"}}
+		body, marshalErr := json.Marshal(payload)
+		require.NoError(t, marshalErr)
+		request := httptest.NewRequest(http.MethodPut, "/tokens/"+oldName, bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		response, requestErr := app.Test(request)
+		require.NoError(t, requestErr)
+		defer response.Body.Close()
+		return response.StatusCode
+	}
+	assert.Equal(t, http.StatusOK, renameUser("instan2", "instan3"))
+	assert.Equal(t, http.StatusTooManyRequests, renameUser("instan3", "instan4"))
+	assert.NotNil(t, state.GetTokenByName("instan3"))
+	assert.Nil(t, state.GetTokenByName("instan4"))
 }
 
 func TestFindAllTokensWithDB(t *testing.T) {

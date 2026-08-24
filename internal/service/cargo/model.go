@@ -103,10 +103,11 @@ type ownerResponse struct {
 }
 
 type owner struct {
-	ID    uint32 `json:"id"`
-	Login string `json:"login"`
-	Name  string `json:"name,omitempty"`
-	Level int    `json:"level"`
+	ID     uint32 `json:"id"`
+	UserID string `json:"user_id"`
+	Login  string `json:"login"`
+	Name   string `json:"name,omitempty"`
+	Level  int    `json:"level"`
 }
 
 type memberLevelRequest struct {

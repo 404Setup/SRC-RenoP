@@ -11,9 +11,8 @@
 import {t} from '../i18n.js';
 import {el} from '@renop/ui/dom';
 import {createBadge} from './badge.js';
-import {createUserAvatar} from './user-avatar.js';
+import {createUserIdentity} from './user-identity.js';
 import {createButton} from './button.js';
-import {createCodeBadge} from './code-badge.js';
 import {createIcon} from './icon.js';
 import {RenopDialog} from './dialog.js';
 
@@ -34,17 +33,13 @@ export function createUsersSkeletonRow() {
         class: 'skeleton-bone',
         style: {width: '90px', height: '22px', borderRadius: '12px'}
     }));
-    const cell3 = el('td', {}, el('div', {
-        class: 'skeleton-bone',
-        style: {width: '100px', height: '20px', borderRadius: '4px'}
-    }));
-    const cell4 = el('td', {}, el('div', {class: 'skeleton-bone', style: {width: '80px', height: '14px'}}));
-    const cell5 = el('td', {style: {textAlign: 'right'}}, el('div', {
+    const cell3 = el('td', {}, el('div', {class: 'skeleton-bone', style: {width: '80px', height: '14px'}}));
+    const cell4 = el('td', {style: {textAlign: 'right'}}, el('div', {
         class: 'skeleton-bone',
         style: {width: '130px', height: '28px', borderRadius: '6px', marginLeft: 'auto'}
     }));
 
-    tr.append(cell1, cell2, cell3, cell4, cell5);
+    tr.append(cell1, cell2, cell3, cell4);
     return tr;
 }
 
@@ -290,10 +285,7 @@ export function createUserRow(token, options = {}) {
     row.dataset.userName = token.name;
 
     const nameTd = el('td', {class: 'user-cell'},
-        createUserAvatar(token.name),
-        el('div', {class: 'user-info-col'},
-            el('span', {class: 'user-name'}, token.name)
-        )
+        createUserIdentity(token.name, {avatar: true})
     );
 
     const permsTd = el('td');
@@ -319,13 +311,6 @@ export function createUserRow(token, options = {}) {
         permsTd.appendChild(createBadge(t('common.none'), 'none'));
     }
 
-    const tokensTd = el('td');
-    if (token.tokens && token.tokens.length > 0) {
-        tokensTd.appendChild(createCodeBadge(token.tokens[0]));
-    } else {
-        tokensTd.appendChild(el('span', {style: {opacity: '0.5', fontSize: '0.85rem'}}, t('common.none')));
-    }
-
     const dateTd = el('td', {
         style: {
             fontSize: '0.85rem',
@@ -345,6 +330,6 @@ export function createUserRow(token, options = {}) {
     const actionsWrap = el('div', {class: 'users-actions'}, actionsBtn);
     const actionsTd = el('td', {class: 'users-actions-cell'}, actionsWrap);
 
-    row.append(nameTd, permsTd, tokensTd, dateTd, actionsTd);
+    row.append(nameTd, permsTd, dateTd, actionsTd);
     return row;
 }

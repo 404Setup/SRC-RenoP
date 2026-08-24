@@ -13,10 +13,13 @@ package frontend
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
+	"go.yaml.in/yaml/v3"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -41,6 +44,27 @@ func TestBundledAssetsEmbedded(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentIncludesUserProfiles(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "assets", "openapi.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document struct {
+		Paths map[string]any `yaml:"paths"`
+	}
+	if err := yaml.Unmarshal(data, &document); err != nil {
+		t.Fatalf("parse OpenAPI YAML: %v", err)
+	}
+	for _, path := range []string{
+		"/api/users/{username}/profile", "/api/users/{username}/memberships",
+		"/api/users/profiles", "/api/auth/profile",
+	} {
+		if _, exists := document.Paths[path]; !exists {
+			t.Fatalf("OpenAPI document is missing %s", path)
+		}
+	}
+}
+
 func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 	data, err := readAsset("index.html")
 	if err != nil {
@@ -52,6 +76,9 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 		`/js/main.js?v={{RENOP.HASH}}`,
 		`id="repository-search"`,
 		`id="cargo-repository-view"`,
+		`id="profile-trigger"`,
+		`id="profile-public-view"`,
+		`profile-settings-card`,
 	} {
 		if !strings.Contains(html, needle) {
 			t.Fatalf("index.html missing bundled asset reference %q", needle)
@@ -62,6 +89,40 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 	}
 	if strings.Contains(html, `id="cargo-packages-card"`) {
 		t.Fatal("index.html still contains the obsolete Cargo package-management side card")
+	}
+	if strings.Contains(html, `data-tab="profile"`) {
+		t.Fatal("index.html still exposes the removed profile tab")
+	}
+	if strings.Contains(html, `users.thTokenPrefix`) {
+		t.Fatal("index.html still exposes access-token prefixes in the users table")
+	}
+}
+
+func TestProfileUIKeepsStableIDsHiddenAndCentralizesHistoryRouting(t *testing.T) {
+	profileSource, err := os.ReadFile(filepath.Join("renop-html", "js", "profile.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"profile.user_id", "gpg_key_count", "t('profile.gpgKeys')"} {
+		if strings.Contains(string(profileSource), forbidden) {
+			t.Fatalf("profile UI still renders forbidden account metadata %q", forbidden)
+		}
+	}
+
+	mainSource, err := os.ReadFile(filepath.Join("renop-html", "js", "main.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	browserSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const popstateRegistration = "addEventListener('popstate'"
+	if count := strings.Count(string(mainSource), popstateRegistration); count != 1 {
+		t.Fatalf("main.js popstate registration count = %d, want 1", count)
+	}
+	if strings.Contains(string(browserSource), popstateRegistration) {
+		t.Fatal("browser.js still owns a competing popstate handler")
 	}
 }
 
@@ -118,6 +179,30 @@ func TestIndexAndConditionalAssetsRetainCacheSafetyHeaders(t *testing.T) {
 	}
 	if pragma := conditionalResponse.Header.Get(fiber.HeaderPragma); pragma != "no-cache" {
 		t.Fatalf("conditional asset Pragma = %q, want no-cache", pragma)
+	}
+}
+
+func TestUserProfileRouteServesSPAIndex(t *testing.T) {
+	state := core.NewAppState()
+	state.Inner.Config.Store(config.DefaultConfig())
+	app := fiber.New()
+	SetupFrontendRoutes(app, state)
+	for _, path := range []string{"/user/alice", "/user/alice/cargo", "/user/alice/docker"} {
+		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != http.StatusOK {
+			_ = response.Body.Close()
+			t.Fatalf("profile route %s status = %d, want 200", path, response.StatusCode)
+		}
+		if contentType := response.Header.Get(fiber.HeaderContentType); !strings.HasPrefix(contentType, "text/html") {
+			_ = response.Body.Close()
+			t.Fatalf("profile route %s Content-Type = %q, want text/html", path, contentType)
+		}
+		if err := response.Body.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

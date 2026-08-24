@@ -30,6 +30,18 @@ const (
 	invitationLifetime   = 7 * 24 * time.Hour
 )
 
+func resolveCargoMemberReference(db core.StateDB, reference string) (string, error) {
+	reference = strings.TrimSpace(reference)
+	if _, err := uuid.Parse(reference); err != nil {
+		return reference, nil
+	}
+	profile, err := db.GetUserProfileByID(reference)
+	if err != nil {
+		return "", err
+	}
+	return profile.Username, nil
+}
+
 func (h Handler) listOwners(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName string) error {
 	user, err := authenticatedUser(c)
 	if err != nil {
@@ -48,8 +60,12 @@ func (h Handler) listOwners(c fiber.Ctx, state *core.AppState, repo *config.Repo
 			continue
 		}
 		hasher := fnv.New32a()
-		_, _ = hasher.Write([]byte(member.Username))
-		owners = append(owners, owner{ID: hasher.Sum32(), Login: member.Username, Name: member.Username, Level: member.Level})
+		identity := member.UserID
+		if identity == "" {
+			identity = member.Username
+		}
+		_, _ = hasher.Write([]byte(identity))
+		owners = append(owners, owner{ID: hasher.Sum32(), UserID: member.UserID, Login: member.Username, Name: member.Username, Level: member.Level})
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(ownerResponse{Users: owners})
@@ -215,6 +231,10 @@ func (h Handler) setOwnerLevel(c fiber.Ctx, state *core.AppState, repo *config.R
 	if err := decodeJSON(c, &request); err != nil || request.Level < core.CargoPermissionPublish || request.Level > core.CargoPermissionOwner {
 		return errorResponse(c, fiber.StatusBadRequest, "Cargo permission level must be between 1 and 4")
 	}
+	username, err = resolveCargoMemberReference(state.GetDB(), username)
+	if err != nil {
+		return errorResponse(c, fiber.StatusNotFound, "Cargo package member was not found")
+	}
 	actor := user.Username
 	if user.IsManager() && !(request.Level == core.CargoPermissionOwner &&
 		details.Package.PermissionLevel == core.CargoPermissionOwner && !strings.EqualFold(username, user.Username)) {
@@ -235,6 +255,10 @@ func (h Handler) removeOwner(c fiber.Ctx, state *core.AppState, repo *config.Rep
 	details, err := packageDetails(state, repo.Name, crateName, user.Username)
 	if err != nil {
 		return cargoError(c, err)
+	}
+	username, err = resolveCargoMemberReference(state.GetDB(), username)
+	if err != nil {
+		return errorResponse(c, fiber.StatusNotFound, "Cargo package member was not found")
 	}
 	isSelf := strings.EqualFold(username, user.Username)
 	if !isSelf && !user.IsManager() && details.Package.PermissionLevel < core.CargoPermissionManage {

@@ -17,6 +17,7 @@ import {loadDirectory} from './browser.js';
 import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
+import {getUserProfile, profileDisplayName} from './user-profiles.js';
 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
@@ -43,6 +44,44 @@ const MANAGER_PERMISSION_IDS = new Set([
 
 /** Set by main.js after switchTab is defined — avoids auth↔main import cycle. */
 let switchTabHandler = null;
+let navProfileLoadSequence = 0;
+
+/**
+ * Apply a public profile identity to the compact navigation control.
+ * @param {object|null} profile - Public profile payload.
+ * @returns {void}
+ */
+function applyNavProfile(profile) {
+    const displayName = profileDisplayName(profile);
+    if (usernameDisplay) usernameDisplay.textContent = displayName;
+    const avatarDot = document.getElementById('user-avatar-dot');
+    if (avatarDot) avatarDot.textContent = Array.from(displayName)[0]?.toUpperCase() || '?';
+}
+
+/**
+ * Refresh the signed-in user's nickname without exposing the username in navigation.
+ * @param {string} username - Current account username.
+ * @returns {Promise<void>}
+ */
+async function refreshNavProfile(username) {
+    const sequence = ++navProfileLoadSequence;
+    applyNavProfile(null);
+    try {
+        const profile = await getUserProfile(username, {refresh: true});
+        if (sequence === navProfileLoadSequence) applyNavProfile(profile);
+    } catch {
+        if (sequence === navProfileLoadSequence) applyNavProfile(null);
+    }
+}
+
+window.addEventListener('profileUpdated', event => {
+    navProfileLoadSequence++;
+    applyNavProfile(event instanceof CustomEvent ? event.detail : null);
+});
+
+window.addEventListener('languageChanged', () => {
+    if (cachedIsLoggedIn) void refreshNavProfile(localStorage.getItem('username') || '');
+});
 
 /**
  * Register the tab-switch callback from main.js (avoids auth↔main import cycle).
@@ -166,10 +205,7 @@ export function updateAuthUI(isLoggedIn, name = '', isManager = false, permissio
     if (isLoggedIn) {
         if (loginBtn) loginBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'flex';
-        if (usernameDisplay) usernameDisplay.textContent = name;
-        if (avatarDot) {
-            avatarDot.textContent = (name || '?').trim().charAt(0).toUpperCase() || '?';
-        }
+        void refreshNavProfile(name);
     } else {
         if (loginBtn) loginBtn.style.display = 'inline-flex';
         if (userInfo) userInfo.style.display = 'none';

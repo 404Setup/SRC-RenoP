@@ -14,9 +14,10 @@ import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {showAlert, showConfirm} from '../alert.js';
-import {createIcon, createMetaGrid, createSkeleton, RenopDialog} from '../components.js';
+import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog} from '../components.js';
 import {t} from '../i18n.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
+import {resolveUserDisplayName} from '../user-profiles.js';
 
 let dockerViewContainer = null;
 let activeRepository = '';
@@ -142,7 +143,7 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
             { label: t('docker.updated') || 'Updated', value: dockerDate(manifest.created_at) || '-' }
         ];
         if (manifest.publisher) {
-            gridItems.push({ label: t('docker.publisher') || 'Publisher', value: manifest.publisher });
+            gridItems.push({ label: t('docker.publisher') || 'Publisher', value: createUserIdentity(manifest.publisher) });
         }
         bodyNodes.push(createMetaGrid(gridItems));
 
@@ -355,10 +356,9 @@ async function renderCatalogView(container, repoName, seq) {
 
         const grid = el('div', {class: 'docker-image-grid'});
         for (const img of images) {
-            const pubName = img.publisher || t('docker.unspecifiedPublisher') || 'Unspecified';
             const publisherMeta = el('span', {class: 'docker-card-publisher'},
                 createIcon('user', {class: 'icon-svg'}),
-                el('span', {}, pubName)
+                img.publisher ? createUserIdentity(img.publisher) : el('span', {}, t('docker.unspecifiedPublisher'))
             );
 
             const pullMeta = el('span', {class: 'docker-card-pulls'},
@@ -584,7 +584,8 @@ async function updateDockerTeamMember({
     const transfersOwnership = newLevel === 4 && permissionLevel === 4 &&
         String(member.username || '').toLowerCase() !== currentUsername;
     if (transfersOwnership) {
-        const confirmed = await showConfirm(t('team.transferOwnershipConfirm', {name: member.username}), {
+        const displayName = await resolveUserDisplayName(member.username);
+        const confirmed = await showConfirm(t('team.transferOwnershipConfirm', {name: displayName}), {
             title: t('team.transferOwnership'), confirmText: t('team.transferOwnership')
         });
         if (!confirmed) {
@@ -593,7 +594,8 @@ async function updateDockerTeamMember({
         }
     }
     try {
-        const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
+        const memberReference = member.user_id || member.username;
+        const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(memberReference)}?image=${encodeURIComponent(imageName)}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({level: newLevel})
@@ -623,14 +625,16 @@ async function updateDockerTeamMember({
  * @returns {Promise<void>}
  */
 async function removeDockerTeamMember({container, repoName, imageName, sequence, member, isSelf}) {
+    const displayName = isSelf ? '' : await resolveUserDisplayName(member.username);
     const confirmed = await showConfirm(
-        isSelf ? t('team.leaveConfirm') : t('docker.removeMemberConfirm', {name: member.username}), {
+        isSelf ? t('team.leaveConfirm') : t('docker.removeMemberConfirm', {name: displayName}), {
         title: isSelf ? t('team.leave') : t('docker.removeMember'),
         confirmText: isSelf ? t('team.leave') : t('common.remove'),
         danger: true
     });
     if (!confirmed) return;
-    const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
+    const memberReference = member.user_id || member.username;
+    const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(memberReference)}?image=${encodeURIComponent(imageName)}`, {
         method: 'DELETE'
     });
     if (!response.ok) {
@@ -739,11 +743,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             )
         );
 
-        const heroPubName = image.publisher || t('docker.unspecifiedPublisher') || 'Unspecified';
         metaRow.appendChild(
             el('div', {class: 'docker-meta-chip'},
                 createIcon('user', {class: 'icon-svg'}),
-                el('span', {}, t('docker.publishedBy', {name: heroPubName}) || `Published by ${heroPubName}`)
+                el('span', {}, `${t('docker.publisher')}:`),
+                image.publisher ? createUserIdentity(image.publisher) : el('span', {}, t('docker.unspecifiedPublisher'))
             )
         );
 
@@ -830,7 +834,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 const shortDigest = tObj.digest ? tObj.digest.slice(0, 19) + '…' : '';
                 const sizeStr = tObj.size > 0 ? formatBytes(tObj.size) : '';
                 const timeStr = tObj.updated_at ? dockerDate(tObj.updated_at) : (tObj.created_at ? dockerDate(tObj.created_at) : '');
-                const tagPublisher = tObj.publisher || image.publisher || t('docker.unspecifiedPublisher') || 'Unspecified';
+                const tagPublisher = tObj.publisher || image.publisher || '';
 
                 const digestPill = shortDigest
                     ? el('span', {
@@ -842,7 +846,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
                 const publisherChip = el('span', {class: 'docker-tag-publisher'},
                     createIcon('user', {class: 'icon-svg'}),
-                    el('span', {}, tagPublisher)
+                    tagPublisher ? createUserIdentity(tagPublisher) : el('span', {}, t('docker.unspecifiedPublisher'))
                 );
 
                 const timeChip = timeStr
@@ -1022,7 +1026,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
                 const memberRow = el('div', {class: 'docker-team-row'},
                     el('div', {class: 'docker-team-member'},
-                        el('strong', {class: 'docker-team-username'}, member.username),
+                        createUserIdentity(member.username, {avatar: true, userID: member.user_id}),
                         member.added_at ? el('span', {class: 'docker-team-time'}, dockerDate(member.added_at)) : null
                     ),
                     memberControls

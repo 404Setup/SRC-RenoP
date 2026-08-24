@@ -65,6 +65,7 @@ type DockerManifest struct {
 
 // DockerMember represents an authorized collaborator for a container image.
 type DockerMember struct {
+	UserID   string `json:"user_id"`
 	Username string `json:"username"`
 	Level    int    `json:"level"`
 	AddedAt  int64  `json:"added_at"`

@@ -298,6 +298,19 @@ func TestDockerRESTAPIs(t *testing.T) {
 	if len(ownersResult.Users) != 2 {
 		t.Fatalf("expected 2 members (admin + bob), got %d", len(ownersResult.Users))
 	}
+	bobUserID := ""
+	adminUserID := ""
+	for _, member := range ownersResult.Users {
+		switch member.Username {
+		case "bob":
+			bobUserID = member.UserID
+		case "admin":
+			adminUserID = member.UserID
+		}
+	}
+	if bobUserID == "" || adminUserID == "" {
+		t.Fatalf("expected immutable member IDs, got %+v", ownersResult.Users)
+	}
 
 	overwriteReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/owners?image=web/backend", strings.NewReader(`{"users":["bob"],"level":1}`))
 	overwriteReq.Header.Set("Content-Type", "application/json")
@@ -307,14 +320,14 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("expected force overwrite of an existing member to return 409, got %d (err: %v)", overwriteResp.StatusCode, err)
 	}
 
-	ownerLeaveReq := httptest.NewRequest(http.MethodDelete, "/api/docker/repositories/docker-pub/owners/admin?image=web/backend", nil)
+	ownerLeaveReq := httptest.NewRequest(http.MethodDelete, "/api/docker/repositories/docker-pub/owners/"+adminUserID+"?image=web/backend", nil)
 	ownerLeaveReq.Header.Set("Authorization", "Bearer admin-test-token")
 	ownerLeaveResp, err := app.Test(ownerLeaveReq)
 	if err != nil || ownerLeaveResp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected L4 owner self-removal to return 400, got %d (err: %v)", ownerLeaveResp.StatusCode, err)
 	}
 
-	setLvl3Req := httptest.NewRequest(http.MethodPut, "/api/docker/repositories/docker-pub/owners/bob?image=web/backend", strings.NewReader(`{"level":3}`))
+	setLvl3Req := httptest.NewRequest(http.MethodPut, "/api/docker/repositories/docker-pub/owners/"+bobUserID+"?image=web/backend", strings.NewReader(`{"level":3}`))
 	setLvl3Req.Header.Set("Content-Type", "application/json")
 	setLvl3Req.Header.Set("Authorization", "Bearer admin-test-token")
 	setLvl3Resp, err := app.Test(setLvl3Req)
@@ -344,7 +357,7 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Accept invitation failed: %v (status: %d)", err, acceptResp.StatusCode)
 	}
 
-	setLevelReq := httptest.NewRequest(http.MethodPut, "/api/docker/repositories/docker-pub/owners/bob?image=web/backend", strings.NewReader(`{"level":1}`))
+	setLevelReq := httptest.NewRequest(http.MethodPut, "/api/docker/repositories/docker-pub/owners/"+bobUserID+"?image=web/backend", strings.NewReader(`{"level":1}`))
 	setLevelReq.Header.Set("Content-Type", "application/json")
 	setLevelReq.Header.Set("Authorization", "Bearer admin-test-token")
 	setLevelResp, err := app.Test(setLevelReq)
@@ -352,7 +365,7 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Set level failed: %v (status: %d)", err, setLevelResp.StatusCode)
 	}
 
-	removeReq := httptest.NewRequest(http.MethodDelete, "/api/docker/repositories/docker-pub/owners/bob?image=web/backend", nil)
+	removeReq := httptest.NewRequest(http.MethodDelete, "/api/docker/repositories/docker-pub/owners/"+bobUserID+"?image=web/backend", nil)
 	removeReq.Header.Set("Authorization", "Bearer bob-test-token")
 	removeResp, err := app.Test(removeReq)
 	if err != nil || removeResp.StatusCode != http.StatusOK {

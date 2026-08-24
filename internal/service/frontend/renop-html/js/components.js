@@ -24,6 +24,7 @@ export { RenopSubHeader, createSubHeader } from './components/sub-header.js';
 export { RenopCard, createIndexCard } from './components/card.js';
 export { RenopDialog } from './components/dialog.js';
 export { RenopUserAvatar, createUserAvatar } from './components/user-avatar.js';
+export { RenopUserIdentity, createUserIdentity } from './components/user-identity.js';
 export { RenopMetaChip, createMetaChip } from './components/meta-chip.js';
 export { RenopMirrorCard, createMirrorCard } from './components/mirror-card.js';
 export { RenopRoleChip, createRoleChip } from './components/role-chip.js';

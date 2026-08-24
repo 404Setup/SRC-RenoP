@@ -679,11 +679,28 @@ func TestCargoAdministratorWithL3CanManageTeam(t *testing.T) {
 	if overwriteBobRes.StatusCode != fiber.StatusConflict {
 		t.Fatalf("admin overwrite existing member status = %d, want 409", overwriteBobRes.StatusCode)
 	}
+	details, err := db.GetCargoPackageDetails("cargo", "demo", "alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bobUserID := ""
+	aliceUserID := ""
+	for _, member := range details.Members {
+		switch member.Username {
+		case "bob":
+			bobUserID = member.UserID
+		case "alice":
+			aliceUserID = member.UserID
+		}
+	}
+	if bobUserID == "" || aliceUserID == "" {
+		t.Fatalf("expected immutable Cargo member IDs, got %+v", details.Members)
+	}
 
 	bob := &config.User{Username: "bob", Roles: []string{"base"}}
 	bobApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, bob)
 	leaveBobRes, err := bobApp.Test(httptest.NewRequest(
-		http.MethodDelete, "http://registry.example/cargo/api/v1/crates/demo/owners/bob", nil,
+		http.MethodDelete, "http://registry.example/cargo/api/v1/crates/demo/owners/"+bobUserID, nil,
 	))
 	if err != nil {
 		t.Fatal(err)
@@ -694,7 +711,7 @@ func TestCargoAdministratorWithL3CanManageTeam(t *testing.T) {
 	}
 
 	ownerLeaveRes, err := aliceApp.Test(httptest.NewRequest(
-		http.MethodDelete, "http://registry.example/cargo/api/v1/crates/demo/owners/alice", nil,
+		http.MethodDelete, "http://registry.example/cargo/api/v1/crates/demo/owners/"+aliceUserID, nil,
 	))
 	if err != nil {
 		t.Fatal(err)

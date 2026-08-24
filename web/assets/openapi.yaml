@@ -337,6 +337,79 @@ components:
             Populated only when the request used an `Authorization: Session` header.
             Empty on cookie-based login.
 
+    UserProfile:
+      type: object
+      description: Public account identity. The username is intentionally exposed only on the profile resource.
+      required: [user_id, username, nickname, created_at, own_profile, username_changes_remaining, cargo_package_count, docker_image_count]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Opaque immutable identifier carried only by stable data mutations; clients must not render it.
+        username:
+          type: string
+          description: Case-insensitive login name.
+        nickname:
+          type: string
+          maxLength: 36
+          description: Public display name. An empty value means no nickname has been configured.
+        created_at:
+          type: string
+          format: date-time
+        own_profile:
+          type: boolean
+          description: Whether the current authenticated session owns this profile.
+        username_changes_remaining:
+          type: integer
+          minimum: 0
+          maximum: 2
+          description: Included for a consistent response shape; meaningful only when `own_profile` is true.
+        username_change_window_resets_at:
+          type: integer
+          format: int64
+          description: Unix milliseconds when the active 24-hour rename window resets.
+        cargo_package_count:
+          type: integer
+          minimum: 0
+        docker_image_count:
+          type: integer
+          minimum: 0
+
+    UserPackageMembership:
+      type: object
+      description: One package team resolved through the account's immutable identifier.
+      required: [format, repository, name, permission_level]
+      properties:
+        format:
+          type: string
+          enum: [cargo, docker]
+        repository:
+          type: string
+        name:
+          type: string
+          description: Cargo package name or Docker image name.
+        description:
+          type: string
+        permission_level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        archived:
+          type: boolean
+          description: Cargo archive state; omitted for Docker images.
+
+    UserProfileUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 4
+          maxLength: 18
+          pattern: '^[A-Za-z0-9_]+$'
+        nickname:
+          type: string
+          maxLength: 36
+
     AccessTokenList:
       type: object
       description: List of all accounts (protobuf `AccessTokenList`).
@@ -456,7 +529,15 @@ components:
         new_name:
           type: string
           nullable: true
-          description: Rename the account to this value.
+          minLength: 4
+          maxLength: 18
+          pattern: '^[A-Za-z0-9_]+$'
+          description: Rename the account while retaining its immutable user ID and package ownership.
+        nickname:
+          type: string
+          maxLength: 36
+          nullable: true
+          description: Public nickname shown in place of the username.
         is_create:
           type: boolean
           description: If true and an account with this name already exists, returns `409 Conflict`.
@@ -1444,6 +1525,147 @@ paths:
       responses:
         "204":
           description: Session invalidated.
+
+  /api/users/{username}/profile:
+    get:
+      tags: [auth]
+      summary: Get a public user profile
+      operationId: getPublicUserProfile
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/users/{username}/memberships:
+    get:
+      tags: [auth]
+      summary: List a user's visible Cargo or Docker package teams
+      description: Private repositories are omitted unless the viewer can access them or owns the profile.
+      operationId: getPublicUserMemberships
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [cargo, docker]
+      responses:
+        "200":
+          description: Visible package memberships and their team roles.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserPackageMembership"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+
+  /api/users/profiles:
+    get:
+      tags: [auth]
+      summary: Get a batch of public user profiles
+      description: Returns existing accounts from a bounded batch of at most 50 comma-separated usernames.
+      operationId: getPublicUserProfiles
+      parameters:
+        - name: names
+          in: query
+          required: true
+          schema:
+            type: string
+          example: alice,bob
+      responses:
+        "200":
+          description: Existing profiles in requested order.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserProfile"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+
+  /api/auth/profile:
+    get:
+      tags: [auth]
+      summary: Get the current user's editable profile state
+      operationId: getOwnUserProfile
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      responses:
+        "200":
+          description: Own profile with rename quota.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+    put:
+      tags: [auth]
+      summary: Update nickname or username
+      description: |
+        Nicknames are limited to 36 Unicode code points. A replacement username must contain 4–18 ASCII letters,
+        digits, or underscores and must be unique. At most two successful username changes are permitted in each
+        durable 24-hour window; nickname-only updates do not consume the quota.
+      operationId: putOwnUserProfile
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdateRequest"
+      responses:
+        "200":
+          description: Updated profile and remaining rename quota.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+        "409":
+          description: Username is already in use.
+        "413":
+          description: Profile request exceeds 1 KiB.
+        "429":
+          description: Both username changes in the current 24-hour window have been used.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds until the current rename window resets.
 
   /api/auth/profile/password:
     put:
@@ -3149,7 +3371,9 @@ paths:
     post:
       tags: [messages]
       summary: Send broadcast notification (manager)
-      description: Sends an `announcement` to one or more accounts, or all accounts when `all: true`. Requires the `manager` permission.
+      description: >-
+        Sends an `announcement` to one or more accounts, or all accounts when `all: true`.
+        Requires the `manager` permission.
       operationId: postMessagesAdmin
       security:
         - sessionCookie: []

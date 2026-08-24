@@ -20900,6 +20900,7 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [new_name] CreateAccessTokenRequest new_name
                  * @property {string|null} [secret] CreateAccessTokenRequest secret
                  * @property {boolean|null} [is_create] CreateAccessTokenRequest is_create
+                 * @property {string|null} [nickname] CreateAccessTokenRequest nickname
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -20964,6 +20965,14 @@ export const renop = $root.renop = (() => {
                  */
                 CreateAccessTokenRequest.prototype.is_create = false;
 
+                /**
+                 * CreateAccessTokenRequest nickname.
+                 * @member {string|null|undefined} nickname
+                 * @memberof renop.api.v1.CreateAccessTokenRequest
+                 * @instance
+                 */
+                CreateAccessTokenRequest.prototype.nickname = null;
+
                 // OneOf field names bound to virtual getters and setters
                 let $oneOfFields;
 
@@ -20976,6 +20985,12 @@ export const renop = $root.renop = (() => {
                 // Virtual OneOf for proto3 optional field
                 $Object.defineProperty(CreateAccessTokenRequest.prototype, "_secret", {
                     get: $util.oneOfGetter($oneOfFields = ["secret"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(CreateAccessTokenRequest.prototype, "_nickname", {
+                    get: $util.oneOfGetter($oneOfFields = ["nickname"]),
                     set: $util.oneOfSetter($oneOfFields)
                 });
 
@@ -21020,6 +21035,8 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 3, wireType 2 =*/26).string(message.secret);
                     if (message.is_create != null && $Object.hasOwnProperty.call(message, "is_create") && message.is_create !== false)
                         writer.uint32(/* id 4, wireType 0 =*/32).bool(message.is_create);
+                    if (message.nickname != null && $Object.hasOwnProperty.call(message, "nickname"))
+                        writer.uint32(/* id 5, wireType 2 =*/42).string(message.nickname);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -21098,6 +21115,13 @@ export const renop = $root.renop = (() => {
                                     delete message.is_create;
                                 continue;
                             }
+                        case 5: {
+                                if (wireType !== 2)
+                                    break;
+                                message.nickname = reader.stringVerify();
+                                message._nickname = "nickname";
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -21162,6 +21186,11 @@ export const renop = $root.renop = (() => {
                     if (message.is_create != null && $Object.hasOwnProperty.call(message, "is_create"))
                         if (typeof message.is_create !== "boolean")
                             return "is_create: boolean expected";
+                    if (message.nickname != null && $Object.hasOwnProperty.call(message, "nickname")) {
+                        properties._nickname = 1;
+                        if (!$util.isString(message.nickname))
+                            return "nickname: string expected";
+                    }
                     return null;
                 };
 
@@ -21197,6 +21226,8 @@ export const renop = $root.renop = (() => {
                     if (object.is_create != null)
                         if (object.is_create)
                             message.is_create = $Boolean(object.is_create);
+                    if (object.nickname != null)
+                        message.nickname = $String(object.nickname);
                     return message;
                 };
 
@@ -21232,6 +21263,8 @@ export const renop = $root.renop = (() => {
                         object.secret = message.secret;
                     if (message.is_create != null && $Object.hasOwnProperty.call(message, "is_create"))
                         object.is_create = message.is_create;
+                    if (message.nickname != null && $Object.hasOwnProperty.call(message, "nickname"))
+                        object.nickname = message.nickname;
                     return object;
                 };
 

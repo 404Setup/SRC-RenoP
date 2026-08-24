@@ -112,6 +112,29 @@
     max-width: 10rem;
 }
 
+.nav-profile-trigger {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    transition: color 0.16s ease, background-color 0.16s ease;
+}
+
+.nav-profile-trigger:hover,
+.nav-profile-trigger:focus-visible {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--link-hover-color) 9%, transparent);
+    color: var(--link-hover-color);
+    outline: none;
+}
+
+.nav-profile-trigger .user-name {
+    overflow: hidden;
+    min-width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .user-avatar-dot {
     display: inline-flex;
     align-items: center;

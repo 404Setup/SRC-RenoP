@@ -72,10 +72,10 @@
                 <span id="message-unread-badge" class="message-unread-badge" hidden>0</span>
             </button>
             <div id="user-info" class="nav-user-info" style="display: none;">
-                <span id="welcome-text" class="user-text">
+                <button id="profile-trigger" class="user-text nav-profile-trigger" type="button" data-i18n-title="profile.openOwnProfile" title="Open profile">
                     <span class="user-avatar-dot" id="user-avatar-dot" aria-hidden="true"></span>
                     <span id="username-display" class="user-name"></span>
-                </span>
+                </button>
                 <div class="divider" aria-hidden="true"></div>
                 <button id="logout-btn" class="icon-btn" type="button" title="Logout" data-i18n-title="nav.logout" data-i18n-aria-label="nav.logout" aria-label="Log out">
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -112,7 +112,6 @@
     <div class="tabs-container">
         <nav id="tabs" class="tabs">
             <a href="#" data-tab="overview" class="tab active" data-i18n="tabs.overview">Overview</a>
-            <a href="#" data-tab="profile" class="tab user-only" style="display: none;" data-i18n="tabs.profile">Profile</a>
             <a href="#" data-tab="dashboard" class="tab manager-only" style="display: none;" data-i18n="tabs.dashboard">Dashboard</a>
             <a href="#" data-tab="users" class="tab manager-only" style="display: none;" data-i18n="tabs.users">Users</a>
             <a href="#" data-tab="repositories" class="tab manager-only" style="display: none;" data-i18n="tabs.repositories">Repositories</a>
@@ -484,6 +483,8 @@
         </div>
 
         <div id="tab-content-profile" class="tab-content" style="display: none;">
+            <div id="profile-public-view" class="profile-route-view"></div>
+            <div id="profile-edit-view" class="profile-route-view" hidden>
             <div class="profile-hero">
                 <div class="profile-avatar-ring">
                     <div class="profile-avatar-inner" id="profile-avatar-initials">?</div>
@@ -494,9 +495,9 @@
                 </div>
             </div>
 
-            <div class="profile-cards-grid">
-                <div class="profile-section-card">
-                    <div class="profile-section-card-header">
+            <div class="profile-settings-card">
+                <details class="profile-settings-section profile-collapsible-card">
+                    <summary class="profile-section-card-header profile-collapsible-summary">
                         <div class="profile-section-icon profile-section-icon--password" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         </div>
@@ -504,8 +505,9 @@
                             <h3 class="profile-section-title" data-i18n="profile.changePasswordTitle">Change Password</h3>
                             <p class="profile-section-desc" data-i18n="profile.changePasswordDesc">Update your account password below.</p>
                         </div>
-                    </div>
-                    <form id="profile-password-form" action="javascript:void(0);" class="profile-section-body">
+                        <renop-icon name="chevronDown" class="profile-collapse-chevron" aria-hidden="true"></renop-icon>
+                    </summary>
+                    <form id="profile-password-form" action="javascript:void(0);" class="profile-section-body" hidden>
                         <input type="text" id="profile-username-hidden" name="username" autocomplete="username" style="display: none;" readonly>
                         <div class="form-group profile-form-group">
                             <label for="profile-new-password" data-i18n="profile.newPasswordLabel">New Password</label>
@@ -514,9 +516,9 @@
                         </div>
                         <button type="submit" id="btn-update-password" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.updatePasswordBtn">Update Password</button>
                     </form>
-                </div>
+                </details>
 
-                <div class="profile-section-card">
+                <div class="profile-settings-section">
                     <div class="profile-section-card-header">
                         <div class="profile-section-icon profile-section-icon--token" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
@@ -531,7 +533,7 @@
                     </div>
                 </div>
 
-                <div class="profile-section-card">
+                <div class="profile-settings-section">
                     <div class="profile-section-card-header">
                         <div class="profile-section-icon profile-section-icon--sessions" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 8h.01"/><path d="M9 8h6"/></svg>
@@ -546,7 +548,7 @@
                     </div>
                 </div>
 
-                <div class="profile-section-card">
+                <div class="profile-settings-section">
                     <div class="profile-section-card-header">
                         <div class="profile-section-icon profile-section-icon--fido" style="background: rgba(16, 185, 129, 0.1); color: #10b981;" aria-hidden="true">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/><circle cx="12" cy="15" r="1.5"/></svg>
@@ -561,7 +563,7 @@
                     </div>
                 </div>
 
-				<div class="profile-section-card">
+				<div class="profile-settings-section">
 					<div class="profile-section-card-header">
 						<div class="profile-section-icon profile-section-icon--gpg" aria-hidden="true">
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-1.5 1.5L14 9.5"/><path d="M15.5 7.5L17 9"/><circle cx="7.5" cy="16.5" r="4.5"/></svg>
@@ -576,7 +578,7 @@
 					</div>
 				</div>
 
-				<div class="profile-section-card">
+				<div class="profile-settings-section">
 					<div class="profile-section-card-header">
 						<div class="profile-section-icon profile-section-icon--gpg-releases" aria-hidden="true">
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M7 3.5 4.5 6"/></svg>
@@ -591,7 +593,7 @@
 					</div>
 				</div>
 
-                <div class="profile-section-card">
+                <div class="profile-settings-section">
                     <div class="profile-section-card-header">
                         <div class="profile-section-icon profile-section-icon--audit" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;" aria-hidden="true">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -611,6 +613,7 @@
                         <button type="button" id="btn-profile-audit-logs" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.auditLogsBtn">View Activity Logs</button>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -673,7 +676,6 @@
                     <tr>
                         <th data-i18n="users.thUser">User</th>
                         <th data-i18n="users.thPermissions">Permissions</th>
-                        <th data-i18n="users.thTokenPrefix">Token Prefix</th>
                         <th data-i18n="users.thCreatedAt">Created At</th>
                         <th style="text-align: right;" data-i18n="users.thActions">Actions</th>
                     </tr>

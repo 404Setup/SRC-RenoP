@@ -8,6 +8,50 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+.user-identity,
+.user-identity-link {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.user-identity-link {
+    gap: 0.45rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.user-identity-link:hover .user-identity-name {
+    color: var(--link-hover-color);
+}
+
+.user-identity-name {
+    display: block;
+    overflow: hidden;
+    max-width: 18rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.16s ease, opacity 0.16s ease;
+}
+
+.user-identity-name.is-loading {
+    opacity: 0.55;
+}
+
+.user-identity .user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    border-radius: 0.5rem;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .password-strength.password-strength--animate,
     .password-strength.password-strength--leaving,

@@ -14,10 +14,11 @@ import {morphElementHeight} from '@renop/ui/height-anim';
 import {apiRequest, getAuthHeaders} from '../api.js';
 import {cachedIsLoggedIn} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
-import {createDropzone, createFileCard, createIcon, createSkeleton, RenopDialog} from '../components.js';
+import {createDropzone, createFileCard, createIcon, createSkeleton, createUserIdentity, RenopDialog} from '../components.js';
 import {t} from '../i18n.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
+import {resolveUserDisplayName} from '../user-profiles.js';
 
 const INVITE_SEARCH_DELAY_MS = 160;
 const INVITE_CLOSE_DELAY_MS = 150;
@@ -414,7 +415,7 @@ function buildCargoVersionFactsSection() {
         const msrvVal = activeVersion?.rust_version || t('cargo.unspecified');
         const sizeVal = activeVersion?.size && Number(activeVersion.size) > 0 ? formatBytes(Number(activeVersion.size)) : t('common.unknown');
         const pubDate = activeVersion?.created_at ? cargoDate(activeVersion.created_at) : cargoDate(packageRecord?.updated_at);
-        const publisher = activeVersion?.publisher || t('common.unknown');
+        const publisher = activeVersion?.publisher || '';
 
         const items = [
             el('div', {class: 'cargo-fact-item'},
@@ -435,7 +436,9 @@ function buildCargoVersionFactsSection() {
             ),
             el('div', {class: 'cargo-fact-item'},
                 el('span', {class: 'cargo-fact-label'}, t('cargo.publisher')),
-                el('span', {class: 'cargo-fact-value'}, publisher)
+                el('span', {class: 'cargo-fact-value'},
+                    publisher ? createUserIdentity(publisher) : t('common.unknown')
+                )
             ),
             el('div', {class: 'cargo-fact-item'},
                 el('span', {class: 'cargo-fact-label'}, t('cargo.readOnlyAccess')),
@@ -750,7 +753,10 @@ function buildCargoVersionsSection() {
             }
             const meta = el('div', {class: 'cargo-version-meta'},
                 titleLine,
-                el('span', {class: 'cargo-version-publisher'}, t('cargo.publishedBy', {name: version.publisher || t('common.unknown')}))
+                el('span', {class: 'cargo-version-publisher'},
+                    el('span', {}, `${t('cargo.publisher')}: `),
+                    version.publisher ? createUserIdentity(version.publisher) : t('common.unknown')
+                )
             );
             row.appendChild(meta);
             const actions = el('div', {class: 'cargo-row-actions'});
@@ -877,11 +883,12 @@ function buildPermissionOption(level) {
 /**
  * Persist a team member's L1/L2/L3 permission selection.
  * @param {string} username - Team member username.
+ * @param {string} userID - Immutable team member ID.
  * @param {string|number} level - Selected permission level.
  * @returns {void}
  */
-function handleMemberLevelChange(username, level) {
-	void updateCargoMemberLevel(username, Number(level));
+function handleMemberLevelChange(username, userID, level) {
+	void updateCargoMemberLevel(username, userID, Number(level));
 }
 
 /**
@@ -891,13 +898,14 @@ function handleMemberLevelChange(username, level) {
  */
 function buildMemberLevelSelect(member) {
     const username = String(member.login || '');
+	const userID = String(member.user_id || '');
     const level = Number(member.level);
     const canTransferOwnership = activeAdministrator ||
         Number(activePackageDetails?.package?.permission_level) === 4;
     const levels = canTransferOwnership ? [1, 2, 3, 4] : [1, 2, 3];
     const select = makeCustomSelect(
         levels.map(buildPermissionOption), String(level),
-        handleMemberLevelChange.bind(null, username)
+        handleMemberLevelChange.bind(null, username, userID)
     );
     select.classList.add('cargo-permission-select');
     select.dataset.cargoPermissionUser = username;
@@ -926,7 +934,7 @@ function buildCargoTeamSection(animate = false) {
         const row = el('div', {class: 'cargo-team-row'});
         if (animate) row.style.animationDelay = `${Math.min(index, 8) * 35}ms`;
         row.appendChild(el('div', {class: 'cargo-team-member'},
-            el('strong', {}, username),
+            createUserIdentity(username, {avatar: true, userID: member.user_id}),
             canManageTeam ? el('span', {}, cargoDate(member.added_at)) : el('span', {}, cargoPermissionLabel(member.level))
         ));
         if (canManageTeam) {
@@ -937,7 +945,8 @@ function buildCargoTeamSection(animate = false) {
                 controls.appendChild(buildMemberLevelSelect(member));
                 controls.appendChild(el('button', {
                     type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
-                    'data-cargo-action': 'remove-member', 'data-cargo-user': username
+                    'data-cargo-action': 'remove-member', 'data-cargo-user': username,
+					'data-cargo-user-id': String(member.user_id || '')
                 }, isSelf ? t('team.leave') : t('common.remove')));
             }
             row.appendChild(controls);
@@ -945,7 +954,8 @@ function buildCargoTeamSection(animate = false) {
             row.appendChild(el('div', {class: 'cargo-team-controls'},
                 el('button', {
                     type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
-                    'data-cargo-action': 'remove-member', 'data-cargo-user': username
+                    'data-cargo-action': 'remove-member', 'data-cargo-user': username,
+					'data-cargo-user-id': String(member.user_id || '')
                 }, t('team.leave'))
             ));
         }
@@ -1430,6 +1440,7 @@ async function handleCargoPageClick(event) {
     const packageName = activePackageDetails.package.name;
     const version = button.dataset.cargoVersion || '';
     const username = button.dataset.cargoUser || '';
+	const userID = button.dataset.cargoUserId || '';
     button.disabled = true;
     try {
         switch (action) {
@@ -1453,7 +1464,7 @@ async function handleCargoPageClick(event) {
                 await deleteCargoVersion(packageName, version);
                 break;
             case 'remove-member':
-                await removeCargoMember(packageName, username);
+                await removeCargoMember(packageName, username, userID);
                 break;
             case 'upload-docs': {
                 const targetVer = version || getSelectedVersion()?.version || activePackageDetails.versions?.[0]?.version || '';
@@ -1681,17 +1692,19 @@ async function deleteCargoVersion(packageName, version) {
  * Remove a package team member after explicit confirmation.
  * @param {string} packageName - Package name.
  * @param {string} username - Team username.
+ * @param {string} [userID=''] - Immutable team member ID.
  * @returns {Promise<void>}
  */
-async function removeCargoMember(packageName, username) {
+async function removeCargoMember(packageName, username, userID = '') {
     const isSelf = username.toLowerCase() === String(localStorage.getItem('username') || '').trim().toLowerCase();
+    const displayName = isSelf ? '' : await resolveUserDisplayName(username);
     const confirmed = await showConfirm(
-        isSelf ? t('team.leaveConfirm') : t('cargo.removeMemberConfirm', {name: username}), {
+        isSelf ? t('team.leaveConfirm') : t('cargo.removeMemberConfirm', {name: displayName}), {
         title: isSelf ? t('team.leave') : t('cargo.removeMember'),
         confirmText: isSelf ? t('team.leave') : t('common.remove'), danger: true
     });
     if (!confirmed) return;
-    const path = cargoAPIPath('crates', packageName, 'owners', username);
+    const path = cargoAPIPath('crates', packageName, 'owners', userID || username);
     if (isSelf) {
         await cargoRequest(path, {method: 'DELETE'});
         showAlert(t('team.left'), 'success');
@@ -1708,10 +1721,11 @@ async function removeCargoMember(packageName, username) {
 /**
  * Update one package team member's permission without rebuilding sibling controls.
  * @param {string} username - Team username.
+ * @param {string} userID - Immutable team member ID.
  * @param {number} level - Permission level 1 through 4.
  * @returns {Promise<void>}
  */
-async function updateCargoMemberLevel(username, level) {
+async function updateCargoMemberLevel(username, userID, level) {
     const member = activePackageDetails?.members?.find(candidate => candidate?.login === username);
     const previousLevel = Number(member?.level);
     if (!activePackageDetails?.package || level < 1 || level > 4 || level === previousLevel) return;
@@ -1720,7 +1734,8 @@ async function updateCargoMemberLevel(username, level) {
     const transfersOwnership = level === 4 && Number(activePackageDetails.package.permission_level) === 4 &&
         username.toLowerCase() !== currentUsername;
     if (transfersOwnership) {
-        const confirmed = await showConfirm(t('team.transferOwnershipConfirm', {name: username}), {
+        const displayName = await resolveUserDisplayName(username);
+        const confirmed = await showConfirm(t('team.transferOwnershipConfirm', {name: displayName}), {
             title: t('team.transferOwnership'), confirmText: t('team.transferOwnership')
         });
         if (!confirmed) {
@@ -1729,7 +1744,7 @@ async function updateCargoMemberLevel(username, level) {
         }
     }
     try {
-        await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners', username), {
+        await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners', userID || username), {
             method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level})
         });
         if (member) member.level = level;

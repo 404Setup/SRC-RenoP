@@ -12,7 +12,7 @@ import {t} from './i18n.js';
 import {apiRequest, fetchProto} from './api.js';
 import {showAlert} from './alert.js';
 import {el} from '@renop/ui/dom';
-import {RenopDialog} from './components.js';
+import {createUserIdentity, RenopDialog} from './components.js';
 import {enableDragToScroll} from '@renop/ui/scroll';
 import {AuditLogList} from './proto/index.js';
 
@@ -214,7 +214,9 @@ export async function openAuditLogsDialog(options = {}) {
                         const actionBadge = renderActionBadge(log.action);
                         const actionTd = el('td', {style: {padding: '8px 12px', whiteSpace: 'nowrap'}}, actionBadge);
 
-                        const displayOp = log.operator === 'Administrator' ? (t('audit.administrator') || 'Administrator') : (log.operator || '-');
+                        const displayOp = log.operator === 'Administrator'
+                            ? (t('audit.administrator') || 'Administrator')
+                            : (log.operator ? createUserIdentity(log.operator) : '-');
                         const opTd = el('td', {
                             style: {
                                 padding: '8px 12px',

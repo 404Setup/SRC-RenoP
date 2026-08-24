@@ -34,6 +34,20 @@ func UpdateTokenSync(opChan chan<- TokenOp, name string, updateFn func(*core.Acc
 	return <-errChan
 }
 
+// UpdateUserProfileSync serializes nickname and username changes with token mutations.
+func UpdateUserProfileSync(opChan chan<- TokenOp, oldName, newName, nickname string, changedAt int64) error {
+	errChan := make(chan error, 1)
+	opChan <- TokenOp{
+		Type:      OpUserProfileUpdate,
+		Name:      oldName,
+		NewName:   newName,
+		Nickname:  nickname,
+		ChangedAt: changedAt,
+		ErrChan:   errChan,
+	}
+	return <-errChan
+}
+
 func AutoRegisterAdmin(state *core.AppState, opChan chan<- TokenOp) error {
 	if state == nil || state.Inner == nil {
 		return errors.New("application state is unavailable")

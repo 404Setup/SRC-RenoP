@@ -57,6 +57,11 @@ type StateDB interface {
 	SaveToken(token *AccessToken) error
 	DeleteToken(name string) error
 	RenameToken(oldName, newName string, token *AccessToken) error
+	GetUserProfile(username string) (*UserProfile, error)
+	GetUserProfileByID(userID string) (*UserProfile, error)
+	GetUserProfiles(usernames []string) (map[string]*UserProfile, error)
+	ListUserPackageMemberships(userID, format string) ([]*UserPackageMembership, error)
+	UpdateUserProfile(oldUsername, newUsername, nickname string, token *AccessToken, changedAt int64) (*UserProfile, error)
 	GetSession(sessionToken string) (*Session, error)
 	SaveSession(session *Session, sessionToken string) error
 	UpdateSessionLastActive(sessionToken string, lastActive int64) error

@@ -3979,6 +3979,7 @@ type CreateAccessTokenRequest struct {
 	NewName       *string                `protobuf:"bytes,2,opt,name=new_name,json=newName,proto3,oneof" json:"new_name,omitempty"`
 	Secret        *string                `protobuf:"bytes,3,opt,name=secret,proto3,oneof" json:"secret,omitempty"`
 	IsCreate      bool                   `protobuf:"varint,4,opt,name=is_create,json=isCreate,proto3" json:"is_create,omitempty"`
+	Nickname      *string                `protobuf:"bytes,5,opt,name=nickname,proto3,oneof" json:"nickname,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4039,6 +4040,13 @@ func (x *CreateAccessTokenRequest) GetIsCreate() bool {
 		return x.IsCreate
 	}
 	return false
+}
+
+func (x *CreateAccessTokenRequest) GetNickname() string {
+	if x != nil && x.Nickname != nil {
+		return *x.Nickname
+	}
+	return ""
 }
 
 type CreateAccessTokenResponse struct {
@@ -5509,14 +5517,16 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x15UpdatePasswordRequest\x12!\n" +
 	"\fnew_password\x18\x01 \x01(\tR\vnewPassword\"-\n" +
 	"\x15GenerateTokenResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\xae\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xdc\x01\n" +
 	"\x18CreateAccessTokenRequest\x12 \n" +
 	"\vpermissions\x18\x01 \x03(\tR\vpermissions\x12\x1e\n" +
 	"\bnew_name\x18\x02 \x01(\tH\x00R\anewName\x88\x01\x01\x12\x1b\n" +
 	"\x06secret\x18\x03 \x01(\tH\x01R\x06secret\x88\x01\x01\x12\x1b\n" +
-	"\tis_create\x18\x04 \x01(\bR\bisCreateB\v\n" +
+	"\tis_create\x18\x04 \x01(\bR\bisCreate\x12\x1f\n" +
+	"\bnickname\x18\x05 \x01(\tH\x02R\bnickname\x88\x01\x01B\v\n" +
 	"\t_new_nameB\t\n" +
-	"\a_secret\"t\n" +
+	"\a_secretB\v\n" +
+	"\t_nickname\"t\n" +
 	"\x19CreateAccessTokenResponse\x12?\n" +
 	"\faccess_token\x18\x01 \x01(\v2\x1c.renop.api.v1.AccessTokenDtoR\vaccessToken\x12\x16\n" +
 	"\x06secret\x18\x02 \x01(\tR\x06secret\"O\n" +

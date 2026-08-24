@@ -18,6 +18,7 @@ import {closeModalWithAnim} from './app-ui.js';
 import {cachedIsLoggedIn, cachedIsManager} from './auth.js';
 import {showAlert, showConfirm} from './alert.js';
 import {t} from './i18n.js';
+import {createUserIdentity} from './components.js';
 import {
     ClearMessagesResponse,
     MarkAllReadResponse,
@@ -322,9 +323,13 @@ function buildMessageCard(message) {
     }
     card.appendChild(heading);
     card.appendChild(el('p', {class: 'message-card-body'}, presentation.body));
-    const sender = message.sender ? t('messages.from', {name: message.sender}) : t('messages.system');
+    const sender = message.sender
+        ? createUserIdentity(message.sender, {template: 'messages.from'})
+        : el('span', {}, t('messages.system'));
+    const messageMeta = el('span', {class: 'message-card-meta'}, sender);
+    messageMeta.appendChild(document.createTextNode(` · ${formatMessageDate(message.created_at)}`));
     const footer = el('div', {class: 'message-card-footer'},
-        el('span', {class: 'message-card-meta'}, `${sender} · ${formatMessageDate(message.created_at)}`),
+        messageMeta,
         buildMessageActions(message)
     );
     card.appendChild(footer);

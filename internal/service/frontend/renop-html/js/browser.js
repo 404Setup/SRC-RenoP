@@ -779,6 +779,7 @@ export async function loadDirectory(path) {
 
         if (isSameDirectory && fileList && fileList.children.length > 0) {
             renderFileListReconciled(filesToDisplay, path);
+            finishListTransition('ready');
         } else {
             if (fileList) fileList.innerHTML = '';
             filesToDisplay.forEach((file, index) => {
@@ -828,10 +829,6 @@ export function navigate(event) {
     const url = new URL(event.currentTarget.href);
     navigateToPath(url.pathname);
 }
-
-window.addEventListener('popstate', () => {
-    loadDirectory(window.location.pathname);
-});
 
 /**
  * Re-render browser text and format-specific snippets after a locale change.
