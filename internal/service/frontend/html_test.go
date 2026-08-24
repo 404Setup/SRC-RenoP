@@ -83,6 +83,7 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 		`data-profile-tab="settings"`,
 		`id="profile-public-view"`,
 		`profile-settings-card`,
+		`profile-collapsible-content`,
 	} {
 		if !strings.Contains(html, needle) {
 			t.Fatalf("index.html missing bundled asset reference %q", needle)

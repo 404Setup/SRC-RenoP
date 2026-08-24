@@ -536,15 +536,17 @@
                         </div>
                         <renop-icon name="chevronDown" class="profile-collapse-chevron" aria-hidden="true"></renop-icon>
                     </summary>
-                    <form id="profile-password-form" action="javascript:void(0);" class="profile-section-body" hidden>
-                        <input type="text" id="profile-username-hidden" name="username" autocomplete="username" style="display: none;" readonly>
-                        <div class="form-group profile-form-group">
-                            <label for="profile-new-password" data-i18n="profile.newPasswordLabel">New Password</label>
-                            <input type="password" id="profile-new-password" autocomplete="new-password" placeholder="Enter new password" data-i18n-placeholder="profile.newPasswordPlaceholder"
-                                   class="profile-input">
-                        </div>
-                        <button type="submit" id="btn-update-password" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.updatePasswordBtn">Update Password</button>
-                    </form>
+                    <div class="profile-collapsible-content" hidden>
+                        <form id="profile-password-form" action="javascript:void(0);" class="profile-section-body">
+                            <input type="text" id="profile-username-hidden" name="username" autocomplete="username" style="display: none;" readonly>
+                            <div class="form-group profile-form-group">
+                                <label for="profile-new-password" data-i18n="profile.newPasswordLabel">New Password</label>
+                                <input type="password" id="profile-new-password" autocomplete="new-password" placeholder="Enter new password" data-i18n-placeholder="profile.newPasswordPlaceholder"
+                                       class="profile-input">
+                            </div>
+                            <button type="submit" id="btn-update-password" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.updatePasswordBtn">Update Password</button>
+                        </form>
+                    </div>
                 </details>
 
                 <div class="profile-settings-section">

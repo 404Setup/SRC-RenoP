@@ -829,19 +829,19 @@ function renderPublicProfile(profile) {
  * @returns {void}
  */
 function resetProfileDisclosure(card) {
-    const body = card.querySelector('.profile-section-body');
+    const content = card.querySelector('.profile-collapsible-content');
     const summary = card.querySelector('.profile-collapsible-summary');
     card.open = false;
     card.dataset.disclosureAnimating = 'false';
     if (summary) summary.setAttribute('aria-expanded', 'false');
-    if (body) {
-        body.hidden = true;
-        body.classList.remove('is-visible');
-        body.style.display = 'none';
-        body.style.height = '';
-        body.style.overflow = '';
-        body.style.opacity = '';
-        body.style.transition = '';
+    if (content) {
+        content.hidden = true;
+        content.classList.remove('is-visible');
+        content.style.display = 'none';
+        content.style.height = '';
+        content.style.overflow = '';
+        content.style.opacity = '';
+        content.style.transition = '';
     }
 }
 
@@ -853,8 +853,8 @@ function resetProfileDisclosure(card) {
 function wireProfileDisclosure(card) {
     if (card.dataset.disclosureWired === 'true') return;
     const summary = card.querySelector('.profile-collapsible-summary');
-    const body = card.querySelector('.profile-section-body');
-    if (!summary || !body) return;
+    const content = card.querySelector('.profile-collapsible-content');
+    if (!summary || !content) return;
     card.dataset.disclosureWired = 'true';
     summary.setAttribute('aria-expanded', 'false');
     summary.addEventListener('click', async event => {
@@ -863,12 +863,12 @@ function wireProfileDisclosure(card) {
         card.dataset.disclosureAnimating = 'true';
         if (card.open) {
             summary.setAttribute('aria-expanded', 'false');
-            await collapseElement(body, {duration: 240, marginTop: false});
+            await collapseElement(content, {duration: 240, marginTop: false});
             card.open = false;
         } else {
             card.open = true;
             summary.setAttribute('aria-expanded', 'true');
-            await expandElement(body, {duration: 280});
+            await expandElement(content, {duration: 280});
         }
         card.dataset.disclosureAnimating = 'false';
     });
@@ -988,7 +988,9 @@ function buildProfileIdentityEditor(profile) {
             ),
             createIcon('chevronDown', {class: 'profile-collapse-chevron'})
         ),
-        el('div', {class: 'profile-section-body', hidden: true}, form)
+        el('div', {class: 'profile-collapsible-content', hidden: true},
+            el('div', {class: 'profile-section-body'}, form)
+        )
     );
     settingsCard.prepend(card);
     return card;

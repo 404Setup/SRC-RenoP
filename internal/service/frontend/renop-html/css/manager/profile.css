@@ -253,10 +253,6 @@
     padding-left: 0;
 }
 
-.profile-settings-section.profile-collapsible-card[open] > .profile-collapsible-summary {
-    border-bottom: 1px solid var(--border-color);
-}
-
 .profile-collapsible-summary {
     cursor: pointer;
     list-style: none;
@@ -267,8 +263,8 @@
     display: none;
 }
 
-.profile-collapsible-card:not([open]) .profile-collapsible-summary {
-    border-bottom-color: transparent;
+.profile-collapsible-content > .profile-section-body {
+    border-top: 1px solid var(--border-color);
 }
 
 .profile-collapse-chevron {
