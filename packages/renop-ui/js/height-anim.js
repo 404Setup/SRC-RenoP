@@ -56,6 +56,19 @@ function clearHeightInlineStyles(el) {
 }
 
 /**
+ * Reveal an element using its stylesheet-defined layout mode when available.
+ * @param {HTMLElement} el
+ * @returns {void}
+ */
+function revealElement(el) {
+    el.hidden = false;
+    el.style.removeProperty('display');
+    if (getComputedStyle(el).display === 'none') {
+        el.style.display = 'block';
+    }
+}
+
+/**
  * Measure an element's natural (content) height, restoring prior inline height.
  * Forces `height: auto` so shrink targets are not stuck on a previous locked height.
  * @param {HTMLElement|null|undefined} el
@@ -286,15 +299,14 @@ export function expandElement(el, {
     if (typeof mutate === 'function') mutate();
 
     if (prefersReducedMotion()) {
-        el.hidden = false;
-        el.style.display = 'block';
+        revealElement(el);
         el.classList.add('is-visible');
         clearHeightInlineStyles(el);
         return Promise.resolve();
     }
 
-    el.hidden = false;
-    el.style.display = 'block';
+    revealElement(el);
+    el.style.boxSizing = 'border-box';
     el.style.overflow = 'hidden';
     el.style.height = '0px';
     el.style.opacity = '0';
@@ -380,6 +392,7 @@ export function collapseElement(el, {
 
     const from = el.getBoundingClientRect().height;
     const fromMargin = computed.marginTop;
+    el.style.boxSizing = 'border-box';
     el.style.overflow = 'hidden';
     el.style.height = `${from}px`;
     el.style.opacity = '1';

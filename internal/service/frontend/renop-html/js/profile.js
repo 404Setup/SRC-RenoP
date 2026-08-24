@@ -581,6 +581,37 @@ function profileAvatarLetter(profile) {
 }
 
 /**
+ * Update the account heading shown above the profile editor.
+ * @param {object} profile - Own profile payload.
+ * @returns {void}
+ */
+function updateProfileEditHeading(profile) {
+    const editView = document.getElementById('profile-edit-view');
+    if (!editView) return;
+    const avatar = document.getElementById('profile-avatar-initials');
+    const heading = document.getElementById('profile-display-name');
+    const subtitle = editView.querySelector('.profile-hero-sub');
+    if (avatar) avatar.textContent = profileAvatarLetter(profile);
+    if (heading) heading.textContent = profileDisplayName(profile);
+    if (subtitle) subtitle.textContent = `@${profile.username} · ${t('profile.editSubtitle')}`;
+}
+
+/**
+ * Format the username-change allowance displayed in the identity editor.
+ * @param {object} profile - Own profile payload.
+ * @returns {string} Localized allowance text.
+ */
+function profileRenameHint(profile) {
+    const remaining = Number(profile.username_changes_remaining || 0);
+    const resetAt = Number(profile.username_change_window_resets_at || 0);
+    return remaining > 0
+        ? t('profile.renameRemaining', {count: remaining})
+        : t('profile.renameUnavailable', {
+            date: resetAt > 0 ? new Date(resetAt).toLocaleString() : t('profile.later')
+        });
+}
+
+/**
  * Leave the profile route while preserving normal browser history.
  * @returns {void}
  */
@@ -871,13 +902,7 @@ function buildProfileIdentityEditor(profile) {
         'aria-describedby': 'profile-username-hint'
     });
     usernameInput.addEventListener('input', () => usernameInput.setCustomValidity(''));
-    const remaining = Number(profile.username_changes_remaining || 0);
-    const resetAt = Number(profile.username_change_window_resets_at || 0);
-    const rateHint = remaining > 0
-        ? t('profile.renameRemaining', {count: remaining})
-        : t('profile.renameUnavailable', {
-            date: resetAt > 0 ? new Date(resetAt).toLocaleString() : t('profile.later')
-        });
+    const rateHint = el('p', {class: 'profile-rate-hint'}, profileRenameHint(profile));
     const saveButton = el('button', {
         type: 'submit', class: 'pill-btn pill-btn--primary'
     }, t('users.saveBtn'));
@@ -894,7 +919,7 @@ function buildProfileIdentityEditor(profile) {
             el('label', {for: 'profile-username'}, t('profile.usernameLabel')),
             usernameInput,
             el('p', {id: 'profile-username-hint', class: 'profile-field-hint'}, t('profile.usernameHint')),
-            el('p', {class: 'profile-rate-hint'}, rateHint)
+            rateHint
         ),
         el('div', {class: 'profile-identity-actions'}, saveButton)
     );
@@ -930,13 +955,22 @@ function buildProfileIdentityEditor(profile) {
             }
             const updated = await response.json();
             const oldUsername = profile.username;
+            profile = {...profile, ...updated};
             localStorage.setItem('username', updated.username);
             invalidateUserProfiles(oldUsername, updated.username);
             window.dispatchEvent(new CustomEvent('profileUpdated', {
                 detail: {...updated, old_username: oldUsername}
             }));
             showAlert(t('profile.updated'), 'success');
-            navigateToUserProfile(updated.username, '', true);
+            if (oldUsername !== updated.username) {
+                const path = `/user/${encodeURIComponent(updated.username)}`;
+                window.history.replaceState(window.history.state, '', path);
+            }
+            nicknameInput.value = updated.nickname || '';
+            usernameInput.value = updated.username;
+            rateHint.textContent = profileRenameHint(updated);
+            updateCounter();
+            updateProfileEditHeading(updated);
         } catch (error) {
             showAlert(error.message || t('profile.updateFailed'), 'error');
         } finally {
@@ -969,13 +1003,7 @@ function showProfileEdit(profile) {
     if (!publicView || !editView) return;
     publicView.hidden = true;
     editView.hidden = false;
-    const displayName = profileDisplayName(profile);
-    const avatar = document.getElementById('profile-avatar-initials');
-    const heading = document.getElementById('profile-display-name');
-    const subtitle = editView.querySelector('.profile-hero-sub');
-    if (avatar) avatar.textContent = profileAvatarLetter(profile);
-    if (heading) heading.textContent = displayName;
-    if (subtitle) subtitle.textContent = `@${profile.username} · ${t('profile.editSubtitle')}`;
+    updateProfileEditHeading(profile);
     buildProfileIdentityEditor(profile);
     editView.querySelectorAll('details.profile-collapsible-card').forEach(card => {
         resetProfileDisclosure(card);
