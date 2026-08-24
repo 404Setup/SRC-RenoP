@@ -21,6 +21,7 @@ import {
 import {lockElementHeight, morphElementHeight} from '@renop/ui/height-anim';
 import {
     applyAdjustments,
+    breadcrumbPathParts,
     decodePathSegment,
     encodePathSegment,
     formatBytes,
@@ -307,7 +308,7 @@ export function renderBreadcrumb(path) {
             if (!upDirBtn.classList.contains('is-visible')) {
                 requestAnimationFrame(() => upDirBtn.classList.add('is-visible'));
             }
-            const pathParts = path.split('/').filter(p => p.length > 0);
+            const pathParts = breadcrumbPathParts(path, currentRepositoryFormat);
             if (pathParts.length <= 1) {
                 upDirBtn.href = '/';
             } else {
@@ -317,9 +318,7 @@ export function renderBreadcrumb(path) {
         }
     }
 
-    const parts = path && path !== '/'
-        ? path.split('/').filter(p => p.length > 0)
-        : [];
+    const parts = breadcrumbPathParts(path, currentRepositoryFormat);
 
     const desired = [];
     desired.push({

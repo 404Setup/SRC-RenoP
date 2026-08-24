@@ -49,6 +49,22 @@ export function decodePathSegment(segment) {
 }
 
 /**
+ * Split a browser route into logical breadcrumb segments for its repository format.
+ * Docker image names may contain slashes, so every segment after the repository
+ * belongs to one image rather than representing navigable directories.
+ * @param {string} path
+ * @param {string} format
+ * @returns {string[]}
+ */
+export function breadcrumbPathParts(path, format) {
+    const parts = String(path || '').split('/').filter(part => part.length > 0);
+    if (format === 'docker' && parts.length > 1) {
+        return [parts[0], parts.slice(1).join('/')];
+    }
+    return parts;
+}
+
+/**
  * Whether the file list sort order is reversed.
  * @returns {boolean}
  */
