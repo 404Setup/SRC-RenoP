@@ -84,6 +84,7 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 		`id="profile-public-view"`,
 		`profile-settings-card`,
 		`profile-collapsible-content`,
+		`class="nav-title-logo"`,
 	} {
 		if !strings.Contains(html, needle) {
 			t.Fatalf("index.html missing bundled asset reference %q", needle)
@@ -97,6 +98,11 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 	}
 	if strings.Contains(html, `id="tabs"`) || strings.Contains(html, `data-tab=`) {
 		t.Fatal("index.html still exposes the removed main tab navigation")
+	}
+	for _, obsoleteHeader := range []string{`class="main-header"`, `class="header-text"`, `id="instance-url"`} {
+		if strings.Contains(html, obsoleteHeader) {
+			t.Fatalf("index.html still exposes obsolete repository header content %q", obsoleteHeader)
+		}
 	}
 	if strings.Contains(html, `users.thTokenPrefix`) {
 		t.Fatal("index.html still exposes access-token prefixes in the users table")

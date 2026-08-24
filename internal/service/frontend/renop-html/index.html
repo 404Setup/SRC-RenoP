@@ -28,7 +28,12 @@
 </div>
 <div class="top-nav">
     <div class="top-nav-left">
-        <h1 class="nav-title"><a href="/" title="{{RENOP.TITLE}}">{{RENOP.TITLE}}</a></h1>
+        <h1 class="nav-title">
+            <a href="/" title="{{RENOP.TITLE}}">
+                <img class="nav-title-logo" src="{{RENOP.ORGANIZATION_LOGO}}" alt="" id="header-logo" aria-hidden="true">
+                <span class="nav-title-label">{{RENOP.TITLE}}</span>
+            </a>
+        </h1>
     </div>
     <div class="top-nav-right">
         <div id="auth-container" class="nav-controls-group">
@@ -129,25 +134,6 @@
 </div>
 
 <div id="app">
-    <header class="main-header">
-        <div class="header-content">
-            <div class="header-logo-wrap">
-                <img class="header-logo" src="{{RENOP.ORGANIZATION_LOGO}}" alt="Organization Logo" id="header-logo">
-            </div>
-            <div class="header-text">
-                <p class="description">{{RENOP.DESCRIPTION}}</p>
-                <div class="header-url" title="Instance URL">
-                    <svg class="header-url-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="2" y1="12" x2="22" y2="12"/>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                    </svg>
-                    <span id="instance-url"></span>
-                </div>
-            </div>
-        </div>
-    </header>
-
     <main>
         <div id="tab-content-overview" class="tab-content active">
             <div class="layout-two-col">
