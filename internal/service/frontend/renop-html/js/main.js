@@ -9,7 +9,7 @@
  */
 
 import {initTheme} from '@renop/ui/theme';
-import {cachedIsLoggedIn, cachedIsManager, initializeSession, setSwitchTabHandler} from './auth.js';
+import {cachedIsLoggedIn, cachedIsManager, initializeSession, isManagerTab, setSwitchTabHandler} from './auth.js';
 import {initI18n, t} from './i18n.js';
 import {RenopDialog} from './components.js';
 import {el} from '@renop/ui/dom';
@@ -27,7 +27,7 @@ import {loadDirectory} from './browser.js';
 import {initMessageCenter} from './messages.js';
 import './cargo-messages.js';
 import './docker-messages.js';
-import {navigateToUsernameProfile, profileRouteFromPath} from './user-profiles.js';
+import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 
 initI18n();
 
@@ -193,6 +193,44 @@ window.addEventListener('languageChanged', async () => {
 const tabs = document.querySelectorAll('#tabs .tab');
 const instanceUrlSpan = document.getElementById('instance-url');
 const tabContents = document.querySelectorAll('.tab-content');
+const profileMenu = document.getElementById('profile-menu');
+const profileMenuWrap = document.getElementById('profile-menu-wrap');
+const profileTrigger = document.getElementById('profile-trigger');
+
+/**
+ * Open or close the signed-in account navigation menu.
+ * @param {boolean} open - Whether the menu should be visible.
+ * @param {boolean} [focusFirst=false] - Focus the first menu item after opening.
+ * @returns {void}
+ */
+function setProfileMenuOpen(open, focusFirst = false) {
+    if (!profileMenu || !profileTrigger) return;
+    profileMenu.hidden = !open;
+    profileTrigger.setAttribute('aria-expanded', String(open));
+    if (open && focusFirst) {
+        requestAnimationFrame(() => profileMenu.querySelector('.nav-profile-menu-item:not([style*="display: none"])')?.focus());
+    }
+}
+
+/**
+ * Mark the menu item representing the active application or profile section.
+ * @param {string} tabId - Active application section.
+ * @returns {void}
+ */
+function updateProfileMenuSelection(tabId) {
+    if (!profileMenu) return;
+    const route = profileRouteFromPath(window.location.pathname);
+    profileMenu.querySelectorAll('.nav-profile-menu-item').forEach(item => {
+        const action = item.dataset.profileAction;
+        const menuTab = item.dataset.profileTab;
+        const active = (menuTab === tabId && (menuTab !== 'overview' || window.location.pathname === '/'))
+            || (tabId === 'profile' && action === 'view' && route?.section !== 'edit')
+            || (tabId === 'profile' && action === 'edit' && route?.section === 'edit');
+        item.classList.toggle('is-active', active);
+        if (active) item.setAttribute('aria-current', 'page');
+        else item.removeAttribute('aria-current');
+    });
+}
 
 /**
  * Activate a main app tab: update tab UI, show matching content, and run tab-specific init.
@@ -200,6 +238,7 @@ const tabContents = document.querySelectorAll('.tab-content');
  * @returns {Promise<void>}
  */
 export async function switchTab(tabId) {
+    if (isManagerTab(tabId) && !cachedIsManager) tabId = 'overview';
     if (tabId === 'overview' && profileRouteFromPath(window.location.pathname)) {
         tabId = 'profile';
     }
@@ -258,6 +297,7 @@ export async function switchTab(tabId) {
     if (tabId === 'overview') {
         loadDirectory(window.location.pathname);
     }
+    updateProfileMenuSelection(tabId);
 }
 
 setSwitchTabHandler(switchTab);
@@ -388,16 +428,71 @@ async function initializeApplication() {
             localStorage.setItem('selectedTab', 'overview');
             savedTab = 'overview';
         }
-        const tabEl = document.querySelector(`.tabs .tab[data-tab="${savedTab}"]`);
-        if (!profileRoute && (!cachedIsLoggedIn || (tabEl && tabEl.classList.contains('manager-only') && !cachedIsManager))) {
+        if (!profileRoute && (!cachedIsLoggedIn || (isManagerTab(savedTab) && !cachedIsManager))) {
             savedTab = 'overview';
         }
         await switchTab(savedTab);
 
-        const profileTrigger = document.getElementById('profile-trigger');
-        if (profileTrigger) {
-            profileTrigger.addEventListener('click', () => {
-                void navigateToUsernameProfile(localStorage.getItem('username') || '');
+        if (profileTrigger && profileMenu && profileMenuWrap) {
+            profileTrigger.addEventListener('click', event => {
+                event.stopPropagation();
+                setProfileMenuOpen(profileMenu.hidden);
+            });
+            profileTrigger.addEventListener('keydown', event => {
+                if (event.key !== 'ArrowDown') return;
+                event.preventDefault();
+                setProfileMenuOpen(true, true);
+            });
+            profileMenu.addEventListener('click', async event => {
+                const item = event.target.closest('.nav-profile-menu-item');
+                if (!item || !profileMenu.contains(item)) return;
+                setProfileMenuOpen(false);
+                const username = localStorage.getItem('username') || '';
+                if (item.dataset.profileAction) {
+                    navigateToUserProfile(username, item.dataset.profileAction === 'edit' ? 'edit' : '');
+                    return;
+                }
+                const targetTab = item.dataset.profileTab;
+                if (!targetTab) return;
+                if (targetTab === 'overview') {
+                    if (window.location.pathname !== '/') {
+                        window.history.pushState(null, '', '/');
+                    }
+                    await switchTab('overview');
+                    return;
+                }
+                if (!cachedIsManager) return;
+                if (profileRouteFromPath(window.location.pathname)) {
+                    window.history.pushState(null, '', '/');
+                }
+                await switchTab(targetTab);
+            });
+            profileMenu.addEventListener('keydown', event => {
+                const items = Array.from(profileMenu.querySelectorAll('.nav-profile-menu-item'))
+                    .filter(item => item.style.display !== 'none');
+                const currentIndex = items.indexOf(document.activeElement);
+                let nextIndex = -1;
+                if (event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % items.length;
+                else if (event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + items.length) % items.length;
+                else if (event.key === 'Home') nextIndex = 0;
+                else if (event.key === 'End') nextIndex = items.length - 1;
+                else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setProfileMenuOpen(false);
+                    profileTrigger.focus();
+                    return;
+                }
+                if (nextIndex >= 0 && items.length > 0) {
+                    event.preventDefault();
+                    items[nextIndex].focus();
+                }
+            });
+            document.addEventListener('click', event => {
+                if (!profileMenuWrap.contains(event.target)) setProfileMenuOpen(false);
+            });
+            window.addEventListener('authChanged', event => {
+                if (!event.detail?.isLoggedIn) setProfileMenuOpen(false);
             });
         }
 

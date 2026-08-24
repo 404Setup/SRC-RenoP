@@ -112,6 +112,11 @@
     max-width: 10rem;
 }
 
+.nav-profile-menu-wrap {
+    position: relative;
+    min-width: 0;
+}
+
 .nav-profile-trigger {
     border: 0;
     background: transparent;
@@ -133,6 +138,72 @@
     min-width: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.nav-profile-chevron {
+    flex-shrink: 0;
+    color: var(--muted-text);
+    transition: transform 0.16s ease;
+}
+
+.nav-profile-trigger[aria-expanded="true"] .nav-profile-chevron {
+    transform: rotate(180deg);
+}
+
+.nav-profile-menu {
+    position: absolute;
+    z-index: 100;
+    top: calc(100% + 0.55rem);
+    right: 0;
+    width: max-content;
+    min-width: 13rem;
+    max-width: calc(100vw - 1rem);
+    padding: 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--card-bg) 96%, transparent);
+    box-shadow: 0 16px 36px -18px rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transform-origin: top right;
+    animation: navProfileMenuIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nav-profile-menu[hidden] {
+    display: none !important;
+}
+
+.nav-controls-group .nav-profile-menu-item {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.65rem;
+    padding: 0.58rem 0.7rem;
+    border-radius: 0.5rem;
+    color: var(--text-color);
+    font-size: 0.84rem;
+    font-weight: 550;
+    text-align: left;
+}
+
+.nav-controls-group .nav-profile-menu-item:hover,
+.nav-controls-group .nav-profile-menu-item:focus-visible,
+.nav-controls-group .nav-profile-menu-item.is-active {
+    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+    color: var(--link-hover-color);
+    outline: none;
+}
+
+.nav-profile-menu-item renop-icon,
+.nav-profile-menu-item renop-icon svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.nav-profile-menu-separator {
+    height: 1px;
+    margin: 0.35rem 0.45rem;
+    background: color-mix(in srgb, var(--border-color) 88%, transparent);
 }
 
 .user-avatar-dot {
@@ -160,6 +231,17 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     z-index: 50;
     min-width: 150px;
+}
+
+@keyframes navProfileMenuIn {
+    from {
+        opacity: 0;
+        transform: translateY(-0.35rem) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 #user-info:hover .user-dropdown {
@@ -190,13 +272,27 @@
     }
 
     .nav-controls-group .user-text {
-        max-width: 5rem;
+        max-width: 7rem;
         padding-right: 0.4rem;
         font-size: 0.8rem;
+    }
+
+    .nav-profile-menu {
+        right: -2.4rem;
     }
 
     .nav-sign-in-btn {
         padding: 0.38rem 0.75rem !important;
         font-size: 0.82rem !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-profile-menu {
+        animation: none;
+    }
+
+    .nav-profile-chevron {
+        transition: none;
     }
 }

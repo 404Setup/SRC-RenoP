@@ -767,7 +767,7 @@ function renderPublicProfile(profile) {
         actions.appendChild(el('button', {
             type: 'button',
             class: 'pill-btn pill-btn--primary',
-            onclick: () => showProfileEdit(profile)
+            onclick: () => navigateToUserProfile(profile.username, 'edit')
         }, createIcon('edit'), el('span', {}, t('common.edit'))));
     }
     publicView.replaceChildren(
@@ -963,7 +963,9 @@ function buildProfileIdentityEditor(profile) {
             }));
             showAlert(t('profile.updated'), 'success');
             if (oldUsername !== updated.username) {
-                const path = `/user/${encodeURIComponent(updated.username)}`;
+                const route = profileRouteFromPath(window.location.pathname);
+                const suffix = route?.section === 'edit' ? '/edit' : '';
+                const path = `/user/${encodeURIComponent(updated.username)}${suffix}`;
                 window.history.replaceState(window.history.state, '', path);
             }
             nicknameInput.value = updated.nickname || '';
@@ -1015,7 +1017,7 @@ function showProfileEdit(profile) {
 
 /**
  * Load and render a username-based profile route.
- * @param {{username: string, section: ''|'cargo'|'docker'}|null} [route=null] - Parsed profile route.
+ * @param {{username: string, section: ''|'edit'|'cargo'|'docker'}|null} [route=null] - Parsed profile route.
  * @returns {Promise<void>}
  */
 export async function setupProfile(route = null) {
@@ -1040,7 +1042,12 @@ export async function setupProfile(route = null) {
         if (sequence !== profilePageLoadSeq) return;
         if (targetRoute?.section === 'cargo' || targetRoute?.section === 'docker') {
             await renderProfileMemberships(profile, targetRoute.section, sequence);
+        } else if (targetRoute?.section === 'edit' && profile.own_profile) {
+            showProfileEdit(profile);
         } else {
+            if (targetRoute?.section === 'edit') {
+                window.history.replaceState(window.history.state, '', `/user/${encodeURIComponent(profile.username)}`);
+            }
             renderPublicProfile(profile);
         }
     } catch (error) {

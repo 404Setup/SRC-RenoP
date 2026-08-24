@@ -42,5 +42,7 @@ export default {
     "profile.notFound": "ユーザープロフィールが見つかりません",
     "profile.loadFailed": "ユーザープロフィールを読み込めませんでした",
     "profile.unnamedUser": "名前未設定のユーザー",
-    "profile.openOwnProfile": "自分のプロフィールを開く"
+    "profile.openOwnProfile": "アカウントメニューを開く",
+    "profile.viewOwnProfile": "プロフィールを表示",
+    "profile.editOwnProfile": "プロフィールを編集"
 };

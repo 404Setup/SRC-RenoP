@@ -29,11 +29,13 @@
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`, `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
-- **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile and package
-  membership routes plus shared nickname-first identity components. Database ownership uses immutable user IDs, which
-  remain hidden from the visible interface. `js/main.js` is the single owner of browser `popstate` dispatch to prevent
-  concurrent route loads. Modular i18n catalogs, including dedicated profile fragments, live under `js/i18n/<locale>/`
-  and are compiled via `pnpm run build:frontend`.
+- **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
+  package-membership routes plus shared nickname-first identity components. The signed-in account menu owns profile
+  navigation and administrator page entry points; the settings UI groups the server, outbound-proxy, and storage APIs
+  under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
+  `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n
+  catalogs, including dedicated profile fragments, live under `js/i18n/<locale>/` and are compiled via
+  `pnpm run build:frontend`.
 
 ---
 

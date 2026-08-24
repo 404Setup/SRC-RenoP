@@ -42,5 +42,7 @@ export default {
     "profile.notFound": "未找到该用户的个人资料",
     "profile.loadFailed": "个人资料加载失败",
     "profile.unnamedUser": "未设置昵称的用户",
-    "profile.openOwnProfile": "打开个人资料"
+    "profile.openOwnProfile": "打开账户菜单",
+    "profile.viewOwnProfile": "查看个人资料",
+    "profile.editOwnProfile": "修改个人资料"
 };

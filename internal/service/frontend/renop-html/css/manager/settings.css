@@ -277,6 +277,12 @@ html.dark .pill-btn--ghost-danger:hover:not(:disabled) {
     gap: 1.5rem;
 }
 
+.cfg-service-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
 .cfg-section {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);

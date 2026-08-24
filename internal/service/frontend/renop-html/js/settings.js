@@ -47,10 +47,13 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
+const SERVICE_DOMAINS = Object.freeze(['server', 'proxy', 'storage']);
+
 let currentDomain = null;
 let currentConfig = null;
 let initialConfig = null;
 let domainsList = [];
+let availableDomains = [];
 let skeletonTimer = null;
 let activeFetchId = 0;
 
@@ -88,7 +91,8 @@ export async function initSettings() {
     try {
         const {response, data} = await fetchProto('/api/settings/domains', SettingsDomainsResponse);
         if (response.ok && data) {
-            domainsList = data.domains || [];
+            availableDomains = Array.isArray(data.domains) ? data.domains : [];
+            domainsList = availableDomains.filter(domain => domain !== 'proxy' && domain !== 'storage');
             const targetDomain = (currentDomain && domainsList.includes(currentDomain)) ? currentDomain : (domainsList[0] || null);
             renderDomainTabs(domainsList, targetDomain);
             if (targetDomain) {
@@ -152,7 +156,7 @@ function renderDomainTabs(domains, activeDomain) {
 
 /**
  * Returns a localized display label for a settings domain key.
- * @param {string} domain - Domain key (frontend, server, proxy, storage, updater, index).
+ * @param {string} domain - Visible domain key (frontend, server, updater, index).
  * @returns {string} Localized or title-cased label.
  */
 function domainLabel(domain) {
@@ -199,12 +203,33 @@ async function loadDomainSettings(domain, direction = 'next') {
     }, 90);
 
     try {
-        const MessageType = DOMAIN_MESSAGE_TYPES[domain];
-        if (!MessageType) {
-            console.error('Unknown settings domain', domain);
-            return;
+        let response;
+        let data;
+        if (domain === 'server') {
+            const serviceDomains = SERVICE_DOMAINS.filter(name => availableDomains.includes(name));
+            const results = await Promise.all(serviceDomains.map(async name => ({
+                name,
+                result: await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])
+            })));
+            const denied = results.find(({result}) => result.response.status === 401 || result.response.status === 403);
+            if (denied) {
+                logout('kicked');
+                return;
+            }
+            const failed = results.find(({result}) => !result.response.ok || !result.data);
+            if (failed) {
+                throw new Error(`Failed to load ${failed.name} settings`);
+            }
+            response = {ok: true};
+            data = Object.fromEntries(results.map(({name, result}) => [name, result.data]));
+        } else {
+            const MessageType = DOMAIN_MESSAGE_TYPES[domain];
+            if (!MessageType) {
+                console.error('Unknown settings domain', domain);
+                return;
+            }
+            ({response, data} = await fetchProto(`/api/settings/domain/${domain}`, MessageType));
         }
-        const {response, data} = await fetchProto(`/api/settings/domain/${domain}`, MessageType);
 
         if (activeFetchId !== fetchId) return;
 
@@ -258,7 +283,7 @@ function enableSave() {
 
 /**
  * Dispatches rendering of the settings form for the given domain.
- * @param {string} domain - Domain key (frontend, server, proxy, storage, updater, index).
+ * @param {string} domain - Visible domain key (frontend, server, updater, index).
  * @param {object} data - Domain configuration object from the API.
  * @returns {void}
  */
@@ -270,7 +295,7 @@ function renderSettingsForm(domain, data) {
     if (domain === 'frontend') {
         renderFrontendSettings(container, data);
     } else if (domain === 'server') {
-        renderServerSettings(container, data);
+        renderServiceSettings(container, data);
     } else if (domain === 'proxy') {
         renderProxySettings(container, data);
     } else if (domain === 'storage') {
@@ -333,6 +358,7 @@ function createGlobalProxyField(label, control, wide = false) {
  * @returns {void}
  */
 function renderProxySettings(container, data) {
+    const currentConfig = data;
     const proxies = Array.isArray(data.proxies) ? data.proxies : [];
     currentConfig.proxies = proxies;
     currentConfig.selected = data.selected || '';
@@ -491,6 +517,20 @@ function renderProxySettings(container, data) {
 }
 
 /**
+ * Render server, outbound proxy, and storage configuration as one service domain.
+ * @param {HTMLElement} container - Settings form container.
+ * @param {{server?: object, proxy?: object, storage?: object}} data - Service configuration groups.
+ * @returns {void}
+ */
+function renderServiceSettings(container, data) {
+    const stack = el('div', {class: 'cfg-service-stack'});
+    if (data.server) renderServerSettings(stack, data.server);
+    if (data.proxy) renderProxySettings(stack, data.proxy);
+    if (data.storage) renderStorageSettings(stack, data.storage);
+    container.appendChild(stack);
+}
+
+/**
  * Renders updater domain settings (channel and mode selects).
  * @param {HTMLElement} container - Form container element.
  * @param {object} data - UpdaterConfig fields (channel, mode, etc.).
@@ -633,6 +673,7 @@ function renderFrontendSettings(container, data) {
  * @returns {void}
  */
 function renderServerSettings(container, data) {
+    const currentConfig = data;
     const wrap = el('div', {class: 'cfg-layout'});
 
     const sslSection = createSection(
@@ -1294,6 +1335,7 @@ function formatPostgresDsn(parts) {
  * @returns {void}
  */
 function renderStorageSettings(container, data) {
+    const currentConfig = data;
     const wrap = el('div', {class: 'cfg-layout'});
 
     const storageSection = createSection(
@@ -1454,12 +1496,34 @@ export async function saveDomainSettings() {
         return;
     }
 
-    const MessageType = DOMAIN_MESSAGE_TYPES[currentDomain];
-    if (!MessageType || currentDomain === 'index') {
+    if (currentDomain === 'index') {
         return;
     }
 
     try {
+        if (currentDomain === 'server') {
+            const serviceDomains = SERVICE_DOMAINS.filter(domain => currentConfig[domain] && initialConfig?.[domain]);
+            for (const domain of serviceDomains) {
+                if (JSON.stringify(currentConfig[domain]) === JSON.stringify(initialConfig[domain])) continue;
+                const {response} = await putProto(
+                    `/api/settings/domain/${domain}`,
+                    DOMAIN_MESSAGE_TYPES[domain],
+                    currentConfig[domain]
+                );
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText || t('settings.saveFailed'));
+                }
+                initialConfig[domain] = JSON.parse(JSON.stringify(currentConfig[domain]));
+            }
+            showAlert(t('settings.savedSuccess'), 'success');
+            const saveBtn = document.getElementById('settings-save-btn');
+            if (saveBtn) saveBtn.disabled = true;
+            return;
+        }
+
+        const MessageType = DOMAIN_MESSAGE_TYPES[currentDomain];
+        if (!MessageType) return;
         const {response} = await putProto(
             `/api/settings/domain/${currentDomain}`,
             MessageType,
@@ -1477,7 +1541,7 @@ export async function saveDomainSettings() {
         }
     } catch (e) {
         console.error('Failed to save settings', e);
-        showAlert(t('settings.saveFailed'), 'error');
+        showAlert(e.message || t('settings.saveFailed'), 'error');
     }
 }
 

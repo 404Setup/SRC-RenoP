@@ -42,5 +42,7 @@ export default {
     "profile.notFound": "搵唔到呢個用戶嘅個人資料",
     "profile.loadFailed": "載入個人資料失敗",
     "profile.unnamedUser": "未設定暱稱嘅用戶",
-    "profile.openOwnProfile": "開啟個人資料"
+    "profile.openOwnProfile": "開啟帳戶選單",
+    "profile.viewOwnProfile": "查看個人資料",
+    "profile.editOwnProfile": "修改個人資料"
 };

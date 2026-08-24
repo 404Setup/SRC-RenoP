@@ -42,5 +42,7 @@ export default {
     "profile.notFound": "사용자 프로필을 찾을 수 없습니다",
     "profile.loadFailed": "사용자 프로필을 불러오지 못했습니다",
     "profile.unnamedUser": "이름 없는 사용자",
-    "profile.openOwnProfile": "내 프로필 열기"
+    "profile.openOwnProfile": "계정 메뉴 열기",
+    "profile.viewOwnProfile": "프로필 보기",
+    "profile.editOwnProfile": "프로필 수정"
 };

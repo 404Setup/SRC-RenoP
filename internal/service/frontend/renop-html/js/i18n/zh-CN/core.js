@@ -12,6 +12,7 @@ export default {
     "nav.signIn": "登录",
     "nav.logout": "退出登录",
     "nav.toggleTheme": "切换主题",
+    "nav.backHome": "返回主页",
 
     "language.selectTitle": "选择语言",
     "language.modalTitle": "选择语言",

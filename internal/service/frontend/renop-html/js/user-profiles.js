@@ -149,10 +149,10 @@ export function invalidateUserProfiles(...usernames) {
 /**
  * Parse a username-based profile route and its optional package section.
  * @param {string} path - Browser path.
- * @returns {{username: string, section: ''|'cargo'|'docker'}|null} Parsed route.
+ * @returns {{username: string, section: ''|'edit'|'cargo'|'docker'}|null} Parsed route.
  */
 export function profileRouteFromPath(path) {
-    const match = /^\/user\/([^/]+)(?:\/(cargo|docker))?\/?$/.exec(String(path || ''));
+    const match = /^\/user\/([^/]+)(?:\/(edit|cargo|docker))?\/?$/.exec(String(path || ''));
     if (!match) return null;
     try {
         const username = decodeURIComponent(match[1]).trim().toLowerCase();
@@ -165,14 +165,14 @@ export function profileRouteFromPath(path) {
 /**
  * Navigate to a user profile through browser history.
  * @param {string} username - Current account username used by the public route.
- * @param {''|'cargo'|'docker'} [section=''] - Optional membership list.
+ * @param {''|'edit'|'cargo'|'docker'} [section=''] - Optional profile section.
  * @param {boolean} [replace=false] - Replace the current history entry.
  * @returns {void}
  */
 export function navigateToUserProfile(username, section = '', replace = false) {
     const normalized = String(username || '').trim().toLowerCase();
     if (!normalized) return;
-    const normalizedSection = section === 'cargo' || section === 'docker' ? section : '';
+    const normalizedSection = section === 'edit' || section === 'cargo' || section === 'docker' ? section : '';
     const path = `/user/${encodeURIComponent(normalized)}${normalizedSection ? `/${normalizedSection}` : ''}`;
     if (!replace && window.location.pathname.replace(/\/$/, '') === path) return;
     const currentRoute = profileRouteFromPath(window.location.pathname);

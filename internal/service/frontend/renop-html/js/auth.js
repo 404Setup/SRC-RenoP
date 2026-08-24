@@ -41,6 +41,16 @@ const MANAGER_PERMISSION_IDS = new Set([
     'access-token:manager',
     'admin',
 ]);
+const MANAGER_TAB_IDS = new Set(['dashboard', 'users', 'repositories', 'settings']);
+
+/**
+ * Whether an application section requires manager privileges.
+ * @param {string} tabId - Application section identifier.
+ * @returns {boolean}
+ */
+export function isManagerTab(tabId) {
+    return MANAGER_TAB_IDS.has(tabId);
+}
 
 /** Set by main.js after switchTab is defined — avoids auth↔main import cycle. */
 let switchTabHandler = null;
@@ -244,8 +254,7 @@ export function updateAuthUI(isLoggedIn, name = '', isManager = false, permissio
     }
 
     const currentTabId = localStorage.getItem('selectedTab') || 'overview';
-    const tabEl = document.querySelector(`.tabs .tab[data-tab="${currentTabId}"]`);
-    if (!isLoggedIn || (tabEl && tabEl.classList.contains('manager-only') && !isManager)) {
+    if (!isLoggedIn || (isManagerTab(currentTabId) && !isManager)) {
         localStorage.setItem('selectedTab', 'overview');
         requestSwitchTab('overview');
     }

@@ -72,10 +72,49 @@
                 <span id="message-unread-badge" class="message-unread-badge" hidden>0</span>
             </button>
             <div id="user-info" class="nav-user-info" style="display: none;">
-                <button id="profile-trigger" class="user-text nav-profile-trigger" type="button" data-i18n-title="profile.openOwnProfile" title="Open profile">
-                    <span class="user-avatar-dot" id="user-avatar-dot" aria-hidden="true"></span>
-                    <span id="username-display" class="user-name"></span>
-                </button>
+                <div id="profile-menu-wrap" class="nav-profile-menu-wrap">
+                    <button id="profile-trigger" class="user-text nav-profile-trigger" type="button"
+                            aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu"
+                            data-i18n-title="profile.openOwnProfile" title="Open account menu">
+                        <span class="user-avatar-dot" id="user-avatar-dot" aria-hidden="true"></span>
+                        <span id="username-display" class="user-name"></span>
+                        <svg class="nav-profile-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div id="profile-menu" class="nav-profile-menu" role="menu" hidden>
+                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-profile-tab="overview">
+                            <renop-icon name="chevronLeft" aria-hidden="true"></renop-icon>
+                            <span data-i18n="nav.backHome">Back to home</span>
+                        </button>
+                        <div class="nav-profile-menu-separator" role="separator"></div>
+                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-profile-action="view">
+                            <renop-icon name="user" aria-hidden="true"></renop-icon>
+                            <span data-i18n="profile.viewOwnProfile">View profile</span>
+                        </button>
+                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-profile-action="edit">
+                            <renop-icon name="edit" aria-hidden="true"></renop-icon>
+                            <span data-i18n="profile.editOwnProfile">Edit profile</span>
+                        </button>
+                        <div class="nav-profile-menu-separator manager-only" data-auth-display="block" style="display: none;" role="separator"></div>
+                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="dashboard">
+                            <renop-icon name="performance" aria-hidden="true"></renop-icon>
+                            <span data-i18n="tabs.dashboard">Dashboard</span>
+                        </button>
+                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="users">
+                            <renop-icon name="identity" aria-hidden="true"></renop-icon>
+                            <span data-i18n="tabs.users">Users</span>
+                        </button>
+                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="repositories">
+                            <renop-icon name="box" aria-hidden="true"></renop-icon>
+                            <span data-i18n="tabs.repositories">Repositories</span>
+                        </button>
+                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="settings">
+                            <renop-icon name="settings" aria-hidden="true"></renop-icon>
+                            <span data-i18n="tabs.settings">Settings</span>
+                        </button>
+                    </div>
+                </div>
                 <div class="divider" aria-hidden="true"></div>
                 <button id="logout-btn" class="icon-btn" type="button" title="Logout" data-i18n-title="nav.logout" data-i18n-aria-label="nav.logout" aria-label="Log out">
                     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -108,16 +147,6 @@
             </div>
         </div>
     </header>
-
-    <div class="tabs-container">
-        <nav id="tabs" class="tabs">
-            <a href="#" data-tab="overview" class="tab active" data-i18n="tabs.overview">Overview</a>
-            <a href="#" data-tab="dashboard" class="tab manager-only" style="display: none;" data-i18n="tabs.dashboard">Dashboard</a>
-            <a href="#" data-tab="users" class="tab manager-only" style="display: none;" data-i18n="tabs.users">Users</a>
-            <a href="#" data-tab="repositories" class="tab manager-only" style="display: none;" data-i18n="tabs.repositories">Repositories</a>
-            <a href="#" data-tab="settings" class="tab manager-only" style="display: none;" data-i18n="tabs.settings">Settings</a>
-        </nav>
-    </div>
 
     <main>
         <div id="tab-content-overview" class="tab-content active">

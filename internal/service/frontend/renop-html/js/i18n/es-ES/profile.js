@@ -42,5 +42,7 @@ export default {
     "profile.notFound": "No se encontró el perfil de usuario",
     "profile.loadFailed": "No se pudo cargar el perfil de usuario",
     "profile.unnamedUser": "Usuario sin nombre",
-    "profile.openOwnProfile": "Abrir tu perfil"
+    "profile.openOwnProfile": "Abrir el menú de la cuenta",
+    "profile.viewOwnProfile": "Ver perfil",
+    "profile.editOwnProfile": "Editar perfil"
 };

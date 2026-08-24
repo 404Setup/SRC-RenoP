@@ -12,6 +12,7 @@ export default {
     "nav.signIn": "Sign in",
     "nav.logout": "Log out",
     "nav.toggleTheme": "Toggle theme",
+    "nav.backHome": "Back to home",
 
     "language.selectTitle": "Select Language",
     "language.modalTitle": "Select Language",
@@ -532,7 +533,7 @@ export default {
     "common.nexts": "Next",
 
     "settings.domainFrontend": "Frontend",
-    "settings.domainServer": "Server",
+    "settings.domainServer": "Service",
     "settings.domainStorage": "Storage",
     "settings.domainUpdater": "Updates",
     "settings.domainIndex": "Index",

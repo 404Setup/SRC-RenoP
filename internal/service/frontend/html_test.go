@@ -77,6 +77,10 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 		`id="repository-search"`,
 		`id="cargo-repository-view"`,
 		`id="profile-trigger"`,
+		`id="profile-menu"`,
+		`data-i18n="nav.backHome"`,
+		`data-profile-action="edit"`,
+		`data-profile-tab="settings"`,
 		`id="profile-public-view"`,
 		`profile-settings-card`,
 	} {
@@ -90,8 +94,8 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 	if strings.Contains(html, `id="cargo-packages-card"`) {
 		t.Fatal("index.html still contains the obsolete Cargo package-management side card")
 	}
-	if strings.Contains(html, `data-tab="profile"`) {
-		t.Fatal("index.html still exposes the removed profile tab")
+	if strings.Contains(html, `id="tabs"`) || strings.Contains(html, `data-tab=`) {
+		t.Fatal("index.html still exposes the removed main tab navigation")
 	}
 	if strings.Contains(html, `users.thTokenPrefix`) {
 		t.Fatal("index.html still exposes access-token prefixes in the users table")
@@ -187,7 +191,7 @@ func TestUserProfileRouteServesSPAIndex(t *testing.T) {
 	state.Inner.Config.Store(config.DefaultConfig())
 	app := fiber.New()
 	SetupFrontendRoutes(app, state)
-	for _, path := range []string{"/user/alice", "/user/alice/cargo", "/user/alice/docker"} {
+	for _, path := range []string{"/user/alice", "/user/alice/edit", "/user/alice/cargo", "/user/alice/docker"} {
 		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
 		if err != nil {
 			t.Fatal(err)

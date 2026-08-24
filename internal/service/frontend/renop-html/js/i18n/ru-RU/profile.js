@@ -42,5 +42,7 @@ export default {
     "profile.notFound": "Профиль пользователя не найден",
     "profile.loadFailed": "Не удалось загрузить профиль пользователя",
     "profile.unnamedUser": "Пользователь без имени",
-    "profile.openOwnProfile": "Открыть свой профиль"
+    "profile.openOwnProfile": "Открыть меню учетной записи",
+    "profile.viewOwnProfile": "Просмотреть профиль",
+    "profile.editOwnProfile": "Изменить профиль"
 };
