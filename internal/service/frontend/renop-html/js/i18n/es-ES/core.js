@@ -928,5 +928,11 @@ export default {
     "messages.actionFailed": "No se pudo completar la acción",
     "messages.invalidNotification": "Introduce destinatarios, asunto y mensaje",
     "messages.sent": "Notificación enviada a {count} usuario(s)",
-    "messages.sendFailed": "No se pudo enviar la notificación"
+    "messages.sendFailed": "No se pudo enviar la notificación",
+	"team.inviteUsernameRequired": "Introduce el nombre de usuario que deseas invitar.",
+	"team.leave": "Salir del equipo",
+	"team.leaveConfirm": "¿Salir de este equipo? Perderás el acceso concedido por tu membresía.",
+	"team.left": "Has salido del equipo.",
+	"team.transferOwnership": "Transferir la propiedad",
+	"team.transferOwnershipConfirm": "¿Transferir la propiedad L4 a {name}? Se intercambiarán vuestros niveles de permiso."
 };

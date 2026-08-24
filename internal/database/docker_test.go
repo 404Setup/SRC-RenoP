@@ -214,3 +214,48 @@ func TestDockerDatabaseOperations(t *testing.T) {
 		t.Fatalf("DeleteDockerRepository failed: %v", err)
 	}
 }
+
+func TestDockerTeamTransferPreservesRolesAndRejectsForceOverwrite(t *testing.T) {
+	db := newTestDockerDB(t)
+	manifest := &core.DockerManifest{
+		Repository: "docker-local",
+		ImageName:  "team/demo",
+		Digest:     "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdea",
+		MediaType:  "application/vnd.oci.image.manifest.v1+json",
+		RawJSON:    []byte(`{"schemaVersion":2}`),
+	}
+	require.NoError(t, db.PutDockerManifest(manifest, "latest", "alice"))
+	require.NoError(t, db.ForceAddDockerMembers("docker-local", "team/demo", "administrator", []string{"bob"}, core.DockerPermissionManage))
+	require.ErrorIs(t,
+		db.ForceAddDockerMembers("docker-local", "team/demo", "administrator", []string{"bob"}, core.DockerPermissionTeam),
+		core.ErrDockerMemberExists,
+	)
+
+	bobLevel, err := db.GetDockerMemberLevel("docker-local", "team/demo", "bob")
+	require.NoError(t, err)
+	require.Equal(t, core.DockerPermissionManage, bobLevel)
+	require.ErrorIs(t,
+		db.SetDockerMemberLevel("docker-local", "team/demo", "bob", "bob", core.DockerPermissionOwner),
+		core.ErrDockerPermissionDenied,
+	)
+
+	require.NoError(t, db.SetDockerMemberLevel("docker-local", "team/demo", "alice", "bob", core.DockerPermissionOwner))
+	aliceLevel, err := db.GetDockerMemberLevel("docker-local", "team/demo", "alice")
+	require.NoError(t, err)
+	require.Equal(t, core.DockerPermissionManage, aliceLevel)
+	members, err := db.ListDockerMembers("docker-local", "team/demo")
+	require.NoError(t, err)
+	ownerCount := 0
+	for _, member := range members {
+		if member.Level == core.DockerPermissionOwner {
+			ownerCount++
+			require.Equal(t, "bob", member.Username)
+		}
+	}
+	require.Equal(t, 1, ownerCount)
+	require.ErrorIs(t,
+		db.RemoveDockerMember("docker-local", "team/demo", "bob", "bob"),
+		core.ErrDockerOwnerCannotLeave,
+	)
+	require.NoError(t, db.RemoveDockerMember("docker-local", "team/demo", "alice", "alice"))
+}

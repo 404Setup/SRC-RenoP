@@ -111,7 +111,7 @@ func cargoError(c fiber.Ctx, err error) error {
 		return errorResponse(c, fiber.StatusForbidden, "Only an administrator can restore this crate")
 	case errors.Is(err, core.ErrCargoAdminYanked):
 		return errorResponse(c, fiber.StatusForbidden, "Only an administrator can restore this crate version")
-	case errors.Is(err, core.ErrCargoLastFullMember):
+	case errors.Is(err, core.ErrCargoLastFullMember), errors.Is(err, core.ErrCargoOwnerCannotLeave):
 		return errorResponse(c, fiber.StatusConflict, err.Error())
 	case errors.Is(err, core.ErrCargoMemberExists), errors.Is(err, core.ErrCargoInvitationExists):
 		return errorResponse(c, fiber.StatusConflict, err.Error())

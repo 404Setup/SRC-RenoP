@@ -929,4 +929,10 @@ export default {
     "messages.invalidNotification": "받는 사람, 제목 및 메시지를 입력하세요",
     "messages.sent": "{count}명의 사용자에게 알림을 보냈습니다",
     "messages.sendFailed": "알림을 보내지 못했습니다",
+	"team.inviteUsernameRequired": "초대할 사용자 이름을 입력하세요.",
+	"team.leave": "팀 나가기",
+	"team.leaveConfirm": "이 팀에서 나가시겠습니까? 멤버십으로 부여된 접근 권한을 잃게 됩니다.",
+	"team.left": "팀에서 나갔습니다.",
+	"team.transferOwnership": "소유권 이전",
+	"team.transferOwnershipConfirm": "L4 소유권을 {name}에게 이전하시겠습니까? 두 사용자의 권한 레벨이 서로 바뀝니다.",
 };

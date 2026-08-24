@@ -459,11 +459,11 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 
 	user := auth.GetUser(c)
 	isAdmin := user.IsManager() || user.CheckUpdatePermission(repoName)
-	canManage := isAdmin
-	if !canManage {
-		lvl, _ := db.GetDockerMemberLevel(repoName, imageName, user.Username)
-		canManage = lvl >= core.DockerPermissionTeam
+	memberLevel, err := db.GetDockerMemberLevel(repoName, imageName, user.Username)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect member permission")
 	}
+	canManage := isAdmin || memberLevel >= core.DockerPermissionTeam
 	if !canManage {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
@@ -502,6 +502,9 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 		}
 
 		if err := db.ForceAddDockerMembers(repoName, imageName, user.Username, validUsers, req.Level); err != nil {
+			if errors.Is(err, core.ErrDockerMemberExists) {
+				return c.Status(fiber.StatusConflict).SendString("User is already a member of this image team")
+			}
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to add members directly")
 		}
 
@@ -622,11 +625,11 @@ func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 
 	user := auth.GetUser(c)
 	isAdmin := user.IsManager() || user.CheckUpdatePermission(repoName)
-	canManage := isAdmin
-	if !canManage {
-		lvl, _ := db.GetDockerMemberLevel(repoName, imageName, user.Username)
-		canManage = lvl >= core.DockerPermissionTeam
+	memberLevel, err := db.GetDockerMemberLevel(repoName, imageName, user.Username)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect member permission")
 	}
+	canManage := isAdmin || memberLevel >= core.DockerPermissionTeam
 	if !canManage {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
@@ -637,13 +640,17 @@ func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	actor := user.Username
-	if isAdmin {
+	if isAdmin && !(req.Level == core.DockerPermissionOwner && memberLevel == core.DockerPermissionOwner &&
+		!strings.EqualFold(targetUsername, user.Username)) {
 		actor = ""
 	}
 
 	if err := db.SetDockerMemberLevel(repoName, imageName, actor, targetUsername, req.Level); err != nil {
-		if errors.Is(err, core.ErrDockerLastFullMember) {
+		if errors.Is(err, core.ErrDockerLastFullMember) || errors.Is(err, core.ErrDockerOwnerCannotLeave) {
 			return c.Status(fiber.StatusBadRequest).SendString("Cannot demote the last L4 owner of this image")
+		}
+		if errors.Is(err, core.ErrDockerPermissionDenied) {
+			return c.Status(fiber.StatusForbidden).SendString("Only the current L4 owner can transfer ownership")
 		}
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update member level")
 	}
@@ -679,23 +686,30 @@ func RemoveDockerOwnerAPI(c fiber.Ctx, state *core.AppState) error {
 
 	user := auth.GetUser(c)
 	isAdmin := user.IsManager() || user.CheckUpdatePermission(repoName)
-	canManage := isAdmin
-	if !canManage {
-		lvl, _ := db.GetDockerMemberLevel(repoName, imageName, user.Username)
-		canManage = lvl >= core.DockerPermissionTeam
+	memberLevel, err := db.GetDockerMemberLevel(repoName, imageName, user.Username)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect member permission")
 	}
+	isSelf := strings.EqualFold(targetUsername, user.Username)
+	canManage := isAdmin || memberLevel >= core.DockerPermissionTeam || (isSelf && memberLevel > 0)
 	if !canManage {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
 	actor := user.Username
-	if isAdmin {
+	if isAdmin && !isSelf {
 		actor = ""
 	}
 
 	if err := db.RemoveDockerMember(repoName, imageName, actor, targetUsername); err != nil {
 		if errors.Is(err, core.ErrDockerLastFullMember) {
 			return c.Status(fiber.StatusBadRequest).SendString("Cannot remove the last L4 owner of this image")
+		}
+		if errors.Is(err, core.ErrDockerOwnerCannotLeave) {
+			return c.Status(fiber.StatusBadRequest).SendString("L4 owners must transfer ownership before leaving")
+		}
+		if errors.Is(err, core.ErrDockerPermissionDenied) {
+			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 		}
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to remove member")
 	}

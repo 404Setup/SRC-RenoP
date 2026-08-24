@@ -892,9 +892,12 @@ function handleMemberLevelChange(username, level) {
 function buildMemberLevelSelect(member) {
     const username = String(member.login || '');
     const level = Number(member.level);
-	const select = makeCustomSelect(
-		[1, 2, 3, 4].map(buildPermissionOption), String(level),
-		handleMemberLevelChange.bind(null, username)
+    const canTransferOwnership = activeAdministrator ||
+        Number(activePackageDetails?.package?.permission_level) === 4;
+    const levels = canTransferOwnership ? [1, 2, 3, 4] : [1, 2, 3];
+    const select = makeCustomSelect(
+        levels.map(buildPermissionOption), String(level),
+        handleMemberLevelChange.bind(null, username)
     );
     select.classList.add('cargo-permission-select');
     select.dataset.cargoPermissionUser = username;
@@ -903,30 +906,48 @@ function buildMemberLevelSelect(member) {
 
 /**
  * Build the package team section and optional L3 invitation form.
+ * @param {boolean} [animate=false] - Animate rows after a server-side update.
  * @returns {HTMLElement} Team section.
  */
-function buildCargoTeamSection() {
+function buildCargoTeamSection(animate = false) {
     const packageRecord = activePackageDetails.package;
     const canManageTeam = activeAdministrator || Number(packageRecord.permission_level) >= 3;
+    const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
     const section = el('section', {class: 'cargo-page-section'},
         el('h3', {class: 'cargo-section-title'}, t('cargo.team'))
     );
     const members = Array.isArray(activePackageDetails.members) ? activePackageDetails.members : [];
-    const list = el('div', {class: 'cargo-team-list'});
-    for (const member of members) {
+    const list = el('div', {class: `cargo-team-list${animate ? ' is-updated' : ''}`});
+    for (let index = 0; index < members.length; index++) {
+        const member = members[index];
+        const username = String(member.login || '');
+        const memberLevel = Number(member.level);
+        const isSelf = username.toLowerCase() === currentUsername;
         const row = el('div', {class: 'cargo-team-row'});
+        if (animate) row.style.animationDelay = `${Math.min(index, 8) * 35}ms`;
         row.appendChild(el('div', {class: 'cargo-team-member'},
-            el('strong', {}, String(member.login || '')),
+            el('strong', {}, username),
             canManageTeam ? el('span', {}, cargoDate(member.added_at)) : el('span', {}, cargoPermissionLabel(member.level))
         ));
         if (canManageTeam) {
             const controls = el('div', {class: 'cargo-team-controls'});
-            controls.appendChild(buildMemberLevelSelect(member));
-            controls.appendChild(el('button', {
-                type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
-                'data-cargo-action': 'remove-member', 'data-cargo-user': String(member.login || '')
-            }, t('common.remove')));
+            if (memberLevel === 4) {
+                controls.appendChild(el('span', {class: 'cargo-permission-badge'}, cargoPermissionLabel(memberLevel)));
+            } else {
+                controls.appendChild(buildMemberLevelSelect(member));
+                controls.appendChild(el('button', {
+                    type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
+                    'data-cargo-action': 'remove-member', 'data-cargo-user': username
+                }, isSelf ? t('team.leave') : t('common.remove')));
+            }
             row.appendChild(controls);
+        } else if (isSelf && memberLevel < 4) {
+            row.appendChild(el('div', {class: 'cargo-team-controls'},
+                el('button', {
+                    type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
+                    'data-cargo-action': 'remove-member', 'data-cargo-user': username
+                }, t('team.leave'))
+            ));
         }
         list.appendChild(row);
     }
@@ -1131,9 +1152,10 @@ function buildCargoPackageHero() {
 
 /**
  * Replace the Cargo package subpage from the latest server state.
+ * @param {boolean} [animateTeam=false] - Animate refreshed team rows.
  * @returns {void}
  */
-function renderCargoPackagePage() {
+function renderCargoPackagePage(animateTeam = false) {
     if (!activeView || !activePackageDetails?.package) return;
     closeInviteSuggestions(true);
     activeRouteKind = 'package';
@@ -1146,7 +1168,7 @@ function renderCargoPackagePage() {
         buildCargoVersionsSection()
     ];
     if (activeAdministrator || Number(activePackageDetails.package.permission_level) > 0) {
-        sections.push(buildCargoTeamSection());
+        sections.push(buildCargoTeamSection(animateTeam));
     }
     activeView.replaceChildren(...sections);
 }
@@ -1370,7 +1392,7 @@ async function refreshCargoPackagePage() {
     const nextDetails = await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name));
     activePackageDetails = nextDetails;
     activeAdministrator = nextDetails?.administrator === true;
-    renderCargoPackagePage();
+    await morphElementHeight(activeView, () => renderCargoPackagePage(true), {duration: 280});
 }
 
 /**
@@ -1662,11 +1684,25 @@ async function deleteCargoVersion(packageName, version) {
  * @returns {Promise<void>}
  */
 async function removeCargoMember(packageName, username) {
-    const confirmed = await showConfirm(t('cargo.removeMemberConfirm', {name: username}), {
-        title: t('cargo.removeMember'), confirmText: t('common.remove'), danger: true
+    const isSelf = username.toLowerCase() === String(localStorage.getItem('username') || '').trim().toLowerCase();
+    const confirmed = await showConfirm(
+        isSelf ? t('team.leaveConfirm') : t('cargo.removeMemberConfirm', {name: username}), {
+        title: isSelf ? t('team.leave') : t('cargo.removeMember'),
+        confirmText: isSelf ? t('team.leave') : t('common.remove'), danger: true
     });
     if (!confirmed) return;
-    await mutateCargoPackage(cargoAPIPath('crates', packageName, 'owners', username), 'DELETE', 'cargo.memberRemoved');
+    const path = cargoAPIPath('crates', packageName, 'owners', username);
+    if (isSelf) {
+        await cargoRequest(path, {method: 'DELETE'});
+        showAlert(t('team.left'), 'success');
+        if (typeof activeNavigate === 'function') activeNavigate(cargoPagePath());
+        return;
+    }
+    await mutateCargoPackage(
+        path,
+        'DELETE',
+        'cargo.memberRemoved'
+    );
 }
 
 /**
@@ -1676,15 +1712,27 @@ async function removeCargoMember(packageName, username) {
  * @returns {Promise<void>}
  */
 async function updateCargoMemberLevel(username, level) {
-	const member = activePackageDetails?.members?.find(candidate => candidate?.login === username);
-	const previousLevel = Number(member?.level);
-	if (!activePackageDetails?.package || level < 1 || level > 4 || level === previousLevel) return;
+    const member = activePackageDetails?.members?.find(candidate => candidate?.login === username);
+    const previousLevel = Number(member?.level);
+    if (!activePackageDetails?.package || level < 1 || level > 4 || level === previousLevel) return;
     const selector = activeView?.querySelector(`[data-cargo-permission-user="${CSS.escape(username)}"]`);
+    const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
+    const transfersOwnership = level === 4 && Number(activePackageDetails.package.permission_level) === 4 &&
+        username.toLowerCase() !== currentUsername;
+    if (transfersOwnership) {
+        const confirmed = await showConfirm(t('team.transferOwnershipConfirm', {name: username}), {
+            title: t('team.transferOwnership'), confirmText: t('team.transferOwnership')
+        });
+        if (!confirmed) {
+            if (selector && typeof selector.setValue === 'function') selector.setValue(String(previousLevel));
+            return;
+        }
+    }
     try {
         await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners', username), {
             method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level})
         });
-		if (member) member.level = level;
+        if (member) member.level = level;
         showAlert(t('cargo.memberUpdated'), 'success');
         if (level === 4) {
             await refreshCargoPackagePage();
@@ -1760,13 +1808,17 @@ function closeInviteSuggestions(immediate = false) {
  * @returns {void}
  */
 function handleCargoInviteInput(event) {
-    if (inviteSuggestionTimer) clearTimeout(inviteSuggestionTimer);
+    if (inviteSuggestionTimer) {
+        clearTimeout(inviteSuggestionTimer);
+        inviteSuggestionTimer = 0;
+    }
+    const version = ++inviteSuggestionVersion;
     const query = String(event.currentTarget.value || '').trim();
     if (!query) {
         renderCargoInviteSuggestions([]);
+        closeInviteSuggestions(true);
         return;
     }
-    const version = ++inviteSuggestionVersion;
     inviteSuggestionTimer = setTimeout(fetchCargoInviteSuggestions.bind(null, query, version), INVITE_SEARCH_DELAY_MS);
 }
 
@@ -1782,11 +1834,11 @@ async function fetchCargoInviteSuggestions(query, version) {
         const payload = await cargoRequest(
             `${cargoAPIPath('crates', activePackageDetails.package.name, 'users')}?q=${encodeURIComponent(query)}`
         );
-        if (version !== inviteSuggestionVersion) return;
+        if (version !== inviteSuggestionVersion || String(inviteInput?.value || '').trim() !== query) return;
         renderCargoInviteSuggestions(Array.isArray(payload?.users) ? payload.users : []);
     } catch (error) {
         console.error('Failed to search Cargo invitation users', error);
-        renderCargoInviteSuggestions([]);
+        if (version === inviteSuggestionVersion) renderCargoInviteSuggestions([]);
     }
 }
 
@@ -1826,6 +1878,8 @@ function renderCargoInviteSuggestions(users) {
  * @returns {void}
  */
 function handleCargoSuggestionClick(event) {
+    if (inviteSuggestionPanel?.hidden || !inviteSuggestionPanel?.classList.contains('is-visible') ||
+        !String(inviteInput?.value || '').trim()) return;
     const option = event.target.closest('[data-cargo-suggestion]');
     if (!(option instanceof HTMLElement)) return;
     applyCargoInviteSuggestion(option.dataset.cargoSuggestion || '');
@@ -1884,7 +1938,12 @@ async function submitCargoInvitation(event) {
     event.preventDefault();
     const form = event.currentTarget;
     const username = inviteInput instanceof HTMLInputElement ? inviteInput.value.trim() : '';
-    if (!username || !activePackageDetails?.package) return;
+    if (!activePackageDetails?.package) return;
+    if (!username) {
+        showAlert(t('team.inviteUsernameRequired'), 'warning');
+        closeInviteSuggestions(true);
+        return;
+    }
     const submit = form.querySelector('button[type="submit"]');
     if (submit) submit.disabled = true;
     try {

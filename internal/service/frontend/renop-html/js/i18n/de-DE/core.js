@@ -929,4 +929,10 @@ export default {
     "messages.invalidNotification": "Empfänger, Betreff und Nachricht eingeben",
     "messages.sent": "Benachrichtigung an {count} Benutzer gesendet",
     "messages.sendFailed": "Benachrichtigung konnte nicht gesendet werden",
+	"team.inviteUsernameRequired": "Geben Sie einen Benutzernamen für die Einladung ein.",
+	"team.leave": "Team verlassen",
+	"team.leaveConfirm": "Möchten Sie dieses Team verlassen? Die durch Ihre Mitgliedschaft gewährten Zugriffsrechte gehen verloren.",
+	"team.left": "Sie haben das Team verlassen.",
+	"team.transferOwnership": "Inhaberschaft übertragen",
+	"team.transferOwnershipConfirm": "L4-Inhaberschaft an {name} übertragen? Ihre Berechtigungsstufen werden ausgetauscht.",
 };

@@ -943,6 +943,21 @@
     border-color: color-mix(in srgb, var(--link-hover-color) 40%, var(--border-color));
 }
 
+.docker-team-list.is-updated .docker-team-row {
+    animation: dockerTeamRowIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dockerTeamRowIn {
+    from {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .docker-team-member {
     display: flex;
     flex-direction: column;
@@ -1022,18 +1037,25 @@
     overflow-y: auto;
     box-sizing: border-box;
     opacity: 0;
+    pointer-events: none;
     transform: translateY(4px);
     transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
 .docker-user-suggestions.is-visible {
     opacity: 1;
+    pointer-events: auto;
     transform: translateY(0);
 }
 
 .docker-user-suggestions.is-leaving {
     opacity: 0;
+    pointer-events: none;
     transform: translateY(4px);
+}
+
+.docker-user-suggestions[hidden] {
+    display: none !important;
 }
 
 .docker-user-suggestion {
@@ -1053,6 +1075,16 @@
 .docker-user-suggestion.is-active {
     background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
     color: var(--link-hover-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .docker-user-suggestions {
+        transition: none;
+    }
+
+    .docker-team-list.is-updated .docker-team-row {
+        animation: none;
+    }
 }
 
 

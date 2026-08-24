@@ -30,6 +30,7 @@ var (
 	ErrCargoAdminArchived     = errors.New("Cargo package was archived by an administrator")
 	ErrCargoAdminYanked       = errors.New("Cargo package version was yanked by an administrator")
 	ErrCargoLastFullMember    = errors.New("Cargo package must retain at least one L4 owner")
+	ErrCargoOwnerCannotLeave  = errors.New("Cargo L4 owner must transfer ownership before leaving")
 	ErrCargoMemberExists      = errors.New("Cargo package member already exists")
 	ErrCargoInvitationExists  = errors.New("Cargo package invitation is already pending")
 	ErrCargoInvitationInvalid = errors.New("Cargo package invitation is no longer valid")

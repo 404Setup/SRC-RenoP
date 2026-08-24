@@ -475,13 +475,17 @@ function closeInviteSuggestions(immediate = false) {
  * @returns {void}
  */
 function handleInviteInput(event) {
-    if (inviteSuggestionTimer) clearTimeout(inviteSuggestionTimer);
+    if (inviteSuggestionTimer) {
+        clearTimeout(inviteSuggestionTimer);
+        inviteSuggestionTimer = 0;
+    }
+    const version = ++inviteSuggestionVersion;
     const query = String(event.currentTarget.value || '').trim();
     if (!query) {
         renderInviteSuggestions([]);
+        closeInviteSuggestions(true);
         return;
     }
-    const version = ++inviteSuggestionVersion;
     inviteSuggestionTimer = setTimeout(() => fetchInviteSuggestions(query, version), INVITE_SEARCH_DELAY_MS);
 }
 
@@ -495,7 +499,7 @@ async function fetchInviteSuggestions(query, version) {
     if (!activeRepository) return;
     try {
         const res = await apiRequest(`/api/docker/repositories/${encodeURIComponent(activeRepository)}/users/search?q=${encodeURIComponent(query)}`);
-        if (version !== inviteSuggestionVersion) return;
+        if (version !== inviteSuggestionVersion || String(inviteInput?.value || '').trim() !== query) return;
         if (res.ok) {
             const data = await res.json();
             renderInviteSuggestions(Array.isArray(data?.users) ? data.users : []);
@@ -503,7 +507,7 @@ async function fetchInviteSuggestions(query, version) {
             renderInviteSuggestions([]);
         }
     } catch {
-        renderInviteSuggestions([]);
+        if (version === inviteSuggestionVersion) renderInviteSuggestions([]);
     }
 }
 
@@ -546,6 +550,8 @@ function renderInviteSuggestions(users) {
  * @returns {void}
  */
 function handleSuggestionClick(event) {
+    if (inviteSuggestionPanel?.hidden || !inviteSuggestionPanel?.classList.contains('is-visible') ||
+        !String(inviteInput?.value || '').trim()) return;
     const opt = event.target.closest('[data-suggestion]');
     if (!opt) return;
     const username = opt.dataset.suggestion;
@@ -557,6 +563,90 @@ function handleSuggestionClick(event) {
 }
 
 /**
+ * Persist a Docker team permission change and refresh the animated member list.
+ * @param {object} options - Team update context.
+ * @param {HTMLElement} options.container - Active Docker view.
+ * @param {string} options.repoName - Repository name.
+ * @param {string} options.imageName - Container image name.
+ * @param {number} options.sequence - Active route sequence.
+ * @param {object} options.member - Member being updated.
+ * @param {number} options.permissionLevel - Current user's image permission.
+ * @param {number} options.newLevel - Requested permission.
+ * @param {HTMLElement} options.selector - Permission selector to restore on failure.
+ * @returns {Promise<void>}
+ */
+async function updateDockerTeamMember({
+    container, repoName, imageName, sequence, member, permissionLevel, newLevel, selector
+}) {
+    const previousLevel = Number(member.level || 1);
+    if (newLevel === previousLevel) return;
+    const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
+    const transfersOwnership = newLevel === 4 && permissionLevel === 4 &&
+        String(member.username || '').toLowerCase() !== currentUsername;
+    if (transfersOwnership) {
+        const confirmed = await showConfirm(t('team.transferOwnershipConfirm', {name: member.username}), {
+            title: t('team.transferOwnership'), confirmText: t('team.transferOwnership')
+        });
+        if (!confirmed) {
+            if (typeof selector.setValue === 'function') selector.setValue(String(previousLevel));
+            return;
+        }
+    }
+    try {
+        const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({level: newLevel})
+        });
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message || t('docker.updateMemberFailed'));
+        }
+        member.level = newLevel;
+        showAlert(t('docker.memberUpdated'), 'success');
+        await renderImageDetailsView(container, repoName, imageName, sequence);
+    } catch (error) {
+        if (typeof selector.setValue === 'function') selector.setValue(String(previousLevel));
+        showAlert(error.message || t('docker.updateMemberFailed'), 'error');
+    }
+}
+
+/**
+ * Remove another Docker member or leave the image team after confirmation.
+ * @param {object} options - Team removal context.
+ * @param {HTMLElement} options.container - Active Docker view.
+ * @param {string} options.repoName - Repository name.
+ * @param {string} options.imageName - Container image name.
+ * @param {number} options.sequence - Active route sequence.
+ * @param {object} options.member - Member being removed.
+ * @param {boolean} options.isSelf - Whether the current user is leaving.
+ * @returns {Promise<void>}
+ */
+async function removeDockerTeamMember({container, repoName, imageName, sequence, member, isSelf}) {
+    const confirmed = await showConfirm(
+        isSelf ? t('team.leaveConfirm') : t('docker.removeMemberConfirm', {name: member.username}), {
+        title: isSelf ? t('team.leave') : t('docker.removeMember'),
+        confirmText: isSelf ? t('team.leave') : t('common.remove'),
+        danger: true
+    });
+    if (!confirmed) return;
+    const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
+        method: 'DELETE'
+    });
+    if (!response.ok) {
+        const message = await response.text();
+        showAlert(message || t('docker.removeMemberFailed'), 'error');
+        return;
+    }
+    showAlert(isSelf ? t('team.left') : t('docker.memberRemoved'), 'success');
+    if (isSelf) {
+        if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
+        return;
+    }
+    await renderImageDetailsView(container, repoName, imageName, sequence);
+}
+
+/**
  * Render details, tags, and README markdown for a specific Docker container image.
  * @param {HTMLElement} container - View container.
  * @param {string} repoName - Repository name.
@@ -565,6 +655,7 @@ function handleSuggestionClick(event) {
  * @returns {Promise<void>}
  */
 async function renderImageDetailsView(container, repoName, imageName, seq) {
+    const animateTeam = container.querySelector('.docker-team-list') !== null;
     container.classList.add('is-updating');
     try {
         const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`);
@@ -594,9 +685,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const members = details.members || [];
         const permissionLevel = Number(details.permission_level || 0);
         const isAdministrator = Boolean(details.administrator);
+        const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
 
         const canManageL2 = isAdministrator || permissionLevel >= 2;
         const canManageL3 = isAdministrator || permissionLevel >= 3;
+        const canTransferOwnership = isAdministrator || permissionLevel === 4;
 
         const latestTag = tags[0]?.tag || 'latest';
         const pullCmd = `docker pull ${window.location.host}/${repoName}/${imageName}:${latestTag}`;
@@ -867,10 +960,12 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         // Team / Collaborators Section
         let teamSection = null;
         if (members.length > 0 || canManageL3) {
-            const teamListEl = el('div', {class: 'docker-team-list'});
+            const teamListEl = el('div', {class: `docker-team-list${animateTeam ? ' is-updated' : ''}`});
 
-            for (const member of members) {
+            for (let index = 0; index < members.length; index++) {
+                const member = members[index];
                 const memberLevel = Number(member.level || 1);
+                const isSelf = String(member.username || '').toLowerCase() === currentUsername;
                 const levelLabel = memberLevel === 4
                     ? (t('docker.permissionL4') || 'L4 (Owner)')
                     : (memberLevel === 3
@@ -879,36 +974,22 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
                 const memberControls = el('div', {class: 'docker-team-controls'});
 
-                if (canManageL3) {
+                if (canManageL3 && memberLevel < 4) {
                     const levelSelect = makeCustomSelect(
-                        [
+                        ([
                             { value: '1', label: t('docker.permissionL1') || 'L1 (Push)' },
                             { value: '2', label: t('docker.permissionL2') || 'L2 (Manage)' },
-                            { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' },
-                            { value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }
-                        ],
+                            { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' }
+                        ]).concat(canTransferOwnership
+                            ? [{ value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }]
+                            : []),
                         String(memberLevel),
                         async (newVal) => {
                             const newLevel = parseInt(newVal, 10);
-                            try {
-                                const updateResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
-                                    method: 'PUT',
-                                    headers: {'Content-Type': 'application/json'},
-                                    body: JSON.stringify({level: newLevel})
-                                });
-                                if (updateResp.ok) {
-                                    member.level = newLevel;
-                                    showAlert(t('docker.memberUpdated') || 'Permission level updated.', 'success');
-                                    renderImageDetailsView(container, repoName, imageName, seq);
-                                } else {
-                                    const errMsg = await updateResp.text();
-                                    showAlert(t('docker.updateMemberFailed') || errMsg || 'Failed to update member permission.');
-                                    if (typeof levelSelect.setValue === 'function') levelSelect.setValue(String(memberLevel));
-                                }
-                            } catch (err) {
-                                showAlert(String(err.message || err));
-                                if (typeof levelSelect.setValue === 'function') levelSelect.setValue(String(memberLevel));
-                            }
+                            await updateDockerTeamMember({
+                                container, repoName, imageName, sequence: seq, member,
+                                permissionLevel, newLevel, selector: levelSelect
+                            });
                         }
                     );
                     levelSelect.classList.add('docker-permission-select');
@@ -917,30 +998,26 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     const removeBtn = el('button', {
                         class: 'docker-action-btn docker-action-btn--delete',
                         type: 'button',
-                        title: t('docker.removeMember') || 'Remove Member',
-                        onclick: async () => {
-                            const confirmed = await showConfirm(
-                                t('docker.removeMemberConfirm', {name: member.username}) || `Remove member "${member.username}"?`
-                            );
-                            if (confirmed) {
-                                const remResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(member.username)}?image=${encodeURIComponent(imageName)}`, {
-                                    method: 'DELETE'
-                                });
-                                if (remResp.ok) {
-                                    showAlert(t('docker.memberRemoved') || 'Member removed.', 'success');
-                                    renderImageDetailsView(container, repoName, imageName, seq);
-                                } else {
-                                    const errMsg = await remResp.text();
-                                    showAlert(t('docker.removeMemberFailed') || errMsg || 'Failed to remove member.');
-                                }
-                            }
-                        }
-                    }, createIcon('delete', {class: 'icon-svg'}));
+                        title: isSelf ? t('team.leave') : t('docker.removeMember'),
+                        onclick: () => removeDockerTeamMember({
+                            container, repoName, imageName, sequence: seq, member, isSelf
+                        })
+                    }, isSelf ? el('span', {}, t('team.leave')) : createIcon('delete', {class: 'icon-svg'}));
                     memberControls.appendChild(removeBtn);
                 } else {
                     memberControls.appendChild(
                         el('span', {class: 'docker-permission-badge'}, levelLabel)
                     );
+                    if (!canManageL3 && isSelf && memberLevel < 4) {
+                        memberControls.appendChild(el('button', {
+                            class: 'docker-action-btn docker-action-btn--delete',
+                            type: 'button',
+                            title: t('team.leave'),
+                            onclick: () => removeDockerTeamMember({
+                                container, repoName, imageName, sequence: seq, member, isSelf: true
+                            })
+                        }, el('span', {}, t('team.leave'))));
+                    }
                 }
 
                 const memberRow = el('div', {class: 'docker-team-row'},
@@ -950,6 +1027,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     ),
                     memberControls
                 );
+                if (animateTeam) memberRow.style.animationDelay = `${Math.min(index, 8) * 35}ms`;
                 teamListEl.appendChild(memberRow);
             }
 
@@ -968,12 +1046,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
                 inviteLevel = 1;
                 const inviteLevelSelect = makeCustomSelect(
-                    [
+                    ([
                         { value: '1', label: t('docker.permissionL1') || 'L1 (Push)' },
                         { value: '2', label: t('docker.permissionL2') || 'L2 (Manage)' },
-                        { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' },
-                        { value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }
-                    ],
+                        { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' }
+                    ]).concat(canTransferOwnership
+                        ? [{ value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }]
+                        : []),
                     '1',
                     (val) => {
                         inviteLevel = parseInt(val, 10) || 1;
@@ -993,7 +1072,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                         e.preventDefault();
                         const userToInvite = inviteInput.value.trim();
                         if (!userToInvite) {
-                            showAlert(t('docker.inviteUsernameRequired') || 'Please enter a username to invite.', 'warning');
+                            showAlert(t('team.inviteUsernameRequired'), 'warning');
                             return;
                         }
                         const currentUser = localStorage.getItem('username') || '';

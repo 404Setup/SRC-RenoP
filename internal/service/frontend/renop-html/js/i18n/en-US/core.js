@@ -946,6 +946,12 @@ export default {
 	"messages.actionFailed": "Failed to complete message action",
 	"messages.invalidNotification": "Enter recipients, a subject, and a message",
 	"messages.sent": "Notification sent to {count} user(s)",
-	"messages.sendFailed": "Failed to send notification"
+	"messages.sendFailed": "Failed to send notification",
+	"team.inviteUsernameRequired": "Enter a username to invite.",
+	"team.leave": "Leave Team",
+	"team.leaveConfirm": "Leave this team? You will lose access granted by your membership.",
+	"team.left": "You left the team.",
+	"team.transferOwnership": "Transfer Ownership",
+	"team.transferOwnershipConfirm": "Transfer L4 ownership to {name}? Your permission levels will be exchanged."
 };
 

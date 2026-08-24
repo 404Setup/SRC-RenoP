@@ -264,7 +264,6 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("expected updated description in details, got %+v", detailsWithDesc.Image)
 	}
 
-	// Test Team APIs: Invite bob
 	inviteReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/owners?image=web/backend", strings.NewReader(`{"users":["bob"],"level":2}`))
 	inviteReq.Header.Set("Content-Type", "application/json")
 	inviteReq.Header.Set("Authorization", "Bearer admin-test-token")
@@ -273,7 +272,6 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Invite owner failed: %v (status: %d)", err, inviteResp.StatusCode)
 	}
 
-	// Search Users
 	searchUserReq := httptest.NewRequest(http.MethodGet, "/api/docker/repositories/docker-pub/users/search?q=bo", nil)
 	searchUserReq.Header.Set("Authorization", "Bearer admin-test-token")
 	searchUserResp, err := app.Test(searchUserReq)
@@ -288,7 +286,6 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("unexpected user search result: %+v", searchUserResult)
 	}
 
-	// Verify bob is listed in owners directly due to admin force-add
 	ownersReq := httptest.NewRequest(http.MethodGet, "/api/docker/repositories/docker-pub/owners?image=web/backend", nil)
 	ownersResp, err := app.Test(ownersReq)
 	if err != nil || ownersResp.StatusCode != http.StatusOK {
@@ -302,7 +299,21 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("expected 2 members (admin + bob), got %d", len(ownersResult.Users))
 	}
 
-	// Promote bob to level 3 so bob can send invitations as non-admin
+	overwriteReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/owners?image=web/backend", strings.NewReader(`{"users":["bob"],"level":1}`))
+	overwriteReq.Header.Set("Content-Type", "application/json")
+	overwriteReq.Header.Set("Authorization", "Bearer admin-test-token")
+	overwriteResp, err := app.Test(overwriteReq)
+	if err != nil || overwriteResp.StatusCode != http.StatusConflict {
+		t.Fatalf("expected force overwrite of an existing member to return 409, got %d (err: %v)", overwriteResp.StatusCode, err)
+	}
+
+	ownerLeaveReq := httptest.NewRequest(http.MethodDelete, "/api/docker/repositories/docker-pub/owners/admin?image=web/backend", nil)
+	ownerLeaveReq.Header.Set("Authorization", "Bearer admin-test-token")
+	ownerLeaveResp, err := app.Test(ownerLeaveReq)
+	if err != nil || ownerLeaveResp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected L4 owner self-removal to return 400, got %d (err: %v)", ownerLeaveResp.StatusCode, err)
+	}
+
 	setLvl3Req := httptest.NewRequest(http.MethodPut, "/api/docker/repositories/docker-pub/owners/bob?image=web/backend", strings.NewReader(`{"level":3}`))
 	setLvl3Req.Header.Set("Content-Type", "application/json")
 	setLvl3Req.Header.Set("Authorization", "Bearer admin-test-token")
@@ -311,7 +322,6 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Set bob to L3 failed: %v (status: %d)", err, setLvl3Resp.StatusCode)
 	}
 
-	// Save carol token and have bob invite carol (non-admin invitation flow)
 	_ = db.SaveToken(&core.AccessToken{Name: "carol", Tokens: []string{"carol-test-token"}, Identifier: core.AccessTokenIdentifier{Type: core.Persistent}})
 	inviteCarolReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/owners?image=web/backend", strings.NewReader(`{"users":["carol"],"level":1}`))
 	inviteCarolReq.Header.Set("Content-Type", "application/json")
@@ -321,14 +331,12 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Bob invite carol failed: %v (status: %d)", err, inviteCarolResp.StatusCode)
 	}
 
-	// Get messages for carol to find invitation ID
 	messages, err := db.ListMessages("carol", 10, 0, "", time.Now().UnixMilli()+1000)
 	if err != nil || len(messages) == 0 {
 		t.Fatalf("expected invitation message for carol, got err: %v, msgs: %+v", err, messages)
 	}
 	invID := messages[0].ID
 
-	// Carol accepts invitation
 	acceptReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/invitations/"+invID+"/accept", nil)
 	acceptReq.Header.Set("Authorization", "Bearer carol-test-token")
 	acceptResp, err := app.Test(acceptReq)
@@ -336,7 +344,6 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Accept invitation failed: %v (status: %d)", err, acceptResp.StatusCode)
 	}
 
-	// Set bob level to 1
 	setLevelReq := httptest.NewRequest(http.MethodPut, "/api/docker/repositories/docker-pub/owners/bob?image=web/backend", strings.NewReader(`{"level":1}`))
 	setLevelReq.Header.Set("Content-Type", "application/json")
 	setLevelReq.Header.Set("Authorization", "Bearer admin-test-token")
@@ -345,9 +352,8 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Set level failed: %v (status: %d)", err, setLevelResp.StatusCode)
 	}
 
-	// Remove bob
 	removeReq := httptest.NewRequest(http.MethodDelete, "/api/docker/repositories/docker-pub/owners/bob?image=web/backend", nil)
-	removeReq.Header.Set("Authorization", "Bearer admin-test-token")
+	removeReq.Header.Set("Authorization", "Bearer bob-test-token")
 	removeResp, err := app.Test(removeReq)
 	if err != nil || removeResp.StatusCode != http.StatusOK {
 		t.Fatalf("Remove owner failed: %v (status: %d)", err, removeResp.StatusCode)

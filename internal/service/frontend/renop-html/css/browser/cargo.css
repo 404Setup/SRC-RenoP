@@ -388,6 +388,21 @@ html.dark .cargo-state-badge.is-yanked {
     background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
 }
 
+.cargo-team-list.is-updated .cargo-team-row {
+    animation: cargoTeamRowIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cargoTeamRowIn {
+    from {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .cargo-version-meta {
     flex-flow: row wrap;
     align-items: center;
@@ -518,7 +533,7 @@ html.dark .cargo-state-badge.is-yanked {
 }
 
 .cargo-user-suggestions[hidden] {
-    display: none;
+    display: none !important;
 }
 
 .cargo-user-suggestion {
@@ -1254,6 +1269,10 @@ html.dark .cargo-dep-badge.is-target {
 
     .cargo-user-suggestions {
         transition: none;
+    }
+
+    .cargo-team-list.is-updated .cargo-team-row {
+        animation: none;
     }
 
     .cargo-version-indicator {

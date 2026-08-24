@@ -189,7 +189,14 @@ func (h Handler) removeOwners(c fiber.Ctx, state *core.AppState, repo *config.Re
 		usernames = append(usernames, username)
 	}
 	actor := user.Username
-	if user.IsManager() {
+	removesSelf := false
+	for _, username := range usernames {
+		if strings.EqualFold(username, user.Username) {
+			removesSelf = true
+			break
+		}
+	}
+	if user.IsManager() && !removesSelf {
 		actor = ""
 	}
 	if err := db.RemoveCargoMembers(repo.Name, details.Package.NormalizedName, actor, usernames); err != nil {
@@ -209,7 +216,8 @@ func (h Handler) setOwnerLevel(c fiber.Ctx, state *core.AppState, repo *config.R
 		return errorResponse(c, fiber.StatusBadRequest, "Cargo permission level must be between 1 and 4")
 	}
 	actor := user.Username
-	if user.IsManager() {
+	if user.IsManager() && !(request.Level == core.CargoPermissionOwner &&
+		details.Package.PermissionLevel == core.CargoPermissionOwner && !strings.EqualFold(username, user.Username)) {
 		actor = ""
 	}
 	if err := state.GetDB().SetCargoMemberLevel(repo.Name, details.Package.NormalizedName, actor, username, request.Level); err != nil {
@@ -220,12 +228,20 @@ func (h Handler) setOwnerLevel(c fiber.Ctx, state *core.AppState, repo *config.R
 }
 
 func (h Handler) removeOwner(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName, username string) error {
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage, true)
+	user, err := authenticatedUser(c)
 	if err != nil {
 		return cargoError(c, err)
 	}
+	details, err := packageDetails(state, repo.Name, crateName, user.Username)
+	if err != nil {
+		return cargoError(c, err)
+	}
+	isSelf := strings.EqualFold(username, user.Username)
+	if !isSelf && !user.IsManager() && details.Package.PermissionLevel < core.CargoPermissionManage {
+		return cargoError(c, core.ErrCargoPermissionDenied)
+	}
 	actor := user.Username
-	if user.IsManager() {
+	if user.IsManager() && !isSelf {
 		actor = ""
 	}
 	if err := state.GetDB().RemoveCargoMember(repo.Name, details.Package.NormalizedName, actor, username); err != nil {

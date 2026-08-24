@@ -929,4 +929,10 @@ export default {
     "messages.invalidNotification": "Introduza destinatários, assunto e mensagem",
     "messages.sent": "Notificação enviada a {count} utilizador(es)",
     "messages.sendFailed": "Falha ao enviar a notificação",
+	"team.inviteUsernameRequired": "Introduza o nome de utilizador a convidar.",
+	"team.leave": "Sair da equipa",
+	"team.leaveConfirm": "Sair desta equipa? Perderá o acesso concedido pela sua associação.",
+	"team.left": "Saiu da equipa.",
+	"team.transferOwnership": "Transferir propriedade",
+	"team.transferOwnershipConfirm": "Transferir a propriedade L4 para {name}? Os níveis de permissão serão trocados.",
 };

@@ -929,4 +929,10 @@ export default {
     "messages.invalidNotification": "受信者、件名、本文を入力してください",
     "messages.sent": "{count} 人のユーザーに通知を送信しました",
     "messages.sendFailed": "通知を送信できませんでした",
+	"team.inviteUsernameRequired": "招待するユーザー名を入力してください。",
+	"team.leave": "チームを退出",
+	"team.leaveConfirm": "このチームから退出しますか？メンバー権限によるアクセスを失います。",
+	"team.left": "チームから退出しました。",
+	"team.transferOwnership": "所有権を移譲",
+	"team.transferOwnershipConfirm": "L4 所有権を {name} に移譲しますか？双方の権限レベルが入れ替わります。",
 };

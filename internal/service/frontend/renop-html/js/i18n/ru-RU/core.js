@@ -929,4 +929,10 @@ export default {
     "messages.invalidNotification": "Укажите получателей, тему и сообщение",
     "messages.sent": "Уведомление отправлено пользователям: {count}",
     "messages.sendFailed": "Не удалось отправить уведомление",
+	"team.inviteUsernameRequired": "Введите имя пользователя, которого нужно пригласить.",
+	"team.leave": "Покинуть команду",
+	"team.leaveConfirm": "Покинуть эту команду? Вы потеряете доступ, предоставленный участникам.",
+	"team.left": "Вы покинули команду.",
+	"team.transferOwnership": "Передать права владельца",
+	"team.transferOwnershipConfirm": "Передать права владельца L4 пользователю {name}? Ваши уровни доступа будут обменены.",
 };

@@ -113,7 +113,49 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	require.ErrorIs(t, err, core.ErrCargoAdminArchived)
 
 	err = db.RemoveCargoMember("cargo", "demo", "alice", "alice")
-	require.True(t, errors.Is(err, core.ErrCargoLastFullMember))
+	require.True(t, errors.Is(err, core.ErrCargoOwnerCannotLeave))
+}
+
+func TestCargoTeamTransferPreservesRolesAndRejectsForceOverwrite(t *testing.T) {
+	db := newCargoDB(t)
+	const now int64 = 2000
+	pkg := &core.CargoPackage{
+		Repository: "cargo", Name: "team-demo", NormalizedName: "team-demo", CreatedAt: now, UpdatedAt: now,
+	}
+	require.NoError(t, db.RecordCargoPublication(pkg, &core.CargoVersion{
+		Repository: "cargo", Package: "team-demo", Version: "1.0.0", Publisher: "alice", CreatedAt: now,
+	}, "alice"))
+	require.NoError(t, db.ForceAddCargoMembers("cargo", "team-demo", "team-demo", "administrator", []string{"bob"}, core.CargoPermissionVersion))
+	require.ErrorIs(t,
+		db.ForceAddCargoMembers("cargo", "team-demo", "team-demo", "administrator", []string{"bob"}, core.CargoPermissionManage),
+		core.ErrCargoMemberExists,
+	)
+
+	details, err := db.GetCargoPackageDetails("cargo", "team-demo", "bob")
+	require.NoError(t, err)
+	require.Equal(t, core.CargoPermissionVersion, details.Package.PermissionLevel)
+	require.ErrorIs(t,
+		db.SetCargoMemberLevel("cargo", "team-demo", "bob", "bob", core.CargoPermissionOwner),
+		core.ErrCargoPermissionDenied,
+	)
+
+	require.NoError(t, db.SetCargoMemberLevel("cargo", "team-demo", "alice", "bob", core.CargoPermissionOwner))
+	details, err = db.GetCargoPackageDetails("cargo", "team-demo", "alice")
+	require.NoError(t, err)
+	require.Equal(t, core.CargoPermissionVersion, details.Package.PermissionLevel)
+	ownerCount := 0
+	for _, member := range details.Members {
+		if member.Level == core.CargoPermissionOwner {
+			ownerCount++
+			require.Equal(t, "bob", member.Username)
+		}
+	}
+	require.Equal(t, 1, ownerCount)
+	require.ErrorIs(t,
+		db.RemoveCargoMember("cargo", "team-demo", "bob", "bob"),
+		core.ErrCargoOwnerCannotLeave,
+	)
+	require.NoError(t, db.RemoveCargoMember("cargo", "team-demo", "alice", "alice"))
 }
 
 func TestExpiredCargoInvitationCanBeReissued(t *testing.T) {

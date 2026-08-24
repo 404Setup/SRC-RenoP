@@ -947,5 +947,11 @@ export default {
 	"messages.actionFailed": "处理消息操作失败",
 	"messages.invalidNotification": "请输入接收用户、主题和消息内容",
 	"messages.sent": "通知已发送给 {count} 位用户",
-	"messages.sendFailed": "发送通知失败"
+	"messages.sendFailed": "发送通知失败",
+	"team.inviteUsernameRequired": "请输入要邀请的用户名。",
+	"team.leave": "退出团队",
+	"team.leaveConfirm": "确定退出此团队吗？退出后将失去由团队成员身份授予的访问权限。",
+	"team.left": "已退出团队。",
+	"team.transferOwnership": "转让管理员权限",
+	"team.transferOwnershipConfirm": "确定将 L4 管理员权限转让给 {name} 吗？双方的权限级别将对调。"
 };

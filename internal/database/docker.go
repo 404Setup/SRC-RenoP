@@ -874,6 +874,9 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 	defer tx.Rollback()
 
 	first := invitations[0]
+	if err := lockDockerImageTeam(tx, first.Repository, first.ImageName); err != nil {
+		return err
+	}
 	var inviterLevel int
 	err = tx.QueryRow(`SELECT permission_level FROM docker_members
 		WHERE repository = ? AND image_name = ? AND username = ?`,
@@ -902,6 +905,9 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 		message := messages[i]
 		if invitation.Repository != first.Repository || invitation.ImageName != first.ImageName || invitation.Inviter != first.Inviter {
 			return errors.New("Docker invitation batch targets multiple images")
+		}
+		if invitation.Level == core.DockerPermissionOwner && inviterLevel < core.DockerPermissionOwner {
+			return core.ErrDockerPermissionDenied
 		}
 		var exists int
 		if err := tx.QueryRow(`SELECT 1 FROM docker_members WHERE repository = ? AND image_name = ? AND username = ?`,
@@ -974,6 +980,22 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	actor = sanitizeDockerUsername(actor)
+	normalizedUsers := make([]string, 0, len(usernames))
+	seen := make(map[string]struct{}, len(usernames))
+	for _, candidate := range usernames {
+		username := sanitizeDockerUsername(candidate)
+		if username == "" {
+			return errors.New("Docker member name is invalid")
+		}
+		if _, duplicate := seen[username]; duplicate {
+			continue
+		}
+		seen[username] = struct{}{}
+		normalizedUsers = append(normalizedUsers, username)
+	}
+	if len(normalizedUsers) == 0 || (level == core.DockerPermissionOwner && len(normalizedUsers) != 1) {
+		return errors.New("Docker L4 ownership can only be assigned to one member at a time")
+	}
 	now := time.Now().UnixMilli()
 
 	tx, err := db.Begin()
@@ -982,52 +1004,59 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 	}
 	defer tx.Rollback()
 
-	for _, candidate := range usernames {
-		username := sanitizeDockerUsername(candidate)
-		if username == "" {
-			continue
-		}
-		if level == core.DockerPermissionOwner {
-			if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ?
-				WHERE repository = ? AND image_name = ? AND permission_level = ? AND username != ?`,
-				core.DockerPermissionTeam, repository, imageName, core.DockerPermissionOwner, username); err != nil {
-				return fmt.Errorf("demote previous Docker L4 owner: %w", err)
-			}
-			_, _ = tx.Exec(`UPDATE docker_images SET publisher = ? WHERE repository = ? AND image_name = ?`, username, repository, imageName)
-		}
-
+	if err := lockDockerImageTeam(tx, repository, imageName); err != nil {
+		return err
+	}
+	for _, username := range normalizedUsers {
 		var existingLevel int
 		err := tx.QueryRow(`SELECT permission_level FROM docker_members WHERE repository = ? AND image_name = ? AND username = ?`,
 			repository, imageName, username).Scan(&existingLevel)
-		if errors.Is(err, sql.ErrNoRows) {
-			if _, err := tx.Exec(`INSERT INTO docker_members (repository, image_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
-				repository, imageName, username, level, now); err != nil {
-				return fmt.Errorf("insert Docker member: %w", err)
-			}
-		} else if err != nil {
+		if err == nil {
+			return core.ErrDockerMemberExists
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("check Docker member: %w", err)
-		} else {
-			if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ? WHERE repository = ? AND image_name = ? AND username = ?`,
-				level, repository, imageName, username); err != nil {
-				return fmt.Errorf("update Docker member: %w", err)
-			}
+		}
+	}
+	if level == core.DockerPermissionOwner {
+		if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ?
+			WHERE repository = ? AND image_name = ? AND permission_level = ?`,
+			core.DockerPermissionTeam, repository, imageName, core.DockerPermissionOwner); err != nil {
+			return fmt.Errorf("demote previous Docker L4 owner: %w", err)
+		}
+		if _, err := tx.Exec(`UPDATE docker_images SET publisher = ? WHERE repository = ? AND image_name = ?`,
+			normalizedUsers[0], repository, imageName); err != nil {
+			return fmt.Errorf("update Docker image owner: %w", err)
+		}
+	}
+	for _, username := range normalizedUsers {
+		if _, err := tx.Exec(`INSERT INTO docker_members (repository, image_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
+			repository, imageName, username, level, now); err != nil {
+			return fmt.Errorf("insert Docker member: %w", err)
 		}
 
-		_ = cancelDockerInvitations(tx, `repository = ? AND image_name = ? AND recipient = ?`, []any{repository, imageName, username}, now)
+		if err := cancelDockerInvitations(tx, `repository = ? AND image_name = ? AND recipient = ?`, []any{repository, imageName, username}, now); err != nil {
+			return err
+		}
 
 		msgID := uuid.NewString()
-		payloadBytes, _ := json.Marshal(map[string]any{
+		payloadBytes, err := json.Marshal(map[string]any{
 			"repository": repository,
 			"image":      imageName,
 			"inviter":    actor,
 			"level":      level,
 		})
-		_, _ = tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		if err != nil {
+			return fmt.Errorf("encode Docker membership message: %w", err)
+		}
+		if _, err := tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			msgID, username, actor, "docker_image_invite", "info",
 			"Docker container image membership added",
 			fmt.Sprintf("%s added you to collaborate on %s with L%d permission.", actor, imageName, level),
 			string(payloadBytes), "docker_image_invite", core.MessageActionAccepted,
-			now, 0, now, now+7*24*3600*1000, nil)
+			now, 0, now, now+7*24*3600*1000, nil); err != nil {
+			return fmt.Errorf("create Docker membership message: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1060,6 +1089,9 @@ func (db *DB) RespondDockerInvitation(id, recipient, repository string, accept b
 	if err != nil {
 		return fmt.Errorf("load Docker invitation: %w", err)
 	}
+	if err := lockDockerImageTeam(tx, invitation.Repository, invitation.ImageName); err != nil {
+		return err
+	}
 
 	if accept {
 		var inviterLevel int
@@ -1070,6 +1102,20 @@ func (db *DB) RespondDockerInvitation(id, recipient, repository string, accept b
 		} else if err != nil {
 			return fmt.Errorf("validate Docker inviter: %w", err)
 		}
+		if invitation.Level == core.DockerPermissionOwner && inviterLevel < core.DockerPermissionOwner {
+			return core.ErrDockerInvitationInvalid
+		}
+
+		var memberLevel int
+		err := tx.QueryRow(`SELECT permission_level FROM docker_members
+			WHERE repository = ? AND image_name = ? AND username = ?`,
+			invitation.Repository, invitation.ImageName, recipient).Scan(&memberLevel)
+		if err == nil {
+			return core.ErrDockerMemberExists
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("inspect Docker invitation membership: %w", err)
+		}
 
 		if invitation.Level == core.DockerPermissionOwner {
 			if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ?
@@ -1077,26 +1123,15 @@ func (db *DB) RespondDockerInvitation(id, recipient, repository string, accept b
 				core.DockerPermissionTeam, invitation.Repository, invitation.ImageName, core.DockerPermissionOwner, recipient); err != nil {
 				return fmt.Errorf("demote previous Docker L4 owner: %w", err)
 			}
-			_, _ = tx.Exec(`UPDATE docker_images SET publisher = ? WHERE repository = ? AND image_name = ?`, recipient, invitation.Repository, invitation.ImageName)
+			if _, err := tx.Exec(`UPDATE docker_images SET publisher = ? WHERE repository = ? AND image_name = ?`,
+				recipient, invitation.Repository, invitation.ImageName); err != nil {
+				return fmt.Errorf("update Docker image owner: %w", err)
+			}
 		}
-
-		var memberLevel int
-		err := tx.QueryRow(`SELECT permission_level FROM docker_members
-			WHERE repository = ? AND image_name = ? AND username = ?`,
-			invitation.Repository, invitation.ImageName, recipient).Scan(&memberLevel)
-		if errors.Is(err, sql.ErrNoRows) {
-			if _, err := tx.Exec(`INSERT INTO docker_members
-				(repository, image_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
-				invitation.Repository, invitation.ImageName, recipient, invitation.Level, actedAt); err != nil {
-				return fmt.Errorf("accept Docker membership: %w", err)
-			}
-		} else if err != nil {
-			return fmt.Errorf("inspect Docker invitation membership: %w", err)
-		} else {
-			if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ? WHERE repository = ? AND image_name = ? AND username = ?`,
-				invitation.Level, invitation.Repository, invitation.ImageName, recipient); err != nil {
-				return fmt.Errorf("update Docker membership: %w", err)
-			}
+		if _, err := tx.Exec(`INSERT INTO docker_members
+			(repository, image_name, username, permission_level, added_at) VALUES (?, ?, ?, ?, ?)`,
+			invitation.Repository, invitation.ImageName, recipient, invitation.Level, actedAt); err != nil {
+			return fmt.Errorf("accept Docker membership: %w", err)
 		}
 	}
 
@@ -1144,9 +1179,18 @@ func (db *DB) SetDockerMemberLevel(repository, imageName, actor, username string
 	}
 	defer tx.Rollback()
 
+	if err := lockDockerImageTeam(tx, repository, imageName); err != nil {
+		return err
+	}
+	actorLevel := 0
 	if actor != "" {
 		if err := requireDockerMemberPermission(tx, repository, imageName, actor, core.DockerPermissionTeam); err != nil {
 			return err
+		}
+		if err := tx.QueryRow(`SELECT permission_level FROM docker_members
+			WHERE repository = ? AND image_name = ? AND username = ?`,
+			repository, imageName, actor).Scan(&actorLevel); err != nil {
+			return fmt.Errorf("inspect Docker actor permission: %w", err)
 		}
 	}
 	var current int
@@ -1161,13 +1205,25 @@ func (db *DB) SetDockerMemberLevel(repository, imageName, actor, username string
 			return err
 		}
 	}
-	if level == core.DockerPermissionOwner {
-		if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ?
+	if level == core.DockerPermissionOwner && current != core.DockerPermissionOwner {
+		if actor != "" {
+			if actorLevel != core.DockerPermissionOwner || actor == username {
+				return core.ErrDockerPermissionDenied
+			}
+			if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ?
+				WHERE repository = ? AND image_name = ? AND username = ?`,
+				current, repository, imageName, actor); err != nil {
+				return fmt.Errorf("exchange previous Docker L4 owner permission: %w", err)
+			}
+		} else if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ?
 			WHERE repository = ? AND image_name = ? AND permission_level = ? AND username != ?`,
 			core.DockerPermissionTeam, repository, imageName, core.DockerPermissionOwner, username); err != nil {
 			return fmt.Errorf("demote previous Docker L4 owner: %w", err)
 		}
-		_, _ = tx.Exec(`UPDATE docker_images SET publisher = ? WHERE repository = ? AND image_name = ?`, username, repository, imageName)
+		if _, err := tx.Exec(`UPDATE docker_images SET publisher = ? WHERE repository = ? AND image_name = ?`,
+			username, repository, imageName); err != nil {
+			return fmt.Errorf("update Docker image owner: %w", err)
+		}
 	}
 	if _, err := tx.Exec(`UPDATE docker_members SET permission_level = ?
 		WHERE repository = ? AND image_name = ? AND username = ?`, level, repository, imageName, username); err != nil {
@@ -1211,9 +1267,25 @@ func (db *DB) RemoveDockerMembers(repository, imageName, actor string, usernames
 	}
 	defer tx.Rollback()
 
+	if err := lockDockerImageTeam(tx, repository, imageName); err != nil {
+		return err
+	}
 	if actor != "" {
-		if err := requireDockerMemberPermission(tx, repository, imageName, actor, core.DockerPermissionTeam); err != nil {
-			return err
+		var actorLevel int
+		if err := tx.QueryRow(`SELECT permission_level FROM docker_members
+			WHERE repository = ? AND image_name = ? AND username = ?`,
+			repository, imageName, actor).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
+			return core.ErrDockerPermissionDenied
+		} else if err != nil {
+			return fmt.Errorf("inspect Docker removal actor: %w", err)
+		}
+		for _, username := range unique {
+			if username != actor && actorLevel < core.DockerPermissionTeam {
+				return core.ErrDockerPermissionDenied
+			}
+			if username == actor && actorLevel == core.DockerPermissionOwner {
+				return core.ErrDockerOwnerCannotLeave
+			}
 		}
 	}
 	fullRemoved := 0
@@ -1272,6 +1344,21 @@ func requireDockerMemberPermission(tx *Tx, repository, imageName, username strin
 	}
 	if level < required {
 		return core.ErrDockerPermissionDenied
+	}
+	return nil
+}
+
+func lockDockerImageTeam(tx *Tx, repository, imageName string) error {
+	if _, err := tx.Exec(`UPDATE docker_images SET updated_at = updated_at
+		WHERE repository = ? AND image_name = ?`, repository, imageName); err != nil {
+		return fmt.Errorf("lock Docker image team: %w", err)
+	}
+	var exists int
+	if err := tx.QueryRow(`SELECT 1 FROM docker_images WHERE repository = ? AND image_name = ?`,
+		repository, imageName).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		return core.ErrDockerImageNotFound
+	} else if err != nil {
+		return fmt.Errorf("inspect Docker image team lock: %w", err)
 	}
 	return nil
 }

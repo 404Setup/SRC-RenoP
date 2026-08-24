@@ -117,4 +117,5 @@ var (
 	ErrDockerInvitationExists   = errors.New("invitation already pending for this user")
 	ErrDockerInvitationInvalid  = errors.New("invitation is invalid or has expired")
 	ErrDockerLastFullMember     = errors.New("cannot remove or demote the last L4 owner of this Docker image")
+	ErrDockerOwnerCannotLeave   = errors.New("Docker L4 owner must transfer ownership before leaving")
 )

@@ -668,4 +668,39 @@ func TestCargoAdministratorWithL3CanManageTeam(t *testing.T) {
 	if inviteBobRes.StatusCode != fiber.StatusOK {
 		t.Fatalf("admin invite bob status = %d, want 200", inviteBobRes.StatusCode)
 	}
+
+	overwriteBob := httptest.NewRequest("PUT", "http://registry.example/cargo/api/v1/crates/demo/owners", strings.NewReader(`{"users":["bob"],"level":3}`))
+	overwriteBob.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	overwriteBobRes, err := adminApp.Test(overwriteBob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = overwriteBobRes.Body.Close()
+	if overwriteBobRes.StatusCode != fiber.StatusConflict {
+		t.Fatalf("admin overwrite existing member status = %d, want 409", overwriteBobRes.StatusCode)
+	}
+
+	bob := &config.User{Username: "bob", Roles: []string{"base"}}
+	bobApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, bob)
+	leaveBobRes, err := bobApp.Test(httptest.NewRequest(
+		http.MethodDelete, "http://registry.example/cargo/api/v1/crates/demo/owners/bob", nil,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = leaveBobRes.Body.Close()
+	if leaveBobRes.StatusCode != fiber.StatusOK {
+		t.Fatalf("ordinary member leave status = %d, want 200", leaveBobRes.StatusCode)
+	}
+
+	ownerLeaveRes, err := aliceApp.Test(httptest.NewRequest(
+		http.MethodDelete, "http://registry.example/cargo/api/v1/crates/demo/owners/alice", nil,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = ownerLeaveRes.Body.Close()
+	if ownerLeaveRes.StatusCode != fiber.StatusConflict {
+		t.Fatalf("L4 owner leave status = %d, want 409", ownerLeaveRes.StatusCode)
+	}
 }

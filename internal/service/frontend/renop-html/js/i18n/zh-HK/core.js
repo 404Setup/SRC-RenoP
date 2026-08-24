@@ -929,4 +929,10 @@ export default {
     "messages.invalidNotification": "請輸入接收用戶、主旨及訊息內容",
     "messages.sent": "通知已傳送給 {count} 位用戶",
     "messages.sendFailed": "傳送通知失敗",
+	"team.inviteUsernameRequired": "請輸入要邀請的用戶名。",
+	"team.leave": "退出團隊",
+	"team.leaveConfirm": "確定退出此團隊嗎？退出後將失去由團隊成員身分授予的存取權限。",
+	"team.left": "已退出團隊。",
+	"team.transferOwnership": "轉讓管理員權限",
+	"team.transferOwnershipConfirm": "確定將 L4 管理員權限轉讓給 {name} 嗎？雙方的權限等級將會對調。",
 };
