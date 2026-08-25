@@ -23,7 +23,7 @@ import (
 func newCargoRouteTestApp(t *testing.T, visibility string) *fiber.App {
 	t.Helper()
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = storageTestTempDir(t)
 	cfg.Maven.Repositories["cargo"] = &config.Repository{
 		Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: visibility,
 		Mirrors: []config.Mirror{},

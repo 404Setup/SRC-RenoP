@@ -241,7 +241,7 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 		var valid bool
 		nickname, valid = core.NormalizeNickname(*request.Nickname)
 		if !valid {
-			err := errors.New("Nickname must not exceed 36 characters or contain control characters")
+			err := errors.New("nickname must not exceed 36 characters or contain control characters")
 			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 		}
 	}
@@ -298,7 +298,7 @@ func profileResponse(profile *core.UserProfile, own bool, now int64) userProfile
 func normalizeProfileUsername(username string) (string, error) {
 	normalized, valid := core.NormalizeUsername(username)
 	if !valid {
-		return "", errors.New("Username must contain 4 to 18 letters, numbers, or underscores")
+		return "", errors.New("username must contain 4 to 18 letters, numbers, or underscores")
 	}
 	return normalized, nil
 }

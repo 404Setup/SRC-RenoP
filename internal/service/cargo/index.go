@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	errIndexTooLarge = errors.New("Cargo index exceeds the size limit")
-	errVersionExists = errors.New("Crate version already exists")
+	errIndexTooLarge = errors.New("cargo index exceeds the size limit")
+	errVersionExists = errors.New("crate version already exists")
 )
 
 func indexPath(crateName string) string {
@@ -72,7 +72,7 @@ func rewriteIndex(reader io.Reader, destination io.Writer, entry IndexEntry) err
 			return errors.New("invalid Cargo index entry")
 		}
 		if !strings.EqualFold(current.Name, entry.Name) {
-			return errors.New("Cargo crate name collides with an existing package")
+			return errors.New("cargo crate name collides with an existing package")
 		}
 		if sameVersion(current.Version, entry.Version) {
 			versionExists = true
@@ -152,7 +152,7 @@ func rewritePackageYanked(reader io.Reader, destination io.Writer, desired map[s
 		}
 		yanked, ok := desired[entry.Version]
 		if !ok {
-			return errors.New("Cargo index contains an unmanaged package version")
+			return errors.New("cargo index contains an unmanaged package version")
 		}
 		entry.Yanked = yanked
 		updated++

@@ -177,7 +177,7 @@ func verifyGitLab(ctx context.Context, client *http.Client, account, code string
 // VerifyDomainProof checks the fixed external proof target assigned to a domain.
 func VerifyDomainProof(ctx context.Context, cfg *config.Config, domain *core.MavenDomain) error {
 	if cfg == nil || domain == nil || domain.VerificationCode == "" {
-		return errors.New("Maven domain verification configuration is unavailable")
+		return errors.New("maven domain verification configuration is unavailable")
 	}
 	select {
 	case verificationSemaphore <- struct{}{}:

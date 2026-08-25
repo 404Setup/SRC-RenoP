@@ -59,7 +59,7 @@ func (m *Mirror) ValidateArtifactURL(format string) error {
 	}
 	if strings.EqualFold(strings.TrimSpace(format), RepositoryFormatCargo) &&
 		(!strings.Contains(template, "{crate}") || !strings.Contains(template, "{version}")) {
-		return errors.New("Cargo artifact URL must contain {crate} and {version}")
+		return errors.New("cargo artifact URL must contain {crate} and {version}")
 	}
 	_, after, ok := strings.Cut(template, "://")
 	if ok {

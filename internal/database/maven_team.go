@@ -65,22 +65,22 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 		return core.ErrDatabaseUnavailable
 	}
 	if len(invitations) == 0 || len(invitations) != len(messages) || len(invitations) > 20 {
-		return errors.New("Maven invitation batch is invalid")
+		return errors.New("maven invitation batch is invalid")
 	}
 	for i, invitation := range invitations {
 		message := messages[i]
 		if invitation == nil || message == nil {
-			return errors.New("Maven invitation is missing")
+			return errors.New("maven invitation is missing")
 		}
 		invitation.Repository = sanitizeMavenRepository(invitation.Repository)
 		invitation.Domain = sanitizeMavenDomain(invitation.Domain)
 		invitation.Inviter = sanitizeMavenUsername(invitation.Inviter)
 		invitation.Recipient = sanitizeMavenUsername(invitation.Recipient)
 		if invitation.Level < core.MavenPermissionRead || invitation.Level > core.MavenPermissionOwner {
-			return errors.New("Maven invitation permission level is invalid")
+			return errors.New("maven invitation permission level is invalid")
 		}
 		if invitation.ID == "" || invitation.ID != message.ID || invitation.Recipient != sanitizeMavenUsername(message.Recipient) {
-			return errors.New("Maven invitation message does not match its workflow record")
+			return errors.New("maven invitation message does not match its workflow record")
 		}
 		if err := normalizeMessage(message); err != nil {
 			return err
@@ -117,7 +117,7 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 	for i, invitation := range invitations {
 		message := messages[i]
 		if invitation.Repository != first.Repository || invitation.Domain != first.Domain || invitation.Inviter != first.Inviter {
-			return errors.New("Maven invitation batch targets multiple domains")
+			return errors.New("maven invitation batch targets multiple domains")
 		}
 		if invitation.Level == core.MavenPermissionOwner && inviterLevel < core.MavenPermissionOwner {
 			return core.ErrMavenPermissionDenied
@@ -177,7 +177,7 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 || level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
-		return errors.New("Maven member addition is invalid")
+		return errors.New("maven member addition is invalid")
 	}
 	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
 	actor = sanitizeMavenUsername(actor)
@@ -187,7 +187,7 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 	for _, raw := range usernames {
 		username := sanitizeMavenUsername(raw)
 		if username == "" {
-			return errors.New("Maven member name is invalid")
+			return errors.New("maven member name is invalid")
 		}
 		if _, exists := seen[username]; exists {
 			continue
@@ -201,7 +201,7 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 		userIDs[username] = userID
 	}
 	if len(unique) == 0 || (level == core.MavenPermissionOwner && len(unique) != 1) {
-		return errors.New("Maven L4 ownership can only be assigned to one member")
+		return errors.New("maven L4 ownership can only be assigned to one member")
 	}
 	now := time.Now().UnixMilli()
 	tx, err := db.Begin()
@@ -355,7 +355,7 @@ func (db *DB) SetMavenMemberLevel(repository, domain, actor, username string, le
 		return core.ErrDatabaseUnavailable
 	}
 	if level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
-		return errors.New("Maven permission level is invalid")
+		return errors.New("maven permission level is invalid")
 	}
 	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
 	actor, username = sanitizeMavenUsername(actor), sanitizeMavenUsername(username)

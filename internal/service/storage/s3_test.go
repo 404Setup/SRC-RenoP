@@ -70,7 +70,7 @@ func TestS3ObjectKeyUsesStorageRelativeLayoutWithPrefix(t *testing.T) {
 	originalConfig := currentConfig.Load()
 	t.Cleanup(func() { currentConfig.Store(originalConfig) })
 
-	storagePath := filepath.Join(t.TempDir(), "storage")
+	storagePath := filepath.Join(storageTestTempDir(t), "storage")
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
 	currentConfig.Store(cfg)
@@ -103,8 +103,8 @@ func TestS3ObjectKeyIsStableAcrossStoragePaths(t *testing.T) {
 	s3Cfg := &config.S3Config{KeyPrefix: "renop/production"}
 	keys := make([]string, 0, 2)
 	for _, storagePath := range []string{
-		filepath.Join(t.TempDir(), "first"),
-		filepath.Join(t.TempDir(), "second"),
+		filepath.Join(storageTestTempDir(t), "first"),
+		filepath.Join(storageTestTempDir(t), "second"),
 	} {
 		cfg.StoragePath = storagePath
 		currentConfig.Store(cfg)
@@ -125,7 +125,7 @@ func TestS3ObjectKeyRejectsPathOutsideStorage(t *testing.T) {
 	t.Cleanup(func() { currentConfig.Store(originalConfig) })
 
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = filepath.Join(t.TempDir(), "storage")
+	cfg.StoragePath = filepath.Join(storageTestTempDir(t), "storage")
 	currentConfig.Store(cfg)
 
 	_, err := s3ObjectKey(
@@ -152,7 +152,7 @@ func TestGetS3ConfigForPathRequiresStorageBoundary(t *testing.T) {
 }
 
 func TestSaveAndUploadChecksumDoesNotIndexFailedWrite(t *testing.T) {
-	blockedParent := filepath.Join(t.TempDir(), "not-a-directory")
+	blockedParent := filepath.Join(storageTestTempDir(t), "not-a-directory")
 	if err := os.WriteFile(blockedParent, []byte("x"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func TestSaveAndUploadChecksumDoesNotIndexFailedWrite(t *testing.T) {
 }
 
 func TestDeleteIndexedFileKeepsIndexOnDeleteFailure(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "non-empty")
+	dir := filepath.Join(storageTestTempDir(t), "non-empty")
 	if err := os.Mkdir(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestLocalPathFromS3ObjectRestoresAbsoluteStoragePath(t *testing.T) {
 }
 
 func TestLocalPathFromS3ObjectRejectsTraversal(t *testing.T) {
-	repoDir := filepath.Join(t.TempDir(), "releases")
+	repoDir := filepath.Join(storageTestTempDir(t), "releases")
 	prefix := utils.GetS3Key(repoDir) + "/"
 	if _, ok := localPathFromS3Object(repoDir, prefix, prefix+"../../outside"); ok {
 		t.Fatal("traversal object key was accepted")
@@ -216,7 +216,7 @@ func TestBuildS3IndexSyncReturnsClientError(t *testing.T) {
 	t.Cleanup(func() { currentConfig.Store(originalConfig) })
 
 	cfg := config.DefaultConfig()
-	cfg.StoragePath = t.TempDir()
+	cfg.StoragePath = storageTestTempDir(t)
 	cfg.Maven.Repositories["releases"].S3 = &config.S3Config{
 		Enabled:  true,
 		Endpoint: "ftp://example.com",

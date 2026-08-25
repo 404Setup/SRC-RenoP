@@ -67,7 +67,7 @@ func extractJavadoc(jarPath string, cacheDir string) error {
 		jarSize = max(uint64(fi.Size())*3, 10*1024*1024)
 	}
 	if !status.CanAllocateDiskSpace(nil, jarSize) {
-		return errors.New("Insufficient disk space to extract javadoc")
+		return errors.New("insufficient disk space to extract javadoc")
 	}
 
 	extractPath := getJavadocExtractPath(cfg)

@@ -106,7 +106,7 @@ func probeMirrorImageSingle(
 		return 0, err
 	}
 	if client == nil {
-		return 0, errors.New("Docker mirror client is unavailable")
+		return 0, errors.New("docker mirror client is unavailable")
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tagsURL, nil)
 	if err != nil {
@@ -222,7 +222,7 @@ func newMirrorManifestRequest(
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, nil, errors.New("Docker mirror client is unavailable")
+		return nil, nil, errors.New("docker mirror client is unavailable")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, manifestURL, nil)

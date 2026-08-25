@@ -23,7 +23,7 @@ import (
 )
 
 func TestDockerStoreDiskOperations(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := storageTestTempDir(t)
 	store := NewDockerStore(tempDir)
 
 	state := core.NewAppState()
@@ -141,7 +141,7 @@ func TestDockerStoreDiskOperations(t *testing.T) {
 }
 
 func TestDockerStoreCommitDigestMismatch(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := storageTestTempDir(t)
 	store := NewDockerStore(tempDir)
 	state := core.NewAppState()
 

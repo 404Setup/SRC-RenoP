@@ -135,7 +135,7 @@ func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
 
 	zipReader, err := zip.NewReader(zipTempFile, fi.Size())
 	if err != nil {
-		return "", fmt.Errorf("Invalid zip file: %w", err)
+		return "", fmt.Errorf("invalid zip file: %w", err)
 	}
 
 	exeName := targetExecutableName()
@@ -192,7 +192,7 @@ func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
 		return out, nil
 	}
 
-	return "", fmt.Errorf("Target executable not found in update package for %s/%s", goos, goarch)
+	return "", fmt.Errorf("target executable not found in update package for %s/%s", goos, goarch)
 }
 
 func extractExecutableFromNestedZip(inner *zip.File, exeName string) (string, error) {
@@ -231,7 +231,7 @@ func extractExecutableFromNestedZip(inner *zip.File, exeName string) (string, er
 	}
 	innerReader, err := zip.NewReader(innerTemp, ifi.Size())
 	if err != nil {
-		return "", fmt.Errorf("Invalid nested zip %s: %w", inner.Name, err)
+		return "", fmt.Errorf("invalid nested zip %s: %w", inner.Name, err)
 	}
 
 	for _, f := range innerReader.File {
@@ -242,12 +242,12 @@ func extractExecutableFromNestedZip(inner *zip.File, exeName string) (string, er
 			return materializeZipEntryAsExecutable(f)
 		}
 	}
-	return "", fmt.Errorf("Executable %s not found in nested package %s", exeName, filepath.Base(inner.Name))
+	return "", fmt.Errorf("executable %s not found in nested package %s", exeName, filepath.Base(inner.Name))
 }
 
 func materializeZipEntryAsExecutable(f *zip.File) (string, error) {
 	if f.FileInfo().IsDir() {
-		return "", errors.New("Entry is a directory")
+		return "", errors.New("entry is a directory")
 	}
 	if f.UncompressedSize64 > uint64(maxUpdateExecutableSize) {
 		return "", fmt.Errorf("update executable exceeds %d bytes", maxUpdateExecutableSize)
@@ -293,7 +293,7 @@ func finalizeExtractedBinary(path string) (string, error) {
 	return path, nil
 }
 
-var ErrIncompatibleBinary = errors.New("Executable binary does not match current system or architecture")
+var ErrIncompatibleBinary = errors.New("executable binary does not match current system or architecture")
 
 func ValidateExecutableBinary(filePath string) error {
 	f, err := os.Open(filePath)
@@ -432,13 +432,13 @@ func machoCpuForGOARCH(goarch string) (cpu macho.Cpu, ok bool) {
 func SaveAndExtractUploadedZip(fileHeader *multipart.FileHeader) (string, error) {
 	src, err := fileHeader.Open()
 	if err != nil {
-		return "", fmt.Errorf("Failed to open uploaded file: %w", err)
+		return "", fmt.Errorf("failed to open uploaded file: %w", err)
 	}
 	defer src.Close()
 
 	tempZip, err := os.CreateTemp("", "renop-upload-*.zip")
 	if err != nil {
-		return "", fmt.Errorf("Failed to create temp file: %w", err)
+		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tempZipPath := tempZip.Name()
 	defer func() {
@@ -448,7 +448,7 @@ func SaveAndExtractUploadedZip(fileHeader *multipart.FileHeader) (string, error)
 
 	bufWriter := bufio.NewWriterSize(tempZip, 128*1024)
 	if _, err := io.Copy(bufWriter, src); err != nil {
-		return "", fmt.Errorf("Failed to save uploaded file: %w", err)
+		return "", fmt.Errorf("failed to save uploaded file: %w", err)
 	}
 	if err := bufWriter.Flush(); err != nil {
 		return "", err
@@ -460,7 +460,7 @@ func SaveAndExtractUploadedZip(fileHeader *multipart.FileHeader) (string, error)
 func ExtractExecutableFromZipPath(zipPath string) (string, error) {
 	f, err := os.Open(zipPath)
 	if err != nil {
-		return "", fmt.Errorf("Failed to open uploaded file: %w", err)
+		return "", fmt.Errorf("failed to open uploaded file: %w", err)
 	}
 	defer f.Close()
 	return ExtractExecutableFromZip(f)
@@ -575,7 +575,7 @@ func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string)
 	defer utils.DrainAndClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Download failed with status %d", resp.StatusCode)
+		return "", fmt.Errorf("download failed with status %d", resp.StatusCode)
 	}
 	if resp.ContentLength > maxUpdatePackageSize {
 		return "", fmt.Errorf("update package exceeds %d bytes", maxUpdatePackageSize)
@@ -589,10 +589,10 @@ func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string)
 	}
 	flushErr := bufWriter.Flush()
 	if copyErr != nil {
-		return "", fmt.Errorf("Failed to save update package: %w", copyErr)
+		return "", fmt.Errorf("failed to save update package: %w", copyErr)
 	}
 	if flushErr != nil {
-		return "", fmt.Errorf("Failed to flush update package: %w", flushErr)
+		return "", fmt.Errorf("failed to flush update package: %w", flushErr)
 	}
 	if subtle.ConstantTimeCompare(hasher.Sum(nil), expectedDigest) != 1 {
 		return "", errors.New("update package SHA-256 mismatch")
@@ -708,12 +708,12 @@ func ApplyUpdateAndRestart(newBinaryPath string) error {
 	_ = os.Remove(oldExe)
 
 	if err := os.Rename(currentExe, oldExe); err != nil {
-		return fmt.Errorf("Failed to backup current executable: %w", err)
+		return fmt.Errorf("failed to backup current executable: %w", err)
 	}
 
 	if err := moveOrCopyFile(newBinaryPath, currentExe); err != nil {
 		_ = os.Rename(oldExe, currentExe)
-		return fmt.Errorf("Failed to replace executable: %w", err)
+		return fmt.Errorf("failed to replace executable: %w", err)
 	}
 
 	pendingBinary.consume()

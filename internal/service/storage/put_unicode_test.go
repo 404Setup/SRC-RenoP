@@ -28,7 +28,7 @@ import (
 )
 
 func TestUnicodeFilenameUploadAndDownload(t *testing.T) {
-	storagePath := t.TempDir()
+	storagePath := storageTestTempDir(t)
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
 	InitS3(cfg)

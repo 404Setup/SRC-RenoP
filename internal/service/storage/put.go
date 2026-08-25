@@ -312,7 +312,7 @@ func CommitUploadedFile(state *core.AppState, localFilePath, tmpPath string, fil
 	if IsS3Enabled(localFilePath) {
 		s3Key := utils.GetS3Key(localFilePath)
 		if err := UploadToS3(tmpPath, s3Key); err != nil {
-			return fmt.Errorf("Failed to upload to S3: %w", err)
+			return fmt.Errorf("failed to upload to S3: %w", err)
 		}
 		_ = os.Remove(tmpPath)
 	} else {

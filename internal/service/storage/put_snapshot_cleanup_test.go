@@ -48,7 +48,7 @@ func removeAllWithRetry(path string) {
 
 func setupSnapshotPutApp(t *testing.T) (*fiber.App, *core.AppState, string, *config.Repository) {
 	t.Helper()
-	storagePath := t.TempDir()
+	storagePath := storageTestTempDir(t)
 	if runtime.GOOS == "windows" {
 		t.Cleanup(func() { removeAllWithRetry(storagePath) })
 	}

@@ -39,11 +39,11 @@ var (
 func NormalizeDomain(value string) (string, error) {
 	value = strings.ToLower(strings.TrimSpace(value))
 	if value == "" || len(value) > maxMavenDomainLength || strings.HasPrefix(value, ".") || strings.HasSuffix(value, ".") {
-		return "", errors.New("Maven domain must be a valid reverse-domain namespace")
+		return "", errors.New("maven domain must be a valid reverse-domain namespace")
 	}
 	parts := strings.Split(value, ".")
 	if len(parts) < 2 {
-		return "", errors.New("Maven domain must contain at least two labels")
+		return "", errors.New("maven domain must contain at least two labels")
 	}
 	if len(parts) >= 3 && parts[0] == "io" && parts[1] == "github" {
 		if !githubAccountPattern.MatchString(parts[2]) {
@@ -51,7 +51,7 @@ func NormalizeDomain(value string) (string, error) {
 		}
 		for _, part := range parts[3:] {
 			if !dnsLabelPattern.MatchString(part) {
-				return "", errors.New("Maven domain contains an invalid label")
+				return "", errors.New("maven domain contains an invalid label")
 			}
 		}
 		return value, nil
@@ -62,14 +62,14 @@ func NormalizeDomain(value string) (string, error) {
 		}
 		for _, part := range parts[3:] {
 			if !dnsLabelPattern.MatchString(part) {
-				return "", errors.New("Maven domain contains an invalid label")
+				return "", errors.New("maven domain contains an invalid label")
 			}
 		}
 		return value, nil
 	}
 	for _, part := range parts {
 		if !dnsLabelPattern.MatchString(part) {
-			return "", errors.New("Maven domain contains an invalid DNS label")
+			return "", errors.New("maven domain contains an invalid DNS label")
 		}
 	}
 	return value, nil
@@ -92,11 +92,11 @@ func VerificationTarget(domain string) (verificationType, target string, err err
 	slices.Reverse(reversed)
 	host := strings.Join(reversed, ".")
 	if _, icann := publicsuffix.PublicSuffix(host); !icann {
-		return "", "", errors.New("Maven domain must use a recognized public DNS suffix")
+		return "", "", errors.New("maven domain must use a recognized public DNS suffix")
 	}
 	root, err := publicsuffix.EffectiveTLDPlusOne(host)
 	if err != nil || root == "" {
-		return "", "", errors.New("Maven domain does not map to a registrable DNS domain")
+		return "", "", errors.New("maven domain does not map to a registrable DNS domain")
 	}
 	return core.MavenVerificationDNS, strings.ToLower(root), nil
 }

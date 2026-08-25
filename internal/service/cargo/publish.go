@@ -333,30 +333,30 @@ func readPublishHeader(reader io.Reader, contentLength int64) (PublishMetadata, 
 	var metadata PublishMetadata
 	var lengthBuffer [4]byte
 	if _, err := io.ReadFull(reader, lengthBuffer[:]); err != nil {
-		return metadata, 0, errors.New("Invalid Cargo publish body")
+		return metadata, 0, errors.New("invalid Cargo publish body")
 	}
 	metadataLength := int64(binary.LittleEndian.Uint32(lengthBuffer[:]))
 	if metadataLength <= 0 || metadataLength > maxMetadataSize {
-		return metadata, 0, errors.New("Invalid Cargo publish metadata length")
+		return metadata, 0, errors.New("invalid Cargo publish metadata length")
 	}
 	metadataReader := &io.LimitedReader{R: reader, N: metadataLength}
 	decoder := json.NewDecoder(metadataReader)
 	if err := decoder.Decode(&metadata); err != nil {
-		return metadata, 0, errors.New("Invalid Cargo publish metadata")
+		return metadata, 0, errors.New("invalid Cargo publish metadata")
 	}
 	var extra any
 	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) || metadataReader.N != 0 {
-		return metadata, 0, errors.New("Invalid Cargo publish metadata")
+		return metadata, 0, errors.New("invalid Cargo publish metadata")
 	}
 	if _, err := io.ReadFull(reader, lengthBuffer[:]); err != nil {
-		return metadata, 0, errors.New("Invalid Cargo publish body")
+		return metadata, 0, errors.New("invalid Cargo publish body")
 	}
 	crateLength := int64(binary.LittleEndian.Uint32(lengthBuffer[:]))
 	if crateLength <= 0 || crateLength > maxCrateSize {
-		return metadata, 0, errors.New("Cargo crate exceeds the size limit")
+		return metadata, 0, errors.New("cargo crate exceeds the size limit")
 	}
 	if expected := metadataLength + crateLength + 8; contentLength > 0 && contentLength != expected {
-		return metadata, 0, errors.New("Invalid Cargo publish body length")
+		return metadata, 0, errors.New("invalid Cargo publish body length")
 	}
 	return metadata, crateLength, nil
 }
@@ -368,16 +368,16 @@ func streamCrate(reader io.Reader, destination io.WriteCloser, digest hash.Hash,
 	publishBuffers.Put(bufferPointer)
 	if copyErr != nil || limited.N != 0 {
 		_ = destination.Close()
-		return errors.New("Invalid Cargo crate length")
+		return errors.New("invalid Cargo crate length")
 	}
 	if err := destination.Close(); err != nil {
-		return errors.New("Failed to stage Cargo crate")
+		return errors.New("failed to stage Cargo crate")
 	}
 	var trailing [1]byte
 	if n, err := io.ReadFull(reader, trailing[:]); err == nil || n != 0 {
-		return errors.New("Invalid trailing Cargo publish data")
+		return errors.New("invalid trailing Cargo publish data")
 	} else if !errors.Is(err, io.EOF) {
-		return errors.New("Invalid Cargo publish body")
+		return errors.New("invalid Cargo publish body")
 	}
 	return nil
 }

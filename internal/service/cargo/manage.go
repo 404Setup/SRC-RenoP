@@ -213,7 +213,7 @@ func (h Handler) rewritePackageIndex(state *core.AppState, indexFilePath string,
 		return closeErr
 	}
 	if updated != len(desired) {
-		return fmt.Errorf("Cargo index version count does not match package metadata")
+		return fmt.Errorf("cargo index version count does not match package metadata")
 	}
 	if err := stage.Close(); err != nil {
 		return err

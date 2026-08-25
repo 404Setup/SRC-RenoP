@@ -310,7 +310,7 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 		return core.ErrDatabaseUnavailable
 	}
 	if pkg == nil || version == nil {
-		return errors.New("Cargo publication metadata is missing")
+		return errors.New("cargo publication metadata is missing")
 	}
 	repository, normalizedName := sanitizeCargoKey(pkg.Repository, pkg.NormalizedName)
 	username = sanitizeCargoUsername(username)
@@ -318,7 +318,7 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	description := SanitizeInputString(strings.TrimSpace(pkg.Description), 4000)
 	versionName := SanitizeInputString(strings.TrimSpace(version.Version), 128)
 	if repository == "" || normalizedName == "" || username == "" || packageName == "" || versionName == "" {
-		return errors.New("Cargo publication metadata is invalid")
+		return errors.New("cargo publication metadata is invalid")
 	}
 	userID, err := db.ensureUserProfile(username)
 	if err != nil {
@@ -363,7 +363,7 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 			return core.ErrCargoPackageArchived
 		}
 		if storedName != packageName {
-			return errors.New("Cargo crate name collides with an existing package")
+			return errors.New("cargo crate name collides with an existing package")
 		}
 		var level int
 		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
@@ -615,22 +615,22 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 		return core.ErrDatabaseUnavailable
 	}
 	if len(invitations) == 0 || len(invitations) != len(messages) || len(invitations) > 20 {
-		return errors.New("Cargo invitation is missing")
+		return errors.New("cargo invitation is missing")
 	}
 	for i, invitation := range invitations {
 		message := messages[i]
 		if invitation == nil || message == nil {
-			return errors.New("Cargo invitation is missing")
+			return errors.New("cargo invitation is missing")
 		}
 		invitation.Repository, invitation.NormalizedName = sanitizeCargoKey(invitation.Repository, invitation.NormalizedName)
 		invitation.Package = SanitizeInputString(strings.TrimSpace(invitation.Package), 64)
 		invitation.Inviter = sanitizeCargoUsername(invitation.Inviter)
 		invitation.Recipient = sanitizeCargoUsername(invitation.Recipient)
 		if invitation.Level < core.CargoPermissionPublish || invitation.Level > core.CargoPermissionOwner {
-			return errors.New("Cargo invitation permission level is invalid")
+			return errors.New("cargo invitation permission level is invalid")
 		}
 		if invitation.ID == "" || invitation.ID != message.ID || invitation.Recipient != strings.ToLower(strings.TrimSpace(message.Recipient)) {
-			return errors.New("Cargo invitation message does not match its workflow record")
+			return errors.New("cargo invitation message does not match its workflow record")
 		}
 		if err := normalizeMessage(message); err != nil {
 			return err
@@ -668,7 +668,7 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 	for i, invitation := range invitations {
 		message := messages[i]
 		if invitation.Repository != first.Repository || invitation.NormalizedName != first.NormalizedName || invitation.Inviter != first.Inviter {
-			return errors.New("Cargo invitation batch targets multiple packages")
+			return errors.New("cargo invitation batch targets multiple packages")
 		}
 		if invitation.Level == core.CargoPermissionOwner && inviterLevel < core.CargoPermissionOwner {
 			return core.ErrCargoPermissionDenied
@@ -736,10 +736,10 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {
-		return errors.New("Cargo member addition batch is invalid")
+		return errors.New("cargo member addition batch is invalid")
 	}
 	if level < core.CargoPermissionPublish || level > core.CargoPermissionOwner {
-		return errors.New("Cargo permission level is invalid")
+		return errors.New("cargo permission level is invalid")
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	packageName = SanitizeInputString(strings.TrimSpace(packageName), 64)
@@ -750,7 +750,7 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 	for _, candidate := range usernames {
 		username := sanitizeCargoUsername(candidate)
 		if username == "" {
-			return errors.New("Cargo member name is invalid")
+			return errors.New("cargo member name is invalid")
 		}
 		if _, duplicate := seen[username]; duplicate {
 			continue
@@ -764,7 +764,7 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 		normalizedUsers = append(normalizedUsers, username)
 	}
 	if len(normalizedUsers) == 0 || (level == core.CargoPermissionOwner && len(normalizedUsers) != 1) {
-		return errors.New("Cargo L4 ownership can only be assigned to one member at a time")
+		return errors.New("cargo L4 ownership can only be assigned to one member at a time")
 	}
 	now := time.Now().UnixMilli()
 
@@ -936,7 +936,7 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 		return core.ErrDatabaseUnavailable
 	}
 	if level < core.CargoPermissionPublish || level > core.CargoPermissionOwner {
-		return errors.New("Cargo permission level is invalid")
+		return errors.New("cargo permission level is invalid")
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	actor = sanitizeCargoUsername(actor)
@@ -1018,7 +1018,7 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {
-		return errors.New("Cargo member removal batch is invalid")
+		return errors.New("cargo member removal batch is invalid")
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	actor = sanitizeCargoUsername(actor)
@@ -1028,7 +1028,7 @@ func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usern
 	for _, candidate := range usernames {
 		username := sanitizeCargoUsername(candidate)
 		if username == "" {
-			return errors.New("Cargo member name is invalid")
+			return errors.New("cargo member name is invalid")
 		}
 		if _, exists := seen[username]; exists {
 			continue

@@ -1060,21 +1060,21 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 		return core.ErrDatabaseUnavailable
 	}
 	if len(invitations) == 0 || len(invitations) != len(messages) || len(invitations) > 20 {
-		return errors.New("Docker invitation is missing")
+		return errors.New("docker invitation is missing")
 	}
 	for i, invitation := range invitations {
 		message := messages[i]
 		if invitation == nil || message == nil {
-			return errors.New("Docker invitation is missing")
+			return errors.New("docker invitation is missing")
 		}
 		invitation.Repository, invitation.ImageName = sanitizeDockerKey(invitation.Repository, invitation.ImageName)
 		invitation.Inviter = sanitizeDockerUsername(invitation.Inviter)
 		invitation.Recipient = sanitizeDockerUsername(invitation.Recipient)
 		if invitation.Level < core.DockerPermissionRead || invitation.Level > core.DockerPermissionOwner {
-			return errors.New("Docker invitation permission level is invalid")
+			return errors.New("docker invitation permission level is invalid")
 		}
 		if invitation.ID == "" || invitation.ID != message.ID || invitation.Recipient != strings.ToLower(strings.TrimSpace(message.Recipient)) {
-			return errors.New("Docker invitation message does not match its workflow record")
+			return errors.New("docker invitation message does not match its workflow record")
 		}
 		if err := normalizeMessage(message); err != nil {
 			return err
@@ -1131,7 +1131,7 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 	for i, invitation := range invitations {
 		message := messages[i]
 		if invitation.Repository != first.Repository || invitation.ImageName != first.ImageName || invitation.Inviter != first.Inviter {
-			return errors.New("Docker invitation batch targets multiple images")
+			return errors.New("docker invitation batch targets multiple images")
 		}
 		if invitation.Level == core.DockerPermissionOwner && inviterLevel < core.DockerPermissionOwner {
 			return core.ErrDockerPermissionDenied
@@ -1202,10 +1202,10 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {
-		return errors.New("Docker member addition batch is invalid")
+		return errors.New("docker member addition batch is invalid")
 	}
 	if level < core.DockerPermissionRead || level > core.DockerPermissionOwner {
-		return errors.New("Docker permission level is invalid")
+		return errors.New("docker permission level is invalid")
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	actor = sanitizeDockerUsername(actor)
@@ -1215,7 +1215,7 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 	for _, candidate := range usernames {
 		username := sanitizeDockerUsername(candidate)
 		if username == "" {
-			return errors.New("Docker member name is invalid")
+			return errors.New("docker member name is invalid")
 		}
 		if _, duplicate := seen[username]; duplicate {
 			continue
@@ -1229,7 +1229,7 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 		normalizedUsers = append(normalizedUsers, username)
 	}
 	if len(normalizedUsers) == 0 || (level == core.DockerPermissionOwner && len(normalizedUsers) != 1) {
-		return errors.New("Docker L4 ownership can only be assigned to one member at a time")
+		return errors.New("docker L4 ownership can only be assigned to one member at a time")
 	}
 	now := time.Now().UnixMilli()
 
@@ -1411,7 +1411,7 @@ func (db *DB) SetDockerMemberLevel(repository, imageName, actor, username string
 		return core.ErrDatabaseUnavailable
 	}
 	if level < core.DockerPermissionRead || level > core.DockerPermissionOwner {
-		return errors.New("Docker permission level is invalid")
+		return errors.New("docker permission level is invalid")
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	actor = sanitizeDockerUsername(actor)
@@ -1498,7 +1498,7 @@ func (db *DB) RemoveDockerMembers(repository, imageName, actor string, usernames
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {
-		return errors.New("Docker member removal batch is invalid")
+		return errors.New("docker member removal batch is invalid")
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	actor = sanitizeDockerUsername(actor)
@@ -1508,7 +1508,7 @@ func (db *DB) RemoveDockerMembers(repository, imageName, actor string, usernames
 	for _, candidate := range usernames {
 		username := sanitizeDockerUsername(candidate)
 		if username == "" {
-			return errors.New("Docker member name is invalid")
+			return errors.New("docker member name is invalid")
 		}
 		if _, exists := seen[username]; exists {
 			continue

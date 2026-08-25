@@ -97,7 +97,7 @@ func (db *DB) MarkMavenRepositoryUpgraded(repository string, completedAt int64) 
 	}
 	repository = sanitizeMavenRepository(repository)
 	if repository == "" || completedAt <= 0 {
-		return errors.New("Maven repository upgrade marker is invalid")
+		return errors.New("maven repository upgrade marker is invalid")
 	}
 	var exists int
 	err := db.QueryRow(`SELECT 1 FROM maven_repository_upgrades WHERE repository = ?`, repository).Scan(&exists)
@@ -122,7 +122,7 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administ
 		return core.ErrDatabaseUnavailable
 	}
 	if domain == nil {
-		return errors.New("Maven domain is missing")
+		return errors.New("maven domain is missing")
 	}
 	domain.Repository = sanitizeMavenRepository(domain.Repository)
 	domain.Domain = sanitizeMavenDomain(domain.Domain)
@@ -131,7 +131,7 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administ
 	domain.VerificationCode = SanitizeInputString(strings.TrimSpace(domain.VerificationCode), 128)
 	owner = sanitizeMavenUsername(owner)
 	if domain.Repository == "" || domain.Domain == "" || domain.VerificationHost == "" || domain.VerificationCode == "" || owner == "" {
-		return errors.New("Maven domain is invalid")
+		return errors.New("maven domain is invalid")
 	}
 	ownerID, err := db.ensureUserProfile(owner)
 	if err != nil {
@@ -155,7 +155,7 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administ
 		return fmt.Errorf("count Maven domain ownerships: %w", err)
 	}
 	if owned >= maxMavenDomainsPerOwner {
-		return errors.New("Maven domain ownership limit reached")
+		return errors.New("maven domain ownership limit reached")
 	}
 	var reusedType, reusedHost, reusedCode string
 	var reusedVerifiedAt int64
@@ -442,7 +442,7 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 		return core.ErrDatabaseUnavailable
 	}
 	if artifact == nil || version == nil {
-		return errors.New("Maven publication metadata is missing")
+		return errors.New("maven publication metadata is missing")
 	}
 	repository := sanitizeMavenRepository(artifact.Repository)
 	domain := sanitizeMavenDomain(artifact.Domain)
@@ -452,7 +452,7 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 	publisher := sanitizeMavenUsername(version.Publisher)
 	description := SanitizeInputString(strings.TrimSpace(artifact.Description), 4000)
 	if repository == "" || domain == "" || groupID == "" || artifactID == "" || versionName == "" {
-		return errors.New("Maven publication metadata is invalid")
+		return errors.New("maven publication metadata is invalid")
 	}
 	if groupID != domain && !strings.HasPrefix(groupID, domain+".") {
 		return core.ErrMavenPermissionDenied
@@ -531,7 +531,7 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
 	query = SanitizeInputString(strings.ToLower(strings.TrimSpace(query)), 128)
 	if limit < 1 || limit > 100 || offset < 0 {
-		return nil, 0, errors.New("Maven artifact page is invalid")
+		return nil, 0, errors.New("maven artifact page is invalid")
 	}
 	where := ` WHERE repository = ?`
 	args := []any{repository}

@@ -135,7 +135,7 @@ func (staged *cargoStagedFile) Size() (int64, error) {
 
 func (staged *cargoStagedFile) Commit(state *core.AppState) error {
 	if staged == nil || staged.tempPath == "" || staged.targetPath == "" || staged.committed {
-		return errors.New("Cargo staged file is unavailable")
+		return errors.New("cargo staged file is unavailable")
 	}
 	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil {
 		return errors.New("storage index is unavailable")
