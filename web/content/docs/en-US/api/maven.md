@@ -1,58 +1,50 @@
 ---
-title: Maven Metadata API
+title: Maven Registry API
 order: 4
 category: API Reference
-description: Artifact search, metadata details, version discovery, and SVG badge generation
+description: Verified publishing domains, domain teams, artifact catalogs, and Maven client access
 ---
 
-# Maven Metadata API
+# Maven Registry API
 
-## 1. Search Artifacts
+RenoP Maven repositories use verified reverse-domain namespaces. A publisher must reserve a domain in the repository UI before uploading an artifact. Standard Maven 2 paths, metadata, detached signatures, and checksum companions remain compatible with Maven and Gradle clients.
 
-- **Path**: `GET /api/search`
-- **Query Parameters**:
-    - `q`: Search keyword (matches groupId, artifactId, or version)
-    - `repo`: Repository filter (optional)
-    - `limit`: Result count (default: 20, max: 100)
+## Domain verification
 
-### Response (JSON)
+Create a domain with `POST /api/maven/repositories/:repo/domains`. RenoP returns a high-entropy verification code and one fixed proof target:
 
-```json
-{
-  "results": [
-    {
-      "repository": "releases",
-      "group_id": "com.example",
-      "artifact_id": "my-library",
-      "latest_version": "1.2.0",
-      "versions": ["1.0.0", "1.1.0", "1.2.0"],
-      "last_updated": 1740000000
-    }
-  ]
-}
-```
+- DNS namespaces use a TXT record at the registered root. RenoP reads every TXT value and accepts an exact match.
+- `io.github.<account>` namespaces use the Bio of a public GitHub user or the Description of a public GitHub organization.
+- `io.gitlab.<account>` namespaces use the Bio of a public GitLab user or the Description of a public GitLab group.
 
----
+Start an external check with `POST /api/maven/repositories/:repo/domains/:domain/verify`. Checks are limited to one attempt every five seconds for each domain. A system administrator can use `/verify/force`; this bypass is recorded in the audit log.
 
-## 2. Artifact Details
+When the same L4 owner creates an already verified domain in another repository, RenoP reuses the server-side proof and does not require another external check. Administrators receive the same reuse behavior. Other users must supply a new proof.
 
-- **Path**: `GET /api/maven/details/:repo/:group/:artifact`
-- **Description**: Returns version history, packaging formats, and dependencies for a coordinate.
+## Domain permissions
 
----
+Maven teams are attached to domains rather than individual artifacts:
 
-## 3. Version Status SVG Badge
+- L0: read public content
+- L1: publish artifacts
+- L2: manage versions and descriptions
+- L3: invite and manage team members
+- L4: own and transfer the domain
 
-- **Path**: `GET /api/maven/badge/:repo/:group/:artifact/version.svg`
-- **Response**: SVG vector image displaying the latest version.
-- **Example**:
-  ```markdown
-  ![Version](http://localhost:3000/api/maven/badge/releases/com.example/my-library/version.svg)
-  ```
+The member API accepts between one and twenty usernames in one request. Non-administrator additions create message-center invitations. Exactly one L4 owner is retained during transfers; an owner cannot leave before transferring ownership.
 
----
+## Artifact catalog
 
-## 4. Generate POM Snippet
+Use `GET /api/maven/repositories/:repo/packages` to page or search the catalog. `GET /api/maven/repositories/:repo/package?group=...&artifact=...` returns artifact details and versions. L2 members can update descriptions and delete complete versions through the corresponding JSON endpoints.
 
-- **Path**: `GET /api/maven/pom-snippet/:repo/:group/:artifact/:version`
-- **Response (JSON)**: Contains Maven XML, Gradle Kotlin DSL, and Groovy DSL dependency declaration strings.
+Legacy Maven repositories are indexed into the domain catalog during upgrade. Imported domains are verified but receive no automatic team members; an administrator must explicitly assign access before new publication. Configured Maven mirrors continue to resolve missing artifacts.
+
+## Layouts and file repositories
+
+Maven repositories default to the domain catalog UI. An administrator can switch a Maven repository to the classic file-tree layout and switch back later. The classic layout changes presentation only: arbitrary paths are rejected, and publication still requires a verified domain and a valid Maven artifact or metadata path.
+
+The separate `files` repository format is intended for unstructured content. It supports direct upload, replacement, deletion, S3 storage, and mirrors. It deliberately does not generate checksums, generate POM files, or perform OpenPGP signature processing.
+
+## Maven client access
+
+Artifact reads and publications use `/{repo}/{maven-path}`. Authenticate Maven or Gradle with an account password or upload token. Repository visibility controls reads, while verified domain membership controls mutation. The complete endpoint and schema list is available in `web/assets/openapi.yaml`.

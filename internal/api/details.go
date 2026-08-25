@@ -27,6 +27,7 @@ import (
 	"renop/internal/service/docker"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
+	"renop/internal/service/maven"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
@@ -210,7 +211,7 @@ func ResolveAndCheckPath(state *core.AppState, user *config.User, repoName strin
 		return "", fiber.ErrBadRequest
 	}
 
-	canRead, err := cargo.CanReadRepository(state, user, repo, sanitizedPath, isDir)
+	canRead, err := canReadConfiguredRepository(state, user, repo, sanitizedPath, isDir)
 	if err != nil {
 		return "", err
 	}
@@ -226,6 +227,13 @@ func ResolveAndCheckPath(state *core.AppState, user *config.User, repoName strin
 	return localFilePath, nil
 }
 
+func canReadConfiguredRepository(state *core.AppState, user *config.User, repo *config.Repository, path string, isRoot bool) (bool, error) {
+	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatMaven {
+		return maven.CanReadRepository(state, user, repo, path, isRoot)
+	}
+	return cargo.CanReadRepository(state, user, repo, path, isRoot)
+}
+
 func GetDetailsAllRepos(c fiber.Ctx, state *core.AppState) error {
 	user := auth.GetUser(c)
 
@@ -233,15 +241,15 @@ func GetDetailsAllRepos(c fiber.Ctx, state *core.AppState) error {
 
 	var repos []FileDetails
 	for repoName, repo := range cfg.Maven.Repositories {
-		canRead, err := cargo.CanReadRepository(state, user, repo, "", true)
+		canRead, err := canReadConfiguredRepository(state, user, repo, "", true)
 		if err != nil {
-			return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")
 		}
 		if canRead {
 			repos = append(repos, FileDetails{
 				Type:   FileDetailsTypeDirectory,
 				Name:   repoName,
-				Format: repo.NormalizedFormat(),
+				Format: repo.ConfiguredFormat(),
 			})
 		}
 	}
@@ -349,9 +357,9 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
 
-	canRead, err := cargo.CanReadRepository(state, user, repo, "", true)
+	canRead, err := canReadConfiguredRepository(state, user, repo, "", true)
 	if err != nil {
-		return c.Status(fiber.StatusServiceUnavailable).SendString("Cargo registry metadata is unavailable")
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")
 	}
 	if !canRead {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
@@ -421,6 +429,6 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 		MetadataCount:       metadataCount,
 		Mirrors:             mirrors,
 		RequireGpgSignature: repo.RequireGPGSignature,
-		Format:              repo.NormalizedFormat(),
+		Format:              repo.ConfiguredFormat(),
 	})
 }

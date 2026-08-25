@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "Detalhes do artefacto",
     "details.subtitle": "Copie fragmentos de configuração para a sua ferramenta de compilação",
     "details.copySnippet": "Copiar código",
+    "details.copy": "Copiar",
     "details.copied": "Copiado!",
     "details.statsTitle": "Armazenamento e espelhos",
     "details.statsSubtitle": "Uso de armazenamento local e espelhos configurados",

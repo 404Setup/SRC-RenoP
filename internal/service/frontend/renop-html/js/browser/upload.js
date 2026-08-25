@@ -84,16 +84,21 @@ function isGPGDetachedSignature(name) {
 /**
  * Apply repository signing policy to upload options without hiding uploads.
  * @param {boolean} required
+ * @param {boolean} [supportsHelpers=true]
  * @returns {void}
  */
-function applyRepositoryGPGPolicy(required) {
+function applyRepositoryGPGPolicy(required, supportsHelpers = true) {
 	repositoryRequiresGPG = required === true;
+	const checksumCheckbox = document.getElementById('checksum-checkbox');
+	const checksumOption = checksumCheckbox?.closest('.upload-option');
 	const pomCheckbox = document.getElementById('pom-checkbox');
 	const pomOption = pomCheckbox?.closest('.upload-option');
 	const pomForm = document.getElementById('pom-form');
-	if (pomOption) pomOption.hidden = repositoryRequiresGPG;
-	if (repositoryRequiresGPG && pomCheckbox) pomCheckbox.checked = false;
-	if (repositoryRequiresGPG && pomForm) pomForm.classList.remove('is-open');
+	if (checksumOption) checksumOption.hidden = !supportsHelpers;
+	if (pomOption) pomOption.hidden = !supportsHelpers || repositoryRequiresGPG;
+	if (!supportsHelpers && checksumCheckbox) checksumCheckbox.checked = false;
+	if ((!supportsHelpers || repositoryRequiresGPG) && pomCheckbox) pomCheckbox.checked = false;
+	if ((!supportsHelpers || repositoryRequiresGPG) && pomForm) pomForm.classList.remove('is-open');
 }
 
 /**
@@ -283,7 +288,10 @@ export async function updateUploadZone(path, detailsPromise) {
     if (shouldShow) {
 		try {
 			if (policySeq !== repositoryPolicySeq) return;
-			applyRepositoryGPGPolicy(details?.require_gpg_signature === true);
+			applyRepositoryGPGPolicy(
+				details?.require_gpg_signature === true,
+				format.supportsUploadHelpers !== false
+			);
 		} catch (error) {
 			if (policySeq !== repositoryPolicySeq) return;
 			applyRepositoryGPGPolicy(false);

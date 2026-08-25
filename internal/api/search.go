@@ -22,7 +22,6 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
-	"renop/internal/service/cargo"
 	"renop/internal/service/index"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -37,8 +36,8 @@ const (
 )
 
 // SearchRepository provides one bounded, format-aware search endpoint for the
-// repository browser. Cargo searches package metadata; Maven searches the
-// indexed repository tree without touching the filesystem on every request.
+// repository browser. Cargo and Docker search package metadata; Maven and file
+// repositories search the index without touching the filesystem on every request.
 func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	query := strings.TrimSpace(c.Query("q"))
 	if query == "" || len(query) > 128 || strings.ContainsAny(query, "\x00\r\n") {
@@ -62,7 +61,7 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
 	}
 	user := auth.GetUser(c)
-	canRead, err := cargo.CanReadRepository(state, user, repo, "", true)
+	canRead, err := canReadConfiguredRepository(state, user, repo, "", true)
 	if err != nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")
 	}
@@ -202,7 +201,7 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 		results = results[:limit]
 	}
 	return &pb.RepositorySearchResponse{
-		Format: config.RepositoryFormatMaven, Results: results, Total: int32(total),
+		Format: repo.ConfiguredFormat(), Results: results, Total: int32(total),
 		HasMore: scanLimitReached || total > len(results),
 	}, nil
 }

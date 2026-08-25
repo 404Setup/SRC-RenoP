@@ -32,6 +32,7 @@ import {initUpload, updateUploadZone} from './browser/upload.js';
 import {fetchRepoDetails, hideRepoStats, updateRepoStats} from './browser/stats.js';
 import {hideCargoRepositoryView, renderCargoRepository} from './browser/cargo.js';
 import {hideDockerRepositoryView, renderDockerRepository} from './browser/docker.js';
+import {hideMavenRepositoryView, renderMavenRepository} from './browser/maven.js';
 import {localizeRepositorySearch, updateRepositorySearch} from './browser/search.js';
 import {FileDetails, GpgSignatureDetails} from './proto/index.js';
 import {getRepositoryFormat} from './repository-formats.js';
@@ -52,6 +53,20 @@ let currentRepoDetails = null;
 let currentRepositoryName = '';
 
 const prefetchCache = new Set();
+
+/**
+ * Drop repository-detail reuse after settings change a mutable policy or Maven layout.
+ * @param {CustomEvent} event - Repository settings update notification.
+ * @returns {void}
+ */
+function handleRepositorySettingsChanged(event) {
+    if (String(event.detail?.repository || '') !== currentRepositoryName) return;
+    currentRepoDetails = null;
+    currentRepoDetailsPromise = null;
+    currentRepositoryName = '';
+}
+
+window.addEventListener('repositorySettingsChanged', handleRepositorySettingsChanged);
 
 /**
  * Prefetch a URL once via a `<link rel="prefetch">` tag (deduped).
@@ -202,11 +217,12 @@ function setStateVisibility({empty = false, error = false} = {}) {
 }
 
 /**
- * Switch the main browser column between Maven's file tree and Cargo's package pages.
- * @param {boolean} cargoMode - Whether the active repository uses Cargo.
+ * Switch the main browser column between the root file tree and a format-specific repository view.
+ * @param {''|'maven'|'cargo'|'docker'} format - Active custom repository format, or empty at the root.
  * @returns {void}
  */
-function setRepositoryContentMode(customMode) {
+function setRepositoryContentMode(format = '') {
+    const customMode = format === 'maven' || format === 'cargo' || format === 'docker';
     if (fileListContainer) {
         fileListContainer.hidden = customMode;
         if (customMode) {
@@ -220,8 +236,9 @@ function setRepositoryContentMode(customMode) {
         }
     }
     if (browserAdjustments instanceof HTMLElement) browserAdjustments.hidden = customMode;
-    if (currentRepositoryFormat !== 'cargo') hideCargoRepositoryView();
-    if (currentRepositoryFormat !== 'docker') hideDockerRepositoryView();
+    if (format !== 'maven') hideMavenRepositoryView();
+    if (format !== 'cargo') hideCargoRepositoryView();
+    if (format !== 'docker') hideDockerRepositoryView();
 }
 
 /**
@@ -679,7 +696,7 @@ export async function loadDirectory(path) {
     const seq = ++currentLoadSeq;
     const pathParts = path.split('/').filter(p => p.length > 0);
     const repositoryName = pathParts[0] || '';
-    const canReuseCargoDetails = (currentRepositoryFormat === 'cargo' || currentRepositoryFormat === 'docker') &&
+    const canReuseFormatDetails = (currentRepositoryFormat === 'maven' || currentRepositoryFormat === 'cargo' || currentRepositoryFormat === 'docker') &&
         repositoryName !== '' && repositoryName === currentRepositoryName && currentRepoDetails !== null;
 
     let direction = 'fade';
@@ -695,7 +712,7 @@ export async function loadDirectory(path) {
     }
     lastDirectoryPath = path;
 
-    const exitPromise = (isSameDirectory || canReuseCargoDetails)
+    const exitPromise = (isSameDirectory || canReuseFormatDetails)
         ? Promise.resolve()
         : beginListTransition(direction);
 
@@ -703,24 +720,24 @@ export async function loadDirectory(path) {
 
     let repoDetailsPromise;
     if (pathParts.length >= 1 && pathParts[0] !== 'index.html') {
-        repoDetailsPromise = canReuseCargoDetails
+        repoDetailsPromise = canReuseFormatDetails
             ? Promise.resolve(currentRepoDetails)
             : fetchRepoDetails(pathParts[0]);
-        if (!canReuseCargoDetails) void updateRepoStats(pathParts[0], repoDetailsPromise);
+        if (!canReuseFormatDetails) void updateRepoStats(pathParts[0], repoDetailsPromise);
     } else {
         currentRepoDetails = null;
         currentRepositoryName = '';
         void hideRepoStats();
     }
 	currentRepoDetailsPromise = repoDetailsPromise || null;
-    if (!canReuseCargoDetails) {
+    if (!canReuseFormatDetails) {
         void updateSnippets(path, repoDetailsPromise);
         void updateUploadZone(path, repoDetailsPromise);
     }
 
     try {
         const [directoryResult, repoDetails] = await Promise.all([
-            canReuseCargoDetails
+            canReuseFormatDetails
                 ? Promise.resolve(null)
                 : fetchProto(`/api/repositories/details${path}`, FileDetails),
             repoDetailsPromise || Promise.resolve(null)
@@ -731,11 +748,18 @@ export async function loadDirectory(path) {
         currentRepositoryFormat = getRepositoryFormat(repoDetails?.format).id;
 		currentRepoDetails = repoDetails;
 		currentRepositoryName = repoDetails ? repositoryName : '';
+		const isMavenRepository = currentRepositoryFormat === 'maven' && repoDetails && pathParts.length >= 1;
 		const isCargoRepository = currentRepositoryFormat === 'cargo' && pathParts.length >= 1;
 		const isDockerRepository = currentRepositoryFormat === 'docker' && pathParts.length >= 1;
-		setRepositoryContentMode(isCargoRepository || isDockerRepository);
+		setRepositoryContentMode(isMavenRepository ? 'maven' : (isCargoRepository ? 'cargo' : (isDockerRepository ? 'docker' : '')));
 		updateRepositorySearch(repoDetails ? pathParts[0] : '', currentRepositoryFormat, navigateToPath);
 		renderBreadcrumb(path);
+
+		if (isMavenRepository) {
+			setStateVisibility({empty: false, error: false});
+			await renderMavenRepository(path, repoDetails, navigateToPath);
+			return;
+		}
 
 		if (isCargoRepository) {
 			setStateVisibility({empty: false, error: false});
@@ -792,7 +816,7 @@ export async function loadDirectory(path) {
         await exitPromise;
         if (seq !== currentLoadSeq) return;
         console.error('Error fetching directory details:', error);
-		setRepositoryContentMode(false);
+		setRepositoryContentMode('');
 		updateRepositorySearch('', 'maven', navigateToPath);
         if (fileList) fileList.innerHTML = '';
         if (errorState) {

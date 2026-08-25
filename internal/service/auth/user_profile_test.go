@@ -30,6 +30,9 @@ import (
 func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	state := core.NewAppState()
 	cfg := config.DefaultConfig()
+	cfg.Maven.Repositories["profile-maven"] = &config.Repository{
+		Name: "profile-maven", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC",
+	}
 	cfg.Maven.Repositories["profile-cargo"] = &config.Repository{
 		Name: "profile-cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
 	}
@@ -89,6 +92,12 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcded",
 		MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(`{"schemaVersion":2}`),
 	}, "latest", "bobby"))
+	mavenDomain := &core.MavenDomain{
+		Repository: "profile-maven", Domain: "com.example", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "example.com", VerificationCode: "renop-verification=profile", CreatedAt: membershipCreatedAt,
+	}
+	require.NoError(t, db.CreateMavenDomain(mavenDomain, "bobby", false))
+	require.NoError(t, db.MarkMavenDomainVerified("profile-maven", "com.example", mavenDomain.VerificationCode, membershipCreatedAt))
 
 	response := profileRequest(t, app, http.MethodGet, "/users/bobby/profile", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
@@ -97,6 +106,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, "bobby", publicProfile.Username)
 	require.Equal(t, bobbyProfile.UserID, publicProfile.UserID)
 	require.False(t, publicProfile.OwnProfile)
+	require.Equal(t, 1, publicProfile.MavenDomainCount)
 	require.Equal(t, 1, publicProfile.CargoPackageCount)
 	require.Equal(t, 1, publicProfile.DockerImageCount)
 	require.NoError(t, response.Body.Close())
@@ -110,6 +120,13 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Len(t, membershipResponse.Memberships, 1)
 	require.Equal(t, "profile-crate", membershipResponse.Memberships[0].Name)
 	require.Equal(t, core.CargoPermissionOwner, membershipResponse.Memberships[0].PermissionLevel)
+	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=maven", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&membershipResponse))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, membershipResponse.Memberships, 1)
+	require.Equal(t, "com.example", membershipResponse.Memberships[0].Name)
+	require.Equal(t, core.MavenPermissionOwner, membershipResponse.Memberships[0].PermissionLevel)
 	currentUsername = "bobby"
 	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)

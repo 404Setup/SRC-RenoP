@@ -1,0 +1,466 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+// Package maven owns verified publishing domains, domain teams, and the Maven catalog.
+package maven
+
+import (
+	"errors"
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/gofiber/fiber/v3"
+
+	"renop/internal/config"
+	"renop/internal/core"
+	"renop/internal/service/audit"
+	"renop/internal/service/auth"
+	"renop/internal/service/storage"
+	"renop/internal/utils"
+)
+
+const (
+	maxManagementRequestSize = 16 << 10
+	verificationInterval     = 5 * time.Second
+)
+
+type createDomainRequest struct {
+	Domain string `json:"domain"`
+}
+
+type updateArtifactRequest struct {
+	Description string `json:"description"`
+}
+
+func wireStorageHooks() {
+	storage.MavenMutationAuthorizer = func(state *core.AppState, user *config.User, repo *config.Repository, path string, requiredLevel int) error {
+		_, err := AuthorizeMutation(state, user, repo, path, requiredLevel)
+		return err
+	}
+	storage.MavenReadAuthorizer = CanReadRepository
+	storage.MavenPublicationRecorder = RecordPublishedPath
+}
+
+// SetupRoutes registers Maven domain and catalog management APIs.
+func SetupRoutes(router fiber.Router, state *core.AppState) {
+	wireStorageHooks()
+	base := router.Group("/maven/repositories/:repo_name")
+	base.Get("/domains", func(c fiber.Ctx) error { return listDomains(c, state) })
+	base.Post("/domains", func(c fiber.Ctx) error { return createDomain(c, state) })
+	base.Get("/domains/:domain", func(c fiber.Ctx) error { return getDomain(c, state) })
+	base.Post("/domains/:domain/verify", func(c fiber.Ctx) error { return verifyDomain(c, state) })
+	base.Post("/domains/:domain/verify/force", func(c fiber.Ctx) error { return forceVerifyDomain(c, state) })
+	base.Delete("/domains/:domain", func(c fiber.Ctx) error { return deleteDomain(c, state) })
+	base.Get("/domains/:domain/members", func(c fiber.Ctx) error { return listMembers(c, state) })
+	base.Post("/domains/:domain/members", func(c fiber.Ctx) error { return inviteMembers(c, state) })
+	base.Put("/domains/:domain/members/:username", func(c fiber.Ctx) error { return setMemberLevel(c, state) })
+	base.Delete("/domains/:domain/members/:username", func(c fiber.Ctx) error { return removeMember(c, state) })
+	base.Post("/invitations/:id/:decision", func(c fiber.Ctx) error { return respondInvitation(c, state) })
+	base.Get("/packages", func(c fiber.Ctx) error { return listArtifacts(c, state) })
+	base.Get("/package", func(c fiber.Ctx) error { return getArtifact(c, state) })
+	base.Put("/package", func(c fiber.Ctx) error { return updateArtifact(c, state) })
+	base.Delete("/versions", func(c fiber.Ctx) error { return deleteVersion(c, state) })
+}
+
+func repository(c fiber.Ctx, state *core.AppState) (*config.Repository, error) {
+	if state == nil || state.Inner == nil {
+		return nil, fiber.ErrServiceUnavailable
+	}
+	name := c.Params("repo_name")
+	if !utils.IsValidRepositoryName(name) {
+		return nil, fiber.ErrBadRequest
+	}
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return nil, fiber.ErrServiceUnavailable
+	}
+	repo := cfg.Maven.Repositories[name]
+	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
+		return nil, fiber.ErrNotFound
+	}
+	return repo, nil
+}
+
+func authenticated(c fiber.Ctx) (*config.User, error) {
+	user := auth.GetUser(c)
+	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
+		return nil, fiber.ErrUnauthorized
+	}
+	return user, nil
+}
+
+func apiError(c fiber.Ctx, err error) error {
+	switch {
+	case errors.Is(err, fiber.ErrBadRequest):
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid Maven request")
+	case errors.Is(err, fiber.ErrUnauthorized):
+		return c.Status(fiber.StatusUnauthorized).SendString("Authentication required")
+	case errors.Is(err, fiber.ErrNotFound), errors.Is(err, core.ErrMavenDomainNotFound), errors.Is(err, core.ErrMavenArtifactNotFound), errors.Is(err, core.ErrMavenVersionNotFound):
+		return c.Status(fiber.StatusNotFound).SendString("Maven resource not found")
+	case errors.Is(err, core.ErrMavenDomainExists), errors.Is(err, core.ErrMavenMemberExists), errors.Is(err, core.ErrMavenInvitationExists):
+		return c.Status(fiber.StatusConflict).SendString(err.Error())
+	case errors.Is(err, core.ErrMavenDomainUnverified), errors.Is(err, core.ErrMavenVerificationFailed),
+		errors.Is(err, core.ErrMavenDomainNotEmpty),
+		errors.Is(err, core.ErrMavenLastFullMember), errors.Is(err, core.ErrMavenOwnerCannotLeave),
+		errors.Is(err, core.ErrMavenInvitationInvalid):
+		return c.Status(fiber.StatusConflict).SendString(err.Error())
+	case errors.Is(err, core.ErrMavenVerificationRateLimit):
+		c.Set(fiber.HeaderRetryAfter, strconv.Itoa(int(verificationInterval/time.Second)))
+		return c.Status(fiber.StatusTooManyRequests).SendString(err.Error())
+	case errors.Is(err, core.ErrMavenPermissionDenied):
+		return c.Status(fiber.StatusForbidden).SendString("Maven domain permission denied")
+	case errors.Is(err, core.ErrDatabaseUnavailable), errors.Is(err, fiber.ErrServiceUnavailable):
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Maven metadata is unavailable")
+	default:
+		return c.Status(fiber.StatusInternalServerError).SendString("Maven operation failed")
+	}
+}
+
+func logAudit(c fiber.Ctx, state *core.AppState, action, details string) {
+	username, operator, method, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username: username, Operator: operator, AuthMethod: method, SessionID: sessionID,
+		IP: ip, Action: action, Details: details, CreatedAt: time.Now().UnixMilli(),
+	})
+}
+
+func listDomains(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if err := UpgradeLegacyRepository(state, repo.Name); err != nil {
+		return apiError(c, err)
+	}
+	user := auth.GetUser(c)
+	username := ""
+	administrator := false
+	if user != nil {
+		username = user.Username
+		administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
+	}
+	domains, err := state.GetDB().ListMavenDomains(repo.Name, username, administrator)
+	if err != nil {
+		return apiError(c, err)
+	}
+	for _, domain := range domains {
+		if domain != nil && !administrator && domain.PermissionLevel < core.MavenPermissionManage {
+			domain.VerificationCode = ""
+		}
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"repository": repo.Name, "domains": domains})
+}
+
+func createDomain(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	allowed, err := CanReadRepository(state, user, repo, "", true)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if !allowed {
+		return apiError(c, core.ErrMavenPermissionDenied)
+	}
+	if len(c.Body()) > maxManagementRequestSize {
+		return c.SendStatus(fiber.StatusRequestEntityTooLarge)
+	}
+	var request createDomainRequest
+	if err := c.Bind().Body(&request); err != nil {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	domain, err := NormalizeDomain(request.Domain)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+	verificationType, verificationHost, err := VerificationTarget(domain)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+	code, err := NewVerificationCode()
+	if err != nil {
+		return apiError(c, err)
+	}
+	record := &core.MavenDomain{
+		Repository: repo.Name, Domain: domain, VerificationType: verificationType,
+		VerificationHost: verificationHost, VerificationCode: code, CreatedAt: time.Now().UnixMilli(),
+		PermissionLevel: core.MavenPermissionOwner, Member: true,
+	}
+	if err := state.GetDB().CreateMavenDomain(record, user.Username, user.IsManager()); err != nil {
+		return apiError(c, err)
+	}
+	logAudit(c, state, "MAVEN_DOMAIN_CREATE", fmt.Sprintf("Repository: %s, domain: %s", repo.Name, domain))
+	return c.Status(fiber.StatusCreated).JSON(record)
+}
+
+func authorizedDomain(c fiber.Ctx, state *core.AppState, required int, administratorAllowed bool) (*config.User, *config.Repository, *core.MavenDomainDetails, error) {
+	repo, err := repository(c, state)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	user, err := authenticated(c)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	domain, err := NormalizeDomain(c.Params("domain"))
+	if err != nil {
+		return nil, nil, nil, fiber.ErrBadRequest
+	}
+	details, err := state.GetDB().GetMavenDomainDetails(repo.Name, domain, user.Username)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	administrator := user.IsManager() || user.CheckUpdatePermission(repo.Name)
+	if !administratorAllowed || !administrator {
+		if !details.Domain.Member || details.Domain.PermissionLevel < required {
+			return nil, nil, nil, core.ErrMavenPermissionDenied
+		}
+	} else {
+		details.Administrator = true
+	}
+	return user, repo, details, nil
+}
+
+func getDomain(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	user := auth.GetUser(c)
+	username := ""
+	administrator := false
+	if user != nil {
+		username = user.Username
+		administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
+	}
+	domain, err := NormalizeDomain(c.Params("domain"))
+	if err != nil {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	details, err := state.GetDB().GetMavenDomainDetails(repo.Name, domain, username)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if !details.Domain.Verified && !administrator && !details.Domain.Member {
+		return apiError(c, core.ErrMavenDomainNotFound)
+	}
+	if administrator {
+		details.Administrator = true
+	}
+	if !administrator && details.Domain.PermissionLevel < core.MavenPermissionManage {
+		details.Domain.VerificationCode = ""
+		details.Members = nil
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(details)
+}
+
+func verifyDomain(c fiber.Ctx, state *core.AppState) error {
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner, true)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if details.Domain.Verified {
+		return c.JSON(details.Domain)
+	}
+	now := time.Now()
+	if err := state.GetDB().ReserveMavenVerificationAttempt(repo.Name, details.Domain.Domain, user.Username,
+		details.Administrator, now.UnixMilli(), now.Add(-verificationInterval).UnixMilli()); err != nil {
+		return apiError(c, err)
+	}
+	if err := VerifyDomainProof(c.Context(), state.Inner.Config.Load(), details.Domain); err != nil {
+		if errors.Is(err, core.ErrMavenVerificationFailed) {
+			return apiError(c, err)
+		}
+		log.Printf("Maven domain verification failed for %s: %v", details.Domain.Domain, err)
+		return c.Status(fiber.StatusBadGateway).SendString("Maven verification provider is unavailable")
+	}
+	if err := state.GetDB().MarkMavenDomainVerified(repo.Name, details.Domain.Domain,
+		details.Domain.VerificationCode, now.UnixMilli()); err != nil {
+		return apiError(c, err)
+	}
+	details.Domain.Verified = true
+	details.Domain.VerifiedAt = now.UnixMilli()
+	if err := ReconcileDomainCatalog(state, repo.Name, details.Domain.Domain, user.Username); err != nil {
+		log.Printf("failed to reconcile Maven catalog for %s: %v", details.Domain.Domain, err)
+	}
+	logAudit(c, state, "MAVEN_DOMAIN_VERIFY", fmt.Sprintf("Repository: %s, domain: %s", repo.Name, details.Domain.Domain))
+	return c.JSON(details.Domain)
+}
+
+func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner, true)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if !user.IsManager() {
+		return apiError(c, core.ErrMavenPermissionDenied)
+	}
+	if details.Domain.Verified {
+		return c.JSON(details.Domain)
+	}
+	now := time.Now().UnixMilli()
+	if err := state.GetDB().MarkMavenDomainVerified(repo.Name, details.Domain.Domain,
+		details.Domain.VerificationCode, now); err != nil {
+		return apiError(c, err)
+	}
+	details.Domain.Verified = true
+	details.Domain.VerifiedAt = now
+	if err := ReconcileDomainCatalog(state, repo.Name, details.Domain.Domain, user.Username); err != nil {
+		log.Printf("failed to reconcile force-verified Maven catalog for %s: %v", details.Domain.Domain, err)
+	}
+	logAudit(c, state, "MAVEN_DOMAIN_FORCE_VERIFY",
+		fmt.Sprintf("Repository: %s, domain: %s", repo.Name, details.Domain.Domain))
+	return c.JSON(details.Domain)
+}
+
+func deleteDomain(c fiber.Ctx, state *core.AppState) error {
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner, true)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if err := state.GetDB().DeleteMavenDomain(repo.Name, details.Domain.Domain, user.Username,
+		details.Administrator, time.Now().UnixMilli()); err != nil {
+		return apiError(c, err)
+	}
+	logAudit(c, state, "MAVEN_DOMAIN_DELETE", fmt.Sprintf("Repository: %s, domain: %s", repo.Name, details.Domain.Domain))
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func authorizeRepositoryRead(c fiber.Ctx, state *core.AppState, repo *config.Repository) error {
+	allowed, err := CanReadRepository(state, auth.GetUser(c), repo, "", true)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return core.ErrMavenPermissionDenied
+	}
+	return nil
+}
+
+func listArtifacts(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if err := authorizeRepositoryRead(c, state, repo); err != nil {
+		return apiError(c, err)
+	}
+	if err := UpgradeLegacyRepository(state, repo.Name); err != nil {
+		return apiError(c, err)
+	}
+	limit, err := strconv.Atoi(c.Query("limit", "30"))
+	if err != nil {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	offset, err := strconv.Atoi(c.Query("offset", "0"))
+	if err != nil {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	domain := strings.ToLower(strings.TrimSpace(c.Query("domain")))
+	query := strings.TrimSpace(c.Query("q"))
+	artifacts, total, err := state.GetDB().ListMavenArtifacts(repo.Name, domain, query, limit, offset)
+	if err != nil {
+		return apiError(c, err)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"repository": repo.Name, "artifacts": artifacts, "total": total})
+}
+
+func getArtifact(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	if err := authorizeRepositoryRead(c, state, repo); err != nil {
+		return apiError(c, err)
+	}
+	groupID, artifactID := strings.TrimSpace(c.Query("group")), strings.TrimSpace(c.Query("artifact"))
+	if groupID == "" || artifactID == "" {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	details, err := state.GetDB().GetMavenArtifactDetails(repo.Name, groupID, artifactID)
+	if err != nil {
+		return apiError(c, err)
+	}
+	user := auth.GetUser(c)
+	if user != nil && !strings.EqualFold(user.Username, "guest") {
+		if domain, authErr := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionRead, true); authErr == nil {
+			details.Artifact.PermissionLevel = domain.PermissionLevel
+			details.Administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
+		}
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(details)
+}
+
+func updateArtifact(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	groupID, artifactID := strings.TrimSpace(c.Query("group")), strings.TrimSpace(c.Query("artifact"))
+	if _, err := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionVersion, true); err != nil {
+		return apiError(c, err)
+	}
+	if len(c.Body()) > maxManagementRequestSize {
+		return c.SendStatus(fiber.StatusRequestEntityTooLarge)
+	}
+	var request updateArtifactRequest
+	if err := c.Bind().Body(&request); err != nil || len(request.Description) > 4000 {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	if err := state.GetDB().UpdateMavenArtifactDescription(repo.Name, groupID, artifactID, request.Description); err != nil {
+		return apiError(c, err)
+	}
+	logAudit(c, state, "MAVEN_ARTIFACT_UPDATE", fmt.Sprintf("Repository: %s, artifact: %s:%s", repo.Name, groupID, artifactID))
+	return c.JSON(fiber.Map{"ok": true})
+}
+
+func deleteVersion(c fiber.Ctx, state *core.AppState) error {
+	repo, err := repository(c, state)
+	if err != nil {
+		return apiError(c, err)
+	}
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	groupID := strings.TrimSpace(c.Query("group"))
+	artifactID := strings.TrimSpace(c.Query("artifact"))
+	version := strings.TrimSpace(c.Query("version"))
+	if groupID == "" || artifactID == "" || version == "" {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	if _, err := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionVersion, true); err != nil {
+		return apiError(c, err)
+	}
+	if err := storage.RemoveMavenVersion(state, repo.Name, groupID, artifactID, version); err != nil {
+		return apiError(c, err)
+	}
+	if err := state.GetDB().DeleteMavenVersionMetadata(repo.Name, groupID, artifactID, version); err != nil {
+		return apiError(c, err)
+	}
+	logAudit(c, state, "MAVEN_VERSION_DELETE", fmt.Sprintf("Repository: %s, artifact: %s:%s, version: %s", repo.Name, groupID, artifactID, version))
+	return c.SendStatus(fiber.StatusNoContent)
+}

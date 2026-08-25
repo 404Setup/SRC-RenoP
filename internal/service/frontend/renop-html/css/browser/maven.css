@@ -1,0 +1,476 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+.maven-repository-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    animation: mavenViewIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.maven-repository-view[hidden] {
+    display: none !important;
+}
+
+.maven-repository-view.is-updating {
+    opacity: 0.72;
+}
+
+.maven-hero,
+.maven-section {
+    border: 1px solid var(--border-color);
+    border-radius: 0.95rem;
+    background: color-mix(in srgb, var(--card-bg) 97%, transparent);
+    box-shadow: 0 16px 40px -34px rgba(15, 23, 42, 0.58);
+}
+
+.maven-hero {
+    overflow: hidden;
+    padding: 1.3rem 1.4rem;
+    background:
+        radial-gradient(circle at 95% 5%, color-mix(in srgb, #f97316 13%, transparent), transparent 36%),
+        color-mix(in srgb, var(--card-bg) 97%, transparent);
+}
+
+.maven-hero-heading,
+.maven-domain-actions,
+.maven-stats,
+.maven-artifact-meta,
+.maven-team-controls,
+.maven-version-meta,
+.maven-version-actions {
+    display: flex;
+    align-items: center;
+}
+
+.maven-hero-heading {
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.maven-hero h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    margin: 0.25rem 0 0;
+    color: var(--text-color);
+    font-size: clamp(1.25rem, 3vw, 1.7rem);
+    letter-spacing: -0.025em;
+}
+
+.maven-hero h2 svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    flex-shrink: 0;
+    color: #ea580c;
+}
+
+.maven-hero > p {
+    max-width: 50rem;
+    margin: 0.65rem 0 0;
+    color: var(--muted-text);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.maven-kicker {
+    color: #ea580c;
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.maven-stats {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.maven-stats > span,
+.maven-status-badge,
+.maven-permission-badge,
+.maven-artifact-count {
+    padding: 0.28rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 84%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    color: var(--muted-text);
+    font-size: 0.71rem;
+    font-weight: 650;
+}
+
+.maven-status-badge.is-verified {
+    border-color: color-mix(in srgb, #10b981 28%, transparent);
+    background: color-mix(in srgb, #10b981 11%, transparent);
+    color: #059669;
+}
+
+.maven-status-badge.is-pending {
+    border-color: color-mix(in srgb, #f59e0b 30%, transparent);
+    background: color-mix(in srgb, #f59e0b 11%, transparent);
+    color: #d97706;
+}
+
+html.dark .maven-status-badge.is-verified {
+    color: #6ee7b7;
+}
+
+html.dark .maven-status-badge.is-pending {
+    color: #fcd34d;
+}
+
+.maven-permission-badge {
+    border-color: color-mix(in srgb, var(--link-hover-color) 28%, transparent);
+    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
+    color: var(--link-hover-color);
+}
+
+.maven-section {
+    padding: 1.15rem 1.25rem;
+}
+
+.maven-section > h3 {
+    margin: 0 0 0.85rem;
+    color: var(--text-color);
+    font-size: 0.98rem;
+}
+
+.maven-domain-list,
+.maven-artifact-list,
+.maven-team-list,
+.maven-version-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.maven-domain-card,
+.maven-artifact-card,
+.maven-team-row,
+.maven-version-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.8rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.82rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+button.maven-domain-card,
+button.maven-artifact-card {
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+}
+
+button.maven-domain-card:hover,
+button.maven-domain-card:focus-visible,
+button.maven-artifact-card:hover,
+button.maven-artifact-card:focus-visible {
+    border-color: color-mix(in srgb, var(--link-hover-color) 42%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 7%, transparent);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.maven-domain-card-icon,
+.maven-artifact-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, #f97316 12%, transparent);
+    color: #ea580c;
+}
+
+.maven-domain-card-icon svg,
+.maven-artifact-icon svg {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.maven-domain-card-main,
+.maven-artifact-main,
+.maven-version-main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.maven-domain-card-main strong,
+.maven-artifact-main strong,
+.maven-version-main code {
+    overflow: hidden;
+    color: var(--text-color);
+    font-size: 0.86rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.maven-domain-card-main span,
+.maven-artifact-main span,
+.maven-version-main span {
+    overflow: hidden;
+    color: var(--muted-text);
+    font-size: 0.73rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.maven-domain-card-meta,
+.maven-artifact-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.maven-artifact-meta code {
+    padding: 0.22rem 0.45rem;
+    border-radius: 0.35rem;
+    background: color-mix(in srgb, #f97316 10%, transparent);
+    color: #ea580c;
+    font-size: 0.72rem;
+}
+
+.maven-empty,
+.maven-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 6rem;
+    gap: 0.55rem;
+    color: var(--muted-text);
+    text-align: center;
+}
+
+.maven-error {
+    min-height: 12rem;
+    border: 1px solid color-mix(in srgb, #ef4444 28%, var(--border-color));
+    border-radius: 0.8rem;
+    color: #dc2626;
+}
+
+.maven-back-btn,
+.maven-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--muted-text);
+    cursor: pointer;
+    font: inherit;
+}
+
+.maven-back-btn {
+    margin: -0.35rem 0 0.65rem -0.35rem;
+    padding: 0.38rem 0.55rem;
+    font-size: 0.76rem;
+}
+
+.maven-back-btn:hover,
+.maven-icon-btn:hover {
+    background: color-mix(in srgb, var(--link-hover-color) 9%, transparent);
+    color: var(--link-hover-color);
+}
+
+.maven-icon-btn {
+    position: relative;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+}
+
+.maven-icon-btn.copied {
+    background: color-mix(in srgb, #10b981 15%, transparent);
+    color: #10b981;
+    transform: scale(1.08);
+}
+
+.maven-icon-btn svg,
+.maven-back-btn svg {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+.maven-icon-btn.is-danger:hover {
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+    color: #ef4444;
+}
+
+.maven-domain-actions,
+.maven-version-meta,
+.maven-team-controls {
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.maven-verification-panel {
+    margin-top: 1rem;
+    padding: 0.9rem;
+    border: 1px solid color-mix(in srgb, #f59e0b 28%, transparent);
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, #f59e0b 7%, transparent);
+}
+
+.maven-verification-panel > p,
+.maven-dialog-hint {
+    margin: 0 0 0.65rem;
+    color: var(--muted-text);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.maven-verification-target,
+.maven-verification-code,
+.maven-coordinate-box {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    margin-top: 0.45rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+    border-radius: 0.55rem;
+    background: var(--card-bg);
+}
+
+.maven-verification-target span {
+    color: var(--muted-text);
+    font-size: 0.72rem;
+}
+
+.maven-verification-target code,
+.maven-verification-code code,
+.maven-coordinate-box code {
+    overflow: hidden;
+    min-width: 0;
+    flex: 1;
+    color: var(--text-color);
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.maven-coordinate-box {
+    margin-top: 1rem;
+}
+
+.maven-team-row,
+.maven-version-row {
+    justify-content: space-between;
+}
+
+.maven-level-select {
+    min-width: 9.5rem;
+}
+
+.maven-invite-form {
+    display: grid;
+    align-items: center;
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, auto) auto;
+    gap: 0.55rem;
+    margin-top: 0.8rem;
+}
+
+.maven-invite-form .pill-btn {
+    min-height: 2rem;
+    align-self: center;
+    padding: 0.42rem 0.8rem;
+    line-height: 1;
+}
+
+.maven-invite-form input,
+.maven-dialog-form input,
+.maven-dialog-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.62rem 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.55rem;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font: inherit;
+}
+
+.maven-dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.maven-dialog-form textarea {
+    min-height: 10rem;
+    resize: vertical;
+}
+
+.maven-version-meta {
+    color: var(--muted-text);
+    font-size: 0.73rem;
+}
+
+@keyframes mavenViewIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 720px) {
+    .maven-hero-heading,
+    .maven-domain-card,
+    .maven-artifact-card,
+    .maven-team-row,
+    .maven-version-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .maven-domain-card-meta,
+    .maven-artifact-meta,
+    .maven-team-controls,
+    .maven-version-meta {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .maven-invite-form {
+        grid-template-columns: 1fr;
+    }
+
+    .maven-domain-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .maven-repository-view {
+        animation: none;
+    }
+}

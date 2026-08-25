@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -97,7 +98,8 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		estimatedSize = int64(len(bodyData))
 	}
 	estimatedRequired := EstimateUploadDiskSpace(localFilePath, estimatedSize)
-	if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isSignature && estimatedSize > gpg.MaxDetachedSignatureSize {
+	isFileRepository := repo.NormalizedFormat() == config.RepositoryFormatFiles
+	if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); !isFileRepository && isSignature && estimatedSize > gpg.MaxDetachedSignatureSize {
 		return c.Status(fiber.StatusRequestEntityTooLarge).SendString("GPG detached signature exceeds the size limit")
 	}
 
@@ -109,11 +111,12 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 
 	exists := PathExistsForUpload(state, localFilePath)
 
-	if !repo.AllowRedeployment && exists && !isMutableMavenMetadataPath(localFilePath) {
+	if repo.NormalizedFormat() != config.RepositoryFormatFiles && !repo.AllowRedeployment &&
+		exists && !isMutableMavenMetadataPath(localFilePath) {
 		return c.Status(fiber.StatusConflict).SendString("Conflict")
 	}
 
-	generateChecksums := c.Get("X-Generate-Checksums") == "true"
+	generateChecksums := !isFileRepository && c.Get("X-Generate-Checksums") == "true"
 
 	parentDir := filepath.Dir(localFilePath)
 	if err := os.MkdirAll(parentDir, 0755); err != nil {
@@ -209,7 +212,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		LocalFilePath: localFilePath, TempPath: tmpPath, Username: username,
 		FileSize: fileSize, ModTime: modTime, Existed: exists,
 		GenerateChecksums: generateChecksums,
-		SignatureExpected: strings.EqualFold(c.Get("X-RenoP-GPG-Signature-Expected"), "true"),
+		SignatureExpected: !isFileRepository && strings.EqualFold(c.Get("X-RenoP-GPG-Signature-Expected"), "true"),
 		Digests:           digests,
 	})
 	if err != nil {
@@ -246,6 +249,17 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	if result.Pending {
 		c.Set("X-RenoP-Release-ID", result.ReleaseID)
 		return c.Status(fiber.StatusAccepted).SendString("Queued for GPG publication")
+	}
+	if repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenPublicationRecorder != nil {
+		cfg := state.Inner.Config.Load()
+		if cfg != nil {
+			relative, relErr := filepath.Rel(filepath.Join(cfg.StoragePath, repo.Name), localFilePath)
+			if relErr == nil {
+				if recordErr := MavenPublicationRecorder(state, repo.Name, filepath.ToSlash(relative), username, fileSize, modTime); recordErr != nil {
+					log.Printf("failed to update Maven publication catalog for %s: %v", filepath.ToSlash(relative), recordErr)
+				}
+			}
+		}
 	}
 	return c.Status(fiber.StatusCreated).SendString("")
 }

@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "Artefakt-Details",
     "details.subtitle": "Konfigurations-Snippets für Ihr Build-Tool kopieren",
     "details.copySnippet": "Snippet kopieren",
+    "details.copy": "Kopieren",
     "details.copied": "Kopiert!",
     "details.statsTitle": "Repository-Speicher & Spiegel",
     "details.statsSubtitle": "Lokale Speicherbelegung und konfigurierte Spiegel",

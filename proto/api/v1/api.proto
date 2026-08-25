@@ -214,7 +214,7 @@ message Repository {
   bool allow_redeployment = 4;
   S3Config s3 = 5;
   bool require_gpg_signature = 6;
-  // "maven" (default) or "cargo".
+  // "maven" (default), "maven-classic", "files", "cargo", or "docker".
   string format = 7;
 }
 

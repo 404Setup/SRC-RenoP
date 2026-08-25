@@ -205,6 +205,24 @@ func (db *DB) DeleteToken(name string) error {
 	if err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, lowerName).Scan(&userID); err != nil {
 		return fmt.Errorf("failed to resolve stable identity for token (%s): %w", lowerName, err)
 	}
+	var soleMavenOwnerships int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members current_member
+		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
+			SELECT 1 FROM maven_domain_members other_member
+			WHERE other_member.repository = current_member.repository AND other_member.domain = current_member.domain
+			AND other_member.permission_level = ? AND other_member.user_id <> current_member.user_id
+		)`, userID, core.MavenPermissionOwner, core.MavenPermissionOwner).Scan(&soleMavenOwnerships); err != nil {
+		return fmt.Errorf("failed to inspect Maven domain ownership for token (%s): %w", lowerName, err)
+	}
+	if soleMavenOwnerships > 0 {
+		return fmt.Errorf("cannot delete token %s: user is the last L4 member of %d Maven domain(s)", lowerName, soleMavenOwnerships)
+	}
+	if err := cancelMavenInvitations(tx, `recipient = ? OR inviter = ?`, []any{lowerName, lowerName}, time.Now().UnixMilli()); err != nil {
+		return fmt.Errorf("failed to cancel Maven invitations for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete Maven memberships for token (%s): %w", lowerName, err)
+	}
 	var soleCargoOwnerships int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members current_member
 		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
@@ -361,6 +379,11 @@ func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.Acces
 		{`UPDATE audit_logs SET operator = ? WHERE operator = ?`, "audit operators"},
 		{`UPDATE user_messages SET recipient = ? WHERE recipient = ?`, "message recipients"},
 		{`UPDATE user_messages SET sender = ? WHERE sender = ?`, "message senders"},
+		{`UPDATE maven_domain_members SET username = ? WHERE username = ?`, "Maven memberships"},
+		{`UPDATE maven_artifacts SET publisher = ? WHERE publisher = ?`, "Maven artifact publishers"},
+		{`UPDATE maven_versions SET publisher = ? WHERE publisher = ?`, "Maven version publishers"},
+		{`UPDATE maven_domain_invitations SET inviter = ? WHERE inviter = ?`, "Maven invitation senders"},
+		{`UPDATE maven_domain_invitations SET recipient = ? WHERE recipient = ?`, "Maven invitation recipients"},
 		{`UPDATE cargo_members SET username = ? WHERE username = ?`, "Cargo memberships"},
 		{`UPDATE cargo_versions SET publisher = ? WHERE publisher = ?`, "Cargo publishers"},
 		{`UPDATE cargo_invitations SET inviter = ? WHERE inviter = ?`, "Cargo invitation senders"},

@@ -414,6 +414,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if _, err := db.Exec(dockerInvitationsTable); err != nil {
 		return err
 	}
+	if err := initMavenTables(db); err != nil {
+		return err
+	}
 
 	for _, migration := range sharedColumnMigrations {
 		if err := execIgnoreDuplicateColumn(db, migration.Query); err != nil {

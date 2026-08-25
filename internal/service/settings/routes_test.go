@@ -1037,6 +1037,45 @@ func TestRepositoryCreationRequiresStableFormatAndSlug(t *testing.T) {
 	}
 }
 
+func TestMavenLayoutCanChangeAndFilePolicyIsForced(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"existing": {
+			Name: "existing", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []config.Mirror{},
+		},
+	}
+	app, state := setupSettingsTestApp(t, cfg)
+
+	response := protoPUT(t, app, "/repositories/existing", &pb.Repository{
+		Name: "existing", Format: config.RepositoryFormatMavenClassic, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected Maven layout change accepted, got %d", response.StatusCode)
+	}
+	if configured := state.Inner.Config.Load().Maven.Repositories["existing"].ConfiguredFormat(); configured != config.RepositoryFormatMavenClassic {
+		t.Fatalf("Maven classic layout was not persisted: %q", configured)
+	}
+	response = protoPUT(t, app, "/repositories/existing", &pb.Repository{
+		Name: "existing", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+	})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected Maven modern layout restore accepted, got %d", response.StatusCode)
+	}
+
+	response = protoPUT(t, app, "/repositories/downloads", &pb.Repository{
+		Name: "downloads", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
+		AllowRedeployment: false, RequireGpgSignature: true,
+	})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected file repository creation accepted, got %d", response.StatusCode)
+	}
+	files := state.Inner.Config.Load().Maven.Repositories["downloads"]
+	if files == nil || !files.AllowRedeployment || files.RequireGPGSignature {
+		t.Fatalf("file repository policy was not normalized: %#v", files)
+	}
+}
+
 func TestCargoMirrorAllowsIndexURLWithoutArtifactTemplate(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = t.TempDir()

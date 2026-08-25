@@ -187,7 +187,7 @@ func FromRepository(r *config.Repository) *Repository {
 	}
 	return &Repository{
 		Name:                r.Name,
-		Format:              r.NormalizedFormat(),
+		Format:              r.ConfiguredFormat(),
 		Visibility:          r.Visibility,
 		Mirrors:             mirrors,
 		AllowRedeployment:   r.AllowRedeployment,

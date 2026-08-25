@@ -44,7 +44,7 @@ func TestBundledAssetsEmbedded(t *testing.T) {
 	}
 }
 
-func TestOpenAPIDocumentIncludesUserProfiles(t *testing.T) {
+func TestOpenAPIDocumentIncludesFrontendRoutes(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "assets", "openapi.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +58,8 @@ func TestOpenAPIDocumentIncludesUserProfiles(t *testing.T) {
 	for _, path := range []string{
 		"/api/users/{username}/profile", "/api/users/{username}/memberships",
 		"/api/users/profiles", "/api/auth/profile",
+		"/api/maven/repositories/{repo_name}/domains",
+		"/api/maven/repositories/{repo_name}/packages",
 	} {
 		if _, exists := document.Paths[path]; !exists {
 			t.Fatalf("OpenAPI document is missing %s", path)
@@ -198,7 +200,7 @@ func TestUserProfileRouteServesSPAIndex(t *testing.T) {
 	state.Inner.Config.Store(config.DefaultConfig())
 	app := fiber.New()
 	SetupFrontendRoutes(app, state)
-	for _, path := range []string{"/user/alice", "/user/alice/edit", "/user/alice/cargo", "/user/alice/docker"} {
+	for _, path := range []string{"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker"} {
 		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
 		if err != nil {
 			t.Fatal(err)

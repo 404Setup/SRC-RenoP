@@ -220,6 +220,29 @@ func (m *Mirror) IsArtifactAllowedFor(format, path string) (bool, string) {
 		return true, ""
 	}
 
+	if strings.EqualFold(strings.TrimSpace(format), RepositoryFormatFiles) {
+		match := func(pattern string) bool {
+			pattern = strings.Trim(strings.TrimSpace(pattern), "/")
+			if pattern == "" {
+				return false
+			}
+			if prefix, ok := strings.CutSuffix(pattern, "/*"); ok {
+				return clean == prefix || strings.HasPrefix(clean, prefix+"/")
+			}
+			return clean == pattern
+		}
+		if hasAllow {
+			if slices.ContainsFunc(m.AllowArtifacts, match) {
+				return true, ""
+			}
+			return false, "File blocked: Not in mirror allow list (" + clean + ")"
+		}
+		if slices.ContainsFunc(m.DenyArtifacts, match) {
+			return false, "File blocked: In mirror deny list (" + clean + ")"
+		}
+		return true, ""
+	}
+
 	group, artifactId := parseMavenGroupArtifact(path)
 
 	ga := group

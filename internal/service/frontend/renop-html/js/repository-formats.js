@@ -11,16 +11,44 @@
 const FORMAT_CATALOG = Object.freeze({
     maven: Object.freeze({
         id: 'maven',
+        protocol: 'maven',
+        layout: 'modern',
         labelKey: 'repos.formatMaven',
         descriptionKey: 'repos.formatMavenDesc',
-        supportsBrowserUpload: true,
+        supportsBrowserUpload: false,
         supportsRedeployment: true,
         supportsGpg: true,
         supportsArtifactTemplate: false,
         snippetTabs: Object.freeze(['maven', 'gradle-kotlin', 'gradle-groovy', 'sbt'])
     }),
+    'maven-classic': Object.freeze({
+        id: 'maven-classic',
+        protocol: 'maven',
+        layout: 'classic',
+        offered: false,
+        labelKey: 'repos.formatMaven',
+        descriptionKey: 'repos.formatMavenDesc',
+        supportsBrowserUpload: false,
+        supportsRedeployment: true,
+        supportsGpg: true,
+        supportsArtifactTemplate: false,
+        snippetTabs: Object.freeze(['maven', 'gradle-kotlin', 'gradle-groovy', 'sbt'])
+    }),
+    files: Object.freeze({
+        id: 'files',
+        protocol: 'files',
+        labelKey: 'repos.formatFiles',
+        descriptionKey: 'repos.formatFilesDesc',
+        supportsBrowserUpload: true,
+        supportsRedeployment: false,
+        supportsGpg: false,
+        supportsArtifactTemplate: false,
+        supportsUploadHelpers: false,
+        snippetTabs: Object.freeze([])
+    }),
     cargo: Object.freeze({
         id: 'cargo',
+        protocol: 'cargo',
         labelKey: 'repos.formatCargo',
         descriptionKey: 'repos.formatCargoDesc',
         supportsBrowserUpload: false,
@@ -31,6 +59,7 @@ const FORMAT_CATALOG = Object.freeze({
     }),
     docker: Object.freeze({
         id: 'docker',
+        protocol: 'docker',
         labelKey: 'repos.formatDocker',
         descriptionKey: 'repos.formatDockerDesc',
         supportsBrowserUpload: false,
@@ -58,7 +87,7 @@ export function getRepositoryFormat(format) {
  * @returns {object[]} Immutable format descriptors.
  */
 export function listRepositoryFormats() {
-    return Object.values(FORMAT_CATALOG);
+    return Object.values(FORMAT_CATALOG).filter(format => format.offered !== false);
 }
 
 /**
@@ -78,6 +107,8 @@ export function createRepositoryDraft(name, format) {
     if (descriptor.id === 'maven') {
         repository.allow_redeployment = false;
         repository.require_gpg_signature = false;
+    } else if (descriptor.id === 'files') {
+        repository.allow_redeployment = true;
     }
     return repository;
 }

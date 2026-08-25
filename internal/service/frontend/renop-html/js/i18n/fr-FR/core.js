@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "Détails de l'artefact",
     "details.subtitle": "Copiez les extraits de configuration pour votre outil de construction",
     "details.copySnippet": "Copier l'extrait",
+    "details.copy": "Copier",
     "details.copied": "Copié !",
     "details.statsTitle": "Stockage du dépôt & miroirs",
     "details.statsSubtitle": "Utilisation du stockage local et miroirs configurés",

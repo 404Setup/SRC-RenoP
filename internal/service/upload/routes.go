@@ -22,6 +22,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
@@ -57,6 +58,41 @@ func SetupChunkedUploadRoutes(router fiber.Router, state *core.AppState) {
 	api.Delete("/:id", func(c fiber.Ctx) error {
 		return handleAbort(c, mgr)
 	})
+}
+
+func authorizeStorageUpload(state *core.AppState, user *config.User, repo *config.Repository, path string) error {
+	if repo == nil || user == nil {
+		return fiber.ErrForbidden
+	}
+	switch repo.NormalizedFormat() {
+	case config.RepositoryFormatMaven:
+		if storage.MavenMutationAuthorizer == nil {
+			return core.ErrDatabaseUnavailable
+		}
+		return storage.MavenMutationAuthorizer(state, user, repo, path, core.MavenPermissionPublish)
+	case config.RepositoryFormatFiles:
+		if !user.CheckUpdatePermission(repo.Name) {
+			return fiber.ErrForbidden
+		}
+		return nil
+	default:
+		return fiber.ErrMethodNotAllowed
+	}
+}
+
+func storageUploadAuthorizationError(c fiber.Ctx, err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, core.ErrMavenDomainUnverified):
+		return jsonErr(c, fiber.StatusConflict, "Maven domain must be verified before publication")
+	case errors.Is(err, core.ErrDatabaseUnavailable):
+		return jsonErr(c, fiber.StatusServiceUnavailable, "Maven domain authorization is unavailable")
+	case errors.Is(err, fiber.ErrMethodNotAllowed):
+		return jsonErr(c, fiber.StatusMethodNotAllowed, "Repository format does not support storage uploads")
+	default:
+		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
+	}
 }
 
 func jsonErr(c fiber.Ctx, status int, msg string) error {
@@ -96,6 +132,7 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 
 	var localFilePath, repoName string
 	var generateChecksums bool
+	var repository *config.Repository
 
 	switch purpose {
 	case PurposeStorage:
@@ -117,10 +154,7 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		if !exists {
 			return jsonErr(c, fiber.StatusNotFound, "Repository not found")
 		}
-		if !user.CheckUpdatePermission(repoName) {
-			return jsonErr(c, fiber.StatusForbidden, "Forbidden")
-		}
-
+		repository = repo
 		rel := ""
 		if len(parts) > 1 {
 			rel = parts[1]
@@ -136,11 +170,16 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		if !utils.IsSubPath(cfg.StoragePath, localFilePath) {
 			return jsonErr(c, fiber.StatusBadRequest, "Invalid path")
 		}
-		if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isSignature && req.GetSize() > gpg.MaxDetachedSignatureSize {
+		if err := authorizeStorageUpload(state, user, repo, sanitized); err != nil {
+			return storageUploadAuthorizationError(c, err)
+		}
+		isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
+		if _, isSignature := gpg.ArtifactForDetachedSignature(filepath.ToSlash(localFilePath)); isMaven && isSignature && req.GetSize() > gpg.MaxDetachedSignatureSize {
 			return jsonErr(c, fiber.StatusRequestEntityTooLarge, "GPG detached signature exceeds the size limit")
 		}
 
-		if storage.PathExistsForUpload(state, localFilePath) && !repo.AllowRedeployment {
+		if storage.PathExistsForUpload(state, localFilePath) &&
+			repo.NormalizedFormat() != config.RepositoryFormatFiles && !repo.AllowRedeployment {
 			return jsonErr(c, fiber.StatusConflict, "Conflict")
 		}
 
@@ -148,7 +187,7 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		if !status.CanAllocateDiskSpace(state, uint64(estimated)) {
 			return jsonErr(c, fiber.StatusInsufficientStorage, "Insufficient disk space to upload file")
 		}
-		generateChecksums = req.GetGenerateChecksums()
+		generateChecksums = isMaven && req.GetGenerateChecksums()
 		if filename == "" {
 			filename = filepath.Base(sanitized)
 		}
@@ -185,7 +224,8 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 	if err != nil {
 		return jsonErr(c, fiber.StatusInternalServerError, err.Error())
 	}
-	sess.SignatureExpected = req.GetGpgSignatureExpected()
+	sess.SignatureExpected = repository != nil &&
+		repository.NormalizedFormat() == config.RepositoryFormatMaven && req.GetGpgSignatureExpected()
 
 	return protohttp.Write(c, &pb.ChunkedUploadInitResponse{
 		UploadId:   sess.ID,
@@ -281,9 +321,20 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 		sess.Abort()
 		return jsonErr(c, fiber.StatusNotFound, "Repository not found")
 	}
-	if user := auth.GetUser(c); user == nil || !user.CheckUpdatePermission(sess.RepoName) {
+	user := auth.GetUser(c)
+	if user == nil {
 		sess.Abort()
 		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
+	}
+	repositoryRoot := filepath.Join(cfg.StoragePath, sess.RepoName)
+	relativePath, err := filepath.Rel(repositoryRoot, sess.LocalFilePath)
+	if err != nil || strings.HasPrefix(relativePath, "..") {
+		sess.Abort()
+		return jsonErr(c, fiber.StatusBadRequest, "Invalid path")
+	}
+	if err := authorizeStorageUpload(state, user, repo, filepath.ToSlash(relativePath)); err != nil {
+		sess.Abort()
+		return storageUploadAuthorizationError(c, err)
 	}
 
 	localFilePath := sess.LocalFilePath
@@ -295,7 +346,7 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	}()
 
 	existed := storage.PathExistsForUpload(state, localFilePath)
-	if existed && !repo.AllowRedeployment {
+	if existed && repo.NormalizedFormat() != config.RepositoryFormatFiles && !repo.AllowRedeployment {
 		sess.Abort()
 		return jsonErr(c, fiber.StatusConflict, "Conflict")
 	}
@@ -310,6 +361,10 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	fileSize := sess.TotalSize
 	modTime := time.Now().UnixNano()
 
+	if repo.NormalizedFormat() == config.RepositoryFormatFiles {
+		sess.GenerateChecksums = false
+		sess.SignatureExpected = false
+	}
 	if sess.GenerateChecksums {
 		d, n, err := storage.HashFile(sess.TempPath)
 		if err != nil {
@@ -323,7 +378,6 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 		modTime = st.ModTime().UnixNano()
 	}
 
-	user := auth.GetUser(c)
 	if user == nil || user.Username == "" || user.Username == "guest" {
 		sess.Abort()
 		return jsonErr(c, fiber.StatusUnauthorized, "Unauthorized")

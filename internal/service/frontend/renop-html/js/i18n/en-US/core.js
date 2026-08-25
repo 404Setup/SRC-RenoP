@@ -227,6 +227,7 @@ export default {
     "details.artifactTitle": "Artifact details",
     "details.subtitle": "Copy configuration snippets for your build tool",
     "details.copySnippet": "Copy snippet",
+    "details.copy": "Copy",
     "details.copied": "Copied!",
     "details.statsTitle": "Repository Storage & Mirrors",
     "details.statsSubtitle": "Local storage usage and configured mirrors",

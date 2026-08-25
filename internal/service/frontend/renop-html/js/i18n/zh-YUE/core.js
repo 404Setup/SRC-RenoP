@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "構件詳情",
     "details.subtitle": "複製適用於你建立工具嘅配置代碼片段",
     "details.copySnippet": "複製代碼片段",
+    "details.copy": "複製",
     "details.copied": "已複製！",
     "details.statsTitle": "倉庫儲存與鏡像",
     "details.statsSubtitle": "本地儲存使用情況及已配置嘅鏡像",

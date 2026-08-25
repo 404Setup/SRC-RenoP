@@ -50,12 +50,13 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 	profile := &core.UserProfile{}
 	err := db.QueryRow(`SELECT p.user_id, p.username, t.created_at, p.nickname,
 		p.rename_window_started_at, p.rename_count,
+		(SELECT COUNT(*) FROM maven_domain_members mm WHERE mm.user_id = p.user_id),
 		(SELECT COUNT(*) FROM cargo_members cm WHERE cm.user_id = p.user_id),
 		(SELECT COUNT(*) FROM docker_members dm WHERE dm.user_id = p.user_id)
 		FROM user_profiles p JOIN tokens t ON t.name = p.username WHERE `+whereClause, value).Scan(
 		&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname,
 		&profile.UsernameChangeWindowAt, &profile.UsernameChangeCount,
-		&profile.CargoPackageCount, &profile.DockerImageCount,
+		&profile.MavenDomainCount, &profile.CargoPackageCount, &profile.DockerImageCount,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrUserProfileNotFound
@@ -66,7 +67,7 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 	return profile, nil
 }
 
-// ListUserPackageMemberships returns Cargo or Docker teams linked to an immutable user ID.
+// ListUserPackageMemberships returns Maven, Cargo, or Docker teams linked to an immutable user ID.
 func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPackageMembership, error) {
 	if db == nil || db.SqlDB == nil {
 		return nil, core.ErrDatabaseUnavailable
@@ -78,6 +79,10 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 	format = strings.ToLower(strings.TrimSpace(format))
 	var query string
 	switch format {
+	case "maven":
+		query = `SELECT d.repository, d.domain, '', m.permission_level, 0
+			FROM maven_domain_members m JOIN maven_domains d ON d.repository = m.repository
+			AND d.domain = m.domain WHERE m.user_id = ? ORDER BY d.repository, d.domain`
 	case "cargo":
 		query = `SELECT p.repository, p.package_name, p.description, m.permission_level, p.archived
 			FROM cargo_members m JOIN cargo_packages p ON p.repository = m.repository
@@ -89,7 +94,7 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 			AND i.image_name = m.image_name WHERE m.user_id = ?
 			ORDER BY i.repository, i.image_name`
 	default:
-		return nil, errors.New("package membership format must be cargo or docker")
+		return nil, errors.New("package membership format must be maven, cargo, or docker")
 	}
 	rows, err := db.Query(query, userID)
 	if err != nil {
@@ -349,6 +354,7 @@ func (db *DB) initializeUserIdentities() error {
 	seen := make(map[string]struct{})
 	for _, query := range []string{
 		`SELECT name FROM tokens`,
+		`SELECT DISTINCT username FROM maven_domain_members`,
 		`SELECT DISTINCT username FROM cargo_members`,
 		`SELECT DISTINCT username FROM docker_members`,
 	} {
@@ -385,12 +391,20 @@ func (db *DB) initializeUserIdentities() error {
 		if _, err := db.Exec(`UPDATE cargo_members SET user_id = ? WHERE username = ? AND user_id IS NULL`, userID, username); err != nil {
 			return fmt.Errorf("backfill Cargo member identity for %s: %w", username, err)
 		}
+		if _, err := db.Exec(`UPDATE maven_domain_members SET user_id = ? WHERE username = ? AND user_id IS NULL`, userID, username); err != nil {
+			return fmt.Errorf("backfill Maven member identity for %s: %w", username, err)
+		}
 		if _, err := db.Exec(`UPDATE docker_members SET user_id = ? WHERE username = ? AND user_id IS NULL`, userID, username); err != nil {
 			return fmt.Errorf("backfill Docker member identity for %s: %w", username, err)
 		}
 	}
 	indexQueries := []string{
 		`CREATE UNIQUE INDEX uq_user_profiles_user_id ON user_profiles(user_id)`,
+		`CREATE UNIQUE INDEX uq_maven_members_user_id ON maven_domain_members(repository, domain, user_id)`,
+		`CREATE INDEX idx_maven_members_user ON maven_domain_members(user_id, repository)`,
+		`CREATE INDEX idx_maven_artifacts_domain ON maven_artifacts(repository, domain, group_id, artifact_id)`,
+		`CREATE INDEX idx_maven_versions_artifact ON maven_versions(repository, group_id, artifact_id, created_at)`,
+		`CREATE INDEX idx_maven_invitations_recipient ON maven_domain_invitations(recipient, created_at)`,
 		`CREATE UNIQUE INDEX uq_cargo_members_user_id ON cargo_members(repository, normalized_name, user_id)`,
 		`CREATE UNIQUE INDEX uq_docker_members_user_id ON docker_members(repository, image_name, user_id)`,
 	}

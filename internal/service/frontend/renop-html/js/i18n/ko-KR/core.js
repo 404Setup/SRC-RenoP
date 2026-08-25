@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "아티팩트 상세",
     "details.subtitle": "빌드 도구용 설정 스니펫 복사",
     "details.copySnippet": "스니펫 복사",
+    "details.copy": "복사",
     "details.copied": "복사됨!",
     "details.statsTitle": "저장소 용량 및 미러",
     "details.statsSubtitle": "로컬 저장소 사용량 및 설정된 미러",

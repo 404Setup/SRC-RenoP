@@ -163,6 +163,64 @@ func TestRepositorySerializationUsesFormatSpecificFields(t *testing.T) {
 	}
 }
 
+func TestRepositoryFormatVariantsAndLegacyUpgradeDefaults(t *testing.T) {
+	classic := &Repository{Format: RepositoryFormatMavenClassic}
+	if classic.NormalizedFormat() != RepositoryFormatMaven || classic.ConfiguredFormat() != RepositoryFormatMavenClassic {
+		t.Fatalf("classic Maven format was not normalized as Maven: %#v", classic)
+	}
+	if classic.UsesModernMavenLayout() {
+		t.Fatal("classic Maven repository reported the modern layout")
+	}
+	modern := &Repository{Format: RepositoryFormatMaven}
+	if !modern.UsesModernMavenLayout() {
+		t.Fatal("modern Maven repository did not report the domain layout")
+	}
+	for _, format := range []string{RepositoryFormatMaven, RepositoryFormatMavenClassic, RepositoryFormatFiles,
+		RepositoryFormatCargo, RepositoryFormatDocker} {
+		if !IsSupportedRepositoryFormat(format) {
+			t.Fatalf("supported repository format %q was rejected", format)
+		}
+	}
+
+	var settings MavenSettings
+	if err := json.Unmarshal([]byte(`{"repositories":{"legacy":{"name":"legacy","visibility":"PUBLIC","mirrors":[]}}}`), &settings); err != nil {
+		t.Fatal(err)
+	}
+	legacy := settings.Repositories["legacy"]
+	if legacy == nil || legacy.ConfiguredFormat() != RepositoryFormatMaven || !legacy.UsesModernMavenLayout() {
+		t.Fatalf("legacy Maven repository was not upgraded to the modern layout: %#v", legacy)
+	}
+	var yamlSettings MavenSettings
+	if err := yaml.Unmarshal([]byte("repositories:\n  legacy:\n    name: legacy\n    visibility: PUBLIC\n    mirrors: []\n"), &yamlSettings); err != nil {
+		t.Fatal(err)
+	}
+	yamlLegacy := yamlSettings.Repositories["legacy"]
+	if yamlLegacy == nil || yamlLegacy.ConfiguredFormat() != RepositoryFormatMaven || !yamlLegacy.UsesModernMavenLayout() {
+		t.Fatalf("legacy YAML Maven repository was not upgraded to the modern layout: %#v", yamlLegacy)
+	}
+
+	files := Repository{
+		Name: "downloads", Format: RepositoryFormatFiles, Visibility: "PUBLIC",
+		AllowRedeployment: true, RequireGPGSignature: true,
+	}
+	encoded, err := json.Marshal(files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(encoded)
+	if !strings.Contains(text, `"allow_redeployment":true`) || strings.Contains(text, "require_gpg_signature") {
+		t.Fatalf("file repository serialization has invalid publication policy fields: %s", text)
+	}
+
+	mirror := &Mirror{AllowArtifacts: []string{"public/*"}}
+	if allowed, _ := mirror.IsArtifactAllowedFor(RepositoryFormatFiles, "public/releases/app.zip"); !allowed {
+		t.Fatal("file mirror prefix rule rejected a matching path")
+	}
+	if allowed, _ := mirror.IsArtifactAllowedFor(RepositoryFormatFiles, "private/app.zip"); allowed {
+		t.Fatal("file mirror prefix rule allowed an unrelated path")
+	}
+}
+
 func TestMirrorCredentialsUnmarshaling(t *testing.T) {
 	var m MirrorCredentials
 	err := json.Unmarshal([]byte(`{"method":"basic","login":"foo","password":"bar"}`), &m)

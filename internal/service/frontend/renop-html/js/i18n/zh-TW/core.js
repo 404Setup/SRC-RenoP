@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "構件詳情",
     "details.subtitle": "複製適用於您建置工具的設定程式碼片段",
     "details.copySnippet": "複製程式碼片段",
+    "details.copy": "複製",
     "details.copied": "已複製！",
     "details.statsTitle": "儲存庫儲存與鏡像",
     "details.statsSubtitle": "本機儲存用量及已設定的鏡像",

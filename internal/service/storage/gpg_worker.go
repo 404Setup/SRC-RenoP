@@ -622,6 +622,12 @@ func publishGPGRelease(state *core.AppState, release *core.GPGRelease) error {
 			return err
 		}
 	}
+	if repo.NormalizedFormat() == "maven" && MavenPublicationRecorder != nil {
+		if err := MavenPublicationRecorder(state, release.Repository, release.ArtifactPath, release.Uploader,
+			release.ArtifactSize, release.ArtifactModTime); err != nil {
+			log.Printf("failed to update Maven catalog for verified publication %s: %v", release.ArtifactPath, err)
+		}
+	}
 
 	now := time.Now().UnixMilli()
 	release.Status = core.GPGReleaseSuccess

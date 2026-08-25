@@ -79,17 +79,21 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Repository format is required when creating a repository")
 	}
 	if existing != nil && requestedFormat == "" {
-		requestedFormat = existing.NormalizedFormat()
+		requestedFormat = existing.ConfiguredFormat()
 	}
 	if !config.IsSupportedRepositoryFormat(requestedFormat) {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid repository format")
 	}
 	repo.Format = requestedFormat
-	if existing != nil && existing.NormalizedFormat() != repo.Format {
+	if existing != nil && existing.NormalizedFormat() != repo.NormalizedFormat() {
 		return c.Status(fiber.StatusConflict).SendString("Repository format cannot be changed after creation")
 	}
 	if repo.Format == config.RepositoryFormatCargo {
 		repo.AllowRedeployment = false
+		repo.RequireGPGSignature = false
+	}
+	if repo.Format == config.RepositoryFormatFiles {
+		repo.AllowRedeployment = true
 		repo.RequireGPGSignature = false
 	}
 	if repo.Mirrors == nil {
@@ -142,7 +146,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		} else if current == nil {
 			return errRepositoryRemoved
 		}
-		if current != nil && current.NormalizedFormat() != repo.Format {
+		if current != nil && current.NormalizedFormat() != repo.NormalizedFormat() {
 			return errFormatChanged
 		}
 		newConfig := oldConfig.DeepCopy()
@@ -235,9 +239,10 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	var (
-		notFound    bool
-		storagePath string
-		s3Cfg       *config.S3Config
+		notFound         bool
+		storagePath      string
+		repositoryFormat string
+		s3Cfg            *config.S3Config
 	)
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		oldConfig := state.Inner.Config.Load()
@@ -247,6 +252,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 			return nil
 		}
 		storagePath = oldConfig.StoragePath
+		repositoryFormat = repo.NormalizedFormat()
 		if repo.S3 != nil && repo.S3.Enabled {
 			s3Cfg = repo.S3.DeepCopy()
 		}
@@ -268,7 +274,9 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	if notFound {
 		if db := state.GetDB(); db != nil {
-			if err := db.DeleteCargoRepository(repoName, time.Now().UnixMilli()); err != nil {
+			actedAt := time.Now().UnixMilli()
+			if err := errors.Join(db.DeleteMavenRepository(repoName, actedAt),
+				db.DeleteCargoRepository(repoName, actedAt), db.DeleteDockerRepository(repoName)); err != nil {
 				return c.Status(fiber.StatusInternalServerError).SendString("Failed to remove repository package metadata")
 			}
 		}
@@ -276,7 +284,14 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	var metadataErr error
 	if db := state.GetDB(); db != nil {
-		metadataErr = db.DeleteCargoRepository(repoName, time.Now().UnixMilli())
+		switch repositoryFormat {
+		case config.RepositoryFormatMaven:
+			metadataErr = db.DeleteMavenRepository(repoName, time.Now().UnixMilli())
+		case config.RepositoryFormatCargo:
+			metadataErr = db.DeleteCargoRepository(repoName, time.Now().UnixMilli())
+		case config.RepositoryFormatDocker:
+			metadataErr = db.DeleteDockerRepository(repoName)
+		}
 	}
 	storage.RemoveRepositoryStorage(state, storagePath, repoName, s3Cfg)
 	if metadataErr != nil {

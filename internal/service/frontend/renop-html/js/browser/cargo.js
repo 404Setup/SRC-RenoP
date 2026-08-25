@@ -17,6 +17,7 @@ import {showAlert, showConfirm} from '../alert.js';
 import {createDropzone, createFileCard, createIcon, createSkeleton, createUserIdentity, RenopDialog} from '../components.js';
 import {t} from '../i18n.js';
 import {getRepositoryFormat} from '../repository-formats.js';
+import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
 
@@ -54,30 +55,6 @@ let inviteSuggestions = [];
 let activeInviteSuggestion = -1;
 let inviteSuggestionPanel = null;
 let inviteInput = null;
-
-/**
- * Trigger copy animation with toast feedback on a copy button.
- * @param {HTMLButtonElement} button - Copy button.
- * @param {string} text - Text to copy to clipboard.
- * @returns {void}
- */
-function triggerCargoCopy(button, text) {
-    if (!button || !text) return;
-    navigator.clipboard.writeText(text).then(() => {
-        const originalTitle = button.title;
-        button.classList.add('copied');
-        button.title = t('details.copied') || 'Copied!';
-        button.replaceChildren(createIcon('check', {class: 'icon-svg'}));
-        const toast = el('span', {class: 'copy-toast'}, t('details.copied') || 'Copied!');
-        button.appendChild(toast);
-        setTimeout(() => {
-            if (!button.isConnected) return;
-            button.classList.remove('copied');
-            button.title = originalTitle;
-            button.replaceChildren(createIcon('copy', {class: 'icon-svg'}));
-        }, 2000);
-    }).catch(() => {});
-}
 
 /**
  * Extract a useful bounded error from a Cargo JSON or text response.
@@ -380,7 +357,7 @@ function buildCargoCommandsSection(packageName) {
         title: t('cargo.copyCommand'), 'aria-label': t('cargo.copyCommand')
     }, createIcon('copy', {class: 'icon-svg'}));
     copyBtn.addEventListener('click', () => {
-        triggerCargoCopy(copyBtn, currentSnippet);
+        void copyWithFeedback(copyBtn, currentSnippet, {copiedLabel: t('details.copied')}).catch(() => {});
     });
     codeBox.append(pre, copyBtn);
     section.appendChild(codeBox);
@@ -460,7 +437,7 @@ function buildCargoVersionFactsSection() {
             );
             const btn = cksumEl.querySelector('.cargo-checksum-copy-btn');
             btn?.addEventListener('click', () => {
-                triggerCargoCopy(btn, cksum);
+                void copyWithFeedback(btn, cksum, {copiedLabel: t('details.copied')}).catch(() => {});
             });
             items.push(cksumEl);
         }

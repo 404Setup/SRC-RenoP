@@ -15,6 +15,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -27,6 +28,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/maven"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
@@ -61,10 +63,6 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 
 	user := auth.GetUser(c)
 
-	if !user.CheckUpdatePermission(repoName) {
-		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
-	}
-
 	var pomMsg pb.PomDetails
 	var pomDetails PomDetails
 	readErr := protohttp.Read(c, &pomMsg)
@@ -92,6 +90,11 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 			path += "/" + pomFilename
 		}
 	}
+	coordinate, validCoordinate := maven.ParseArtifactPath(path)
+	if !validCoordinate || coordinate.GroupID != pomDetails.GroupId ||
+		coordinate.ArtifactID != pomDetails.ArtifactId || coordinate.Version != pomDetails.Version {
+		return c.Status(fiber.StatusBadRequest).SendString("POM coordinates do not match the repository path")
+	}
 
 	basePath, err := ResolveBasePath(state, repoName, path)
 	if err != nil {
@@ -109,6 +112,12 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	repo := cfg.Maven.Repositories[repoName]
 	if repo == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
+	}
+	if _, err := maven.AuthorizeMutation(state, user, repo, path, core.MavenPermissionPublish); err != nil {
+		if errors.Is(err, core.ErrMavenDomainUnverified) {
+			return c.Status(fiber.StatusConflict).SendString("Maven domain must be verified before publication")
+		}
+		return c.Status(fiber.StatusForbidden).SendString("Maven domain permission denied")
 	}
 	if repo.RequireGPGSignature {
 		return c.Status(fiber.StatusConflict).SendString("POM generation is unavailable because this repository requires detached GPG signatures")
@@ -214,10 +223,6 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 		if metadata.Versioning == nil {
 			metadata.Versioning = &config.Versioning{}
 		}
-		version := pomDetails.Version
-		metadata.Versioning.Latest = &version
-		metadata.Versioning.Release = &version
-
 		lastUpdated := time.Now().UTC().Format("20060102150405")
 		metadata.Versioning.LastUpdated = &lastUpdated
 
@@ -225,9 +230,21 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 			metadata.Versioning.Versions = &config.Versions{}
 		}
 
+		version := pomDetails.Version
 		found := slices.Contains(metadata.Versioning.Versions.Version, version)
 		if !found {
 			metadata.Versioning.Versions.Version = append(metadata.Versioning.Versions.Version, version)
+		}
+		slices.SortFunc(metadata.Versioning.Versions.Version, utils.CompareVersions)
+		latest := metadata.Versioning.Versions.Version[len(metadata.Versioning.Versions.Version)-1]
+		metadata.Versioning.Latest = &latest
+		metadata.Versioning.Release = nil
+		for index := len(metadata.Versioning.Versions.Version) - 1; index >= 0; index-- {
+			candidate := metadata.Versioning.Versions.Version[index]
+			if !strings.Contains(strings.ToUpper(candidate), "SNAPSHOT") {
+				metadata.Versioning.Release = &candidate
+				break
+			}
 		}
 
 		updatedXML, wErr := xml.Marshal(metadata)
@@ -282,6 +299,10 @@ func GeneratePom(c fiber.Ctx, state *core.AppState) error {
 	state.Inner.FileIndex.InsertFile(metadataPath)
 	status.MarkStorageUpdated()
 	uploadSucceeded = true
+	if err := maven.RecordPublishedPath(state, repoName, filepath.ToSlash(path), user.Username,
+		int64(len(pomBytes)), time.Now().UnixNano()); err != nil {
+		log.Printf("failed to update Maven catalog for generated POM %s: %v", filepath.ToSlash(path), err)
+	}
 
 	return c.Status(fiber.StatusCreated).SendString("")
 }

@@ -456,6 +456,11 @@ func ProcessUploadedFile(ctx context.Context, state *core.AppState, repo *config
 	if err := ctx.Err(); err != nil {
 		return GPGUploadResult{}, err
 	}
+	if repo.NormalizedFormat() == config.RepositoryFormatFiles {
+		err := CommitUploadedFile(state, upload.LocalFilePath, upload.TempPath, upload.FileSize, upload.ModTime,
+			upload.Existed, false, nil)
+		return GPGUploadResult{}, err
+	}
 	localPathSlash := filepath.ToSlash(upload.LocalFilePath)
 	_, localIsSignature := gpg.ArtifactForDetachedSignature(localPathSlash)
 	_, _, localIsCompanion := gpgCompanionForPath(localPathSlash)

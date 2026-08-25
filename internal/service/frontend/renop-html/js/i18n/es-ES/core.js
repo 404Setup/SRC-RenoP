@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "Detalles del artefacto",
     "details.subtitle": "Copie fragmentos de configuración para su herramienta de construcción",
     "details.copySnippet": "Copiar código",
+    "details.copy": "Copiar",
     "details.copied": "¡Copiado!",
     "details.statsTitle": "Almacenamiento y réplicas",
     "details.statsSubtitle": "Uso de almacenamiento local y réplicas configuradas",

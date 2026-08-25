@@ -227,6 +227,7 @@ export default {
     "details.artifactTitle": "构件详情",
     "details.subtitle": "复制适用于您构建工具的配置代码片段",
     "details.copySnippet": "复制代码片段",
+    "details.copy": "复制",
     "details.copied": "已复制！",
     "details.statsTitle": "仓库存储与镜像",
     "details.statsSubtitle": "本地存储使用情况及已配置的镜像",

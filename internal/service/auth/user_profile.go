@@ -37,6 +37,7 @@ type userProfileResponse struct {
 	OwnProfile                   bool   `json:"own_profile"`
 	UsernameChangesRemaining     int    `json:"username_changes_remaining"`
 	UsernameChangeWindowResetsAt int64  `json:"username_change_window_resets_at,omitempty"`
+	MavenDomainCount             int    `json:"maven_domain_count"`
 	CargoPackageCount            int    `json:"cargo_package_count"`
 	DockerImageCount             int    `json:"docker_image_count"`
 }
@@ -56,6 +57,10 @@ func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
 	}
 	current := GetUser(c)
 	own := current != nil && strings.EqualFold(current.Username, profile.Username)
+	mavenMemberships, err := visibleUserPackageMemberships(c, state, profile, config.RepositoryFormatMaven)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load Maven memberships")
+	}
 	cargoMemberships, err := visibleUserPackageMemberships(c, state, profile, config.RepositoryFormatCargo)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load Cargo memberships")
@@ -65,6 +70,7 @@ func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load Docker memberships")
 	}
 	response := profileResponse(profile, own, time.Now().UnixMilli())
+	response.MavenDomainCount = len(mavenMemberships)
 	response.CargoPackageCount = len(cargoMemberships)
 	response.DockerImageCount = len(dockerMemberships)
 	c.Set(fiber.HeaderCacheControl, "no-store")
@@ -74,8 +80,8 @@ func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
 func publicUserMemberships(c fiber.Ctx, state *core.AppState) error {
 	username := strings.ToLower(strings.TrimSpace(c.Params("username")))
 	format := strings.ToLower(strings.TrimSpace(c.Query("format")))
-	if format != config.RepositoryFormatCargo && format != config.RepositoryFormatDocker {
-		return c.Status(fiber.StatusBadRequest).SendString("Package format must be cargo or docker")
+	if format != config.RepositoryFormatMaven && format != config.RepositoryFormatCargo && format != config.RepositoryFormatDocker {
+		return c.Status(fiber.StatusBadRequest).SendString("Package format must be maven, cargo, or docker")
 	}
 	db := state.GetDB()
 	if db == nil {
@@ -115,6 +121,17 @@ func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *c
 		repository := cfg.Maven.Repositories[membership.Repository]
 		if repository == nil || repository.NormalizedFormat() != format {
 			continue
+		}
+		if format == config.RepositoryFormatMaven && viewer != nil &&
+			!strings.EqualFold(viewer.Username, "guest") {
+			allowed, err := db.HasMavenMembership(membership.Repository, viewer.Username)
+			if err != nil {
+				return nil, err
+			}
+			if allowed {
+				visible = append(visible, membership)
+				continue
+			}
 		}
 		if viewer.CheckReadPermission(membership.Repository, membership.Name, repository.Visibility, false) {
 			visible = append(visible, membership)
@@ -244,7 +261,8 @@ func profileResponse(profile *core.UserProfile, own bool, now int64) userProfile
 	response := userProfileResponse{
 		UserID: profile.UserID, Username: profile.Username, Nickname: profile.Nickname,
 		CreatedAt: profile.CreatedAt, OwnProfile: own,
-		CargoPackageCount: profile.CargoPackageCount, DockerImageCount: profile.DockerImageCount,
+		MavenDomainCount: profile.MavenDomainCount, CargoPackageCount: profile.CargoPackageCount,
+		DockerImageCount: profile.DockerImageCount,
 	}
 	if !own {
 		return response

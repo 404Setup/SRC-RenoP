@@ -17,12 +17,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/database"
 	"renop/internal/service/index"
 )
 
@@ -53,6 +55,25 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndex()
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(tempDir, "pom-test.db")})
+	if err != nil {
+		t.Fatalf("initialize test database: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+	if err := db.SaveToken(&core.AccessToken{Name: "admin", CreatedAt: time.Now().Format(time.RFC3339)}); err != nil {
+		t.Fatalf("save test user: %v", err)
+	}
+	domain := &core.MavenDomain{
+		Repository: "test-repo", Domain: "com.example", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "example.com", VerificationCode: "renop-verification=test", CreatedAt: time.Now().UnixMilli(),
+	}
+	if err := db.CreateMavenDomain(domain, "admin", false); err != nil {
+		t.Fatalf("create test Maven domain: %v", err)
+	}
+	if err := db.MarkMavenDomainVerified("test-repo", "com.example", domain.VerificationCode, time.Now().UnixMilli()); err != nil {
+		t.Fatalf("verify test Maven domain: %v", err)
+	}
 
 	app := fiber.New()
 	app.Post("/maven/generate/pom/:repo_name/*", func(c fiber.Ctx) error {
@@ -99,8 +120,18 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 	if err != nil {
 		t.Fatalf("redeployment request failed: %v", err)
 	}
-	if redeployResp.StatusCode != http.StatusConflict {
-		t.Fatalf("expected status 409, got %d", redeployResp.StatusCode)
+	if redeployResp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected mismatched POM coordinates rejected with 400, got %d", redeployResp.StatusCode)
+	}
+	matchingBody, _ := json.Marshal(payload)
+	matchingReq := httptest.NewRequest("POST", "/maven/generate/pom/test-repo/com/example/test-artifact/1.0.0/test-artifact-1.0.0.pom", bytes.NewReader(matchingBody))
+	matchingReq.Header.Set("Content-Type", "application/json")
+	matchingResp, err := app.Test(matchingReq)
+	if err != nil {
+		t.Fatalf("matching redeployment request failed: %v", err)
+	}
+	if matchingResp.StatusCode != http.StatusConflict {
+		t.Fatalf("expected matching redeployment rejected with 409, got %d", matchingResp.StatusCode)
 	}
 	after, err := os.ReadFile(expectedFilePath)
 	if err != nil {

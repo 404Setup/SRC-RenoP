@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "アーティファクトの詳細",
     "details.subtitle": "ビルドツール用の設定スニペットをコピー",
     "details.copySnippet": "スニペットをコピー",
+    "details.copy": "コピー",
     "details.copied": "コピーしました！",
     "details.statsTitle": "ストレージとミラー",
     "details.statsSubtitle": "ローカルストレージの使用状況と設定済みミラー",

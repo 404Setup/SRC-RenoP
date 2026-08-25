@@ -653,14 +653,14 @@ function openProfilePackage(event) {
 function profileMembershipTarget(membership) {
     const repository = encodeURIComponent(String(membership.repository || ''));
     const name = String(membership.name || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-    return membership.format === 'cargo'
-        ? `/${repository}/packages/${name}`
-        : `/${repository}/${name}`;
+    if (membership.format === 'maven') return `/${repository}/domains/${name}`;
+    if (membership.format === 'cargo') return `/${repository}/packages/${name}`;
+    return `/${repository}/${name}`;
 }
 
 /**
  * Format a package-team role without hiding its numeric level.
- * @param {'cargo'|'docker'} format - Repository format.
+ * @param {'maven'|'cargo'|'docker'} format - Repository format.
  * @param {number|string} level - Team permission level.
  * @returns {string} Localized role label.
  */
@@ -673,9 +673,9 @@ function profileMembershipRole(format, level) {
 }
 
 /**
- * Render a username-scoped Cargo or Docker membership list.
+ * Render a username-scoped Maven, Cargo, or Docker membership list.
  * @param {object} profile - Public profile payload.
- * @param {'cargo'|'docker'} format - Requested membership format.
+ * @param {'maven'|'cargo'|'docker'} format - Requested membership format.
  * @param {number} sequence - Profile load generation.
  * @returns {Promise<void>}
  */
@@ -683,9 +683,7 @@ async function renderProfileMemberships(profile, format, sequence) {
     const publicView = document.getElementById('profile-public-view');
     if (!publicView) return;
     const displayName = profileDisplayName(profile);
-    const titleKey = format === 'cargo'
-        ? 'profile.cargoMembershipsTitle'
-        : 'profile.dockerMembershipsTitle';
+    const titleKey = `profile.${format}MembershipsTitle`;
     const list = el('div', {class: 'profile-membership-list'},
         el('div', {class: 'profile-route-loading'},
             el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
@@ -698,7 +696,7 @@ async function renderProfileMemberships(profile, format, sequence) {
         el('section', {class: 'profile-memberships-card'},
             el('header', {class: 'profile-memberships-header'},
                 el('span', {class: `profile-memberships-icon is-${format}`, 'aria-hidden': 'true'},
-                    createIcon(format === 'cargo' ? 'fileCargo' : 'fileDocker')),
+                    createIcon(format === 'cargo' ? 'fileCargo' : (format === 'docker' ? 'fileDocker' : 'filePom'))),
                 el('div', {},
                     el('h2', {}, t(titleKey, {name: displayName})),
                     el('p', {}, `@${profile.username}`)
@@ -794,6 +792,17 @@ function renderPublicProfile(profile) {
                     el('div', {class: 'profile-public-meta-item'},
                         el('dt', {}, t('profile.memberSince')),
                         el('dd', {}, formatProfileCreatedAt(profile.created_at))
+                    ),
+                    el('div', {class: 'profile-public-meta-item'},
+                        el('dt', {}, t('profile.mavenDomains')),
+                        el('dd', {}, el('a', {
+                            class: 'profile-public-meta-link',
+                            href: `/user/${encodeURIComponent(profile.username)}/maven`,
+                            onclick: event => {
+                                event.preventDefault();
+                                navigateToUserProfile(profile.username, 'maven');
+                            }
+                        }, el('span', {}, String(profile.maven_domain_count || 0)), createIcon('chevron')))
                     ),
                     el('div', {class: 'profile-public-meta-item'},
                         el('dt', {}, t('profile.cargoPackages')),
@@ -1019,7 +1028,7 @@ function showProfileEdit(profile) {
 
 /**
  * Load and render a username-based profile route.
- * @param {{username: string, section: ''|'edit'|'cargo'|'docker'}|null} [route=null] - Parsed profile route.
+ * @param {{username: string, section: ''|'edit'|'maven'|'cargo'|'docker'}|null} [route=null] - Parsed profile route.
  * @returns {Promise<void>}
  */
 export async function setupProfile(route = null) {
@@ -1042,7 +1051,7 @@ export async function setupProfile(route = null) {
     try {
         const profile = await getUserProfile(targetUsername, {refresh: true});
         if (sequence !== profilePageLoadSeq) return;
-        if (targetRoute?.section === 'cargo' || targetRoute?.section === 'docker') {
+        if (targetRoute?.section === 'maven' || targetRoute?.section === 'cargo' || targetRoute?.section === 'docker') {
             await renderProfileMemberships(profile, targetRoute.section, sequence);
         } else if (targetRoute?.section === 'edit' && profile.own_profile) {
             showProfileEdit(profile);

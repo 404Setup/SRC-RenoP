@@ -6,13 +6,14 @@ info:
     url: https://github.com/404Setup/RenoP
   description: |
     Management and registry APIs for RenoP, a self-hosted artifact repository server
-    supporting Maven, Cargo (Rust sparse index), and Docker/OCI registries.
+    supporting Maven, unstructured file storage, Cargo (Rust sparse index), and Docker/OCI registries.
 
     Default listen address: `0.0.0.0:3000`.
 
     **Route layout:**
     - Management API: `/api/...`
     - Maven artifact storage: `/{repo}/{path}` (Maven 2 layout)
+    - Unstructured file storage: `/{repo}/{path}`
     - Docker/OCI Distribution API: `/v2/...`
     - Cargo sparse registry: `/{repo}/config.json` and `/{repo}/api/v1/...`
     - Javadoc preview: `/javadoc/{repo}/{path}`
@@ -58,7 +59,7 @@ tags:
   - name: tokens
     description: Account CRUD, session management, and upload-token re-issuance (all require the `manager` permission).
   - name: maven
-    description: File metadata, version listing, latest-version helpers, badge generation, and POM generation.
+    description: Verified publishing domains, domain teams, artifact catalog, version management, and Maven helpers.
   - name: status
     description: Health probe, frontend asset hash, real-time instance metrics, and historical metric snapshots.
   - name: settings
@@ -66,7 +67,7 @@ tags:
   - name: updater
     description: Online and offline binary update management, and process restart.
   - name: storage
-    description: Raw Maven artifact access (GET, HEAD, PUT, POST, DELETE) using Maven 2 repository layout.
+    description: Maven-layout and unstructured-file access (GET, HEAD, PUT, POST, DELETE), including mirror resolution.
   - name: javadoc
     description: In-browser Javadoc jar preview extracted from Maven artifact jars.
   - name: debug
@@ -340,7 +341,7 @@ components:
     UserProfile:
       type: object
       description: Public account identity. The username is intentionally exposed only on the profile resource.
-      required: [user_id, username, nickname, created_at, own_profile, username_changes_remaining, cargo_package_count, docker_image_count]
+      required: [user_id, username, nickname, created_at, own_profile, username_changes_remaining, maven_domain_count, cargo_package_count, docker_image_count]
       properties:
         user_id:
           type: string
@@ -368,6 +369,9 @@ components:
           type: integer
           format: int64
           description: Unix milliseconds when the active 24-hour rename window resets.
+        maven_domain_count:
+          type: integer
+          minimum: 0
         cargo_package_count:
           type: integer
           minimum: 0
@@ -382,17 +386,17 @@ components:
       properties:
         format:
           type: string
-          enum: [cargo, docker]
+          enum: [maven, cargo, docker]
         repository:
           type: string
         name:
           type: string
-          description: Cargo package name or Docker image name.
+          description: Maven domain, Cargo package name, or Docker image name.
         description:
           type: string
         permission_level:
           type: integer
-          minimum: 1
+          minimum: 0
           maximum: 4
         archived:
           type: boolean
@@ -1162,6 +1166,10 @@ components:
       properties:
         name:
           type: string
+        format:
+          type: string
+          enum: [maven, maven-classic, files, cargo, docker]
+          description: "`maven-classic` uses the file-tree UI but retains verified Maven publication rules. `files` is unstructured storage."
         visibility:
           type: string
           enum: [PUBLIC, HIDDEN, PRIVATE]
@@ -1176,6 +1184,137 @@ components:
             $ref: "#/components/schemas/Mirror"
         s3:
           $ref: "#/components/schemas/S3Config"
+
+    MavenDomain:
+      type: object
+      required: [repository, domain, verification_type, verification_host, verified, created_at, permission_level, artifact_count]
+      properties:
+        repository:
+          type: string
+        domain:
+          type: string
+          example: com.example
+        verification_type:
+          type: string
+          enum: [dns, github, gitlab, legacy]
+        verification_host:
+          type: string
+          description: Registered DNS root or public GitHub/GitLab account.
+        verification_code:
+          type: string
+          description: Present only for L3/L4 members and administrators.
+        verified:
+          type: boolean
+        created_at:
+          type: integer
+          format: int64
+        verified_at:
+          type: integer
+          format: int64
+        last_check_at:
+          type: integer
+          format: int64
+        permission_level:
+          type: integer
+          minimum: 0
+          maximum: 4
+        member:
+          type: boolean
+          description: Whether the current account belongs to this domain, including at L0.
+        artifact_count:
+          type: integer
+          minimum: 0
+
+    MavenMember:
+      type: object
+      required: [user_id, username, level, added_at]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        level:
+          type: integer
+          minimum: 0
+          maximum: 4
+        added_at:
+          type: integer
+          format: int64
+
+    MavenDomainDetails:
+      type: object
+      required: [domain, administrator]
+      properties:
+        domain:
+          $ref: "#/components/schemas/MavenDomain"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MavenMember"
+        administrator:
+          type: boolean
+
+    MavenArtifact:
+      type: object
+      required: [repository, domain, group_id, artifact_id, version_count, created_at, updated_at]
+      properties:
+        repository:
+          type: string
+        domain:
+          type: string
+        group_id:
+          type: string
+        artifact_id:
+          type: string
+        description:
+          type: string
+          maxLength: 4000
+        publisher:
+          type: string
+        latest_version:
+          type: string
+        version_count:
+          type: integer
+          minimum: 0
+        created_at:
+          type: integer
+          format: int64
+        updated_at:
+          type: integer
+          format: int64
+        permission_level:
+          type: integer
+          minimum: 0
+          maximum: 4
+
+    MavenVersion:
+      type: object
+      required: [version, size, created_at]
+      properties:
+        version:
+          type: string
+        publisher:
+          type: string
+        size:
+          type: integer
+          format: int64
+        created_at:
+          type: integer
+          format: int64
+
+    MavenArtifactDetails:
+      type: object
+      required: [artifact, versions, administrator]
+      properties:
+        artifact:
+          $ref: "#/components/schemas/MavenArtifact"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/MavenVersion"
+        administrator:
+          type: boolean
 
     MavenRepositoriesResponse:
       type: object
@@ -2367,6 +2506,447 @@ paths:
                 $ref: "#/components/schemas/RuntimeMemoryBreakdown"
         "403":
           description: Not a manager or debug mode is not active.
+
+  # ========== Maven domain registry ==========
+  /api/maven/repositories/{repo_name}/domains:
+    get:
+      tags: [maven]
+      summary: List Maven publishing domains
+      description: Lists verified domains plus pending domains visible to the current user. Legacy Maven content is cataloged on first upgrade.
+      operationId: listMavenDomains
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      responses:
+        "200":
+          description: Domain catalog.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repository:
+                    type: string
+                  domains:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MavenDomain"
+    post:
+      tags: [maven]
+      summary: Reserve a Maven publishing domain
+      description: |
+        Creates a pending domain owned by the caller. A verified proof from another repository is reused
+        only when the caller is its L4 owner or a system administrator.
+      operationId: createMavenDomain
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain]
+              properties:
+                domain:
+                  type: string
+                  example: com.example
+      responses:
+        "201":
+          description: Domain created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MavenDomain"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "409":
+          description: Domain already exists in this repository.
+
+  /api/maven/repositories/{repo_name}/domains/{domain}:
+    get:
+      tags: [maven]
+      summary: Get a Maven domain and team
+      operationId: getMavenDomain
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Domain details. Verification code and team are hidden from unauthorized viewers.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MavenDomainDetails"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
+    delete:
+      tags: [maven]
+      summary: Delete an empty Maven domain
+      operationId: deleteMavenDomain
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Domain deleted.
+        "409":
+          description: Domain still contains artifacts or cannot lose its owner.
+
+  /api/maven/repositories/{repo_name}/domains/{domain}/verify:
+    post:
+      tags: [maven]
+      summary: Verify Maven domain ownership
+      description: Checks all TXT values at the registered DNS root, a GitHub Bio/organization Description, or a GitLab Bio/group Description. Attempts are limited to once every five seconds per domain.
+      operationId: verifyMavenDomain
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verified domain.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MavenDomain"
+        "409":
+          description: Ownership proof was not found.
+        "429":
+          description: Verification was retried within five seconds.
+
+  /api/maven/repositories/{repo_name}/domains/{domain}/verify/force:
+    post:
+      tags: [maven]
+      summary: Force a Maven domain to verified status
+      description: System-administrator override. External proof is not checked and the action is audited.
+      operationId: forceVerifyMavenDomain
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verified domain.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MavenDomain"
+        "403":
+          $ref: "#/components/responses/PlainForbidden"
+
+  /api/maven/repositories/{repo_name}/domains/{domain}/members:
+    get:
+      tags: [maven]
+      summary: List Maven domain members
+      operationId: listMavenDomainMembers
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Domain members.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MavenMember"
+    post:
+      tags: [maven]
+      summary: Invite Maven domain members
+      description: Invites between one and twenty accounts in one atomic request. Administrators add accounts immediately.
+      operationId: inviteMavenDomainMembers
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [users, level]
+              properties:
+                users:
+                  type: array
+                  minItems: 1
+                  maxItems: 20
+                  items:
+                    type: string
+                level:
+                  type: integer
+                  minimum: 0
+                  maximum: 4
+      responses:
+        "201":
+          description: Invitations created.
+
+  /api/maven/repositories/{repo_name}/domains/{domain}/members/{username}:
+    put:
+      tags: [maven]
+      summary: Change a Maven domain member level
+      operationId: updateMavenDomainMember
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [level]
+              properties:
+                level:
+                  type: integer
+                  minimum: 0
+                  maximum: 4
+      responses:
+        "200":
+          description: Member updated.
+    delete:
+      tags: [maven]
+      summary: Remove or leave a Maven domain team
+      operationId: deleteMavenDomainMember
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Member removed.
+        "409":
+          description: The operation would remove the last L4 owner.
+
+  /api/maven/repositories/{repo_name}/invitations/{id}/{decision}:
+    post:
+      tags: [maven]
+      summary: Respond to a Maven domain invitation
+      operationId: respondMavenDomainInvitation
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: decision
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [accept, reject]
+      responses:
+        "200":
+          description: Invitation action completed.
+
+  /api/maven/repositories/{repo_name}/packages:
+    get:
+      tags: [maven]
+      summary: Search the Maven artifact catalog
+      operationId: listMavenArtifacts
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 128
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Artifact catalog page.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repository:
+                    type: string
+                  artifacts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MavenArtifact"
+                  total:
+                    type: integer
+
+  /api/maven/repositories/{repo_name}/package:
+    get:
+      tags: [maven]
+      summary: Get Maven artifact details
+      operationId: getMavenArtifact
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: group
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: artifact
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Artifact and versions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MavenArtifactDetails"
+    put:
+      tags: [maven]
+      summary: Update a Maven artifact description
+      operationId: updateMavenArtifact
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: group
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: artifact
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description:
+                  type: string
+                  maxLength: 4000
+      responses:
+        "200":
+          description: Artifact updated.
+
+  /api/maven/repositories/{repo_name}/versions:
+    delete:
+      tags: [maven]
+      summary: Delete one Maven artifact version
+      operationId: deleteMavenArtifactVersion
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: group
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: artifact
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Version and generated metadata removed.
 
   # ========== Maven helpers ==========
   /api/maven/details:

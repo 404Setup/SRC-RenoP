@@ -23,6 +23,7 @@ import (
 
 	"renop/internal/api"
 	"renop/internal/bootstrap"
+	"renop/internal/config"
 	"renop/internal/daemon"
 	"renop/internal/middleware"
 	"renop/internal/service/audit"
@@ -32,6 +33,7 @@ import (
 	"renop/internal/service/frontend"
 	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/maven"
 	"renop/internal/service/message"
 	"renop/internal/service/settings"
 	"renop/internal/service/status"
@@ -121,6 +123,13 @@ func startServer() {
 	if err := token.AutoRegisterAdmin(state, opChan); err != nil {
 		log.Fatalf("Failed to auto-register administrator: %v", err)
 	}
+	for repository, repo := range cfg.Maven.Repositories {
+		if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatMaven {
+			if err := maven.UpgradeLegacyRepository(state, repository); err != nil {
+				log.Printf("Failed to upgrade legacy Maven repository %s: %v", repository, err)
+			}
+		}
+	}
 
 	go audit.StartAuditLogConsumer(state)
 
@@ -135,6 +144,7 @@ func startServer() {
 	status.SetupDebugRoutes(apiGroup)
 	api.SetupApiRoutes(apiGroup, state)
 	message.SetupRoutes(apiGroup, state)
+	maven.SetupRoutes(apiGroup, state)
 	upload.SetupChunkedUploadRoutes(apiGroup, state)
 	settings.SetupSettingsRoutes(apiGroup.Group("/settings"), state)
 	updater.SetupUpdaterRoutes(apiGroup, state)

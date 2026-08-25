@@ -17,11 +17,16 @@
   profiles, immutable user identities for package ownership, and durable username-change throttling.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   upstream proxying, and sandboxed documentation extraction/viewer (`/cargodoc/...`).
+- **`internal/service/maven/`**: Maven domain registry with DNS/GitHub/GitLab ownership verification, cross-repository
+  proof reuse, L0-L4 domain teams, invitation workflows, catalog/version management, and legacy repository import.
+  Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
+  Maven publication paths in both layouts.
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based Bearer authentication, chunked blob uploads, cross-repository mounting, upstream registry mirror proxying, and catalog management.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
-  verification, and quarantined publication queue (`.renop.tmp.gpg`).
+  verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
+  provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
   administrator notices.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (Maven file index vs. Cargo package catalog),
@@ -30,7 +35,8 @@
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
-  package-membership routes plus shared nickname-first identity components. The signed-in account menu owns profile
+  package-membership routes plus shared nickname-first identity components. Maven repositories use a domain catalog
+  by default and can switch to the classic file-tree presentation. The signed-in account menu owns profile
   navigation and administrator page entry points; the settings UI groups the server, outbound-proxy, and storage APIs
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n

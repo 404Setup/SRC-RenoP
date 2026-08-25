@@ -1,0 +1,734 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+package database
+
+import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
+	"time"
+
+	"renop/internal/core"
+	"renop/internal/utils"
+)
+
+const maxMavenDomainsPerOwner = 64
+
+func sanitizeMavenRepository(value string) string {
+	return SanitizeInputString(strings.ToLower(strings.TrimSpace(value)), 64)
+}
+
+func sanitizeMavenDomain(value string) string {
+	return SanitizeInputString(strings.ToLower(strings.TrimSpace(value)), 253)
+}
+
+func sanitizeMavenUsername(value string) string {
+	return SanitizeInputString(strings.ToLower(strings.TrimSpace(value)), 255)
+}
+
+// EnsureImportedMavenDomain records a verified namespace discovered in a legacy repository.
+// Imported namespaces intentionally have no team until an administrator assigns one.
+func (db *DB) EnsureImportedMavenDomain(domain *core.MavenDomain) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	if domain == nil {
+		return errors.New("imported Maven domain is missing")
+	}
+	repository := sanitizeMavenRepository(domain.Repository)
+	name := sanitizeMavenDomain(domain.Domain)
+	if repository == "" || name == "" || !domain.Verified {
+		return errors.New("imported Maven domain is invalid")
+	}
+	var existing int
+	err := db.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`, repository, name).Scan(&existing)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect imported Maven domain: %w", err)
+	}
+	_, err = db.Exec(`INSERT INTO maven_domains
+		(repository, domain, verification_type, verification_host, verification_code, verified, created_at, verified_at, last_check_at)
+		VALUES (?, ?, ?, ?, ?, 1, ?, ?, 0)`, repository, name,
+		SanitizeInputString(domain.VerificationType, 16), SanitizeInputString(domain.VerificationHost, 253),
+		SanitizeInputString(domain.VerificationCode, 128), domain.CreatedAt, domain.VerifiedAt)
+	if err != nil {
+		if lookupErr := db.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`,
+			repository, name).Scan(&existing); lookupErr == nil {
+			return nil
+		}
+		return fmt.Errorf("create imported Maven domain: %w", err)
+	}
+	return nil
+}
+
+// IsMavenRepositoryUpgraded reports whether legacy Maven content was cataloged.
+func (db *DB) IsMavenRepositoryUpgraded(repository string) (bool, error) {
+	if db == nil || db.SqlDB == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	var exists int
+	err := db.QueryRow(`SELECT 1 FROM maven_repository_upgrades WHERE repository = ?`,
+		sanitizeMavenRepository(repository)).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect Maven repository upgrade: %w", err)
+	}
+	return true, nil
+}
+
+// MarkMavenRepositoryUpgraded records a completed legacy catalog import.
+func (db *DB) MarkMavenRepositoryUpgraded(repository string, completedAt int64) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	if repository == "" || completedAt <= 0 {
+		return errors.New("Maven repository upgrade marker is invalid")
+	}
+	var exists int
+	err := db.QueryRow(`SELECT 1 FROM maven_repository_upgrades WHERE repository = ?`, repository).Scan(&exists)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect Maven repository upgrade marker: %w", err)
+	}
+	if _, err := db.Exec(`INSERT INTO maven_repository_upgrades (repository, completed_at) VALUES (?, ?)`,
+		repository, completedAt); err != nil {
+		return fmt.Errorf("mark Maven repository upgraded: %w", err)
+	}
+	return nil
+}
+
+// CreateMavenDomain creates a namespace and its initial L4 owner atomically.
+// A verified proof is reused across repositories only for an existing L4 owner
+// or a system administrator.
+func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administrator bool) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	if domain == nil {
+		return errors.New("Maven domain is missing")
+	}
+	domain.Repository = sanitizeMavenRepository(domain.Repository)
+	domain.Domain = sanitizeMavenDomain(domain.Domain)
+	domain.VerificationType = SanitizeInputString(strings.ToLower(strings.TrimSpace(domain.VerificationType)), 16)
+	domain.VerificationHost = SanitizeInputString(strings.ToLower(strings.TrimSpace(domain.VerificationHost)), 253)
+	domain.VerificationCode = SanitizeInputString(strings.TrimSpace(domain.VerificationCode), 128)
+	owner = sanitizeMavenUsername(owner)
+	if domain.Repository == "" || domain.Domain == "" || domain.VerificationHost == "" || domain.VerificationCode == "" || owner == "" {
+		return errors.New("Maven domain is invalid")
+	}
+	ownerID, err := db.ensureUserProfile(owner)
+	if err != nil {
+		return core.ErrMavenPermissionDenied
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Maven domain creation: %w", err)
+	}
+	defer tx.Rollback()
+	var existing int
+	if err := tx.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`,
+		domain.Repository, domain.Domain).Scan(&existing); err == nil {
+		return core.ErrMavenDomainExists
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect Maven domain: %w", err)
+	}
+	var owned int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members WHERE user_id = ? AND permission_level = ?`,
+		ownerID, core.MavenPermissionOwner).Scan(&owned); err != nil {
+		return fmt.Errorf("count Maven domain ownerships: %w", err)
+	}
+	if owned >= maxMavenDomainsPerOwner {
+		return errors.New("Maven domain ownership limit reached")
+	}
+	var reusedType, reusedHost, reusedCode string
+	var reusedVerifiedAt int64
+	if administrator {
+		err = tx.QueryRow(`SELECT verification_type, verification_host, verification_code, verified_at
+			FROM maven_domains WHERE domain = ? AND verified = 1 ORDER BY verified_at DESC LIMIT 1`, domain.Domain).Scan(
+			&reusedType, &reusedHost, &reusedCode, &reusedVerifiedAt)
+	} else {
+		err = tx.QueryRow(`SELECT d.verification_type, d.verification_host, d.verification_code, d.verified_at
+			FROM maven_domains d JOIN maven_domain_members m ON m.repository = d.repository AND m.domain = d.domain
+			WHERE d.domain = ? AND d.verified = 1 AND m.user_id = ? AND m.permission_level = ?
+			ORDER BY d.verified_at DESC LIMIT 1`, domain.Domain, ownerID, core.MavenPermissionOwner).Scan(
+			&reusedType, &reusedHost, &reusedCode, &reusedVerifiedAt)
+	}
+	if err == nil {
+		domain.VerificationType = reusedType
+		domain.VerificationHost = reusedHost
+		domain.VerificationCode = reusedCode
+		domain.Verified = true
+		domain.VerifiedAt = reusedVerifiedAt
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect reusable Maven domain proof: %w", err)
+	}
+	verified := 0
+	if domain.Verified {
+		verified = 1
+	}
+	if _, err := tx.Exec(`INSERT INTO maven_domains
+		(repository, domain, verification_type, verification_host, verification_code, verified, created_at, verified_at, last_check_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`, domain.Repository, domain.Domain,
+		domain.VerificationType, domain.VerificationHost, domain.VerificationCode, verified,
+		domain.CreatedAt, domain.VerifiedAt); err != nil {
+		return fmt.Errorf("create Maven domain: %w", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO maven_domain_members
+		(repository, domain, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		domain.Repository, domain.Domain, owner, ownerID, core.MavenPermissionOwner, domain.CreatedAt); err != nil {
+		return fmt.Errorf("create Maven domain owner: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Maven domain creation: %w", err)
+	}
+	return nil
+}
+
+// ListMavenDomains lists verified public domains plus domains visible to the caller.
+func (db *DB) ListMavenDomains(repository, username string, includeAll bool) ([]*core.MavenDomain, error) {
+	if db == nil || db.SqlDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	username = sanitizeMavenUsername(username)
+	userID := ""
+	if username != "" && username != "guest" {
+		if resolved, err := db.userIDForUsername(username); err == nil {
+			userID = resolved
+		} else if !errors.Is(err, core.ErrUserProfileNotFound) {
+			return nil, err
+		}
+	}
+	query := `SELECT d.repository, d.domain, d.verification_type, d.verification_host,
+		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
+		COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
+		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.repository = d.repository AND a.domain = d.domain)
+		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
+		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ?`
+	if !includeAll {
+		query += ` AND (d.verified = 1 OR m.user_id IS NOT NULL)`
+	}
+	query += ` ORDER BY d.domain`
+	rows, err := db.Query(query, userID, repository)
+	if err != nil {
+		return nil, fmt.Errorf("list Maven domains: %w", err)
+	}
+	defer rows.Close()
+	domains := make([]*core.MavenDomain, 0)
+	for rows.Next() {
+		domain := &core.MavenDomain{}
+		var verified, member int
+		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
+			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
+			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member, &domain.ArtifactCount); err != nil {
+			return nil, fmt.Errorf("scan Maven domain: %w", err)
+		}
+		domain.Verified = verified != 0
+		domain.Member = member != 0
+		domains = append(domains, domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate Maven domains: %w", err)
+	}
+	return domains, nil
+}
+
+// GetMavenDomainDetails returns one domain and its current team.
+func (db *DB) GetMavenDomainDetails(repository, domain, username string) (*core.MavenDomainDetails, error) {
+	if db == nil || db.SqlDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	domain = sanitizeMavenDomain(domain)
+	username = sanitizeMavenUsername(username)
+	userID := ""
+	if username != "" && username != "guest" {
+		if resolved, err := db.userIDForUsername(username); err == nil {
+			userID = resolved
+		} else if !errors.Is(err, core.ErrUserProfileNotFound) {
+			return nil, err
+		}
+	}
+	result := &core.MavenDomainDetails{Domain: &core.MavenDomain{}}
+	var verified, member int
+	err := db.QueryRow(`SELECT d.repository, d.domain, d.verification_type, d.verification_host,
+		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
+		COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
+		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.repository = d.repository AND a.domain = d.domain)
+		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
+		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ? AND d.domain = ?`,
+		userID, repository, domain).Scan(&result.Domain.Repository, &result.Domain.Domain,
+		&result.Domain.VerificationType, &result.Domain.VerificationHost, &result.Domain.VerificationCode,
+		&verified, &result.Domain.CreatedAt, &result.Domain.VerifiedAt, &result.Domain.LastCheckAt,
+		&result.Domain.PermissionLevel, &member, &result.Domain.ArtifactCount)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, core.ErrMavenDomainNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load Maven domain: %w", err)
+	}
+	result.Domain.Verified = verified != 0
+	result.Domain.Member = member != 0
+	rows, err := db.Query(`SELECT user_id, username, permission_level, added_at FROM maven_domain_members
+		WHERE repository = ? AND domain = ? ORDER BY permission_level DESC, username`, repository, domain)
+	if err != nil {
+		return nil, fmt.Errorf("list Maven domain members: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		member := &core.MavenMember{}
+		if err := rows.Scan(&member.UserID, &member.Username, &member.Level, &member.AddedAt); err != nil {
+			return nil, fmt.Errorf("scan Maven domain member: %w", err)
+		}
+		result.Members = append(result.Members, member)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate Maven domain members: %w", err)
+	}
+	return result, nil
+}
+
+// ReserveMavenVerificationAttempt rate-limits and records one external verification check.
+func (db *DB) ReserveMavenVerificationAttempt(repository, domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	actor = sanitizeMavenUsername(actor)
+	var result sql.Result
+	var err error
+	if administrator {
+		result, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
+			AND verified = 0 AND last_check_at <= ?`, checkedAt, repository, domain, minimumPrevious)
+	} else {
+		actorID, identityErr := db.userIDForUsername(actor)
+		if identityErr != nil {
+			return core.ErrMavenPermissionDenied
+		}
+		result, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
+			AND verified = 0 AND last_check_at <= ? AND EXISTS (
+				SELECT 1 FROM maven_domain_members m WHERE m.repository = maven_domains.repository
+				AND m.domain = maven_domains.domain AND m.user_id = ? AND m.permission_level = ?
+			)`, checkedAt, repository, domain, minimumPrevious, actorID, core.MavenPermissionOwner)
+	}
+	if err != nil {
+		return fmt.Errorf("reserve Maven verification attempt: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count Maven verification reservation: %w", err)
+	}
+	if changed == 0 {
+		return core.ErrMavenVerificationRateLimit
+	}
+	return nil
+}
+
+// MarkMavenDomainVerified completes verification only if the assigned code still matches.
+func (db *DB) MarkMavenDomainVerified(repository, domain, code string, verifiedAt int64) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	result, err := db.Exec(`UPDATE maven_domains SET verified = 1, verified_at = ?
+		WHERE repository = ? AND domain = ? AND verification_code = ? AND verified = 0`,
+		verifiedAt, sanitizeMavenRepository(repository), sanitizeMavenDomain(domain),
+		SanitizeInputString(strings.TrimSpace(code), 128))
+	if err != nil {
+		return fmt.Errorf("verify Maven domain: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count Maven domain verification: %w", err)
+	}
+	if changed == 0 {
+		return core.ErrMavenVerificationFailed
+	}
+	return nil
+}
+
+// DeleteMavenDomain deletes an empty namespace after owner or administrator authorization.
+func (db *DB) DeleteMavenDomain(repository, domain, actor string, administrator bool, actedAt int64) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	actor = sanitizeMavenUsername(actor)
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Maven domain deletion: %w", err)
+	}
+	defer tx.Rollback()
+	if err := lockMavenDomain(tx, repository, domain); err != nil {
+		return err
+	}
+	if !administrator {
+		actorID, err := userIDForUsernameTx(tx, actor)
+		if err != nil {
+			return core.ErrMavenPermissionDenied
+		}
+		if err := requireMavenMemberPermission(tx, repository, domain, actorID, core.MavenPermissionOwner); err != nil {
+			return err
+		}
+	}
+	var artifacts int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_artifacts WHERE repository = ? AND domain = ?`,
+		repository, domain).Scan(&artifacts); err != nil {
+		return fmt.Errorf("count Maven domain artifacts: %w", err)
+	}
+	if artifacts != 0 {
+		return core.ErrMavenDomainNotEmpty
+	}
+	if err := cancelMavenInvitations(tx, `repository = ? AND domain = ?`, []any{repository, domain}, actedAt); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE repository = ? AND domain = ?`, repository, domain); err != nil {
+		return fmt.Errorf("delete Maven domain members: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM maven_domains WHERE repository = ? AND domain = ?`, repository, domain); err != nil {
+		return fmt.Errorf("delete Maven domain: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Maven domain deletion: %w", err)
+	}
+	return nil
+}
+
+// HasMavenMembership reports whether a user belongs to any domain in a repository.
+func (db *DB) HasMavenMembership(repository, username string) (bool, error) {
+	if db == nil || db.SqlDB == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	userID, err := db.userIDForUsername(sanitizeMavenUsername(username))
+	if errors.Is(err, core.ErrUserProfileNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	var exists int
+	err = db.QueryRow(`SELECT 1 FROM maven_domain_members WHERE repository = ? AND user_id = ? LIMIT 1`,
+		sanitizeMavenRepository(repository), userID).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect Maven membership: %w", err)
+	}
+	return true, nil
+}
+
+// RecordMavenPublication upserts one catalog artifact and version after storage publication.
+func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core.MavenVersion) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	if artifact == nil || version == nil {
+		return errors.New("Maven publication metadata is missing")
+	}
+	repository := sanitizeMavenRepository(artifact.Repository)
+	domain := sanitizeMavenDomain(artifact.Domain)
+	groupID := sanitizeMavenDomain(artifact.GroupID)
+	artifactID := SanitizeInputString(strings.TrimSpace(artifact.ArtifactID), 255)
+	versionName := SanitizeInputString(strings.TrimSpace(version.Version), 255)
+	publisher := sanitizeMavenUsername(version.Publisher)
+	description := SanitizeInputString(strings.TrimSpace(artifact.Description), 4000)
+	if repository == "" || domain == "" || groupID == "" || artifactID == "" || versionName == "" {
+		return errors.New("Maven publication metadata is invalid")
+	}
+	if groupID != domain && !strings.HasPrefix(groupID, domain+".") {
+		return core.ErrMavenPermissionDenied
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Maven publication: %w", err)
+	}
+	defer tx.Rollback()
+	var verified int
+	if err := tx.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`,
+		repository, domain).Scan(&verified); errors.Is(err, sql.ErrNoRows) {
+		return core.ErrMavenDomainNotFound
+	} else if err != nil {
+		return fmt.Errorf("inspect Maven publication domain: %w", err)
+	}
+	if verified == 0 {
+		return core.ErrMavenDomainUnverified
+	}
+	var latestVersion string
+	err = tx.QueryRow(`SELECT latest_version FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+		repository, groupID, artifactID).Scan(&latestVersion)
+	if errors.Is(err, sql.ErrNoRows) {
+		if _, err := tx.Exec(`INSERT INTO maven_artifacts
+			(repository, domain, group_id, artifact_id, description, publisher, latest_version, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, repository, domain, groupID, artifactID,
+			description, publisher, versionName, artifact.CreatedAt, artifact.UpdatedAt); err != nil {
+			return fmt.Errorf("create Maven artifact: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("inspect Maven artifact: %w", err)
+	} else {
+		latestPublisher := ""
+		if latestVersion == "" || utils.CompareVersions(versionName, latestVersion) >= 0 {
+			latestVersion = versionName
+			latestPublisher = publisher
+		}
+		if _, err := tx.Exec(`UPDATE maven_artifacts SET
+		description = CASE WHEN ? != '' THEN ? ELSE description END,
+		publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
+		latest_version = ?, updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
+		WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+			description, description, latestPublisher, latestPublisher, latestVersion,
+			artifact.UpdatedAt, artifact.UpdatedAt,
+			repository, groupID, artifactID); err != nil {
+			return fmt.Errorf("update Maven artifact: %w", err)
+		}
+	}
+	var exists int
+	err = tx.QueryRow(`SELECT 1 FROM maven_versions WHERE repository = ? AND group_id = ? AND artifact_id = ? AND version = ?`,
+		repository, groupID, artifactID, versionName).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		if _, err := tx.Exec(`INSERT INTO maven_versions
+			(repository, group_id, artifact_id, version, publisher, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			repository, groupID, artifactID, versionName, publisher, version.Size, version.CreatedAt); err != nil {
+			return fmt.Errorf("create Maven version: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("inspect Maven version: %w", err)
+	} else if _, err := tx.Exec(`UPDATE maven_versions SET publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
+		size = CASE WHEN ? > size THEN ? ELSE size END WHERE repository = ? AND group_id = ? AND artifact_id = ? AND version = ?`,
+		publisher, publisher, version.Size, version.Size, repository, groupID, artifactID, versionName); err != nil {
+		return fmt.Errorf("update Maven version: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Maven publication: %w", err)
+	}
+	return nil
+}
+
+// ListMavenArtifacts returns a bounded catalog page and total count.
+func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*core.MavenArtifact, int, error) {
+	if db == nil || db.SqlDB == nil {
+		return nil, 0, core.ErrDatabaseUnavailable
+	}
+	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	query = SanitizeInputString(strings.ToLower(strings.TrimSpace(query)), 128)
+	if limit < 1 || limit > 100 || offset < 0 {
+		return nil, 0, errors.New("Maven artifact page is invalid")
+	}
+	where := ` WHERE repository = ?`
+	args := []any{repository}
+	if domain != "" {
+		where += ` AND domain = ?`
+		args = append(args, domain)
+	}
+	if query != "" {
+		where += ` AND (LOWER(group_id) LIKE ? OR LOWER(artifact_id) LIKE ?)`
+		pattern := "%" + query + "%"
+		args = append(args, pattern, pattern)
+	}
+	var total int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM maven_artifacts`+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count Maven artifacts: %w", err)
+	}
+	rows, err := db.Query(`SELECT repository, domain, group_id, artifact_id, description, publisher,
+		latest_version, (SELECT COUNT(*) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
+		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
+		created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id LIMIT ? OFFSET ?`,
+		append(args, limit, offset)...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list Maven artifacts: %w", err)
+	}
+	defer rows.Close()
+	artifacts := make([]*core.MavenArtifact, 0, min(limit, total))
+	for rows.Next() {
+		artifact := &core.MavenArtifact{}
+		if err := rows.Scan(&artifact.Repository, &artifact.Domain, &artifact.GroupID, &artifact.ArtifactID,
+			&artifact.Description, &artifact.Publisher, &artifact.LatestVersion, &artifact.VersionCount,
+			&artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan Maven artifact: %w", err)
+		}
+		artifacts = append(artifacts, artifact)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate Maven artifacts: %w", err)
+	}
+	return artifacts, total, nil
+}
+
+// GetMavenArtifactDetails loads one artifact and all versions.
+func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*core.MavenArtifactDetails, error) {
+	if db == nil || db.SqlDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	groupID = sanitizeMavenDomain(groupID)
+	artifactID = SanitizeInputString(strings.TrimSpace(artifactID), 255)
+	result := &core.MavenArtifactDetails{Artifact: &core.MavenArtifact{}}
+	err := db.QueryRow(`SELECT repository, domain, group_id, artifact_id, description, publisher,
+		latest_version, (SELECT COUNT(*) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
+		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
+		created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+		repository, groupID, artifactID).Scan(&result.Artifact.Repository, &result.Artifact.Domain,
+		&result.Artifact.GroupID, &result.Artifact.ArtifactID, &result.Artifact.Description,
+		&result.Artifact.Publisher, &result.Artifact.LatestVersion, &result.Artifact.VersionCount,
+		&result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, core.ErrMavenArtifactNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load Maven artifact: %w", err)
+	}
+	rows, err := db.Query(`SELECT repository, group_id, artifact_id, version, publisher, size, created_at
+		FROM maven_versions WHERE repository = ? AND group_id = ? AND artifact_id = ? ORDER BY created_at DESC`,
+		repository, groupID, artifactID)
+	if err != nil {
+		return nil, fmt.Errorf("list Maven versions: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		version := &core.MavenVersion{}
+		if err := rows.Scan(&version.Repository, &version.GroupID, &version.ArtifactID, &version.Version,
+			&version.Publisher, &version.Size, &version.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan Maven version: %w", err)
+		}
+		result.Versions = append(result.Versions, version)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate Maven versions: %w", err)
+	}
+	slices.SortFunc(result.Versions, func(left, right *core.MavenVersion) int {
+		return -utils.CompareVersions(left.Version, right.Version)
+	})
+	return result, nil
+}
+
+// UpdateMavenArtifactDescription updates the catalog README text.
+func (db *DB) UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error {
+	description = SanitizeInputString(strings.TrimSpace(description), 4000)
+	result, err := db.Exec(`UPDATE maven_artifacts SET description = ?, updated_at = ?
+		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, description, time.Now().UnixMilli(),
+		sanitizeMavenRepository(repository), sanitizeMavenDomain(groupID),
+		SanitizeInputString(strings.TrimSpace(artifactID), 255))
+	if err != nil {
+		return fmt.Errorf("update Maven artifact description: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count Maven artifact update: %w", err)
+	}
+	if changed == 0 {
+		return core.ErrMavenArtifactNotFound
+	}
+	return nil
+}
+
+// DeleteMavenVersionMetadata removes a catalog version after storage deletion.
+func (db *DB) DeleteMavenVersionMetadata(repository, groupID, artifactID, version string) error {
+	repository, groupID = sanitizeMavenRepository(repository), sanitizeMavenDomain(groupID)
+	artifactID = SanitizeInputString(strings.TrimSpace(artifactID), 255)
+	version = SanitizeInputString(strings.TrimSpace(version), 255)
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Maven version deletion: %w", err)
+	}
+	defer tx.Rollback()
+	result, err := tx.Exec(`DELETE FROM maven_versions WHERE repository = ? AND group_id = ? AND artifact_id = ? AND version = ?`,
+		repository, groupID, artifactID, version)
+	if err != nil {
+		return fmt.Errorf("delete Maven version metadata: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count Maven version deletion: %w", err)
+	}
+	if changed == 0 {
+		return core.ErrMavenVersionNotFound
+	}
+	rows, err := tx.Query(`SELECT version FROM maven_versions WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+		repository, groupID, artifactID)
+	if err != nil {
+		return fmt.Errorf("list remaining Maven versions: %w", err)
+	}
+	versions := make([]string, 0)
+	for rows.Next() {
+		var candidate string
+		if err := rows.Scan(&candidate); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("scan remaining Maven version: %w", err)
+		}
+		versions = append(versions, candidate)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return fmt.Errorf("iterate remaining Maven versions: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close remaining Maven versions: %w", err)
+	}
+	if len(versions) == 0 {
+		if _, err := tx.Exec(`DELETE FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+			repository, groupID, artifactID); err != nil {
+			return fmt.Errorf("delete empty Maven artifact: %w", err)
+		}
+	} else {
+		slices.SortFunc(versions, func(left, right string) int { return -utils.CompareVersions(left, right) })
+		if _, err := tx.Exec(`UPDATE maven_artifacts SET latest_version = ?, updated_at = ?
+		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, versions[0], time.Now().UnixMilli(),
+			repository, groupID, artifactID); err != nil {
+			return fmt.Errorf("update latest Maven version: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Maven version deletion: %w", err)
+	}
+	return nil
+}
+
+// DeleteMavenRepository deletes all Maven ownership and catalog metadata for a repository.
+func (db *DB) DeleteMavenRepository(repository string, actedAt int64) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Maven repository metadata deletion: %w", err)
+	}
+	defer tx.Rollback()
+	if err := cancelMavenInvitations(tx, `repository = ?`, []any{repository}, actedAt); err != nil {
+		return err
+	}
+	for _, query := range []string{
+		`DELETE FROM maven_versions WHERE repository = ?`,
+		`DELETE FROM maven_artifacts WHERE repository = ?`,
+		`DELETE FROM maven_domain_members WHERE repository = ?`,
+		`DELETE FROM maven_domains WHERE repository = ?`,
+		`DELETE FROM maven_repository_upgrades WHERE repository = ?`,
+	} {
+		if _, err := tx.Exec(query, repository); err != nil {
+			return fmt.Errorf("delete Maven repository metadata: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Maven repository metadata deletion: %w", err)
+	}
+	return nil
+}

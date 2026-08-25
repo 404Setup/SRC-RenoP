@@ -183,6 +183,7 @@ export default {
     "details.artifactTitle": "Детали артефакта",
     "details.subtitle": "Скопируйте фрагмент конфигурации для вашей системы сборки",
     "details.copySnippet": "Копировать код",
+    "details.copy": "Копировать",
     "details.copied": "Скопировано!",
     "details.statsTitle": "Хранилище и зеркала",
     "details.statsSubtitle": "Использование локального диска и настроенные зеркала",

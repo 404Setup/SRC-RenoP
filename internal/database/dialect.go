@@ -15,6 +15,75 @@ import (
 	"strings"
 )
 
+func initMavenTables(db *sql.DB) error {
+	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS maven_domains (
+			repository VARCHAR(64) NOT NULL,
+			domain VARCHAR(253) NOT NULL,
+			verification_type VARCHAR(16) NOT NULL,
+			verification_host VARCHAR(253) NOT NULL,
+			verification_code VARCHAR(128) NOT NULL,
+			verified INT NOT NULL DEFAULT 0,
+			created_at BIGINT NOT NULL,
+			verified_at BIGINT NOT NULL DEFAULT 0,
+			last_check_at BIGINT NOT NULL DEFAULT 0,
+			PRIMARY KEY (repository, domain)
+		);`,
+		`CREATE TABLE IF NOT EXISTS maven_domain_members (
+			repository VARCHAR(64) NOT NULL,
+			domain VARCHAR(253) NOT NULL,
+			username VARCHAR(255) NOT NULL,
+			user_id VARCHAR(36) NULL,
+			permission_level INT NOT NULL,
+			added_at BIGINT NOT NULL,
+			PRIMARY KEY (repository, domain, username),
+			UNIQUE (repository, domain, user_id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS maven_domain_invitations (
+			id CHAR(36) PRIMARY KEY,
+			repository VARCHAR(64) NOT NULL,
+			domain VARCHAR(253) NOT NULL,
+			inviter VARCHAR(255) NOT NULL,
+			recipient VARCHAR(255) NOT NULL,
+			permission_level INT NOT NULL,
+			created_at BIGINT NOT NULL,
+			UNIQUE (repository, domain, recipient)
+		);`,
+		`CREATE TABLE IF NOT EXISTS maven_artifacts (
+			repository VARCHAR(64) NOT NULL,
+			domain VARCHAR(253) NOT NULL,
+			group_id VARCHAR(253) NOT NULL,
+			artifact_id VARCHAR(255) NOT NULL,
+			description TEXT NOT NULL,
+			publisher VARCHAR(255) NOT NULL,
+			latest_version VARCHAR(255) NOT NULL,
+			created_at BIGINT NOT NULL,
+			updated_at BIGINT NOT NULL,
+			PRIMARY KEY (repository, group_id, artifact_id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS maven_versions (
+			repository VARCHAR(64) NOT NULL,
+			group_id VARCHAR(253) NOT NULL,
+			artifact_id VARCHAR(255) NOT NULL,
+			version VARCHAR(255) NOT NULL,
+			publisher VARCHAR(255) NOT NULL,
+			size BIGINT NOT NULL DEFAULT 0,
+			created_at BIGINT NOT NULL,
+			PRIMARY KEY (repository, group_id, artifact_id, version)
+		);`,
+		`CREATE TABLE IF NOT EXISTS maven_repository_upgrades (
+			repository VARCHAR(64) PRIMARY KEY,
+			completed_at BIGINT NOT NULL
+		);`,
+	}
+	for _, table := range tables {
+		if _, err := db.Exec(table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type Dialect interface {
 	Name() string
 	InitTables(db *sql.DB) error

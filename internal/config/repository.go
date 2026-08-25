@@ -41,9 +41,11 @@ type repositorySerialization struct {
 }
 
 const (
-	RepositoryFormatMaven  = "maven"
-	RepositoryFormatCargo  = "cargo"
-	RepositoryFormatDocker = "docker"
+	RepositoryFormatMaven        = "maven"
+	RepositoryFormatMavenClassic = "maven-classic"
+	RepositoryFormatFiles        = "files"
+	RepositoryFormatCargo        = "cargo"
+	RepositoryFormatDocker       = "docker"
 )
 
 // NormalizedFormat returns the protocol name while preserving the historical
@@ -56,22 +58,44 @@ func (r *Repository) NormalizedFormat() string {
 	if format == "" {
 		return RepositoryFormatMaven
 	}
+	if format == RepositoryFormatMavenClassic {
+		return RepositoryFormatMaven
+	}
 	return format
 }
 
+// ConfiguredFormat returns the persisted protocol or Maven layout variant.
+func (r *Repository) ConfiguredFormat() string {
+	if r == nil {
+		return RepositoryFormatMaven
+	}
+	format := strings.ToLower(strings.TrimSpace(r.Format))
+	if format == "" {
+		return RepositoryFormatMaven
+	}
+	return format
+}
+
+// UsesModernMavenLayout reports whether a Maven repository uses the domain catalog UI.
+func (r *Repository) UsesModernMavenLayout() bool {
+	return r != nil && r.NormalizedFormat() == RepositoryFormatMaven &&
+		r.ConfiguredFormat() != RepositoryFormatMavenClassic
+}
+
 // serialization returns only fields supported by the repository protocol.
-// Maven keeps its explicit policy booleans; Cargo keeps its artifact URL
-// templates and omits Maven-only publication policy; Docker omits GPG policy.
+// Maven layout variants keep publication policy, Cargo keeps artifact URL
+// templates, Docker omits GPG policy, and file storage keeps replacement only.
 func (r Repository) serialization() repositorySerialization {
 	serialized := repositorySerialization{
-		Name: r.Name, Format: r.Format, Visibility: r.Visibility, S3: r.S3,
+		Name: r.Name, Format: r.ConfiguredFormat(), Visibility: r.Visibility, S3: r.S3,
 		Mirrors: make([]Mirror, len(r.Mirrors)),
 	}
 	for i := range r.Mirrors {
 		serialized.Mirrors[i] = r.Mirrors[i].DeepCopy()
 	}
-	if r.NormalizedFormat() == RepositoryFormatCargo || r.NormalizedFormat() == RepositoryFormatDocker {
-		if r.NormalizedFormat() == RepositoryFormatDocker {
+	if r.NormalizedFormat() == RepositoryFormatCargo || r.NormalizedFormat() == RepositoryFormatDocker ||
+		r.NormalizedFormat() == RepositoryFormatFiles {
+		if r.NormalizedFormat() == RepositoryFormatDocker || r.NormalizedFormat() == RepositoryFormatFiles {
 			serialized.AllowRedeployment = &r.AllowRedeployment
 		}
 		return serialized
@@ -97,7 +121,8 @@ func (r Repository) MarshalYAML() (any, error) {
 // IsSupportedFormat reports whether the repository protocol is implemented.
 func IsSupportedRepositoryFormat(format string) bool {
 	switch strings.ToLower(strings.TrimSpace(format)) {
-	case "", RepositoryFormatMaven, RepositoryFormatCargo, RepositoryFormatDocker:
+	case "", RepositoryFormatMaven, RepositoryFormatMavenClassic, RepositoryFormatFiles,
+		RepositoryFormatCargo, RepositoryFormatDocker:
 		return true
 	default:
 		return false
@@ -223,22 +248,32 @@ func (m *MavenSettings) setDefaults() {
 		if repo != nil && strings.TrimSpace(repo.Format) == "" {
 			repo.Format = RepositoryFormatMaven
 		}
+		if repo != nil && repo.NormalizedFormat() == RepositoryFormatFiles {
+			repo.AllowRedeployment = true
+			repo.RequireGPGSignature = false
+		}
 	}
 	delete(m.Repositories, "snapshot")
 }
 
 func (m *MavenSettings) UnmarshalJSON(data []byte) error {
-	m.setDefaults()
 	type alias MavenSettings
 	aux := (*alias)(m)
-	return json.Unmarshal(data, aux)
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	m.setDefaults()
+	return nil
 }
 
 func (m *MavenSettings) UnmarshalYAML(value *yaml.Node) error {
-	m.setDefaults()
 	type alias MavenSettings
 	aux := (*alias)(m)
-	return value.Decode(aux)
+	if err := value.Decode(aux); err != nil {
+		return err
+	}
+	m.setDefaults()
+	return nil
 }
 
 type S3Config struct {

@@ -249,12 +249,30 @@ function buildRepoSection(container, data, repoKey, repo) {
         saveRepoSettings(repoKey, repo);
     }
 
+    /**
+     * Persist the Maven browser layout without changing its repository protocol.
+     * @param {string} value - `modern` or `classic`.
+     * @returns {void}
+     */
+    function handleMavenLayoutChange(value) {
+        repo.format = value === 'classic' ? 'maven-classic' : 'maven';
+        saveRepoSettings(repoKey, repo);
+    }
+
     const visSelect = makeCustomSelect(
         visOptions,
         repo.visibility || 'PUBLIC',
         handleVisibilityChange
     );
     fields.appendChild(makeFieldRow(t('repos.visibility'), t('repos.visibilityDesc'), visSelect));
+
+    if (format.protocol === 'maven') {
+        const layoutSelect = makeCustomSelect([
+            {value: 'modern', label: t('repos.mavenLayoutModern')},
+            {value: 'classic', label: t('repos.mavenLayoutClassic')}
+        ], format.layout || 'modern', handleMavenLayoutChange);
+        fields.appendChild(makeFieldRow(t('repos.mavenLayout'), t('repos.mavenLayoutDesc'), layoutSelect));
+    }
 
     if (format.supportsRedeployment) {
         fields.appendChild(makeToggleRow(
@@ -1155,6 +1173,9 @@ async function saveRepoSettings(repoKey, repo, options = {}) {
         }
         if (response.ok) {
             initialReposMap[repoKey] = payload;
+            window.dispatchEvent(new CustomEvent('repositorySettingsChanged', {
+                detail: {repository: repoKey, format: payload.format}
+            }));
             if (!silent) {
                 showAlert(t('repos.savedSuccess'), 'success');
             }

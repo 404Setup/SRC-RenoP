@@ -11,6 +11,7 @@
 package storage
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 
@@ -60,6 +61,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	user := auth.GetUser(c)
 	isCargo := repo.NormalizedFormat() == config.RepositoryFormatCargo
 	isDocker := repo.NormalizedFormat() == config.RepositoryFormatDocker
+	isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
 
 	if (isDocker || isCargo || c.Method() == fiber.MethodGet) && TryHTMLFallback(state, c) {
 		return nil
@@ -84,6 +86,9 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	if isRead {
 		isRoot := strings.HasSuffix(path, "/") || path == "" || isDirOnDisk
 		canRead, err := cargo.CanReadRepository(state, user, repo, sanitized, isRoot)
+		if isMaven && MavenReadAuthorizer != nil {
+			canRead, err = MavenReadAuthorizer(state, user, repo, sanitized, isRoot)
+		}
 		if err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")
 		}
@@ -100,10 +105,25 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		if isDirOnDisk && TryHTMLFallback(state, c) {
 			return nil
 		}
-	} else if !isCargo && !isDocker {
-		if !user.CheckUpdatePermission(repoName) {
-			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	} else if isMaven {
+		if MavenMutationAuthorizer == nil {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Maven domain authorization is unavailable")
 		}
+		requiredLevel := core.MavenPermissionPublish
+		if c.Method() == fiber.MethodDelete {
+			requiredLevel = core.MavenPermissionVersion
+		}
+		if err := MavenMutationAuthorizer(state, user, repo, sanitized, requiredLevel); err != nil {
+			if errors.Is(err, core.ErrMavenDomainUnverified) {
+				return c.Status(fiber.StatusConflict).SendString("Maven domain must be verified before publication")
+			}
+			if errors.Is(err, core.ErrDatabaseUnavailable) {
+				return c.Status(fiber.StatusServiceUnavailable).SendString("Maven domain authorization is unavailable")
+			}
+			return c.Status(fiber.StatusForbidden).SendString("Maven domain permission denied")
+		}
+	} else if !isCargo && !isDocker && !user.CheckUpdatePermission(repoName) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
 	path = sanitized
