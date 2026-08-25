@@ -56,6 +56,10 @@ my-crate = { version = "0.1.0", registry = "renop" }
 cargo publish --registry renop
 ```
 
+The first publication reserves the normalized crate name. If the repository has upstream mirrors, RenoP rejects a
+name already present on any applicable mirror. It also fails the publication safely when an upstream availability
+check is inconclusive, so a temporary mirror outage cannot create a conflicting local package.
+
 ### Search & Yank
 
 ```bash

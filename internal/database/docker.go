@@ -33,22 +33,98 @@ func sanitizeDockerUsername(username string) string {
 	return strings.ToLower(SanitizeInputString(strings.TrimSpace(username), 255))
 }
 
+// CreateDockerImage reserves an empty image and assigns its initial L4 owner.
+func (db *DB) CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*core.DockerRepositoryImage, error) {
+	if db == nil || db.SqlDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	repository, imageName = sanitizeDockerKey(repository, imageName)
+	owner = sanitizeDockerUsername(owner)
+	if repository == "" || imageName == "" || owner == "" || owner == "guest" || createdAt <= 0 {
+		return nil, core.ErrDockerInvalidName
+	}
+	ownerID, err := db.ensureUserProfile(owner)
+	if err != nil {
+		return nil, core.ErrDockerPermissionDenied
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("begin Docker image creation: %w", err)
+	}
+	defer tx.Rollback()
+	var existing int
+	if err := tx.QueryRow(`SELECT 1 FROM docker_images WHERE repository = ? AND image_name = ?`,
+		repository, imageName).Scan(&existing); err == nil {
+		return nil, core.ErrDockerImageExists
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("inspect Docker image creation: %w", err)
+	}
+	privateValue := 0
+	if private {
+		privateValue = 1
+	}
+	if _, err := tx.Exec(`INSERT INTO docker_images
+		(repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at)
+		VALUES (?, ?, '', ?, 0, ?, 1, ?, ?)`, repository, imageName, owner, privateValue, createdAt, createdAt); err != nil {
+		return nil, fmt.Errorf("create Docker image: %w", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO docker_members
+		(repository, image_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		repository, imageName, owner, ownerID, core.DockerPermissionOwner, createdAt); err != nil {
+		return nil, fmt.Errorf("create Docker image owner: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit Docker image creation: %w", err)
+	}
+	return &core.DockerRepositoryImage{
+		Repository: repository, ImageName: imageName, Publisher: owner, Private: private, PushEnabled: true,
+		PermissionLevel: core.DockerPermissionOwner, CreatedAt: createdAt, UpdatedAt: createdAt,
+	}, nil
+}
+
+// GetDockerImageAccess returns current image visibility and exact membership in one query.
+func (db *DB) GetDockerImageAccess(repository, imageName, username string) (exists, private, pushEnabled, member bool, level int, err error) {
+	if db == nil || db.SqlDB == nil {
+		return false, false, false, false, 0, core.ErrDatabaseUnavailable
+	}
+	repository, imageName = sanitizeDockerKey(repository, imageName)
+	username = sanitizeDockerUsername(username)
+	var privateValue, pushEnabledValue, memberValue int
+	err = db.QueryRow(`SELECT i.private, i.push_enabled, COALESCE(m.permission_level, 0),
+		CASE WHEN m.username IS NULL THEN 0 ELSE 1 END
+		FROM docker_images i LEFT JOIN docker_members m ON m.repository = i.repository
+		AND m.image_name = i.image_name AND m.username = ?
+		WHERE i.repository = ? AND i.image_name = ?`, username, repository, imageName).Scan(
+		&privateValue, &pushEnabledValue, &level, &memberValue)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, false, false, false, 0, nil
+	}
+	if err != nil {
+		return false, false, false, false, 0, fmt.Errorf("inspect Docker image access: %w", err)
+	}
+	return true, privateValue != 0, pushEnabledValue != 0, memberValue != 0, level, nil
+}
+
 func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerRepositoryImage, error) {
 	if db == nil || db.SqlDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	img := &core.DockerRepositoryImage{}
+	var privateValue, pushEnabledValue int
 	err := db.QueryRow(
-		`SELECT repository, image_name, description, publisher, pull_count, created_at, updated_at FROM docker_images WHERE repository = ? AND image_name = ?`,
+		`SELECT repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ? AND image_name = ?`,
 		repository, imageName,
-	).Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount, &img.CreatedAt, &img.UpdatedAt)
+	).Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount,
+		&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get Docker image: %w", err)
 	}
+	img.Private = privateValue != 0
+	img.PushEnabled = pushEnabledValue != 0
 
 	if img.Publisher == "" {
 		var tagPub string
@@ -140,7 +216,7 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 		limit = 50
 	}
 
-	query := `SELECT repository, image_name, description, publisher, pull_count, created_at, updated_at FROM docker_images WHERE repository = ?`
+	query := `SELECT repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ?`
 	args := []any{repository}
 	if last != "" {
 		query += ` AND image_name > ?`
@@ -158,9 +234,13 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 	images := make([]*core.DockerRepositoryImage, 0, limit)
 	for rows.Next() {
 		img := &core.DockerRepositoryImage{}
-		if err := rows.Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount, &img.CreatedAt, &img.UpdatedAt); err != nil {
+		var privateValue, pushEnabledValue int
+		if err := rows.Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount,
+			&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan Docker image: %w", err)
 		}
+		img.Private = privateValue != 0
+		img.PushEnabled = pushEnabledValue != 0
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
@@ -222,7 +302,7 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 	}
 
 	rows, err := db.Query(
-		`SELECT repository, image_name, description, publisher, pull_count, created_at, updated_at FROM docker_images WHERE `+where+
+		`SELECT repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE `+where+
 			` ORDER BY CASE WHEN image_name = ? THEN 0 ELSE 1 END, image_name LIMIT ? OFFSET ?`,
 		repository, pattern, pattern, query, limit, offset,
 	)
@@ -234,9 +314,13 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 	images := make([]*core.DockerRepositoryImage, 0, limit)
 	for rows.Next() {
 		img := &core.DockerRepositoryImage{}
-		if err := rows.Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount, &img.CreatedAt, &img.UpdatedAt); err != nil {
+		var privateValue, pushEnabledValue int
+		if err := rows.Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount,
+			&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan Docker search result: %w", err)
 		}
+		img.Private = privateValue != 0
+		img.PushEnabled = pushEnabledValue != 0
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
@@ -440,6 +524,16 @@ func (db *DB) GetDockerManifest(repository, imageName, digest string) (*core.Doc
 }
 
 func (db *DB) PutDockerManifest(manifest *core.DockerManifest, tag string, username string) error {
+	return db.putDockerManifest(manifest, tag, username, false)
+}
+
+// CacheDockerManifest records a manifest fetched through a configured mirror.
+// Unlike client publication, mirror caching may create an unowned public image.
+func (db *DB) CacheDockerManifest(manifest *core.DockerManifest, tag string) error {
+	return db.putDockerManifest(manifest, tag, "mirror", true)
+}
+
+func (db *DB) putDockerManifest(manifest *core.DockerManifest, tag string, username string, allowMirrorCreate bool) error {
 	if db == nil || db.SqlDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
@@ -452,14 +546,6 @@ func (db *DB) PutDockerManifest(manifest *core.DockerManifest, tag string, usern
 	configDigest := strings.ToLower(SanitizeInputString(strings.TrimSpace(manifest.ConfigDigest), 128))
 	tag = SanitizeInputString(strings.TrimSpace(tag), 128)
 	username = sanitizeDockerUsername(username)
-	userID := ""
-	if username != "" && username != "guest" {
-		resolvedID, identityErr := db.ensureUserProfile(username)
-		if identityErr != nil {
-			return core.ErrDockerPermissionDenied
-		}
-		userID = resolvedID
-	}
 	now := time.Now().UnixMilli()
 
 	tx, err := db.Begin()
@@ -468,27 +554,27 @@ func (db *DB) PutDockerManifest(manifest *core.DockerManifest, tag string, usern
 	}
 	defer tx.Rollback()
 
-	// Ensure docker_images record exists
-	var existingImage int
-	err = tx.QueryRow(`SELECT 1 FROM docker_images WHERE repository = ? AND image_name = ?`, repository, imageName).Scan(&existingImage)
+	var pushEnabled int
+	err = tx.QueryRow(`SELECT push_enabled FROM docker_images WHERE repository = ? AND image_name = ?`, repository, imageName).Scan(&pushEnabled)
 	if errors.Is(err, sql.ErrNoRows) {
+		if !allowMirrorCreate {
+			return core.ErrDockerImageNotFound
+		}
 		if _, err = tx.Exec(
-			`INSERT INTO docker_images (repository, image_name, description, publisher, pull_count, created_at, updated_at) VALUES (?, ?, '', ?, 0, ?, ?)`,
+			`INSERT INTO docker_images (repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at) VALUES (?, ?, '', ?, 0, 0, 0, ?, ?)`,
 			repository, imageName, username, now, now,
 		); err != nil {
 			return fmt.Errorf("insert Docker image: %w", err)
 		}
-		if username != "" && username != "guest" {
-			if _, err = tx.Exec(
-				`INSERT INTO docker_members (repository, image_name, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
-				repository, imageName, username, userID, core.DockerPermissionFull, now,
-			); err != nil {
-				return fmt.Errorf("insert Docker owner: %w", err)
-			}
-		}
 	} else if err != nil {
 		return fmt.Errorf("check Docker image: %w", err)
 	} else {
+		if allowMirrorCreate && pushEnabled != 0 {
+			return core.ErrDockerImageExists
+		}
+		if !allowMirrorCreate && pushEnabled == 0 {
+			return core.ErrDockerImageNotFound
+		}
 		if username != "" {
 			if _, err = tx.Exec(`UPDATE docker_images SET publisher = CASE WHEN publisher = '' THEN ? ELSE publisher END, updated_at = ? WHERE repository = ? AND image_name = ?`, username, now, repository, imageName); err != nil {
 				return fmt.Errorf("update Docker image timestamp: %w", err)
@@ -567,6 +653,31 @@ func (db *DB) PutDockerManifest(manifest *core.DockerManifest, tag string, usern
 			}
 		}
 	}
+	if _, err := tx.Exec(`DELETE FROM docker_image_blobs
+		WHERE repository = ? AND image_name = ? AND manifest_digest = ?`, repository, imageName, digest); err != nil {
+		return fmt.Errorf("replace Docker manifest blob links: %w", err)
+	}
+	seenBlobs := make(map[string]struct{}, len(manifest.BlobDigests))
+	for _, candidate := range manifest.BlobDigests {
+		blobDigest := strings.ToLower(SanitizeInputString(strings.TrimSpace(candidate), 128))
+		if blobDigest == "" {
+			continue
+		}
+		if _, duplicate := seenBlobs[blobDigest]; duplicate {
+			continue
+		}
+		seenBlobs[blobDigest] = struct{}{}
+		if _, err := tx.Exec(`DELETE FROM docker_image_blobs
+			WHERE repository = ? AND image_name = ? AND manifest_digest = '' AND blob_digest = ?`,
+			repository, imageName, blobDigest); err != nil {
+			return fmt.Errorf("promote Docker upload blob link: %w", err)
+		}
+		if _, err := tx.Exec(`INSERT INTO docker_image_blobs
+			(repository, image_name, manifest_digest, blob_digest) VALUES (?, ?, ?, ?)`,
+			repository, imageName, digest, blobDigest); err != nil {
+			return fmt.Errorf("record Docker manifest blob link: %w", err)
+		}
+	}
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit Docker manifest: %w", err)
@@ -609,6 +720,10 @@ func (db *DB) DeleteDockerManifest(repository, imageName, digest string) error {
 	if _, err := tx.Exec(`DELETE FROM docker_tags WHERE repository = ? AND image_name = ? AND digest = ?`, repository, imageName, digest); err != nil {
 		return fmt.Errorf("delete Docker tags for manifest: %w", err)
 	}
+	if _, err := tx.Exec(`DELETE FROM docker_image_blobs WHERE repository = ? AND image_name = ? AND manifest_digest = ?`,
+		repository, imageName, digest); err != nil {
+		return fmt.Errorf("delete Docker manifest blob links: %w", err)
+	}
 
 	res, err := tx.Exec(`DELETE FROM docker_manifests WHERE repository = ? AND image_name = ? AND digest = ?`, repository, imageName, digest)
 	if err != nil {
@@ -644,6 +759,9 @@ func (db *DB) DeleteDockerImage(repository, imageName string) error {
 
 	if _, err := tx.Exec(`DELETE FROM docker_members WHERE repository = ? AND image_name = ?`, repository, imageName); err != nil {
 		return fmt.Errorf("delete Docker members for image: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM docker_image_blobs WHERE repository = ? AND image_name = ?`, repository, imageName); err != nil {
+		return fmt.Errorf("delete Docker blob links for image: %w", err)
 	}
 	if _, err := tx.Exec(`DELETE FROM docker_tags WHERE repository = ? AND image_name = ?`, repository, imageName); err != nil {
 		return fmt.Errorf("delete Docker tags for image: %w", err)
@@ -683,7 +801,7 @@ func (db *DB) DeleteDockerRepository(repository string) error {
 
 	_ = cancelDockerInvitations(tx, `repository = ?`, []any{repository}, now)
 
-	for _, table := range []string{"docker_members", "docker_tags", "docker_manifests", "docker_images", "docker_blobs"} {
+	for _, table := range []string{"docker_image_blobs", "docker_members", "docker_tags", "docker_manifests", "docker_images", "docker_blobs"} {
 		if _, err := tx.Exec(`DELETE FROM `+table+` WHERE repository = ?`, repository); err != nil {
 			return fmt.Errorf("clean Docker repository from %s: %w", table, err)
 		}
@@ -716,6 +834,34 @@ func (db *DB) RecordDockerBlob(repository, digest string, size int64) error {
 	return nil
 }
 
+// RecordDockerImageBlob links an uploaded or mounted blob to its target image before manifest publication.
+func (db *DB) RecordDockerImageBlob(repository, imageName, digest string) error {
+	if db == nil || db.SqlDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repository, imageName = sanitizeDockerKey(repository, imageName)
+	digest = strings.ToLower(SanitizeInputString(strings.TrimSpace(digest), 128))
+	if repository == "" || imageName == "" || digest == "" {
+		return core.ErrDockerInvalidDigest
+	}
+	var exists int
+	err := db.QueryRow(`SELECT 1 FROM docker_image_blobs
+		WHERE repository = ? AND image_name = ? AND manifest_digest = '' AND blob_digest = ?`,
+		repository, imageName, digest).Scan(&exists)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect Docker upload blob link: %w", err)
+	}
+	if _, err := db.Exec(`INSERT INTO docker_image_blobs
+		(repository, image_name, manifest_digest, blob_digest) VALUES (?, ?, '', ?)`,
+		repository, imageName, digest); err != nil {
+		return fmt.Errorf("record Docker upload blob link: %w", err)
+	}
+	return nil
+}
+
 func (db *DB) HasDockerBlob(repository, digest string) (bool, int64, error) {
 	if db == nil || db.SqlDB == nil {
 		return false, 0, core.ErrDatabaseUnavailable
@@ -733,15 +879,46 @@ func (db *DB) HasDockerBlob(repository, digest string) (bool, int64, error) {
 	return true, size, nil
 }
 
+// DockerImageReferencesBlob reports whether a manifest in an image uses a blob.
+func (db *DB) DockerImageReferencesBlob(repository, imageName, digest string) (bool, error) {
+	if db == nil || db.SqlDB == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	repository, imageName = sanitizeDockerKey(repository, imageName)
+	digest = strings.ToLower(SanitizeInputString(strings.TrimSpace(digest), 128))
+	var exists int
+	err := db.QueryRow(`SELECT 1 FROM docker_image_blobs
+		WHERE repository = ? AND image_name = ? AND blob_digest = ? LIMIT 1`,
+		repository, imageName, digest).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect Docker image blob reference: %w", err)
+	}
+	return true, nil
+}
+
 func (db *DB) DeleteDockerBlob(repository, digest string) error {
 	if db == nil || db.SqlDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
 	digest = strings.ToLower(SanitizeInputString(strings.TrimSpace(digest), 128))
-	_, err := db.Exec(`DELETE FROM docker_blobs WHERE repository = ? AND digest = ?`, repository, digest)
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin delete Docker blob: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`DELETE FROM docker_image_blobs WHERE repository = ? AND blob_digest = ?`, repository, digest); err != nil {
+		return fmt.Errorf("delete Docker blob references: %w", err)
+	}
+	_, err = tx.Exec(`DELETE FROM docker_blobs WHERE repository = ? AND digest = ?`, repository, digest)
 	if err != nil {
 		return fmt.Errorf("delete Docker blob: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit delete Docker blob: %w", err)
 	}
 	return nil
 }
@@ -893,7 +1070,7 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 		invitation.Repository, invitation.ImageName = sanitizeDockerKey(invitation.Repository, invitation.ImageName)
 		invitation.Inviter = sanitizeDockerUsername(invitation.Inviter)
 		invitation.Recipient = sanitizeDockerUsername(invitation.Recipient)
-		if invitation.Level < core.DockerPermissionPublish || invitation.Level > core.DockerPermissionOwner {
+		if invitation.Level < core.DockerPermissionRead || invitation.Level > core.DockerPermissionOwner {
 			return errors.New("Docker invitation permission level is invalid")
 		}
 		if invitation.ID == "" || invitation.ID != message.ID || invitation.Recipient != strings.ToLower(strings.TrimSpace(message.Recipient)) {
@@ -1027,7 +1204,7 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 	if len(usernames) == 0 || len(usernames) > 20 {
 		return errors.New("Docker member addition batch is invalid")
 	}
-	if level < core.DockerPermissionPublish || level > core.DockerPermissionOwner {
+	if level < core.DockerPermissionRead || level > core.DockerPermissionOwner {
 		return errors.New("Docker permission level is invalid")
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -1233,7 +1410,7 @@ func (db *DB) SetDockerMemberLevel(repository, imageName, actor, username string
 	if db == nil || db.SqlDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	if level < core.DockerPermissionPublish || level > core.DockerPermissionOwner {
+	if level < core.DockerPermissionRead || level > core.DockerPermissionOwner {
 		return errors.New("Docker permission level is invalid")
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)

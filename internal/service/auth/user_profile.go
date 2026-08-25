@@ -122,6 +122,23 @@ func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *c
 		if repository == nil || repository.NormalizedFormat() != format {
 			continue
 		}
+		if format == config.RepositoryFormatDocker {
+			viewerName := ""
+			if viewer != nil {
+				viewerName = viewer.Username
+			}
+			exists, private, _, member, _, err := db.GetDockerImageAccess(
+				membership.Repository, membership.Name, viewerName)
+			if err != nil {
+				return nil, err
+			}
+			if exists && private {
+				if member || (viewer != nil && (viewer.IsManager() || viewer.CheckUpdatePermission(membership.Repository))) {
+					visible = append(visible, membership)
+				}
+				continue
+			}
+		}
 		if format == config.RepositoryFormatMaven && viewer != nil &&
 			!strings.EqualFold(viewer.Username, "guest") {
 			allowed, err := db.HasMavenMembership(membership.Repository, viewer.Username)

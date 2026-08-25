@@ -87,6 +87,8 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 		Repository: "private-cargo", Package: "private-crate", Version: "1.0.0",
 		Publisher: "bobby", CreatedAt: membershipCreatedAt,
 	}, "bobby"))
+	_, err = db.CreateDockerImage("profile-docker", "profile/image", "bobby", false, membershipCreatedAt)
+	require.NoError(t, err)
 	require.NoError(t, db.PutDockerManifest(&core.DockerManifest{
 		Repository: "profile-docker", ImageName: "profile/image",
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcded",

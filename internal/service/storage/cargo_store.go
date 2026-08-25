@@ -22,6 +22,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/cargo"
 	"renop/internal/service/index"
+	"renop/internal/service/proxy"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
@@ -41,7 +42,7 @@ type cargoStagedFile struct {
 var _ cargo.Store = cargoStore{}
 var _ cargo.StagedFile = (*cargoStagedFile)(nil)
 
-var cargoHandler = cargo.Handler{Store: cargoStore{}}
+var cargoHandler = cargo.Handler{Store: cargoStore{}, UpstreamIndexExists: proxy.UpstreamArtifactExists}
 
 func (cargoStore) Open(path string) (io.ReadCloser, bool, error) {
 	var reader io.ReadCloser

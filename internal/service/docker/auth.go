@@ -12,6 +12,7 @@ package docker
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -19,6 +20,23 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 )
+
+var dockerImageComponentPattern = regexp.MustCompile(`^[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*$`)
+
+// NormalizeImageName validates and canonicalizes a Docker/OCI image name.
+func NormalizeImageName(value string) (string, bool) {
+	value = strings.ToLower(strings.Trim(strings.TrimSpace(value), "/"))
+	if value == "" || len(value) > 255 || strings.ContainsAny(value, "\x00\r\n") {
+		return "", false
+	}
+	parts := strings.Split(value, "/")
+	for _, part := range parts {
+		if !dockerImageComponentPattern.MatchString(part) {
+			return "", false
+		}
+	}
+	return value, true
+}
 
 // ParseRepositoryAndImage splits an OCI image path (e.g. "docker-local/ubuntu" or "docker-local/app/service")
 // into the RenoP repository name and the inner image name.
@@ -38,6 +56,29 @@ func ParseRepositoryAndImage(fullName string) (string, string) {
 func CanReadDocker(state *core.AppState, user *config.User, repo *config.Repository, path string) bool {
 	if repo == nil {
 		return false
+	}
+	username := ""
+	if user != nil {
+		username = user.Username
+	}
+	if strings.Contains(strings.Trim(path, "/"), "/") {
+		_, imageName := ParseRepositoryAndImage(path)
+		if state != nil {
+			db := state.GetDB()
+			if db == nil {
+				return false
+			}
+			exists, private, _, member, _, err := db.GetDockerImageAccess(repo.Name, imageName, username)
+			if err != nil {
+				return false
+			}
+			if exists && private {
+				if user != nil && (user.IsManager() || user.CheckUpdatePermission(repo.Name)) {
+					return true
+				}
+				return member
+			}
+		}
 	}
 	if strings.EqualFold(repo.Visibility, "PUBLIC") || strings.EqualFold(repo.Visibility, "HIDDEN") {
 		return true
@@ -67,10 +108,7 @@ func CanWriteDocker(state *core.AppState, user *config.User, repo *config.Reposi
 	if repo == nil || user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return false
 	}
-	if user.IsManager() || user.CheckUpdatePermission(repo.Name) {
-		return true
-	}
-	if state == nil {
+	if state == nil || !strings.Contains(strings.Trim(repoFullName, "/"), "/") {
 		return false
 	}
 	db := state.GetDB()
@@ -78,18 +116,14 @@ func CanWriteDocker(state *core.AppState, user *config.User, repo *config.Reposi
 		return false
 	}
 	_, imageName := ParseRepositoryAndImage(repoFullName)
-	if imageName != "" {
-		level, err := db.GetDockerMemberLevel(repo.Name, imageName, user.Username)
-		if err == nil && level >= core.DockerPermissionPublish {
-			return true
-		}
-	} else {
-		allowed, err := db.HasDockerMembership(repo.Name, user.Username)
-		if err == nil && allowed {
-			return true
-		}
+	exists, _, pushEnabled, member, level, err := db.GetDockerImageAccess(repo.Name, imageName, user.Username)
+	if err != nil || !exists || !pushEnabled {
+		return false
 	}
-	return false
+	if user.IsManager() || user.CheckUpdatePermission(repo.Name) {
+		return true
+	}
+	return member && level >= core.DockerPermissionPublish
 }
 
 // SendAuthChallenge issues a WWW-Authenticate header directing the Docker CLI to the token endpoint.

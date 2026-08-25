@@ -10,6 +10,7 @@ package cargo
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -120,6 +121,29 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 		packageName = details.Package.Name
 	}
 	indexFilePath := cargoIndexPath(storagePath, repo, packageName)
+	if packageRecord == nil {
+		indexExists, existsErr := h.Store.Exists(indexFilePath)
+		if existsErr != nil {
+			return errorResponse(c, fiber.StatusInternalServerError, "Failed to inspect Cargo index")
+		}
+		if indexExists {
+			return errorResponse(c, fiber.StatusConflict, "A mirrored or unmanaged crate already uses this name")
+		}
+		if len(repo.Mirrors) > 0 {
+			if h.UpstreamIndexExists == nil {
+				return errorResponse(c, fiber.StatusServiceUnavailable, "Cargo upstream name verification is unavailable")
+			}
+			probeCtx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+			upstreamExists, probeErr := h.UpstreamIndexExists(probeCtx, state, repo, indexPath(packageName))
+			cancel()
+			if probeErr != nil {
+				return errorResponse(c, fiber.StatusServiceUnavailable, "Failed to verify the Cargo crate name against upstream mirrors")
+			}
+			if upstreamExists {
+				return errorResponse(c, fiber.StatusConflict, "An upstream crate already uses this name")
+			}
+		}
+	}
 	cratePath := filepath.Join(storagePath, repo.Name, "api", "v1", "crates", packageName, metadata.Version, "download")
 	if !utils.IsSubPath(storagePath, indexFilePath) || !utils.IsSubPath(storagePath, cratePath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")

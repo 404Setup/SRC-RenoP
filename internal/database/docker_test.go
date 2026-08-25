@@ -37,6 +37,8 @@ func newTestDockerDB(t *testing.T) *database.DB {
 
 func TestDockerDatabaseOperations(t *testing.T) {
 	db := newTestDockerDB(t)
+	_, err := db.CreateDockerImage("docker-local", "ubuntu", "admin", false, 1_700_000_000_000)
+	require.NoError(t, err)
 
 	manifest := &core.DockerManifest{
 		Repository:   "docker-local",
@@ -48,7 +50,7 @@ func TestDockerDatabaseOperations(t *testing.T) {
 		RawJSON:      []byte(`{"schemaVersion":2}`),
 	}
 
-	err := db.PutDockerManifest(manifest, "latest", "admin")
+	err = db.PutDockerManifest(manifest, "latest", "admin")
 	if err != nil {
 		t.Fatalf("PutDockerManifest failed: %v", err)
 	}
@@ -161,7 +163,7 @@ func TestDockerDatabaseOperations(t *testing.T) {
 		Severity:     "info",
 		Title:        "Docker Invitation",
 		Body:         "admin invited you to collaborate on ubuntu",
-		Payload:      []byte(`{"repository":"docker-local","image":"ubuntu","inviter":"admin","level":2}`),
+		Payload:      []byte(`{"repository":"docker-local","image":"ubuntu","inviter":"admin","level":0}`),
 		ActionKind:   "docker_image_invite",
 		ActionStatus: core.MessageActionPending,
 		CreatedAt:    now,
@@ -173,7 +175,7 @@ func TestDockerDatabaseOperations(t *testing.T) {
 		ImageName:  "ubuntu",
 		Inviter:    "admin",
 		Recipient:  "bob",
-		Level:      2,
+		Level:      0,
 		CreatedAt:  now,
 	}
 
@@ -186,9 +188,16 @@ func TestDockerDatabaseOperations(t *testing.T) {
 	}
 
 	bobLevel, err := db.GetDockerMemberLevel("docker-local", "ubuntu", "bob")
-	if err != nil || bobLevel != 2 {
-		t.Fatalf("expected bob level 2, got %d (err: %v)", bobLevel, err)
+	if err != nil || bobLevel != 0 {
+		t.Fatalf("expected bob level 0, got %d (err: %v)", bobLevel, err)
 	}
+	exists, private, pushEnabled, member, accessLevel, err := db.GetDockerImageAccess("docker-local", "ubuntu", "bob")
+	require.NoError(t, err)
+	require.True(t, exists)
+	require.False(t, private)
+	require.True(t, pushEnabled)
+	require.True(t, member)
+	require.Equal(t, core.DockerPermissionRead, accessLevel)
 
 	if err := db.SetDockerMemberLevel("docker-local", "ubuntu", "admin", "bob", 1); err != nil {
 		t.Fatalf("SetDockerMemberLevel failed: %v", err)
@@ -205,6 +214,9 @@ func TestDockerDatabaseOperations(t *testing.T) {
 	if bobLevel != 0 {
 		t.Fatalf("expected bob level 0, got %d", bobLevel)
 	}
+	_, _, _, member, _, err = db.GetDockerImageAccess("docker-local", "ubuntu", "bob")
+	require.NoError(t, err)
+	require.False(t, member)
 
 	if err := db.DeleteDockerManifest("docker-local", "ubuntu", manifest.Digest); err != nil {
 		t.Fatalf("DeleteDockerManifest failed: %v", err)
@@ -215,8 +227,46 @@ func TestDockerDatabaseOperations(t *testing.T) {
 	}
 }
 
+func TestDockerManifestRequiresPrecreatedImageAndMirrorCanImport(t *testing.T) {
+	db := newTestDockerDB(t)
+	manifest := &core.DockerManifest{
+		Repository: "docker-local", ImageName: "manual/app",
+		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdff",
+		MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(`{"schemaVersion":2}`),
+		BlobDigests: []string{"sha256:bbbb234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"},
+	}
+	require.ErrorIs(t, db.PutDockerManifest(manifest, "latest", "alice"), core.ErrDockerImageNotFound)
+	created, err := db.CreateDockerImage("docker-local", "manual/app", "alice", true, 1_700_000_000_000)
+	require.NoError(t, err)
+	require.True(t, created.Private)
+	_, err = db.CreateDockerImage("docker-local", "manual/app", "alice", false, 1_700_000_000_001)
+	require.ErrorIs(t, err, core.ErrDockerImageExists)
+	require.NoError(t, db.PutDockerManifest(manifest, "latest", "alice"))
+	require.ErrorIs(t, db.CacheDockerManifest(manifest, "upstream"), core.ErrDockerImageExists)
+	referenced, err := db.DockerImageReferencesBlob("docker-local", "manual/app", manifest.BlobDigests[0])
+	require.NoError(t, err)
+	require.True(t, referenced)
+
+	mirrorManifest := *manifest
+	mirrorManifest.ImageName = "upstream/app"
+	mirrorManifest.Digest = "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdfe"
+	require.NoError(t, db.CacheDockerManifest(&mirrorManifest, "latest"))
+	mirrored, err := db.GetDockerImage("docker-local", "upstream/app")
+	require.NoError(t, err)
+	require.NotNil(t, mirrored)
+	require.False(t, mirrored.Private)
+	_, _, pushEnabled, member, _, err := db.GetDockerImageAccess("docker-local", "upstream/app", "mirror")
+	require.NoError(t, err)
+	require.False(t, pushEnabled)
+	require.False(t, member)
+	_, err = db.CreateDockerImage("docker-local", "upstream/app", "alice", true, 1_700_000_000_002)
+	require.ErrorIs(t, err, core.ErrDockerImageExists)
+}
+
 func TestDockerTeamTransferPreservesRolesAndRejectsForceOverwrite(t *testing.T) {
 	db := newTestDockerDB(t)
+	_, err := db.CreateDockerImage("docker-local", "team/demo", "alice", false, 1_700_000_000_000)
+	require.NoError(t, err)
 	manifest := &core.DockerManifest{
 		Repository: "docker-local",
 		ImageName:  "team/demo",

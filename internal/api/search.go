@@ -22,6 +22,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/docker"
 	"renop/internal/service/index"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -73,7 +74,7 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	if repo.NormalizedFormat() == config.RepositoryFormatCargo {
 		response, err = searchCargoRepository(state, repo, query, limit)
 	} else if repo.NormalizedFormat() == config.RepositoryFormatDocker {
-		response, err = searchDockerRepository(state, repo, query, limit)
+		response, err = searchDockerRepository(state, repo, user, query, limit)
 	} else {
 		response, err = searchMavenRepository(state, cfg.StoragePath, repo, user, query, limit)
 	}
@@ -84,18 +85,19 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	return protohttp.Write(c, response)
 }
 
-func searchDockerRepository(state *core.AppState, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {
+func searchDockerRepository(state *core.AppState, repo *config.Repository, user *config.User, query string, limit int) (*pb.RepositorySearchResponse, error) {
 	db := state.GetDB()
 	if db == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	images, total, err := db.SearchDockerImages(repo.Name, query, limit, 0)
+	scanLimit := min(max(limit*4, limit), 100)
+	images, _, err := db.SearchDockerImages(repo.Name, query, scanLimit, 0)
 	if err != nil {
 		return nil, err
 	}
 	results := make([]*pb.RepositorySearchResult, 0, len(images))
 	for _, img := range images {
-		if img == nil {
+		if img == nil || !docker.CanReadDocker(state, user, repo, repo.Name+"/"+img.ImageName) {
 			continue
 		}
 		results = append(results, &pb.RepositorySearchResult{
@@ -104,8 +106,12 @@ func searchDockerRepository(state *core.AppState, repo *config.Repository, query
 			ModifiedAt: img.UpdatedAt,
 		})
 	}
+	hasMore := len(results) > limit
+	if hasMore {
+		results = results[:limit]
+	}
 	return &pb.RepositorySearchResponse{
-		Format: config.RepositoryFormatDocker, Results: results, Total: int32(total), HasMore: total > len(results),
+		Format: config.RepositoryFormatDocker, Results: results, Total: int32(len(results)), HasMore: hasMore,
 	}, nil
 }
 

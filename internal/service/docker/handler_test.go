@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
@@ -218,8 +219,17 @@ func setupTestDockerApp(t *testing.T) (*fiber.App, *core.AppState, Store) {
 	return app, state, store
 }
 
+func createTestDockerImage(t *testing.T, state *core.AppState, repository, image string, private bool) {
+	t.Helper()
+	_, err := state.GetDB().CreateDockerImage(repository, image, "admin", private, time.Now().UnixMilli())
+	if err != nil {
+		t.Fatalf("create Docker image %s/%s: %v", repository, image, err)
+	}
+}
+
 func TestDockerRegistryFullLifecycle(t *testing.T) {
-	app, _, _ := setupTestDockerApp(t)
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "my-app", false)
 
 	req := httptest.NewRequest(http.MethodGet, "/v2/", nil)
 	resp, err := app.Test(req)
@@ -440,7 +450,113 @@ func TestDockerRegistryFullLifecycle(t *testing.T) {
 }
 
 func TestDockerRegistrySecurityAndErrors(t *testing.T) {
-	app, _, _ := setupTestDockerApp(t)
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "test", false)
+	createTestDockerImage(t, state, "docker-local", "private-app", true)
+	createTestDockerImage(t, state, "docker-local", "mount-target", false)
+	createTestDockerImage(t, state, "docker-private", "secret-app", true)
+	if err := state.GetDB().SaveToken(&core.AccessToken{
+		Name: "bob", Tokens: []string{"bob-secret-token"}, Permissions: []string{"base"},
+	}); err != nil {
+		t.Fatalf("save Bob token: %v", err)
+	}
+	missingTokenReq := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/not-created:pull,push", nil)
+	missingTokenReq.SetBasicAuth("admin", "admin-secret-token")
+	missingTokenResp, err := app.Test(missingTokenReq)
+	if err != nil {
+		t.Fatalf("request missing-image token: %v", err)
+	}
+	var missingToken TokenResponse
+	if err := json.NewDecoder(missingTokenResp.Body).Decode(&missingToken); err != nil {
+		t.Fatalf("decode missing-image token: %v", err)
+	}
+	missingUploadReq := httptest.NewRequest(http.MethodPost,
+		"/v2/docker-local/not-created/blobs/uploads/", nil)
+	missingUploadReq.Header.Set("Authorization", "Bearer "+missingToken.Token)
+	missingUploadResp, err := app.Test(missingUploadReq)
+	if err != nil {
+		t.Fatalf("attempt missing-image upload: %v", err)
+	}
+	if missingUploadResp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected missing-image push rejected with 403, got %d", missingUploadResp.StatusCode)
+	}
+	missingImage, err := state.GetDB().GetDockerImage("docker-local", "not-created")
+	if err != nil || missingImage != nil {
+		t.Fatalf("missing-image push created metadata: image=%+v err=%v", missingImage, err)
+	}
+	privateTokenReq := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/private-app:pull,push", nil)
+	privateTokenReq.SetBasicAuth("admin", "admin-secret-token")
+	privateTokenResp, err := app.Test(privateTokenReq)
+	if err != nil {
+		t.Fatalf("request private-image owner token: %v", err)
+	}
+	var privateToken TokenResponse
+	if err := json.NewDecoder(privateTokenResp.Body).Decode(&privateToken); err != nil {
+		t.Fatalf("decode private-image owner token: %v", err)
+	}
+	privateBlob := []byte("private-image-layer")
+	privateDigest := CalculateDigest(privateBlob)
+	privateUploadReq := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/v2/docker-local/private-app/blobs/uploads/?digest=%s", privateDigest), bytes.NewReader(privateBlob))
+	privateUploadReq.Header.Set("Authorization", "Bearer "+privateToken.Token)
+	privateUploadResp, err := app.Test(privateUploadReq)
+	if err != nil || privateUploadResp.StatusCode != http.StatusCreated {
+		t.Fatalf("upload private-image blob: status=%d err=%v", privateUploadResp.StatusCode, err)
+	}
+
+	publicTokenReq := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/test:pull", nil)
+	publicTokenReq.SetBasicAuth("bob", "bob-secret-token")
+	publicTokenResp, err := app.Test(publicTokenReq)
+	if err != nil {
+		t.Fatalf("request public-image reader token: %v", err)
+	}
+	var publicToken TokenResponse
+	if err := json.NewDecoder(publicTokenResp.Body).Decode(&publicToken); err != nil {
+		t.Fatalf("decode public-image reader token: %v", err)
+	}
+	pivotReq := httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/v2/docker-local/test/blobs/%s", privateDigest), nil)
+	pivotReq.Header.Set("Authorization", "Bearer "+publicToken.Token)
+	pivotResp, err := app.Test(pivotReq)
+	if err != nil || pivotResp.StatusCode != http.StatusNotFound {
+		t.Fatalf("private blob was readable through public image: status=%d err=%v", pivotResp.StatusCode, err)
+	}
+	mountPivotReq := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/v2/docker-local/mount-target/blobs/uploads/?mount=%s&from=docker-local/test", privateDigest), nil)
+	mountPivotReq.SetBasicAuth("admin", "admin-secret-token")
+	mountPivotResp, err := app.Test(mountPivotReq)
+	if err != nil || mountPivotResp.StatusCode != http.StatusAccepted {
+		t.Fatalf("unreferenced private blob mount did not fall back to upload: status=%d err=%v", mountPivotResp.StatusCode, err)
+	}
+	targetReferencesPrivateBlob, err := state.GetDB().DockerImageReferencesBlob("docker-local", "mount-target", privateDigest)
+	if err != nil || targetReferencesPrivateBlob {
+		t.Fatalf("unreferenced private blob was linked to public target: referenced=%t err=%v", targetReferencesPrivateBlob, err)
+	}
+
+	if err := state.GetDB().ForceAddDockerMembers("docker-local", "private-app", "admin", []string{"bob"}, core.DockerPermissionRead); err != nil {
+		t.Fatalf("grant private-image L0 access: %v", err)
+	}
+	privateReaderTokenReq := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/private-app:pull", nil)
+	privateReaderTokenReq.SetBasicAuth("bob", "bob-secret-token")
+	privateReaderTokenResp, err := app.Test(privateReaderTokenReq)
+	if err != nil {
+		t.Fatalf("request private-image L0 token: %v", err)
+	}
+	var privateReaderToken TokenResponse
+	if err := json.NewDecoder(privateReaderTokenResp.Body).Decode(&privateReaderToken); err != nil {
+		t.Fatalf("decode private-image L0 token: %v", err)
+	}
+	privateReadReq := httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/v2/docker-local/private-app/blobs/%s", privateDigest), nil)
+	privateReadReq.Header.Set("Authorization", "Bearer "+privateReaderToken.Token)
+	privateReadResp, err := app.Test(privateReadReq)
+	if err != nil || privateReadResp.StatusCode != http.StatusOK {
+		t.Fatalf("private-image L0 member could not read blob: status=%d err=%v", privateReadResp.StatusCode, err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/v2/docker-private/secret-app/manifests/latest", nil)
 	resp, err := app.Test(req)
@@ -492,7 +608,8 @@ func TestDockerRegistrySecurityAndErrors(t *testing.T) {
 }
 
 func TestDockerMonolithicBlobUpload(t *testing.T) {
-	app, _, _ := setupTestDockerApp(t)
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "monolithic-app", false)
 
 	tokenReq := httptest.NewRequest(http.MethodGet, "/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/monolithic-app:pull,push", nil)
 	tokenReq.SetBasicAuth("admin", "admin-secret-token")
@@ -534,7 +651,8 @@ func TestDockerMonolithicBlobUpload(t *testing.T) {
 }
 
 func TestDockerChunkedUploadRangeAndDiscard(t *testing.T) {
-	app, _, _ := setupTestDockerApp(t)
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "chunked-app", false)
 
 	tokenReq := httptest.NewRequest(http.MethodGet, "/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/chunked-app:pull,push", nil)
 	tokenReq.SetBasicAuth("admin", "admin-secret-token")
@@ -590,7 +708,9 @@ func TestDockerChunkedUploadRangeAndDiscard(t *testing.T) {
 }
 
 func TestDockerCrossRepositoryBlobMount(t *testing.T) {
-	app, _, _ := setupTestDockerApp(t)
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "source-app", false)
+	createTestDockerImage(t, state, "docker-local", "dest-app", false)
 
 	// Auth for source and dest
 	tokenReq := httptest.NewRequest(http.MethodGet, "/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/source-app:pull,push&scope=repository:docker-local/dest-app:pull,push", nil)
@@ -636,7 +756,8 @@ func TestDockerCrossRepositoryBlobMount(t *testing.T) {
 }
 
 func TestDockerHeadRequestsAndDigests(t *testing.T) {
-	app, _, _ := setupTestDockerApp(t)
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "head-app", false)
 
 	tokenReq := httptest.NewRequest(http.MethodGet, "/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/head-app:pull,push", nil)
 	tokenReq.SetBasicAuth("admin", "admin-secret-token")
@@ -725,7 +846,9 @@ func TestDockerHeadRequestsAndDigests(t *testing.T) {
 }
 
 func TestDockerCatalogAndTagsPagination(t *testing.T) {
-	app, _, _ := setupTestDockerApp(t)
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "app-1", false)
+	createTestDockerImage(t, state, "docker-local", "app-2", false)
 
 	tokenReq := httptest.NewRequest(http.MethodGet, "/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/app-1:pull,push&scope=repository:docker-local/app-2:pull,push", nil)
 	tokenReq.SetBasicAuth("admin", "admin-secret-token")
@@ -783,6 +906,7 @@ func TestDockerCatalogAndTagsPagination(t *testing.T) {
 
 func TestDockerMultiTagSameManifestLifecycle(t *testing.T) {
 	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "multi-tag-app", false)
 
 	tokenReq := httptest.NewRequest(http.MethodGet, "/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/multi-tag-app:pull,push", nil)
 	tokenReq.SetBasicAuth("admin", "admin-secret-token")

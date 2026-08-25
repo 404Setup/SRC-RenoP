@@ -16,12 +16,18 @@
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, and durable username-change throttling.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
-  upstream proxying, and sandboxed documentation extraction/viewer (`/cargodoc/...`).
+  authoritative upstream name-conflict checks, upstream proxying, and sandboxed documentation extraction/viewer
+  (`/cargodoc/...`).
 - **`internal/service/maven/`**: Maven domain registry with DNS/GitHub/GitLab ownership verification, cross-repository
   proof reuse, L0-L4 domain teams, invitation workflows, catalog/version management, and legacy repository import.
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
   Maven publication paths in both layouts.
-- **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based Bearer authentication, chunked blob uploads, cross-repository mounting, upstream registry mirror proxying, and catalog management.
+- **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based
+  Bearer authentication, explicitly reserved images, L0-L4 image teams, per-image private visibility, image-scoped
+  blob references, chunked uploads, authorized cross-repository mounting, upstream mirror proxying, and catalog
+  management. Client pushes cannot create images implicitly; administrators reserve public or private images through
+  the frontend first. Local reservations are unique and cannot claim names exposed by an enabled upstream mirror;
+  mirror-discovered images remain permanently pull-only.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature

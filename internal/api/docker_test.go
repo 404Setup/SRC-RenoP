@@ -20,6 +20,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
+	"github.com/stretchr/testify/require"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -96,6 +97,9 @@ func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 	app.Get("/api/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error {
 		return GetDockerImageDetailsAPI(c, state)
 	})
+	app.Post("/api/docker/repositories/:repo_name/images", func(c fiber.Ctx) error {
+		return CreateDockerImageAPI(c, state)
+	})
 	app.Get("/api/docker/repositories/:repo_name/manifests", func(c fiber.Ctx) error {
 		return GetDockerManifestAPI(c, state)
 	})
@@ -142,6 +146,43 @@ func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 	return app, state
 }
 
+func TestCreateDockerImageRejectsLocalAndUpstreamNameConflicts(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/taken/tags/list":
+			w.WriteHeader(http.StatusOK)
+		case "/v2/available/tags/list":
+			http.NotFound(w, r)
+		case "/v2/broken/tags/list":
+			w.WriteHeader(http.StatusBadGateway)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(upstream.Close)
+
+	app, state := setupTestAPIDockerApp(t)
+	cfg := state.Inner.Config.Load().DeepCopy()
+	cfg.Maven.Repositories["docker-pub"].Mirrors = []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}
+	state.Inner.Config.Store(cfg)
+
+	create := func(image string) int {
+		request := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+			strings.NewReader(`{"image":"`+image+`"}`))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		request.SetBasicAuth("admin", "admin-test-token")
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		require.NoError(t, response.Body.Close())
+		return response.StatusCode
+	}
+
+	require.Equal(t, http.StatusConflict, create("taken"))
+	require.Equal(t, http.StatusCreated, create("AVAILABLE"))
+	require.Equal(t, http.StatusConflict, create("available"))
+	require.Equal(t, http.StatusServiceUnavailable, create("broken"))
+}
+
 func TestDockerRESTAPIs(t *testing.T) {
 	app, state := setupTestAPIDockerApp(t)
 	db := state.GetDB()
@@ -152,8 +193,54 @@ func TestDockerRESTAPIs(t *testing.T) {
 		Permissions: []string{"read"},
 	}
 	_ = db.SaveToken(bobToken)
+	createReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"private/empty","private":true}`))
+	createReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	createReq.SetBasicAuth("admin", "admin-test-token")
+	createResp, err := app.Test(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, createResp.StatusCode)
+	var createdImage core.DockerRepositoryImage
+	require.NoError(t, json.NewDecoder(createResp.Body).Decode(&createdImage))
+	require.NoError(t, createResp.Body.Close())
+	require.True(t, createdImage.Private)
+	duplicateReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"private/empty","private":false}`))
+	duplicateReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	duplicateReq.SetBasicAuth("admin", "admin-test-token")
+	duplicateResp, err := app.Test(duplicateReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusConflict, duplicateResp.StatusCode)
+	require.NoError(t, duplicateResp.Body.Close())
+	unauthorizedCreateReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"bob/app"}`))
+	unauthorizedCreateReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	unauthorizedCreateReq.SetBasicAuth("bob", "bob-test-token")
+	unauthorizedCreateResp, err := app.Test(unauthorizedCreateReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusForbidden, unauthorizedCreateResp.StatusCode)
+	require.NoError(t, unauthorizedCreateResp.Body.Close())
+
+	grantReadReq := httptest.NewRequest(http.MethodPost,
+		"/api/docker/repositories/docker-pub/owners?image=private/empty",
+		strings.NewReader(`{"users":["bob"],"level":0}`))
+	grantReadReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	grantReadReq.SetBasicAuth("admin", "admin-test-token")
+	grantReadResp, err := app.Test(grantReadReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, grantReadResp.StatusCode)
+	require.NoError(t, grantReadResp.Body.Close())
+
+	privateDetailsReq := httptest.NewRequest(http.MethodGet,
+		"/api/docker/repositories/docker-pub/images?image=private/empty", nil)
+	privateDetailsReq.SetBasicAuth("bob", "bob-test-token")
+	privateDetailsResp, err := app.Test(privateDetailsReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, privateDetailsResp.StatusCode)
+	require.NoError(t, privateDetailsResp.Body.Close())
 
 	now := time.Now().Unix()
+	_, _ = db.CreateDockerImage("docker-pub", "web/backend", "admin", false, 1_700_000_000_000)
 	_ = db.PutDockerManifest(&core.DockerManifest{
 		Repository:   "docker-pub",
 		ImageName:    "web/backend",
@@ -424,4 +511,22 @@ func TestDockerRESTAPIValidationErrors(t *testing.T) {
 	if resp3.StatusCode != http.StatusForbidden {
 		t.Fatalf("expected 403 Forbidden for unauthorized delete, got %d", resp3.StatusCode)
 	}
+
+	invalidCreate := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"invalid:tag"}`))
+	invalidCreate.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	invalidCreate.SetBasicAuth("admin", "admin-test-token")
+	invalidCreateResponse, err := app.Test(invalidCreate)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, invalidCreateResponse.StatusCode)
+	require.NoError(t, invalidCreateResponse.Body.Close())
+
+	largeCreate := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+		strings.NewReader(`{"image":"`+strings.Repeat("a", 2048)+`"}`))
+	largeCreate.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	largeCreate.SetBasicAuth("admin", "admin-test-token")
+	largeCreateResponse, err := app.Test(largeCreate)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusRequestEntityTooLarge, largeCreateResponse.StatusCode)
+	require.NoError(t, largeCreateResponse.Body.Close())
 }

@@ -34,7 +34,7 @@ function dockerInvitationPayload(message) {
     const level = Number(payload.level);
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(repository) || repository.length > 64) return null;
     if (!image || image.length > 255 || !inviter || inviter.length > 255) return null;
-    if (!Number.isInteger(level) || level < 1 || level > 3) return null;
+    if (!Number.isInteger(level) || level < 0 || level > 4) return null;
     return {repository, image, inviter, level};
 }
 

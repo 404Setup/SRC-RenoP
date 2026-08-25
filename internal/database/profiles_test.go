@@ -121,6 +121,8 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 		Repository: "cargo", Package: "profile-demo", Version: "1.0.0",
 		Publisher: "alice", CreatedAt: changedAt,
 	}, "alice"))
+	_, err = db.CreateDockerImage("docker", "profile/demo", "alice", false, changedAt)
+	require.NoError(t, err)
 	require.NoError(t, db.PutDockerManifest(&core.DockerManifest{
 		Repository: "docker", ImageName: "profile/demo",
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdeb",
@@ -214,6 +216,8 @@ func TestStableMembershipIDsAreBackfilledOnRestart(t *testing.T) {
 	}, &core.CargoVersion{
 		Repository: "cargo", Package: "backfill-demo", Version: "1.0.0", Publisher: account.Name, CreatedAt: now,
 	}, account.Name))
+	_, err := db.CreateDockerImage("docker", "backfill/demo", account.Name, false, now)
+	require.NoError(t, err)
 	require.NoError(t, db.PutDockerManifest(&core.DockerManifest{
 		Repository: "docker", ImageName: "backfill/demo",
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdec",

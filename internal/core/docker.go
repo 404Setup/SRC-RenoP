@@ -31,6 +31,8 @@ type DockerRepositoryImage struct {
 	TagCount        int    `json:"tag_count"`
 	LatestTag       string `json:"latest_tag"`
 	PullCount       int64  `json:"pull_count"`
+	Private         bool   `json:"private"`
+	PushEnabled     bool   `json:"push_enabled"`
 	PermissionLevel int    `json:"permission_level,omitempty"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`
@@ -52,15 +54,16 @@ type DockerTag struct {
 
 // DockerManifest represents a stored OCI or Docker v2 image manifest.
 type DockerManifest struct {
-	Repository   string `json:"repository"`
-	ImageName    string `json:"image_name"`
-	Digest       string `json:"digest"`
-	MediaType    string `json:"media_type"`
-	Size         int64  `json:"size"`
-	ConfigDigest string `json:"config_digest"`
-	Publisher    string `json:"publisher"`
-	RawJSON      []byte `json:"-"`
-	CreatedAt    int64  `json:"created_at"`
+	Repository   string   `json:"repository"`
+	ImageName    string   `json:"image_name"`
+	Digest       string   `json:"digest"`
+	MediaType    string   `json:"media_type"`
+	Size         int64    `json:"size"`
+	ConfigDigest string   `json:"config_digest"`
+	Publisher    string   `json:"publisher"`
+	RawJSON      []byte   `json:"-"`
+	BlobDigests  []string `json:"-"`
+	CreatedAt    int64    `json:"created_at"`
 }
 
 // DockerMember represents an authorized collaborator for a container image.
@@ -104,6 +107,7 @@ type DockerImageDetails struct {
 
 var (
 	ErrDockerImageNotFound      = errors.New("Docker image not found")
+	ErrDockerImageExists        = errors.New("Docker image already exists")
 	ErrDockerTagNotFound        = errors.New("Docker tag not found")
 	ErrDockerManifestNotFound   = errors.New("Docker manifest not found")
 	ErrDockerBlobNotFound       = errors.New("Docker blob not found")

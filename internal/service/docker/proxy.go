@@ -28,11 +28,16 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/proxy"
+	"renop/internal/utils"
 )
 
 var (
 	upstreamTokenCache pbMapOfTokens
 )
+
+// ErrUpstreamImageProbeUnavailable indicates that at least one applicable
+// Docker mirror could not provide an authoritative image-name result.
+var ErrUpstreamImageProbeUnavailable = errors.New("upstream Docker image availability check failed")
 
 type pbMapOfTokens struct {
 	sync.Map
@@ -41,6 +46,82 @@ type pbMapOfTokens struct {
 type cachedToken struct {
 	token     string
 	expiresAt time.Time
+}
+
+// UpstreamImageExists checks whether an image name is already occupied by any
+// applicable mirror without importing its manifest into the local catalog.
+func UpstreamImageExists(ctx context.Context, state *core.AppState, repo *config.Repository, imageName string) (bool, error) {
+	if repo == nil || len(repo.Mirrors) == 0 {
+		return false, nil
+	}
+	var probeErr error
+	for i := range repo.Mirrors {
+		mirror := repo.Mirrors[i]
+		if allowed, _ := mirror.IsArtifactAllowedFor(config.RepositoryFormatDocker, imageName); !allowed {
+			continue
+		}
+		statusCode, err := probeMirrorImageSingle(ctx, state, mirror, imageName)
+		if err != nil {
+			probeErr = errors.Join(probeErr, fmt.Errorf("mirror %d: %w", i+1, err))
+			continue
+		}
+		switch {
+		case statusCode >= http.StatusOK && statusCode < http.StatusMultipleChoices:
+			return true, nil
+		case statusCode == http.StatusNotFound:
+			continue
+		default:
+			probeErr = errors.Join(probeErr, fmt.Errorf("mirror %d returned status %d", i+1, statusCode))
+		}
+	}
+	if probeErr != nil {
+		return false, errors.Join(ErrUpstreamImageProbeUnavailable, probeErr)
+	}
+	return false, nil
+}
+
+func probeMirrorImageSingle(
+	ctx context.Context,
+	state *core.AppState,
+	mirror config.Mirror,
+	imageName string,
+) (int, error) {
+	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	if base == "" {
+		return 0, errors.New("empty mirror URL")
+	}
+	upstreamImage := imageName
+	if strings.Contains(base, "docker.io") {
+		upstreamImage = normalizeUpstreamImage(imageName)
+	}
+	tagsURL := fmt.Sprintf("%s/v2/%s/tags/list?n=1", base, upstreamImage)
+	var proxyCfg config.ProxyConfig
+	if state != nil && state.Inner != nil && state.Inner.Config != nil {
+		if cfg := state.Inner.Config.Load(); cfg != nil {
+			proxyCfg = cfg.Proxy
+		}
+	}
+	client, err := proxy.ClientForMirror(&mirror, proxyCfg)
+	if err != nil {
+		return 0, err
+	}
+	if client == nil {
+		return 0, errors.New("Docker mirror client is unavailable")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tagsURL, nil)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Accept", "application/json")
+	if err := applyDockerMirrorAuth(ctx, client, req, mirror, upstreamImage, "pull"); err != nil {
+		return 0, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	utils.DiscardHTTPBody(resp.Body, resp.ContentLength)
+	return resp.StatusCode, nil
 }
 
 // FetchUpstreamManifest fetches a manifest from upstream mirrors with authentication and caching.
@@ -83,42 +164,8 @@ func fetchMirrorManifestSingle(
 	mirror config.Mirror,
 	imageName, reference string,
 ) ([]byte, string, string, error) {
-	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
-	if base == "" {
-		return nil, "", "", errors.New("empty mirror URL")
-	}
-
-	upstreamImage := imageName
-	if strings.Contains(base, "docker.io") {
-		upstreamImage = normalizeUpstreamImage(imageName)
-	}
-
-	manifestURL := fmt.Sprintf("%s/v2/%s/manifests/%s", base, upstreamImage, url.PathEscape(reference))
-	var proxyCfg config.ProxyConfig
-	if state != nil && state.Inner != nil && state.Inner.Config != nil {
-		if c := state.Inner.Config.Load(); c != nil {
-			proxyCfg = c.Proxy
-		}
-	}
-	client, err := proxy.ClientForMirror(&mirror, proxyCfg)
-	if err != nil || client == nil {
-		client = http.DefaultClient
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, manifestURL, nil)
+	client, req, err := newMirrorManifestRequest(ctx, state, repo, mirror, imageName, reference, http.MethodGet)
 	if err != nil {
-		return nil, "", "", err
-	}
-
-	req.Header.Set("Accept", strings.Join([]string{
-		MediaTypeDockerManifest2,
-		MediaTypeOCIManifest1,
-		MediaTypeDockerManifestList,
-		MediaTypeOCIIndex1,
-	}, ", "))
-
-	// Apply configured mirror auth or obtain upstream token
-	if err := applyDockerMirrorAuth(ctx, client, req, mirror, upstreamImage, "pull"); err != nil {
 		return nil, "", "", err
 	}
 
@@ -144,6 +191,57 @@ func fetchMirrorManifestSingle(
 	}
 
 	return body, mediaType, digest, nil
+}
+
+func newMirrorManifestRequest(
+	ctx context.Context,
+	state *core.AppState,
+	repo *config.Repository,
+	mirror config.Mirror,
+	imageName, reference, method string,
+) (*http.Client, *http.Request, error) {
+	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	if base == "" {
+		return nil, nil, errors.New("empty mirror URL")
+	}
+
+	upstreamImage := imageName
+	if strings.Contains(base, "docker.io") {
+		upstreamImage = normalizeUpstreamImage(imageName)
+	}
+
+	manifestURL := fmt.Sprintf("%s/v2/%s/manifests/%s", base, upstreamImage, url.PathEscape(reference))
+	var proxyCfg config.ProxyConfig
+	if state != nil && state.Inner != nil && state.Inner.Config != nil {
+		if c := state.Inner.Config.Load(); c != nil {
+			proxyCfg = c.Proxy
+		}
+	}
+	client, err := proxy.ClientForMirror(&mirror, proxyCfg)
+	if err != nil || client == nil {
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, nil, errors.New("Docker mirror client is unavailable")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, manifestURL, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req.Header.Set("Accept", strings.Join([]string{
+		MediaTypeDockerManifest2,
+		MediaTypeOCIManifest1,
+		MediaTypeDockerManifestList,
+		MediaTypeOCIIndex1,
+	}, ", "))
+
+	// Apply configured mirror auth or obtain upstream token
+	if err := applyDockerMirrorAuth(ctx, client, req, mirror, upstreamImage, "pull"); err != nil {
+		return nil, nil, err
+	}
+	return client, req, nil
 }
 
 // FetchUpstreamBlob streams a blob from configured upstream mirrors.

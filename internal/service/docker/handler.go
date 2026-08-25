@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -32,6 +33,22 @@ import (
 // Handler handles all /v2 Docker/OCI registry endpoints.
 type Handler struct {
 	Store Store
+}
+
+func referencedBlobDigests(manifest *ParsedManifest) []string {
+	if manifest == nil || manifest.IsIndex {
+		return nil
+	}
+	digests := make([]string, 0, len(manifest.Layers)+1)
+	if manifest.ConfigDigest != "" {
+		digests = append(digests, manifest.ConfigDigest)
+	}
+	for _, layer := range manifest.Layers {
+		if layer.Digest != "" {
+			digests = append(digests, layer.Digest)
+		}
+	}
+	return digests
 }
 
 func getParam(c fiber.Ctx, key string) string {
@@ -75,33 +92,36 @@ func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, re
 		tokenStr := after
 		signingKey := state.GetDockerSecret()
 		claims, err := ValidateDockerToken(signingKey, tokenStr)
-		if err == nil && claims != nil {
-			user = &config.User{
-				Username: claims.Subject,
-			}
-			if tokenObj := state.GetTokenByName(claims.Subject); tokenObj != nil {
-				user.Roles = tokenObj.Permissions
-			}
-			actionRequired := "pull"
-			if isWrite {
-				actionRequired = "push"
-			}
-			hasAccess := false
-			for _, entry := range claims.Access {
-				if entry.Name == repoFullName || entry.Name == "*" {
-					for _, a := range entry.Actions {
-						if a == actionRequired || a == "*" {
-							hasAccess = true
-							break
-						}
+		if err != nil || claims == nil {
+			_ = SendAuthChallenge(c, c.Host(), "")
+			return nil, errors.New("unauthorized")
+		}
+		user = &config.User{Username: claims.Subject}
+		if tokenObj := state.GetTokenByName(claims.Subject); tokenObj != nil {
+			user.Roles = tokenObj.Permissions
+		}
+		actionRequired := "pull"
+		if isWrite {
+			actionRequired = "push"
+		}
+		hasAccess := false
+		for _, entry := range claims.Access {
+			if entry.Name == repoFullName || entry.Name == "*" {
+				for _, action := range entry.Actions {
+					if action == actionRequired || action == "*" {
+						hasAccess = true
+						break
 					}
 				}
 			}
-			if hasAccess {
-				c.Locals("user", user)
-				return user, nil
-			}
 		}
+		c.Locals("user", user)
+		if hasAccess && ((isWrite && CanWriteDocker(state, user, repo, repoFullName)) ||
+			(!isWrite && CanReadDocker(state, user, repo, repoFullName))) {
+			return user, nil
+		}
+		_ = RespondError(c, fiber.StatusForbidden, ErrCodeDenied, "access denied", nil)
+		return nil, errors.New("denied")
 	}
 
 	if isWrite {
@@ -166,6 +186,9 @@ func (h *Handler) HandleCatalog(c fiber.Ctx, state *core.AppState) error {
 		images, err := db.ListDockerImages(repoName, last, n)
 		if err == nil {
 			for _, img := range images {
+				if !CanReadDocker(state, user, repo, repoName+"/"+img.ImageName) {
+					continue
+				}
 				allRepos = append(allRepos, fmt.Sprintf("%s/%s", repoName, img.ImageName))
 			}
 		}
@@ -247,32 +270,46 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 	if db == nil {
 		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
 	}
+	imageExists, _, pushEnabled, _, _, err := db.GetDockerImageAccess(repoName, imageName, "")
+	if err != nil {
+		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
 
 	digest := reference
 	var mediaType string
 
 	if !strings.HasPrefix(reference, "sha256:") {
-		tag, err := db.GetDockerTag(repoName, imageName, reference)
-		if err == nil && tag != nil {
+		tag, tagErr := db.GetDockerTag(repoName, imageName, reference)
+		if tagErr != nil {
+			return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+		}
+		if tag != nil {
 			digest = tag.Digest
 			mediaType = tag.MediaType
 		} else {
+			if imageExists && pushEnabled {
+				return RespondError(c, fiber.StatusNotFound, ErrCodeManifestUnknown, "manifest not found", map[string]string{"reference": reference})
+			}
 			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(context.Background(), state, repo, imageName, reference)
 			if uErr == nil && len(upstreamData) > 0 {
+				parsed, parseErr := ParseManifest(upstreamData, uMediaType)
+				if parseErr != nil {
+					return RespondError(c, fiber.StatusBadGateway, ErrCodeManifestInvalid, "upstream manifest is invalid", nil)
+				}
+				if err := db.CacheDockerManifest(&core.DockerManifest{
+					Repository: repoName, ImageName: imageName, Digest: uDigest, MediaType: uMediaType,
+					Size: parsed.Size, ConfigDigest: parsed.ConfigDigest,
+					BlobDigests: referencedBlobDigests(parsed), RawJSON: upstreamData,
+				}, reference); err != nil {
+					if errors.Is(err, core.ErrDockerImageExists) {
+						return RespondError(c, fiber.StatusNotFound, ErrCodeManifestUnknown, "manifest unknown", nil)
+					}
+					return RespondError(c, fiber.StatusBadGateway, ErrCodeUnsupported, "failed to cache upstream manifest metadata", nil)
+				}
 				mirrorPersist, _ := repo.GetCacheConfig()
 				if mirrorPersist {
-					_ = h.Store.PutManifest(state, repoName, imageName, uDigest, upstreamData)
-					parsed, _ := ParseManifest(upstreamData, uMediaType)
-					if parsed != nil {
-						_ = db.PutDockerManifest(&core.DockerManifest{
-							Repository:   repoName,
-							ImageName:    imageName,
-							Digest:       uDigest,
-							MediaType:    uMediaType,
-							Size:         parsed.Size,
-							ConfigDigest: parsed.ConfigDigest,
-							RawJSON:      upstreamData,
-						}, reference, "mirror")
+					if persistErr := h.Store.PutManifest(state, repoName, imageName, uDigest, upstreamData); persistErr != nil {
+						log.Printf("failed to persist mirrored Docker manifest %s/%s@%s: %v", repoName, imageName, reference, persistErr)
 					}
 				}
 				c.Set(fiber.HeaderContentType, uMediaType)
@@ -290,17 +327,31 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	manifest, err := db.GetDockerManifest(repoName, imageName, digest)
+	if err != nil {
+		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
 	var rawJSON []byte
-	if err == nil && manifest != nil {
+	if manifest != nil {
 		if mediaType == "" {
 			mediaType = manifest.MediaType
 		}
 		rawJSON = manifest.RawJSON
 		if len(rawJSON) == 0 {
-			rawJSON, _, _ = h.Store.OpenManifest(repoName, imageName, digest)
+			var openErr error
+			rawJSON, _, openErr = h.Store.OpenManifest(repoName, imageName, digest)
+			if openErr != nil {
+				return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to read manifest", nil)
+			}
 		}
 	} else {
-		rawJSON, ok, _ = h.Store.OpenManifest(repoName, imageName, digest)
+		if imageExists && pushEnabled {
+			return RespondError(c, fiber.StatusNotFound, ErrCodeManifestUnknown, "manifest not found", map[string]string{"reference": reference})
+		}
+		var openErr error
+		rawJSON, ok, openErr = h.Store.OpenManifest(repoName, imageName, digest)
+		if openErr != nil {
+			return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to read manifest", nil)
+		}
 		if !ok {
 			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(context.Background(), state, repo, imageName, digest)
 			if uErr == nil && len(upstreamData) > 0 {
@@ -364,14 +415,13 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 	if strings.HasPrefix(reference, "sha256:") && reference != parsed.Digest {
 		return RespondError(c, fiber.StatusBadRequest, ErrCodeDigestInvalid, "provided digest does not match manifest content", nil)
 	}
-
-	if err := h.Store.PutManifest(state, repoName, imageName, parsed.Digest, body); err != nil {
-		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to save manifest", nil)
-	}
-
 	db := state.GetDB()
 	if db == nil {
 		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
+
+	if err := h.Store.PutManifest(state, repoName, imageName, parsed.Digest, body); err != nil {
+		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to save manifest", nil)
 	}
 
 	tag := ""
@@ -386,11 +436,16 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 		MediaType:    parsed.MediaType,
 		Size:         parsed.Size,
 		ConfigDigest: parsed.ConfigDigest,
+		BlobDigests:  referencedBlobDigests(parsed),
 		RawJSON:      body,
 		CreatedAt:    time.Now().UnixMilli(),
 	}
 
 	if err := db.PutDockerManifest(manifestRecord, tag, user.Username); err != nil {
+		if errors.Is(err, core.ErrDockerImageNotFound) {
+			_ = h.Store.DeleteManifest(state, repoName, imageName, parsed.Digest)
+			return RespondError(c, fiber.StatusNotFound, ErrCodeNameUnknown, "image must be created before push", nil)
+		}
 		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to record manifest", nil)
 	}
 
@@ -459,33 +514,53 @@ func (h *Handler) HandleGetBlob(c fiber.Ctx, state *core.AppState) error {
 	if _, err := h.authenticateAndAuthorize(c, state, repo, name, false); err != nil {
 		return nil
 	}
-
-	localPath, isLocalDisk := h.Store.BlobFilePath(repoName, digest)
-	if isLocalDisk {
-		c.Set(fiber.HeaderContentType, MediaTypeOctetStream)
-		c.Set(DockerDigestHeader, digest)
-		c.Set(fiber.HeaderETag, fmt.Sprintf(`"%s"`, digest))
-		if c.Method() == fiber.MethodHead {
-			exists, size, _ := h.Store.BlobExists(repoName, digest)
-			if exists {
-				c.Set(fiber.HeaderContentLength, strconv.FormatInt(size, 10))
-				return c.SendStatus(fiber.StatusOK)
-			}
+	db := state.GetDB()
+	if db == nil {
+		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
+	imageExists, _, _, _, _, err := db.GetDockerImageAccess(repoName, imageName, "")
+	if err != nil {
+		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
+	allowLocalBlob := false
+	if imageExists {
+		allowLocalBlob, err = db.DockerImageReferencesBlob(repoName, imageName, digest)
+		if err != nil {
+			return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
 		}
-		return c.SendFile(localPath)
+		if !allowLocalBlob {
+			return RespondError(c, fiber.StatusNotFound, ErrCodeBlobUnknown, "blob is not referenced by image", nil)
+		}
 	}
 
-	reader, size, exists, err := h.Store.OpenBlob(repoName, digest)
-	if err == nil && exists && reader != nil {
-		defer reader.Close()
-		c.Set(fiber.HeaderContentType, MediaTypeOctetStream)
-		c.Set(DockerDigestHeader, digest)
-		c.Set(fiber.HeaderETag, fmt.Sprintf(`"%s"`, digest))
-		c.Set(fiber.HeaderContentLength, strconv.FormatInt(size, 10))
-		if c.Method() == fiber.MethodHead {
-			return c.SendStatus(fiber.StatusOK)
+	if allowLocalBlob {
+		localPath, isLocalDisk := h.Store.BlobFilePath(repoName, digest)
+		if isLocalDisk {
+			c.Set(fiber.HeaderContentType, MediaTypeOctetStream)
+			c.Set(DockerDigestHeader, digest)
+			c.Set(fiber.HeaderETag, fmt.Sprintf(`"%s"`, digest))
+			if c.Method() == fiber.MethodHead {
+				exists, size, _ := h.Store.BlobExists(repoName, digest)
+				if exists {
+					c.Set(fiber.HeaderContentLength, strconv.FormatInt(size, 10))
+					return c.SendStatus(fiber.StatusOK)
+				}
+			}
+			return c.SendFile(localPath)
 		}
-		return c.SendStream(reader, int(size))
+
+		reader, size, exists, openErr := h.Store.OpenBlob(repoName, digest)
+		if openErr == nil && exists && reader != nil {
+			defer reader.Close()
+			c.Set(fiber.HeaderContentType, MediaTypeOctetStream)
+			c.Set(DockerDigestHeader, digest)
+			c.Set(fiber.HeaderETag, fmt.Sprintf(`"%s"`, digest))
+			c.Set(fiber.HeaderContentLength, strconv.FormatInt(size, 10))
+			if c.Method() == fiber.MethodHead {
+				return c.SendStatus(fiber.StatusOK)
+			}
+			return c.SendStream(reader, int(size))
+		}
 	}
 
 	upstreamRc, uSize, uErr := FetchUpstreamBlob(context.Background(), state, repo, imageName, digest)
@@ -511,10 +586,7 @@ func (h *Handler) HandleGetBlob(c fiber.Ctx, state *core.AppState) error {
 				if err == nil {
 					committedSize, cErr := h.Store.CommitBlob(state, repoName, uploadUUID, digest)
 					if cErr == nil {
-						db := state.GetDB()
-						if db != nil {
-							_ = db.RecordDockerBlob(repoName, digest, committedSize)
-						}
+						_ = db.RecordDockerBlob(repoName, digest, committedSize)
 					}
 				} else {
 					_ = staged.Discard()
@@ -566,20 +638,38 @@ func (h *Handler) HandlePostUpload(c fiber.Ctx, state *core.AppState) error {
 		return RespondError(c, fiber.StatusNotFound, ErrCodeNameUnknown, "repository not found", nil)
 	}
 
-	if _, err := h.authenticateAndAuthorize(c, state, repo, name, true); err != nil {
+	user, err := h.authenticateAndAuthorize(c, state, repo, name, true)
+	if err != nil {
 		return nil
 	}
 
 	mountDigest := c.Query("mount")
 	fromRepo := c.Query("from")
 	if mountDigest != "" && fromRepo != "" {
-		fromRepoName, _ := ParseRepositoryAndImage(fromRepo)
+		fromRepoName, fromImageName := ParseRepositoryAndImage(fromRepo)
+		fromRepository, sourceExists := h.getRepo(state, fromRepoName)
+		canReadSource := sourceExists && strings.Contains(strings.Trim(fromRepo, "/"), "/") &&
+			CanReadDocker(state, user, fromRepository, fromRepo)
+		db := state.GetDB()
+		if db == nil {
+			return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+		}
+		sourceReferencesBlob := false
+		if canReadSource {
+			var referenceErr error
+			sourceReferencesBlob, referenceErr = db.DockerImageReferencesBlob(fromRepoName, fromImageName, mountDigest)
+			if referenceErr != nil {
+				return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+			}
+		}
 		exists, _, _ := h.Store.BlobExists(fromRepoName, mountDigest)
-		if exists {
-			db := state.GetDB()
-			if db != nil {
-				_, size, _ := h.Store.BlobExists(fromRepoName, mountDigest)
-				_ = db.RecordDockerBlob(repoName, mountDigest, size)
+		if canReadSource && sourceReferencesBlob && exists {
+			_, size, _ := h.Store.BlobExists(fromRepoName, mountDigest)
+			if err := db.RecordDockerBlob(repoName, mountDigest, size); err != nil {
+				return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to record mounted blob", nil)
+			}
+			if err := db.RecordDockerImageBlob(repoName, imageName, mountDigest); err != nil {
+				return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to link mounted blob", nil)
 			}
 			logDockerAudit(c, state, "DOCKER_BLOB_MOUNT", fmt.Sprintf("Repository: %s, image: %s, digest: %s, from: %s", repoName, imageName, mountDigest, fromRepoName))
 			c.Set(DockerDigestHeader, mountDigest)
@@ -611,8 +701,14 @@ func (h *Handler) HandlePostUpload(c fiber.Ctx, state *core.AppState) error {
 			return RespondError(c, fiber.StatusInternalServerError, ErrCodeBlobUploadInvalid, "commit failed", nil)
 		}
 		db := state.GetDB()
-		if db != nil {
-			_ = db.RecordDockerBlob(repoName, singleDigest, committedSize)
+		if db == nil {
+			return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+		}
+		if err := db.RecordDockerBlob(repoName, singleDigest, committedSize); err != nil {
+			return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to record blob", nil)
+		}
+		if err := db.RecordDockerImageBlob(repoName, imageName, singleDigest); err != nil {
+			return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to link blob", nil)
 		}
 		logDockerAudit(c, state, "DOCKER_BLOB_UPLOAD", fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, singleDigest, committedSize))
 		c.Set(DockerDigestHeader, singleDigest)
@@ -719,8 +815,14 @@ func (h *Handler) HandlePutUpload(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	db := state.GetDB()
-	if db != nil {
-		_ = db.RecordDockerBlob(repoName, digest, committedSize)
+	if db == nil {
+		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
+	if err := db.RecordDockerBlob(repoName, digest, committedSize); err != nil {
+		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to record blob", nil)
+	}
+	if err := db.RecordDockerImageBlob(repoName, imageName, digest); err != nil {
+		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to link blob", nil)
 	}
 
 	logDockerAudit(c, state, "DOCKER_BLOB_UPLOAD", fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, digest, committedSize))

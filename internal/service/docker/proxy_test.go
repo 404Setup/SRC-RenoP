@@ -12,6 +12,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -121,6 +122,13 @@ func TestUpstreamMirrorProxyLifecycle(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(sampleManifestData)
 
+		case r.URL.Path == "/v2/library/mock-app/tags/list":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"name":"library/mock-app","tags":["v1"]}`))
+
+		case r.URL.Path == "/v2/library/broken/tags/list":
+			w.WriteHeader(http.StatusBadGateway)
+
 		case r.URL.Path == fmt.Sprintf("/v2/library/mock-app/blobs/%s", sampleBlobDigest):
 			blobHitCount++
 			if authHdr != "Bearer mock-upstream-token-123" {
@@ -152,6 +160,18 @@ func TestUpstreamMirrorProxyLifecycle(t *testing.T) {
 	state := core.NewAppState()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	upstreamExists, err := UpstreamImageExists(ctx, state, repo, "library/mock-app")
+	if err != nil || !upstreamExists {
+		t.Fatalf("UpstreamImageExists existing result = %t, err = %v", upstreamExists, err)
+	}
+	upstreamExists, err = UpstreamImageExists(ctx, state, repo, "library/missing-app")
+	if err != nil || upstreamExists {
+		t.Fatalf("UpstreamImageExists missing result = %t, err = %v", upstreamExists, err)
+	}
+	upstreamExists, err = UpstreamImageExists(ctx, state, repo, "library/broken")
+	if upstreamExists || !errors.Is(err, ErrUpstreamImageProbeUnavailable) {
+		t.Fatalf("UpstreamImageExists broken result = %t, err = %v", upstreamExists, err)
+	}
 
 	manifestBytes, mediaType, digest, err := FetchUpstreamManifest(ctx, state, repo, "library/mock-app", "latest")
 	if err != nil {
@@ -184,8 +204,8 @@ func TestUpstreamMirrorProxyLifecycle(t *testing.T) {
 		t.Fatalf("unexpected blob content: %s", string(blobRead))
 	}
 
-	if tokenHitCount != 1 {
-		t.Fatalf("expected token endpoint hit count 1 (due to caching), got %d", tokenHitCount)
+	if tokenHitCount != 3 {
+		t.Fatalf("expected one token exchange per probed image and cache reuse for pulls, got %d", tokenHitCount)
 	}
 }
 

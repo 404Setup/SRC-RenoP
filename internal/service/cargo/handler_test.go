@@ -12,7 +12,9 @@ package cargo
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -263,6 +265,71 @@ func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
 	status, _ = publish()
 	if status != fiber.StatusConflict {
 		t.Fatalf("duplicate publish status = %d, want %d", status, fiber.StatusConflict)
+	}
+}
+
+func TestNewCargoPackageRequiresAvailableUpstreamName(t *testing.T) {
+	tests := []struct {
+		name          string
+		upstreamFound bool
+		probeErr      error
+		wantStatus    int
+	}{
+		{name: "upstream conflict", upstreamFound: true, wantStatus: fiber.StatusConflict},
+		{name: "probe unavailable", probeErr: errors.New("upstream unavailable"), wantStatus: fiber.StatusServiceUnavailable},
+		{name: "upstream name available", wantStatus: fiber.StatusOK},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			storagePath := t.TempDir()
+			store := newMemoryStore()
+			repo := &config.Repository{
+				Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
+				Mirrors: []config.Mirror{{Url: "https://upstream.example"}},
+			}
+			state := core.NewAppState()
+			db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo.db")})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = db.Close() })
+			state.Inner.DB = db
+			handler := Handler{
+				Store: store,
+				UpstreamIndexExists: func(_ context.Context, _ *core.AppState, _ *config.Repository, path string) (bool, error) {
+					if path != "de/mo/demo" {
+						t.Fatalf("upstream index path = %q", path)
+					}
+					return tc.upstreamFound, tc.probeErr
+				},
+			}
+			app := cargoTestApp(t, handler, state, repo, storagePath,
+				&config.User{Username: "publisher", Roles: []string{"canupdate:cargo"}})
+			crate := makeCrateArchive(t, map[string]string{
+				"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+			})
+			body := makePublishBody(t, PublishMetadata{
+				Name: "demo", Version: "1.0.0", Deps: []PublishDependency{}, Features: map[string][]string{},
+			}, crate)
+			response, err := app.Test(httptest.NewRequest(
+				http.MethodPut, "http://registry.example/cargo/api/v1/crates/new", bytes.NewReader(body),
+			))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_ = response.Body.Close()
+			if response.StatusCode != tc.wantStatus {
+				t.Fatalf("publish status = %d, want %d", response.StatusCode, tc.wantStatus)
+			}
+			if tc.wantStatus != fiber.StatusOK {
+				store.mu.Lock()
+				storedFiles := len(store.files)
+				store.mu.Unlock()
+				if storedFiles != 0 {
+					t.Fatalf("rejected upstream name stored %d files", storedFiles)
+				}
+			}
+		})
 	}
 }
 

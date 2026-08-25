@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -40,6 +41,10 @@ var (
 	OnArtifactStored          func(localPath string)
 	OnArtifactStoredWithState func(state *core.AppState, repo *config.Repository, localPath string)
 )
+
+// ErrUpstreamProbeUnavailable indicates that at least one applicable mirror
+// could not provide an authoritative package-name availability result.
+var ErrUpstreamProbeUnavailable = errors.New("upstream mirror availability check failed")
 
 var httpClient = newProxyHTTPClient()
 
@@ -472,4 +477,98 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 	}
 
 	return false, nil, nil
+}
+
+// UpstreamArtifactExists checks whether an artifact path is already present on
+// any applicable mirror without caching its contents. It fails closed when an
+// applicable mirror cannot return an authoritative success or not-found status.
+func UpstreamArtifactExists(ctx context.Context, state *core.AppState, repo *config.Repository, path string) (bool, error) {
+	if repo == nil || len(repo.Mirrors) == 0 {
+		return false, nil
+	}
+	if state == nil || state.Inner == nil || state.Inner.ProxyClientSemaphore == nil {
+		return false, ErrUpstreamProbeUnavailable
+	}
+	sanitizedPath, ok := utils.SanitizePath(path)
+	if !ok {
+		return false, fiber.ErrBadRequest
+	}
+	var globalProxyConfig config.ProxyConfig
+	if state.Inner.Config != nil {
+		if cfg := state.Inner.Config.Load(); cfg != nil {
+			globalProxyConfig = cfg.Proxy
+		}
+	}
+	var probeErr error
+	for i := range repo.Mirrors {
+		mirror := &repo.Mirrors[i]
+		if allowed, _ := mirror.IsArtifactAllowedFor(repo.NormalizedFormat(), sanitizedPath); !allowed {
+			continue
+		}
+		mirrorURL := cargo.ArtifactURL(repo, *mirror, sanitizedPath)
+		if mirrorURL == "" {
+			probeErr = errors.Join(probeErr, fmt.Errorf("mirror %d has no artifact URL", i+1))
+			continue
+		}
+
+		statusCode, err := probeUpstreamArtifact(ctx, state, mirror, globalProxyConfig, mirrorURL, http.MethodHead)
+		if err == nil && (statusCode == http.StatusMethodNotAllowed || statusCode == http.StatusNotImplemented) {
+			statusCode, err = probeUpstreamArtifact(ctx, state, mirror, globalProxyConfig, mirrorURL, http.MethodGet)
+		}
+		if err != nil {
+			probeErr = errors.Join(probeErr, fmt.Errorf("mirror %d: %w", i+1, err))
+			continue
+		}
+		switch {
+		case statusCode >= http.StatusOK && statusCode < http.StatusMultipleChoices:
+			return true, nil
+		case statusCode == http.StatusNotFound:
+			continue
+		default:
+			probeErr = errors.Join(probeErr, fmt.Errorf("mirror %d returned status %d", i+1, statusCode))
+		}
+	}
+	if probeErr != nil {
+		return false, errors.Join(ErrUpstreamProbeUnavailable, probeErr)
+	}
+	return false, nil
+}
+
+func probeUpstreamArtifact(
+	ctx context.Context,
+	state *core.AppState,
+	mirror *config.Mirror,
+	proxyConfig config.ProxyConfig,
+	mirrorURL, method string,
+) (int, error) {
+	requestCtx, cancel := context.WithTimeout(ctx, mirrorRequestTimeout(mirror.TimeoutSecs))
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestCtx, method, mirrorURL, nil)
+	if err != nil {
+		return 0, err
+	}
+	if method == http.MethodGet {
+		req.Header.Set("Range", "bytes=0-0")
+	}
+	if mirror.Authorization != nil {
+		if err := mirror.Authorization.Apply(req); err != nil {
+			return 0, err
+		}
+	}
+	client, err := clientForMirror(mirror, proxyConfig)
+	if err != nil {
+		return 0, err
+	}
+	select {
+	case state.Inner.ProxyClientSemaphore <- struct{}{}:
+		defer func() { <-state.Inner.ProxyClientSemaphore }()
+	case <-requestCtx.Done():
+		return 0, requestCtx.Err()
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	utils.DiscardHTTPBody(res.Body, res.ContentLength)
+	return res.StatusCode, nil
 }

@@ -54,6 +54,7 @@ func SetupApiRoutes(router fiber.Router, state *core.AppState) {
 		}
 		return ListDockerImagesAPI(c, state)
 	})
+	router.Post("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error { return CreateDockerImageAPI(c, state) })
 	router.Get("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return GetDockerImageDetailsAPI(c, state) })
 	router.Put("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error { return UpdateDockerImageDescriptionAPI(c, state) })
 	router.Put("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return UpdateDockerImageDescriptionAPI(c, state) })

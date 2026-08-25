@@ -78,6 +78,8 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 		Repository: "cargo", Package: "profile-pg-crate", Version: "1.0.0",
 		Publisher: account.Name, CreatedAt: changedAt,
 	}, account.Name))
+	_, err = db.CreateDockerImage("docker", "profile/pg", account.Name, false, changedAt)
+	require.NoError(t, err)
 	require.NoError(t, db.PutDockerManifest(&core.DockerManifest{
 		Repository: "docker", ImageName: "profile/pg",
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdee",

@@ -11,6 +11,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -74,19 +75,96 @@ func ListDockerImagesAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to list images")
 	}
 
+	visible := images[:0]
 	for _, img := range images {
-		tags, _ := db.ListDockerTags(repoName, img.ImageName, "", 100)
+		if !docker.CanReadDocker(state, user, repo, repoName+"/"+img.ImageName) {
+			continue
+		}
+		tags, err := db.ListDockerTags(repoName, img.ImageName, "", 100)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to list image tags")
+		}
 		img.TagCount = len(tags)
 		if len(tags) > 0 {
 			img.LatestTag = tags[0].Tag
 		}
+		visible = append(visible, img)
 	}
+	images = visible
 
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"repository": repoName,
 		"images":     images,
 	})
+}
+
+type createDockerImageRequest struct {
+	Image   string `json:"image"`
+	Private bool   `json:"private"`
+}
+
+// CreateDockerImageAPI handles POST /api/docker/repositories/:repo_name/images.
+func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
+	repoName := c.Params("repo_name")
+	if !utils.IsValidRepositoryName(repoName) {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid repository name")
+	}
+	cfg := state.Inner.Config.Load()
+	repo, exists := cfg.Maven.Repositories[repoName]
+	if !exists || repo.NormalizedFormat() != config.RepositoryFormatDocker {
+		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+	}
+	user := auth.GetUser(c)
+	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
+		return c.Status(fiber.StatusUnauthorized).SendString("Authentication required")
+	}
+	if !user.IsManager() && !user.CheckUpdatePermission(repoName) {
+		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	var request createDockerImageRequest
+	if err := utils.ReadJSONLimited(c, &request, 2048); err != nil {
+		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+			return err
+		}
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid request body")
+	}
+	imageName, valid := docker.NormalizeImageName(request.Image)
+	if !valid {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid Docker image name")
+	}
+	db := state.GetDB()
+	if db == nil {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+	}
+	imageExists, _, _, _, _, err := db.GetDockerImageAccess(repoName, imageName, "")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect Docker image name")
+	}
+	if imageExists {
+		return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use")
+	}
+	if len(repo.Mirrors) > 0 {
+		probeCtx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		upstreamExists, probeErr := docker.UpstreamImageExists(probeCtx, state, repo, imageName)
+		cancel()
+		if probeErr != nil {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Failed to verify Docker image name against upstream mirrors")
+		}
+		if upstreamExists {
+			return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use by an upstream mirror")
+		}
+	}
+	image, err := db.CreateDockerImage(repoName, imageName, user.Username, request.Private, time.Now().UnixMilli())
+	if errors.Is(err, core.ErrDockerImageExists) {
+		return c.Status(fiber.StatusConflict).SendString("Docker image already exists")
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create Docker image")
+	}
+	logDockerAudit(c, state, "DOCKER_IMAGE_CREATE", fmt.Sprintf("Repository: %s, image: %s, private: %t",
+		repoName, imageName, request.Private))
+	return c.Status(fiber.StatusCreated).JSON(image)
 }
 
 // GetDockerImageDetailsAPI handles GET /api/docker/repositories/:repo_name/images/*
@@ -112,7 +190,7 @@ func GetDockerImageDetailsAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	if !docker.CanReadDocker(state, user, repo, repoName) {
+	if !docker.CanReadDocker(state, user, repo, repoName+"/"+imageName) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
@@ -359,7 +437,7 @@ func GetDockerManifestAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	if !docker.CanReadDocker(state, user, repo, repoName) {
+	if !docker.CanReadDocker(state, user, repo, repoName+"/"+imageName) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
@@ -413,7 +491,7 @@ func ListDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	if !docker.CanReadDocker(state, user, repo, repoName) {
+	if !docker.CanReadDocker(state, user, repo, repoName+"/"+imageName) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
@@ -473,8 +551,8 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Choose between 1 and 20 members to invite")
 	}
 
-	if req.Level < core.DockerPermissionPublish || req.Level > core.DockerPermissionOwner {
-		req.Level = core.DockerPermissionPublish
+	if req.Level < core.DockerPermissionRead || req.Level > core.DockerPermissionOwner {
+		return c.Status(fiber.StatusBadRequest).SendString("Permission level must be between 0 and 4")
 	}
 
 	if isAdmin {
@@ -651,8 +729,8 @@ func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	var req dockerLevelRequest
-	if err := c.Bind().Body(&req); err != nil || req.Level < core.DockerPermissionPublish || req.Level > core.DockerPermissionOwner {
-		return c.Status(fiber.StatusBadRequest).SendString("Permission level must be between 1 and 4")
+	if err := c.Bind().Body(&req); err != nil || req.Level < core.DockerPermissionRead || req.Level > core.DockerPermissionOwner {
+		return c.Status(fiber.StatusBadRequest).SendString("Permission level must be between 0 and 4")
 	}
 
 	actor := user.Username
@@ -706,12 +784,15 @@ func RemoveDockerOwnerAPI(c fiber.Ctx, state *core.AppState) error {
 
 	user := auth.GetUser(c)
 	isAdmin := user.IsManager() || user.CheckUpdatePermission(repoName)
-	memberLevel, err := db.GetDockerMemberLevel(repoName, imageName, user.Username)
+	imageExists, _, _, member, memberLevel, err := db.GetDockerImageAccess(repoName, imageName, user.Username)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect member permission")
 	}
+	if !imageExists {
+		return c.Status(fiber.StatusNotFound).SendString("Image not found")
+	}
 	isSelf := strings.EqualFold(targetUsername, user.Username)
-	canManage := isAdmin || memberLevel >= core.DockerPermissionTeam || (isSelf && memberLevel > 0)
+	canManage := isAdmin || memberLevel >= core.DockerPermissionTeam || (isSelf && member)
 	if !canManage {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}

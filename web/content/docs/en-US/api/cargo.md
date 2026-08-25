@@ -38,6 +38,8 @@ RenoP implements the Cargo Registry and Sparse Index specifications.
 - **Path**: `PUT /{repo}/api/v1/crates/new`
 - **Auth**: Token required (`Authorization: <token>`)
 - **Body**: 4-byte JSON length header + JSON metadata + `.crate` tarball binary payload.
+- **Name conflicts**: A first publication returns `409 Conflict` when the normalized name exists locally or on an
+  applicable enabled mirror. An inconclusive upstream check returns `503 Service Unavailable`.
 
 ---
 

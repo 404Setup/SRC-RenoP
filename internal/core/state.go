@@ -151,6 +151,8 @@ type StateDB interface {
 	RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error
 	ForceAddCargoMembers(repository, normalizedName, crateName, actor string, usernames []string, level int) error
 	GetDockerImage(repository, imageName string) (*DockerRepositoryImage, error)
+	CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*DockerRepositoryImage, error)
+	GetDockerImageAccess(repository, imageName, username string) (exists, private, pushEnabled, member bool, level int, err error)
 	UpdateDockerImageDescription(repository, imageName, description string) error
 	ListDockerImages(repository, last string, limit int) ([]*DockerRepositoryImage, error)
 	SearchDockerImages(repository, query string, limit, offset int) ([]*DockerRepositoryImage, int, error)
@@ -159,12 +161,15 @@ type StateDB interface {
 	ListDockerTags(repository, imageName, last string, limit int) ([]*DockerTag, error)
 	GetDockerManifest(repository, imageName, digest string) (*DockerManifest, error)
 	PutDockerManifest(manifest *DockerManifest, tag string, username string) error
+	CacheDockerManifest(manifest *DockerManifest, tag string) error
 	DeleteDockerTag(repository, imageName, tag string) error
 	DeleteDockerManifest(repository, imageName, digest string) error
 	DeleteDockerImage(repository, imageName string) error
 	DeleteDockerRepository(repository string) error
 	RecordDockerBlob(repository, digest string, size int64) error
+	RecordDockerImageBlob(repository, imageName, digest string) error
 	HasDockerBlob(repository, digest string) (bool, int64, error)
+	DockerImageReferencesBlob(repository, imageName, digest string) (bool, error)
 	DeleteDockerBlob(repository, digest string) error
 	GetDockerRepositoryStats(repository string) (totalImages int64, totalTags int64, totalSize int64, err error)
 	IncrementDockerPullCount(repository, imageName string) error

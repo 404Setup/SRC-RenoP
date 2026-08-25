@@ -13,6 +13,7 @@ import {el} from '@renop/ui/dom';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
+import {canUpdateRepo} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog} from '../components.js';
 import {t} from '../i18n.js';
@@ -299,9 +300,6 @@ async function renderCatalogView(container, repoName, seq) {
         const images = data.images || [];
         const totalTags = images.reduce((acc, img) => acc + (img.tag_count || 0), 0);
 
-        const host = window.location.host;
-        const pushHint2 = `docker push ${host}/${repoName}/<image>:${t('docker.tag') || 'tag'}`;
-
         if (images.length === 0) {
             const hero = el('div', {class: 'docker-page-hero'},
                 el('span', {class: 'docker-page-kicker'}, t('docker.kickerRegistry') || 'Docker Registry'),
@@ -309,19 +307,11 @@ async function renderCatalogView(container, repoName, seq) {
                     el('h2', {class: 'docker-hero-title'},
                         createIcon('box', {class: 'icon-svg'}),
                         repoName
-                    )
+                    ),
+                    createImageButton(repoName)
                 ),
                 el('p', {class: 'text-muted', style: {marginBottom: '1rem'}}, t('docker.noImages') || 'No container images found in this repository.'),
-                el('p', {style: {fontSize: '0.82rem', fontWeight: '650', color: 'var(--text-color)', marginBottom: '0.35rem'}}, t('docker.pushGuidance') || 'Push container images using the Docker CLI:'),
-                el('div', {class: 'docker-pull-box'},
-                    el('span', {class: 'docker-pull-text'}, pushHint2),
-                    el('button', {
-                        class: 'docker-pull-copy-btn',
-                        type: 'button',
-                        title: t('details.copy') || 'Copy',
-                        onclick: (e) => triggerDockerCopy(e.currentTarget, pushHint2)
-                    }, createIcon('copy', {class: 'icon-svg'}))
-                )
+                el('p', {class: 'docker-create-first-hint'}, t('docker.createFirstHint'))
             );
 
             await morphElementHeight(container, () => {
@@ -339,7 +329,8 @@ async function renderCatalogView(container, repoName, seq) {
                 el('h2', {class: 'docker-hero-title'},
                     createIcon('box', {class: 'icon-svg'}),
                     el('span', {}, repoName)
-                )
+                ),
+                createImageButton(repoName)
             ),
             el('p', {class: 'text-muted'}, t('docker.imagesSubtitle') || 'Browse and manage Docker / OCI container images and tags in this repository.'),
             el('div', {class: 'docker-hero-meta-row'},
@@ -377,7 +368,11 @@ async function renderCatalogView(container, repoName, seq) {
                 el('div', {},
                     el('div', {class: 'docker-image-name'},
                         createIcon('box', {class: 'icon-svg'}),
-                        el('span', {}, img.image_name)
+                        el('span', {}, img.image_name),
+                        img.private ? el('span', {class: 'docker-private-badge'},
+                            createIcon('ssl', {class: 'icon-svg'}), t('docker.private')) : null,
+                        img.push_enabled === false ? el('span', {class: 'docker-mirror-badge'},
+                            createIcon('network', {class: 'icon-svg'}), t('docker.mirrorOnly')) : null
                     ),
                     img.description ? el('p', {class: 'docker-image-desc'}, img.description) : null
                 ),
@@ -563,6 +558,97 @@ function handleSuggestionClick(event) {
 }
 
 /**
+ * Format a Docker image permission with its explicit level.
+ * @param {number|string} level - Permission level from L0 through L4.
+ * @returns {string} Localized permission label.
+ */
+function dockerPermissionLabel(level) {
+    const normalized = Math.max(0, Math.min(4, Number(level) || 0));
+    return t(`docker.permissionL${normalized}`);
+}
+
+/**
+ * Open the explicit Docker image creation dialog.
+ * @param {string} repoName - Docker repository name.
+ * @returns {void}
+ */
+function openCreateImageDialog(repoName) {
+    const imageInput = el('input', {
+        type: 'text', maxlength: '255', autocomplete: 'off', class: 'docker-create-image-input',
+        placeholder: t('docker.imageNamePlaceholder')
+    });
+    const privateInput = el('input', {type: 'checkbox'});
+    const privateOption = el('label', {class: 'docker-create-private-option'},
+        privateInput,
+        el('span', {class: 'docker-create-private-copy'},
+            el('strong', {}, t('docker.privateImage')),
+            el('span', {}, t('docker.privateImageHint'))
+        )
+    );
+    RenopDialog.show({
+        id: 'docker-image-create-dialog', maxWidth: '560px', icon: 'box',
+        title: t('docker.createImage'), subtitle: t('docker.createImageSubtitle'),
+        body: el('div', {class: 'docker-create-image-form'},
+            el('label', {class: 'docker-create-image-field'},
+                el('span', {}, t('docker.imageName')),
+                imageInput,
+                el('small', {}, t('docker.imageNameHint'))
+            ),
+            privateOption
+        ),
+        footer: [
+            {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
+            {
+                text: t('common.create'), className: 'action-btn primary-btn',
+                onClick: async (event, dialog) => {
+                    const imageName = imageInput.value.trim().toLowerCase();
+                    if (!imageName) {
+                        imageInput.focus();
+                        return;
+                    }
+                    event.currentTarget.disabled = true;
+                    try {
+                        const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({image: imageName, private: privateInput.checked})
+                        });
+                        if (!response.ok) {
+                            const key = response.status === 409 ? 'docker.imageAlreadyExists' :
+                                (response.status === 400 ? 'docker.invalidImageName' :
+                                    (response.status === 503 ? 'docker.imageNameCheckFailed' : 'docker.createImageFailed'));
+                            showAlert(t(key), 'error');
+                            return;
+                        }
+                        const image = await response.json();
+                        dialog.close(true);
+                        showAlert(t('docker.imageCreated'), 'success');
+                        activeNavigate?.(`/${encodePathSegment(repoName)}/${encodeRelativePath(image.image_name)}`);
+                    } catch (error) {
+                        console.error('Failed to create Docker image', error);
+                        showAlert(t('docker.createImageFailed'), 'error');
+                    } finally {
+                        event.currentTarget.disabled = false;
+                    }
+                }
+            }
+        ]
+    });
+    requestAnimationFrame(() => imageInput.focus());
+}
+
+/**
+ * Build the repository-scoped image creation button when permitted.
+ * @param {string} repoName - Docker repository name.
+ * @returns {HTMLButtonElement|null} Creation action or null.
+ */
+function createImageButton(repoName) {
+    if (!canUpdateRepo(repoName)) return null;
+    return el('button', {
+        type: 'button', class: 'pill-btn pill-btn--primary', onclick: () => openCreateImageDialog(repoName)
+    }, createIcon('plus', {class: 'icon-svg'}), el('span', {}, t('docker.createImage')));
+}
+
+/**
  * Persist a Docker team permission change and refresh the animated member list.
  * @param {object} options - Team update context.
  * @param {HTMLElement} options.container - Active Docker view.
@@ -578,7 +664,7 @@ function handleSuggestionClick(event) {
 async function updateDockerTeamMember({
     container, repoName, imageName, sequence, member, permissionLevel, newLevel, selector
 }) {
-    const previousLevel = Number(member.level || 1);
+    const previousLevel = Number(member.level ?? 1);
     if (newLevel === previousLevel) return;
     const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
     const transfersOwnership = newLevel === 4 && permissionLevel === 4 &&
@@ -694,9 +780,12 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const canManageL2 = isAdministrator || permissionLevel >= 2;
         const canManageL3 = isAdministrator || permissionLevel >= 3;
         const canTransferOwnership = isAdministrator || permissionLevel === 4;
+        const canPush = isAdministrator || permissionLevel >= 1;
 
         const latestTag = tags[0]?.tag || 'latest';
-        const pullCmd = `docker pull ${window.location.host}/${repoName}/${imageName}:${latestTag}`;
+        const clientCommand = tags.length > 0
+            ? `docker pull ${window.location.host}/${repoName}/${imageName}:${latestTag}`
+            : (canPush ? `docker push ${window.location.host}/${repoName}/${imageName}:<tag>` : '');
 
         const backBtn = el('button', {
             class: 'docker-page-back',
@@ -751,6 +840,15 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             )
         );
 
+        if (image.private) {
+            metaRow.appendChild(el('div', {class: 'docker-meta-chip is-private'},
+                createIcon('ssl', {class: 'icon-svg'}), el('span', {}, t('docker.private'))));
+        }
+        if (image.push_enabled === false) {
+            metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
+                createIcon('network', {class: 'icon-svg'}), el('span', {}, t('docker.mirrorOnly'))));
+        }
+
         metaRow.appendChild(
             el('div', {class: 'docker-meta-chip'},
                 createIcon('fileCode', {class: 'icon-svg'}),
@@ -797,15 +895,17 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             );
         }
 
-        const pullBox = el('div', {class: 'docker-pull-box'},
-            el('span', {class: 'docker-pull-text'}, pullCmd),
-            el('button', {
-                class: 'docker-pull-copy-btn',
-                type: 'button',
-                title: t('docker.copyPull') || 'Copy pull command',
-                onclick: (e) => triggerDockerCopy(e.currentTarget, pullCmd)
-            }, createIcon('copy', {class: 'icon-svg'}))
-        );
+        const pullBox = clientCommand
+            ? el('div', {class: 'docker-pull-box'},
+                el('span', {class: 'docker-pull-text'}, clientCommand),
+                el('button', {
+                    class: 'docker-pull-copy-btn',
+                    type: 'button',
+                    title: t(tags.length > 0 ? 'docker.copyPull' : 'docker.copyPush'),
+                    onclick: (e) => triggerDockerCopy(e.currentTarget, clientCommand)
+                }, createIcon('copy', {class: 'icon-svg'}))
+            )
+            : el('p', {class: 'docker-create-first-hint'}, t('docker.awaitingFirstPush'));
 
         const hero = el('div', {class: 'docker-page-hero'},
             topNav,
@@ -968,24 +1068,21 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
             for (let index = 0; index < members.length; index++) {
                 const member = members[index];
-                const memberLevel = Number(member.level || 1);
+                const memberLevel = Number(member.level ?? 1);
                 const isSelf = String(member.username || '').toLowerCase() === currentUsername;
-                const levelLabel = memberLevel === 4
-                    ? (t('docker.permissionL4') || 'L4 (Owner)')
-                    : (memberLevel === 3
-                        ? (t('docker.permissionL3') || 'L3 (Team)')
-                        : (memberLevel === 2 ? (t('docker.permissionL2') || 'L2 (Manage)') : (t('docker.permissionL1') || 'L1 (Push)')));
+                const levelLabel = dockerPermissionLabel(memberLevel);
 
                 const memberControls = el('div', {class: 'docker-team-controls'});
 
                 if (canManageL3 && memberLevel < 4) {
                     const levelSelect = makeCustomSelect(
                         ([
-                            { value: '1', label: t('docker.permissionL1') || 'L1 (Push)' },
-                            { value: '2', label: t('docker.permissionL2') || 'L2 (Manage)' },
-                            { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' }
+                            {value: '0', label: dockerPermissionLabel(0)},
+                            {value: '1', label: dockerPermissionLabel(1)},
+                            {value: '2', label: dockerPermissionLabel(2)},
+                            {value: '3', label: dockerPermissionLabel(3)}
                         ]).concat(canTransferOwnership
-                            ? [{ value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }]
+                            ? [{value: '4', label: dockerPermissionLabel(4)}]
                             : []),
                         String(memberLevel),
                         async (newVal) => {
@@ -1051,15 +1148,17 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 inviteLevel = 1;
                 const inviteLevelSelect = makeCustomSelect(
                     ([
-                        { value: '1', label: t('docker.permissionL1') || 'L1 (Push)' },
-                        { value: '2', label: t('docker.permissionL2') || 'L2 (Manage)' },
-                        { value: '3', label: t('docker.permissionL3') || 'L3 (Team)' }
+                        {value: '0', label: dockerPermissionLabel(0)},
+                        {value: '1', label: dockerPermissionLabel(1)},
+                        {value: '2', label: dockerPermissionLabel(2)},
+                        {value: '3', label: dockerPermissionLabel(3)}
                     ]).concat(canTransferOwnership
-                        ? [{ value: '4', label: t('docker.permissionL4') || 'L4 (Owner)' }]
+                        ? [{value: '4', label: dockerPermissionLabel(4)}]
                         : []),
                     '1',
                     (val) => {
-                        inviteLevel = parseInt(val, 10) || 1;
+                        const parsed = Number.parseInt(val, 10);
+                        inviteLevel = Number.isInteger(parsed) ? parsed : 1;
                     }
                 );
                 inviteLevelSelect.classList.add('docker-permission-select');

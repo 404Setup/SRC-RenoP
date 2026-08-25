@@ -9,6 +9,14 @@ description: OCI Distribution Spec v2 and Docker Registry v2 API endpoints
 
 RenoP implements the OCI Distribution Spec v2 and Docker Registry v2 specifications.
 
+Container images are explicit resources. Create an image with `POST /api/docker/repositories/:repo/images` or the
+repository page before requesting push credentials. Registry blob and manifest endpoints never create an image as a
+side effect. Creation can mark an image private; private images are omitted from unauthorized catalogs and require an
+explicit L0-L4 image membership or administrator access for manifests and referenced blobs.
+Image creation returns `409 Conflict` when the normalized name is already used locally or by an applicable enabled
+upstream mirror. It returns `503 Service Unavailable` instead of claiming the name when an upstream check is
+inconclusive.
+
 ## 1. Version Check
 
 - **Path**: `GET /v2/` or `HEAD /v2/`
@@ -43,7 +51,7 @@ RenoP implements the OCI Distribution Spec v2 and Docker Registry v2 specificati
 ## 4. Manifest Operations
 
 - **Fetch Manifest**: `GET /v2/:name/manifests/:reference`
-- **Upload Manifest**: `PUT /v2/:name/manifests/:reference`
+- **Upload Manifest**: `PUT /v2/:name/manifests/:reference` (pre-created image and L1 or higher required)
 - **Delete Manifest**: `DELETE /v2/:name/manifests/:reference`
 
 ---

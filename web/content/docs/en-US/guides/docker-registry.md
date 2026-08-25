@@ -27,15 +27,28 @@ docker login localhost:3000
 > }
 > ```
 
-## 2. Tag & Push Images
+## 2. Create, Tag, and Push Images
+
+Open the Docker repository in RenoP and create the target image first. Choose public or private visibility during
+creation. A private image grants no implicit public access; add L0 readers or higher-level collaborators from its team
+panel. Image names use lowercase path components such as `team/service`.
+The name must be unique within the repository. When upstream mirrors are enabled, RenoP also checks every applicable
+mirror and rejects names that already exist upstream. Creation is temporarily unavailable if that check cannot produce
+an authoritative result.
 
 ```bash
-# 1. Tag local image
+# 1. Create my-app in the my-org repository through the RenoP UI
+
+# 2. Tag local image
 docker tag my-app:latest localhost:3000/my-org/my-app:1.0.0
 
-# 2. Push image to RenoP
+# 3. Push image to RenoP
 docker push localhost:3000/my-org/my-app:1.0.0
 ```
+
+RenoP rejects token push scope, blob upload initiation, and manifest publication when the target image has not been
+created. Existing upstream mirror pulls remain available and use a separate mirror-cache import path. Mirror-discovered
+images remain pull-only; their names cannot be reused for a local push image.
 
 ## 3. Pull & Run Images
 

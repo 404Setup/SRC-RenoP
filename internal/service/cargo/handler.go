@@ -11,6 +11,7 @@
 package cargo
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -24,6 +25,9 @@ import (
 // the protocol implementation does not depend on local-disk or S3 internals.
 type Handler struct {
 	Store Store
+	// UpstreamIndexExists performs an authoritative, non-caching sparse-index
+	// name check before a local package is created.
+	UpstreamIndexExists func(context.Context, *core.AppState, *config.Repository, string) (bool, error)
 }
 
 // Handle intercepts Cargo-only paths. The bool is true when the path belongs

@@ -1316,6 +1316,45 @@ components:
         administrator:
           type: boolean
 
+    DockerRepositoryImage:
+      type: object
+      required: [repository, image_name, description, publisher, tag_count, pull_count, private, push_enabled, created_at, updated_at]
+      properties:
+        repository:
+          type: string
+        image_name:
+          type: string
+          maxLength: 255
+          example: team/service
+        description:
+          type: string
+        publisher:
+          type: string
+        tag_count:
+          type: integer
+          minimum: 0
+        latest_tag:
+          type: string
+        pull_count:
+          type: integer
+          format: int64
+        private:
+          type: boolean
+          description: Private images require an explicit L0-L4 image membership or administrator access.
+        push_enabled:
+          type: boolean
+          description: False for mirror-discovered images, whose names cannot be reserved for local pushes.
+        permission_level:
+          type: integer
+          minimum: 0
+          maximum: 4
+        created_at:
+          type: integer
+          format: int64
+        updated_at:
+          type: integer
+          format: int64
+
     MavenRepositoriesResponse:
       type: object
       description: All repository configurations keyed by name (protobuf `MavenRepositoriesResponse`).
@@ -4287,7 +4326,8 @@ paths:
       description: |
         Publishes a crate version using the standard Cargo publish wire format
         (4-byte JSON length + JSON metadata + 4-byte crate length + crate file).
-        Requires write permission on the repository.
+        Requires write permission on the repository. A first publication cannot claim a name already exposed by an
+        enabled upstream mirror; an unavailable upstream name check fails closed.
       operationId: putCargoPublish
       security:
         - basicAuth: []
@@ -4322,7 +4362,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/CargoErrorList"
         "409":
-          description: Version already exists.
+          description: Version already exists, or the package name is occupied locally or upstream.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CargoErrorList"
+        "503":
+          description: An enabled upstream mirror could not provide an authoritative package-name result.
           content:
             application/json:
               schema:
@@ -4873,6 +4919,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/CargoErrorList"
 
+  # ========== Docker image management ==========
+  /api/docker/repositories/{repo_name}/images:
+    get:
+      tags: [docker]
+      summary: List visible pre-created container images
+      operationId: listDockerImages
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      responses:
+        "200":
+          description: Visible image catalog. Private images without membership are omitted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repository:
+                    type: string
+                  images:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DockerRepositoryImage"
+    post:
+      tags: [docker]
+      summary: Reserve a container image before push
+      description: |
+        Creates an empty public or private image and assigns the caller L4. Docker pushes cannot create images
+        implicitly. Names must be unique within the repository and cannot match an image exposed by an enabled mirror.
+      operationId: createDockerImage
+      security:
+        - sessionCookie: []
+        - sessionHeader: []
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  maxLength: 255
+                  example: team/service
+                private:
+                  type: boolean
+                  default: false
+      responses:
+        "201":
+          description: Image reserved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DockerRepositoryImage"
+        "400":
+          description: Invalid lowercase Docker image name.
+        "409":
+          description: Image name is already occupied locally or by an enabled upstream mirror.
+        "503":
+          description: An enabled upstream mirror could not provide an authoritative image-name result.
+
   # ========== Docker / OCI Registry ==========
   /v2/:
     get:
@@ -5094,7 +5205,7 @@ paths:
     put:
       tags: [docker]
       summary: Push image manifest
-      description: Stores or updates the manifest for the given reference. Requires write permission.
+      description: Stores or updates the manifest for the given reference. The target image must already exist and the caller requires L1 or higher.
       operationId: putDockerManifest
       security:
         - basicAuth: []

@@ -278,6 +278,8 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		description TEXT NOT NULL,
 		publisher VARCHAR(255) NOT NULL DEFAULT '',
 		pull_count BIGINT NOT NULL DEFAULT 0,
+		private INT NOT NULL DEFAULT 0,
+		push_enabled INT NOT NULL DEFAULT 1,
 		created_at BIGINT NOT NULL,
 		updated_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, image_name),
@@ -412,6 +414,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if _, err := db.Exec(dockerInvitationsTable); err != nil {
+		return err
+	}
+	if err := initDockerImageBlobTables(db); err != nil {
 		return err
 	}
 	if err := initMavenTables(db); err != nil {

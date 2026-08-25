@@ -376,13 +376,25 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 
 	if repo.NormalizedFormat() == config.RepositoryFormatDocker {
 		if db := state.GetDB(); db != nil {
-			totalImages, totalTags, blobSize, err := db.GetDockerRepositoryStats(repoName)
-			if err == nil {
-				totalFiles = totalImages + totalTags
-				artifactCount = totalImages
-				metadataCount = totalTags
-				totalSize = blobSize
-				artifactSize = blobSize
+			if user.IsManager() || user.CheckUpdatePermission(repoName) {
+				totalImages, totalTags, blobSize, err := db.GetDockerRepositoryStats(repoName)
+				if err == nil {
+					totalFiles = totalImages + totalTags
+					artifactCount = totalImages
+					metadataCount = totalTags
+					totalSize = blobSize
+					artifactSize = blobSize
+				}
+			} else if images, err := db.ListDockerImages(repoName, "", 100); err == nil {
+				for _, image := range images {
+					if image == nil || !docker.CanReadDocker(state, user, repo, repoName+"/"+image.ImageName) {
+						continue
+					}
+					artifactCount++
+					tags, _ := db.ListDockerTags(repoName, image.ImageName, "", 100)
+					metadataCount += int64(len(tags))
+				}
+				totalFiles = artifactCount + metadataCount
 			}
 		}
 	} else {

@@ -15,6 +15,17 @@ import (
 	"strings"
 )
 
+func initDockerImageBlobTables(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS docker_image_blobs (
+		repository VARCHAR(64) NOT NULL,
+		image_name VARCHAR(255) NOT NULL,
+		manifest_digest VARCHAR(128) NOT NULL,
+		blob_digest VARCHAR(128) NOT NULL,
+		PRIMARY KEY (repository, image_name, manifest_digest, blob_digest)
+	);`)
+	return err
+}
+
 func initMavenTables(db *sql.DB) error {
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS maven_domains (
@@ -117,6 +128,8 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "cargo_versions.documentation", Query: "ALTER TABLE cargo_versions ADD COLUMN documentation VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "docker_images.publisher", Query: "ALTER TABLE docker_images ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
 	{Name: "docker_images.pull_count", Query: "ALTER TABLE docker_images ADD COLUMN pull_count BIGINT NOT NULL DEFAULT 0;"},
+	{Name: "docker_images.private", Query: "ALTER TABLE docker_images ADD COLUMN private INT NOT NULL DEFAULT 0;"},
+	{Name: "docker_images.push_enabled", Query: "ALTER TABLE docker_images ADD COLUMN push_enabled INT NOT NULL DEFAULT 1;"},
 	{Name: "docker_tags.publisher", Query: "ALTER TABLE docker_tags ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
 	{Name: "docker_manifests.publisher", Query: "ALTER TABLE docker_manifests ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
 	{Name: "user_profiles.user_id", Query: "ALTER TABLE user_profiles ADD COLUMN user_id VARCHAR(36) NULL;"},
