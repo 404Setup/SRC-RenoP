@@ -219,10 +219,10 @@ func TestModernMavenAndFileRepositoriesResolveMirrors(t *testing.T) {
 	state, currentUser := newMavenRouteState(t)
 	cfg := state.Inner.Config.Load().DeepCopy()
 	cfg.Maven.Repositories["releases"].Mirrors = []config.Mirror{{
-		Name: "upstream", Url: upstream.URL, TimeoutSecs: 5,
+		Name: "upstream", URL: upstream.URL, TimeoutSecs: 5,
 	}}
 	cfg.Maven.Repositories["files"].Mirrors = []config.Mirror{{
-		Name: "upstream", Url: upstream.URL, TimeoutSecs: 5,
+		Name: "upstream", URL: upstream.URL, TimeoutSecs: 5,
 	}}
 	state.Inner.Config.Store(cfg)
 	app := fiber.New()

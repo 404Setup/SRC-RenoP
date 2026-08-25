@@ -51,9 +51,9 @@ func TestInitializeDatabaseSessions(t *testing.T) {
 	// Save session
 	now := time.Now().UnixMilli()
 	sess := &core.Session{
-		PublicId:  "pub-db-test",
+		PublicID:  "pub-db-test",
 		Username:  "dbuser",
-		Ip:        "127.0.0.1",
+		IP:        "127.0.0.1",
 		UserAgent: "TestUA",
 		CreatedAt: now,
 	}
@@ -66,7 +66,7 @@ func TestInitializeDatabaseSessions(t *testing.T) {
 	fetched := state.GetSession(token)
 	require.NotNil(t, fetched)
 	assert.Equal(t, "dbuser", fetched.Username)
-	assert.Equal(t, "pub-db-test", fetched.PublicId)
+	assert.Equal(t, "pub-db-test", fetched.PublicID)
 
 	// Verify ListUserSessions
 	list := state.ListUserSessions("dbuser", token)

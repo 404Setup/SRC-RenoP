@@ -26,11 +26,11 @@ func TestHandleNegativeCache(t *testing.T) {
 	repoName := "test-repo"
 	path := "com/example/artifact/1.0/artifact-1.0.jar"
 	storagePath := "/tmp/renop_test_storage"
-	var negativeTtl uint64 = 300
+	var negativeTTL uint64 = 300
 
 	nowSecs := time.Now().Unix()
 
-	HandleNegativeCache(state, repoName, path, storagePath, negativeTtl)
+	HandleNegativeCache(state, repoName, path, storagePath, negativeTTL)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -46,7 +46,7 @@ func TestHandleNegativeCache(t *testing.T) {
 		t.Fatalf("Path not in negative cache map")
 	}
 
-	expectedExpire := nowSecs + int64(negativeTtl)
+	expectedExpire := nowSecs + int64(negativeTTL)
 	if expireAt < expectedExpire || expireAt > expectedExpire+5 {
 		t.Fatalf("TTL is incorrect. Expected ~%d, got %d", expectedExpire, expireAt)
 	}

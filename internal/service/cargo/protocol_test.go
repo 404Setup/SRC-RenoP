@@ -17,8 +17,8 @@ import (
 func TestArtifactURL(t *testing.T) {
 	cargoRepo := &config.Repository{Format: config.RepositoryFormatCargo}
 	mirror := config.Mirror{
-		Url:         "https://index.crates.io/",
-		ArtifactUrl: "https://static.crates.io/crates/{crate}/{crate}-{version}.crate",
+		URL:         "https://index.crates.io/",
+		ArtifactURL: "https://static.crates.io/crates/{crate}/{crate}-{version}.crate",
 	}
 	actual := ArtifactURL(cargoRepo, mirror, "api/v1/crates/serde/1.0.203/download")
 	expected := "https://static.crates.io/crates/serde/serde-1.0.203.crate"

@@ -61,7 +61,7 @@ func TestParseRange(t *testing.T) {
 func TestExtractIPDoesNotTrustForwardedHeaderWithoutProxyAllowlist(t *testing.T) {
 	app := fiber.New()
 	server := config.DefaultServerConfig()
-	server.CdnIpHeader = "X-Forwarded-For"
+	server.CdnIPHeader = "X-Forwarded-For"
 	server.TrustedProxies = nil
 	server.ParseTrustedProxies()
 	app.Get("/", func(c fiber.Ctx) error {
@@ -83,7 +83,7 @@ func TestExtractIPDoesNotTrustForwardedHeaderWithoutProxyAllowlist(t *testing.T)
 func TestExtractIPUsesCdnHeaderFromTrustedProxy(t *testing.T) {
 	app := fiber.New()
 	server := config.DefaultServerConfig()
-	server.CdnIpHeader = "CF-Connecting-IP"
+	server.CdnIPHeader = "CF-Connecting-IP"
 	server.TrustedProxies = []string{"0.0.0.0"}
 	server.ParseTrustedProxies()
 
@@ -109,7 +109,7 @@ func TestExtractIPUsesCdnHeaderFromTrustedProxy(t *testing.T) {
 func TestExtractIPXForwardedForRightToLeftSkipsTrustedHops(t *testing.T) {
 	app := fiber.New()
 	server := config.DefaultServerConfig()
-	server.CdnIpHeader = "X-Forwarded-For"
+	server.CdnIPHeader = "X-Forwarded-For"
 	server.TrustedProxies = []string{"0.0.0.0", "10.0.0.1"}
 	server.ParseTrustedProxies()
 
@@ -135,7 +135,7 @@ func TestExtractIPXForwardedForRightToLeftSkipsTrustedHops(t *testing.T) {
 func TestExtractIPIgnoresInvalidHeaderValues(t *testing.T) {
 	app := fiber.New()
 	server := config.DefaultServerConfig()
-	server.CdnIpHeader = "CF-Connecting-IP"
+	server.CdnIPHeader = "CF-Connecting-IP"
 	server.TrustedProxies = []string{"0.0.0.0"}
 	server.ParseTrustedProxies()
 

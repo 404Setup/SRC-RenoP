@@ -23,7 +23,7 @@ func TestMirrorDefaultsJson(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !m.Persist || m.CacheTtlSecs != 3600 || !m.NegativeCache || m.TimeoutSecs != 30 {
+	if !m.Persist || m.CacheTTLSecs != 3600 || !m.NegativeCache || m.TimeoutSecs != 30 {
 		t.Fatalf("Defaults not applied in JSON: %+v", m)
 	}
 }
@@ -34,7 +34,7 @@ func TestMirrorDefaultsYaml(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !m.Persist || m.CacheTtlSecs != 3600 || !m.NegativeCache || m.TimeoutSecs != 30 {
+	if !m.Persist || m.CacheTTLSecs != 3600 || !m.NegativeCache || m.TimeoutSecs != 30 {
 		t.Fatalf("Defaults not applied in YAML: %+v", m)
 	}
 }

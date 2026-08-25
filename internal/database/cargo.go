@@ -58,7 +58,7 @@ func sanitizeCargoUsername(username string) string {
 }
 
 func (db *DB) GetCargoPackage(repository, normalizedName string) (*core.CargoPackage, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
@@ -153,7 +153,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 }
 
 func (db *DB) ListCargoPackages(repository, username string, administrator bool) ([]*core.CargoPackage, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeCargoKey(repository, "")
@@ -198,7 +198,7 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 }
 
 func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) ([]*core.CargoPackage, int, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeCargoKey(repository, "")
@@ -281,7 +281,7 @@ func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) (
 }
 
 func (db *DB) HasCargoMembership(repository, username string) (bool, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return false, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeCargoKey(repository, "")
@@ -306,7 +306,7 @@ func (db *DB) HasCargoMembership(repository, username string) (bool, error) {
 }
 
 func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.CargoVersion, username string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if pkg == nil || version == nil {
@@ -406,7 +406,7 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 }
 
 func (db *DB) SetCargoVersionYanked(repository, normalizedName, version string, yanked, administrator bool) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
@@ -453,7 +453,7 @@ func (db *DB) SetCargoVersionYanked(repository, normalizedName, version string, 
 }
 
 func (db *DB) DeleteCargoVersion(repository, normalizedName, version string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
@@ -473,7 +473,7 @@ func (db *DB) DeleteCargoVersion(repository, normalizedName, version string) err
 }
 
 func (db *DB) SetCargoPackageArchived(repository, normalizedName string, archived, administrator bool) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
@@ -522,7 +522,7 @@ func (db *DB) SetCargoPackageArchived(repository, normalizedName string, archive
 }
 
 func (db *DB) DeleteCargoPackage(repository, normalizedName string, actedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
@@ -553,7 +553,7 @@ func (db *DB) DeleteCargoPackage(repository, normalizedName string, actedAt int6
 }
 
 func (db *DB) DeleteCargoRepository(repository string, actedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeCargoKey(repository, "")
@@ -611,7 +611,7 @@ func cancelCargoInvitations(tx *Tx, where string, args []any, actedAt int64) err
 }
 
 func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messages []*core.UserMessage) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(invitations) == 0 || len(invitations) != len(messages) || len(invitations) > 20 {
@@ -732,7 +732,7 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 }
 
 func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, actor string, usernames []string, level int) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {
@@ -832,7 +832,7 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 }
 
 func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bool, actedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	id = SanitizeInputString(strings.TrimSpace(id), 64)
@@ -932,7 +932,7 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 }
 
 func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username string, level int) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if level < core.CargoPermissionPublish || level > core.CargoPermissionOwner {
@@ -1014,7 +1014,7 @@ func (db *DB) RemoveCargoMember(repository, normalizedName, actor, username stri
 }
 
 func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {

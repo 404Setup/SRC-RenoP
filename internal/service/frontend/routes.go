@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package frontend embeds and serves the RenoP single-page application.
 package frontend
 
 import (
@@ -29,7 +30,7 @@ func setFrontendIndexCacheHeaders(c fiber.Ctx) {
 }
 
 func ServeIndex(c fiber.Ctx, state *core.AppState) error {
-	html := GenerateIndexHtml(state)
+	html := GenerateIndexHTML(state)
 
 	hasher := sha256.New()
 	hasher.Write(html)
@@ -74,7 +75,8 @@ func ServeJs(c fiber.Ctx) error {
 	return ServeEmbeddedFile(c, "js/"+sanitized)
 }
 
-func ServeCss(c fiber.Ctx) error {
+// ServeCSS serves an embedded stylesheet with immutable-cache headers.
+func ServeCSS(c fiber.Ctx) error {
 	path := c.Params("*")
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {

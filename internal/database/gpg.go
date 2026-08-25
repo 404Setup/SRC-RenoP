@@ -42,7 +42,7 @@ func scanGPGPublicKey(row rowScanner) (*core.GPGPublicKey, error) {
 
 func (db *DB) FindGPGPublicKeys(identifier string) ([]*core.GPGPublicKey, error) {
 	identifier = strings.ToUpper(SanitizeInputString(strings.TrimSpace(identifier), 64))
-	if db == nil || db.SqlDB == nil || identifier == "" {
+	if db == nil || db.SQLDB == nil || identifier == "" {
 		return []*core.GPGPublicKey{}, nil
 	}
 	rows, err := db.Query(`SELECT k.`+strings.ReplaceAll(gpgPublicKeyColumns, ", ", ", k.")+`
@@ -69,7 +69,7 @@ func (db *DB) FindGPGPublicKeys(identifier string) ([]*core.GPGPublicKey, error)
 
 func (db *DB) GetGPGPublicKey(fingerprint string) (*core.GPGPublicKey, error) {
 	fingerprint = strings.ToUpper(SanitizeInputString(strings.TrimSpace(fingerprint), 64))
-	if db == nil || db.SqlDB == nil || fingerprint == "" {
+	if db == nil || db.SQLDB == nil || fingerprint == "" {
 		return nil, nil
 	}
 	key, err := scanGPGPublicKey(db.QueryRow(
@@ -87,7 +87,7 @@ func (db *DB) GetGPGPublicKey(fingerprint string) (*core.GPGPublicKey, error) {
 
 func (db *DB) ListUserGPGKeys(username string) ([]*core.UserGPGKey, error) {
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), 255))
-	if db == nil || db.SqlDB == nil || username == "" {
+	if db == nil || db.SQLDB == nil || username == "" {
 		return []*core.UserGPGKey{}, nil
 	}
 	rows, err := db.Query(`SELECT k.`+strings.ReplaceAll(gpgPublicKeyColumns, ", ", ", k.")+`, u.requested_id, u.added_at
@@ -176,7 +176,7 @@ func (db *DB) RegisterUserGPGKey(username, requestedID string, key *core.GPGPubl
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), 255))
 	requestedID = strings.ToUpper(SanitizeInputString(strings.TrimSpace(requestedID), 64))
 	key = normalizeGPGPublicKey(key)
-	if db == nil || db.SqlDB == nil || username == "" || requestedID == "" || key == nil || key.Fingerprint == "" || len(key.PublicKey) == 0 {
+	if db == nil || db.SQLDB == nil || username == "" || requestedID == "" || key == nil || key.Fingerprint == "" || len(key.PublicKey) == 0 {
 		return errors.New("invalid GPG key registration")
 	}
 
@@ -223,7 +223,7 @@ func (db *DB) RegisterUserGPGKey(username, requestedID string, key *core.GPGPubl
 
 func (db *DB) RefreshGPGPublicKey(key *core.GPGPublicKey, aliases []string) error {
 	key = normalizeGPGPublicKey(key)
-	if db == nil || db.SqlDB == nil || key == nil || key.Fingerprint == "" || len(key.PublicKey) == 0 {
+	if db == nil || db.SQLDB == nil || key == nil || key.Fingerprint == "" || len(key.PublicKey) == 0 {
 		return errors.New("invalid GPG public key")
 	}
 	tx, err := db.Begin()
@@ -243,7 +243,7 @@ func (db *DB) RefreshGPGPublicKey(key *core.GPGPublicKey, aliases []string) erro
 func (db *DB) DeleteUserGPGKey(username, fingerprint string) error {
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), 255))
 	fingerprint = strings.ToUpper(SanitizeInputString(strings.TrimSpace(fingerprint), 64))
-	if db == nil || db.SqlDB == nil || username == "" || fingerprint == "" {
+	if db == nil || db.SQLDB == nil || username == "" || fingerprint == "" {
 		return nil
 	}
 	_, err := db.Exec(`DELETE FROM user_gpg_keys WHERE username = ? AND fingerprint = ?`, username, fingerprint)
@@ -276,7 +276,7 @@ func normalizeGPGSignature(signature *core.GPGSignature) *core.GPGSignature {
 
 func (db *DB) SaveGPGSignature(signature *core.GPGSignature) error {
 	signature = normalizeGPGSignature(signature)
-	if db == nil || db.SqlDB == nil || signature == nil || len(signature.ArtifactKey) != 64 || signature.Repository == "" || signature.ArtifactPath == "" {
+	if db == nil || db.SQLDB == nil || signature == nil || len(signature.ArtifactKey) != 64 || signature.Repository == "" || signature.ArtifactPath == "" {
 		return errors.New("invalid GPG signature record")
 	}
 	query := db.Dialect.UpsertGPGSignatureQuery()
@@ -321,7 +321,7 @@ func scanGPGSignature(row rowScanner) (*core.GPGSignature, error) {
 
 func (db *DB) GetGPGSignature(artifactKey string) (*core.GPGSignature, error) {
 	artifactKey = strings.ToLower(SanitizeInputString(strings.TrimSpace(artifactKey), 64))
-	if db == nil || db.SqlDB == nil || len(artifactKey) != 64 {
+	if db == nil || db.SQLDB == nil || len(artifactKey) != 64 {
 		return nil, nil
 	}
 	signature, err := scanGPGSignature(db.QueryRow(
@@ -337,7 +337,7 @@ func (db *DB) GetGPGSignature(artifactKey string) (*core.GPGSignature, error) {
 }
 
 func (db *DB) GetGPGSignatures(artifactKeys []string) ([]*core.GPGSignature, error) {
-	if db == nil || db.SqlDB == nil || len(artifactKeys) == 0 {
+	if db == nil || db.SQLDB == nil || len(artifactKeys) == 0 {
 		return []*core.GPGSignature{}, nil
 	}
 	keys := make([]string, 0, len(artifactKeys))
@@ -391,7 +391,7 @@ func (db *DB) GetGPGSignatures(artifactKeys []string) ([]*core.GPGSignature, err
 
 func (db *DB) DeleteGPGSignature(artifactKey string) error {
 	artifactKey = strings.ToLower(SanitizeInputString(strings.TrimSpace(artifactKey), 64))
-	if db == nil || db.SqlDB == nil || len(artifactKey) != 64 {
+	if db == nil || db.SQLDB == nil || len(artifactKey) != 64 {
 		return nil
 	}
 	_, err := db.Exec(`DELETE FROM gpg_signatures WHERE artifact_key = ?`, artifactKey)
@@ -407,7 +407,7 @@ func escapeLikePrefix(value string) string {
 func (db *DB) DeleteGPGSignaturesByPrefix(repository, artifactPathPrefix string) error {
 	repository = SanitizeInputString(repository, 255)
 	artifactPathPrefix = strings.TrimSuffix(SanitizeInputString(artifactPathPrefix, 8192), "/")
-	if db == nil || db.SqlDB == nil || repository == "" || artifactPathPrefix == "" {
+	if db == nil || db.SQLDB == nil || repository == "" || artifactPathPrefix == "" {
 		return nil
 	}
 	likePrefix := escapeLikePrefix(artifactPathPrefix) + "/%"
@@ -418,7 +418,7 @@ func (db *DB) DeleteGPGSignaturesByPrefix(repository, artifactPathPrefix string)
 
 func (db *DB) DeleteGPGSignaturesByRepository(repository string) error {
 	repository = SanitizeInputString(repository, 255)
-	if db == nil || db.SqlDB == nil || repository == "" {
+	if db == nil || db.SQLDB == nil || repository == "" {
 		return nil
 	}
 	_, err := db.Exec(`DELETE FROM gpg_signatures WHERE repository = ?`, repository)

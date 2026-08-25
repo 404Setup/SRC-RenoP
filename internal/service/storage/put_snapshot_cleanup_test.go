@@ -218,7 +218,7 @@ func TestUniqueSnapshotBuildNumberFromMirrorPurgesOlderBuild(t *testing.T) {
 		_, _ = w.Write([]byte("new"))
 	}))
 	t.Cleanup(upstream.Close)
-	repo.Mirrors = []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}
+	repo.Mirrors = []config.Mirror{{URL: upstream.URL, TimeoutSecs: 5}}
 
 	path := "com/example/demo/1.0.0-SNAPSHOT/demo-1.0.0-2.jar"
 	localPath := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))

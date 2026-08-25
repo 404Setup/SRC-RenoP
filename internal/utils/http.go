@@ -113,11 +113,11 @@ func ParseRange(rangeStr string, fileSize uint64) (uint64, uint64, bool) {
 // ExtractIP returns the client IP for rate limiting and sessions.
 func ExtractIP(c fiber.Ctx, serverConfig *config.ServerConfig) string {
 	rawIP := peerIP(c)
-	if serverConfig.CdnIpHeader == "" || !serverConfig.IsTrustedProxy(rawIP) {
+	if serverConfig.CdnIPHeader == "" || !serverConfig.IsTrustedProxy(rawIP) {
 		return rawIP
 	}
 
-	val := strings.TrimSpace(c.Get(serverConfig.CdnIpHeader))
+	val := strings.TrimSpace(c.Get(serverConfig.CdnIPHeader))
 	if val == "" {
 		return rawIP
 	}

@@ -173,18 +173,18 @@ func TestHandleJavadocPageAndServeRaw(t *testing.T) {
 		t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
 	}
 
-	reqCss, _ := http.NewRequest("GET", "/javadoc/releases/com/example/demo/1.0.0/demo-1.0.0-javadoc.jar/raw/stylesheet.css", nil)
-	respCss, err := app.Test(reqCss)
+	reqCSS, _ := http.NewRequest("GET", "/javadoc/releases/com/example/demo/1.0.0/demo-1.0.0-javadoc.jar/raw/stylesheet.css", nil)
+	respCSS, err := app.Test(reqCSS)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if respCss.StatusCode != http.StatusOK {
-		t.Fatalf("expected status 200 for stylesheet.css, got %d", respCss.StatusCode)
+	if respCSS.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200 for stylesheet.css, got %d", respCSS.StatusCode)
 	}
-	if respCss.Header.Get("Content-Disposition") != "inline" {
-		t.Fatalf("expected Content-Disposition inline for sub-resources, got %s", respCss.Header.Get("Content-Disposition"))
+	if respCSS.Header.Get("Content-Disposition") != "inline" {
+		t.Fatalf("expected Content-Disposition inline for sub-resources, got %s", respCSS.Header.Get("Content-Disposition"))
 	}
-	if cc := respCss.Header.Get("Cache-Control"); !strings.Contains(cc, "max-age=") {
+	if cc := respCSS.Header.Get("Cache-Control"); !strings.Contains(cc, "max-age=") {
 		t.Fatalf("expected Cache-Control max-age for raw assets, got %q", cc)
 	}
 }

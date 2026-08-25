@@ -226,8 +226,8 @@ func cleanupSnapshotArtifactsFromMetadata(state *core.AppState, metadataPath str
 	}
 
 	artifactID := ""
-	if metadata.ArtifactId != nil {
-		artifactID = strings.TrimSpace(*metadata.ArtifactId)
+	if metadata.ArtifactID != nil {
+		artifactID = strings.TrimSpace(*metadata.ArtifactID)
 	}
 	if artifactID == "" {
 		artifactID = filepath.Base(filepath.Dir(versionDir))

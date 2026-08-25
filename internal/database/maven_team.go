@@ -61,7 +61,7 @@ func cancelMavenInvitations(tx *Tx, where string, args []any, actedAt int64) err
 
 // CreateMavenInvitations persists domain invitations and their message actions atomically.
 func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messages []*core.UserMessage) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(invitations) == 0 || len(invitations) != len(messages) || len(invitations) > 20 {
@@ -173,7 +173,7 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 
 // ForceAddMavenMembers immediately adds members for an administrator without overwriting existing roles.
 func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames []string, level int) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 || level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
@@ -260,7 +260,7 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 
 // RespondMavenInvitation accepts or rejects one pending Maven domain invitation.
 func (db *DB) RespondMavenInvitation(id, recipient, repository string, accept bool, actedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	id = SanitizeInputString(strings.TrimSpace(id), 64)
@@ -351,7 +351,7 @@ func (db *DB) RespondMavenInvitation(id, recipient, repository string, accept bo
 
 // SetMavenMemberLevel updates a domain member while preserving exactly one L4 owner.
 func (db *DB) SetMavenMemberLevel(repository, domain, actor, username string, level int) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
@@ -427,7 +427,7 @@ func (db *DB) SetMavenMemberLevel(repository, domain, actor, username string, le
 
 // RemoveMavenMember removes one team member while preserving L4 ownership.
 func (db *DB) RemoveMavenMember(repository, domain, actor, username string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)

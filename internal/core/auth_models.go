@@ -70,20 +70,21 @@ type LoginRequest struct {
 }
 
 type Session struct {
-	PublicId    string
+	PublicID    string
 	Username    string
-	Ip          string
+	IP          string
 	UserAgent   string
 	CreatedAt   int64
 	LastActive  atomic.Int64
 	LoginMethod string
 }
 
-type SessionDbDto struct {
-	PublicId     string `json:"public_id"`
+// SessionDBDto is the database persistence representation of a session.
+type SessionDBDto struct {
+	PublicID     string `json:"public_id"`
 	SessionToken string `json:"session_token"`
 	Username     string `json:"username"`
-	Ip           string `json:"ip"`
+	IP           string `json:"ip"`
 	UserAgent    string `json:"user_agent"`
 	CreatedAt    int64  `json:"created_at"`
 	LastActive   int64  `json:"last_active"`
@@ -91,9 +92,9 @@ type SessionDbDto struct {
 }
 
 type SessionDto struct {
-	PublicId    string `json:"public_id"`
+	PublicID    string `json:"public_id"`
 	Username    string `json:"username"`
-	Ip          string `json:"ip"`
+	IP          string `json:"ip"`
 	UserAgent   string `json:"user_agent"`
 	CreatedAt   int64  `json:"created_at"`
 	LastActive  int64  `json:"last_active"`
@@ -102,6 +103,7 @@ type SessionDto struct {
 	LoginMethod string `json:"login_method"`
 }
 
-type CurrentSessionId struct {
+// CurrentSessionID identifies the session attached to the current request.
+type CurrentSessionID struct {
 	ID string
 }

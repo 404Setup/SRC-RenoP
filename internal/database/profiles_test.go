@@ -100,7 +100,7 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.NotEmpty(t, stableUserID)
 
 	session := &core.Session{
-		PublicId: "public-session", Username: "alice", Ip: "127.0.0.1",
+		PublicID: "public-session", Username: "alice", IP: "127.0.0.1",
 		UserAgent: "profile-test", CreatedAt: changedAt, LoginMethod: "password",
 	}
 	session.LastActive.Store(changedAt)

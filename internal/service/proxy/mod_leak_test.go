@@ -68,7 +68,7 @@ func TestProxyArtifactNonOKLargeBodyDoesNotSpikeHeap(t *testing.T) {
 	repo := &config.Repository{
 		Name: "leak-repo",
 		Mirrors: []config.Mirror{
-			{Url: ts.URL, TimeoutSecs: 5},
+			{URL: ts.URL, TimeoutSecs: 5},
 		},
 	}
 	storage := t.TempDir()
@@ -113,7 +113,7 @@ func TestProxyArtifactOKLargeThenAbortDoesNotSpikeHeap(t *testing.T) {
 	repo := &config.Repository{
 		Name: "leak-repo-ok",
 		Mirrors: []config.Mirror{
-			{Url: ts.URL, TimeoutSecs: 5},
+			{URL: ts.URL, TimeoutSecs: 5},
 		},
 	}
 	storage := t.TempDir()
@@ -160,7 +160,7 @@ func TestProxyArtifactSmallOK(t *testing.T) {
 	repo := &config.Repository{
 		Name: "small-repo",
 		Mirrors: []config.Mirror{
-			{Url: ts.URL, TimeoutSecs: 5},
+			{URL: ts.URL, TimeoutSecs: 5},
 		},
 	}
 	storage := t.TempDir()
@@ -198,7 +198,7 @@ func TestProxyArtifactSmallSequentialMemory(t *testing.T) {
 	repo := &config.Repository{
 		Name: "small-mem-repo",
 		Mirrors: []config.Mirror{
-			{Url: ts.URL, TimeoutSecs: 5},
+			{URL: ts.URL, TimeoutSecs: 5},
 		},
 	}
 	storage := t.TempDir()

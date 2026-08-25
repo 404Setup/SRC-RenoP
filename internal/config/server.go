@@ -34,7 +34,7 @@ type ServerConfig struct {
 	// (*.pkg.one matches pkg.one and any subdomain). Domains always remain allowed.
 	CorsOrigins []string `json:"cors_origins" yaml:"cors_origins"`
 
-	CdnIpHeader          string       `json:"cdn_ip_header" yaml:"cdn_ip_header"`
+	CdnIPHeader          string       `json:"cdn_ip_header" yaml:"cdn_ip_header"`
 	TrustedProxies       []string     `json:"trusted_proxies" yaml:"trusted_proxies"`
 	ParsedTrustedProxies []*net.IPNet `json:"-" yaml:"-"`
 	FileCacheSizeMb      uint32       `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
@@ -60,7 +60,7 @@ type serverConfigWire struct {
 	Domain            string     `json:"domain" yaml:"domain"`
 	Domains           []string   `json:"domains" yaml:"domains"`
 	CorsOrigins       []string   `json:"cors_origins" yaml:"cors_origins"`
-	CdnIpHeader       string     `json:"cdn_ip_header" yaml:"cdn_ip_header"`
+	CdnIPHeader       string     `json:"cdn_ip_header" yaml:"cdn_ip_header"`
 	TrustedProxies    []string   `json:"trusted_proxies" yaml:"trusted_proxies"`
 	FileCacheSizeMb   uint32     `json:"file_cache_size_mb" yaml:"file_cache_size_mb"`
 	MaxActiveRequests uint32     `json:"max_active_requests" yaml:"max_active_requests"`
@@ -79,7 +79,7 @@ func (s *ServerConfig) applyWire(w *serverConfigWire) {
 	if w.CorsOrigins != nil {
 		s.CorsOrigins = normalizeOriginPatterns(w.CorsOrigins)
 	}
-	s.CdnIpHeader = w.CdnIpHeader
+	s.CdnIPHeader = w.CdnIPHeader
 	s.TrustedProxies = w.TrustedProxies
 	s.FileCacheSizeMb = w.FileCacheSizeMb
 	s.MaxActiveRequests = w.MaxActiveRequests
@@ -125,8 +125,8 @@ func (s *ServerConfig) setDefaults() {
 	if s.TrustedProxies == nil {
 		s.TrustedProxies = DefaultTrustedProxies()
 	}
-	if s.CdnIpHeader == "" {
-		s.CdnIpHeader = DefaultCdnIpHeader()
+	if s.CdnIPHeader == "" {
+		s.CdnIPHeader = DefaultCdnIPHeader()
 	}
 	s.GPG.setDefaults()
 }
@@ -425,7 +425,7 @@ func (s *ServerConfig) DeepCopy() ServerConfig {
 		EnableCompression: s.EnableCompression,
 		FileCacheSizeMb:   s.FileCacheSizeMb,
 		MaxActiveRequests: s.MaxActiveRequests,
-		CdnIpHeader:       strings.Clone(s.CdnIpHeader),
+		CdnIPHeader:       strings.Clone(s.CdnIPHeader),
 		DebugMode:         s.DebugMode,
 		GPG:               s.GPG.DeepCopy(),
 	}

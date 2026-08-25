@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package middleware provides shared Fiber request middleware.
 package middleware
 
 import (
@@ -167,8 +168,8 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 
 	switch {
 	case strings.HasPrefix(authHeader, "Session "):
-		sessionId := strings.TrimPrefix(authHeader, "Session ")
-		val := state.GetSession(sessionId)
+		sessionID := strings.TrimPrefix(authHeader, "Session ")
+		val := state.GetSession(sessionID)
 		if val == nil {
 			return false
 		}

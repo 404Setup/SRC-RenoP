@@ -51,7 +51,7 @@ func TestExtractAuthDetailsUsesRuntimeIPConfig(t *testing.T) {
 	const clientIP = "203.0.113.50"
 	state := core.NewAppState()
 	cfg := config.DefaultConfig()
-	cfg.Server.CdnIpHeader = "CF-Connecting-IP"
+	cfg.Server.CdnIPHeader = "CF-Connecting-IP"
 	cfg.Server.TrustedProxies = []string{"0.0.0.0"}
 	cfg.Server.ParseTrustedProxies()
 	state.Inner.Config.Store(cfg)

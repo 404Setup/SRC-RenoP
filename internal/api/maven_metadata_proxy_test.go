@@ -45,7 +45,7 @@ func TestFindMetadataFetchesAndCachesMirrorMetadata(t *testing.T) {
 		"mirror": {
 			Name:       "mirror",
 			Visibility: "PUBLIC",
-			Mirrors:    []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}},
+			Mirrors:    []config.Mirror{{URL: upstream.URL, TimeoutSecs: 5}},
 		},
 	}
 	storage.InitS3(cfg)
@@ -57,7 +57,7 @@ func TestFindMetadataFetchesAndCachesMirrorMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindMetadata: %v", err)
 	}
-	if got.ArtifactId == nil || *got.ArtifactId != "demo" {
+	if got.ArtifactID == nil || *got.ArtifactID != "demo" {
 		t.Fatalf("unexpected metadata: %+v", got)
 	}
 	if hits.Load() != 1 {
@@ -90,7 +90,7 @@ func TestFindMetadataFallsBackToMavenParentMetadata(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
 	cfg.Maven.Repositories = map[string]*config.Repository{
-		"mirror": {Name: "mirror", Visibility: "PUBLIC", Mirrors: []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}},
+		"mirror": {Name: "mirror", Visibility: "PUBLIC", Mirrors: []config.Mirror{{URL: upstream.URL, TimeoutSecs: 5}}},
 	}
 	storage.InitS3(cfg)
 	state := core.NewAppState()
@@ -101,7 +101,7 @@ func TestFindMetadataFallsBackToMavenParentMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindMetadata version path: %v", err)
 	}
-	if metadata.ArtifactId == nil || *metadata.ArtifactId != "demo" {
+	if metadata.ArtifactID == nil || *metadata.ArtifactID != "demo" {
 		t.Fatalf("unexpected fallback metadata: %+v", metadata)
 	}
 }

@@ -285,7 +285,7 @@ func TestNewCargoPackageRequiresAvailableUpstreamName(t *testing.T) {
 			store := newMemoryStore()
 			repo := &config.Repository{
 				Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
-				Mirrors: []config.Mirror{{Url: "https://upstream.example"}},
+				Mirrors: []config.Mirror{{URL: "https://upstream.example"}},
 			}
 			state := core.NewAppState()
 			db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo.db")})

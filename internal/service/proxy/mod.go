@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package proxy streams and caches repository mirror responses.
 package proxy
 
 import (
@@ -200,7 +201,7 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 
 func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, storagePath string, pathStr string, dl *core.InFlightDownload) (io.ReadCloser, error) {
 	shouldNegativeCache := false
-	var negativeTtl uint64 = 3600
+	var negativeTTL uint64 = 3600
 	networkAttempted := false
 
 	sanitizedPath, ok := utils.SanitizePath(path)
@@ -221,13 +222,13 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 			lastBlockedReason = reason
 			continue
 		}
-		mirrorUrl := cargo.ArtifactURL(repo, mirror, path)
-		if mirrorUrl == "" {
+		mirrorURL := cargo.ArtifactURL(repo, mirror, path)
+		if mirrorURL == "" {
 			continue
 		}
 
 		streamCtx, streamCancel := context.WithTimeout(context.Background(), mirrorRequestTimeout(mirror.TimeoutSecs))
-		req, err := http.NewRequestWithContext(streamCtx, http.MethodGet, mirrorUrl, nil)
+		req, err := http.NewRequestWithContext(streamCtx, http.MethodGet, mirrorURL, nil)
 		if err != nil {
 			streamCancel()
 			continue
@@ -262,7 +263,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 
 		if res.StatusCode == http.StatusNotFound && mirror.NegativeCache {
 			shouldNegativeCache = true
-			negativeTtl = mirror.CacheTtlSecs
+			negativeTTL = mirror.CacheTTLSecs
 		}
 
 		if res.StatusCode >= 200 && res.StatusCode < 300 {
@@ -366,7 +367,7 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 	}
 
 	if shouldNegativeCache {
-		HandleNegativeCache(state, repo.Name, path, storagePath, negativeTtl)
+		HandleNegativeCache(state, repo.Name, path, storagePath, negativeTTL)
 	}
 	if networkAttempted {
 		utils.ScheduleNetworkWorkingSetTrim()
@@ -412,15 +413,15 @@ func ProxyHead(state *core.AppState, repo *config.Repository, path string) (bool
 		if allowed, _ := mirror.IsArtifactAllowedFor(repo.NormalizedFormat(), path); !allowed {
 			continue
 		}
-		mirrorUrl := cargo.ArtifactURL(repo, mirror, path)
-		if mirrorUrl == "" {
+		mirrorURL := cargo.ArtifactURL(repo, mirror, path)
+		if mirrorURL == "" {
 			continue
 		}
 
 		timeout := mirrorRequestTimeout(mirror.TimeoutSecs)
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		req, err := http.NewRequestWithContext(ctx, http.MethodHead, mirrorUrl, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodHead, mirrorURL, nil)
 		if err != nil {
 			cancel()
 			continue

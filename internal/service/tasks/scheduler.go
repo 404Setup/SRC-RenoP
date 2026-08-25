@@ -6,6 +6,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
  */
 
+// Package tasks coordinates non-reentrant periodic application maintenance.
 package tasks
 
 import (

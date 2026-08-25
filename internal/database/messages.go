@@ -86,7 +86,7 @@ func normalizeMessage(message *core.UserMessage) error {
 // SaveMessages inserts a bounded batch atomically. Dedupe keys are unique per
 // recipient so workflow producers can safely retry delivery.
 func (db *DB) SaveMessages(messages []*core.UserMessage) error {
-	if db == nil || db.SqlDB == nil || len(messages) == 0 {
+	if db == nil || db.SQLDB == nil || len(messages) == 0 {
 		return nil
 	}
 	if len(messages) > 100000 {
@@ -123,7 +123,7 @@ func (db *DB) SaveMessages(messages []*core.UserMessage) error {
 // ListMessages returns a stable newest-first cursor page. Expired messages are
 // excluded without requiring a cleanup job on the request path.
 func (db *DB) ListMessages(username string, limit int, beforeCreatedAt int64, beforeID string, now int64) ([]*core.UserMessage, error) {
-	if db == nil || db.SqlDB == nil || username == "" {
+	if db == nil || db.SQLDB == nil || username == "" {
 		return []*core.UserMessage{}, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -159,7 +159,7 @@ func (db *DB) ListMessages(username string, limit int, beforeCreatedAt int64, be
 }
 
 func (db *DB) CountUnreadMessages(username string, now int64) (int, error) {
-	if db == nil || db.SqlDB == nil || username == "" {
+	if db == nil || db.SQLDB == nil || username == "" {
 		return 0, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -172,7 +172,7 @@ func (db *DB) CountUnreadMessages(username string, now int64) (int, error) {
 }
 
 func (db *DB) GetUserMessage(id, username string, now int64) (*core.UserMessage, error) {
-	if db == nil || db.SqlDB == nil || id == "" || username == "" {
+	if db == nil || db.SQLDB == nil || id == "" || username == "" {
 		return nil, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -188,7 +188,7 @@ func (db *DB) GetUserMessage(id, username string, now int64) (*core.UserMessage,
 }
 
 func (db *DB) MarkMessageRead(id, username string, readAt int64) (bool, error) {
-	if db == nil || db.SqlDB == nil || id == "" || username == "" || readAt <= 0 {
+	if db == nil || db.SQLDB == nil || id == "" || username == "" || readAt <= 0 {
 		return false, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -201,7 +201,7 @@ func (db *DB) MarkMessageRead(id, username string, readAt int64) (bool, error) {
 }
 
 func (db *DB) MarkAllMessagesRead(username string, readAt int64) (int64, error) {
-	if db == nil || db.SqlDB == nil || username == "" || readAt <= 0 {
+	if db == nil || db.SQLDB == nil || username == "" || readAt <= 0 {
 		return 0, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -213,7 +213,7 @@ func (db *DB) MarkAllMessagesRead(username string, readAt int64) (int64, error) 
 }
 
 func (db *DB) TransitionMessageAction(id, username, expectedStatus, newStatus string, actedAt int64) (bool, error) {
-	if db == nil || db.SqlDB == nil || id == "" || username == "" || expectedStatus == "" || newStatus == "" || actedAt <= 0 {
+	if db == nil || db.SQLDB == nil || id == "" || username == "" || expectedStatus == "" || newStatus == "" || actedAt <= 0 {
 		return false, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -228,7 +228,7 @@ func (db *DB) TransitionMessageAction(id, username, expectedStatus, newStatus st
 }
 
 func (db *DB) DeleteUserMessage(id, username string) (bool, error) {
-	if db == nil || db.SqlDB == nil || id == "" || username == "" {
+	if db == nil || db.SQLDB == nil || id == "" || username == "" {
 		return false, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -245,7 +245,7 @@ func (db *DB) DeleteUserMessage(id, username string) (bool, error) {
 // DeleteUserMessages removes every dismissible message owned by one user.
 // Pending action messages remain available until their workflow is resolved.
 func (db *DB) DeleteUserMessages(username string) (int64, error) {
-	if db == nil || db.SqlDB == nil || username == "" {
+	if db == nil || db.SQLDB == nil || username == "" {
 		return 0, nil
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))

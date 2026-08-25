@@ -43,7 +43,7 @@ func LoadConfig(configPath string) *config.Config {
 		}
 	}
 
-	cfg.Frontend.CachedIndexHtml = []byte{}
+	cfg.Frontend.CachedIndexHTML = []byte{}
 
 	return cfg
 }

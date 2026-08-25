@@ -13,7 +13,7 @@ package config
 type Plugin struct {
 	Name       *string `json:"name,omitempty" xml:"name,omitempty"`
 	Prefix     *string `json:"prefix,omitempty" xml:"prefix,omitempty"`
-	ArtifactId *string `json:"artifact_id,omitempty" xml:"artifactId,omitempty"`
+	ArtifactID *string `json:"artifact_id,omitempty" xml:"artifactId,omitempty"`
 }
 
 type Plugins struct {
@@ -51,8 +51,8 @@ type Versioning struct {
 }
 
 type Metadata struct {
-	GroupId    *string     `json:"group_id,omitempty" xml:"groupId,omitempty"`
-	ArtifactId *string     `json:"artifact_id,omitempty" xml:"artifactId,omitempty"`
+	GroupID    *string     `json:"group_id,omitempty" xml:"groupId,omitempty"`
+	ArtifactID *string     `json:"artifact_id,omitempty" xml:"artifactId,omitempty"`
 	Version    *string     `json:"version,omitempty" xml:"version,omitempty"`
 	Versioning *Versioning `json:"versioning,omitempty" xml:"versioning,omitempty"`
 	Plugins    *Plugins    `json:"plugins,omitempty" xml:"plugins,omitempty"`

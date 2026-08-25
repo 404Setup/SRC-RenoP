@@ -49,7 +49,7 @@ func (u *User) GetPermissions() (isAdmin bool, isAllView bool, isShowing bool) {
 	return u.isAdmin, u.isAllView, u.isShowing
 }
 
-func equalFoldAscii(s, t string) bool {
+func equalFoldASCII(s, t string) bool {
 	if len(s) != len(t) {
 		return false
 	}
@@ -64,9 +64,9 @@ func equalFoldAscii(s, t string) bool {
 func (u *User) CheckReadPermission(repoName string, path string, repoVisibility string, isRoot bool) bool {
 	u.initPermissions()
 
-	isPublic := equalFoldAscii(repoVisibility, "PUBLIC")
-	isHidden := equalFoldAscii(repoVisibility, "HIDDEN")
-	isPrivate := equalFoldAscii(repoVisibility, "PRIVATE")
+	isPublic := equalFoldASCII(repoVisibility, "PUBLIC")
+	isHidden := equalFoldASCII(repoVisibility, "HIDDEN")
+	isPrivate := equalFoldASCII(repoVisibility, "PRIVATE")
 
 	if !isPublic && !isHidden && !isPrivate {
 		return false
@@ -120,7 +120,7 @@ func (r *Repository) GetCacheConfig() (persist bool, ttl uint64) {
 		return val.Persist, val.TTL
 	}
 
-	var baseMaxTtl uint64 = 0
+	var baseMaxTTL uint64 = 0
 	var anyPersist = false
 
 	if len(r.Mirrors) > 0 {
@@ -128,8 +128,8 @@ func (r *Repository) GetCacheConfig() (persist bool, ttl uint64) {
 			if mirror.Persist {
 				anyPersist = true
 			} else {
-				if mirror.CacheTtlSecs > baseMaxTtl {
-					baseMaxTtl = mirror.CacheTtlSecs
+				if mirror.CacheTTLSecs > baseMaxTTL {
+					baseMaxTTL = mirror.CacheTTLSecs
 				}
 			}
 		}
@@ -137,10 +137,10 @@ func (r *Repository) GetCacheConfig() (persist bool, ttl uint64) {
 		anyPersist = true
 	}
 
-	config := RepositoryCacheConfig{Persist: anyPersist, TTL: baseMaxTtl}
+	config := RepositoryCacheConfig{Persist: anyPersist, TTL: baseMaxTTL}
 	repoCacheConfigs.Store(r.Name, config)
 
-	return anyPersist, baseMaxTtl
+	return anyPersist, baseMaxTTL
 }
 
 func ClearRepoCacheConfigs() {

@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package protohttp reads and writes bounded protobuf HTTP payloads.
 package protohttp
 
 import (

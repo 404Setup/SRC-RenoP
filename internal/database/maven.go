@@ -39,7 +39,7 @@ func sanitizeMavenUsername(value string) string {
 // EnsureImportedMavenDomain records a verified namespace discovered in a legacy repository.
 // Imported namespaces intentionally have no team until an administrator assigns one.
 func (db *DB) EnsureImportedMavenDomain(domain *core.MavenDomain) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if domain == nil {
@@ -75,7 +75,7 @@ func (db *DB) EnsureImportedMavenDomain(domain *core.MavenDomain) error {
 
 // IsMavenRepositoryUpgraded reports whether legacy Maven content was cataloged.
 func (db *DB) IsMavenRepositoryUpgraded(repository string) (bool, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return false, core.ErrDatabaseUnavailable
 	}
 	var exists int
@@ -92,7 +92,7 @@ func (db *DB) IsMavenRepositoryUpgraded(repository string) (bool, error) {
 
 // MarkMavenRepositoryUpgraded records a completed legacy catalog import.
 func (db *DB) MarkMavenRepositoryUpgraded(repository string, completedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository = sanitizeMavenRepository(repository)
@@ -118,7 +118,7 @@ func (db *DB) MarkMavenRepositoryUpgraded(repository string, completedAt int64) 
 // A verified proof is reused across repositories only for an existing L4 owner
 // or a system administrator.
 func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administrator bool) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if domain == nil {
@@ -203,7 +203,7 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administ
 
 // ListMavenDomains lists verified public domains plus domains visible to the caller.
 func (db *DB) ListMavenDomains(repository, username string, includeAll bool) ([]*core.MavenDomain, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository = sanitizeMavenRepository(repository)
@@ -253,7 +253,7 @@ func (db *DB) ListMavenDomains(repository, username string, includeAll bool) ([]
 
 // GetMavenDomainDetails returns one domain and its current team.
 func (db *DB) GetMavenDomainDetails(repository, domain, username string) (*core.MavenDomainDetails, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository = sanitizeMavenRepository(repository)
@@ -309,7 +309,7 @@ func (db *DB) GetMavenDomainDetails(repository, domain, username string) (*core.
 
 // ReserveMavenVerificationAttempt rate-limits and records one external verification check.
 func (db *DB) ReserveMavenVerificationAttempt(repository, domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
@@ -345,7 +345,7 @@ func (db *DB) ReserveMavenVerificationAttempt(repository, domain, actor string, 
 
 // MarkMavenDomainVerified completes verification only if the assigned code still matches.
 func (db *DB) MarkMavenDomainVerified(repository, domain, code string, verifiedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	result, err := db.Exec(`UPDATE maven_domains SET verified = 1, verified_at = ?
@@ -367,7 +367,7 @@ func (db *DB) MarkMavenDomainVerified(repository, domain, code string, verifiedA
 
 // DeleteMavenDomain deletes an empty namespace after owner or administrator authorization.
 func (db *DB) DeleteMavenDomain(repository, domain, actor string, administrator bool, actedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
@@ -414,7 +414,7 @@ func (db *DB) DeleteMavenDomain(repository, domain, actor string, administrator 
 
 // HasMavenMembership reports whether a user belongs to any domain in a repository.
 func (db *DB) HasMavenMembership(repository, username string) (bool, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return false, core.ErrDatabaseUnavailable
 	}
 	userID, err := db.userIDForUsername(sanitizeMavenUsername(username))
@@ -438,7 +438,7 @@ func (db *DB) HasMavenMembership(repository, username string) (bool, error) {
 
 // RecordMavenPublication upserts one catalog artifact and version after storage publication.
 func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core.MavenVersion) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if artifact == nil || version == nil {
@@ -525,7 +525,7 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 
 // ListMavenArtifacts returns a bounded catalog page and total count.
 func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*core.MavenArtifact, int, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
 	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
@@ -575,7 +575,7 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 
 // GetMavenArtifactDetails loads one artifact and all versions.
 func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*core.MavenArtifactDetails, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository = sanitizeMavenRepository(repository)
@@ -704,7 +704,7 @@ func (db *DB) DeleteMavenVersionMetadata(repository, groupID, artifactID, versio
 
 // DeleteMavenRepository deletes all Maven ownership and catalog metadata for a repository.
 func (db *DB) DeleteMavenRepository(repository string, actedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository = sanitizeMavenRepository(repository)

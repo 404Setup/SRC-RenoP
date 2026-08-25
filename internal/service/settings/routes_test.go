@@ -313,7 +313,7 @@ func TestFullRepoUpdate(t *testing.T) {
 			Visibility:        "PUBLIC",
 			AllowRedeployment: true,
 			Mirrors: []config.Mirror{
-				{Name: "central", Url: "https://repo.maven.apache.org/maven2/"},
+				{Name: "central", URL: "https://repo.maven.apache.org/maven2/"},
 			},
 		},
 	}
@@ -409,7 +409,7 @@ func TestFullFrontendUpdate(t *testing.T) {
 	cfg.StoragePath = tempDir
 	cfg.Frontend.Title = "Custom Server Title"
 	cfg.Frontend.OrganizationWebsite = "https://custom.org"
-	cfg.Frontend.Id = "custom-id"
+	cfg.Frontend.ID = "custom-id"
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	respPut := protoPUT(t, app, "/domain/frontend", &pb.FrontendConfig{
@@ -437,8 +437,8 @@ func TestFullFrontendUpdate(t *testing.T) {
 	if updatedCfg.Frontend.Description != "New Description" {
 		t.Fatalf("expected Description to be updated to 'New Description', got %s", updatedCfg.Frontend.Description)
 	}
-	if updatedCfg.Frontend.LegalNoticeUrl != "https://custom.org/legal" {
-		t.Fatalf("expected LegalNoticeUrl to be persisted, got %s", updatedCfg.Frontend.LegalNoticeUrl)
+	if updatedCfg.Frontend.LegalNoticeURL != "https://custom.org/legal" {
+		t.Fatalf("expected LegalNoticeUrl to be persisted, got %s", updatedCfg.Frontend.LegalNoticeURL)
 	}
 	if updatedCfg.Frontend.PublicSecurityFiling != "京公网安备11000000000001号" {
 		t.Fatalf("expected PublicSecurityFiling to be persisted, got %s", updatedCfg.Frontend.PublicSecurityFiling)
@@ -479,7 +479,7 @@ func TestFullServerUpdate(t *testing.T) {
 		FileCacheSizeMb:   256,
 		MaxActiveRequests: cfg.Server.MaxActiveRequests,
 		TrustedProxies:    append([]string(nil), cfg.Server.TrustedProxies...),
-		CdnIpHeader:       cfg.Server.CdnIpHeader,
+		CdnIpHeader:       cfg.Server.CdnIPHeader,
 		CorsOrigins:       []string{"*.myrepo.custom.com", "https://partner.example.com"},
 	})
 	if respPut.StatusCode != http.StatusOK {
@@ -513,8 +513,8 @@ func TestFullRepoMirrorUpdate(t *testing.T) {
 			Mirrors: []config.Mirror{
 				{
 					Name:         "central",
-					Url:          "https://repo.maven.apache.org/maven2/",
-					CacheTtlSecs: 3600,
+					URL:          "https://repo.maven.apache.org/maven2/",
+					CacheTTLSecs: 3600,
 					TimeoutSecs:  15,
 				},
 			},
@@ -549,8 +549,8 @@ func TestFullRepoMirrorUpdate(t *testing.T) {
 		t.Fatalf("expected 1 mirror")
 	}
 	m := repo.Mirrors[0]
-	if m.CacheTtlSecs != 3600 {
-		t.Fatalf("expected CacheTtlSecs to remain 3600, got %d", m.CacheTtlSecs)
+	if m.CacheTTLSecs != 3600 {
+		t.Fatalf("expected CacheTtlSecs to remain 3600, got %d", m.CacheTTLSecs)
 	}
 	if m.TimeoutSecs != 15 {
 		t.Fatalf("expected TimeoutSecs to remain 15, got %d", m.TimeoutSecs)
@@ -567,15 +567,15 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 	app, appState := setupSettingsTestApp(t, cfg)
 
 	msg := &pb.FrontendConfig{
-		Id:                   cfg.Frontend.Id,
+		Id:                   cfg.Frontend.ID,
 		Title:                "UniqueTitleForZeroCopyCheck",
 		Description:          cfg.Frontend.Description,
 		OrganizationWebsite:  cfg.Frontend.OrganizationWebsite,
 		OrganizationLogo:     cfg.Frontend.OrganizationLogo,
-		BackgroundUrl:        cfg.Frontend.BackgroundUrl,
+		BackgroundUrl:        cfg.Frontend.BackgroundURL,
 		IcpLicense:           cfg.Frontend.IcpLicense,
 		PublicSecurityFiling: cfg.Frontend.PublicSecurityFiling,
-		LegalNoticeUrl:       cfg.Frontend.LegalNoticeUrl,
+		LegalNoticeUrl:       cfg.Frontend.LegalNoticeURL,
 	}
 	bodyBytes, err := proto.Marshal(msg)
 	if err != nil {
@@ -639,8 +639,8 @@ func TestZeroCopyMemorySafetyOnUpdate(t *testing.T) {
 	if r.Mirrors[0].Name != "custom-mirror" {
 		t.Fatalf("Zero-copy memory leak in repository mirror name! Got %q", r.Mirrors[0].Name)
 	}
-	if r.Mirrors[0].Url != "https://mirror.example.com/repo" {
-		t.Fatalf("Zero-copy memory leak in repository mirror url! Got %q", r.Mirrors[0].Url)
+	if r.Mirrors[0].URL != "https://mirror.example.com/repo" {
+		t.Fatalf("Zero-copy memory leak in repository mirror url! Got %q", r.Mirrors[0].URL)
 	}
 	if r.Mirrors[0].Authorization.Login != "secretuser" {
 		t.Fatalf("Zero-copy memory leak in repository mirror auth login! Got %q", r.Mirrors[0].Authorization.Login)
@@ -918,7 +918,7 @@ func TestServerDomainRejectsInvalidPort(t *testing.T) {
 		FileCacheSizeMb:   cfg.Server.FileCacheSizeMb,
 		MaxActiveRequests: cfg.Server.MaxActiveRequests,
 		TrustedProxies:    append([]string(nil), cfg.Server.TrustedProxies...),
-		CdnIpHeader:       cfg.Server.CdnIpHeader,
+		CdnIpHeader:       cfg.Server.CdnIPHeader,
 	})
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected port 0 to be rejected with 400, got %d", resp.StatusCode)
@@ -1181,8 +1181,8 @@ func TestRepoVisibilityValidationAndDeleteNotFound(t *testing.T) {
 		t.Fatalf("expected visibility normalized to PRIVATE, got %s", live.Maven.Repositories["releases"].Visibility)
 	}
 	m := live.Maven.Repositories["releases"].Mirrors[0]
-	if m.CacheTtlSecs == 0 || m.TimeoutSecs == 0 {
-		t.Fatalf("expected default ttl/timeout, got ttl=%d timeout=%d", m.CacheTtlSecs, m.TimeoutSecs)
+	if m.CacheTTLSecs == 0 || m.TimeoutSecs == 0 {
+		t.Fatalf("expected default ttl/timeout, got ttl=%d timeout=%d", m.CacheTTLSecs, m.TimeoutSecs)
 	}
 
 	reqDel := httptest.NewRequest("DELETE", "/maven/repositories/does-not-exist", nil)

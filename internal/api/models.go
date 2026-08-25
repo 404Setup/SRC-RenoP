@@ -21,8 +21,8 @@ type LatestVersionResponse struct {
 }
 
 type PomDetails struct {
-	GroupId    string `json:"group_id"`
-	ArtifactId string `json:"artifact_id"`
+	GroupID    string `json:"group_id"`
+	ArtifactID string `json:"artifact_id"`
 	Version    string `json:"version"`
 }
 

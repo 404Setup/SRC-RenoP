@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package core defines shared application state and domain models.
 package core
 
 import (
@@ -71,7 +72,7 @@ type StateDB interface {
 	DeleteExpiredSessions(minActiveTimestamp int64) error
 	DeleteUserSessionByPublicID(username, publicID, currentSessionToken string) (token string, revoked bool, wasCurrent bool, err error)
 	DeleteOtherUserSessions(username, keepSessionToken string) (tokens []string, err error)
-	GetActiveSessions(minActiveTimestamp int64) ([]SessionDbDto, error)
+	GetActiveSessions(minActiveTimestamp int64) ([]SessionDBDto, error)
 	UpdateSessionsUsername(oldUsername, newUsername string) error
 	ListFidoDevices(username string) ([]*FidoDevice, error)
 	GetFidoDeviceByCredentialID(credentialID []byte) (*FidoDevice, error)
@@ -368,9 +369,9 @@ func (state *AppState) RevokeSession(sessionToken string) (bool, error) {
 func sessionToDto(secretToken string, session *Session, currentSessionToken string) SessionDto {
 	lastActive := session.LastActive.Load()
 	return SessionDto{
-		PublicId:   session.PublicId,
+		PublicID:   session.PublicID,
 		Username:   session.Username,
-		Ip:         session.Ip,
+		IP:         session.IP,
 		UserAgent:  session.UserAgent,
 		CreatedAt:  session.CreatedAt,
 		LastActive: lastActive,
@@ -424,7 +425,7 @@ func (state *AppState) RevokeUserSessionByPublicID(username, publicID, currentSe
 	}
 	var toRemove string
 	state.Inner.Sessions.Range(func(key string, value *Session) bool {
-		if value != nil && value.Username == username && value.PublicId == publicID {
+		if value != nil && value.Username == username && value.PublicID == publicID {
 			toRemove = key
 			return false
 		}

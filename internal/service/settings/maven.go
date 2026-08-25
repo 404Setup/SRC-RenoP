@@ -117,7 +117,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid mirror artifact URL: " + err.Error())
 		}
 		if repo.Format != config.RepositoryFormatCargo {
-			mirror.ArtifactUrl = ""
+			mirror.ArtifactURL = ""
 		}
 	}
 	if repo.S3 != nil {

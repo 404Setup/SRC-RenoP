@@ -393,7 +393,7 @@ func validateMachO(f *os.File) error {
 		}
 		defer fatf.Close()
 
-		want, known := machoCpuForGOARCH(runtime.GOARCH)
+		want, known := machoCPUForGOARCH(runtime.GOARCH)
 		if !known {
 			return nil
 		}
@@ -406,7 +406,7 @@ func validateMachO(f *os.File) error {
 	}
 	defer mf.Close()
 
-	want, known := machoCpuForGOARCH(runtime.GOARCH)
+	want, known := machoCPUForGOARCH(runtime.GOARCH)
 	if !known {
 		return nil
 	}
@@ -416,7 +416,7 @@ func validateMachO(f *os.File) error {
 	return nil
 }
 
-func machoCpuForGOARCH(goarch string) (cpu macho.Cpu, ok bool) {
+func machoCPUForGOARCH(goarch string) (cpu macho.Cpu, ok bool) {
 	switch goarch {
 	case "amd64":
 		return macho.CpuAmd64, true
@@ -538,8 +538,8 @@ func downloadHTTPClient() *http.Client {
 	return sharedDownloadClient.client
 }
 
-func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string) (string, error) {
-	parsedURL, err := url.Parse(downloadUrl)
+func DownloadAndExtract(ctx context.Context, downloadURL, expectedSHA256 string) (string, error) {
+	parsedURL, err := url.Parse(downloadURL)
 	if err != nil || parsedURL.Scheme != "https" || parsedURL.Host == "" || parsedURL.User != nil {
 		return "", errors.New("update download URL must be an HTTPS URL without user info")
 	}
@@ -561,7 +561,7 @@ func DownloadAndExtract(ctx context.Context, downloadUrl, expectedSHA256 string)
 		_ = os.Remove(zipPath)
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return "", err
 	}

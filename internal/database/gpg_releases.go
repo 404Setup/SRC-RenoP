@@ -143,7 +143,7 @@ func gpgReleaseValues(release *core.GPGRelease) []any {
 }
 
 func (db *DB) SaveGPGRelease(release *core.GPGRelease) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if err := normalizeGPGRelease(release); err != nil {
@@ -197,7 +197,7 @@ func (db *DB) SaveGPGRelease(release *core.GPGRelease) error {
 
 func (db *DB) GetActiveGPGRelease(activeKey string) (*core.GPGRelease, error) {
 	activeKey = SanitizeInputString(strings.TrimSpace(activeKey), 64)
-	if db == nil || db.SqlDB == nil || activeKey == "" {
+	if db == nil || db.SQLDB == nil || activeKey == "" {
 		return nil, nil
 	}
 	release, err := scanGPGRelease(db.QueryRow(
@@ -213,7 +213,7 @@ func (db *DB) GetActiveGPGRelease(activeKey string) (*core.GPGRelease, error) {
 }
 
 func (db *DB) ClaimNextGPGRelease(optionalReadyBefore int64) (*core.GPGRelease, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	tx, err := db.Begin()
@@ -257,7 +257,7 @@ func (db *DB) ClaimNextGPGRelease(optionalReadyBefore int64) (*core.GPGRelease, 
 
 func (db *DB) ListGPGReleases(username string, limit, offset int) ([]*core.GPGRelease, int, error) {
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), 255))
-	if db == nil || db.SqlDB == nil || username == "" {
+	if db == nil || db.SQLDB == nil || username == "" {
 		return []*core.GPGRelease{}, 0, nil
 	}
 	limit = min(max(limit, 1), 100)
@@ -287,7 +287,7 @@ func (db *DB) ListGPGReleases(username string, limit, offset int) ([]*core.GPGRe
 }
 
 func (db *DB) ListPendingGPGReleases() ([]*core.GPGRelease, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	rows, err := db.Query(`SELECT ` + gpgReleaseColumns + ` FROM gpg_releases
@@ -312,7 +312,7 @@ func (db *DB) ListPendingGPGReleases() ([]*core.GPGRelease, error) {
 
 func (db *DB) CountPendingGPGReleases(username string) (int, int, error) {
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), 255))
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return 0, 0, core.ErrDatabaseUnavailable
 	}
 	var total, perUser int
@@ -325,7 +325,7 @@ func (db *DB) CountPendingGPGReleases(username string) (int, int, error) {
 }
 
 func (db *DB) ResetValidatingGPGReleases() error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	_, err := db.Exec(`UPDATE gpg_releases SET status = ?, updated_at = ? WHERE status = ? AND active_key IS NOT NULL`,

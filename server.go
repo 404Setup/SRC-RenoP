@@ -145,7 +145,7 @@ func startServer() {
 	token.SetupTokenRoutes(apiGroup, state, opChan)
 	status.SetupRoutes(apiGroup, state)
 	status.SetupDebugRoutes(apiGroup)
-	api.SetupApiRoutes(apiGroup, state)
+	api.SetupAPIRoutes(apiGroup, state)
 	message.SetupRoutes(apiGroup, state)
 	maven.SetupRoutes(apiGroup, state)
 	upload.SetupChunkedUploadRoutes(apiGroup, state)

@@ -80,7 +80,7 @@ func TestToPbUpdateState(t *testing.T) {
 	src := &UpdateState{
 		Status:             "available",
 		LatestVersion:      "1.2.3",
-		DownloadUrl:        "https://example.com/pkg.zip",
+		DownloadURL:        "https://example.com/pkg.zip",
 		Progress:           42,
 		ErrorMessage:       "",
 		Size:               100,
@@ -92,7 +92,7 @@ func TestToPbUpdateState(t *testing.T) {
 	}
 	got := ToPbUpdateState(src)
 	if got.GetStatus() != src.Status || got.GetLatestVersion() != src.LatestVersion ||
-		got.GetDownloadUrl() != src.DownloadUrl || got.GetProgress() != int32(src.Progress) ||
+		got.GetDownloadUrl() != src.DownloadURL || got.GetProgress() != int32(src.Progress) ||
 		got.GetSize() != src.Size || got.GetEstimatedDiskSpace() != src.EstimatedDiskSpace ||
 		got.GetReleaseDate() != src.ReleaseDate || got.GetReleaseNotes() != src.ReleaseNotes ||
 		got.GetCommitSha() != src.CommitSha || got.GetIsRelease() != src.IsRelease {

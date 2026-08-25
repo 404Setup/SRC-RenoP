@@ -137,7 +137,7 @@ func GetS3Client(repoS3 *config.S3Config) (*minio.Client, error) {
 		pathStyle = "1"
 	}
 	keyMaterial := repoS3.Endpoint + "\x00" + repoS3.Bucket + "\x00" + repoS3.Region + "\x00" +
-		repoS3.AccessKeyId + "\x00" + repoS3.SecretAccessKey + "\x00" + strings.ToLower(repoS3.Endpoint) +
+		repoS3.AccessKeyID + "\x00" + repoS3.SecretAccessKey + "\x00" + strings.ToLower(repoS3.Endpoint) +
 		"\x00" + pathStyle
 	keyHash := sha256.Sum256([]byte(keyMaterial))
 	key := string(keyHash[:])
@@ -183,7 +183,7 @@ func GetS3Client(repoS3 *config.S3Config) (*minio.Client, error) {
 		}).DialContext
 	}
 
-	creds := credentials.NewStaticV4(repoS3.AccessKeyId, repoS3.SecretAccessKey, "")
+	creds := credentials.NewStaticV4(repoS3.AccessKeyID, repoS3.SecretAccessKey, "")
 	opts := &minio.Options{
 		Creds:        creds,
 		Secure:       useSSL,

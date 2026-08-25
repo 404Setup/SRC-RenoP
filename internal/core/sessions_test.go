@@ -19,9 +19,9 @@ import (
 
 func storeTestSession(state *AppState, secret, publicID, username string) {
 	s := &Session{
-		PublicId:  publicID,
+		PublicID:  publicID,
 		Username:  username,
-		Ip:        "203.0.113.10",
+		IP:        "203.0.113.10",
 		UserAgent: "TestAgent/1.0",
 		CreatedAt: 1_000,
 	}
@@ -40,7 +40,7 @@ func TestListUserSessionsAndExpiresAt(t *testing.T) {
 
 	var current, other SessionDto
 	for _, s := range list {
-		if s.PublicId == "pub-a" {
+		if s.PublicID == "pub-a" {
 			current = s
 		} else {
 			other = s
@@ -49,7 +49,7 @@ func TestListUserSessionsAndExpiresAt(t *testing.T) {
 	assert.True(t, current.Current)
 	assert.False(t, other.Current)
 	assert.Equal(t, int64(2_000+SessionIdleTimeoutMillis), current.ExpiresAt)
-	assert.Equal(t, "203.0.113.10", current.Ip)
+	assert.Equal(t, "203.0.113.10", current.IP)
 	assert.Equal(t, "TestAgent/1.0", current.UserAgent)
 	assert.Empty(t, state.ListUserSessions("nobody", ""))
 }
@@ -84,7 +84,7 @@ func TestRevokeOtherUserSessions(t *testing.T) {
 	assert.Equal(t, 2, n)
 	list := state.ListUserSessions("alice", "keep")
 	require.Len(t, list, 1)
-	assert.Equal(t, "pub-keep", list[0].PublicId)
+	assert.Equal(t, "pub-keep", list[0].PublicID)
 	assert.Len(t, state.ListUserSessions("bob", ""), 1)
 
 	revoked, err := state.RevokeAllUserSessions("bob")

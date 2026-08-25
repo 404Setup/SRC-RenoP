@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package updater checks, validates, and applies RenoP application updates.
 package updater
 
 import (
@@ -74,7 +75,7 @@ func RunScheduledCheck(ctx context.Context, state *core.AppState) error {
 	updateStateFields(func(s *UpdateState) {
 		s.Status = "available"
 		s.LatestVersion = strings.Clone(res.LatestVersion)
-		s.DownloadUrl = strings.Clone(res.DownloadUrl)
+		s.DownloadURL = strings.Clone(res.DownloadURL)
 		s.Size = res.Size
 		s.EstimatedDiskSpace = res.EstimatedDiskSpace
 		s.ReleaseDate = strings.Clone(res.ReleaseDate)
@@ -93,7 +94,7 @@ func RunScheduledCheck(ctx context.Context, state *core.AppState) error {
 	if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
 		return nil
 	}
-	targetPath, err := DownloadAndExtract(checkContext, res.DownloadUrl, res.SHA256)
+	targetPath, err := DownloadAndExtract(checkContext, res.DownloadURL, res.SHA256)
 	if err != nil {
 		return err
 	}
@@ -133,14 +134,14 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			if res.HasUpdate {
 				s.Status = "available"
 				s.LatestVersion = strings.Clone(res.LatestVersion)
-				s.DownloadUrl = strings.Clone(res.DownloadUrl)
+				s.DownloadURL = strings.Clone(res.DownloadURL)
 				s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
 				s.CommitSha = strings.Clone(res.CommitSha)
 				s.SHA256 = strings.Clone(res.SHA256)
 			} else {
 				s.Status = "idle"
 				s.LatestVersion = strings.Clone(version.Version)
-				s.DownloadUrl = ""
+				s.DownloadURL = ""
 				s.ReleaseNotes = ""
 				s.CommitSha = ""
 				s.SHA256 = ""
@@ -177,8 +178,8 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			defer isInstalling.Store(false)
 
 			st := GetUpdateState()
-			downloadUrl := st.DownloadUrl
-			if downloadUrl == "" {
+			downloadURL := st.DownloadURL
+			if downloadURL == "" {
 				updateStateFields(func(s *UpdateState) {
 					s.Status = "error"
 					s.ErrorMessage = "No download URL for the current platform"
@@ -191,7 +192,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 				s.Progress = 10
 			})
 
-			targetPath, err := DownloadAndExtract(context.Background(), downloadUrl, st.SHA256)
+			targetPath, err := DownloadAndExtract(context.Background(), downloadURL, st.SHA256)
 			if err != nil {
 				updateStateFields(func(s *UpdateState) {
 					s.Status = "error"

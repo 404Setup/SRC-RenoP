@@ -422,10 +422,10 @@ func GetRepoDetails(c fiber.Ctx, state *core.AppState) error {
 	for _, m := range repo.Mirrors {
 		mirrors = append(mirrors, &pb.RepoMirrorInfo{
 			Name:          m.Name,
-			Url:           m.Url,
+			Url:           m.URL,
 			Persist:       m.Persist,
 			EnabledDate:   m.EnabledDate,
-			CacheTtl:      m.CacheTtlSecs,
+			CacheTtl:      m.CacheTTLSecs,
 			NegativeCache: m.NegativeCache,
 		})
 	}

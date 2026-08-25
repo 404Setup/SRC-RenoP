@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package pb contains generated wire messages and domain conversion helpers.
 package pb
 
 import (
@@ -95,9 +96,9 @@ func FromSessionDto(s core.SessionDto) *SessionDto {
 		lm = "password"
 	}
 	return &SessionDto{
-		PublicId:    s.PublicId,
+		PublicId:    s.PublicID,
 		Username:    s.Username,
-		Ip:          s.Ip,
+		Ip:          s.IP,
 		UserAgent:   s.UserAgent,
 		CreatedAt:   s.CreatedAt,
 		LastActive:  s.LastActive,
@@ -146,10 +147,10 @@ func FromMirrorProxy(p *config.MirrorProxy) *MirrorProxy {
 func FromMirror(m config.Mirror) *Mirror {
 	return &Mirror{
 		Name:           m.Name,
-		Url:            m.Url,
-		ArtifactUrl:    m.ArtifactUrl,
+		Url:            m.URL,
+		ArtifactUrl:    m.ArtifactURL,
 		Persist:        m.Persist,
-		CacheTtlSecs:   m.CacheTtlSecs,
+		CacheTtlSecs:   m.CacheTTLSecs,
 		NegativeCache:  m.NegativeCache,
 		TimeoutSecs:    m.TimeoutSecs,
 		Authorization:  FromMirrorCredentials(m.Authorization),
@@ -169,7 +170,7 @@ func FromS3Config(s *config.S3Config) *S3Config {
 		Endpoint:          s.Endpoint,
 		Bucket:            s.Bucket,
 		Region:            s.Region,
-		AccessKeyId:       s.AccessKeyId,
+		AccessKeyId:       s.AccessKeyID,
 		SecretAccessKey:   s.SecretAccessKey,
 		KeyPrefix:         s.KeyPrefix,
 		ForcePathStyle:    s.ForcePathStyle,
@@ -208,34 +209,34 @@ func FromMavenRepositories(repos map[string]*config.Repository) *MavenRepositori
 
 func FromFrontendConfig(f config.FrontendConfig) *FrontendConfig {
 	return &FrontendConfig{
-		Id:                   f.Id,
+		Id:                   f.ID,
 		Title:                f.Title,
 		Description:          f.Description,
 		OrganizationWebsite:  f.OrganizationWebsite,
 		OrganizationLogo:     f.OrganizationLogo,
-		BackgroundUrl:        f.BackgroundUrl,
+		BackgroundUrl:        f.BackgroundURL,
 		IcpLicense:           f.IcpLicense,
 		PublicSecurityFiling: f.PublicSecurityFiling,
-		LegalNoticeUrl:       f.LegalNoticeUrl,
+		LegalNoticeUrl:       f.LegalNoticeURL,
 	}
 }
 
-// ApplyFrontendConfig writes protobuf fields onto dst, preserving CachedIndexHtml.
+// ApplyFrontendConfig writes protobuf fields onto dst, preserving CachedIndexHTML.
 func ApplyFrontendConfig(dst *config.FrontendConfig, src *FrontendConfig) {
 	if dst == nil || src == nil {
 		return
 	}
-	cached := dst.CachedIndexHtml
-	dst.Id = src.Id
+	cached := dst.CachedIndexHTML
+	dst.ID = src.Id
 	dst.Title = src.Title
 	dst.Description = src.Description
 	dst.OrganizationWebsite = src.OrganizationWebsite
 	dst.OrganizationLogo = src.OrganizationLogo
-	dst.BackgroundUrl = src.BackgroundUrl
+	dst.BackgroundURL = src.BackgroundUrl
 	dst.IcpLicense = src.IcpLicense
 	dst.PublicSecurityFiling = src.PublicSecurityFiling
-	dst.LegalNoticeUrl = src.LegalNoticeUrl
-	dst.CachedIndexHtml = cached
+	dst.LegalNoticeURL = src.LegalNoticeUrl
+	dst.CachedIndexHTML = cached
 }
 
 func FromAuditLogConfig(a config.AuditLogConfig) *AuditLogConfig {
@@ -257,7 +258,7 @@ func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig, a config.A
 		FileCacheSizeMb:   s.FileCacheSizeMb,
 		MaxActiveRequests: s.MaxActiveRequests,
 		TrustedProxies:    append([]string(nil), s.TrustedProxies...),
-		CdnIpHeader:       s.CdnIpHeader,
+		CdnIpHeader:       s.CdnIPHeader,
 		CorsOrigins:       append([]string(nil), s.CorsOrigins...),
 		DebugMode:         s.DebugMode,
 		Database:          FromDatabaseConfig(d),
@@ -267,7 +268,7 @@ func FromServerConfig(s config.ServerConfig, d config.DatabaseConfig, a config.A
 }
 
 // ApplyServerConfig writes protobuf fields onto dst and re-parses trusted proxies.
-func ApplyServerConfig(dstServer *config.ServerConfig, dstDb *config.DatabaseConfig, dstAudit *config.AuditLogConfig, src *ServerConfig) {
+func ApplyServerConfig(dstServer *config.ServerConfig, dstDB *config.DatabaseConfig, dstAudit *config.AuditLogConfig, src *ServerConfig) {
 	if dstServer == nil || src == nil {
 		return
 	}
@@ -282,13 +283,13 @@ func ApplyServerConfig(dstServer *config.ServerConfig, dstDb *config.DatabaseCon
 	dstServer.FileCacheSizeMb = src.FileCacheSizeMb
 	dstServer.MaxActiveRequests = src.MaxActiveRequests
 	dstServer.TrustedProxies = append([]string(nil), src.TrustedProxies...)
-	dstServer.CdnIpHeader = src.CdnIpHeader
+	dstServer.CdnIPHeader = src.CdnIpHeader
 	dstServer.CorsOrigins = append([]string(nil), src.CorsOrigins...)
 	dstServer.DebugMode = src.DebugMode
 	dstServer.NormalizePublicNames()
 	dstServer.ParseTrustedProxies()
-	if dstDb != nil && src.Database != nil {
-		ApplyDatabaseConfig(dstDb, src.Database)
+	if dstDB != nil && src.Database != nil {
+		ApplyDatabaseConfig(dstDB, src.Database)
 	}
 	if dstAudit != nil && src.AuditLog != nil {
 		if src.AuditLog.RetentionDays > 0 {
@@ -447,10 +448,10 @@ func ToMirror(m *Mirror) config.Mirror {
 	}
 	out := config.Mirror{
 		Name:           m.Name,
-		Url:            m.Url,
-		ArtifactUrl:    m.ArtifactUrl,
+		URL:            m.Url,
+		ArtifactURL:    m.ArtifactUrl,
 		Persist:        m.Persist,
-		CacheTtlSecs:   m.CacheTtlSecs,
+		CacheTTLSecs:   m.CacheTtlSecs,
 		NegativeCache:  m.NegativeCache,
 		TimeoutSecs:    m.TimeoutSecs,
 		Authorization:  ToMirrorCredentials(m.Authorization),
@@ -460,8 +461,8 @@ func ToMirror(m *Mirror) config.Mirror {
 		ProxyMode:      m.Proxy,
 	}
 	// Zero TTL/timeout from proto3 defaults is unsafe; match YAML load defaults.
-	if out.CacheTtlSecs == 0 {
-		out.CacheTtlSecs = config.DefaultCacheTtl()
+	if out.CacheTTLSecs == 0 {
+		out.CacheTTLSecs = config.DefaultCacheTTL()
 	}
 	if out.TimeoutSecs == 0 {
 		out.TimeoutSecs = config.DefaultMirrorTimeout()
@@ -481,7 +482,7 @@ func ToS3Config(s *S3Config) *config.S3Config {
 		Endpoint:          s.Endpoint,
 		Bucket:            s.Bucket,
 		Region:            s.Region,
-		AccessKeyId:       s.AccessKeyId,
+		AccessKeyID:       s.AccessKeyId,
 		SecretAccessKey:   s.SecretAccessKey,
 		KeyPrefix:         s.KeyPrefix,
 		ForcePathStyle:    s.ForcePathStyle,
@@ -515,8 +516,8 @@ func ToRepository(r *Repository) *config.Repository {
 // SessionStoreFormatVersion is written into SessionStore.format_version.
 const SessionStoreFormatVersion uint32 = 1
 
-// FromSessionDbDtos builds a SessionStore for on-disk persistence.
-func FromSessionDbDtos(dtos []core.SessionDbDto) *SessionStore {
+// FromSessionDBDtos builds a SessionStore for on-disk persistence.
+func FromSessionDBDtos(dtos []core.SessionDBDto) *SessionStore {
 	store := &SessionStore{
 		FormatVersion: SessionStoreFormatVersion,
 		Sessions:      make([]*StoredSession, 0, len(dtos)),
@@ -528,10 +529,10 @@ func FromSessionDbDtos(dtos []core.SessionDbDto) *SessionStore {
 			lm = "password"
 		}
 		store.Sessions = append(store.Sessions, &StoredSession{
-			PublicId:     d.PublicId,
+			PublicId:     d.PublicID,
 			SessionToken: d.SessionToken,
 			Username:     d.Username,
-			Ip:           d.Ip,
+			Ip:           d.IP,
 			UserAgent:    d.UserAgent,
 			CreatedAt:    d.CreatedAt,
 			LastActive:   d.LastActive,
@@ -541,12 +542,12 @@ func FromSessionDbDtos(dtos []core.SessionDbDto) *SessionStore {
 	return store
 }
 
-// ToSessionDbDtos converts a SessionStore into core DTOs used at bootstrap.
-func ToSessionDbDtos(store *SessionStore) []core.SessionDbDto {
+// ToSessionDBDtos converts a SessionStore into core DTOs used at bootstrap.
+func ToSessionDBDtos(store *SessionStore) []core.SessionDBDto {
 	if store == nil || len(store.Sessions) == 0 {
-		return []core.SessionDbDto{}
+		return []core.SessionDBDto{}
 	}
-	out := make([]core.SessionDbDto, 0, len(store.Sessions))
+	out := make([]core.SessionDBDto, 0, len(store.Sessions))
 	for _, s := range store.Sessions {
 		if s == nil {
 			continue
@@ -555,11 +556,11 @@ func ToSessionDbDtos(store *SessionStore) []core.SessionDbDto {
 		if lm == "" {
 			lm = "password"
 		}
-		out = append(out, core.SessionDbDto{
-			PublicId:     s.PublicId,
+		out = append(out, core.SessionDBDto{
+			PublicID:     s.PublicId,
 			SessionToken: s.SessionToken,
 			Username:     s.Username,
-			Ip:           s.Ip,
+			IP:           s.Ip,
 			UserAgent:    s.UserAgent,
 			CreatedAt:    s.CreatedAt,
 			LastActive:   s.LastActive,

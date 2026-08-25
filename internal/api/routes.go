@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package api implements format-aware general application endpoints.
 package api
 
 import (
@@ -34,7 +35,8 @@ func getCachedPolicy() []byte {
 	return privacyPolicy
 }
 
-func SetupApiRoutes(router fiber.Router, state *core.AppState) {
+// SetupAPIRoutes registers the general application API endpoints.
+func SetupAPIRoutes(router fiber.Router, state *core.AppState) {
 	dockerRoute := func(handler func(fiber.Ctx, *core.AppState) error) fiber.Handler {
 		return withDockerAPIErrorCode(func(c fiber.Ctx) error { return handler(c, state) })
 	}

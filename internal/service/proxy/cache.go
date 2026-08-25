@@ -17,8 +17,8 @@ import (
 	"renop/internal/core"
 )
 
-func HandleNegativeCache(state *core.AppState, repoName string, path string, storagePath string, negativeTtl uint64) {
-	expireAt := time.Now().Unix() + int64(negativeTtl)
+func HandleNegativeCache(state *core.AppState, repoName string, path string, storagePath string, negativeTTL uint64) {
+	expireAt := time.Now().Unix() + int64(negativeTTL)
 	localFilePath := filepath.Join(storagePath, repoName, path)
 	state.Inner.FileIndex.InsertNotFound(localFilePath, expireAt)
 }

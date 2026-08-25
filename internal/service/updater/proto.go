@@ -20,7 +20,7 @@ func ToPbUpdateState(s *UpdateState) *pb.UpdateState {
 	return &pb.UpdateState{
 		Status:             s.Status,
 		LatestVersion:      s.LatestVersion,
-		DownloadUrl:        s.DownloadUrl,
+		DownloadUrl:        s.DownloadURL,
 		Progress:           int32(s.Progress),
 		ErrorMessage:       s.ErrorMessage,
 		Size:               s.Size,

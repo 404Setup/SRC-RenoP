@@ -24,7 +24,7 @@ import (
 
 // GetUserProfile returns the public identity and durable rename state for an account.
 func (db *DB) GetUserProfile(username string) (*core.UserProfile, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	username = strings.ToLower(SanitizeInputString(strings.TrimSpace(username), maxTokenNameLen))
@@ -36,7 +36,7 @@ func (db *DB) GetUserProfile(username string) (*core.UserProfile, error) {
 
 // GetUserProfileByID returns a public profile through its immutable identifier.
 func (db *DB) GetUserProfileByID(userID string) (*core.UserProfile, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	userID = strings.ToLower(strings.TrimSpace(userID))
@@ -69,7 +69,7 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 
 // ListUserPackageMemberships returns Maven, Cargo, or Docker teams linked to an immutable user ID.
 func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPackageMembership, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	userID = strings.ToLower(strings.TrimSpace(userID))
@@ -120,7 +120,7 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 
 // GetUserProfiles loads a bounded account batch for nickname-first list rendering.
 func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 50 {
@@ -169,7 +169,7 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 
 // UpdateUserProfile atomically updates a nickname and, when requested, renames all account references.
 func (db *DB) UpdateUserProfile(oldUsername, newUsername, nickname string, token *core.AccessToken, changedAt int64) (*core.UserProfile, error) {
-	if db == nil || db.SqlDB == nil || token == nil {
+	if db == nil || db.SQLDB == nil || token == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	oldUsername = strings.ToLower(SanitizeInputString(strings.TrimSpace(oldUsername), maxTokenNameLen))

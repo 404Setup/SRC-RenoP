@@ -20,7 +20,7 @@ import (
 )
 
 func (db *DB) ListFidoDevices(username string) ([]*core.FidoDevice, error) {
-	if db == nil || db.SqlDB == nil || username == "" {
+	if db == nil || db.SQLDB == nil || username == "" {
 		return []*core.FidoDevice{}, nil
 	}
 	username = SanitizeInputString(strings.TrimSpace(username), 255)
@@ -62,7 +62,7 @@ func (db *DB) ListFidoDevices(username string) ([]*core.FidoDevice, error) {
 }
 
 func (db *DB) GetFidoDeviceByCredentialID(credentialID []byte) (*core.FidoDevice, error) {
-	if db == nil || db.SqlDB == nil || len(credentialID) == 0 {
+	if db == nil || db.SQLDB == nil || len(credentialID) == 0 {
 		return nil, nil
 	}
 
@@ -87,7 +87,7 @@ func (db *DB) GetFidoDeviceByCredentialID(credentialID []byte) (*core.FidoDevice
 }
 
 func (db *DB) SaveFidoDevice(device *core.FidoDevice) error {
-	if db == nil || db.SqlDB == nil || device == nil || device.Username == "" {
+	if db == nil || db.SQLDB == nil || device == nil || device.Username == "" {
 		return nil
 	}
 	device.Username = SanitizeInputString(device.Username, 255)
@@ -135,7 +135,7 @@ func (db *DB) SaveFidoDevice(device *core.FidoDevice) error {
 }
 
 func (db *DB) DeleteFidoDevice(username, deviceID string) error {
-	if db == nil || db.SqlDB == nil || username == "" || deviceID == "" {
+	if db == nil || db.SQLDB == nil || username == "" || deviceID == "" {
 		return nil
 	}
 	username = SanitizeInputString(username, 255)
@@ -154,7 +154,7 @@ func (db *DB) DeleteFidoDevice(username, deviceID string) error {
 }
 
 func (db *DB) DeleteFidoDevicesByUsername(username string) error {
-	if db == nil || db.SqlDB == nil || username == "" {
+	if db == nil || db.SQLDB == nil || username == "" {
 		return nil
 	}
 	username = SanitizeInputString(username, 255)
@@ -172,7 +172,7 @@ func (db *DB) DeleteFidoDevicesByUsername(username string) error {
 }
 
 func (db *DB) UpdateFidoSignCount(credentialID []byte, signCount uint32) error {
-	if db == nil || db.SqlDB == nil || len(credentialID) == 0 {
+	if db == nil || db.SQLDB == nil || len(credentialID) == 0 {
 		return nil
 	}
 
@@ -186,7 +186,7 @@ func (db *DB) UpdateFidoSignCount(credentialID []byte, signCount uint32) error {
 }
 
 func (db *DB) UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) error {
-	if db == nil || db.SqlDB == nil || len(credentialID) == 0 {
+	if db == nil || db.SQLDB == nil || len(credentialID) == 0 {
 		return nil
 	}
 

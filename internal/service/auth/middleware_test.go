@@ -53,7 +53,7 @@ func TestValidateAndRenewSessionPersistsLastActive(t *testing.T) {
 
 	const sessionToken = "renewed-session"
 	staleLastActive := time.Now().UnixMilli() - core.SessionRenewalIntervalMillis - 1
-	session := &core.Session{PublicId: "renewed-public", Username: "admin"}
+	session := &core.Session{PublicID: "renewed-public", Username: "admin"}
 	session.LastActive.Store(staleLastActive)
 	require.NoError(t, state.SaveSession(session, sessionToken))
 
@@ -62,7 +62,7 @@ func TestValidateAndRenewSessionPersistsLastActive(t *testing.T) {
 	require.Greater(t, updatedLastActive, staleLastActive)
 
 	var persistedLastActive int64
-	require.NoError(t, db.SqlDB.QueryRow(
+	require.NoError(t, db.SQLDB.QueryRow(
 		`SELECT last_active FROM sessions WHERE session_token = ?`, sessionToken,
 	).Scan(&persistedLastActive))
 	assert.Equal(t, updatedLastActive, persistedLastActive)
@@ -192,7 +192,7 @@ func TestPostAuthLogout(t *testing.T) {
 
 	sessionToken := "test-session-token"
 	session := &core.Session{
-		PublicId: "test-public-id",
+		PublicID: "test-public-id",
 		Username: "admin",
 	}
 	session.LastActive.Store(time.Now().UnixMilli())
@@ -223,7 +223,7 @@ func TestSessionPersistenceErrorsDoNotMutateMemory(t *testing.T) {
 	db := newTestAuthDB(t)
 	state := core.NewAppState()
 	state.Inner.DB = db
-	session := &core.Session{PublicId: "failed", Username: "admin"}
+	session := &core.Session{PublicID: "failed", Username: "admin"}
 	session.LastActive.Store(time.Now().UnixMilli())
 
 	require.NoError(t, db.Close())
@@ -245,7 +245,7 @@ func TestPostAuthLogoutRevokesCookieEvenWithoutUser(t *testing.T) {
 
 	sessionToken := "orphan-session"
 	session := &core.Session{
-		PublicId: "orphan-public",
+		PublicID: "orphan-public",
 		Username: "deleted-user",
 	}
 	session.LastActive.Store(time.Now().UnixMilli())
@@ -278,7 +278,7 @@ func TestPostAuthLogoutRevokesAuthorizationSessionHeader(t *testing.T) {
 	})
 
 	sessionToken := "header-session"
-	session := &core.Session{PublicId: "hdr", Username: "admin"}
+	session := &core.Session{PublicID: "hdr", Username: "admin"}
 	session.LastActive.Store(time.Now().UnixMilli())
 	state.SaveSession(session, sessionToken)
 
@@ -475,7 +475,7 @@ func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
 	state.Inner.TokensCount.Store(2)
 
 	const sessionToken = "self-delete-session"
-	session := &core.Session{PublicId: "self-delete-public", Username: "admin"}
+	session := &core.Session{PublicID: "self-delete-public", Username: "admin"}
 	session.LastActive.Store(time.Now().UnixMilli())
 	require.NoError(t, state.SaveSession(session, sessionToken))
 

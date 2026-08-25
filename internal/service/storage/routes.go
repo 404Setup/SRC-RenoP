@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package storage provides repository file, S3, checksum, and publication services.
 package storage
 
 import (

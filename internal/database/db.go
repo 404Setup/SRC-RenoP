@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package database provides dialect-aware persistence for RenoP domains.
 package database
 
 import (
@@ -26,7 +27,7 @@ import (
 )
 
 type DB struct {
-	SqlDB            *sql.DB
+	SQLDB            *sql.DB
 	Dialect          Dialect
 	tokenCache       *TTLCache[string, *core.AccessToken]
 	tokenSecretCache *TTLCache[string, *core.AccessToken]
@@ -46,19 +47,19 @@ func (db *DB) Rebind(query string) string {
 }
 
 func (db *DB) Exec(query string, args ...any) (sql.Result, error) {
-	return db.SqlDB.Exec(db.Rebind(query), args...)
+	return db.SQLDB.Exec(db.Rebind(query), args...)
 }
 
 func (db *DB) Query(query string, args ...any) (*sql.Rows, error) {
-	return db.SqlDB.Query(db.Rebind(query), args...)
+	return db.SQLDB.Query(db.Rebind(query), args...)
 }
 
 func (db *DB) QueryRow(query string, args ...any) *sql.Row {
-	return db.SqlDB.QueryRow(db.Rebind(query), args...)
+	return db.SQLDB.QueryRow(db.Rebind(query), args...)
 }
 
 func (db *DB) Begin() (*Tx, error) {
-	tx, err := db.SqlDB.Begin()
+	tx, err := db.SQLDB.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +117,7 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 	dialect := NewDialect(actualDriver)
 
 	db := &DB{
-		SqlDB:            sqlDB,
+		SQLDB:            sqlDB,
 		Dialect:          dialect,
 		tokenCache:       NewTTLCache[string, *core.AccessToken](10 * time.Minute),
 		tokenSecretCache: NewTTLCache[string, *core.AccessToken](10 * time.Minute),
@@ -276,13 +277,13 @@ func (db *DB) Close() error {
 	if db == nil {
 		return nil
 	}
-	if db.SqlDB == nil {
+	if db.SQLDB == nil {
 		return nil
 	}
 	if db.Dialect != nil && strings.HasPrefix(db.Dialect.Name(), "sqlite") {
-		_, _ = db.SqlDB.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+		_, _ = db.SQLDB.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
 	}
-	return db.SqlDB.Close()
+	return db.SQLDB.Close()
 }
 
 // EvictExpiredCaches removes expired entries from all database lookup caches.

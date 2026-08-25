@@ -728,13 +728,13 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 	}
 
 	sessionToken := uuid.NewString()
-	publicId := uuid.NewString()
+	publicID := uuid.NewString()
 	now := time.Now().UnixMilli()
 
 	session := &core.Session{
-		PublicId:    publicId,
+		PublicID:    publicID,
 		Username:    authenticatedUser.Username,
-		Ip:          utils.Intern(ip),
+		IP:          utils.Intern(ip),
 		UserAgent:   utils.Intern(userAgent),
 		CreatedAt:   now,
 		LoginMethod: "fido",

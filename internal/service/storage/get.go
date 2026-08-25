@@ -32,7 +32,7 @@ func setArtifactContentType(c fiber.Ctx, path string) {
 }
 
 func CheckIndexAndCacheConfig(repoName string, path string, repo *config.Repository) (bool, uint64) {
-	anyPersist, baseMaxTtl := repo.GetCacheConfig()
+	anyPersist, baseMaxTTL := repo.GetCacheConfig()
 
 	if len(repo.Mirrors) > 0 {
 		isSnapshotRepo := strings.Contains(strings.ToLower(repoName), "snapshot")
@@ -40,16 +40,16 @@ func CheckIndexAndCacheConfig(repoName string, path string, repo *config.Reposit
 
 		if repo.AllowRedeployment || isSnapshotRepo || isSnapshotPath {
 			anyPersist = false
-			if baseMaxTtl == 0 || baseMaxTtl > 60 {
-				baseMaxTtl = 60
+			if baseMaxTTL == 0 || baseMaxTTL > 60 {
+				baseMaxTTL = 60
 			}
 		}
 	}
 
-	return anyPersist, baseMaxTtl
+	return anyPersist, baseMaxTTL
 }
 
-func LoadMetadataAndCheckTTL(state *core.AppState, localFilePath string, pathLossy string, isIndexed bool, exists bool, isDir bool, info index.FileInfo, anyPersist bool, baseMaxTtl uint64) (bool, index.FileInfo, bool) {
+func LoadMetadataAndCheckTTL(state *core.AppState, localFilePath string, pathLossy string, isIndexed bool, exists bool, isDir bool, info index.FileInfo, anyPersist bool, baseMaxTTL uint64) (bool, index.FileInfo, bool) {
 	if isIndexed && !exists {
 		statInfo, err := os.Stat(localFilePath)
 		if err == nil {
@@ -65,9 +65,9 @@ func LoadMetadataAndCheckTTL(state *core.AppState, localFilePath string, pathLos
 		}
 	}
 
-	if isIndexed && exists && !isDir && !anyPersist && baseMaxTtl > 0 {
+	if isIndexed && exists && !isDir && !anyPersist && baseMaxTTL > 0 {
 		modified := time.Unix(0, info.ModTime)
-		if time.Since(modified).Seconds() > float64(baseMaxTtl) {
+		if time.Since(modified).Seconds() > float64(baseMaxTTL) {
 			if IsS3Enabled(localFilePath) {
 				s3Key := utils.GetS3Key(localFilePath)
 				_ = DeleteFromS3(s3Key)
@@ -114,7 +114,7 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 	}
 
 	isIndexed := exists
-	anyPersist, baseMaxTtl := CheckIndexAndCacheConfig(repoName, path, repo)
+	anyPersist, baseMaxTTL := CheckIndexAndCacheConfig(repoName, path, repo)
 
 	if isDir && TryHTMLFallback(state, c) {
 		return nil
@@ -126,7 +126,7 @@ func HandleGet(c fiber.Ctx, state *core.AppState, repo *config.Repository, stora
 		contentDisposition = "inline"
 	}
 
-	isIndexed, info, isDir = LoadMetadataAndCheckTTL(state, localFilePath, pathStr, isIndexed, exists, isDir, info, anyPersist, baseMaxTtl)
+	isIndexed, info, isDir = LoadMetadataAndCheckTTL(state, localFilePath, pathStr, isIndexed, exists, isDir, info, anyPersist, baseMaxTTL)
 	exists = isDir || info.ModTime > 0
 
 	if isIndexed && exists && !isDir {
@@ -209,9 +209,9 @@ func HandleHead(c fiber.Ctx, state *core.AppState, repo *config.Repository, stor
 	}
 
 	isIndexed := exists
-	anyPersist, baseMaxTtl := CheckIndexAndCacheConfig(repoName, path, repo)
+	anyPersist, baseMaxTTL := CheckIndexAndCacheConfig(repoName, path, repo)
 
-	isIndexed, info, isDir = LoadMetadataAndCheckTTL(state, localFilePath, pathStr, isIndexed, exists, isDir, info, anyPersist, baseMaxTtl)
+	isIndexed, info, isDir = LoadMetadataAndCheckTTL(state, localFilePath, pathStr, isIndexed, exists, isDir, info, anyPersist, baseMaxTTL)
 
 	if isIndexed && isDir {
 		return c.Status(fiber.StatusOK).SendString("")

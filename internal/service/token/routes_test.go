@@ -72,7 +72,7 @@ func TestDeletingTokenRevokesSessionsBeforeUsernameReuse(t *testing.T) {
 	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}))
 	state.Inner.TokensCount.Store(1)
 
-	session := &core.Session{PublicId: "old-public", Username: "alice"}
+	session := &core.Session{PublicID: "old-public", Username: "alice"}
 	session.LastActive.Store(time.Now().UnixMilli())
 	const sessionToken = "old-alice-session"
 	require.NoError(t, state.SaveSession(session, sessionToken))

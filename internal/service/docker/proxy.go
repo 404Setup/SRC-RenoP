@@ -86,7 +86,7 @@ func probeMirrorImageSingle(
 	mirror config.Mirror,
 	imageName string,
 ) (int, error) {
-	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	base := strings.TrimRight(strings.TrimSpace(mirror.URL), "/")
 	if base == "" {
 		return 0, errors.New("empty mirror URL")
 	}
@@ -200,7 +200,7 @@ func newMirrorManifestRequest(
 	mirror config.Mirror,
 	imageName, reference, method string,
 ) (*http.Client, *http.Request, error) {
-	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	base := strings.TrimRight(strings.TrimSpace(mirror.URL), "/")
 	if base == "" {
 		return nil, nil, errors.New("empty mirror URL")
 	}
@@ -276,7 +276,7 @@ func fetchMirrorBlobSingle(
 	mirror config.Mirror,
 	imageName, digest string,
 ) (io.ReadCloser, int64, error) {
-	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	base := strings.TrimRight(strings.TrimSpace(mirror.URL), "/")
 	if base == "" {
 		return nil, 0, errors.New("empty mirror URL")
 	}
@@ -331,7 +331,7 @@ func applyDockerMirrorAuth(
 		return mirror.Authorization.Apply(req)
 	}
 
-	cacheKey := fmt.Sprintf("%s|%s|%s", mirror.Url, imageName, action)
+	cacheKey := fmt.Sprintf("%s|%s|%s", mirror.URL, imageName, action)
 	if val, ok := upstreamTokenCache.Load(cacheKey); ok {
 		tok := val.(cachedToken)
 		if time.Now().Before(tok.expiresAt) {
@@ -341,7 +341,7 @@ func applyDockerMirrorAuth(
 	}
 
 	// Probe upstream for auth challenge
-	probeURL := fmt.Sprintf("%s/v2/", strings.TrimRight(mirror.Url, "/"))
+	probeURL := fmt.Sprintf("%s/v2/", strings.TrimRight(mirror.URL, "/"))
 	probeReq, err := http.NewRequestWithContext(ctx, http.MethodGet, probeURL, nil)
 	if err != nil {
 		return err

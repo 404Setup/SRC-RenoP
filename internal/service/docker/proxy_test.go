@@ -152,7 +152,7 @@ func TestUpstreamMirrorProxyLifecycle(t *testing.T) {
 		Mirrors: []config.Mirror{
 			{
 				Name: upstreamServer.URL,
-				Url:  upstreamServer.URL,
+				URL:  upstreamServer.URL,
 			},
 		},
 	}
@@ -211,7 +211,7 @@ func TestUpstreamMirrorProxyLifecycle(t *testing.T) {
 
 func TestMirrorArtifactFilterRules(t *testing.T) {
 	mirrorWithAllow := config.Mirror{
-		Url:            "https://registry-1.docker.io",
+		URL:            "https://registry-1.docker.io",
 		AllowArtifacts: []string{"library/alpine", "myteam/*"},
 	}
 
@@ -231,7 +231,7 @@ func TestMirrorArtifactFilterRules(t *testing.T) {
 	}
 
 	mirrorWithDeny := config.Mirror{
-		Url:           "https://registry-1.docker.io",
+		URL:           "https://registry-1.docker.io",
 		DenyArtifacts: []string{"blocked/*", "secret/app"},
 	}
 

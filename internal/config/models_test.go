@@ -97,12 +97,12 @@ func TestIsArtifactAllowedForCargoUsesExactNormalizedCrateNames(t *testing.T) {
 }
 
 func TestValidateCargoArtifactURLRejectsAuthorityPlaceholders(t *testing.T) {
-	valid := &Mirror{ArtifactUrl: "https://static.example.test/crates/{crate}/{crate}-{version}.crate"}
+	valid := &Mirror{ArtifactURL: "https://static.example.test/crates/{crate}/{crate}-{version}.crate"}
 	if err := valid.ValidateArtifactURL(RepositoryFormatCargo); err != nil {
 		t.Fatalf("valid Cargo artifact URL rejected: %v", err)
 	}
 
-	invalid := &Mirror{ArtifactUrl: "https://{crate}.example.test/{version}/{crate}.crate"}
+	invalid := &Mirror{ArtifactURL: "https://{crate}.example.test/{version}/{crate}.crate"}
 	if err := invalid.ValidateArtifactURL(RepositoryFormatCargo); err == nil {
 		t.Fatal("expected Cargo artifact URL authority placeholder to be rejected")
 	}
@@ -113,8 +113,8 @@ func TestRepositorySerializationUsesFormatSpecificFields(t *testing.T) {
 		Name: "rust-packages", Format: RepositoryFormatCargo, Visibility: "PUBLIC",
 		AllowRedeployment: true, RequireGPGSignature: true,
 		Mirrors: []Mirror{{
-			Name: "crates.io", Url: "https://index.crates.io/",
-			ArtifactUrl: "https://static.crates.io/crates/{crate}/{crate}-{version}.crate",
+			Name: "crates.io", URL: "https://index.crates.io/",
+			ArtifactURL: "https://static.crates.io/crates/{crate}/{crate}-{version}.crate",
 		}},
 	}
 	for name, marshal := range map[string]func(any) ([]byte, error){
@@ -139,8 +139,8 @@ func TestRepositorySerializationUsesFormatSpecificFields(t *testing.T) {
 	mavenRepository := Repository{
 		Name: "releases", Format: RepositoryFormatMaven, Visibility: "PUBLIC",
 		Mirrors: []Mirror{{
-			Name: "central", Url: "https://repo1.maven.org/maven2/",
-			ArtifactUrl: "https://unused.example/{crate}/{version}",
+			Name: "central", URL: "https://repo1.maven.org/maven2/",
+			ArtifactURL: "https://unused.example/{crate}/{version}",
 		}},
 	}
 	for name, marshal := range map[string]func(any) ([]byte, error){
@@ -258,7 +258,7 @@ func TestConfigDeepCopy(t *testing.T) {
 	orig := DefaultConfig()
 	orig.StoragePath = "original_storage"
 	orig.Frontend.Title = "Original Title"
-	orig.Frontend.CachedIndexHtml = []byte("hello")
+	orig.Frontend.CachedIndexHTML = []byte("hello")
 	orig.Server.TrustedProxies = []string{"192.168.1.1/32"}
 	orig.Server.GPG.KeyServers = []string{"https://keys.example.test"}
 	orig.GPG = orig.Server.GPG.DeepCopy()
@@ -295,7 +295,7 @@ func TestConfigDeepCopy(t *testing.T) {
 
 	cloned.StoragePath = "modified_storage"
 	cloned.Frontend.Title = "Modified Title"
-	cloned.Frontend.CachedIndexHtml[0] = 'X'
+	cloned.Frontend.CachedIndexHTML[0] = 'X'
 	cloned.Server.TrustedProxies[0] = "10.0.0.1/32"
 	cloned.Server.GPG.KeyServers[0] = "https://changed.example.test"
 	cloned.Proxy.Selected = ""
@@ -311,8 +311,8 @@ func TestConfigDeepCopy(t *testing.T) {
 	if orig.Frontend.Title != "Original Title" {
 		t.Fatalf("Frontend.Title mutated in orig: %s", orig.Frontend.Title)
 	}
-	if string(orig.Frontend.CachedIndexHtml) != "hello" {
-		t.Fatalf("Frontend.CachedIndexHtml mutated in orig: %s", string(orig.Frontend.CachedIndexHtml))
+	if string(orig.Frontend.CachedIndexHTML) != "hello" {
+		t.Fatalf("Frontend.CachedIndexHtml mutated in orig: %s", string(orig.Frontend.CachedIndexHTML))
 	}
 	if orig.Server.TrustedProxies[0] != "192.168.1.1/32" {
 		t.Fatalf("Server.TrustedProxies mutated in orig: %s", orig.Server.TrustedProxies[0])

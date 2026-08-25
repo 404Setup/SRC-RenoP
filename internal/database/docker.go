@@ -35,7 +35,7 @@ func sanitizeDockerUsername(username string) string {
 
 // CreateDockerImage reserves an empty image and assigns its initial L4 owner.
 func (db *DB) CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*core.DockerRepositoryImage, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -84,7 +84,7 @@ func (db *DB) CreateDockerImage(repository, imageName, owner string, private boo
 
 // GetDockerImageAccess returns current image visibility and exact membership in one query.
 func (db *DB) GetDockerImageAccess(repository, imageName, username string) (exists, private, pushEnabled, member bool, level int, err error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return false, false, false, false, 0, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -106,7 +106,7 @@ func (db *DB) GetDockerImageAccess(repository, imageName, username string) (exis
 }
 
 func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerRepositoryImage, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -158,7 +158,7 @@ func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerReposito
 }
 
 func (db *DB) IncrementDockerPullCount(repository, imageName string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -170,7 +170,7 @@ func (db *DB) IncrementDockerPullCount(repository, imageName string) error {
 }
 
 func (db *DB) BatchIncrementDockerPullCount(repository, imageName string, delta int64) error {
-	if db == nil || db.SqlDB == nil || delta <= 0 {
+	if db == nil || db.SQLDB == nil || delta <= 0 {
 		return nil
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -182,7 +182,7 @@ func (db *DB) BatchIncrementDockerPullCount(repository, imageName string, delta 
 }
 
 func (db *DB) UpdateDockerImageDescription(repository, imageName, description string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -207,7 +207,7 @@ func (db *DB) UpdateDockerImageDescription(repository, imageName, description st
 }
 
 func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.DockerRepositoryImage, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -281,7 +281,7 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 }
 
 func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([]*core.DockerRepositoryImage, int, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, 0, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -431,7 +431,7 @@ func (db *DB) GetDockerImageDetails(repository, imageName string, username ...st
 }
 
 func (db *DB) GetDockerTag(repository, imageName, tag string) (*core.DockerTag, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -452,7 +452,7 @@ func (db *DB) GetDockerTag(repository, imageName, tag string) (*core.DockerTag, 
 }
 
 func (db *DB) ListDockerTags(repository, imageName, last string, limit int) ([]*core.DockerTag, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -501,7 +501,7 @@ func (db *DB) ListDockerTags(repository, imageName, last string, limit int) ([]*
 }
 
 func (db *DB) GetDockerManifest(repository, imageName, digest string) (*core.DockerManifest, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -534,7 +534,7 @@ func (db *DB) CacheDockerManifest(manifest *core.DockerManifest, tag string) err
 }
 
 func (db *DB) putDockerManifest(manifest *core.DockerManifest, tag string, username string, allowMirrorCreate bool) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if manifest == nil {
@@ -686,7 +686,7 @@ func (db *DB) putDockerManifest(manifest *core.DockerManifest, tag string, usern
 }
 
 func (db *DB) DeleteDockerTag(repository, imageName, tag string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -706,7 +706,7 @@ func (db *DB) DeleteDockerTag(repository, imageName, tag string) error {
 }
 
 func (db *DB) DeleteDockerManifest(repository, imageName, digest string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -744,7 +744,7 @@ func (db *DB) DeleteDockerManifest(repository, imageName, digest string) error {
 }
 
 func (db *DB) DeleteDockerImage(repository, imageName string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -788,7 +788,7 @@ func (db *DB) DeleteDockerImage(repository, imageName string) error {
 }
 
 func (db *DB) DeleteDockerRepository(repository string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -814,7 +814,7 @@ func (db *DB) DeleteDockerRepository(repository string) error {
 }
 
 func (db *DB) RecordDockerBlob(repository, digest string, size int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -836,7 +836,7 @@ func (db *DB) RecordDockerBlob(repository, digest string, size int64) error {
 
 // RecordDockerImageBlob links an uploaded or mounted blob to its target image before manifest publication.
 func (db *DB) RecordDockerImageBlob(repository, imageName, digest string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -863,7 +863,7 @@ func (db *DB) RecordDockerImageBlob(repository, imageName, digest string) error 
 }
 
 func (db *DB) HasDockerBlob(repository, digest string) (bool, int64, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return false, 0, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -881,7 +881,7 @@ func (db *DB) HasDockerBlob(repository, digest string) (bool, int64, error) {
 
 // DockerImageReferencesBlob reports whether a manifest in an image uses a blob.
 func (db *DB) DockerImageReferencesBlob(repository, imageName, digest string) (bool, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return false, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -900,7 +900,7 @@ func (db *DB) DockerImageReferencesBlob(repository, imageName, digest string) (b
 }
 
 func (db *DB) DeleteDockerBlob(repository, digest string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -924,7 +924,7 @@ func (db *DB) DeleteDockerBlob(repository, digest string) error {
 }
 
 func (db *DB) GetDockerRepositoryStats(repository string) (totalImages int64, totalTags int64, totalSize int64, err error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return 0, 0, 0, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -935,7 +935,7 @@ func (db *DB) GetDockerRepositoryStats(repository string) (totalImages int64, to
 }
 
 func (db *DB) HasDockerMembership(repository, username string) (bool, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return false, core.ErrDatabaseUnavailable
 	}
 	repository, _ = sanitizeDockerKey(repository, "")
@@ -962,7 +962,7 @@ func (db *DB) HasDockerMembership(repository, username string) (bool, error) {
 }
 
 func (db *DB) GetDockerMemberLevel(repository, imageName, username string) (int, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return 0, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -997,7 +997,7 @@ func (db *DB) GetDockerMemberLevel(repository, imageName, username string) (int,
 }
 
 func (db *DB) ListDockerMembers(repository, imageName string) ([]*core.DockerMember, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
@@ -1056,7 +1056,7 @@ func (db *DB) ListDockerMembers(repository, imageName string) ([]*core.DockerMem
 }
 
 func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, messages []*core.UserMessage) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(invitations) == 0 || len(invitations) != len(messages) || len(invitations) > 20 {
@@ -1198,7 +1198,7 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 }
 
 func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernames []string, level int) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {
@@ -1301,7 +1301,7 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 }
 
 func (db *DB) RespondDockerInvitation(id, recipient, repository string, accept bool, actedAt int64) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	id = SanitizeInputString(strings.TrimSpace(id), 64)
@@ -1407,7 +1407,7 @@ func (db *DB) RespondDockerInvitation(id, recipient, repository string, accept b
 }
 
 func (db *DB) SetDockerMemberLevel(repository, imageName, actor, username string, level int) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if level < core.DockerPermissionRead || level > core.DockerPermissionOwner {
@@ -1494,7 +1494,7 @@ func (db *DB) RemoveDockerMember(repository, imageName, actor, username string) 
 }
 
 func (db *DB) RemoveDockerMembers(repository, imageName, actor string, usernames []string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 {

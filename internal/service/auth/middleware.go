@@ -63,21 +63,21 @@ func isAccessTokenExpired(accessToken *core.AccessToken) bool {
 	return accessToken != nil && accessToken.ExpiresAt != nil && time.Now().UnixMilli() >= *accessToken.ExpiresAt
 }
 
-func ValidateAndRenewSession(state *core.AppState, sessionId string) string {
-	session := state.GetSession(sessionId)
+func ValidateAndRenewSession(state *core.AppState, sessionID string) string {
+	session := state.GetSession(sessionID)
 	if session == nil {
 		return ""
 	}
 
 	now := time.Now().UnixMilli()
 	if now-session.LastActive.Load() > core.SessionIdleTimeoutMillis {
-		_, _ = state.RevokeSession(sessionId)
+		_, _ = state.RevokeSession(sessionID)
 		return ""
 	}
 
 	if now-session.LastActive.Load() > core.SessionRenewalIntervalMillis {
 		if db := state.GetDB(); db != nil {
-			if err := db.UpdateSessionLastActive(sessionId, now); err != nil {
+			if err := db.UpdateSessionLastActive(sessionID, now); err != nil {
 				log.Printf("Failed to persist session activity: %v", err)
 			}
 		}
@@ -214,20 +214,20 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 }
 
 func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*config.User, error) {
-	sessionId := strings.TrimPrefix(authHeader, "Session ")
-	username := ValidateAndRenewSession(state, sessionId)
+	sessionID := strings.TrimPrefix(authHeader, "Session ")
+	username := ValidateAndRenewSession(state, sessionID)
 	if username == "" {
 		return nil, nil
 	}
 
-	c.Locals("current_session_id", sessionId)
+	c.Locals("current_session_id", sessionID)
 
 	accessToken := state.GetTokenByName(username)
 	if accessToken == nil {
 		return nil, nil
 	}
 	if isAccessTokenExpired(accessToken) {
-		_, _ = state.RevokeSession(sessionId)
+		_, _ = state.RevokeSession(sessionID)
 		return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 

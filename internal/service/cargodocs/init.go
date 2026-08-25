@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package cargodocs sanitizes, extracts, and serves Cargo documentation.
 package cargodocs
 
 import (

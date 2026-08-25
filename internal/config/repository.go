@@ -103,7 +103,7 @@ func (r Repository) serialization() repositorySerialization {
 	serialized.AllowRedeployment = &r.AllowRedeployment
 	serialized.RequireGPGSignature = &r.RequireGPGSignature
 	for i := range serialized.Mirrors {
-		serialized.Mirrors[i].ArtifactUrl = ""
+		serialized.Mirrors[i].ArtifactURL = ""
 	}
 	return serialized
 }
@@ -118,7 +118,7 @@ func (r Repository) MarshalYAML() (any, error) {
 	return r.serialization(), nil
 }
 
-// IsSupportedFormat reports whether the repository protocol is implemented.
+// IsSupportedRepositoryFormat reports whether the repository protocol is implemented.
 func IsSupportedRepositoryFormat(format string) bool {
 	switch strings.ToLower(strings.TrimSpace(format)) {
 	case "", RepositoryFormatMaven, RepositoryFormatMavenClassic, RepositoryFormatFiles,
@@ -132,7 +132,7 @@ func IsSupportedRepositoryFormat(format string) bool {
 type MirroredRepositorySettings struct {
 	Authorization             *MirrorCredentials `json:"authorization" yaml:"authorization"`
 	Reference                 string             `json:"reference" yaml:"reference"`
-	HttpProxy                 string             `json:"http_proxy" yaml:"http_proxy"`
+	HTTPProxy                 string             `json:"http_proxy" yaml:"http_proxy"`
 	AllowedGroups             []string           `json:"allowed_groups" yaml:"allowed_groups"`
 	AllowedExtensions         []string           `json:"allowed_extensions" yaml:"allowed_extensions"`
 	ConnectTimeout            int32              `json:"connect_timeout" yaml:"connect_timeout"`
@@ -197,7 +197,7 @@ func (s StorageProviderSettings) MarshalJSON() ([]byte, error) {
 }
 
 type RepositorySettings struct {
-	Id                string                       `json:"id" yaml:"id"`
+	ID                string                       `json:"id" yaml:"id"`
 	Visibility        string                       `json:"visibility" yaml:"visibility"`
 	Redeployment      bool                         `json:"redeployment" yaml:"redeployment"`
 	PreserveSnapshots bool                         `json:"preserve_snapshots" yaml:"preserve_snapshots"`
@@ -280,7 +280,7 @@ type S3Config struct {
 	Endpoint          string `json:"endpoint" yaml:"endpoint"`
 	Bucket            string `json:"bucket" yaml:"bucket"`
 	Region            string `json:"region" yaml:"region"`
-	AccessKeyId       string `json:"access_key_id" yaml:"access_key_id"`
+	AccessKeyID       string `json:"access_key_id" yaml:"access_key_id"`
 	SecretAccessKey   string `json:"secret_access_key" yaml:"secret_access_key"`
 	KeyPrefix         string `json:"key_prefix" yaml:"key_prefix"`
 	Enabled           bool   `json:"enabled" yaml:"enabled"`
@@ -297,7 +297,7 @@ func (s *S3Config) DeepCopy() *S3Config {
 		Endpoint:          strings.Clone(s.Endpoint),
 		Bucket:            strings.Clone(s.Bucket),
 		Region:            strings.Clone(s.Region),
-		AccessKeyId:       strings.Clone(s.AccessKeyId),
+		AccessKeyID:       strings.Clone(s.AccessKeyID),
 		SecretAccessKey:   strings.Clone(s.SecretAccessKey),
 		KeyPrefix:         strings.Clone(s.KeyPrefix),
 		ForcePathStyle:    s.ForcePathStyle,

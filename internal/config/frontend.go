@@ -19,21 +19,21 @@ import (
 )
 
 type FrontendConfig struct {
-	Id                   string `json:"id" yaml:"id"`
+	ID                   string `json:"id" yaml:"id"`
 	Title                string `json:"title" yaml:"title"`
 	Description          string `json:"description" yaml:"description"`
 	OrganizationWebsite  string `json:"organization_website" yaml:"organization_website"`
 	OrganizationLogo     string `json:"organization_logo" yaml:"organization_logo"`
-	BackgroundUrl        string `json:"background_url" yaml:"background_url"`
+	BackgroundURL        string `json:"background_url" yaml:"background_url"`
 	IcpLicense           string `json:"icp_license" yaml:"icp_license"`
 	PublicSecurityFiling string `json:"public_security_filing" yaml:"public_security_filing"`
-	LegalNoticeUrl       string `json:"legal_notice_url" yaml:"legal_notice_url"`
-	CachedIndexHtml      []byte `json:"-" yaml:"-"`
+	LegalNoticeURL       string `json:"legal_notice_url" yaml:"legal_notice_url"`
+	CachedIndexHTML      []byte `json:"-" yaml:"-"`
 }
 
 func (f *FrontendConfig) setDefaults() {
-	if f.Id == "" {
-		f.Id = DefaultFrontendId()
+	if f.ID == "" {
+		f.ID = DefaultFrontendID()
 	}
 	if f.Title == "" {
 		f.Title = DefaultFrontendTitle()
@@ -65,18 +65,18 @@ func (f *FrontendConfig) UnmarshalYAML(value *yaml.Node) error {
 
 func (f *FrontendConfig) DeepCopy() FrontendConfig {
 	cloned := FrontendConfig{
-		Id:                   strings.Clone(f.Id),
+		ID:                   strings.Clone(f.ID),
 		Title:                strings.Clone(f.Title),
 		Description:          strings.Clone(f.Description),
 		OrganizationWebsite:  strings.Clone(f.OrganizationWebsite),
 		OrganizationLogo:     strings.Clone(f.OrganizationLogo),
-		BackgroundUrl:        strings.Clone(f.BackgroundUrl),
+		BackgroundURL:        strings.Clone(f.BackgroundURL),
 		IcpLicense:           strings.Clone(f.IcpLicense),
 		PublicSecurityFiling: strings.Clone(f.PublicSecurityFiling),
-		LegalNoticeUrl:       strings.Clone(f.LegalNoticeUrl),
+		LegalNoticeURL:       strings.Clone(f.LegalNoticeURL),
 	}
-	if f.CachedIndexHtml != nil {
-		cloned.CachedIndexHtml = bytes.Clone(f.CachedIndexHtml)
+	if f.CachedIndexHTML != nil {
+		cloned.CachedIndexHTML = bytes.Clone(f.CachedIndexHTML)
 	}
 	return cloned
 }

@@ -8,9 +8,11 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package config defines RenoP configuration models, defaults, and validation.
 package config
 
-func DefaultCacheTtl() uint64 {
+// DefaultCacheTTL returns the default mirror cache lifetime in seconds.
+func DefaultCacheTTL() uint64 {
 	return 3600
 }
 
@@ -65,7 +67,8 @@ func DefaultTrue() bool {
 	return true
 }
 
-func DefaultFrontendId() string {
+// DefaultFrontendID returns the default frontend element identifier.
+func DefaultFrontendID() string {
 	return "base-repository"
 }
 
@@ -103,7 +106,8 @@ func DefaultTrustedProxies() []string {
 	return []string{}
 }
 
-func DefaultCdnIpHeader() string {
+// DefaultCdnIPHeader returns the default trusted client IP header.
+func DefaultCdnIPHeader() string {
 	return "X-Forwarded-For"
 }
 
@@ -145,7 +149,7 @@ func DefaultServerConfig() ServerConfig {
 		FileCacheSizeMb:   16,
 		MaxActiveRequests: 512,
 		TrustedProxies:    []string{},
-		CdnIpHeader:       DefaultCdnIpHeader(),
+		CdnIPHeader:       DefaultCdnIPHeader(),
 		GPG:               GPGConfig{KeyServers: DefaultGPGKeyServers()},
 	}
 	sc.ParseTrustedProxies()
@@ -154,16 +158,16 @@ func DefaultServerConfig() ServerConfig {
 
 func DefaultFrontendConfig() FrontendConfig {
 	return FrontendConfig{
-		Id:                   DefaultFrontendId(),
+		ID:                   DefaultFrontendID(),
 		Title:                DefaultFrontendTitle(),
 		Description:          DefaultFrontendDescription(),
 		OrganizationWebsite:  DefaultOrganizationWebsite(),
 		OrganizationLogo:     DefaultOrganizationLogo(),
-		BackgroundUrl:        "",
+		BackgroundURL:        "",
 		IcpLicense:           "",
 		PublicSecurityFiling: "",
-		LegalNoticeUrl:       "",
-		CachedIndexHtml:      []byte{},
+		LegalNoticeURL:       "",
+		CachedIndexHTML:      []byte{},
 	}
 }
 

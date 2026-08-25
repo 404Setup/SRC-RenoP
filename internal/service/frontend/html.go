@@ -33,7 +33,7 @@ import (
 var Asset embed.FS
 
 var (
-	indexHtml  string
+	indexHTML  string
 	assetsHash string
 	onceIndex  sync.Once
 	onceHash   sync.Once
@@ -109,13 +109,14 @@ func GetAssetsHash() string {
 	return assetsHash
 }
 
-func GenerateIndexHtmlFromConfig(cfg *config.FrontendConfig) []byte {
+// GenerateIndexHTMLFromConfig renders the embedded index template for cfg.
+func GenerateIndexHTMLFromConfig(cfg *config.FrontendConfig) []byte {
 	onceIndex.Do(func() {
 		data, err := readAsset("index.html")
 		if err == nil {
-			indexHtml = unsafeConvert.StringPointer(data)
+			indexHTML = unsafeConvert.StringPointer(data)
 		} else {
-			indexHtml = CreateFallbackIndex()
+			indexHTML = CreateFallbackIndex()
 		}
 	})
 
@@ -123,26 +124,27 @@ func GenerateIndexHtmlFromConfig(cfg *config.FrontendConfig) []byte {
 		"{{RENOP.TITLE}}", html.EscapeString(cfg.Title),
 		"{{RENOP.DESCRIPTION}}", html.EscapeString(cfg.Description),
 		"{{RENOP.BASE_PATH}}", "",
-		"{{RENOP.ID}}", html.EscapeString(cfg.Id),
+		"{{RENOP.ID}}", html.EscapeString(cfg.ID),
 		"{{RENOP.ORGANIZATION_WEBSITE}}", html.EscapeString(cfg.OrganizationWebsite),
 		"{{RENOP.ORGANIZATION_LOGO}}", html.EscapeString(cfg.OrganizationLogo),
-		"{{RENOP.BACKGROUND_URL}}", html.EscapeString(cfg.BackgroundUrl),
+		"{{RENOP.BACKGROUND_URL}}", html.EscapeString(cfg.BackgroundURL),
 		"{{RENOP.ICP_LICENSE}}", html.EscapeString(cfg.IcpLicense),
 		"{{RENOP.PUBLIC_SECURITY_FILING}}", html.EscapeString(cfg.PublicSecurityFiling),
-		"{{RENOP.LEGAL_NOTICE_URL}}", html.EscapeString(cfg.LegalNoticeUrl),
+		"{{RENOP.LEGAL_NOTICE_URL}}", html.EscapeString(cfg.LegalNoticeURL),
 		"{{RENOP.HASH}}", GetAssetsHash(),
 	)
-	htmlStr := replacer.Replace(indexHtml)
+	htmlStr := replacer.Replace(indexHTML)
 
 	return unsafeConvert.BytePointer(htmlStr)
 }
 
-func GenerateIndexHtml(state *core.AppState) []byte {
+// GenerateIndexHTML renders the embedded index template from live state.
+func GenerateIndexHTML(state *core.AppState) []byte {
 	cfg := state.Inner.Config.Load()
-	if len(cfg.Frontend.CachedIndexHtml) > 0 {
-		return cfg.Frontend.CachedIndexHtml
+	if len(cfg.Frontend.CachedIndexHTML) > 0 {
+		return cfg.Frontend.CachedIndexHTML
 	}
-	return GenerateIndexHtmlFromConfig(&cfg.Frontend)
+	return GenerateIndexHTMLFromConfig(&cfg.Frontend)
 }
 
 func CreateFallbackIndex() string {

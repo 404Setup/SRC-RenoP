@@ -19,18 +19,18 @@ import (
 // this package so proxying code does not need to know Cargo path semantics.
 func ArtifactURL(repo *config.Repository, mirror config.Mirror, path string) string {
 	encodedPath := EscapePath(path)
-	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatCargo && strings.TrimSpace(mirror.ArtifactUrl) != "" {
+	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatCargo && strings.TrimSpace(mirror.ArtifactURL) != "" {
 		parts := strings.Split(strings.Trim(path, "/"), "/")
 		if len(parts) == 6 && parts[0] == "api" && parts[1] == "v1" && parts[2] == "crates" && parts[5] == "download" {
 			if err := mirror.ValidateArtifactURL(config.RepositoryFormatCargo); err == nil {
 				return strings.NewReplacer(
 					"{crate}", url.PathEscape(parts[3]),
 					"{version}", url.PathEscape(parts[4]),
-				).Replace(strings.TrimSpace(mirror.ArtifactUrl))
+				).Replace(strings.TrimSpace(mirror.ArtifactURL))
 			}
 		}
 	}
-	base := strings.TrimRight(strings.TrimSpace(mirror.Url), "/")
+	base := strings.TrimRight(strings.TrimSpace(mirror.URL), "/")
 	if base == "" {
 		return ""
 	}

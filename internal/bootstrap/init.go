@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package bootstrap initializes application state and service lifecycles.
 package bootstrap
 
 import (
@@ -163,9 +164,9 @@ func Initialize() (*core.AppState, BootstrapContext) {
 				lm = "password"
 			}
 			session := &core.Session{
-				PublicId:    sessionDto.PublicId,
+				PublicID:    sessionDto.PublicID,
 				Username:    sessionDto.Username,
-				Ip:          sessionDto.Ip,
+				IP:          sessionDto.IP,
 				UserAgent:   sessionDto.UserAgent,
 				CreatedAt:   sessionDto.CreatedAt,
 				LoginMethod: lm,

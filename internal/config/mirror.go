@@ -34,14 +34,14 @@ type Mirror struct {
 	// serialized and is ignored when an API update is applied.
 	Proxy *MirrorProxy `json:"-" yaml:"-"`
 	Name  string       `json:"name" yaml:"name"`
-	Url   string       `json:"url" yaml:"url"`
-	// ArtifactUrl is used by registry formats whose index and artifact
+	URL   string       `json:"url" yaml:"url"`
+	// ArtifactURL is used by registry formats whose index and artifact
 	// origins differ. Cargo expands {crate} and {version}.
-	ArtifactUrl    string   `json:"artifact_url,omitempty" yaml:"artifact_url,omitempty"`
+	ArtifactURL    string   `json:"artifact_url,omitempty" yaml:"artifact_url,omitempty"`
 	EnabledDate    string   `json:"enabled_date" yaml:"enabled_date"`
 	AllowArtifacts []string `json:"allow_artifacts,omitempty" yaml:"allow_artifacts,omitempty"`
 	DenyArtifacts  []string `json:"deny_artifacts,omitempty" yaml:"deny_artifacts,omitempty"`
-	CacheTtlSecs   uint64   `json:"cache_ttl_secs" yaml:"cache_ttl_secs"`
+	CacheTTLSecs   uint64   `json:"cache_ttl_secs" yaml:"cache_ttl_secs"`
 	TimeoutSecs    uint64   `json:"timeout_secs" yaml:"timeout_secs"`
 	Persist        bool     `json:"persist" yaml:"persist"`
 	NegativeCache  bool     `json:"negative_cache" yaml:"negative_cache"`
@@ -50,10 +50,10 @@ type Mirror struct {
 // ValidateArtifactURL validates the optional package artifact template without
 // opening a connection. Cargo templates must identify both package fields.
 func (m *Mirror) ValidateArtifactURL(format string) error {
-	if m == nil || strings.TrimSpace(m.ArtifactUrl) == "" {
+	if m == nil || strings.TrimSpace(m.ArtifactURL) == "" {
 		return nil
 	}
-	template := strings.TrimSpace(m.ArtifactUrl)
+	template := strings.TrimSpace(m.ArtifactURL)
 	if len(template) > 4096 {
 		return errors.New("artifact URL template is too long")
 	}
@@ -107,7 +107,7 @@ func (p *MirrorProxy) DeepCopy() *MirrorProxy {
 //   - group/artifact/version/file
 //   - group/artifact/maven-metadata.xml
 //   - group/artifact/version/maven-metadata.xml
-func parseMavenGroupArtifact(path string) (group, artifactId string) {
+func parseMavenGroupArtifact(path string) (group, artifactID string) {
 	clean := strings.Trim(path, "/")
 	if clean == "" {
 		return "", ""
@@ -122,21 +122,21 @@ func parseMavenGroupArtifact(path string) (group, artifactId string) {
 	isMeta := file == "maven-metadata.xml" || strings.HasPrefix(file, "maven-metadata.xml.")
 	if isMeta {
 		if len(rest) >= 2 && looksLikeMavenVersion(rest[len(rest)-1]) {
-			artifactId = rest[len(rest)-2]
+			artifactID = rest[len(rest)-2]
 			group = strings.Join(rest[:len(rest)-2], ".")
-			return group, artifactId
+			return group, artifactID
 		}
-		artifactId = rest[len(rest)-1]
+		artifactID = rest[len(rest)-1]
 		if len(rest) > 1 {
 			group = strings.Join(rest[:len(rest)-1], ".")
 		}
-		return group, artifactId
+		return group, artifactID
 	}
 
 	if len(rest) >= 2 {
-		artifactId = rest[len(rest)-2]
+		artifactID = rest[len(rest)-2]
 		group = strings.Join(rest[:len(rest)-2], ".")
-		return group, artifactId
+		return group, artifactID
 	}
 	return rest[0], ""
 }
@@ -243,11 +243,11 @@ func (m *Mirror) IsArtifactAllowedFor(format, path string) (bool, string) {
 		return true, ""
 	}
 
-	group, artifactId := parseMavenGroupArtifact(path)
+	group, artifactID := parseMavenGroupArtifact(path)
 
 	ga := group
-	if artifactId != "" {
-		ga = group + ":" + artifactId
+	if artifactID != "" {
+		ga = group + ":" + artifactID
 	}
 
 	match := func(pattern string) bool {
@@ -321,12 +321,12 @@ func dockerImageFromPath(path string) string {
 }
 
 func (m *Mirror) setDefaults() {
-	if !m.Persist && m.CacheTtlSecs == 0 && m.TimeoutSecs == 0 && !m.NegativeCache {
+	if !m.Persist && m.CacheTTLSecs == 0 && m.TimeoutSecs == 0 && !m.NegativeCache {
 		m.Persist = DefaultTrue()
 		m.NegativeCache = DefaultTrue()
 	}
-	if m.CacheTtlSecs == 0 {
-		m.CacheTtlSecs = DefaultCacheTtl()
+	if m.CacheTTLSecs == 0 {
+		m.CacheTTLSecs = DefaultCacheTTL()
 	}
 	if m.TimeoutSecs == 0 {
 		m.TimeoutSecs = DefaultMirrorTimeout()
@@ -535,10 +535,10 @@ func (m *MirrorCredentials) DeepCopy() *MirrorCredentials {
 func (m *Mirror) DeepCopy() Mirror {
 	cloned := Mirror{
 		Name:          strings.Clone(m.Name),
-		Url:           strings.Clone(m.Url),
-		ArtifactUrl:   strings.Clone(m.ArtifactUrl),
+		URL:           strings.Clone(m.URL),
+		ArtifactURL:   strings.Clone(m.ArtifactURL),
 		Persist:       m.Persist,
-		CacheTtlSecs:  m.CacheTtlSecs,
+		CacheTTLSecs:  m.CacheTTLSecs,
 		NegativeCache: m.NegativeCache,
 		TimeoutSecs:   m.TimeoutSecs,
 		Authorization: m.Authorization.DeepCopy(),

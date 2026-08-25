@@ -8,6 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+// Package auth implements account, session, profile, and WebAuthn workflows.
 package auth
 
 import (
@@ -230,13 +231,13 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 
 	if user != nil {
 		sessionToken := uuid.NewString()
-		publicId := uuid.NewString()
+		publicID := uuid.NewString()
 		now := time.Now().UnixMilli()
 
 		session := &core.Session{
-			PublicId:    publicId,
+			PublicID:    publicID,
 			Username:    user.Username,
-			Ip:          utils.Intern(ip),
+			IP:          utils.Intern(ip),
 			UserAgent:   utils.Intern(userAgent),
 			CreatedAt:   now,
 			LoginMethod: "password",
@@ -253,7 +254,7 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 			Action:     "LOGIN",
 			Details:    "User logged in successfully",
 			AuthMethod: "Password",
-			SessionID:  publicId,
+			SessionID:  publicID,
 			IP:         ip,
 		})
 

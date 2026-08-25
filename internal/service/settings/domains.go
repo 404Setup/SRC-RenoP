@@ -101,7 +101,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			return err
 		}
 		if msg.BackgroundUrl != "" {
-			if err := validateBackgroundUrl(msg.BackgroundUrl); err != nil {
+			if err := validateBackgroundURL(msg.BackgroundUrl); err != nil {
 				if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 					return c.Status(fiberErr.Code).SendString(fiberErr.Message)
 				}
@@ -334,20 +334,20 @@ func validateBackgroundWebP(r io.Reader, maxSize int64) error {
 	return nil
 }
 
-func validateBackgroundUrl(bgUrl string) error {
-	if !strings.HasPrefix(bgUrl, "http://") && !strings.HasPrefix(bgUrl, "https://") {
+func validateBackgroundURL(bgURL string) error {
+	if !strings.HasPrefix(bgURL, "http://") && !strings.HasPrefix(bgURL, "https://") {
 		return fiber.NewError(fiber.StatusBadRequest, "URL must be http or https")
 	}
 
-	parsedUrl, err := url.Parse(bgUrl)
+	parsedURL, err := url.Parse(bgURL)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid URL")
 	}
-	if parsedUrl.User != nil {
+	if parsedURL.User != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "URL must not contain credentials")
 	}
 
-	host := parsedUrl.Hostname()
+	host := parsedURL.Hostname()
 	if host == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid URL host")
 	}
@@ -380,7 +380,7 @@ func validateBackgroundUrl(bgUrl string) error {
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			_, port, err := net.SplitHostPort(addr)
 			if err != nil || port == "" {
-				if parsedUrl.Scheme == "https" {
+				if parsedURL.Scheme == "https" {
 					port = "443"
 				} else {
 					port = "80"
@@ -402,7 +402,7 @@ func validateBackgroundUrl(bgUrl string) error {
 		Transport: transport,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, bgUrl, nil)
+	req, err := http.NewRequest(http.MethodGet, bgURL, nil)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid URL")
 	}

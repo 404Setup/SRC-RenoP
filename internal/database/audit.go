@@ -18,7 +18,7 @@ import (
 )
 
 func (db *DB) SaveAuditLog(entry *core.AuditLogEntry) error {
-	if db == nil || db.SqlDB == nil || entry == nil {
+	if db == nil || db.SQLDB == nil || entry == nil {
 		return nil
 	}
 	query := `INSERT INTO audit_logs (username, operator, action, details, auth_method, session_id, ip, created_at)
@@ -37,7 +37,7 @@ func (db *DB) SaveAuditLog(entry *core.AuditLogEntry) error {
 }
 
 func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLogEntry, int, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return []*core.AuditLogEntry{}, 0, nil
 	}
 	if limit <= 0 {
@@ -113,7 +113,7 @@ func (db *DB) GetAuditLogs(username string, limit, offset int) ([]*core.AuditLog
 }
 
 func (db *DB) DeleteAuditLogsByUsername(username string) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil
 	}
 	lowerUser := SanitizeInputString(strings.ToLower(strings.TrimSpace(username)), 255)
@@ -125,7 +125,7 @@ func (db *DB) DeleteAuditLogsByUsername(username string) error {
 }
 
 func (db *DB) CleanExpiredAuditLogs(retentionDays int, maxRows int) error {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil
 	}
 	if retentionDays > 0 {

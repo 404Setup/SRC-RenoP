@@ -82,8 +82,8 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 	})
 
 	payload := PomDetails{
-		GroupId:    "com.example",
-		ArtifactId: "test-artifact",
+		GroupID:    "com.example",
+		ArtifactID: "test-artifact",
 		Version:    "1.0.0",
 	}
 	body, _ := json.Marshal(payload)
@@ -109,8 +109,8 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 	}
 	cfg.Maven.Repositories["test-repo"].AllowRedeployment = false
 	redeployPayload := PomDetails{
-		GroupId:    "com.replaced",
-		ArtifactId: "test-artifact",
+		GroupID:    "com.replaced",
+		ArtifactID: "test-artifact",
 		Version:    "1.0.0",
 	}
 	redeployBody, _ := json.Marshal(redeployPayload)
@@ -150,8 +150,8 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 	_ = os.WriteFile(dummyFile, []byte("dummy"), 0644)
 
 	payload2 := PomDetails{
-		GroupId:    "com.example",
-		ArtifactId: "test-artifact",
+		GroupID:    "com.example",
+		ArtifactID: "test-artifact",
 		Version:    "2.0.0",
 	}
 	body2, _ := json.Marshal(payload2)

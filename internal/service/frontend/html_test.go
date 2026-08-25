@@ -510,9 +510,9 @@ func TestUserProfileRouteServesSPAIndex(t *testing.T) {
 
 func TestGenerateIndexHtmlIncludesEscapedLegalNoticeURL(t *testing.T) {
 	cfg := config.DefaultFrontendConfig()
-	cfg.LegalNoticeUrl = `https://example.com/legal?a=1&b="notice"`
+	cfg.LegalNoticeURL = `https://example.com/legal?a=1&b="notice"`
 
-	generated := string(GenerateIndexHtmlFromConfig(&cfg))
+	generated := string(GenerateIndexHTMLFromConfig(&cfg))
 	if strings.Contains(generated, "{{RENOP.LEGAL_NOTICE_URL}}") {
 		t.Fatal("generated HTML still contains the legal notice placeholder")
 	}
@@ -525,7 +525,7 @@ func TestGenerateIndexHtmlIncludesEscapedPublicSecurityFiling(t *testing.T) {
 	cfg := config.DefaultFrontendConfig()
 	cfg.PublicSecurityFiling = `京公网安备11000000000001号<script>`
 
-	generated := string(GenerateIndexHtmlFromConfig(&cfg))
+	generated := string(GenerateIndexHTMLFromConfig(&cfg))
 	if strings.Contains(generated, "{{RENOP.PUBLIC_SECURITY_FILING}}") {
 		t.Fatal("generated HTML still contains the public security filing placeholder")
 	}

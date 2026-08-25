@@ -259,7 +259,7 @@ func TestProxyArtifactRejectsOversizedDeclaredResponse(t *testing.T) {
 
 	state := core.NewAppState()
 	state.Inner.FileIndex = index.NewFileIndex()
-	repo := &config.Repository{Name: "releases", Mirrors: []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}}
+	repo := &config.Repository{Name: "releases", Mirrors: []config.Mirror{{URL: upstream.URL, TimeoutSecs: 5}}}
 	storagePath := t.TempDir()
 	path := "com/example/oversized.jar"
 	pathStr := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))
@@ -287,7 +287,7 @@ func TestProxyMetadataRejectsOversizedDeclaredResponse(t *testing.T) {
 
 	state := core.NewAppState()
 	state.Inner.FileIndex = index.NewFileIndex()
-	repo := &config.Repository{Name: "snapshots", Mirrors: []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}}
+	repo := &config.Repository{Name: "snapshots", Mirrors: []config.Mirror{{URL: upstream.URL, TimeoutSecs: 5}}}
 	storagePath := t.TempDir()
 	path := "com/example/demo/1.0-SNAPSHOT/maven-metadata.xml"
 	pathStr := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))
@@ -311,7 +311,7 @@ func TestProxyArtifactUsesMirrorTimeout(t *testing.T) {
 
 	state := core.NewAppState()
 	state.Inner.FileIndex = index.NewFileIndex()
-	repo := &config.Repository{Name: "releases", Mirrors: []config.Mirror{{Url: upstream.URL, TimeoutSecs: 1}}}
+	repo := &config.Repository{Name: "releases", Mirrors: []config.Mirror{{URL: upstream.URL, TimeoutSecs: 1}}}
 	storagePath := t.TempDir()
 	path := "com/example/timeout.jar"
 	pathStr := filepath.ToSlash(filepath.Join(storagePath, repo.Name, path))
@@ -360,7 +360,7 @@ func TestProxyArtifactDoesNotPadOrCacheTruncatedSmallResponse(t *testing.T) {
 	repo := &config.Repository{
 		Name: "releases",
 		Mirrors: []config.Mirror{{
-			Url: upstream.URL,
+			URL: upstream.URL,
 		}},
 	}
 	path := "com/example/demo.jar"

@@ -182,7 +182,7 @@ func TestCreateDockerImageRejectsLocalAndUpstreamNameConflicts(t *testing.T) {
 
 	app, state := setupTestAPIDockerApp(t)
 	cfg := state.Inner.Config.Load().DeepCopy()
-	cfg.Maven.Repositories["docker-pub"].Mirrors = []config.Mirror{{Url: upstream.URL, TimeoutSecs: 5}}
+	cfg.Maven.Repositories["docker-pub"].Mirrors = []config.Mirror{{URL: upstream.URL, TimeoutSecs: 5}}
 	state.Inner.Config.Store(cfg)
 
 	create := func(image string) int {

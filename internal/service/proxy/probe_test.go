@@ -53,7 +53,7 @@ func TestUpstreamArtifactExistsRequiresAuthoritativeResult(t *testing.T) {
 	repo := &config.Repository{
 		Name: "cargo", Format: config.RepositoryFormatCargo,
 		Mirrors: []config.Mirror{{
-			Url: server.URL,
+			URL: server.URL,
 			Authorization: &config.MirrorCredentials{
 				Method: "custom-header", Login: "X-Repository-Token", Password: "probe-secret",
 			},

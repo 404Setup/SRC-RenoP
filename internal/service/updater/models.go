@@ -75,7 +75,7 @@ func OfficialChannelPath(ch Channel) string {
 type UpdateState struct {
 	Status             string `json:"status"` // idle, checking, available, downloading, ready_to_restart, error
 	LatestVersion      string `json:"latest_version"`
-	DownloadUrl        string `json:"download_url"`
+	DownloadURL        string `json:"download_url"`
 	Progress           int    `json:"progress"`
 	ErrorMessage       string `json:"error_message,omitempty"`
 	Size               int64  `json:"size,omitempty"`
@@ -90,7 +90,7 @@ type UpdateState struct {
 type CheckResult struct {
 	CurrentVersion     string `json:"current_version"`
 	LatestVersion      string `json:"latest_version"`
-	DownloadUrl        string `json:"download_url"`
+	DownloadURL        string `json:"download_url"`
 	Channel            string `json:"channel"`
 	ReleaseDate        string `json:"release_date"`
 	ReleaseNotes       string `json:"release_notes"`

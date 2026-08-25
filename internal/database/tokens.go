@@ -29,18 +29,18 @@ const (
 	maxTokenSecretLen = 1024
 )
 
-func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, passwordHash, tokensJson, createdAt, description string, expiresAt sql.NullInt64, permissionsJson string) *core.AccessToken {
+func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, passwordHash, tokensJSON, createdAt, description string, expiresAt sql.NullInt64, permissionsJSON string) *core.AccessToken {
 	var tokList []string
-	if tokensJson != "" {
-		_ = json.Unmarshal(unsafeConvert.ByteSlice(tokensJson), &tokList)
+	if tokensJSON != "" {
+		_ = json.Unmarshal(unsafeConvert.ByteSlice(tokensJSON), &tokList)
 	}
 	if tokList == nil {
 		tokList = []string{}
 	}
 
 	var permList []string
-	if permissionsJson != "" {
-		_ = json.Unmarshal(unsafeConvert.ByteSlice(permissionsJson), &permList)
+	if permissionsJSON != "" {
+		_ = json.Unmarshal(unsafeConvert.ByteSlice(permissionsJSON), &permList)
 	}
 	if permList == nil {
 		permList = []string{}
@@ -69,7 +69,7 @@ func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, pas
 }
 
 func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
-	if db == nil || db.SqlDB == nil || name == "" {
+	if db == nil || db.SQLDB == nil || name == "" {
 		return nil, nil
 	}
 	name = SanitizeInputString(strings.TrimSpace(name), maxTokenNameLen)
@@ -85,11 +85,11 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 	query := `SELECT name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json FROM tokens WHERE name = ?`
 	row := db.QueryRow(query, lowerName)
 
-	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJson, createdAt, description, permissionsJson string
+	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
 	var typeValue int32
 	var expiresAt sql.NullInt64
 
-	err := row.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJson, &createdAt, &description, &expiresAt, &permissionsJson)
+	err := row.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			db.tokenCache.Set(lowerName, nil, 30*time.Second)
@@ -98,7 +98,7 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 		return nil, fmt.Errorf("failed to query token by name (%s): %w", lowerName, err)
 	}
 
-	tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJson, createdAt, description, expiresAt, permissionsJson)
+	tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
 	db.tokenCache.Set(lowerName, tok, 10*time.Minute)
 	for _, t := range tok.Tokens {
 		db.tokenSecretCache.Set(t, tok, 10*time.Minute)
@@ -108,7 +108,7 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 }
 
 func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
-	if db == nil || db.SqlDB == nil || secret == "" {
+	if db == nil || db.SQLDB == nil || secret == "" {
 		return nil, nil
 	}
 	secret = SanitizeInputString(secret, maxTokenSecretLen)
@@ -129,15 +129,15 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJson, createdAt, description, permissionsJson string
+		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
 		var typeValue int32
 		var expiresAt sql.NullInt64
 
-		if err := rows.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJson, &createdAt, &description, &expiresAt, &permissionsJson); err != nil {
+		if err := rows.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON); err != nil {
 			return nil, fmt.Errorf("failed to scan token: %w", err)
 		}
 
-		tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJson, createdAt, description, expiresAt, permissionsJson)
+		tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
 		if slices.Contains(tok.Tokens, secret) {
 			db.tokenCache.Set(tok.Name, tok, 10*time.Minute)
 			db.tokenSecretCache.Set(secret, tok, 10*time.Minute)
@@ -153,7 +153,7 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 }
 
 func (db *DB) SaveToken(token *core.AccessToken) error {
-	if db == nil || db.SqlDB == nil || token == nil {
+	if db == nil || db.SQLDB == nil || token == nil {
 		return nil
 	}
 	token.Name = SanitizeInputString(strings.TrimSpace(token.Name), maxTokenNameLen)
@@ -164,8 +164,8 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 
 	token.Name = strings.ToLower(token.Name)
 	name := token.Name
-	tokensJson, _ := json.Marshal(token.Tokens)
-	permissionsJson, _ := json.Marshal(token.Permissions)
+	tokensJSON, _ := json.Marshal(token.Tokens)
+	permissionsJSON, _ := json.Marshal(token.Permissions)
 
 	var expiresAt sql.NullInt64
 	if token.ExpiresAt != nil {
@@ -173,7 +173,7 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	}
 
 	query := db.Dialect.UpsertTokenQuery()
-	_, err := db.Exec(query, name, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJson), token.CreatedAt, token.Description, expiresAt, string(permissionsJson))
+	_, err := db.Exec(query, name, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJSON), token.CreatedAt, token.Description, expiresAt, string(permissionsJSON))
 	if err != nil {
 		return fmt.Errorf("failed to save token (%s): %w", name, err)
 	}
@@ -187,7 +187,7 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 }
 
 func (db *DB) DeleteToken(name string) error {
-	if db == nil || db.SqlDB == nil || name == "" {
+	if db == nil || db.SQLDB == nil || name == "" {
 		return nil
 	}
 	name = SanitizeInputString(strings.TrimSpace(name), maxTokenNameLen)
@@ -304,7 +304,7 @@ func (db *DB) DeleteToken(name string) error {
 }
 
 func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) error {
-	if db == nil || db.SqlDB == nil || token == nil {
+	if db == nil || db.SQLDB == nil || token == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	lowerOld := strings.ToLower(SanitizeInputString(strings.TrimSpace(oldName), maxTokenNameLen))
@@ -451,7 +451,7 @@ func (db *DB) finishTokenUpdate(name string, token *core.AccessToken) {
 }
 
 func (db *DB) CountTokens() (uint64, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return 0, nil
 	}
 
@@ -465,7 +465,7 @@ func (db *DB) CountTokens() (uint64, error) {
 }
 
 func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return nil, nil
 	}
 
@@ -478,15 +478,15 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 
 	tokens := make([]*core.AccessToken, 0, 16)
 	for rows.Next() {
-		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJson, createdAt, description, permissionsJson string
+		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
 		var typeValue int32
 		var expiresAt sql.NullInt64
 
-		if err := rows.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJson, &createdAt, &description, &expiresAt, &permissionsJson); err != nil {
+		if err := rows.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON); err != nil {
 			return nil, fmt.Errorf("failed to scan token: %w", err)
 		}
 
-		tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJson, createdAt, description, expiresAt, permissionsJson)
+		tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
 		tokens = append(tokens, tok)
 		db.tokenCache.Set(tok.Name, tok, 10*time.Minute)
 		for _, t := range tok.Tokens {
@@ -504,7 +504,7 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 // SearchTokenNames returns a bounded, index-friendly prefix match without
 // loading token secrets or permission data into the autocomplete request path.
 func (db *DB) SearchTokenNames(prefix string, limit int, now int64) ([]string, error) {
-	if db == nil || db.SqlDB == nil {
+	if db == nil || db.SQLDB == nil {
 		return []string{}, nil
 	}
 	prefix = strings.ToLower(strings.TrimSpace(prefix))

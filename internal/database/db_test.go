@@ -154,9 +154,9 @@ func TestInitDB_SQLite(t *testing.T) {
 	t.Run("Session Operations with TTL Cache", func(t *testing.T) {
 		now := time.Now().UnixMilli()
 		sess1 := &core.Session{
-			PublicId:    "pub1",
+			PublicID:    "pub1",
 			Username:    "admin",
-			Ip:          "127.0.0.1",
+			IP:          "127.0.0.1",
 			UserAgent:   "Mozilla/5.0",
 			CreatedAt:   now,
 			LoginMethod: "fido",
@@ -186,9 +186,9 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.Nil(t, fetchedDeletedSess)
 
 		// Test DeleteUserSessionByPublicID and DeleteOtherUserSessions
-		sess2 := &core.Session{PublicId: "pub2", Username: "user1", Ip: "127.0.0.1", CreatedAt: now, LoginMethod: "password"}
+		sess2 := &core.Session{PublicID: "pub2", Username: "user1", IP: "127.0.0.1", CreatedAt: now, LoginMethod: "password"}
 		sess2.LastActive.Store(now)
-		sess3 := &core.Session{PublicId: "pub3", Username: "user1", Ip: "127.0.0.1", CreatedAt: now, LoginMethod: "fido"}
+		sess3 := &core.Session{PublicID: "pub3", Username: "user1", IP: "127.0.0.1", CreatedAt: now, LoginMethod: "fido"}
 		sess3.LastActive.Store(now)
 
 		require.NoError(t, db.SaveSession(sess2, "token_pub2"))
@@ -232,7 +232,7 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Nil(t, sess)
 
-		err = db.SaveSession(&core.Session{PublicId: "p", Username: "u"}, overLengthToken)
+		err = db.SaveSession(&core.Session{PublicID: "p", Username: "u"}, overLengthToken)
 		assert.NoError(t, err)
 
 		sesses, err := db.ListUserSessions(overLengthUsername, "")
