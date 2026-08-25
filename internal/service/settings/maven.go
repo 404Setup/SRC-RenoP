@@ -275,7 +275,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	if notFound {
 		if db := state.GetDB(); db != nil {
 			actedAt := time.Now().UnixMilli()
-			if err := errors.Join(db.DeleteMavenRepository(repoName, actedAt),
+			if err := errors.Join(db.DeleteMavenRepository(repoName),
 				db.DeleteCargoRepository(repoName, actedAt), db.DeleteDockerRepository(repoName)); err != nil {
 				return c.Status(fiber.StatusInternalServerError).SendString("Failed to remove repository package metadata")
 			}
@@ -286,7 +286,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	if db := state.GetDB(); db != nil {
 		switch repositoryFormat {
 		case config.RepositoryFormatMaven:
-			metadataErr = db.DeleteMavenRepository(repoName, time.Now().UnixMilli())
+			metadataErr = db.DeleteMavenRepository(repoName)
 		case config.RepositoryFormatCargo:
 			metadataErr = db.DeleteCargoRepository(repoName, time.Now().UnixMilli())
 		case config.RepositoryFormatDocker:

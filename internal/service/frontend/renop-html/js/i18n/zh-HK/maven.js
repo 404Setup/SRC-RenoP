@@ -6,9 +6,10 @@ export default {
     "maven.createDomain": "新增域", "maven.createDomainSubtitle": "預留 Maven 發佈命名空間，並在發佈前驗證擁有權。",
     "maven.createDomainFailed": "無法新增 Maven 域", "maven.domainCreated": "已新增 Maven 域", "maven.verified": "已驗證",
     "maven.pendingVerification": "等待擁有權驗證", "maven.pending": "待驗證", "maven.artifactCount": "{count} 個製品", "maven.noDescription": "未提供描述",
-    "maven.kicker": "Maven 儲存庫", "maven.subtitle": "管理已驗證的發佈域、製品、版本及域團隊。",
+    "maven.kicker": "Maven 儲存庫",
+    "maven.subtitle": "瀏覽可透過此 Maven 儲存庫存取的發布網域與製品。",
     "maven.totalDomains": "{count} 個域", "maven.verifiedDomains": "{count} 個已驗證", "maven.totalArtifacts": "{count} 個製品",
-    "maven.noDomains": "尚未新增 Maven 域。", "maven.noArtifacts": "尚未發佈 Maven 製品。",
+    "maven.noDomains": "此存儲庫中尚無包含製品的發佈域。", "maven.noArtifacts": "尚未發佈 Maven 製品。",
     "maven.domainsTitle": "發佈域", "maven.artifactsTitle": "製品", "maven.loadFailed": "無法載入 Maven 儲存庫",
     "maven.verifyDnsInstruction": "請在根域 {target} 建立 TXT 記錄，然後開始驗證。",
     "maven.verifyGithubInstruction": "請將驗證碼加入 GitHub 使用者 Bio，或 GitHub 組織 {target} 的 Description。",
@@ -29,5 +30,13 @@ export default {
     "maven.inviteAccepted": "已接受 Maven 域邀請", "maven.inviteRejected": "已拒絕 Maven 域邀請",
     "maven.forceVerify": "強制通過驗證", "maven.forceVerifyConfirm": "確定不檢查外部證明，直接將 {domain} 標記為已驗證嗎？",
     "maven.forceVerifyFailed": "無法強制通過 Maven 域驗證", "maven.forceVerifySuccess": "已強制通過 Maven 域驗證",
-    "maven.verifyRateLimited": "請等待五秒後再檢查此域。"
+    "maven.verifyRateLimited": "請等待五秒後再檢查此域。",
+    "maven.domainSettings": "網域設定",
+    "maven.domainCenterTitle": "全域 Maven 網域",
+    "maven.domainCenterSubtitle": "發布網域只需設定一次，其團隊可用於所有 Maven 儲存庫。",
+    "maven.domainCenterHint": "網域與團隊在此 RenoP 執行個體中全域共用。",
+    "maven.noManagedDomains": "你的帳戶尚未連結 Maven 網域。",
+    "maven.backToDomains": "返回網域清單",
+    "maven.inviteRequired": "請至少輸入一個使用者名稱。",
+    "maven.userNotFound": "一個或多個 Maven 邀請接收者不存在。"
 };

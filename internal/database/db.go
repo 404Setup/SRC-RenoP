@@ -132,6 +132,10 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 		_ = sqlDB.Close()
 		return nil, fmt.Errorf("failed to initialize stable user identities: %w", err)
 	}
+	if err := db.migrateGlobalMavenDomains(); err != nil {
+		_ = sqlDB.Close()
+		return nil, fmt.Errorf("failed to migrate global Maven domains: %w", err)
+	}
 
 	log.Printf("Database initialized successfully (driver: %s, dsn: %s)", actualDriver, sanitizeDSN(dsn))
 	return db, nil

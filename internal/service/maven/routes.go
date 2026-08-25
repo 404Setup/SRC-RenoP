@@ -54,7 +54,22 @@ func wireStorageHooks() {
 // SetupRoutes registers Maven domain and catalog management APIs.
 func SetupRoutes(router fiber.Router, state *core.AppState) {
 	wireStorageHooks()
+	registerDomainRoutes(router.Group("/maven"), state)
 	base := router.Group("/maven/repositories/:repo_name")
+	base.Use(func(c fiber.Ctx) error {
+		if _, err := repository(c, state); err != nil {
+			return apiError(c, err)
+		}
+		return c.Next()
+	})
+	registerDomainRoutes(base, state)
+	base.Get("/packages", func(c fiber.Ctx) error { return listArtifacts(c, state) })
+	base.Get("/package", func(c fiber.Ctx) error { return getArtifact(c, state) })
+	base.Put("/package", func(c fiber.Ctx) error { return updateArtifact(c, state) })
+	base.Delete("/versions", func(c fiber.Ctx) error { return deleteVersion(c, state) })
+}
+
+func registerDomainRoutes(base fiber.Router, state *core.AppState) {
 	base.Get("/domains", func(c fiber.Ctx) error { return listDomains(c, state) })
 	base.Post("/domains", func(c fiber.Ctx) error { return createDomain(c, state) })
 	base.Get("/domains/:domain", func(c fiber.Ctx) error { return getDomain(c, state) })
@@ -66,10 +81,6 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base.Put("/domains/:domain/members/:username", func(c fiber.Ctx) error { return setMemberLevel(c, state) })
 	base.Delete("/domains/:domain/members/:username", func(c fiber.Ctx) error { return removeMember(c, state) })
 	base.Post("/invitations/:id/:decision", func(c fiber.Ctx) error { return respondInvitation(c, state) })
-	base.Get("/packages", func(c fiber.Ctx) error { return listArtifacts(c, state) })
-	base.Get("/package", func(c fiber.Ctx) error { return getArtifact(c, state) })
-	base.Put("/package", func(c fiber.Ctx) error { return updateArtifact(c, state) })
-	base.Delete("/versions", func(c fiber.Ctx) error { return deleteVersion(c, state) })
 }
 
 func repository(c fiber.Ctx, state *core.AppState) (*config.Repository, error) {
@@ -103,6 +114,9 @@ func apiError(c fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, fiber.ErrBadRequest):
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid Maven request")
+	case errors.Is(err, core.ErrUserProfileNotFound):
+		c.Set("X-RenoP-Error-Code", "MAVEN_USER_NOT_FOUND")
+		return c.Status(fiber.StatusBadRequest).SendString("Maven user does not exist")
 	case errors.Is(err, fiber.ErrUnauthorized):
 		return c.Status(fiber.StatusUnauthorized).SendString("Authentication required")
 	case errors.Is(err, fiber.ErrNotFound), errors.Is(err, core.ErrMavenDomainNotFound), errors.Is(err, core.ErrMavenArtifactNotFound), errors.Is(err, core.ErrMavenVersionNotFound):
@@ -135,21 +149,37 @@ func logAudit(c fiber.Ctx, state *core.AppState, action, details string) {
 }
 
 func listDomains(c fiber.Ctx, state *core.AppState) error {
-	repo, err := repository(c, state)
-	if err != nil {
-		return apiError(c, err)
-	}
-	if err := UpgradeLegacyRepository(state, repo.Name); err != nil {
-		return apiError(c, err)
-	}
 	user := auth.GetUser(c)
 	username := ""
 	administrator := false
 	if user != nil {
 		username = user.Username
-		administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
+		administrator = user.IsManager()
 	}
-	domains, err := state.GetDB().ListMavenDomains(repo.Name, username, administrator)
+	if c.Params("repo_name") != "" {
+		repo, err := repository(c, state)
+		if err != nil {
+			return apiError(c, err)
+		}
+		if err := authorizeRepositoryRead(c, state, repo); err != nil {
+			return apiError(c, err)
+		}
+		if err := UpgradeLegacyRepository(state, repo.Name); err != nil {
+			return apiError(c, err)
+		}
+		domains, err := state.GetDB().ListMavenRepositoryDomains(repo.Name, username)
+		if err != nil {
+			return apiError(c, err)
+		}
+		for _, domain := range domains {
+			if domain != nil && !administrator && domain.PermissionLevel < core.MavenPermissionManage {
+				domain.VerificationCode = ""
+			}
+		}
+		c.Set(fiber.HeaderCacheControl, "no-store")
+		return c.JSON(fiber.Map{"repository": repo.Name, "domains": domains})
+	}
+	domains, err := state.GetDB().ListMavenDomains(username, administrator)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -159,24 +189,13 @@ func listDomains(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(fiber.Map{"repository": repo.Name, "domains": domains})
+	return c.JSON(fiber.Map{"domains": domains})
 }
 
 func createDomain(c fiber.Ctx, state *core.AppState) error {
-	repo, err := repository(c, state)
-	if err != nil {
-		return apiError(c, err)
-	}
 	user, err := authenticated(c)
 	if err != nil {
 		return apiError(c, err)
-	}
-	allowed, err := CanReadRepository(state, user, repo, "", true)
-	if err != nil {
-		return apiError(c, err)
-	}
-	if !allowed {
-		return apiError(c, core.ErrMavenPermissionDenied)
 	}
 	if len(c.Body()) > maxManagementRequestSize {
 		return c.SendStatus(fiber.StatusRequestEntityTooLarge)
@@ -198,62 +217,54 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, err)
 	}
 	record := &core.MavenDomain{
-		Repository: repo.Name, Domain: domain, VerificationType: verificationType,
+		Domain: domain, VerificationType: verificationType,
 		VerificationHost: verificationHost, VerificationCode: code, CreatedAt: time.Now().UnixMilli(),
 		PermissionLevel: core.MavenPermissionOwner, Member: true,
 	}
-	if err := state.GetDB().CreateMavenDomain(record, user.Username, user.IsManager()); err != nil {
+	if err := state.GetDB().CreateMavenDomain(record, user.Username); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_DOMAIN_CREATE", fmt.Sprintf("Repository: %s, domain: %s", repo.Name, domain))
+	logAudit(c, state, "MAVEN_DOMAIN_CREATE", fmt.Sprintf("Domain: %s", domain))
 	return c.Status(fiber.StatusCreated).JSON(record)
 }
 
-func authorizedDomain(c fiber.Ctx, state *core.AppState, required int) (*config.User, *config.Repository, *core.MavenDomainDetails, error) {
-	repo, err := repository(c, state)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+func authorizedDomain(c fiber.Ctx, state *core.AppState, required int) (*config.User, *core.MavenDomainDetails, error) {
 	user, err := authenticated(c)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	domain, err := NormalizeDomain(c.Params("domain"))
 	if err != nil {
-		return nil, nil, nil, fiber.ErrBadRequest
+		return nil, nil, fiber.ErrBadRequest
 	}
-	details, err := state.GetDB().GetMavenDomainDetails(repo.Name, domain, user.Username)
+	details, err := state.GetDB().GetMavenDomainDetails(domain, user.Username)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	administrator := user.IsManager() || user.CheckUpdatePermission(repo.Name)
+	administrator := user.IsManager()
 	if !administrator {
 		if !details.Domain.Member || details.Domain.PermissionLevel < required {
-			return nil, nil, nil, core.ErrMavenPermissionDenied
+			return nil, nil, core.ErrMavenPermissionDenied
 		}
 	} else {
 		details.Administrator = true
 	}
-	return user, repo, details, nil
+	return user, details, nil
 }
 
 func getDomain(c fiber.Ctx, state *core.AppState) error {
-	repo, err := repository(c, state)
-	if err != nil {
-		return apiError(c, err)
-	}
 	user := auth.GetUser(c)
 	username := ""
 	administrator := false
 	if user != nil {
 		username = user.Username
-		administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
+		administrator = user.IsManager()
 	}
 	domain, err := NormalizeDomain(c.Params("domain"))
 	if err != nil {
 		return apiError(c, fiber.ErrBadRequest)
 	}
-	details, err := state.GetDB().GetMavenDomainDetails(repo.Name, domain, username)
+	details, err := state.GetDB().GetMavenDomainDetails(domain, username)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -272,7 +283,7 @@ func getDomain(c fiber.Ctx, state *core.AppState) error {
 }
 
 func verifyDomain(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
+	user, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -280,7 +291,7 @@ func verifyDomain(c fiber.Ctx, state *core.AppState) error {
 		return c.JSON(details.Domain)
 	}
 	now := time.Now()
-	if err := state.GetDB().ReserveMavenVerificationAttempt(repo.Name, details.Domain.Domain, user.Username,
+	if err := state.GetDB().ReserveMavenVerificationAttempt(details.Domain.Domain, user.Username,
 		details.Administrator, now.UnixMilli(), now.Add(-verificationInterval).UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
@@ -291,21 +302,21 @@ func verifyDomain(c fiber.Ctx, state *core.AppState) error {
 		log.Printf("Maven domain verification failed for %s: %v", details.Domain.Domain, err)
 		return c.Status(fiber.StatusBadGateway).SendString("Maven verification provider is unavailable")
 	}
-	if err := state.GetDB().MarkMavenDomainVerified(repo.Name, details.Domain.Domain,
+	if err := state.GetDB().MarkMavenDomainVerified(details.Domain.Domain,
 		details.Domain.VerificationCode, now.UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
 	details.Domain.Verified = true
 	details.Domain.VerifiedAt = now.UnixMilli()
-	if err := ReconcileDomainCatalog(state, repo.Name, details.Domain.Domain, user.Username); err != nil {
+	if err := ReconcileGlobalDomainCatalog(state, details.Domain.Domain, user.Username); err != nil {
 		log.Printf("failed to reconcile Maven catalog for %s: %v", details.Domain.Domain, err)
 	}
-	logAudit(c, state, "MAVEN_DOMAIN_VERIFY", fmt.Sprintf("Repository: %s, domain: %s", repo.Name, details.Domain.Domain))
+	logAudit(c, state, "MAVEN_DOMAIN_VERIFY", fmt.Sprintf("Domain: %s", details.Domain.Domain))
 	return c.JSON(details.Domain)
 }
 
 func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
+	user, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -316,30 +327,30 @@ func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
 		return c.JSON(details.Domain)
 	}
 	now := time.Now().UnixMilli()
-	if err := state.GetDB().MarkMavenDomainVerified(repo.Name, details.Domain.Domain,
+	if err := state.GetDB().MarkMavenDomainVerified(details.Domain.Domain,
 		details.Domain.VerificationCode, now); err != nil {
 		return apiError(c, err)
 	}
 	details.Domain.Verified = true
 	details.Domain.VerifiedAt = now
-	if err := ReconcileDomainCatalog(state, repo.Name, details.Domain.Domain, user.Username); err != nil {
+	if err := ReconcileGlobalDomainCatalog(state, details.Domain.Domain, user.Username); err != nil {
 		log.Printf("failed to reconcile force-verified Maven catalog for %s: %v", details.Domain.Domain, err)
 	}
 	logAudit(c, state, "MAVEN_DOMAIN_FORCE_VERIFY",
-		fmt.Sprintf("Repository: %s, domain: %s", repo.Name, details.Domain.Domain))
+		fmt.Sprintf("Domain: %s", details.Domain.Domain))
 	return c.JSON(details.Domain)
 }
 
 func deleteDomain(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
+	user, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
 	if err != nil {
 		return apiError(c, err)
 	}
-	if err := state.GetDB().DeleteMavenDomain(repo.Name, details.Domain.Domain, user.Username,
+	if err := state.GetDB().DeleteMavenDomain(details.Domain.Domain, user.Username,
 		details.Administrator, time.Now().UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_DOMAIN_DELETE", fmt.Sprintf("Repository: %s, domain: %s", repo.Name, details.Domain.Domain))
+	logAudit(c, state, "MAVEN_DOMAIN_DELETE", fmt.Sprintf("Domain: %s", details.Domain.Domain))
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

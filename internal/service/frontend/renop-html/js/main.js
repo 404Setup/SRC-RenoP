@@ -24,6 +24,7 @@ import {fetchTokens} from './users.js';
 import {populateRoles} from './users/modal.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
+import {openMavenDomainCenter} from './browser/maven.js';
 import {initMessageCenter} from './messages.js';
 import './cargo-messages.js';
 import './docker-messages.js';
@@ -449,6 +450,10 @@ async function initializeApplication() {
                 if (!item || !profileMenu.contains(item)) return;
                 setProfileMenuOpen(false);
                 const username = localStorage.getItem('username') || '';
+                if (item.dataset.accountAction === 'maven-domains') {
+                    openMavenDomainCenter();
+                    return;
+                }
                 if (item.dataset.profileAction) {
                     navigateToUserProfile(username, item.dataset.profileAction === 'edit' ? 'edit' : '');
                     return;

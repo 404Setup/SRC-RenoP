@@ -46,7 +46,7 @@ var (
 
 // MavenDomain is one verified or pending Maven publishing namespace.
 type MavenDomain struct {
-	Repository       string `json:"repository"`
+	Repository       string `json:"-"`
 	Domain           string `json:"domain"`
 	VerificationType string `json:"verification_type"`
 	VerificationHost string `json:"verification_host"`

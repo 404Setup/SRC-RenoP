@@ -6,9 +6,10 @@ export default {
     "maven.createDomain": "Adicionar domínio", "maven.createDomainSubtitle": "Reserve um espaço de nomes Maven e verifique a propriedade antes de publicar.",
     "maven.createDomainFailed": "Não foi possível adicionar o domínio Maven", "maven.domainCreated": "Domínio Maven adicionado", "maven.verified": "Verificado",
     "maven.pendingVerification": "A aguardar verificação de propriedade", "maven.pending": "Pendente", "maven.artifactCount": "{count} artefactos", "maven.noDescription": "Sem descrição",
-    "maven.kicker": "Repositório Maven", "maven.subtitle": "Faça a gestão de domínios verificados, artefactos, versões e equipas de domínio.",
+    "maven.kicker": "Repositório Maven",
+    "maven.subtitle": "Explore os domínios de publicação e artefactos disponíveis neste repositório Maven.",
     "maven.totalDomains": "{count} domínios", "maven.verifiedDomains": "{count} verificados", "maven.totalArtifacts": "{count} artefactos",
-    "maven.noDomains": "Ainda não foram adicionados domínios Maven.", "maven.noArtifacts": "Ainda não foram publicados artefactos Maven.",
+    "maven.noDomains": "Nenhum domínio de publicação contém artefactos neste repositório.", "maven.noArtifacts": "Ainda não foram publicados artefactos Maven.",
     "maven.domainsTitle": "Domínios de publicação", "maven.artifactsTitle": "Artefactos", "maven.loadFailed": "Não foi possível carregar o repositório Maven",
     "maven.verifyDnsInstruction": "Crie um registo TXT no domínio raiz {target} e inicie a verificação.",
     "maven.verifyGithubInstruction": "Adicione o código à Bio do utilizador GitHub ou à Description da organização GitHub {target}.",
@@ -29,5 +30,13 @@ export default {
     "maven.inviteAccepted": "Convite para domínio Maven aceite", "maven.inviteRejected": "Convite para domínio Maven recusado",
     "maven.forceVerify": "Forçar verificação", "maven.forceVerifyConfirm": "Marcar {domain} como verificado sem validar a prova externa?",
     "maven.forceVerifyFailed": "Não foi possível forçar a verificação do domínio Maven", "maven.forceVerifySuccess": "A verificação do domínio Maven foi forçada",
-    "maven.verifyRateLimited": "Aguarde cinco segundos antes de voltar a verificar este domínio."
+    "maven.verifyRateLimited": "Aguarde cinco segundos antes de voltar a verificar este domínio.",
+    "maven.domainSettings": "Configuração de domínios",
+    "maven.domainCenterTitle": "Domínios Maven globais",
+    "maven.domainCenterSubtitle": "Configure um domínio de publicação uma vez e utilize a respetiva equipa em todos os repositórios Maven.",
+    "maven.domainCenterHint": "Os domínios e as equipas são globais nesta instância do RenoP.",
+    "maven.noManagedDomains": "Não existem domínios Maven associados à sua conta.",
+    "maven.backToDomains": "Voltar aos domínios",
+    "maven.inviteRequired": "Introduza pelo menos um nome de utilizador.",
+    "maven.userNotFound": "Um ou mais destinatários do convite Maven não existem."
 };

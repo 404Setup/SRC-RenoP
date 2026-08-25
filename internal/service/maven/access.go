@@ -43,7 +43,7 @@ func AuthorizeGroup(state *core.AppState, user *config.User, repo *config.Reposi
 		return nil, core.ErrDatabaseUnavailable
 	}
 	if administratorAllowed && (user.IsManager() || user.CheckUpdatePermission(repo.Name)) {
-		domains, err := state.GetDB().ListMavenDomains(repo.Name, user.Username, true)
+		domains, err := state.GetDB().ListMavenDomains(user.Username, true)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +53,7 @@ func AuthorizeGroup(state *core.AppState, user *config.User, repo *config.Reposi
 		}
 		return domain, nil
 	}
-	domains, err := state.GetDB().ListMavenDomains(repo.Name, user.Username, false)
+	domains, err := state.GetDB().ListMavenDomains(user.Username, false)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func AuthorizeMutation(state *core.AppState, user *config.User, repo *config.Rep
 	if db == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	domains, err := db.ListMavenDomains(repo.Name, user.Username, false)
+	domains, err := db.ListMavenDomains(user.Username, false)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func CanReadRepository(state *core.AppState, user *config.User, repo *config.Rep
 	if state == nil || state.GetDB() == nil {
 		return false, core.ErrDatabaseUnavailable
 	}
-	allowed, err := state.GetDB().HasMavenMembership(repo.Name, user.Username)
+	allowed, err := state.GetDB().HasMavenMembership(user.Username)
 	if err != nil {
 		return false, errors.Join(core.ErrDatabaseUnavailable, err)
 	}

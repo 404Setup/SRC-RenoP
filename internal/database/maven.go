@@ -45,14 +45,24 @@ func (db *DB) EnsureImportedMavenDomain(domain *core.MavenDomain) error {
 	if domain == nil {
 		return errors.New("imported Maven domain is missing")
 	}
-	repository := sanitizeMavenRepository(domain.Repository)
 	name := sanitizeMavenDomain(domain.Domain)
-	if repository == "" || name == "" || !domain.Verified {
+	if name == "" || !domain.Verified {
 		return errors.New("imported Maven domain is invalid")
 	}
-	var existing int
-	err := db.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`, repository, name).Scan(&existing)
+	domain.Repository = globalMavenRepository
+	var existingVerified int
+	err := db.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`, globalMavenRepository, name).Scan(&existingVerified)
 	if err == nil {
+		if existingVerified != 0 {
+			return nil
+		}
+		_, err = db.Exec(`UPDATE maven_domains SET verification_type = ?, verification_host = ?,
+			verification_code = ?, verified = 1, verified_at = ? WHERE repository = ? AND domain = ?`,
+			SanitizeInputString(domain.VerificationType, 16), SanitizeInputString(domain.VerificationHost, 253),
+			SanitizeInputString(domain.VerificationCode, 128), domain.VerifiedAt, globalMavenRepository, name)
+		if err != nil {
+			return fmt.Errorf("verify imported Maven domain: %w", err)
+		}
 		return nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
@@ -60,12 +70,12 @@ func (db *DB) EnsureImportedMavenDomain(domain *core.MavenDomain) error {
 	}
 	_, err = db.Exec(`INSERT INTO maven_domains
 		(repository, domain, verification_type, verification_host, verification_code, verified, created_at, verified_at, last_check_at)
-		VALUES (?, ?, ?, ?, ?, 1, ?, ?, 0)`, repository, name,
+		VALUES (?, ?, ?, ?, ?, 1, ?, ?, 0)`, globalMavenRepository, name,
 		SanitizeInputString(domain.VerificationType, 16), SanitizeInputString(domain.VerificationHost, 253),
 		SanitizeInputString(domain.VerificationCode, 128), domain.CreatedAt, domain.VerifiedAt)
 	if err != nil {
-		if lookupErr := db.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`,
-			repository, name).Scan(&existing); lookupErr == nil {
+		if lookupErr := db.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`,
+			globalMavenRepository, name).Scan(&existingVerified); lookupErr == nil {
 			return nil
 		}
 		return fmt.Errorf("create imported Maven domain: %w", err)
@@ -114,26 +124,24 @@ func (db *DB) MarkMavenRepositoryUpgraded(repository string, completedAt int64) 
 	return nil
 }
 
-// CreateMavenDomain creates a namespace and its initial L4 owner atomically.
-// A verified proof is reused across repositories only for an existing L4 owner
-// or a system administrator.
-func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administrator bool) error {
+// CreateMavenDomain creates a global namespace and its initial L4 owner atomically.
+func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if domain == nil {
 		return errors.New("maven domain is missing")
 	}
-	domain.Repository = sanitizeMavenRepository(domain.Repository)
+	domain.Repository = globalMavenRepository
 	domain.Domain = sanitizeMavenDomain(domain.Domain)
 	domain.VerificationType = SanitizeInputString(strings.ToLower(strings.TrimSpace(domain.VerificationType)), 16)
 	domain.VerificationHost = SanitizeInputString(strings.ToLower(strings.TrimSpace(domain.VerificationHost)), 253)
 	domain.VerificationCode = SanitizeInputString(strings.TrimSpace(domain.VerificationCode), 128)
 	owner = sanitizeMavenUsername(owner)
-	if domain.Repository == "" || domain.Domain == "" || domain.VerificationHost == "" || domain.VerificationCode == "" || owner == "" {
+	if domain.Domain == "" || domain.VerificationHost == "" || domain.VerificationCode == "" || owner == "" {
 		return errors.New("maven domain is invalid")
 	}
-	ownerID, err := db.ensureUserProfile(owner)
+	ownerID, err := db.userIDForExistingAccount(owner)
 	if err != nil {
 		return core.ErrMavenPermissionDenied
 	}
@@ -156,28 +164,6 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administ
 	}
 	if owned >= maxMavenDomainsPerOwner {
 		return errors.New("maven domain ownership limit reached")
-	}
-	var reusedType, reusedHost, reusedCode string
-	var reusedVerifiedAt int64
-	if administrator {
-		err = tx.QueryRow(`SELECT verification_type, verification_host, verification_code, verified_at
-			FROM maven_domains WHERE domain = ? AND verified = 1 ORDER BY verified_at DESC LIMIT 1`, domain.Domain).Scan(
-			&reusedType, &reusedHost, &reusedCode, &reusedVerifiedAt)
-	} else {
-		err = tx.QueryRow(`SELECT d.verification_type, d.verification_host, d.verification_code, d.verified_at
-			FROM maven_domains d JOIN maven_domain_members m ON m.repository = d.repository AND m.domain = d.domain
-			WHERE d.domain = ? AND d.verified = 1 AND m.user_id = ? AND m.permission_level = ?
-			ORDER BY d.verified_at DESC LIMIT 1`, domain.Domain, ownerID, core.MavenPermissionOwner).Scan(
-			&reusedType, &reusedHost, &reusedCode, &reusedVerifiedAt)
-	}
-	if err == nil {
-		domain.VerificationType = reusedType
-		domain.VerificationHost = reusedHost
-		domain.VerificationCode = reusedCode
-		domain.Verified = true
-		domain.VerifiedAt = reusedVerifiedAt
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("inspect reusable Maven domain proof: %w", err)
 	}
 	verified := 0
 	if domain.Verified {
@@ -202,11 +188,10 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string, administ
 }
 
 // ListMavenDomains lists verified public domains plus domains visible to the caller.
-func (db *DB) ListMavenDomains(repository, username string, includeAll bool) ([]*core.MavenDomain, error) {
+func (db *DB) ListMavenDomains(username string, includeAll bool) ([]*core.MavenDomain, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
-	repository = sanitizeMavenRepository(repository)
 	username = sanitizeMavenUsername(username)
 	userID := ""
 	if username != "" && username != "guest" {
@@ -220,14 +205,14 @@ func (db *DB) ListMavenDomains(repository, username string, includeAll bool) ([]
 		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
 		COALESCE(m.permission_level, 0),
 		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.repository = d.repository AND a.domain = d.domain)
+		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain)
 		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
 		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ?`
 	if !includeAll {
 		query += ` AND (d.verified = 1 OR m.user_id IS NOT NULL)`
 	}
 	query += ` ORDER BY d.domain`
-	rows, err := db.Query(query, userID, repository)
+	rows, err := db.Query(query, userID, globalMavenRepository)
 	if err != nil {
 		return nil, fmt.Errorf("list Maven domains: %w", err)
 	}
@@ -251,12 +236,64 @@ func (db *DB) ListMavenDomains(repository, username string, includeAll bool) ([]
 	return domains, nil
 }
 
-// GetMavenDomainDetails returns one domain and its current team.
-func (db *DB) GetMavenDomainDetails(repository, domain, username string) (*core.MavenDomainDetails, error) {
+// ListMavenRepositoryDomains lists verified global namespaces that contain artifacts in one repository.
+func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.MavenDomain, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository = sanitizeMavenRepository(repository)
+	username = sanitizeMavenUsername(username)
+	if repository == "" {
+		return nil, errors.New("maven repository is invalid")
+	}
+	userID := ""
+	if username != "" && username != "guest" {
+		if resolved, err := db.userIDForUsername(username); err == nil {
+			userID = resolved
+		} else if !errors.Is(err, core.ErrUserProfileNotFound) {
+			return nil, err
+		}
+	}
+	rows, err := db.Query(`SELECT d.repository, d.domain, d.verification_type, d.verification_host,
+		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
+		COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
+		catalog.artifact_count
+		FROM maven_domains d JOIN (
+			SELECT domain, COUNT(*) AS artifact_count FROM maven_artifacts
+			WHERE repository = ? GROUP BY domain
+		) catalog ON catalog.domain = d.domain
+		LEFT JOIN maven_domain_members m ON m.repository = d.repository
+		AND m.domain = d.domain AND m.user_id = ?
+		WHERE d.repository = ? AND d.verified = 1 ORDER BY d.domain`, repository, userID, globalMavenRepository)
+	if err != nil {
+		return nil, fmt.Errorf("list Maven repository domains: %w", err)
+	}
+	defer rows.Close()
+	domains := make([]*core.MavenDomain, 0)
+	for rows.Next() {
+		domain := &core.MavenDomain{}
+		var verified, member int
+		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
+			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
+			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member,
+			&domain.ArtifactCount); err != nil {
+			return nil, fmt.Errorf("scan Maven repository domain: %w", err)
+		}
+		domain.Verified = verified != 0
+		domain.Member = member != 0
+		domains = append(domains, domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate Maven repository domains: %w", err)
+	}
+	return domains, nil
+}
+
+// GetMavenDomainDetails returns one domain and its current team.
+func (db *DB) GetMavenDomainDetails(domain, username string) (*core.MavenDomainDetails, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
 	domain = sanitizeMavenDomain(domain)
 	username = sanitizeMavenUsername(username)
 	userID := ""
@@ -273,10 +310,10 @@ func (db *DB) GetMavenDomainDetails(repository, domain, username string) (*core.
 		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
 		COALESCE(m.permission_level, 0),
 		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.repository = d.repository AND a.domain = d.domain)
+		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain)
 		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
 		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ? AND d.domain = ?`,
-		userID, repository, domain).Scan(&result.Domain.Repository, &result.Domain.Domain,
+		userID, globalMavenRepository, domain).Scan(&result.Domain.Repository, &result.Domain.Domain,
 		&result.Domain.VerificationType, &result.Domain.VerificationHost, &result.Domain.VerificationCode,
 		&verified, &result.Domain.CreatedAt, &result.Domain.VerifiedAt, &result.Domain.LastCheckAt,
 		&result.Domain.PermissionLevel, &member, &result.Domain.ArtifactCount)
@@ -288,8 +325,8 @@ func (db *DB) GetMavenDomainDetails(repository, domain, username string) (*core.
 	}
 	result.Domain.Verified = verified != 0
 	result.Domain.Member = member != 0
-	rows, err := db.Query(`SELECT user_id, username, permission_level, added_at FROM maven_domain_members
-		WHERE repository = ? AND domain = ? ORDER BY permission_level DESC, username`, repository, domain)
+	rows, err := db.Query(`SELECT COALESCE(user_id, ''), username, permission_level, added_at FROM maven_domain_members
+		WHERE repository = ? AND domain = ? ORDER BY permission_level DESC, username`, globalMavenRepository, domain)
 	if err != nil {
 		return nil, fmt.Errorf("list Maven domain members: %w", err)
 	}
@@ -308,17 +345,17 @@ func (db *DB) GetMavenDomainDetails(repository, domain, username string) (*core.
 }
 
 // ReserveMavenVerificationAttempt rate-limits and records one external verification check.
-func (db *DB) ReserveMavenVerificationAttempt(repository, domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error {
+func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	domain = sanitizeMavenDomain(domain)
 	actor = sanitizeMavenUsername(actor)
 	var result sql.Result
 	var err error
 	if administrator {
 		result, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
-			AND verified = 0 AND last_check_at <= ?`, checkedAt, repository, domain, minimumPrevious)
+			AND verified = 0 AND last_check_at <= ?`, checkedAt, globalMavenRepository, domain, minimumPrevious)
 	} else {
 		actorID, identityErr := db.userIDForUsername(actor)
 		if identityErr != nil {
@@ -328,7 +365,7 @@ func (db *DB) ReserveMavenVerificationAttempt(repository, domain, actor string, 
 			AND verified = 0 AND last_check_at <= ? AND EXISTS (
 				SELECT 1 FROM maven_domain_members m WHERE m.repository = maven_domains.repository
 				AND m.domain = maven_domains.domain AND m.user_id = ? AND m.permission_level = ?
-			)`, checkedAt, repository, domain, minimumPrevious, actorID, core.MavenPermissionOwner)
+			)`, checkedAt, globalMavenRepository, domain, minimumPrevious, actorID, core.MavenPermissionOwner)
 	}
 	if err != nil {
 		return fmt.Errorf("reserve Maven verification attempt: %w", err)
@@ -344,13 +381,13 @@ func (db *DB) ReserveMavenVerificationAttempt(repository, domain, actor string, 
 }
 
 // MarkMavenDomainVerified completes verification only if the assigned code still matches.
-func (db *DB) MarkMavenDomainVerified(repository, domain, code string, verifiedAt int64) error {
+func (db *DB) MarkMavenDomainVerified(domain, code string, verifiedAt int64) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	result, err := db.Exec(`UPDATE maven_domains SET verified = 1, verified_at = ?
 		WHERE repository = ? AND domain = ? AND verification_code = ? AND verified = 0`,
-		verifiedAt, sanitizeMavenRepository(repository), sanitizeMavenDomain(domain),
+		verifiedAt, globalMavenRepository, sanitizeMavenDomain(domain),
 		SanitizeInputString(strings.TrimSpace(code), 128))
 	if err != nil {
 		return fmt.Errorf("verify Maven domain: %w", err)
@@ -366,18 +403,18 @@ func (db *DB) MarkMavenDomainVerified(repository, domain, code string, verifiedA
 }
 
 // DeleteMavenDomain deletes an empty namespace after owner or administrator authorization.
-func (db *DB) DeleteMavenDomain(repository, domain, actor string, administrator bool, actedAt int64) error {
+func (db *DB) DeleteMavenDomain(domain, actor string, administrator bool, actedAt int64) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	domain = sanitizeMavenDomain(domain)
 	actor = sanitizeMavenUsername(actor)
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Maven domain deletion: %w", err)
 	}
 	defer tx.Rollback()
-	if err := lockMavenDomain(tx, repository, domain); err != nil {
+	if err := lockMavenDomain(tx, domain); err != nil {
 		return err
 	}
 	if !administrator {
@@ -385,25 +422,24 @@ func (db *DB) DeleteMavenDomain(repository, domain, actor string, administrator 
 		if err != nil {
 			return core.ErrMavenPermissionDenied
 		}
-		if err := requireMavenMemberPermission(tx, repository, domain, actorID, core.MavenPermissionOwner); err != nil {
+		if err := requireMavenMemberPermission(tx, domain, actorID, core.MavenPermissionOwner); err != nil {
 			return err
 		}
 	}
 	var artifacts int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_artifacts WHERE repository = ? AND domain = ?`,
-		repository, domain).Scan(&artifacts); err != nil {
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_artifacts WHERE domain = ?`, domain).Scan(&artifacts); err != nil {
 		return fmt.Errorf("count Maven domain artifacts: %w", err)
 	}
 	if artifacts != 0 {
 		return core.ErrMavenDomainNotEmpty
 	}
-	if err := cancelMavenInvitations(tx, `repository = ? AND domain = ?`, []any{repository, domain}, actedAt); err != nil {
+	if err := cancelMavenInvitations(tx, `repository = ? AND domain = ?`, []any{globalMavenRepository, domain}, actedAt); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE repository = ? AND domain = ?`, repository, domain); err != nil {
+	if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE repository = ? AND domain = ?`, globalMavenRepository, domain); err != nil {
 		return fmt.Errorf("delete Maven domain members: %w", err)
 	}
-	if _, err := tx.Exec(`DELETE FROM maven_domains WHERE repository = ? AND domain = ?`, repository, domain); err != nil {
+	if _, err := tx.Exec(`DELETE FROM maven_domains WHERE repository = ? AND domain = ?`, globalMavenRepository, domain); err != nil {
 		return fmt.Errorf("delete Maven domain: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -412,8 +448,8 @@ func (db *DB) DeleteMavenDomain(repository, domain, actor string, administrator 
 	return nil
 }
 
-// HasMavenMembership reports whether a user belongs to any domain in a repository.
-func (db *DB) HasMavenMembership(repository, username string) (bool, error) {
+// HasMavenMembership reports whether a user belongs to any global Maven domain.
+func (db *DB) HasMavenMembership(username string) (bool, error) {
 	if db == nil || db.SQLDB == nil {
 		return false, core.ErrDatabaseUnavailable
 	}
@@ -426,7 +462,7 @@ func (db *DB) HasMavenMembership(repository, username string) (bool, error) {
 	}
 	var exists int
 	err = db.QueryRow(`SELECT 1 FROM maven_domain_members WHERE repository = ? AND user_id = ? LIMIT 1`,
-		sanitizeMavenRepository(repository), userID).Scan(&exists)
+		globalMavenRepository, userID).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -464,7 +500,7 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 	defer tx.Rollback()
 	var verified int
 	if err := tx.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`,
-		repository, domain).Scan(&verified); errors.Is(err, sql.ErrNoRows) {
+		globalMavenRepository, domain).Scan(&verified); errors.Is(err, sql.ErrNoRows) {
 		return core.ErrMavenDomainNotFound
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven publication domain: %w", err)
@@ -491,11 +527,11 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 			latestPublisher = publisher
 		}
 		if _, err := tx.Exec(`UPDATE maven_artifacts SET
-		description = CASE WHEN ? != '' THEN ? ELSE description END,
+		domain = ?, description = CASE WHEN ? != '' THEN ? ELSE description END,
 		publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
 		latest_version = ?, updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
 		WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
-			description, description, latestPublisher, latestPublisher, latestVersion,
+			domain, description, description, latestPublisher, latestPublisher, latestVersion,
 			artifact.UpdatedAt, artifact.UpdatedAt,
 			repository, groupID, artifactID); err != nil {
 			return fmt.Errorf("update Maven artifact: %w", err)
@@ -702,8 +738,8 @@ func (db *DB) DeleteMavenVersionMetadata(repository, groupID, artifactID, versio
 	return nil
 }
 
-// DeleteMavenRepository deletes all Maven ownership and catalog metadata for a repository.
-func (db *DB) DeleteMavenRepository(repository string, actedAt int64) error {
+// DeleteMavenRepository deletes repository-local Maven catalog metadata.
+func (db *DB) DeleteMavenRepository(repository string) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
@@ -713,14 +749,9 @@ func (db *DB) DeleteMavenRepository(repository string, actedAt int64) error {
 		return fmt.Errorf("begin Maven repository metadata deletion: %w", err)
 	}
 	defer tx.Rollback()
-	if err := cancelMavenInvitations(tx, `repository = ?`, []any{repository}, actedAt); err != nil {
-		return err
-	}
 	for _, query := range []string{
 		`DELETE FROM maven_versions WHERE repository = ?`,
 		`DELETE FROM maven_artifacts WHERE repository = ?`,
-		`DELETE FROM maven_domain_members WHERE repository = ?`,
-		`DELETE FROM maven_domains WHERE repository = ?`,
 		`DELETE FROM maven_repository_upgrades WHERE repository = ?`,
 	} {
 		if _, err := tx.Exec(query, repository); err != nil {

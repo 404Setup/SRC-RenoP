@@ -69,7 +69,7 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 		if invitation == nil || message == nil {
 			return errors.New("maven invitation is missing")
 		}
-		invitation.Repository = sanitizeMavenRepository(invitation.Repository)
+		invitation.Repository = globalMavenRepository
 		invitation.Domain = sanitizeMavenDomain(invitation.Domain)
 		invitation.Inviter = sanitizeMavenUsername(invitation.Inviter)
 		invitation.Recipient = sanitizeMavenUsername(invitation.Recipient)
@@ -84,15 +84,15 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 		}
 	}
 	first := invitations[0]
-	inviterID, err := db.ensureUserProfile(first.Inviter)
+	inviterID, err := db.userIDForExistingAccount(first.Inviter)
 	if err != nil {
 		return core.ErrMavenPermissionDenied
 	}
 	recipientIDs := make(map[string]string, len(invitations))
 	for _, invitation := range invitations {
-		recipientID, err := db.ensureUserProfile(invitation.Recipient)
+		recipientID, err := db.userIDForExistingAccount(invitation.Recipient)
 		if err != nil {
-			return core.ErrMavenPermissionDenied
+			return core.ErrUserProfileNotFound
 		}
 		recipientIDs[invitation.Recipient] = recipientID
 	}
@@ -101,7 +101,7 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 		return fmt.Errorf("begin Maven invitation creation: %w", err)
 	}
 	defer tx.Rollback()
-	if err := lockMavenDomain(tx, first.Repository, first.Domain); err != nil {
+	if err := lockMavenDomain(tx, first.Domain); err != nil {
 		return err
 	}
 	var inviterLevel int
@@ -169,14 +169,14 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 }
 
 // ForceAddMavenMembers immediately adds members for an administrator without overwriting existing roles.
-func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames []string, level int) error {
+func (db *DB) ForceAddMavenMembers(domain, actor string, usernames []string, level int) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if len(usernames) == 0 || len(usernames) > 20 || level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
 		return errors.New("maven member addition is invalid")
 	}
-	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	domain = sanitizeMavenDomain(domain)
 	actor = sanitizeMavenUsername(actor)
 	unique := make([]string, 0, len(usernames))
 	userIDs := make(map[string]string, len(usernames))
@@ -190,7 +190,7 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 			continue
 		}
 		seen[username] = struct{}{}
-		userID, err := db.ensureUserProfile(username)
+		userID, err := db.userIDForExistingAccount(username)
 		if err != nil {
 			return core.ErrUserProfileNotFound
 		}
@@ -206,13 +206,13 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 		return fmt.Errorf("begin Maven member addition: %w", err)
 	}
 	defer tx.Rollback()
-	if err := lockMavenDomain(tx, repository, domain); err != nil {
+	if err := lockMavenDomain(tx, domain); err != nil {
 		return err
 	}
 	for _, username := range unique {
 		var current int
 		err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-			repository, domain, userIDs[username]).Scan(&current)
+			globalMavenRepository, domain, userIDs[username]).Scan(&current)
 		if err == nil {
 			return core.ErrMavenMemberExists
 		}
@@ -223,24 +223,24 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 	if level == core.MavenPermissionOwner {
 		if _, err := tx.Exec(`UPDATE maven_domain_members SET permission_level = ?
 			WHERE repository = ? AND domain = ? AND permission_level = ?`, core.MavenPermissionManage,
-			repository, domain, core.MavenPermissionOwner); err != nil {
+			globalMavenRepository, domain, core.MavenPermissionOwner); err != nil {
 			return fmt.Errorf("demote previous Maven owner: %w", err)
 		}
 	}
 	for _, username := range unique {
 		if _, err := tx.Exec(`INSERT INTO maven_domain_members
 			(repository, domain, username, user_id, permission_level, added_at) VALUES (?, ?, ?, ?, ?, ?)`,
-			repository, domain, username, userIDs[username], level, now); err != nil {
+			globalMavenRepository, domain, username, userIDs[username], level, now); err != nil {
 			return fmt.Errorf("insert Maven member: %w", err)
 		}
 		if err := cancelMavenInvitations(tx, `repository = ? AND domain = ? AND recipient = ?`,
-			[]any{repository, domain, username}, now); err != nil {
+			[]any{globalMavenRepository, domain, username}, now); err != nil {
 			return err
 		}
 		if err := insertAcceptedMembershipMessage(tx, username, actor, "maven_domain_invite",
 			"Maven domain membership added",
 			fmt.Sprintf("%s added you to Maven domain %s with L%d permission.", actor, domain, level),
-			map[string]any{"repository": repository, "domain": domain, "inviter": actor, "level": level}, now); err != nil {
+			map[string]any{"domain": domain, "inviter": actor, "level": level}, now); err != nil {
 			return fmt.Errorf("create Maven membership message: %w", err)
 		}
 	}
@@ -251,13 +251,12 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 }
 
 // RespondMavenInvitation accepts or rejects one pending Maven domain invitation.
-func (db *DB) RespondMavenInvitation(id, recipient, repository string, accept bool, actedAt int64) error {
+func (db *DB) RespondMavenInvitation(id, recipient string, accept bool, actedAt int64) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	id = SanitizeInputString(strings.TrimSpace(id), 64)
 	recipient = sanitizeMavenUsername(recipient)
-	repository = sanitizeMavenRepository(repository)
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Maven invitation response: %w", err)
@@ -265,7 +264,7 @@ func (db *DB) RespondMavenInvitation(id, recipient, repository string, accept bo
 	defer tx.Rollback()
 	invitation := &core.MavenInvitation{ID: id, Recipient: recipient}
 	err = tx.QueryRow(`SELECT repository, domain, inviter, permission_level, created_at
-		FROM maven_domain_invitations WHERE id = ? AND recipient = ? AND repository = ?`, id, recipient, repository).Scan(
+			FROM maven_domain_invitations WHERE id = ? AND recipient = ? AND repository = ?`, id, recipient, globalMavenRepository).Scan(
 		&invitation.Repository, &invitation.Domain, &invitation.Inviter, &invitation.Level, &invitation.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return core.ErrMavenInvitationInvalid
@@ -273,7 +272,7 @@ func (db *DB) RespondMavenInvitation(id, recipient, repository string, accept bo
 	if err != nil {
 		return fmt.Errorf("load Maven invitation: %w", err)
 	}
-	if err := lockMavenDomain(tx, invitation.Repository, invitation.Domain); err != nil {
+	if err := lockMavenDomain(tx, invitation.Domain); err != nil {
 		return err
 	}
 	if accept {
@@ -342,18 +341,18 @@ func (db *DB) RespondMavenInvitation(id, recipient, repository string, accept bo
 }
 
 // SetMavenMemberLevel updates a domain member while preserving exactly one L4 owner.
-func (db *DB) SetMavenMemberLevel(repository, domain, actor, username string, level int) error {
+func (db *DB) SetMavenMemberLevel(domain, actor, username string, level int) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
 	if level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
 		return errors.New("maven permission level is invalid")
 	}
-	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	domain = sanitizeMavenDomain(domain)
 	actor, username = sanitizeMavenUsername(actor), sanitizeMavenUsername(username)
 	targetID, err := db.userIDForUsername(username)
 	if err != nil {
-		return core.ErrMavenDomainNotFound
+		return core.ErrUserProfileNotFound
 	}
 	actorID := ""
 	if actor != "" {
@@ -367,28 +366,28 @@ func (db *DB) SetMavenMemberLevel(repository, domain, actor, username string, le
 		return fmt.Errorf("begin Maven member update: %w", err)
 	}
 	defer tx.Rollback()
-	if err := lockMavenDomain(tx, repository, domain); err != nil {
+	if err := lockMavenDomain(tx, domain); err != nil {
 		return err
 	}
 	actorLevel := 0
 	if actor != "" {
-		if err := requireMavenMemberPermission(tx, repository, domain, actorID, core.MavenPermissionManage); err != nil {
+		if err := requireMavenMemberPermission(tx, domain, actorID, core.MavenPermissionManage); err != nil {
 			return err
 		}
 		if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-			repository, domain, actorID).Scan(&actorLevel); err != nil {
+			globalMavenRepository, domain, actorID).Scan(&actorLevel); err != nil {
 			return fmt.Errorf("inspect Maven actor permission: %w", err)
 		}
 	}
 	var current int
 	if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-		repository, domain, targetID).Scan(&current); errors.Is(err, sql.ErrNoRows) {
+		globalMavenRepository, domain, targetID).Scan(&current); errors.Is(err, sql.ErrNoRows) {
 		return core.ErrMavenDomainNotFound
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven member: %w", err)
 	}
 	if current == core.MavenPermissionOwner && level < core.MavenPermissionOwner {
-		if err := requireAnotherMavenOwner(tx, repository, domain, targetID); err != nil {
+		if err := requireAnotherMavenOwner(tx, domain, targetID); err != nil {
 			return err
 		}
 	}
@@ -398,17 +397,17 @@ func (db *DB) SetMavenMemberLevel(repository, domain, actor, username string, le
 				return core.ErrMavenPermissionDenied
 			}
 			if _, err := tx.Exec(`UPDATE maven_domain_members SET permission_level = ?
-				WHERE repository = ? AND domain = ? AND user_id = ?`, current, repository, domain, actorID); err != nil {
+				WHERE repository = ? AND domain = ? AND user_id = ?`, current, globalMavenRepository, domain, actorID); err != nil {
 				return fmt.Errorf("exchange Maven ownership permission: %w", err)
 			}
 		} else if _, err := tx.Exec(`UPDATE maven_domain_members SET permission_level = ?
 			WHERE repository = ? AND domain = ? AND permission_level = ? AND user_id != ?`,
-			core.MavenPermissionManage, repository, domain, core.MavenPermissionOwner, targetID); err != nil {
+			core.MavenPermissionManage, globalMavenRepository, domain, core.MavenPermissionOwner, targetID); err != nil {
 			return fmt.Errorf("demote previous Maven owner: %w", err)
 		}
 	}
 	if _, err := tx.Exec(`UPDATE maven_domain_members SET permission_level = ?
-		WHERE repository = ? AND domain = ? AND user_id = ?`, level, repository, domain, targetID); err != nil {
+		WHERE repository = ? AND domain = ? AND user_id = ?`, level, globalMavenRepository, domain, targetID); err != nil {
 		return fmt.Errorf("update Maven member: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -418,15 +417,15 @@ func (db *DB) SetMavenMemberLevel(repository, domain, actor, username string, le
 }
 
 // RemoveMavenMember removes one team member while preserving L4 ownership.
-func (db *DB) RemoveMavenMember(repository, domain, actor, username string) error {
+func (db *DB) RemoveMavenMember(domain, actor, username string) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
-	repository, domain = sanitizeMavenRepository(repository), sanitizeMavenDomain(domain)
+	domain = sanitizeMavenDomain(domain)
 	actor, username = sanitizeMavenUsername(actor), sanitizeMavenUsername(username)
 	targetID, err := db.userIDForUsername(username)
 	if err != nil {
-		return core.ErrMavenDomainNotFound
+		return core.ErrUserProfileNotFound
 	}
 	actorID := ""
 	if actor != "" {
@@ -440,13 +439,13 @@ func (db *DB) RemoveMavenMember(repository, domain, actor, username string) erro
 		return fmt.Errorf("begin Maven member removal: %w", err)
 	}
 	defer tx.Rollback()
-	if err := lockMavenDomain(tx, repository, domain); err != nil {
+	if err := lockMavenDomain(tx, domain); err != nil {
 		return err
 	}
 	if actor != "" {
 		var actorLevel int
 		if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-			repository, domain, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
+			globalMavenRepository, domain, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
 			return core.ErrMavenPermissionDenied
 		} else if err != nil {
 			return fmt.Errorf("inspect Maven removal actor: %w", err)
@@ -460,18 +459,18 @@ func (db *DB) RemoveMavenMember(repository, domain, actor, username string) erro
 	}
 	var current int
 	if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-		repository, domain, targetID).Scan(&current); errors.Is(err, sql.ErrNoRows) {
+		globalMavenRepository, domain, targetID).Scan(&current); errors.Is(err, sql.ErrNoRows) {
 		return core.ErrMavenDomainNotFound
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven member removal: %w", err)
 	}
 	if current == core.MavenPermissionOwner {
-		if err := requireAnotherMavenOwner(tx, repository, domain, targetID); err != nil {
+		if err := requireAnotherMavenOwner(tx, domain, targetID); err != nil {
 			return err
 		}
 	}
 	if _, err := tx.Exec(`DELETE FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-		repository, domain, targetID); err != nil {
+		globalMavenRepository, domain, targetID); err != nil {
 		return fmt.Errorf("remove Maven member: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -480,13 +479,13 @@ func (db *DB) RemoveMavenMember(repository, domain, actor, username string) erro
 	return nil
 }
 
-func requireMavenMemberPermission(tx *Tx, repository, domain, userID string, required int) error {
+func requireMavenMemberPermission(tx *Tx, domain, userID string, required int) error {
 	if tx == nil || userID == "" {
 		return core.ErrMavenPermissionDenied
 	}
 	var level int
 	err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members
-		WHERE repository = ? AND domain = ? AND user_id = ?`, repository, domain, userID).Scan(&level)
+		WHERE repository = ? AND domain = ? AND user_id = ?`, globalMavenRepository, domain, userID).Scan(&level)
 	if errors.Is(err, sql.ErrNoRows) || level < required {
 		return core.ErrMavenPermissionDenied
 	}
@@ -496,13 +495,13 @@ func requireMavenMemberPermission(tx *Tx, repository, domain, userID string, req
 	return nil
 }
 
-func lockMavenDomain(tx *Tx, repository, domain string) error {
+func lockMavenDomain(tx *Tx, domain string) error {
 	if _, err := tx.Exec(`UPDATE maven_domains SET last_check_at = last_check_at WHERE repository = ? AND domain = ?`,
-		repository, domain); err != nil {
+		globalMavenRepository, domain); err != nil {
 		return fmt.Errorf("lock Maven domain team: %w", err)
 	}
 	var exists int
-	if err := tx.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`, repository, domain).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+	if err := tx.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`, globalMavenRepository, domain).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
 		return core.ErrMavenDomainNotFound
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven domain team lock: %w", err)
@@ -510,10 +509,10 @@ func lockMavenDomain(tx *Tx, repository, domain string) error {
 	return nil
 }
 
-func requireAnotherMavenOwner(tx *Tx, repository, domain, excludedUserID string) error {
+func requireAnotherMavenOwner(tx *Tx, domain, excludedUserID string) error {
 	var count int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members WHERE repository = ? AND domain = ?
-		AND permission_level = ? AND user_id <> ?`, repository, domain, core.MavenPermissionOwner, excludedUserID).Scan(&count); err != nil {
+		AND permission_level = ? AND user_id <> ?`, globalMavenRepository, domain, core.MavenPermissionOwner, excludedUserID).Scan(&count); err != nil {
 		return fmt.Errorf("count alternate Maven owners: %w", err)
 	}
 	if count == 0 {

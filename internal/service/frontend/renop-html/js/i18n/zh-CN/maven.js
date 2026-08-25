@@ -23,11 +23,11 @@ export default {
     "maven.artifactCount": "{count} 个制品",
     "maven.noDescription": "未提供描述",
     "maven.kicker": "Maven 存储库",
-    "maven.subtitle": "管理已验证的发布域、制品、版本及域团队。",
+    "maven.subtitle": "浏览可通过此 Maven 存储库访问的发布域与制品。",
     "maven.totalDomains": "{count} 个域",
     "maven.verifiedDomains": "{count} 个已验证",
     "maven.totalArtifacts": "{count} 个制品",
-    "maven.noDomains": "尚未添加 Maven 域。",
+    "maven.noDomains": "此存储库中尚无包含制品的发布域。",
     "maven.noArtifacts": "尚未发布 Maven 制品。",
     "maven.domainsTitle": "发布域",
     "maven.artifactsTitle": "制品",
@@ -77,5 +77,13 @@ export default {
     "maven.forceVerifyConfirm": "确定不检查外部证明，直接将 {domain} 标记为已验证吗？",
     "maven.forceVerifyFailed": "无法强制通过 Maven 域验证",
     "maven.forceVerifySuccess": "已强制通过 Maven 域验证",
-    "maven.verifyRateLimited": "请等待五秒后再检查此域。"
+    "maven.verifyRateLimited": "请等待五秒后再检查此域。",
+    "maven.domainSettings": "域配置",
+    "maven.domainCenterTitle": "全局 Maven 域",
+    "maven.domainCenterSubtitle": "发布域只需配置一次，其团队可在所有 Maven 存储库中使用。",
+    "maven.domainCenterHint": "域与团队在此 RenoP 实例中全局共享。",
+    "maven.noManagedDomains": "你的账号尚未关联 Maven 域。",
+    "maven.backToDomains": "返回域列表",
+    "maven.inviteRequired": "请至少输入一个用户名。",
+    "maven.userNotFound": "一个或多个 Maven 邀请接收者不存在。"
 };

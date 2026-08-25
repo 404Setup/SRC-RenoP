@@ -6,9 +6,10 @@ export default {
     "maven.createDomain": "ドメインを追加", "maven.createDomainSubtitle": "Maven 公開名前空間を予約し、公開前に所有権を検証します。",
     "maven.createDomainFailed": "Maven ドメインを追加できませんでした", "maven.domainCreated": "Maven ドメインを追加しました", "maven.verified": "検証済み",
     "maven.pendingVerification": "所有権の検証待ち", "maven.pending": "保留中", "maven.artifactCount": "{count} 件の成果物", "maven.noDescription": "説明はありません",
-    "maven.kicker": "Maven リポジトリ", "maven.subtitle": "検証済み公開ドメイン、成果物、バージョン、ドメインチームを管理します。",
+    "maven.kicker": "Maven リポジトリ",
+    "maven.subtitle": "この Maven リポジトリで利用できる公開ドメインと成果物を参照します。",
     "maven.totalDomains": "{count} ドメイン", "maven.verifiedDomains": "{count} 件検証済み", "maven.totalArtifacts": "{count} 件の成果物",
-    "maven.noDomains": "Maven ドメインはまだ追加されていません。", "maven.noArtifacts": "Maven 成果物はまだ公開されていません。",
+    "maven.noDomains": "このリポジトリには成果物を含む公開ドメインがありません。", "maven.noArtifacts": "Maven 成果物はまだ公開されていません。",
     "maven.domainsTitle": "公開ドメイン", "maven.artifactsTitle": "成果物", "maven.loadFailed": "Maven リポジトリを読み込めませんでした",
     "maven.verifyDnsInstruction": "ルートドメイン {target} に TXT レコードを作成してから検証を開始してください。",
     "maven.verifyGithubInstruction": "検証コードを GitHub ユーザーの Bio、または GitHub 組織 {target} の Description に追加してください。",
@@ -29,5 +30,13 @@ export default {
     "maven.inviteAccepted": "Maven ドメインへの招待を承認しました", "maven.inviteRejected": "Maven ドメインへの招待を辞退しました",
     "maven.forceVerify": "強制検証", "maven.forceVerifyConfirm": "外部証明を確認せずに {domain} を検証済みにしますか？",
     "maven.forceVerifyFailed": "Maven ドメインを強制検証できませんでした", "maven.forceVerifySuccess": "Maven ドメインを強制検証しました",
-    "maven.verifyRateLimited": "このドメインを再確認するまで 5 秒お待ちください。"
+    "maven.verifyRateLimited": "このドメインを再確認するまで 5 秒お待ちください。",
+    "maven.domainSettings": "ドメイン設定",
+    "maven.domainCenterTitle": "グローバル Maven ドメイン",
+    "maven.domainCenterSubtitle": "公開ドメインは一度だけ設定し、そのチームをすべての Maven リポジトリで使用できます。",
+    "maven.domainCenterHint": "ドメインとチームはこの RenoP インスタンス全体で共有されます。",
+    "maven.noManagedDomains": "アカウントに関連付けられた Maven ドメインはありません。",
+    "maven.backToDomains": "ドメイン一覧に戻る",
+    "maven.inviteRequired": "ユーザー名を1つ以上入力してください。",
+    "maven.userNotFound": "Maven の招待先に存在しないユーザーが含まれています。"
 };

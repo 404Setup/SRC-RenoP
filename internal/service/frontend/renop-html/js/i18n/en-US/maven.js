@@ -23,11 +23,11 @@ export default {
     "maven.artifactCount": "{count} artifacts",
     "maven.noDescription": "No description provided",
     "maven.kicker": "Maven repository",
-    "maven.subtitle": "Manage verified publishing domains, artifacts, versions, and domain teams.",
+    "maven.subtitle": "Browse publishing domains and artifacts available through this Maven repository.",
     "maven.totalDomains": "{count} domains",
     "maven.verifiedDomains": "{count} verified",
     "maven.totalArtifacts": "{count} artifacts",
-    "maven.noDomains": "No Maven domains have been added.",
+    "maven.noDomains": "No publishing domains contain artifacts in this repository.",
     "maven.noArtifacts": "No Maven artifacts have been published.",
     "maven.domainsTitle": "Publishing domains",
     "maven.artifactsTitle": "Artifacts",
@@ -77,5 +77,13 @@ export default {
     "maven.forceVerifyConfirm": "Force {domain} to verified status without checking external proof?",
     "maven.forceVerifyFailed": "Could not force verification for the Maven domain",
     "maven.forceVerifySuccess": "Maven domain verification was forced",
-    "maven.verifyRateLimited": "Wait five seconds before checking this domain again."
+    "maven.verifyRateLimited": "Wait five seconds before checking this domain again.",
+    "maven.domainSettings": "Domain settings",
+    "maven.domainCenterTitle": "Global Maven domains",
+    "maven.domainCenterSubtitle": "Configure a publishing domain once and use its team across every Maven repository.",
+    "maven.domainCenterHint": "Domains and teams are global to this RenoP instance.",
+    "maven.noManagedDomains": "No Maven domains are linked to your account.",
+    "maven.backToDomains": "Back to domains",
+    "maven.inviteRequired": "Enter at least one username.",
+    "maven.userNotFound": "One or more Maven invitation recipients do not exist."
 };

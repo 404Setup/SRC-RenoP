@@ -16,6 +16,38 @@
     animation: mavenViewIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.maven-domain-center-dialog {
+    width: min(960px, calc(100vw - 32px));
+}
+
+.maven-domain-center-body {
+    max-height: min(72vh, 760px);
+    overflow-y: auto;
+}
+
+.maven-domain-center {
+    display: grid;
+    gap: 18px;
+    min-height: 220px;
+}
+
+.maven-domain-center-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.maven-domain-center-toolbar h3,
+.maven-domain-center-toolbar p {
+    margin: 0;
+}
+
+.maven-domain-center-toolbar p {
+    margin-top: 4px;
+    color: var(--muted-text);
+}
+
 .maven-repository-view[hidden] {
     display: none !important;
 }
@@ -440,6 +472,15 @@ button.maven-artifact-card:focus-visible {
 }
 
 @media (max-width: 720px) {
+    .maven-domain-center-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .maven-domain-center-toolbar .pill-btn {
+        align-self: flex-start;
+    }
+
     .maven-hero-heading,
     .maven-domain-card,
     .maven-artifact-card,

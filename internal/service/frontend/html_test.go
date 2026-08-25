@@ -60,7 +60,7 @@ func TestOpenAPIDocumentIncludesFrontendRoutes(t *testing.T) {
 	for _, path := range []string{
 		"/api/users/{username}/profile", "/api/users/{username}/memberships",
 		"/api/users/profiles", "/api/auth/profile",
-		"/api/maven/repositories/{repo_name}/domains",
+		"/api/maven/domains", "/api/maven/repositories/{repo_name}/domains",
 		"/api/maven/repositories/{repo_name}/packages",
 		"/api/docker/repositories/{repo_name}/images",
 	} {
@@ -277,6 +277,45 @@ func TestRepositoryTeamsShareUserSuggestionController(t *testing.T) {
 		if strings.Contains(string(source), "-user-suggestion") {
 			t.Fatalf("%s retains format-specific autocomplete CSS", sourcePath)
 		}
+	}
+}
+
+func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
+	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(indexSource), `data-account-action="maven-domains"`) {
+		t.Fatal("account menu is missing global Maven domain settings")
+	}
+	mavenSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "maven.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mavenText := string(mavenSource)
+	for _, required := range []string{
+		"export function openMavenDomainCenter", "'/api/maven/domains'",
+		"/api/maven/repositories/${encodeURIComponent(repository)}/domains", "maven.inviteRequired",
+	} {
+		if !strings.Contains(mavenText, required) {
+			t.Fatalf("global Maven domain UI is missing %q", required)
+		}
+	}
+	if strings.Contains(mavenText, "/api/maven/repositories/${encodeURIComponent(repository)}/domains`, {") {
+		t.Fatal("Maven domain UI still mutates repository-scoped domains")
+	}
+	if strings.Contains(mavenText, ": {artifacts: []}") || !strings.Contains(mavenText, "await readArtifactPage(artifactsResponse)") {
+		t.Fatal("Maven domain UI can still report a failed artifact request as an empty catalog")
+	}
+	if !strings.Contains(mavenText, "members.length === 0 && !administrator") {
+		t.Fatal("administrators cannot assign the first member of an imported Maven domain")
+	}
+	messageSource, err := os.ReadFile(filepath.Join("renop-html", "js", "maven-messages.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(messageSource), "/api/maven/invitations/") {
+		t.Fatal("Maven invitation actions still depend on a repository")
 	}
 }
 

@@ -68,10 +68,10 @@ func TestGeneratePomFilenameAppending(t *testing.T) {
 		Repository: "test-repo", Domain: "com.example", VerificationType: core.MavenVerificationDNS,
 		VerificationHost: "example.com", VerificationCode: "renop-verification=test", CreatedAt: time.Now().UnixMilli(),
 	}
-	if err := db.CreateMavenDomain(domain, "admin", false); err != nil {
+	if err := db.CreateMavenDomain(domain, "admin"); err != nil {
 		t.Fatalf("create test Maven domain: %v", err)
 	}
-	if err := db.MarkMavenDomainVerified("test-repo", "com.example", domain.VerificationCode, time.Now().UnixMilli()); err != nil {
+	if err := db.MarkMavenDomainVerified("com.example", domain.VerificationCode, time.Now().UnixMilli()); err != nil {
 		t.Fatalf("verify test Maven domain: %v", err)
 	}
 

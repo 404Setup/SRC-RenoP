@@ -113,27 +113,28 @@ type StateDB interface {
 	TransitionMessageAction(id, username, expectedStatus, newStatus string, actedAt int64) (bool, error)
 	DeleteUserMessage(id, username string) (bool, error)
 	DeleteUserMessages(username string) (int64, error)
-	CreateMavenDomain(domain *MavenDomain, owner string, administrator bool) error
-	ListMavenDomains(repository, username string, includeAll bool) ([]*MavenDomain, error)
-	GetMavenDomainDetails(repository, domain, username string) (*MavenDomainDetails, error)
-	ReserveMavenVerificationAttempt(repository, domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error
-	MarkMavenDomainVerified(repository, domain, code string, verifiedAt int64) error
-	DeleteMavenDomain(repository, domain, actor string, administrator bool, actedAt int64) error
-	HasMavenMembership(repository, username string) (bool, error)
+	CreateMavenDomain(domain *MavenDomain, owner string) error
+	ListMavenDomains(username string, includeAll bool) ([]*MavenDomain, error)
+	ListMavenRepositoryDomains(repository, username string) ([]*MavenDomain, error)
+	GetMavenDomainDetails(domain, username string) (*MavenDomainDetails, error)
+	ReserveMavenVerificationAttempt(domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error
+	MarkMavenDomainVerified(domain, code string, verifiedAt int64) error
+	DeleteMavenDomain(domain, actor string, administrator bool, actedAt int64) error
+	HasMavenMembership(username string) (bool, error)
 	RecordMavenPublication(artifact *MavenArtifact, version *MavenVersion) error
 	ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*MavenArtifact, int, error)
 	GetMavenArtifactDetails(repository, groupID, artifactID string) (*MavenArtifactDetails, error)
 	UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error
 	DeleteMavenVersionMetadata(repository, groupID, artifactID, version string) error
-	DeleteMavenRepository(repository string, actedAt int64) error
+	DeleteMavenRepository(repository string) error
 	EnsureImportedMavenDomain(domain *MavenDomain) error
 	IsMavenRepositoryUpgraded(repository string) (bool, error)
 	MarkMavenRepositoryUpgraded(repository string, completedAt int64) error
 	CreateMavenInvitations(invitations []*MavenInvitation, messages []*UserMessage) error
-	ForceAddMavenMembers(repository, domain, actor string, usernames []string, level int) error
-	RespondMavenInvitation(id, recipient, repository string, accept bool, actedAt int64) error
-	SetMavenMemberLevel(repository, domain, actor, username string, level int) error
-	RemoveMavenMember(repository, domain, actor, username string) error
+	ForceAddMavenMembers(domain, actor string, usernames []string, level int) error
+	RespondMavenInvitation(id, recipient string, accept bool, actedAt int64) error
+	SetMavenMemberLevel(domain, actor, username string, level int) error
+	RemoveMavenMember(domain, actor, username string) error
 	GetCargoPackage(repository, normalizedName string) (*CargoPackage, error)
 	GetCargoPackageDetails(repository, normalizedName, username string) (*CargoPackageDetails, error)
 	ListCargoPackages(repository, username string, administrator bool) ([]*CargoPackage, error)

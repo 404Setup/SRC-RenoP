@@ -6,9 +6,10 @@ export default {
     "maven.createDomain": "Добавить домен", "maven.createDomainSubtitle": "Зарезервируйте пространство имен Maven и подтвердите владение до публикации.",
     "maven.createDomainFailed": "Не удалось добавить домен Maven", "maven.domainCreated": "Домен Maven добавлен", "maven.verified": "Подтвержден",
     "maven.pendingVerification": "Ожидает подтверждения владения", "maven.pending": "Ожидает", "maven.artifactCount": "Артефактов: {count}", "maven.noDescription": "Описание отсутствует",
-    "maven.kicker": "Репозиторий Maven", "maven.subtitle": "Управление подтвержденными доменами, артефактами, версиями и командами доменов.",
+    "maven.kicker": "Репозиторий Maven",
+    "maven.subtitle": "Просматривайте домены публикации и артефакты, доступные через этот репозиторий Maven.",
     "maven.totalDomains": "Доменов: {count}", "maven.verifiedDomains": "Подтверждено: {count}", "maven.totalArtifacts": "Артефактов: {count}",
-    "maven.noDomains": "Домены Maven еще не добавлены.", "maven.noArtifacts": "Артефакты Maven еще не опубликованы.",
+    "maven.noDomains": "В этом репозитории нет доменов публикации с артефактами.", "maven.noArtifacts": "Артефакты Maven еще не опубликованы.",
     "maven.domainsTitle": "Домены публикации", "maven.artifactsTitle": "Артефакты", "maven.loadFailed": "Не удалось загрузить репозиторий Maven",
     "maven.verifyDnsInstruction": "Создайте TXT-запись в корневом домене {target}, затем запустите проверку.",
     "maven.verifyGithubInstruction": "Добавьте код в Bio пользователя GitHub или Description организации GitHub {target}.",
@@ -29,5 +30,13 @@ export default {
     "maven.inviteAccepted": "Приглашение в домен Maven принято", "maven.inviteRejected": "Приглашение в домен Maven отклонено",
     "maven.forceVerify": "Принудительно подтвердить", "maven.forceVerifyConfirm": "Подтвердить {domain} без проверки внешнего доказательства?",
     "maven.forceVerifyFailed": "Не удалось принудительно подтвердить домен Maven", "maven.forceVerifySuccess": "Домен Maven принудительно подтверждён",
-    "maven.verifyRateLimited": "Подождите пять секунд перед повторной проверкой этого домена."
+    "maven.verifyRateLimited": "Подождите пять секунд перед повторной проверкой этого домена.",
+    "maven.domainSettings": "Настройка доменов",
+    "maven.domainCenterTitle": "Глобальные домены Maven",
+    "maven.domainCenterSubtitle": "Настройте домен публикации один раз и используйте его команду во всех репозиториях Maven.",
+    "maven.domainCenterHint": "Домены и команды являются общими для этого экземпляра RenoP.",
+    "maven.noManagedDomains": "К вашей учётной записи не привязаны домены Maven.",
+    "maven.backToDomains": "Назад к доменам",
+    "maven.inviteRequired": "Введите хотя бы одно имя пользователя.",
+    "maven.userNotFound": "Один или несколько получателей приглашения Maven не существуют."
 };

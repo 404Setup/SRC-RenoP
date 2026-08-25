@@ -1188,10 +1188,8 @@ components:
 
     MavenDomain:
       type: object
-      required: [repository, domain, verification_type, verification_host, verified, created_at, permission_level, artifact_count]
+      required: [domain, verification_type, verification_host, verified, created_at, permission_level, artifact_count]
       properties:
-        repository:
-          type: string
         domain:
           type: string
           example: com.example
@@ -2548,14 +2546,12 @@ paths:
           description: Not a manager or debug mode is not active.
 
   # ========== Maven domain registry ==========
-  /api/maven/repositories/{repo_name}/domains:
+  /api/maven/domains:
     get:
       tags: [maven]
       summary: List Maven publishing domains
-      description: Lists verified domains plus pending domains visible to the current user. Legacy Maven content is cataloged on first upgrade.
+      description: Lists global verified domains plus pending domains visible to the current user.
       operationId: listMavenDomains
-      parameters:
-        - $ref: "#/components/parameters/RepoName"
       responses:
         "200":
           description: Domain catalog.
@@ -2564,8 +2560,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  repository:
-                    type: string
                   domains:
                     type: array
                     items:
@@ -2574,16 +2568,13 @@ paths:
       tags: [maven]
       summary: Reserve a Maven publishing domain
       description: |
-        Creates a pending domain owned by the caller. A verified proof from another repository is reused
-        only when the caller is its L4 owner or a system administrator.
+        Creates one global pending domain owned by the caller. Its team and verification apply to every Maven repository.
       operationId: createMavenDomain
       security:
         - sessionCookie: []
         - sessionHeader: []
         - basicAuth: []
         - bearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/RepoName"
       requestBody:
         required: true
         content:
@@ -2605,15 +2596,14 @@ paths:
         "400":
           $ref: "#/components/responses/PlainBadRequest"
         "409":
-          description: Domain already exists in this repository.
+          description: Domain already exists in this RenoP instance.
 
-  /api/maven/repositories/{repo_name}/domains/{domain}:
+  /api/maven/domains/{domain}:
     get:
       tags: [maven]
       summary: Get a Maven domain and team
       operationId: getMavenDomain
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2638,7 +2628,6 @@ paths:
         - basicAuth: []
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2650,7 +2639,7 @@ paths:
         "409":
           description: Domain still contains artifacts or cannot lose its owner.
 
-  /api/maven/repositories/{repo_name}/domains/{domain}/verify:
+  /api/maven/domains/{domain}/verify:
     post:
       tags: [maven]
       summary: Verify Maven domain ownership
@@ -2662,7 +2651,6 @@ paths:
         - basicAuth: []
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2680,7 +2668,7 @@ paths:
         "429":
           description: Verification was retried within five seconds.
 
-  /api/maven/repositories/{repo_name}/domains/{domain}/verify/force:
+  /api/maven/domains/{domain}/verify/force:
     post:
       tags: [maven]
       summary: Force a Maven domain to verified status
@@ -2690,7 +2678,6 @@ paths:
         - sessionCookie: []
         - sessionHeader: []
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2706,13 +2693,12 @@ paths:
         "403":
           $ref: "#/components/responses/PlainForbidden"
 
-  /api/maven/repositories/{repo_name}/domains/{domain}/members:
+  /api/maven/domains/{domain}/members:
     get:
       tags: [maven]
       summary: List Maven domain members
       operationId: listMavenDomainMembers
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2741,7 +2727,6 @@ paths:
         - basicAuth: []
         - bearerAuth: []
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2769,7 +2754,7 @@ paths:
         "201":
           description: Invitations created.
 
-  /api/maven/repositories/{repo_name}/domains/{domain}/members/{username}:
+  /api/maven/domains/{domain}/members/{username}:
     put:
       tags: [maven]
       summary: Change a Maven domain member level
@@ -2778,7 +2763,6 @@ paths:
         - sessionCookie: []
         - sessionHeader: []
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2812,7 +2796,6 @@ paths:
         - sessionCookie: []
         - sessionHeader: []
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: domain
           in: path
           required: true
@@ -2829,7 +2812,7 @@ paths:
         "409":
           description: The operation would remove the last L4 owner.
 
-  /api/maven/repositories/{repo_name}/invitations/{id}/{decision}:
+  /api/maven/invitations/{id}/{decision}:
     post:
       tags: [maven]
       summary: Respond to a Maven domain invitation
@@ -2838,7 +2821,6 @@ paths:
         - sessionCookie: []
         - sessionHeader: []
       parameters:
-        - $ref: "#/components/parameters/RepoName"
         - name: id
           in: path
           required: true
@@ -2854,6 +2836,29 @@ paths:
       responses:
         "200":
           description: Invitation action completed.
+
+  /api/maven/repositories/{repo_name}/domains:
+    get:
+      tags: [maven]
+      summary: List Maven domains in a repository
+      description: Lists verified global domains that currently contain cataloged artifacts in this repository. Domain teams and verification remain global.
+      operationId: listMavenRepositoryDomains
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      responses:
+        "200":
+          description: Repository-local domain catalog.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repository:
+                    type: string
+                  domains:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MavenDomain"
 
   /api/maven/repositories/{repo_name}/packages:
     get:

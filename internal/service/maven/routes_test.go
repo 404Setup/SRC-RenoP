@@ -81,11 +81,7 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	})
 	SetupRoutes(app.Group("/api"), state)
 	storage.SetupRoutes(app, state)
-	response := mavenRequest(t, app, http.MethodPost, "/api/maven/repositories/private/domains", `{"domain":"com.private"}`)
-	require.Equal(t, http.StatusForbidden, response.StatusCode)
-	require.NoError(t, response.Body.Close())
-
-	response = mavenRequest(t, app, http.MethodPost, "/api/maven/repositories/releases/domains", `{"domain":"com.example"}`)
+	response := mavenRequest(t, app, http.MethodPost, "/api/maven/domains", `{"domain":"com.example"}`)
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	var created core.MavenDomain
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&created))
@@ -96,19 +92,32 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	require.Equal(t, http.StatusConflict, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 	response = mavenRequest(t, app, http.MethodPost,
-		"/api/maven/repositories/releases/domains/com.example/verify/force", "")
+		"/api/maven/domains/com.example/verify/force", "")
 	require.Equal(t, http.StatusForbidden, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 
 	currentUser = &config.User{Username: "admin", Roles: []string{"manager"}}
 	response = mavenRequest(t, app, http.MethodPost,
-		"/api/maven/repositories/releases/domains/com.example/verify/force", "")
+		"/api/maven/domains/com.example/verify/force", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains/com.example/members",
+		`{"users":[],"level":0}`)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains/com.example/members",
+		`{"users":["missing-user"],"level":0}`)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 
 	currentUser = &config.User{Username: "alice", Roles: []string{"base"}}
+	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains/com.example/members",
+		`{"users":["missing-user"],"level":0}`)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	assert.Equal(t, "MAVEN_USER_NOT_FOUND", response.Header.Get("X-RenoP-Error-Code"))
+	require.NoError(t, response.Body.Close())
 	response = mavenRequest(t, app, http.MethodPost,
-		"/api/maven/repositories/releases/domains/com.example/members",
+		"/api/maven/domains/com.example/members",
 		`{"users":["bob","admin"],"level":0}`)
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	require.NoError(t, response.Body.Close())
@@ -118,10 +127,10 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	assert.Equal(t, "maven_domain_invite", messages[0].ActionKind)
 	currentUser = &config.User{Username: "bob", Roles: []string{"base"}}
 	response = mavenRequest(t, app, http.MethodPost,
-		"/api/maven/repositories/releases/invitations/"+messages[0].ID+"/accept", "")
+		"/api/maven/invitations/"+messages[0].ID+"/accept", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())
-	domainDetails, err := state.GetDB().GetMavenDomainDetails("releases", "com.example", "bob")
+	domainDetails, err := state.GetDB().GetMavenDomainDetails("com.example", "bob")
 	require.NoError(t, err)
 	assert.True(t, domainDetails.Domain.Member)
 	assert.Equal(t, core.MavenPermissionRead, domainDetails.Domain.PermissionLevel)
@@ -141,23 +150,74 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	response = mavenRequest(t, app, http.MethodPut, "/releases/com/example/demo/1.0/demo-1.0.pom", "pom")
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/repositories/releases/packages?domain=com.example&limit=50&offset=0", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var releaseCatalog struct {
+		Artifacts []*core.MavenArtifact `json:"artifacts"`
+		Total     int                   `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&releaseCatalog))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, 1, releaseCatalog.Total)
+	require.Len(t, releaseCatalog.Artifacts, 1)
+	assert.Equal(t, "com.example:demo", releaseCatalog.Artifacts[0].GroupID+":"+releaseCatalog.Artifacts[0].ArtifactID)
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/repositories/releases/domains", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var releaseDomains struct {
+		Domains []*core.MavenDomain `json:"domains"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&releaseDomains))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, releaseDomains.Domains, 1)
+	assert.Equal(t, "com.example", releaseDomains.Domains[0].Domain)
+	assert.Equal(t, 1, releaseDomains.Domains[0].ArtifactCount)
 
-	response = mavenRequest(t, app, http.MethodPost, "/api/maven/repositories/snapshots/domains", `{"domain":"com.example"}`)
-	require.Equal(t, http.StatusCreated, response.StatusCode)
-	var reused core.MavenDomain
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/domains/com.example", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var reused core.MavenDomainDetails
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&reused))
 	require.NoError(t, response.Body.Close())
-	assert.True(t, reused.Verified)
-	assert.Equal(t, created.VerificationCode, reused.VerificationCode)
+	require.NotNil(t, reused.Domain)
+	assert.True(t, reused.Domain.Verified)
+	assert.Equal(t, created.VerificationCode, reused.Domain.VerificationCode)
 	response = mavenRequest(t, app, http.MethodPut, "/snapshots/com/example/free-form.txt", "blocked")
 	require.Equal(t, http.StatusForbidden, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 	response = mavenRequest(t, app, http.MethodPut, "/snapshots/com/example/demo/2.0/demo-2.0.jar", "artifact")
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/repositories/snapshots/packages?domain=com.example&limit=50&offset=0", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var snapshotCatalog struct {
+		Artifacts []*core.MavenArtifact `json:"artifacts"`
+		Total     int                   `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&snapshotCatalog))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, 1, snapshotCatalog.Total)
+	require.Len(t, snapshotCatalog.Artifacts, 1)
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/repositories/snapshots/domains", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var snapshotDomains struct {
+		Domains []*core.MavenDomain `json:"domains"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&snapshotDomains))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, snapshotDomains.Domains, 1)
+	assert.Equal(t, 1, snapshotDomains.Domains[0].ArtifactCount)
+
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/domains/com.example", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var crossRepositoryDetails core.MavenDomainDetails
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&crossRepositoryDetails))
+	require.NoError(t, response.Body.Close())
+	require.NotNil(t, crossRepositoryDetails.Domain)
+	assert.Equal(t, 2, crossRepositoryDetails.Domain.ArtifactCount)
 
 	currentUser = &config.User{Username: "bob", Roles: []string{"base"}}
-	response = mavenRequest(t, app, http.MethodPost, "/api/maven/repositories/third/domains", `{"domain":"com.example"}`)
+	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains", `{"domain":"org.third"}`)
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	var independent core.MavenDomain
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&independent))

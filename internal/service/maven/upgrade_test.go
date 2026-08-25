@@ -50,7 +50,7 @@ func TestUpgradeLegacyRepositoryImportsCatalogWithoutGrantingTeamAccess(t *testi
 	completed, err := db.IsMavenRepositoryUpgraded("legacy")
 	require.NoError(t, err)
 	assert.True(t, completed)
-	details, err := db.GetMavenDomainDetails("legacy", "com.example", "guest")
+	details, err := db.GetMavenDomainDetails("com.example", "guest")
 	require.NoError(t, err)
 	assert.True(t, details.Domain.Verified)
 	assert.Empty(t, details.Members)

@@ -7,23 +7,23 @@ description: Verified publishing domains, domain teams, artifact catalogs, and M
 
 # Maven Registry API
 
-RenoP Maven repositories use verified reverse-domain namespaces. A publisher must reserve a domain in the repository UI before uploading an artifact. Standard Maven 2 paths, metadata, detached signatures, and checksum companions remain compatible with Maven and Gradle clients.
+RenoP Maven repositories use verified reverse-domain namespaces. A publisher reserves a domain once from the signed-in account menu before uploading an artifact to any Maven repository. Standard Maven 2 paths, metadata, detached signatures, and checksum companions remain compatible with Maven and Gradle clients.
 
 ## Domain verification
 
-Create a domain with `POST /api/maven/repositories/:repo/domains`. RenoP returns a high-entropy verification code and one fixed proof target:
+Create a domain with `POST /api/maven/domains`. RenoP returns a high-entropy verification code and one fixed proof target:
 
 - DNS namespaces use a TXT record at the registered root. RenoP reads every TXT value and accepts an exact match.
 - `io.github.<account>` namespaces use the Bio of a public GitHub user or the Description of a public GitHub organization.
 - `io.gitlab.<account>` namespaces use the Bio of a public GitLab user or the Description of a public GitLab group.
 
-Start an external check with `POST /api/maven/repositories/:repo/domains/:domain/verify`. Checks are limited to one attempt every five seconds for each domain. A system administrator can use `/verify/force`; this bypass is recorded in the audit log.
+Start an external check with `POST /api/maven/domains/:domain/verify`. Checks are limited to one attempt every five seconds for each domain. A system administrator can use `/verify/force`; this bypass is recorded in the audit log.
 
-When the same L4 owner creates an already verified domain in another repository, RenoP reuses the server-side proof and does not require another external check. Administrators receive the same reuse behavior. Other users must supply a new proof.
+A verified domain and its team are global to the RenoP instance. The same domain can publish to every Maven repository without another verification, domain reservation, or invitation cycle.
 
 ## Domain permissions
 
-Maven teams are attached to domains rather than individual artifacts:
+Maven teams are attached globally to domains rather than repositories or individual artifacts:
 
 - L0: read public content
 - L1: publish artifacts
@@ -35,7 +35,7 @@ The member API accepts between one and twenty usernames in one request. Non-admi
 
 ## Artifact catalog
 
-Use `GET /api/maven/repositories/:repo/packages` to page or search the catalog. `GET /api/maven/repositories/:repo/package?group=...&artifact=...` returns artifact details and versions. L2 members can update descriptions and delete complete versions through the corresponding JSON endpoints.
+Use `GET /api/maven/repositories/:repo/domains` to list domains containing artifacts in one repository, and `GET /api/maven/repositories/:repo/packages` to page or search its catalog. `GET /api/maven/repositories/:repo/package?group=...&artifact=...` returns artifact details and versions. L2 members can update descriptions and delete complete versions through the corresponding JSON endpoints.
 
 Legacy Maven repositories are indexed into the domain catalog during upgrade. Imported domains are verified but receive no automatic team members; an administrator must explicitly assign access before new publication. Configured Maven mirrors continue to resolve missing artifacts.
 

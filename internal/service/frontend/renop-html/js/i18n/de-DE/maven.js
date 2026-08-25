@@ -6,9 +6,10 @@ export default {
     "maven.createDomain": "Domain hinzufügen", "maven.createDomainSubtitle": "Reservieren Sie einen Maven-Namensraum und bestätigen Sie vor der Veröffentlichung dessen Eigentum.",
     "maven.createDomainFailed": "Maven-Domain konnte nicht hinzugefügt werden", "maven.domainCreated": "Maven-Domain hinzugefügt", "maven.verified": "Verifiziert",
     "maven.pendingVerification": "Wartet auf Eigentumsprüfung", "maven.pending": "Ausstehend", "maven.artifactCount": "{count} Artefakte", "maven.noDescription": "Keine Beschreibung vorhanden",
-    "maven.kicker": "Maven-Repository", "maven.subtitle": "Verifizierte Veröffentlichungsdomains, Artefakte, Versionen und Domain-Teams verwalten.",
+    "maven.kicker": "Maven-Repository",
+    "maven.subtitle": "Veröffentlichungsdomains und Artefakte dieses Maven-Repositorys durchsuchen.",
     "maven.totalDomains": "{count} Domains", "maven.verifiedDomains": "{count} verifiziert", "maven.totalArtifacts": "{count} Artefakte",
-    "maven.noDomains": "Es wurden noch keine Maven-Domains hinzugefügt.", "maven.noArtifacts": "Es wurden noch keine Maven-Artefakte veröffentlicht.",
+    "maven.noDomains": "In diesem Repository enthalten noch keine Veröffentlichungsdomains Artefakte.", "maven.noArtifacts": "Es wurden noch keine Maven-Artefakte veröffentlicht.",
     "maven.domainsTitle": "Veröffentlichungsdomains", "maven.artifactsTitle": "Artefakte", "maven.loadFailed": "Maven-Repository konnte nicht geladen werden",
     "maven.verifyDnsInstruction": "Erstellen Sie einen TXT-Eintrag an der Stammdomain {target} und starten Sie danach die Prüfung.",
     "maven.verifyGithubInstruction": "Fügen Sie den Prüfcode der Bio des GitHub-Benutzers oder der Beschreibung der GitHub-Organisation {target} hinzu.",
@@ -29,5 +30,13 @@ export default {
     "maven.inviteAccepted": "Einladung zur Maven-Domäne angenommen", "maven.inviteRejected": "Einladung zur Maven-Domäne abgelehnt",
     "maven.forceVerify": "Verifizierung erzwingen", "maven.forceVerifyConfirm": "{domain} ohne Prüfung des externen Nachweises als verifiziert markieren?",
     "maven.forceVerifyFailed": "Verifizierung der Maven-Domäne konnte nicht erzwungen werden", "maven.forceVerifySuccess": "Verifizierung der Maven-Domäne wurde erzwungen",
-    "maven.verifyRateLimited": "Warten Sie fünf Sekunden, bevor Sie diese Domäne erneut prüfen."
+    "maven.verifyRateLimited": "Warten Sie fünf Sekunden, bevor Sie diese Domäne erneut prüfen.",
+    "maven.domainSettings": "Domainverwaltung",
+    "maven.domainCenterTitle": "Globale Maven-Domains",
+    "maven.domainCenterSubtitle": "Eine Veröffentlichungsdomain wird einmal eingerichtet und ihr Team gilt für alle Maven-Repositorys.",
+    "maven.domainCenterHint": "Domains und Teams gelten global für diese RenoP-Instanz.",
+    "maven.noManagedDomains": "Mit deinem Konto sind keine Maven-Domains verknüpft.",
+    "maven.backToDomains": "Zurück zu den Domains",
+    "maven.inviteRequired": "Gib mindestens einen Benutzernamen ein.",
+    "maven.userNotFound": "Mindestens ein Empfänger der Maven-Einladung existiert nicht."
 };

@@ -18,8 +18,9 @@
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, upstream proxying, and sandboxed documentation extraction/viewer
   (`/cargodoc/...`).
-- **`internal/service/maven/`**: Maven domain registry with DNS/GitHub/GitLab ownership verification, cross-repository
-  proof reuse, L0-L4 domain teams, invitation workflows, catalog/version management, and legacy repository import.
+- **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
+  global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
+  automatic migration of repository-scoped legacy domains.
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
   Maven publication paths in both layouts.
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based
@@ -46,7 +47,9 @@
   interning (`unique.Make`).
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
   package-membership routes plus shared nickname-first identity components. Maven repositories use a domain catalog
-  by default and can switch to the classic file-tree presentation. The signed-in account menu owns profile
+  by default and can switch to the classic file-tree presentation. Repository catalogs list only domains containing
+  artifacts in that repository, while global Maven domain and team configuration lives in the signed-in account menu.
+  The signed-in account menu owns profile
   navigation and administrator page entry points; the settings UI groups the server, outbound-proxy, and storage APIs
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n

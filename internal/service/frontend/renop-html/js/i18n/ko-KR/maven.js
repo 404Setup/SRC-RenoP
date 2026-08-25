@@ -6,9 +6,10 @@ export default {
     "maven.createDomain": "도메인 추가", "maven.createDomainSubtitle": "Maven 게시 네임스페이스를 예약하고 게시 전에 소유권을 확인합니다.",
     "maven.createDomainFailed": "Maven 도메인을 추가하지 못했습니다", "maven.domainCreated": "Maven 도메인을 추가했습니다", "maven.verified": "확인됨",
     "maven.pendingVerification": "소유권 확인 대기 중", "maven.pending": "대기 중", "maven.artifactCount": "아티팩트 {count}개", "maven.noDescription": "설명이 없습니다",
-    "maven.kicker": "Maven 저장소", "maven.subtitle": "확인된 게시 도메인, 아티팩트, 버전 및 도메인 팀을 관리합니다.",
+    "maven.kicker": "Maven 저장소",
+    "maven.subtitle": "이 Maven 저장소에서 사용할 수 있는 게시 도메인과 아티팩트를 탐색합니다.",
     "maven.totalDomains": "도메인 {count}개", "maven.verifiedDomains": "확인됨 {count}개", "maven.totalArtifacts": "아티팩트 {count}개",
-    "maven.noDomains": "아직 Maven 도메인이 없습니다.", "maven.noArtifacts": "아직 게시된 Maven 아티팩트가 없습니다.",
+    "maven.noDomains": "이 저장소에는 아티팩트가 포함된 게시 도메인이 없습니다.", "maven.noArtifacts": "아직 게시된 Maven 아티팩트가 없습니다.",
     "maven.domainsTitle": "게시 도메인", "maven.artifactsTitle": "아티팩트", "maven.loadFailed": "Maven 저장소를 불러오지 못했습니다",
     "maven.verifyDnsInstruction": "루트 도메인 {target}에 TXT 레코드를 만든 후 확인을 시작하세요.",
     "maven.verifyGithubInstruction": "확인 코드를 GitHub 사용자 Bio 또는 GitHub 조직 {target}의 Description에 추가하세요.",
@@ -29,5 +30,13 @@ export default {
     "maven.inviteAccepted": "Maven 도메인 초대를 수락했습니다", "maven.inviteRejected": "Maven 도메인 초대를 거절했습니다",
     "maven.forceVerify": "검증 강제 승인", "maven.forceVerifyConfirm": "외부 증명을 확인하지 않고 {domain}을 검증됨으로 표시하시겠습니까?",
     "maven.forceVerifyFailed": "Maven 도메인 검증을 강제 승인하지 못했습니다", "maven.forceVerifySuccess": "Maven 도메인 검증을 강제 승인했습니다",
-    "maven.verifyRateLimited": "이 도메인을 다시 확인하려면 5초 기다리세요."
+    "maven.verifyRateLimited": "이 도메인을 다시 확인하려면 5초 기다리세요.",
+    "maven.domainSettings": "도메인 설정",
+    "maven.domainCenterTitle": "전역 Maven 도메인",
+    "maven.domainCenterSubtitle": "게시 도메인을 한 번만 설정하고 모든 Maven 저장소에서 해당 팀을 사용합니다.",
+    "maven.domainCenterHint": "도메인과 팀은 이 RenoP 인스턴스 전체에서 공유됩니다.",
+    "maven.noManagedDomains": "계정에 연결된 Maven 도메인이 없습니다.",
+    "maven.backToDomains": "도메인 목록으로",
+    "maven.inviteRequired": "사용자 이름을 하나 이상 입력하세요.",
+    "maven.userNotFound": "Maven 초대 대상 중 하나 이상이 존재하지 않습니다."
 };

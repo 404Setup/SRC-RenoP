@@ -109,7 +109,7 @@ func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *c
 		return nil, err
 	}
 	viewer := GetUser(c)
-	if viewer != nil && strings.EqualFold(viewer.Username, profile.Username) {
+	if format == config.RepositoryFormatMaven || (viewer != nil && strings.EqualFold(viewer.Username, profile.Username)) {
 		return memberships, nil
 	}
 	cfg := state.Inner.Config.Load()
@@ -136,17 +136,6 @@ func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *c
 				if member || (viewer != nil && (viewer.IsManager() || viewer.CheckUpdatePermission(membership.Repository))) {
 					visible = append(visible, membership)
 				}
-				continue
-			}
-		}
-		if format == config.RepositoryFormatMaven && viewer != nil &&
-			!strings.EqualFold(viewer.Username, "guest") {
-			allowed, err := db.HasMavenMembership(membership.Repository, viewer.Username)
-			if err != nil {
-				return nil, err
-			}
-			if allowed {
-				visible = append(visible, membership)
 				continue
 			}
 		}

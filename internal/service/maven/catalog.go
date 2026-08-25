@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/index"
 	"renop/internal/utils"
@@ -36,7 +37,7 @@ func RecordPublishedPath(state *core.AppState, repository, path, username string
 	if !ok || state == nil || state.GetDB() == nil {
 		return nil
 	}
-	domains, err := state.GetDB().ListMavenDomains(repository, username, true)
+	domains, err := state.GetDB().ListMavenDomains(username, true)
 	if err != nil {
 		return err
 	}
@@ -82,4 +83,24 @@ func ReconcileDomainCatalog(state *core.AppState, repository, domain, publisher 
 		return true
 	})
 	return reconcileErr
+}
+
+// ReconcileGlobalDomainCatalog derives catalog rows for a domain in every Maven repository.
+func ReconcileGlobalDomainCatalog(state *core.AppState, domain, publisher string) error {
+	if state == nil || state.Inner == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	for repository, repo := range cfg.Maven.Repositories {
+		if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
+			continue
+		}
+		if err := ReconcileDomainCatalog(state, repository, domain, publisher); err != nil {
+			return err
+		}
+	}
+	return nil
 }

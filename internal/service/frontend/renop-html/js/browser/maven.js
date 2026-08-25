@@ -28,6 +28,8 @@ import {
 let mavenContainer = null;
 let mavenLoadSequence = 0;
 let activeNavigate = null;
+let domainCenterBody = null;
+let domainCenterSequence = 0;
 
 /**
  * Return the persistent Maven repository view container.
@@ -88,10 +90,10 @@ function backButton(path, label) {
 
 /**
  * Open the domain creation dialog.
- * @param {string} repository
+ * @param {Function} [onCreated]
  * @returns {void}
  */
-function openCreateDomainDialog(repository) {
+function openCreateDomainDialog(onCreated) {
     const input = el('input', {
         type: 'text', class: 'profile-input', maxlength: '253', autocomplete: 'off',
         placeholder: t('maven.domainPlaceholder')
@@ -117,7 +119,7 @@ function openCreateDomainDialog(repository) {
                     const button = event.currentTarget;
                     await runButtonAction(button, async () => {
                         try {
-                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains`, {
+                            const response = await apiRequest('/api/maven/domains', {
                                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({domain})
                             });
                             if (!response.ok) {
@@ -127,7 +129,7 @@ function openCreateDomainDialog(repository) {
                             const created = await response.json();
                             dialog.close(true);
                             showAlert(t('maven.domainCreated'), 'success');
-                            activeNavigate?.(`/${encodePathSegment(repository)}/domains/${encodePathSegment(created.domain)}`);
+                            if (typeof onCreated === 'function') await onCreated(created);
                         } catch (error) {
                             showAlert(error.message || t('maven.createDomainFailed'), 'error');
                         }
@@ -143,13 +145,17 @@ function openCreateDomainDialog(repository) {
  * Build one domain catalog card.
  * @param {string} repository
  * @param {object} domain
+ * @param {Function} [onSelect]
  * @returns {HTMLElement}
  */
-function domainCard(repository, domain) {
+function domainCard(repository, domain, onSelect) {
     const status = domain.verified ? 'verified' : 'pending';
     const card = el('button', {
         type: 'button', class: `maven-domain-card is-${status}`,
-        onclick: () => activeNavigate?.(`/${encodePathSegment(repository)}/domains/${encodePathSegment(domain.domain)}`)
+        onclick: () => {
+            if (typeof onSelect === 'function') onSelect(domain);
+            else activeNavigate?.(`/${encodePathSegment(repository)}/domains/${encodePathSegment(domain.domain)}`);
+        }
     },
     el('span', {class: 'maven-domain-card-icon'}, createIcon(domain.verified ? 'success' : 'clock')),
     el('span', {class: 'maven-domain-card-main'},
@@ -188,6 +194,20 @@ function artifactCard(repository, artifact) {
 }
 
 /**
+ * Read and validate a Maven artifact page without treating request failures as an empty catalog.
+ * @param {Response} response
+ * @returns {Promise<{artifacts: object[], total: number}>}
+ */
+async function readArtifactPage(response) {
+    if (!response.ok) throw new Error(t('maven.loadFailed'));
+    const data = await response.json();
+    if (!data || !Array.isArray(data.artifacts) || !Number.isFinite(Number(data.total))) {
+        throw new Error(t('maven.loadFailed'));
+    }
+    return data;
+}
+
+/**
  * Render the Maven repository landing catalog.
  * @param {HTMLElement} container
  * @param {string} repository
@@ -202,20 +222,16 @@ async function renderCatalog(container, repository, sequence) {
             apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/packages?limit=30&offset=0`)
         ]);
         if (sequence !== mavenLoadSequence) return;
-        if (!domainResponse.ok || !artifactResponse.ok) throw new Error(t('maven.loadFailed'));
+        if (!domainResponse.ok) throw new Error(t('maven.loadFailed'));
         const domainData = await domainResponse.json();
-        const artifactData = await artifactResponse.json();
+        const artifactData = await readArtifactPage(artifactResponse);
         const domains = Array.isArray(domainData.domains) ? domainData.domains : [];
         const artifacts = Array.isArray(artifactData.artifacts) ? artifactData.artifacts : [];
         const verifiedCount = domains.filter(domain => domain.verified).length;
-        const addButton = cachedIsLoggedIn ? el('button', {
-            type: 'button', class: 'pill-btn pill-btn--primary', onclick: () => openCreateDomainDialog(repository)
-        }, createIcon('plus'), el('span', {}, t('maven.createDomain'))) : null;
         const hero = el('section', {class: 'maven-hero'},
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.kicker')),
-                    el('h2', {}, createIcon('fileJava'), el('span', {}, repository))),
-                addButton
+                    el('h2', {}, createIcon('fileJava'), el('span', {}, repository)))
             ),
             el('p', {}, t('maven.subtitle')),
             el('div', {class: 'maven-stats'},
@@ -277,17 +293,15 @@ function verificationPanel(domain) {
 
 /**
  * Render domain team controls.
- * @param {HTMLElement} container
- * @param {string} repository
  * @param {object} details
- * @param {number} sequence
+ * @param {Function} refresh
  * @returns {HTMLElement|null}
  */
-function teamPanel(container, repository, details, sequence) {
+function teamPanel(details, refresh) {
     const members = Array.isArray(details.members) ? details.members : [];
-    if (members.length === 0) return null;
-    const level = Number(details.domain.permission_level) || 0;
     const administrator = Boolean(details.administrator);
+    if (members.length === 0 && !administrator) return null;
+    const level = Number(details.domain.permission_level) || 0;
     const canManage = administrator || level >= 3;
     const canTransfer = administrator || level === 4;
     const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
@@ -302,11 +316,11 @@ function teamPanel(container, repository, details, sequence) {
                     .concat(canTransfer ? [{value: '4', label: permissionLabel(4)}] : []),
                 String(memberLevel),
                 async value => {
-                    const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {
+                    const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {
                         method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level: Number(value)})
                     });
                     if (!response.ok) showAlert(await response.text() || t('maven.updateMemberFailed'), 'error');
-                    else await renderDomain(container, repository, details.domain.domain, sequence);
+                    else await refresh();
                 }
             );
             selector.classList.add('maven-level-select');
@@ -319,9 +333,9 @@ function teamPanel(container, repository, details, sequence) {
                 type: 'button', class: 'maven-icon-btn is-danger', title: isSelf ? t('team.leave') : t('common.delete'),
                 onclick: async () => {
                     if (!(await showConfirm(isSelf ? t('maven.leaveConfirm') : t('maven.removeMemberConfirm', {name: member.username})))) return;
-                    const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {method: 'DELETE'});
+                    const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {method: 'DELETE'});
                     if (!response.ok) showAlert(await response.text() || t('maven.removeMemberFailed'), 'error');
-                    else await renderDomain(container, repository, details.domain.domain, sequence);
+                    else await refresh();
                 }
             }, createIcon('delete')));
         }
@@ -343,17 +357,26 @@ function teamPanel(container, repository, details, sequence) {
             class: 'maven-invite-form', onsubmit: async event => {
                 event.preventDefault();
                 const users = input.value.split(/[\s,]+/).map(value => value.trim()).filter(Boolean);
-                if (users.length === 0) return;
+                if (users.length === 0) {
+                    showAlert(t('maven.inviteRequired'), 'error');
+                    input.focus();
+                    return;
+                }
                 submit.disabled = true;
                 try {
-                    const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(details.domain.domain)}/members`, {
+                    const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members`, {
                         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({users, level: inviteLevel})
                     });
-                    if (!response.ok) showAlert(await response.text() || t('maven.inviteFailed'), 'error');
+                    if (!response.ok) {
+                        const errorCode = response.headers.get('X-RenoP-Error-Code');
+                        showAlert(errorCode === 'MAVEN_USER_NOT_FOUND'
+                            ? t('maven.userNotFound')
+                            : (await response.text() || t('maven.inviteFailed')), 'error');
+                    }
                     else {
                         input.value = '';
                         showAlert(t('maven.inviteSent'), 'success');
-                        await renderDomain(container, repository, details.domain.domain, sequence);
+                        await refresh();
                     }
                 } catch (error) {
                     console.error('Failed to invite Maven domain members', error);
@@ -368,6 +391,161 @@ function teamPanel(container, repository, details, sequence) {
 }
 
 /**
+ * Render the global Maven domain-management list.
+ * @param {HTMLElement} container
+ * @returns {Promise<void>}
+ */
+async function renderDomainCenterList(container) {
+    const sequence = ++domainCenterSequence;
+    container.setAttribute('aria-busy', 'true');
+    container.replaceChildren(createSkeleton('list', 3));
+    try {
+        const response = await apiRequest('/api/maven/domains');
+        if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        if (!response.ok) throw new Error(await response.text() || t('maven.loadFailed'));
+        const payload = await response.json();
+        const domains = (Array.isArray(payload.domains) ? payload.domains : [])
+            .filter(domain => domain?.member || cachedIsManager);
+        const createButton = el('button', {
+            type: 'button', class: 'pill-btn pill-btn--primary',
+            onclick: () => openCreateDomainDialog(created => renderManagedDomain(container, created.domain))
+        }, createIcon('plus'), el('span', {}, t('maven.createDomain')));
+        const header = el('div', {class: 'maven-domain-center-toolbar'},
+            el('div', {},
+                el('h3', {}, t('maven.domainSettings')),
+                el('p', {}, t('maven.domainCenterHint'))
+            ),
+            createButton
+        );
+        const list = el('div', {class: 'maven-domain-list'});
+        if (domains.length === 0) {
+            list.appendChild(el('div', {class: 'maven-empty'}, createIcon('network'), el('span', {}, t('maven.noManagedDomains'))));
+        } else {
+            domains.forEach(domain => list.appendChild(domainCard('', domain, selected => {
+                void renderManagedDomain(container, selected.domain);
+            })));
+        }
+        container.replaceChildren(header, list);
+    } catch (error) {
+        if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        container.replaceChildren(el('div', {class: 'maven-error'}, createIcon('alertCircle'),
+            el('span', {}, error.message || t('maven.loadFailed'))));
+    } finally {
+        if (sequence === domainCenterSequence) container.removeAttribute('aria-busy');
+    }
+}
+
+/**
+ * Render one globally managed Maven domain.
+ * @param {HTMLElement} container
+ * @param {string} domainName
+ * @returns {Promise<void>}
+ */
+async function renderManagedDomain(container, domainName) {
+    const sequence = ++domainCenterSequence;
+    container.setAttribute('aria-busy', 'true');
+    container.replaceChildren(createSkeleton('form', 2));
+    const refresh = () => renderManagedDomain(container, domainName);
+    try {
+        const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(domainName)}`);
+        if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        if (!response.ok) throw new Error(await response.text() || t('maven.domainLoadFailed'));
+        const details = await response.json();
+        const domain = details.domain;
+        const canOwn = details.administrator || Number(domain.permission_level) === 4;
+        const actions = el('div', {class: 'maven-domain-actions'});
+        if (!domain.verified && canOwn && domain.verification_code) {
+            actions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--primary', onclick: async event => {
+                    await runButtonAction(event.currentTarget, async () => {
+                        const verifyResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/verify`, {method: 'POST'});
+                        if (!verifyResponse.ok) {
+                            showAlert(t(verifyResponse.status === 429 ? 'maven.verifyRateLimited' : 'maven.verifyFailed'), 'error');
+                            return;
+                        }
+                        showAlert(t('maven.verifySuccess'), 'success');
+                        await refresh();
+                    });
+                }
+            }, createIcon('check'), el('span', {}, t('maven.verifyNow'))));
+        }
+        if (!domain.verified && cachedIsManager && domain.verification_code) {
+            actions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--soft', onclick: async event => {
+                    if (!(await showConfirm(t('maven.forceVerifyConfirm', {domain: domain.domain})))) return;
+                    await runButtonAction(event.currentTarget, async () => {
+                        const verifyResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/verify/force`, {method: 'POST'});
+                        if (!verifyResponse.ok) showAlert(await verifyResponse.text() || t('maven.forceVerifyFailed'), 'error');
+                        else {
+                            showAlert(t('maven.forceVerifySuccess'), 'success');
+                            await refresh();
+                        }
+                    });
+                }
+            }, createIcon('warning'), el('span', {}, t('maven.forceVerify'))));
+        }
+        if (canOwn && Number(domain.artifact_count) === 0) {
+            actions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--ghost-danger', onclick: async () => {
+                    if (!(await showConfirm(t('maven.deleteDomainConfirm', {domain: domain.domain})))) return;
+                    const deleteResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}`, {method: 'DELETE'});
+                    if (!deleteResponse.ok) showAlert(await deleteResponse.text() || t('maven.deleteDomainFailed'), 'error');
+                    else await renderDomainCenterList(container);
+                }
+            }, createIcon('delete'), el('span', {}, t('maven.deleteDomain'))));
+        }
+        const back = el('button', {
+            type: 'button', class: 'maven-back-btn', onclick: () => { void renderDomainCenterList(container); }
+        }, createIcon('chevronLeft'), el('span', {}, t('maven.backToDomains')));
+        const hero = el('section', {class: 'maven-hero'}, back,
+            el('div', {class: 'maven-hero-heading'},
+                el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.domainKicker')),
+                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain))),
+                actions
+            ),
+            el('div', {class: 'maven-stats'},
+                el('span', {class: `maven-status-badge is-${domain.verified ? 'verified' : 'pending'}`}, domain.verified ? t('maven.verified') : t('maven.pending')),
+                domain.member ? el('span', {class: 'maven-permission-badge'}, permissionLabel(domain.permission_level)) : null,
+                el('span', {}, t('maven.artifactCount', {count: Number(domain.artifact_count) || 0})),
+                domain.verified_at ? el('span', {}, t('maven.verifiedAt', {date: formatDate(domain.verified_at)})) : null
+            ),
+            !domain.verified ? verificationPanel(domain) : null
+        );
+        const team = teamPanel(details, refresh);
+        container.replaceChildren(...[hero, team].filter(Boolean));
+    } catch (error) {
+        if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        container.replaceChildren(
+            el('button', {type: 'button', class: 'maven-back-btn', onclick: () => { void renderDomainCenterList(container); }},
+                createIcon('chevronLeft'), el('span', {}, t('maven.backToDomains'))),
+            el('div', {class: 'maven-error'}, error.message || t('maven.domainLoadFailed'))
+        );
+    } finally {
+        if (sequence === domainCenterSequence) container.removeAttribute('aria-busy');
+    }
+}
+
+/**
+ * Open global Maven domain configuration from the account menu.
+ * @returns {void}
+ */
+export function openMavenDomainCenter() {
+    if (!cachedIsLoggedIn) return;
+    const body = el('div', {class: 'maven-domain-center'});
+    domainCenterBody = body;
+    void RenopDialog.show({
+        id: 'maven-domain-center-dialog', className: 'maven-domain-center-dialog', maxWidth: '960px',
+        icon: 'network', title: t('maven.domainCenterTitle'), subtitle: t('maven.domainCenterSubtitle'),
+        body, bodyClass: 'modal-body maven-domain-center-body',
+        onClose: () => {
+            domainCenterSequence++;
+            if (domainCenterBody === body) domainCenterBody = null;
+        }
+    });
+    void renderDomainCenterList(body);
+}
+
+/**
  * Render one Maven domain and its team/catalog.
  * @param {HTMLElement} container
  * @param {string} repository
@@ -379,90 +557,32 @@ async function renderDomain(container, repository, domainName, sequence) {
     container.classList.add('is-updating');
     try {
         const [domainResponse, artifactsResponse] = await Promise.all([
-            apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domainName)}`),
+            apiRequest(`/api/maven/domains/${encodeURIComponent(domainName)}`),
             apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/packages?domain=${encodeURIComponent(domainName)}&limit=50&offset=0`)
         ]);
         if (sequence !== mavenLoadSequence) return;
         if (!domainResponse.ok) throw new Error(await domainResponse.text() || t('maven.domainLoadFailed'));
         const details = await domainResponse.json();
-        const artifactData = artifactsResponse.ok ? await artifactsResponse.json() : {artifacts: []};
+        const artifactData = await readArtifactPage(artifactsResponse);
         const domain = details.domain;
-        const canOwn = details.administrator || Number(domain.permission_level) === 4;
-        const actions = el('div', {class: 'maven-domain-actions'});
-        if (!domain.verified && canOwn && domain.verification_code) {
-            actions.appendChild(el('button', {
-                type: 'button', class: 'pill-btn pill-btn--primary', onclick: async event => {
-                    const button = event.currentTarget;
-                    await runButtonAction(button, async () => {
-                        try {
-                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domain.domain)}/verify`, {method: 'POST'});
-                            if (!response.ok) {
-                                showAlert(t(response.status === 429 ? 'maven.verifyRateLimited' : 'maven.verifyFailed'), 'error');
-                            } else {
-                                showAlert(t('maven.verifySuccess'), 'success');
-                                await renderDomain(container, repository, domain.domain, sequence);
-                            }
-                        } catch (error) {
-                            console.error('Failed to verify Maven domain', error);
-                            showAlert(t('maven.verifyFailed'), 'error');
-                        }
-                    });
-                }
-            }, createIcon('check'), el('span', {}, t('maven.verifyNow'))));
-        }
-        if (!domain.verified && cachedIsManager && domain.verification_code) {
-            actions.appendChild(el('button', {
-                type: 'button', class: 'pill-btn pill-btn--soft', onclick: async event => {
-                    const button = event.currentTarget;
-                    if (!(await showConfirm(t('maven.forceVerifyConfirm', {domain: domain.domain})))) return;
-                    await runButtonAction(button, async () => {
-                        try {
-                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domain.domain)}/verify/force`, {method: 'POST'});
-                            if (!response.ok) showAlert(await response.text() || t('maven.forceVerifyFailed'), 'error');
-                            else {
-                                showAlert(t('maven.forceVerifySuccess'), 'success');
-                                await renderDomain(container, repository, domain.domain, sequence);
-                            }
-                        } catch (error) {
-                            console.error('Failed to force Maven domain verification', error);
-                            showAlert(t('maven.forceVerifyFailed'), 'error');
-                        }
-                    });
-                }
-            }, createIcon('warning'), el('span', {}, t('maven.forceVerify'))));
-        }
-        if (canOwn && Number(domain.artifact_count) === 0) {
-            actions.appendChild(el('button', {
-                type: 'button', class: 'pill-btn pill-btn--ghost-danger', onclick: async () => {
-                    if (!(await showConfirm(t('maven.deleteDomainConfirm', {domain: domain.domain})))) return;
-                    const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domain.domain)}`, {method: 'DELETE'});
-                    if (!response.ok) showAlert(await response.text() || t('maven.deleteDomainFailed'), 'error');
-                    else activeNavigate?.(`/${encodePathSegment(repository)}`);
-                }
-            }, createIcon('delete'), el('span', {}, t('maven.deleteDomain'))));
-        }
         const hero = el('section', {class: 'maven-hero'},
             backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.domainKicker')),
-                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain))),
-                actions
+                    el('h2', {}, createIcon('network'), el('span', {}, domain.domain)))
             ),
             el('div', {class: 'maven-stats'},
                 el('span', {class: `maven-status-badge is-${domain.verified ? 'verified' : 'pending'}`}, domain.verified ? t('maven.verified') : t('maven.pending')),
                 Number(domain.permission_level) > 0 ? el('span', {class: 'maven-permission-badge'}, permissionLabel(domain.permission_level)) : null,
-                el('span', {}, t('maven.artifactCount', {count: Number(domain.artifact_count) || 0})),
+                el('span', {}, t('maven.artifactCount', {count: Number(artifactData.total) || 0})),
                 domain.verified_at ? el('span', {}, t('maven.verifiedAt', {date: formatDate(domain.verified_at)})) : null
-            ),
-            !domain.verified ? verificationPanel(domain) : null
+            )
         );
         const artifacts = Array.isArray(artifactData.artifacts) ? artifactData.artifacts : [];
         const artifactList = el('div', {class: 'maven-artifact-list'});
         if (artifacts.length === 0) artifactList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noDomainArtifacts')));
         else artifacts.forEach(artifact => artifactList.appendChild(artifactCard(repository, artifact)));
         const sections = [hero, el('section', {class: 'maven-section'}, el('h3', {}, t('maven.artifactsTitle')), artifactList)];
-        const team = teamPanel(container, repository, details, sequence);
-        if (team) sections.push(team);
         await replaceRepositoryView(container, sections, {duration: 280, enter: false});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;

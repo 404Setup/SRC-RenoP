@@ -26,26 +26,19 @@ import (
 	"renop/internal/database"
 )
 
-func TestPostgresUserProfileIntegration(t *testing.T) {
+func newPostgresTestSchema(t *testing.T, prefix string) (string, *sql.DB, string) {
+	t.Helper()
 	dsn := os.Getenv("RENOP_TEST_POSTGRES_DSN")
 	if dsn == "" {
 		t.Skip("RENOP_TEST_POSTGRES_DSN is not configured")
 	}
 	parsed, err := url.Parse(dsn)
 	require.NoError(t, err)
-	schema := fmt.Sprintf("renop_profile_test_%d", time.Now().UnixNano())
+	schema := fmt.Sprintf("%s_%d", prefix, time.Now().UnixNano())
 	admin, err := sql.Open("pgx", dsn)
 	require.NoError(t, err)
 	require.NoError(t, admin.Ping())
 	_, err = admin.Exec(`CREATE SCHEMA "` + schema + `"`)
-	require.NoError(t, err)
-	_, err = admin.Exec(`CREATE TABLE "` + schema + `".user_profiles (
-		username VARCHAR(255) PRIMARY KEY,
-		nickname VARCHAR(144) NOT NULL DEFAULT '',
-		rename_window_started_at BIGINT NOT NULL DEFAULT 0,
-		rename_count INT NOT NULL DEFAULT 0,
-		updated_at BIGINT NOT NULL DEFAULT 0
-	)`)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, dropErr := admin.Exec(`DROP SCHEMA "` + schema + `" CASCADE`)
@@ -55,8 +48,21 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	query := parsed.Query()
 	query.Set("search_path", schema)
 	parsed.RawQuery = query.Encode()
+	return parsed.String(), admin, schema
+}
+
+func TestPostgresUserProfileIntegration(t *testing.T) {
+	dsn, admin, schema := newPostgresTestSchema(t, "renop_profile_test")
+	_, err := admin.Exec(`CREATE TABLE "` + schema + `".user_profiles (
+		username VARCHAR(255) PRIMARY KEY,
+		nickname VARCHAR(144) NOT NULL DEFAULT '',
+		rename_window_started_at BIGINT NOT NULL DEFAULT 0,
+		rename_count INT NOT NULL DEFAULT 0,
+		updated_at BIGINT NOT NULL DEFAULT 0
+	)`)
+	require.NoError(t, err)
 	db, err := database.InitDB(config.DatabaseConfig{
-		Driver: "postgres", Dsn: parsed.String(), MaxOpenConns: 2, MaxIdleConns: 1,
+		Driver: "postgres", Dsn: dsn, MaxOpenConns: 2, MaxIdleConns: 1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -110,4 +116,62 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, dockerMemberships, 1)
 	require.Equal(t, "profile/pg", dockerMemberships[0].Name)
+}
+
+func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
+	dsn, _, _ := newPostgresTestSchema(t, "renop_maven_global_test")
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "postgres", Dsn: dsn, MaxOpenConns: 2, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	for _, username := range []string{"maven_alice", "maven_bob"} {
+		require.NoError(t, db.SaveToken(&core.AccessToken{Name: username, CreatedAt: time.Now().UTC().Format(time.RFC3339)}))
+	}
+	alice, err := db.GetUserProfile("maven_alice")
+	require.NoError(t, err)
+	bob, err := db.GetUserProfile("maven_bob")
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO maven_domains
+		(repository, domain, verification_type, verification_host, verification_code, verified, created_at, verified_at, last_check_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		"releases", "com.example", "dns", "example.com", "pending", 0, 100, 0, 100,
+		"snapshots", "com.example", "dns", "example.com", "verified", 1, 200, 210, 220)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO maven_domain_members
+		(repository, domain, username, user_id, permission_level, added_at)
+		VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)`,
+		"releases", "com.example", "maven_alice", alice.UserID, core.MavenPermissionOwner, 100,
+		"snapshots", "com.example", "maven_bob", bob.UserID, core.MavenPermissionOwner, 50)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	db, err = database.InitDB(config.DatabaseConfig{
+		Driver: "postgres", Dsn: dsn, MaxOpenConns: 2, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	details, err := db.GetMavenDomainDetails("com.example", "maven_bob")
+	require.NoError(t, err)
+	require.True(t, details.Domain.Verified)
+	require.Equal(t, "verified", details.Domain.VerificationCode)
+	levels := make(map[string]int)
+	for _, member := range details.Members {
+		levels[member.Username] = member.Level
+	}
+	require.Equal(t, core.MavenPermissionOwner, levels["maven_bob"])
+	require.Equal(t, core.MavenPermissionManage, levels["maven_alice"])
+	const publishedAt int64 = 1_800_000_200_000
+	require.NoError(t, db.RecordMavenPublication(&core.MavenArtifact{
+		Repository: "releases", Domain: "com.example", GroupID: "com.example",
+		ArtifactID: "postgres-demo", Publisher: "maven_bob", LatestVersion: "1.0.0",
+		CreatedAt: publishedAt, UpdatedAt: publishedAt,
+	}, &core.MavenVersion{
+		Repository: "releases", GroupID: "com.example", ArtifactID: "postgres-demo",
+		Version: "1.0.0", Publisher: "maven_bob", CreatedAt: publishedAt,
+	}))
+	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "maven_bob")
+	require.NoError(t, err)
+	require.Len(t, repositoryDomains, 1)
+	require.Equal(t, "com.example", repositoryDomains[0].Domain)
+	require.Equal(t, 1, repositoryDomains[0].ArtifactCount)
 }

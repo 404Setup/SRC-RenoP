@@ -32,7 +32,7 @@ type levelRequest struct {
 }
 
 func listMembers(c fiber.Ctx, state *core.AppState) error {
-	_, _, details, err := authorizedDomain(c, state, core.MavenPermissionPublish)
+	_, details, err := authorizedDomain(c, state, core.MavenPermissionPublish)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -41,7 +41,7 @@ func listMembers(c fiber.Ctx, state *core.AppState) error {
 }
 
 func inviteMembers(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionManage)
+	user, details, err := authorizedDomain(c, state, core.MavenPermissionManage)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -59,11 +59,11 @@ func inviteMembers(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Maven L4 ownership can only be offered to one member")
 	}
 	if details.Administrator {
-		if err := state.GetDB().ForceAddMavenMembers(repo.Name, details.Domain.Domain, user.Username, request.Users, request.Level); err != nil {
+		if err := state.GetDB().ForceAddMavenMembers(details.Domain.Domain, user.Username, request.Users, request.Level); err != nil {
 			return apiError(c, err)
 		}
-		logAudit(c, state, "MAVEN_TEAM_ADD", fmt.Sprintf("Repository: %s, domain: %s, members: %d, level: L%d",
-			repo.Name, details.Domain.Domain, len(request.Users), request.Level))
+		logAudit(c, state, "MAVEN_TEAM_ADD", fmt.Sprintf("Domain: %s, members: %d, level: L%d",
+			details.Domain.Domain, len(request.Users), request.Level))
 		return c.JSON(fiber.Map{"ok": true, "added": len(request.Users)})
 	}
 	now := time.Now().UnixMilli()
@@ -80,17 +80,17 @@ func inviteMembers(c fiber.Ctx, state *core.AppState) error {
 		}
 		seen[recipient] = struct{}{}
 		if state.GetTokenByName(recipient) == nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Maven invitation recipient does not exist")
+			return apiError(c, core.ErrUserProfileNotFound)
 		}
 		id := uuid.NewString()
 		payload, err := json.Marshal(map[string]any{
-			"repository": repo.Name, "domain": details.Domain.Domain, "inviter": user.Username, "level": request.Level,
+			"domain": details.Domain.Domain, "inviter": user.Username, "level": request.Level,
 		})
 		if err != nil {
 			return apiError(c, err)
 		}
 		invitations = append(invitations, &core.MavenInvitation{
-			ID: id, Repository: repo.Name, Domain: details.Domain.Domain, Inviter: user.Username,
+			ID: id, Domain: details.Domain.Domain, Inviter: user.Username,
 			Recipient: recipient, Level: request.Level, CreatedAt: now,
 		})
 		messages = append(messages, &core.UserMessage{
@@ -99,7 +99,7 @@ func inviteMembers(c fiber.Ctx, state *core.AppState) error {
 			Body:    fmt.Sprintf("%s invited you to Maven domain %s with L%d permission.", user.Username, details.Domain.Domain, request.Level),
 			Payload: payload, ActionKind: "maven_domain_invite", ActionStatus: core.MessageActionPending,
 			CreatedAt: now, ExpiresAt: now + 7*24*3600*1000,
-			DedupeKey: fmt.Sprintf("maven:%s:%s:%s", repo.Name, details.Domain.Domain, recipient),
+			DedupeKey: fmt.Sprintf("maven:%s:%s", details.Domain.Domain, recipient),
 		})
 	}
 	if len(invitations) == 0 {
@@ -108,8 +108,8 @@ func inviteMembers(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().CreateMavenInvitations(invitations, messages); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_INVITE", fmt.Sprintf("Repository: %s, domain: %s, recipients: %d, level: L%d",
-		repo.Name, details.Domain.Domain, len(invitations), request.Level))
+	logAudit(c, state, "MAVEN_TEAM_INVITE", fmt.Sprintf("Domain: %s, recipients: %d, level: L%d",
+		details.Domain.Domain, len(invitations), request.Level))
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"ok": true, "invited": len(invitations)})
 }
 
@@ -129,7 +129,7 @@ func resolveMemberReference(state *core.AppState, reference string) (string, err
 }
 
 func setMemberLevel(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionManage)
+	user, details, err := authorizedDomain(c, state, core.MavenPermissionManage)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -147,16 +147,16 @@ func setMemberLevel(c fiber.Ctx, state *core.AppState) error {
 		details.Domain.PermissionLevel == core.MavenPermissionOwner && !strings.EqualFold(target, user.Username)) {
 		actor = ""
 	}
-	if err := state.GetDB().SetMavenMemberLevel(repo.Name, details.Domain.Domain, actor, target, request.Level); err != nil {
+	if err := state.GetDB().SetMavenMemberLevel(details.Domain.Domain, actor, target, request.Level); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_LEVEL", fmt.Sprintf("Repository: %s, domain: %s, member: %s, level: L%d",
-		repo.Name, details.Domain.Domain, target, request.Level))
+	logAudit(c, state, "MAVEN_TEAM_LEVEL", fmt.Sprintf("Domain: %s, member: %s, level: L%d",
+		details.Domain.Domain, target, request.Level))
 	return c.JSON(fiber.Map{"ok": true})
 }
 
 func removeMember(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionRead)
+	user, details, err := authorizedDomain(c, state, core.MavenPermissionRead)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -172,19 +172,15 @@ func removeMember(c fiber.Ctx, state *core.AppState) error {
 	if details.Administrator && !isSelf {
 		actor = ""
 	}
-	if err := state.GetDB().RemoveMavenMember(repo.Name, details.Domain.Domain, actor, target); err != nil {
+	if err := state.GetDB().RemoveMavenMember(details.Domain.Domain, actor, target); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_REMOVE", fmt.Sprintf("Repository: %s, domain: %s, member: %s",
-		repo.Name, details.Domain.Domain, target))
+	logAudit(c, state, "MAVEN_TEAM_REMOVE", fmt.Sprintf("Domain: %s, member: %s",
+		details.Domain.Domain, target))
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func respondInvitation(c fiber.Ctx, state *core.AppState) error {
-	repo, err := repository(c, state)
-	if err != nil {
-		return apiError(c, err)
-	}
 	user, err := authenticated(c)
 	if err != nil {
 		return apiError(c, err)
@@ -197,9 +193,9 @@ func respondInvitation(c fiber.Ctx, state *core.AppState) error {
 	if uuid.Validate(id) != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid Maven invitation ID")
 	}
-	if err := state.GetDB().RespondMavenInvitation(id, user.Username, repo.Name, decision == "accept", time.Now().UnixMilli()); err != nil {
+	if err := state.GetDB().RespondMavenInvitation(id, user.Username, decision == "accept", time.Now().UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_INVITATION", fmt.Sprintf("Repository: %s, invitation: %s, decision: %s", repo.Name, id, decision))
+	logAudit(c, state, "MAVEN_TEAM_INVITATION", fmt.Sprintf("Invitation: %s, decision: %s", id, decision))
 	return c.JSON(fiber.Map{"ok": true})
 }

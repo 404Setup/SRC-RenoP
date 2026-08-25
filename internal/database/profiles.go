@@ -50,7 +50,9 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 	profile := &core.UserProfile{}
 	err := db.QueryRow(`SELECT p.user_id, p.username, t.created_at, p.nickname,
 		p.rename_window_started_at, p.rename_count,
-		(SELECT COUNT(*) FROM maven_domain_members mm WHERE mm.user_id = p.user_id),
+		(SELECT COUNT(*) FROM maven_domain_members mm JOIN maven_domains md
+			ON md.repository = mm.repository AND md.domain = mm.domain
+			WHERE mm.user_id = p.user_id AND md.repository = '' AND md.verified = 1),
 		(SELECT COUNT(*) FROM cargo_members cm WHERE cm.user_id = p.user_id),
 		(SELECT COUNT(*) FROM docker_members dm WHERE dm.user_id = p.user_id)
 		FROM user_profiles p JOIN tokens t ON t.name = p.username WHERE `+whereClause, value).Scan(
@@ -80,9 +82,9 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 	var query string
 	switch format {
 	case "maven":
-		query = `SELECT d.repository, d.domain, '', m.permission_level, 0
+		query = `SELECT '', d.domain, '', m.permission_level, 0
 			FROM maven_domain_members m JOIN maven_domains d ON d.repository = m.repository
-			AND d.domain = m.domain WHERE m.user_id = ? ORDER BY d.repository, d.domain`
+			AND d.domain = m.domain WHERE m.user_id = ? AND d.repository = '' AND d.verified = 1 ORDER BY d.domain`
 	case "cargo":
 		query = `SELECT p.repository, p.package_name, p.description, m.permission_level, p.archived
 			FROM cargo_members m JOIN cargo_packages p ON p.repository = m.repository
@@ -276,6 +278,21 @@ func (db *DB) userIDForUsername(username string) (string, error) {
 	return userID, nil
 }
 
+func (db *DB) userIDForExistingAccount(username string) (string, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	if username == "" {
+		return "", core.ErrUserProfileNotFound
+	}
+	var userID string
+	if err := db.QueryRow(`SELECT p.user_id FROM user_profiles p JOIN tokens t ON t.name = p.username
+		WHERE p.username = ?`, username).Scan(&userID); errors.Is(err, sql.ErrNoRows) {
+		return "", core.ErrUserProfileNotFound
+	} else if err != nil {
+		return "", fmt.Errorf("resolve existing account ID for %s: %w", username, err)
+	}
+	return userID, nil
+}
+
 func userIDForUsernameTx(tx *Tx, username string) (string, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
 	var userID string
@@ -393,6 +410,7 @@ func (db *DB) initializeUserIdentities() error {
 		`CREATE UNIQUE INDEX uq_maven_members_user_id ON maven_domain_members(repository, domain, user_id)`,
 		`CREATE INDEX idx_maven_members_user ON maven_domain_members(user_id, repository)`,
 		`CREATE INDEX idx_maven_artifacts_domain ON maven_artifacts(repository, domain, group_id, artifact_id)`,
+		`CREATE INDEX idx_maven_artifacts_global_domain ON maven_artifacts(domain, repository)`,
 		`CREATE INDEX idx_maven_versions_artifact ON maven_versions(repository, group_id, artifact_id, created_at)`,
 		`CREATE INDEX idx_maven_invitations_recipient ON maven_domain_invitations(recipient, created_at)`,
 		`CREATE UNIQUE INDEX uq_cargo_members_user_id ON cargo_members(repository, normalized_name, user_id)`,
