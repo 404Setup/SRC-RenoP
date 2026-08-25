@@ -68,16 +68,13 @@ type CargoPackage struct {
 
 // CargoVersion tracks local versions and the origin of yank state.
 type CargoVersion struct {
+	Features      map[string][]string `json:"features,omitempty"`
+	Links         *string             `json:"links,omitempty"`
 	Repository    string              `json:"-"`
 	Package       string              `json:"-"`
 	Version       string              `json:"version"`
 	Description   string              `json:"description,omitempty"`
 	Publisher     string              `json:"publisher"`
-	Yanked        bool                `json:"yanked"`
-	AdminYanked   bool                `json:"admin_yanked"`
-	ArchiveYanked bool                `json:"-"`
-	CreatedAt     int64               `json:"created_at"`
-	Size          int64               `json:"size,omitempty"`
 	Checksum      string              `json:"checksum,omitempty"`
 	RustVersion   string              `json:"rust_version,omitempty"`
 	License       string              `json:"license,omitempty"`
@@ -85,8 +82,11 @@ type CargoVersion struct {
 	Homepage      string              `json:"homepage,omitempty"`
 	RepositoryURL string              `json:"repository_url,omitempty"`
 	Deps          []CargoDependency   `json:"deps,omitempty"`
-	Features      map[string][]string `json:"features,omitempty"`
-	Links         *string             `json:"links,omitempty"`
+	CreatedAt     int64               `json:"created_at"`
+	Size          int64               `json:"size,omitempty"`
+	Yanked        bool                `json:"yanked"`
+	AdminYanked   bool                `json:"admin_yanked"`
+	ArchiveYanked bool                `json:"-"`
 	HasDocs       bool                `json:"has_docs,omitempty"`
 }
 

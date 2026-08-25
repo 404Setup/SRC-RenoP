@@ -18,7 +18,7 @@ export { RenopBadge, createBadge } from './components/badge.js';
 export { RenopCallout, createCallout } from './components/callout.js';
 export { RenopSkeleton, createSkeleton } from './components/skeleton.js';
 export { RenopStatCard, createStatCard } from './components/stat-card.js';
-export { createButton } from './components/button.js';
+export {createButton, runButtonAction} from './components/button.js';
 export { RenopSection } from './components/section.js';
 export { RenopSubHeader, createSubHeader } from './components/sub-header.js';
 export { RenopCard, createIndexCard } from './components/card.js';

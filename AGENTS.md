@@ -47,7 +47,8 @@
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n
   catalogs, including dedicated profile fragments, live under `js/i18n/<locale>/` and are compiled via
-  `pnpm run build:frontend`.
+  `pnpm run build:frontend`. Shared asynchronous actions use the button-state helper exported by
+  `js/components/button.js`, which restores controls after both successful and failed requests.
 
 ---
 

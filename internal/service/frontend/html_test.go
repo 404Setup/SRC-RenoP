@@ -140,6 +140,36 @@ func TestProfileUIKeepsStableIDsHiddenAndCentralizesHistoryRouting(t *testing.T)
 	}
 }
 
+func TestRegistryAsyncActionsRestoreInitiatingButtons(t *testing.T) {
+	buttonSource, err := os.ReadFile(filepath.Join("renop-html", "js", "components", "button.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	buttonText := string(buttonSource)
+	for _, required := range []string{"export async function runButtonAction", "button.disabled = true", "button.disabled = false"} {
+		if !strings.Contains(buttonText, required) {
+			t.Fatalf("button action helper is missing %q", required)
+		}
+	}
+
+	for _, sourcePath := range []string{
+		filepath.Join("renop-html", "js", "browser", "docker.js"),
+		filepath.Join("renop-html", "js", "browser", "maven.js"),
+	} {
+		source, readErr := os.ReadFile(sourcePath)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		text := string(source)
+		if strings.Contains(text, "currentTarget.disabled") {
+			t.Fatalf("%s accesses transient event.currentTarget after an asynchronous action", sourcePath)
+		}
+		if !strings.Contains(text, "runButtonAction") {
+			t.Fatalf("%s does not use the shared asynchronous button action", sourcePath)
+		}
+	}
+}
+
 func TestAssetsHashStableAndNonEmpty(t *testing.T) {
 	h1 := GetAssetsHash()
 	h2 := GetAssetsHash()

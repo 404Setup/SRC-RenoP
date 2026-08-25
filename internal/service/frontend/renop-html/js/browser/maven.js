@@ -14,7 +14,7 @@ import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {cachedIsLoggedIn, cachedIsManager} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
-import {createIcon, createSkeleton, createUserIdentity, RenopDialog} from '../components.js';
+import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {t} from '../i18n.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -115,24 +115,24 @@ function openCreateDomainDialog(repository) {
                         input.focus();
                         return;
                     }
-                    event.currentTarget.disabled = true;
-                    try {
-                        const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains`, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({domain})
-                        });
-                        if (!response.ok) {
-                            showAlert(await response.text() || t('maven.createDomainFailed'), 'error');
-                            return;
+                    const button = event.currentTarget;
+                    await runButtonAction(button, async () => {
+                        try {
+                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains`, {
+                                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({domain})
+                            });
+                            if (!response.ok) {
+                                showAlert(await response.text() || t('maven.createDomainFailed'), 'error');
+                                return;
+                            }
+                            const created = await response.json();
+                            dialog.close(true);
+                            showAlert(t('maven.domainCreated'), 'success');
+                            activeNavigate?.(`/${encodePathSegment(repository)}/domains/${encodePathSegment(created.domain)}`);
+                        } catch (error) {
+                            showAlert(error.message || t('maven.createDomainFailed'), 'error');
                         }
-                        const created = await response.json();
-                        dialog.close(true);
-                        showAlert(t('maven.domainCreated'), 'success');
-                        activeNavigate?.(`/${encodePathSegment(repository)}/domains/${encodePathSegment(created.domain)}`);
-                    } catch (error) {
-                        showAlert(error.message || t('maven.createDomainFailed'), 'error');
-                    } finally {
-                        event.currentTarget.disabled = false;
-                    }
+                    });
                 }
             }
         ]
@@ -397,36 +397,42 @@ async function renderDomain(container, repository, domainName, sequence) {
         if (!domain.verified && canOwn && domain.verification_code) {
             actions.appendChild(el('button', {
                 type: 'button', class: 'pill-btn pill-btn--primary', onclick: async event => {
-                    event.currentTarget.disabled = true;
-                    try {
-                        const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domain.domain)}/verify`, {method: 'POST'});
-                        if (!response.ok) {
-                            showAlert(t(response.status === 429 ? 'maven.verifyRateLimited' : 'maven.verifyFailed'), 'error');
-                        } else {
-                            showAlert(t('maven.verifySuccess'), 'success');
-                            await renderDomain(container, repository, domain.domain, sequence);
+                    const button = event.currentTarget;
+                    await runButtonAction(button, async () => {
+                        try {
+                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domain.domain)}/verify`, {method: 'POST'});
+                            if (!response.ok) {
+                                showAlert(t(response.status === 429 ? 'maven.verifyRateLimited' : 'maven.verifyFailed'), 'error');
+                            } else {
+                                showAlert(t('maven.verifySuccess'), 'success');
+                                await renderDomain(container, repository, domain.domain, sequence);
+                            }
+                        } catch (error) {
+                            console.error('Failed to verify Maven domain', error);
+                            showAlert(t('maven.verifyFailed'), 'error');
                         }
-                    } finally {
-                        event.currentTarget.disabled = false;
-                    }
+                    });
                 }
             }, createIcon('check'), el('span', {}, t('maven.verifyNow'))));
         }
         if (!domain.verified && cachedIsManager && domain.verification_code) {
             actions.appendChild(el('button', {
                 type: 'button', class: 'pill-btn pill-btn--soft', onclick: async event => {
+                    const button = event.currentTarget;
                     if (!(await showConfirm(t('maven.forceVerifyConfirm', {domain: domain.domain})))) return;
-                    event.currentTarget.disabled = true;
-                    try {
-                        const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domain.domain)}/verify/force`, {method: 'POST'});
-                        if (!response.ok) showAlert(await response.text() || t('maven.forceVerifyFailed'), 'error');
-                        else {
-                            showAlert(t('maven.forceVerifySuccess'), 'success');
-                            await renderDomain(container, repository, domain.domain, sequence);
+                    await runButtonAction(button, async () => {
+                        try {
+                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains/${encodeURIComponent(domain.domain)}/verify/force`, {method: 'POST'});
+                            if (!response.ok) showAlert(await response.text() || t('maven.forceVerifyFailed'), 'error');
+                            else {
+                                showAlert(t('maven.forceVerifySuccess'), 'success');
+                                await renderDomain(container, repository, domain.domain, sequence);
+                            }
+                        } catch (error) {
+                            console.error('Failed to force Maven domain verification', error);
+                            showAlert(t('maven.forceVerifyFailed'), 'error');
                         }
-                    } finally {
-                        event.currentTarget.disabled = false;
-                    }
+                    });
                 }
             }, createIcon('warning'), el('span', {}, t('maven.forceVerify'))));
         }
@@ -489,20 +495,23 @@ function openDescriptionEditor(container, repository, artifact, sequence) {
             {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
             {
                 text: t('common.save'), className: 'action-btn primary-btn', onClick: async (event, dialog) => {
-                    event.currentTarget.disabled = true;
-                    try {
-                        const query = new URLSearchParams({group: artifact.group_id, artifact: artifact.artifact_id});
-                        const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`, {
-                            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({description: textarea.value.trim()})
-                        });
-                        if (!response.ok) showAlert(await response.text() || t('maven.updateDescriptionFailed'), 'error');
-                        else {
-                            dialog.close(true);
-                            await renderArtifact(container, repository, artifact.group_id, artifact.artifact_id, sequence);
+                    const button = event.currentTarget;
+                    await runButtonAction(button, async () => {
+                        try {
+                            const query = new URLSearchParams({group: artifact.group_id, artifact: artifact.artifact_id});
+                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`, {
+                                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({description: textarea.value.trim()})
+                            });
+                            if (!response.ok) showAlert(await response.text() || t('maven.updateDescriptionFailed'), 'error');
+                            else {
+                                dialog.close(true);
+                                await renderArtifact(container, repository, artifact.group_id, artifact.artifact_id, sequence);
+                            }
+                        } catch (error) {
+                            console.error('Failed to update Maven artifact description', error);
+                            showAlert(t('maven.updateDescriptionFailed'), 'error');
                         }
-                    } finally {
-                        event.currentTarget.disabled = false;
-                    }
+                    });
                 }
             }
         ]

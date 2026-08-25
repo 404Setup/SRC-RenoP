@@ -20,3 +20,22 @@ import { createIcon } from './icon.js';
 export function createButton(text, props = {}) {
     return createButtonBase(text, { createIcon, ...props });
 }
+
+/**
+ * Disable a button for one asynchronous action and always restore it.
+ * The element is captured before the first await because DOM event
+ * currentTarget is cleared after event dispatch completes.
+ * @template T
+ * @param {HTMLButtonElement} button - Button that initiated the action.
+ * @param {() => Promise<T>|T} action - Work to run while the button is disabled.
+ * @returns {Promise<T|undefined>} Action result, or undefined for a duplicate invocation.
+ */
+export async function runButtonAction(button, action) {
+    if (!button || typeof action !== 'function' || button.disabled) return undefined;
+    button.disabled = true;
+    try {
+        return await action();
+    } finally {
+        button.disabled = false;
+    }
+}

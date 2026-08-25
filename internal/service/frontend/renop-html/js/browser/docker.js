@@ -15,7 +15,7 @@ import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {canUpdateRepo} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
-import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog} from '../components.js';
+import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {t} from '../i18n.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
@@ -606,29 +606,29 @@ function openCreateImageDialog(repoName) {
                         imageInput.focus();
                         return;
                     }
-                    event.currentTarget.disabled = true;
-                    try {
-                        const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({image: imageName, private: privateInput.checked})
-                        });
-                        if (!response.ok) {
-                            const key = response.status === 409 ? 'docker.imageAlreadyExists' :
-                                (response.status === 400 ? 'docker.invalidImageName' :
-                                    (response.status === 503 ? 'docker.imageNameCheckFailed' : 'docker.createImageFailed'));
-                            showAlert(t(key), 'error');
-                            return;
+                    const button = event.currentTarget;
+                    await runButtonAction(button, async () => {
+                        try {
+                            const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`, {
+                                method: 'POST', headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({image: imageName, private: privateInput.checked})
+                            });
+                            if (!response.ok) {
+                                const key = response.status === 409 ? 'docker.imageAlreadyExists' :
+                                    (response.status === 400 ? 'docker.invalidImageName' :
+                                        (response.status === 503 ? 'docker.imageNameCheckFailed' : 'docker.createImageFailed'));
+                                showAlert(t(key), 'error');
+                                return;
+                            }
+                            const image = await response.json();
+                            dialog.close(true);
+                            showAlert(t('docker.imageCreated'), 'success');
+                            activeNavigate?.(`/${encodePathSegment(repoName)}/${encodeRelativePath(image.image_name)}`);
+                        } catch (error) {
+                            console.error('Failed to create Docker image', error);
+                            showAlert(t('docker.createImageFailed'), 'error');
                         }
-                        const image = await response.json();
-                        dialog.close(true);
-                        showAlert(t('docker.imageCreated'), 'success');
-                        activeNavigate?.(`/${encodePathSegment(repoName)}/${encodeRelativePath(image.image_name)}`);
-                    } catch (error) {
-                        console.error('Failed to create Docker image', error);
-                        showAlert(t('docker.createImageFailed'), 'error');
-                    } finally {
-                        event.currentTarget.disabled = false;
-                    }
+                    });
                 }
             }
         ]
