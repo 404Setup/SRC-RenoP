@@ -16,8 +16,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/3JoB/unsafeConvert"
-
 	"renop/internal/config"
 )
 
@@ -38,7 +36,7 @@ func BenchmarkProxyAuthOriginal(b *testing.B) {
 			method := strings.ToLower(auth.Method)
 			if method == "basic" || method == "username/password" {
 				credentials := auth.Login + ":" + auth.Password
-				encoded := base64.StdEncoding.EncodeToString(unsafeConvert.BytePointer(credentials))
+				encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 				req.Header.Set("Authorization", "Basic "+encoded)
 			} else if method == "bearer" || method == "token" {
 				token := auth.Password

@@ -76,7 +76,7 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	} else if repo.NormalizedFormat() == config.RepositoryFormatDocker {
 		response, err = searchDockerRepository(state, repo, user, query, limit)
 	} else {
-		response, err = searchMavenRepository(state, cfg.StoragePath, repo, user, query, limit)
+		response = searchMavenRepository(state, cfg.StoragePath, repo, user, query, limit)
 	}
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Repository search failed")
@@ -139,7 +139,7 @@ func searchCargoRepository(state *core.AppState, repo *config.Repository, query 
 	}, nil
 }
 
-func searchMavenRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) (*pb.RepositorySearchResponse, error) {
+func searchMavenRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) *pb.RepositorySearchResponse {
 	root := filepath.ToSlash(filepath.Clean(filepath.Join(storagePath, repo.Name)))
 	rootPrefix := root + "/"
 	needle := strings.ToLower(query)
@@ -209,7 +209,7 @@ func searchMavenRepository(state *core.AppState, storagePath string, repo *confi
 	return &pb.RepositorySearchResponse{
 		Format: repo.ConfiguredFormat(), Results: results, Total: int32(total),
 		HasMore: scanLimitReached || total > len(results),
-	}, nil
+	}
 }
 
 func containsFold(s, substrLower string) bool {

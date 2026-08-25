@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"golang.org/x/crypto/bcrypt"
 
@@ -182,7 +181,7 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 		return nil, nil
 	}
 
-	decodedStr := unsafeConvert.StringPointer(decoded)
+	decodedStr := string(decoded)
 	idx := strings.IndexByte(decodedStr, ':')
 	if idx <= 0 {
 		return nil, nil
@@ -345,7 +344,6 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 				}
 
 				if tempUser != nil {
-					authenticatedUser = tempUser
 					if !isSessionAuth {
 						state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
 							User:      tempUser,

@@ -166,8 +166,8 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 }
 
 func TestFileRepositoryAllowsReplacementWithoutMavenHelpers(t *testing.T) {
-	state, currentUser := newMavenRouteState(t)
-	currentUser = &config.User{Username: "admin", Roles: []string{"manager"}}
+	state, _ := newMavenRouteState(t)
+	currentUser := &config.User{Username: "admin", Roles: []string{"manager"}}
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
 		c.Locals("user", currentUser)

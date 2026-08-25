@@ -23,8 +23,6 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/3JoB/unsafeConvert"
 )
 
 // RemoveAll removes path and any children it contains with retry logic on Windows.
@@ -61,7 +59,7 @@ func SafeRename(oldpath, newpath string) error {
 
 func EscapeXML(s string) string {
 	var buf bytes.Buffer
-	_ = xml.EscapeText(&buf, unsafeConvert.BytePointer(s))
+	_ = xml.EscapeText(&buf, []byte(s))
 	return buf.String()
 }
 

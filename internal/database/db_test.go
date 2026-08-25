@@ -151,6 +151,17 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.Equal(t, "rotating-user", newToken.Name)
 	})
 
+	t.Run("Malformed Token JSON Is Rejected", func(t *testing.T) {
+		_, err := db.SQLDB.Exec(`INSERT INTO tokens
+			(name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			"corrupt-json", "persistent", 99, "", "", "not-json", time.Now().UTC().Format(time.RFC3339), "", nil, `[]`)
+		require.NoError(t, err)
+		fetched, err := db.GetTokenByName("corrupt-json")
+		assert.Nil(t, fetched)
+		assert.ErrorContains(t, err, "decode token secrets")
+	})
+
 	t.Run("Session Operations with TTL Cache", func(t *testing.T) {
 		now := time.Now().UnixMilli()
 		sess1 := &core.Session{

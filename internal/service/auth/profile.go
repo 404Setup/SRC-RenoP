@@ -11,7 +11,6 @@
 package auth
 
 import (
-	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -60,7 +59,7 @@ func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.Token
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
-	hashed := unsafeConvert.StringPointer(hashBytes)
+	hashed := string(hashBytes)
 
 	err = token.UpdateTokenSync(opChan, user.Username, func(accessToken *core.AccessToken) {
 		accessToken.EncryptedSecret = hashed

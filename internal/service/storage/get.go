@@ -11,6 +11,8 @@
 package storage
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -68,15 +70,20 @@ func LoadMetadataAndCheckTTL(state *core.AppState, localFilePath string, pathLos
 	if isIndexed && exists && !isDir && !anyPersist && baseMaxTTL > 0 {
 		modified := time.Unix(0, info.ModTime)
 		if time.Since(modified).Seconds() > float64(baseMaxTTL) {
+			var deleteErr error
 			if IsS3Enabled(localFilePath) {
 				s3Key := utils.GetS3Key(localFilePath)
-				_ = DeleteFromS3(s3Key)
+				deleteErr = DeleteFromS3(s3Key)
 			} else {
-				_ = os.Remove(localFilePath)
+				deleteErr = os.Remove(localFilePath)
+			}
+			if deleteErr != nil && !errors.Is(deleteErr, os.ErrNotExist) {
+				state.Inner.FailuresCount.Add(1)
+				log.Printf("Failed to expire cached artifact %s: %v", pathLossy, deleteErr)
+				return exists, info, isDir
 			}
 			state.Inner.FileIndex.RemoveFile(pathLossy)
 			state.InvalidateFileCache(pathLossy)
-			isIndexed = false
 			exists = false
 			info = index.FileInfo{}
 			isDir = false

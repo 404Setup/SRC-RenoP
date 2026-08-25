@@ -85,7 +85,7 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	if !utils.IsSubPath(storagePath, lockPath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")
 	}
-	_, release, err := acquireIndexLock(state, lockPath)
+	release, err := acquireIndexLock(state, lockPath)
 	if err != nil {
 		return errorResponse(c, fiber.StatusServiceUnavailable, "Cargo registry state is unavailable")
 	}

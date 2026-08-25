@@ -72,6 +72,8 @@ func decodeCacheEntry(buf []byte) (string, string, []byte, bool) {
 	if len(buf) < 1+etagLen+1 {
 		return "", "", nil, false
 	}
+	// FileByteCache publishes immutable buffers, so these request-scoped string
+	// views cannot observe mutation and avoid allocations on cached downloads.
 	etag := unsafeConvert.StringPointer(buf[1 : 1+etagLen])
 
 	lmLen := int(buf[1+etagLen])

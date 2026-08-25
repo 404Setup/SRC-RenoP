@@ -17,8 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goccy/go-json"
-	"github.com/google/uuid"
 	"golang.org/x/mod/semver"
 
 	"renop/internal/core"
@@ -27,6 +25,21 @@ import (
 const cargoPackageColumns = `repository, normalized_name, package_name, description,
 	repository_url, homepage, documentation,
 	archived, admin_archived, created_at, updated_at`
+
+var cargoTeamRemovalSpec = &teamRemovalSpec{
+	format:           "Cargo",
+	table:            "cargo_members",
+	resourceColumn:   "normalized_name",
+	manageLevel:      core.CargoPermissionManage,
+	ownerLevel:       core.CargoPermissionOwner,
+	invalidBatch:     errors.New("cargo member removal batch is invalid"),
+	invalidName:      errors.New("cargo member name is invalid"),
+	resourceNotFound: core.ErrCargoPackageNotFound,
+	permissionDenied: core.ErrCargoPermissionDenied,
+	ownerCannotLeave: core.ErrCargoOwnerCannotLeave,
+	lastOwner:        core.ErrCargoLastFullMember,
+	lock:             lockCargoPackageTeam,
+}
 
 type cargoPackageScanner interface {
 	Scan(dest ...any) error
@@ -805,22 +818,14 @@ func (db *DB) ForceAddCargoMembers(repository, normalizedName, packageName, acto
 			return err
 		}
 
-		msgID := uuid.NewString()
-		payloadBytes, err := json.Marshal(map[string]any{
-			"repository": repository,
-			"package":    packageName,
-			"inviter":    actor,
-			"level":      level,
-		})
-		if err != nil {
-			return fmt.Errorf("encode Cargo membership message: %w", err)
-		}
-		if _, err := tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			msgID, username, actor, "cargo_package_invite", "info",
+		if err := insertAcceptedMembershipMessage(tx, username, actor, "cargo_package_invite",
 			"Cargo crate package membership added",
-			fmt.Sprintf("%s added you to collaborate on %s with L%d permission.", actor, packageName, level),
-			string(payloadBytes), "cargo_package_invite", core.MessageActionAccepted,
-			now, 0, now, now+7*24*3600*1000, nil); err != nil {
+			fmt.Sprintf("%s added you to collaborate on %s with L%d permission.", actor, packageName, level), map[string]any{
+				"repository": repository,
+				"package":    packageName,
+				"inviter":    actor,
+				"level":      level,
+			}, now); err != nil {
 			return fmt.Errorf("create Cargo membership message: %w", err)
 		}
 	}
@@ -1014,100 +1019,9 @@ func (db *DB) RemoveCargoMember(repository, normalizedName, actor, username stri
 }
 
 func (db *DB) RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error {
-	if db == nil || db.SQLDB == nil {
-		return core.ErrDatabaseUnavailable
-	}
-	if len(usernames) == 0 || len(usernames) > 20 {
-		return errors.New("cargo member removal batch is invalid")
-	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	actor = sanitizeCargoUsername(actor)
-	unique := make([]string, 0, len(usernames))
-	userIDs := make(map[string]string, len(usernames))
-	seen := make(map[string]struct{}, len(usernames))
-	for _, candidate := range usernames {
-		username := sanitizeCargoUsername(candidate)
-		if username == "" {
-			return errors.New("cargo member name is invalid")
-		}
-		if _, exists := seen[username]; exists {
-			continue
-		}
-		seen[username] = struct{}{}
-		userID, err := db.userIDForUsername(username)
-		if err != nil {
-			return core.ErrCargoPackageNotFound
-		}
-		userIDs[username] = userID
-		unique = append(unique, username)
-	}
-	actorID := ""
-	if actor != "" {
-		var err error
-		actorID, err = db.userIDForUsername(actor)
-		if err != nil {
-			return core.ErrCargoPermissionDenied
-		}
-	}
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("begin Cargo member removal: %w", err)
-	}
-	defer tx.Rollback()
-	if err := lockCargoPackageTeam(tx, repository, normalizedName); err != nil {
-		return err
-	}
-	if actor != "" {
-		var actorLevel int
-		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-			repository, normalizedName, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
-			return core.ErrCargoPermissionDenied
-		} else if err != nil {
-			return fmt.Errorf("inspect Cargo removal actor: %w", err)
-		}
-		for _, username := range unique {
-			if username != actor && actorLevel < core.CargoPermissionManage {
-				return core.ErrCargoPermissionDenied
-			}
-			if username == actor && actorLevel == core.CargoPermissionOwner {
-				return core.ErrCargoOwnerCannotLeave
-			}
-		}
-	}
-	fullRemoved := 0
-	for _, username := range unique {
-		var current int
-		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND user_id = ?`, repository, normalizedName, userIDs[username]).Scan(&current); errors.Is(err, sql.ErrNoRows) {
-			return core.ErrCargoPackageNotFound
-		} else if err != nil {
-			return fmt.Errorf("inspect Cargo member removal: %w", err)
-		}
-		if current == core.CargoPermissionOwner {
-			fullRemoved++
-		}
-	}
-	if fullRemoved > 0 {
-		var fullCount int
-		if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_members WHERE repository = ? AND normalized_name = ? AND permission_level = ?`,
-			repository, normalizedName, core.CargoPermissionOwner).Scan(&fullCount); err != nil {
-			return fmt.Errorf("count Cargo L4 members: %w", err)
-		}
-		if fullRemoved >= fullCount {
-			return core.ErrCargoLastFullMember
-		}
-	}
-	for _, username := range unique {
-		if _, err := tx.Exec(`DELETE FROM cargo_members WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-			repository, normalizedName, userIDs[username]); err != nil {
-			return fmt.Errorf("remove Cargo member: %w", err)
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit Cargo member removal: %w", err)
-	}
-	return nil
+	return db.removeTeamMembers(repository, normalizedName, actor, usernames, sanitizeCargoUsername, cargoTeamRemovalSpec)
 }
 
 func requireCargoMemberPermission(tx *Tx, repository, normalizedName, userID string, required int) error {

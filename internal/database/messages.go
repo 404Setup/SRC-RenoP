@@ -15,12 +15,24 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/google/uuid"
 
 	"renop/internal/core"
 )
 
 const messageColumns = `id, recipient, sender, kind, severity, title, body, payload_json,
 	action_kind, action_status, created_at, read_at, acted_at, expires_at, dedupe_key`
+
+func insertAcceptedMembershipMessage(tx *Tx, recipient, sender, actionKind, title, body string, payload any, now int64) error {
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("encode membership message payload: %w", err)
+	}
+	_, err = tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		uuid.NewString(), recipient, sender, actionKind, "info", title, body, string(payloadBytes),
+		actionKind, core.MessageActionAccepted, now, 0, now, now+7*24*3600*1000, nil)
+	return err
+}
 
 type messageScanner interface {
 	Scan(dest ...any) error

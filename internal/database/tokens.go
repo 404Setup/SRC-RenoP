@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/goccy/go-json"
 
 	"renop/internal/core"
@@ -29,10 +28,12 @@ const (
 	maxTokenSecretLen = 1024
 )
 
-func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, passwordHash, tokensJSON, createdAt, description string, expiresAt sql.NullInt64, permissionsJSON string) *core.AccessToken {
+func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, passwordHash, tokensJSON, createdAt, description string, expiresAt sql.NullInt64, permissionsJSON string) (*core.AccessToken, error) {
 	var tokList []string
 	if tokensJSON != "" {
-		_ = json.Unmarshal(unsafeConvert.ByteSlice(tokensJSON), &tokList)
+		if err := json.Unmarshal([]byte(tokensJSON), &tokList); err != nil {
+			return nil, fmt.Errorf("decode token secrets for %q: %w", name, err)
+		}
 	}
 	if tokList == nil {
 		tokList = []string{}
@@ -40,7 +41,9 @@ func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, pas
 
 	var permList []string
 	if permissionsJSON != "" {
-		_ = json.Unmarshal(unsafeConvert.ByteSlice(permissionsJSON), &permList)
+		if err := json.Unmarshal([]byte(permissionsJSON), &permList); err != nil {
+			return nil, fmt.Errorf("decode token permissions for %q: %w", name, err)
+		}
 	}
 	if permList == nil {
 		permList = []string{}
@@ -65,7 +68,7 @@ func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, pas
 		Description:     description,
 		ExpiresAt:       exp,
 		Permissions:     permList,
-	}
+	}, nil
 }
 
 func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
@@ -98,7 +101,10 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 		return nil, fmt.Errorf("failed to query token by name (%s): %w", lowerName, err)
 	}
 
-	tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+	tok, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+	if err != nil {
+		return nil, err
+	}
 	db.tokenCache.Set(lowerName, tok, 10*time.Minute)
 	for _, t := range tok.Tokens {
 		db.tokenSecretCache.Set(t, tok, 10*time.Minute)
@@ -137,7 +143,10 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 			return nil, fmt.Errorf("failed to scan token: %w", err)
 		}
 
-		tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+		tok, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+		if err != nil {
+			return nil, err
+		}
 		if slices.Contains(tok.Tokens, secret) {
 			db.tokenCache.Set(tok.Name, tok, 10*time.Minute)
 			db.tokenSecretCache.Set(secret, tok, 10*time.Minute)
@@ -486,7 +495,10 @@ func (db *DB) GetAllTokens() ([]*core.AccessToken, error) {
 			return nil, fmt.Errorf("failed to scan token: %w", err)
 		}
 
-		tok := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+		tok, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+		if err != nil {
+			return nil, err
+		}
 		tokens = append(tokens, tok)
 		db.tokenCache.Set(tok.Name, tok, 10*time.Minute)
 		for _, t := range tok.Tokens {

@@ -32,7 +32,7 @@ type levelRequest struct {
 }
 
 func listMembers(c fiber.Ctx, state *core.AppState) error {
-	_, _, details, err := authorizedDomain(c, state, core.MavenPermissionPublish, true)
+	_, _, details, err := authorizedDomain(c, state, core.MavenPermissionPublish)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -41,7 +41,7 @@ func listMembers(c fiber.Ctx, state *core.AppState) error {
 }
 
 func inviteMembers(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionManage, true)
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionManage)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -129,7 +129,7 @@ func resolveMemberReference(state *core.AppState, reference string) (string, err
 }
 
 func setMemberLevel(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionManage, true)
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionManage)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -156,7 +156,7 @@ func setMemberLevel(c fiber.Ctx, state *core.AppState) error {
 }
 
 func removeMember(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionRead, true)
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionRead)
 	if err != nil {
 		return apiError(c, err)
 	}

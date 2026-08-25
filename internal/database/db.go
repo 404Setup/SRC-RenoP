@@ -220,11 +220,11 @@ func sanitizeDSN(dsn string) string {
 	return dsn
 }
 
-func safePrefix(s string, n int) string {
-	if len(s) <= n {
+func sessionTokenPrefix(s string) string {
+	if len(s) <= 8 {
 		return s
 	}
-	return s[:n]
+	return s[:8]
 }
 
 // SanitizeInputString trims null bytes and invalid UTF-8 control characters from SQL inputs.

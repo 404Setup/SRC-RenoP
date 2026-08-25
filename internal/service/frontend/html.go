@@ -19,8 +19,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/3JoB/unsafeConvert"
-
 	"renop/internal/config"
 	"renop/internal/core"
 )
@@ -78,7 +76,7 @@ func GetAssetsHash() string {
 			if err != nil {
 				continue
 			}
-			hasher.Write(unsafeConvert.BytePointer(e.embedPath))
+			_, _ = io.WriteString(hasher, e.embedPath)
 			if e.publicPath != "" {
 				// Need body for HTTP cache: tee into a single buffer while hashing.
 				data, err := io.ReadAll(f)
@@ -101,7 +99,7 @@ func GetAssetsHash() string {
 					continue
 				}
 				name := entry.Name()
-				hasher.Write(unsafeConvert.BytePointer(name))
+				_, _ = io.WriteString(hasher, name)
 			}
 		}
 		assetsHash = hex.EncodeToString(hasher.Sum(nil))[:16]
@@ -114,7 +112,7 @@ func GenerateIndexHTMLFromConfig(cfg *config.FrontendConfig) []byte {
 	onceIndex.Do(func() {
 		data, err := readAsset("index.html")
 		if err == nil {
-			indexHTML = unsafeConvert.StringPointer(data)
+			indexHTML = string(data)
 		} else {
 			indexHTML = CreateFallbackIndex()
 		}
@@ -135,7 +133,7 @@ func GenerateIndexHTMLFromConfig(cfg *config.FrontendConfig) []byte {
 	)
 	htmlStr := replacer.Replace(indexHTML)
 
-	return unsafeConvert.BytePointer(htmlStr)
+	return []byte(htmlStr)
 }
 
 // GenerateIndexHTML renders the embedded index template from live state.

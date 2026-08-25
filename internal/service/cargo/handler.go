@@ -107,13 +107,13 @@ func cargoPackageLockPath(storagePath string, repo *config.Repository, crateName
 	return filepath.Join(storagePath, repo.Name, ".renop.tmp.cargo", normalizeCrateName(crateName))
 }
 
-func acquireIndexLock(state *core.AppState, lockPath string) (*core.InFlightDownload, func(bool), error) {
+func acquireIndexLock(state *core.AppState, lockPath string) (func(bool), error) {
 	if state == nil || state.Inner == nil || state.Inner.InFlightDownloads == nil {
-		return nil, nil, fiber.ErrServiceUnavailable
+		return nil, fiber.ErrServiceUnavailable
 	}
 	lockKey := filepath.ToSlash(lockPath)
 	publication := state.Inner.InFlightDownloads.AcquirePath(lockKey)
-	return publication, func(succeeded bool) {
+	return func(succeeded bool) {
 		state.Inner.InFlightDownloads.UnlockPath(lockKey, publication, succeeded)
 	}, nil
 }

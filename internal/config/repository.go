@@ -13,7 +13,6 @@ package config
 import (
 	"strings"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
@@ -193,7 +192,7 @@ func (s StorageProviderSettings) MarshalJSON() ([]byte, error) {
 	if len(s.Value) > 0 {
 		return s.Value, nil
 	}
-	return unsafeConvert.BytePointer(`{"type":"FileSystem"}`), nil
+	return []byte(`{"type":"FileSystem"}`), nil
 }
 
 type RepositorySettings struct {

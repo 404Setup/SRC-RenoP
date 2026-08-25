@@ -20,7 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/goccy/go-json"
 	"go.yaml.in/yaml/v3"
 )
@@ -485,7 +484,7 @@ func (m *MirrorCredentials) GetAuthHeader() string {
 		method := strings.ToLower(strings.TrimSpace(m.Method))
 		if method == "basic" || method == "username/password" {
 			credentials := m.Login + ":" + m.Password
-			encoded := base64.StdEncoding.EncodeToString(unsafeConvert.BytePointer(credentials))
+			encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 			m.cachedHeader = "Basic " + encoded
 		} else if method == "bearer" || method == "token" {
 			token := m.Password

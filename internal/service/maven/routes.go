@@ -209,7 +209,7 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 	return c.Status(fiber.StatusCreated).JSON(record)
 }
 
-func authorizedDomain(c fiber.Ctx, state *core.AppState, required int, administratorAllowed bool) (*config.User, *config.Repository, *core.MavenDomainDetails, error) {
+func authorizedDomain(c fiber.Ctx, state *core.AppState, required int) (*config.User, *config.Repository, *core.MavenDomainDetails, error) {
 	repo, err := repository(c, state)
 	if err != nil {
 		return nil, nil, nil, err
@@ -227,7 +227,7 @@ func authorizedDomain(c fiber.Ctx, state *core.AppState, required int, administr
 		return nil, nil, nil, err
 	}
 	administrator := user.IsManager() || user.CheckUpdatePermission(repo.Name)
-	if !administratorAllowed || !administrator {
+	if !administrator {
 		if !details.Domain.Member || details.Domain.PermissionLevel < required {
 			return nil, nil, nil, core.ErrMavenPermissionDenied
 		}
@@ -272,7 +272,7 @@ func getDomain(c fiber.Ctx, state *core.AppState) error {
 }
 
 func verifyDomain(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner, true)
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -305,7 +305,7 @@ func verifyDomain(c fiber.Ctx, state *core.AppState) error {
 }
 
 func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner, true)
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
 	if err != nil {
 		return apiError(c, err)
 	}
@@ -331,7 +331,7 @@ func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
 }
 
 func deleteDomain(c fiber.Ctx, state *core.AppState) error {
-	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner, true)
+	user, repo, details, err := authorizedDomain(c, state, core.MavenPermissionOwner)
 	if err != nil {
 		return apiError(c, err)
 	}

@@ -72,7 +72,7 @@ func (h Handler) listOwners(c fiber.Ctx, state *core.AppState, repo *config.Repo
 }
 
 func (h Handler) inviteOwners(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName string) error {
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -179,7 +179,7 @@ func (h Handler) inviteOwners(c fiber.Ctx, state *core.AppState, repo *config.Re
 }
 
 func (h Handler) removeOwners(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName string) error {
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -223,7 +223,7 @@ func (h Handler) removeOwners(c fiber.Ctx, state *core.AppState, repo *config.Re
 }
 
 func (h Handler) setOwnerLevel(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName, username string) error {
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -276,7 +276,7 @@ func (h Handler) removeOwner(c fiber.Ctx, state *core.AppState, repo *config.Rep
 }
 
 func (h Handler) searchUsers(c fiber.Ctx, state *core.AppState, repo *config.Repository, crateName string) error {
-	_, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage, true)
+	_, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionManage)
 	if err != nil {
 		return cargoError(c, err)
 	}

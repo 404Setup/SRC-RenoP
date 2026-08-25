@@ -33,10 +33,7 @@ func TestSearchMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T) {
 	state.Inner.FileIndex.InsertFile(blocked, index.FileInfo{Size: 45, ModTime: 1})
 	state.Inner.FileIndex.BlockFile(blocked)
 
-	response, err := searchMavenRepository(state, storagePath, repo, &config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
-	if err != nil {
-		t.Fatal(err)
-	}
+	response := searchMavenRepository(state, storagePath, repo, &config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
 	if response.Format != config.RepositoryFormatMaven || response.Total != 3 {
 		t.Fatalf("unexpected Maven search metadata: %+v", response)
 	}

@@ -19,7 +19,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"github.com/llxisdsh/pb"
 	"golang.org/x/crypto/bcrypt"
@@ -203,7 +202,7 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 		if err != nil {
 			return false
 		}
-		decodedStr := unsafeConvert.StringPointer(decoded)
+		decodedStr := string(decoded)
 		idx := strings.IndexByte(decodedStr, ':')
 		if idx <= 0 {
 			return false

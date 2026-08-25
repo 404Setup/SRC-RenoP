@@ -125,12 +125,12 @@ func TestDoGitHubJSONOK(t *testing.T) {
 }
 
 func TestClipStringDoesNotRetainFullBacking(t *testing.T) {
-	big := strings.Repeat("n", 4<<20)
-	clipped := clipString(big, 64)
+	clipped := func() string {
+		return clipString(strings.Repeat("n", 4<<20), 64)
+	}()
 	if len(clipped) != 64 {
 		t.Fatalf("len=%d", len(clipped))
 	}
-	big = ""
 	runtime.GC()
 	if clipped != strings.Repeat("n", 64) {
 		t.Fatal("clip content mismatch")
@@ -138,14 +138,13 @@ func TestClipStringDoesNotRetainFullBacking(t *testing.T) {
 }
 
 func TestClipStringSmallDoesNotRetainFullBacking(t *testing.T) {
-	big := strings.Repeat("a", 1<<20)
-	sub := big[:10]
-	clipped := clipString(sub, 32768)
+	clipped := func() string {
+		big := strings.Repeat("a", 1<<20)
+		return clipString(big[:10], 32768)
+	}()
 	if clipped != "aaaaaaaaaa" {
 		t.Fatalf("got %q", clipped)
 	}
-	big = ""
-	sub = ""
 	runtime.GC()
 	if clipped != "aaaaaaaaaa" {
 		t.Fatal("clip content mismatch")

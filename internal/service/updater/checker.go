@@ -301,23 +301,19 @@ func mapGithubCommitStatus(statusCode int) (exists bool, checked bool) {
 	}
 }
 
-func resolveCurrentCommit(ctx context.Context, client *http.Client, current string, commits []GithubCommitResponse) (idx int, existsOutside bool, verified bool) {
+func resolveCurrentCommit(ctx context.Context, client *http.Client, current string, commits []GithubCommitResponse) bool {
 	curr := normalizeVersionID(current)
 	if curr == "" || curr == "dev" {
-		return -1, false, true
+		return false
 	}
-	idx = findCommitIndex(commits, curr)
-	if idx >= 0 {
-		return idx, false, true
+	if findCommitIndex(commits, curr) >= 0 {
+		return false
 	}
 	if !looksLikeCommitID(curr) {
-		return -1, false, true
+		return false
 	}
-	exists, checked := githubCommitExists(ctx, client, curr)
-	if !checked {
-		return -1, false, false
-	}
-	return -1, exists, true
+	exists, _ := githubCommitExists(ctx, client, curr)
+	return exists
 }
 
 func remoteIsStrictlyNewer(commits []GithubCommitResponse, currentVersion, remoteCommit string) (newer, ok bool) {
@@ -694,7 +690,7 @@ func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error
 	if needCommitOrder {
 		_, _ = doGitHubJSON(checkCtx, client, githubRepoAPI+"/commits?sha=main&per_page=30", &commits)
 		if len(commits) > 0 {
-			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, client, version.Version, commits)
+			currentExistsOutside = resolveCurrentCommit(checkCtx, client, version.Version, commits)
 		}
 	}
 	hasUpdate := decideHasUpdate(version.Version, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
@@ -784,7 +780,7 @@ func checkNightly(ctx context.Context, client *http.Client) (*CheckResult, error
 
 	if releaseNotes == "" || needCommitOrder {
 		if _, err := doGitHubJSON(checkCtx, client, githubRepoAPI+"/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
-			_, currentExistsOutside, _ = resolveCurrentCommit(checkCtx, client, version.Version, commits)
+			currentExistsOutside = resolveCurrentCommit(checkCtx, client, version.Version, commits)
 			if releaseNotes == "" {
 				var noteDate string
 				releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha, currentExistsOutside)

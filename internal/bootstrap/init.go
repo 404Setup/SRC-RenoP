@@ -14,6 +14,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -202,6 +203,14 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		return nil, errors.New("application configuration is unavailable")
 	}
 	storagePath := cfg.StoragePath
+	if err := os.MkdirAll(storagePath, 0755); err != nil {
+		return nil, fmt.Errorf("create storage directory: %w", err)
+	}
+	for repoName := range cfg.Maven.Repositories {
+		if err := os.MkdirAll(filepath.Join(storagePath, repoName), 0755); err != nil {
+			return nil, fmt.Errorf("create repository directory %q: %w", repoName, err)
+		}
+	}
 	indexSave := tasks.NewIndexSaveTask(state, bootstrapContext.IndexPath)
 	pullCounter := docker.GetPullCounter(state)
 	uploadCleanup := upload.NewCleanupTask(storagePath)
@@ -214,8 +223,7 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 	}
 	schedule := func(name string, interval, initialDelay time.Duration, run func(context.Context)) error {
 		if err := scheduler.Schedule(name, interval, initialDelay, run); err != nil {
-			_ = runtimeServices.Close()
-			return err
+			return errors.Join(err, runtimeServices.Close())
 		}
 		return nil
 	}
@@ -279,20 +287,15 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		}
 	}
 
-	storage.StartGPGReleaseWorker(state)
-
 	watcher, err := index.StartFileWatcher(storagePath, state.Inner.FileIndex)
-	if err == nil {
-		state.Inner.IndexWatcherMutex.Lock()
-		state.Inner.IndexWatcher = watcher
-		state.Inner.IndexWatcherMutex.Unlock()
+	if err != nil {
+		return nil, errors.Join(fmt.Errorf("start storage watcher: %w", err), runtimeServices.Close())
 	}
+	state.Inner.IndexWatcherMutex.Lock()
+	state.Inner.IndexWatcher = watcher
+	state.Inner.IndexWatcherMutex.Unlock()
 
+	storage.StartGPGReleaseWorker(state)
 	index.RebuildIndexAsync(storagePath, state.Inner.FileIndex)
-
-	for repoName := range cfg.Maven.Repositories {
-		repoDir := filepath.Join(storagePath, repoName)
-		_ = os.MkdirAll(repoDir, 0755)
-	}
 	return runtimeServices, nil
 }

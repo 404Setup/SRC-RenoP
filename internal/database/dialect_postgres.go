@@ -476,45 +476,9 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		}
 	}
 
-	indexMigrations := []SchemaMigration{
-		{Name: "idx_sessions_username", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);"},
-		{Name: "idx_sessions_last_active", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active);"},
-		{Name: "idx_sessions_user_public", Query: "CREATE INDEX IF NOT EXISTS idx_sessions_user_public ON sessions(username, public_id);"},
-		{Name: "idx_tokens_expires_at", Query: "CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at) WHERE expires_at IS NOT NULL;"},
-		{Name: "idx_fido_username", Query: "CREATE INDEX IF NOT EXISTS idx_fido_username ON fido_devices(username);"},
-		{Name: "idx_fido_credential_id", Query: "CREATE INDEX IF NOT EXISTS idx_fido_credential_id ON fido_devices(credential_id);"},
-		{Name: "idx_gpg_alias_fingerprint", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_fingerprint ON gpg_key_aliases(fingerprint);"},
-		{Name: "idx_gpg_alias_identifier", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_alias_identifier ON gpg_key_aliases(identifier);"},
-		{Name: "idx_user_gpg_username", Query: "CREATE INDEX IF NOT EXISTS idx_user_gpg_username ON user_gpg_keys(username);"},
-		{Name: "idx_gpg_signatures_repository", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_signatures_repository ON gpg_signatures(repository);"},
-		{Name: "idx_gpg_releases_user_time", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_user_time ON gpg_releases(uploader, created_at DESC);"},
-		{Name: "idx_gpg_releases_queue", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_queue ON gpg_releases(status, created_at);"},
-		{Name: "idx_gpg_releases_cleanup", Query: "CREATE INDEX IF NOT EXISTS idx_gpg_releases_cleanup ON gpg_releases(cleanup_pending, updated_at);"},
-		{Name: "idx_audit_logs_user_time", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_time ON audit_logs(username, created_at);"},
-		{Name: "idx_audit_logs_user_id", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(username, id DESC);"},
-		{Name: "idx_audit_logs_created_at", Query: "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);"},
-		{Name: "idx_user_messages_recipient_time", Query: "CREATE INDEX IF NOT EXISTS idx_user_messages_recipient_time ON user_messages(recipient, created_at DESC, id DESC);"},
-		{Name: "idx_user_messages_unread", Query: "CREATE INDEX IF NOT EXISTS idx_user_messages_unread ON user_messages(recipient, read_at, expires_at);"},
-		{Name: "idx_user_messages_action", Query: "CREATE INDEX IF NOT EXISTS idx_user_messages_action ON user_messages(action_kind, action_status, expires_at);"},
-		{Name: "idx_cargo_packages_search", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_packages_search ON cargo_packages(repository, archived, normalized_name);"},
-		{Name: "idx_cargo_versions_package", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_versions_package ON cargo_versions(repository, normalized_name, created_at DESC);"},
-		{Name: "idx_cargo_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_members_user ON cargo_members(username, repository);"},
-		{Name: "idx_cargo_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_cargo_invitations_recipient ON cargo_invitations(recipient, created_at);"},
-		{Name: "idx_docker_tags_repo_img", Query: "CREATE INDEX IF NOT EXISTS idx_docker_tags_repo_img ON docker_tags(repository, image_name, updated_at DESC);"},
-		{Name: "idx_docker_tags_digest", Query: "CREATE INDEX IF NOT EXISTS idx_docker_tags_digest ON docker_tags(repository, digest);"},
-		{Name: "idx_docker_manifests_repo_img", Query: "CREATE INDEX IF NOT EXISTS idx_docker_manifests_repo_img ON docker_manifests(repository, image_name);"},
-		{Name: "idx_docker_images_search", Query: "CREATE INDEX IF NOT EXISTS idx_docker_images_search ON docker_images(repository, image_name);"},
-		{Name: "idx_docker_blobs_repo", Query: "CREATE INDEX IF NOT EXISTS idx_docker_blobs_repo ON docker_blobs(repository, digest);"},
-		{Name: "idx_docker_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_docker_members_user ON docker_members(username, repository);"},
-		{Name: "idx_docker_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_docker_invitations_recipient ON docker_invitations(recipient, created_at);"},
+	if err := applySharedIndexMigrations(db); err != nil {
+		return err
 	}
-
-	for _, migration := range indexMigrations {
-		if _, err := db.Exec(migration.Query); err != nil {
-			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
-		}
-	}
-
 	return nil
 }
 

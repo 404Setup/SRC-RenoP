@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -183,7 +182,7 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 		}
-		hashedSecret = unsafeConvert.StringPointer(hashBytes)
+		hashedSecret = string(hashBytes)
 	}
 
 	returnedSecret := generatedSecret

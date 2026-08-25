@@ -51,7 +51,7 @@ func (db *DB) GetSession(sessionToken string) (*core.Session, error) {
 			db.sessionCache.Set(sessionToken, nil, 30*time.Second)
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to query session (%s...): %w", safePrefix(sessionToken, 8), err)
+		return nil, fmt.Errorf("failed to query session (%s...): %w", sessionTokenPrefix(sessionToken), err)
 	}
 
 	if loginMethod == "" {
@@ -92,7 +92,7 @@ func (db *DB) SaveSession(session *core.Session, sessionToken string) error {
 	query := db.Dialect.UpsertSessionQuery()
 	_, err := db.Exec(query, sessionToken, session.PublicID, strings.ToLower(session.Username), session.IP, session.UserAgent, session.CreatedAt, lastActive, loginMethod)
 	if err != nil {
-		return fmt.Errorf("failed to save session (%s): %w", safePrefix(sessionToken, 8), err)
+		return fmt.Errorf("failed to save session (%s): %w", sessionTokenPrefix(sessionToken), err)
 	}
 
 	db.sessionCache.Set(sessionToken, session, 15*time.Minute)
@@ -120,7 +120,7 @@ func (db *DB) UpdateSessionLastActive(sessionToken string, lastActive int64) err
 
 	_, err := db.Exec(`UPDATE sessions SET last_active = ? WHERE session_token = ?`, lastActive, sessionToken)
 	if err != nil {
-		return fmt.Errorf("failed to update session last_active (%s...): %w", safePrefix(sessionToken, 8), err)
+		return fmt.Errorf("failed to update session last_active (%s...): %w", sessionTokenPrefix(sessionToken), err)
 	}
 	if cachedSession != nil {
 		cachedSession.LastActive.Store(lastActive)
@@ -139,7 +139,7 @@ func (db *DB) DeleteSession(sessionToken string) error {
 
 	_, err := db.Exec(`DELETE FROM sessions WHERE session_token = ?`, sessionToken)
 	if err != nil {
-		return fmt.Errorf("failed to delete session (%s): %w", safePrefix(sessionToken, 8), err)
+		return fmt.Errorf("failed to delete session (%s): %w", sessionTokenPrefix(sessionToken), err)
 	}
 
 	db.sessionCache.Delete(sessionToken)

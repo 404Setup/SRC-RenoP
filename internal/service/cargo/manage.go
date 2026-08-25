@@ -26,7 +26,7 @@ func (h Handler) deleteVersion(c fiber.Ctx, state *core.AppState, repo *config.R
 	if err := validatePackage(crateName, version); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
-	_, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true)
+	_, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -37,13 +37,13 @@ func (h Handler) deleteVersion(c fiber.Ctx, state *core.AppState, repo *config.R
 	if !utils.IsSubPath(storagePath, lockPath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")
 	}
-	_, release, err := acquireIndexLock(state, lockPath)
+	release, err := acquireIndexLock(state, lockPath)
 	if err != nil {
 		return errorResponse(c, fiber.StatusServiceUnavailable, "Cargo registry state is unavailable")
 	}
 	succeeded := false
 	defer func() { release(succeeded) }()
-	_, details, err = authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true)
+	_, details, err = authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -124,20 +124,20 @@ func (h Handler) setPackageArchived(c fiber.Ctx, state *core.AppState, repo *con
 	if err := validateCrateName(crateName); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
-	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true); err != nil {
+	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull); err != nil {
 		return cargoError(c, err)
 	}
 	lockPath := cargoPackageLockPath(storagePath, repo, crateName)
 	if !utils.IsSubPath(storagePath, lockPath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")
 	}
-	_, release, err := acquireIndexLock(state, lockPath)
+	release, err := acquireIndexLock(state, lockPath)
 	if err != nil {
 		return errorResponse(c, fiber.StatusServiceUnavailable, "Cargo registry state is unavailable")
 	}
 	succeeded := false
 	defer func() { release(succeeded) }()
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -225,20 +225,20 @@ func (h Handler) deletePackage(c fiber.Ctx, state *core.AppState, repo *config.R
 	if err := validateCrateName(crateName); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
-	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true); err != nil {
+	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull); err != nil {
 		return cargoError(c, err)
 	}
 	lockPath := cargoPackageLockPath(storagePath, repo, crateName)
 	if !utils.IsSubPath(storagePath, lockPath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")
 	}
-	_, release, err := acquireIndexLock(state, lockPath)
+	release, err := acquireIndexLock(state, lockPath)
 	if err != nil {
 		return errorResponse(c, fiber.StatusServiceUnavailable, "Cargo registry state is unavailable")
 	}
 	succeeded := false
 	defer func() { release(succeeded) }()
-	_, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
+	_, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull)
 	if err != nil {
 		return cargoError(c, err)
 	}

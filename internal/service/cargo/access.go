@@ -77,7 +77,7 @@ func packageDetails(state *core.AppState, repository, crateName, username string
 	return details, nil
 }
 
-func authorizePackageMutation(c fiber.Ctx, state *core.AppState, repository, crateName string, level int, administratorAllowed bool) (*config.User, *core.CargoPackageDetails, error) {
+func authorizePackageMutation(c fiber.Ctx, state *core.AppState, repository, crateName string, level int) (*config.User, *core.CargoPackageDetails, error) {
 	user, err := authenticatedUser(c)
 	if err != nil {
 		return nil, nil, err
@@ -86,7 +86,7 @@ func authorizePackageMutation(c fiber.Ctx, state *core.AppState, repository, cra
 	if err != nil {
 		return nil, nil, err
 	}
-	if user.IsManager() && administratorAllowed {
+	if user.IsManager() {
 		return user, details, nil
 	}
 	if details.Package.PermissionLevel < level {

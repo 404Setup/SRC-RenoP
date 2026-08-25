@@ -20,20 +20,20 @@ func (h Handler) setYanked(c fiber.Ctx, state *core.AppState, repo *config.Repos
 	if err := validatePackage(crateName, version); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
-	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true); err != nil {
+	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion); err != nil {
 		return cargoError(c, err)
 	}
 	lockPath := cargoPackageLockPath(storagePath, repo, crateName)
 	if !utils.IsSubPath(storagePath, lockPath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")
 	}
-	_, release, err := acquireIndexLock(state, lockPath)
+	release, err := acquireIndexLock(state, lockPath)
 	if err != nil {
 		return errorResponse(c, fiber.StatusServiceUnavailable, "Cargo registry state is unavailable")
 	}
 	succeeded := false
 	defer func() { release(succeeded) }()
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion)
 	if err != nil {
 		return cargoError(c, err)
 	}

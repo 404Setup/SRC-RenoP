@@ -11,7 +11,6 @@
 package docker
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -290,7 +289,7 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 			if imageExists && pushEnabled {
 				return RespondError(c, fiber.StatusNotFound, ErrCodeManifestUnknown, "manifest not found", map[string]string{"reference": reference})
 			}
-			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(context.Background(), state, repo, imageName, reference)
+			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(c.Context(), state, repo, imageName, reference)
 			if uErr == nil && len(upstreamData) > 0 {
 				parsed, parseErr := ParseManifest(upstreamData, uMediaType)
 				if parseErr != nil {
@@ -353,7 +352,7 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 			return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to read manifest", nil)
 		}
 		if !ok {
-			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(context.Background(), state, repo, imageName, digest)
+			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(c.Context(), state, repo, imageName, digest)
 			if uErr == nil && len(upstreamData) > 0 {
 				rawJSON = upstreamData
 				mediaType = uMediaType
@@ -563,7 +562,7 @@ func (h *Handler) HandleGetBlob(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 
-	upstreamRc, uSize, uErr := FetchUpstreamBlob(context.Background(), state, repo, imageName, digest)
+	upstreamRc, uSize, uErr := FetchUpstreamBlob(c.Context(), state, repo, imageName, digest)
 	if uErr == nil && upstreamRc != nil {
 		defer upstreamRc.Close()
 		c.Set(fiber.HeaderContentType, MediaTypeOctetStream)

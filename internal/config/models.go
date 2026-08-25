@@ -11,6 +11,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -113,7 +114,11 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	}
 	if legacy.GPG != nil {
 		var serverFields map[string]json.RawMessage
-		_ = json.Unmarshal(legacy.Server, &serverFields)
+		if len(legacy.Server) > 0 {
+			if err := json.Unmarshal(legacy.Server, &serverFields); err != nil {
+				return fmt.Errorf("decode legacy server configuration: %w", err)
+			}
+		}
 		if _, nested := serverFields["gpg"]; !nested {
 			c.Server.GPG = legacy.GPG.DeepCopy()
 		}

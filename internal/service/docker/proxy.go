@@ -140,7 +140,7 @@ func FetchUpstreamManifest(
 			continue
 		}
 
-		data, mediaType, digest, err := fetchMirrorManifestSingle(ctx, state, repo, mirror, imageName, reference)
+		data, mediaType, digest, err := fetchMirrorManifestSingle(ctx, state, mirror, imageName, reference)
 		if err == nil && len(data) > 0 {
 			return data, mediaType, digest, nil
 		}
@@ -160,11 +160,10 @@ func normalizeUpstreamImage(imageName string) string {
 func fetchMirrorManifestSingle(
 	ctx context.Context,
 	state *core.AppState,
-	repo *config.Repository,
 	mirror config.Mirror,
 	imageName, reference string,
 ) ([]byte, string, string, error) {
-	client, req, err := newMirrorManifestRequest(ctx, state, repo, mirror, imageName, reference, http.MethodGet)
+	client, req, err := newMirrorManifestRequest(ctx, state, mirror, imageName, reference, http.MethodGet)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -196,7 +195,6 @@ func fetchMirrorManifestSingle(
 func newMirrorManifestRequest(
 	ctx context.Context,
 	state *core.AppState,
-	repo *config.Repository,
 	mirror config.Mirror,
 	imageName, reference, method string,
 ) (*http.Client, *http.Request, error) {
@@ -260,7 +258,7 @@ func FetchUpstreamBlob(
 			continue
 		}
 
-		rc, size, err := fetchMirrorBlobSingle(ctx, state, repo, mirror, imageName, digest)
+		rc, size, err := fetchMirrorBlobSingle(ctx, state, mirror, imageName, digest)
 		if err == nil && rc != nil {
 			return rc, size, nil
 		}
@@ -272,7 +270,6 @@ func FetchUpstreamBlob(
 func fetchMirrorBlobSingle(
 	ctx context.Context,
 	state *core.AppState,
-	repo *config.Repository,
 	mirror config.Mirror,
 	imageName, digest string,
 ) (io.ReadCloser, int64, error) {

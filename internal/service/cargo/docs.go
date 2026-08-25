@@ -97,7 +97,7 @@ func (h Handler) uploadDocs(c fiber.Ctx, state *core.AppState, repo *config.Repo
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionPublish, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionPublish)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -197,7 +197,7 @@ func (h Handler) deleteDocs(c fiber.Ctx, state *core.AppState, repo *config.Repo
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionPublish, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionPublish)
 	if err != nil {
 		return cargoError(c, err)
 	}

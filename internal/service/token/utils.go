@@ -16,7 +16,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
@@ -69,7 +68,7 @@ func AutoRegisterAdmin(state *core.AppState, opChan chan<- TokenOp) error {
 		if err != nil {
 			return err
 		}
-		encryptedSecret := unsafeConvert.StringPointer(hashBytes)
+		encryptedSecret := string(hashBytes)
 
 		token := &core.AccessToken{
 			Identifier: core.AccessTokenIdentifier{

@@ -17,11 +17,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goccy/go-json"
-	"github.com/google/uuid"
-
 	"renop/internal/core"
 )
+
+var dockerTeamRemovalSpec = &teamRemovalSpec{
+	format:           "Docker",
+	table:            "docker_members",
+	resourceColumn:   "image_name",
+	manageLevel:      core.DockerPermissionTeam,
+	ownerLevel:       core.DockerPermissionOwner,
+	invalidBatch:     errors.New("docker member removal batch is invalid"),
+	invalidName:      errors.New("docker member name is invalid"),
+	resourceNotFound: core.ErrDockerImageNotFound,
+	permissionDenied: core.ErrDockerPermissionDenied,
+	ownerCannotLeave: core.ErrDockerOwnerCannotLeave,
+	lastOwner:        core.ErrDockerLastFullMember,
+	lock:             lockDockerImageTeam,
+}
 
 func sanitizeDockerKey(repository, imageName string) (string, string) {
 	repository = strings.ToLower(SanitizeInputString(strings.TrimSpace(repository), 64))
@@ -1274,22 +1286,14 @@ func (db *DB) ForceAddDockerMembers(repository, imageName, actor string, usernam
 			return err
 		}
 
-		msgID := uuid.NewString()
-		payloadBytes, err := json.Marshal(map[string]any{
-			"repository": repository,
-			"image":      imageName,
-			"inviter":    actor,
-			"level":      level,
-		})
-		if err != nil {
-			return fmt.Errorf("encode Docker membership message: %w", err)
-		}
-		if _, err := tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			msgID, username, actor, "docker_image_invite", "info",
+		if err := insertAcceptedMembershipMessage(tx, username, actor, "docker_image_invite",
 			"Docker container image membership added",
-			fmt.Sprintf("%s added you to collaborate on %s with L%d permission.", actor, imageName, level),
-			string(payloadBytes), "docker_image_invite", core.MessageActionAccepted,
-			now, 0, now, now+7*24*3600*1000, nil); err != nil {
+			fmt.Sprintf("%s added you to collaborate on %s with L%d permission.", actor, imageName, level), map[string]any{
+				"repository": repository,
+				"image":      imageName,
+				"inviter":    actor,
+				"level":      level,
+			}, now); err != nil {
 			return fmt.Errorf("create Docker membership message: %w", err)
 		}
 	}
@@ -1494,101 +1498,9 @@ func (db *DB) RemoveDockerMember(repository, imageName, actor, username string) 
 }
 
 func (db *DB) RemoveDockerMembers(repository, imageName, actor string, usernames []string) error {
-	if db == nil || db.SQLDB == nil {
-		return core.ErrDatabaseUnavailable
-	}
-	if len(usernames) == 0 || len(usernames) > 20 {
-		return errors.New("docker member removal batch is invalid")
-	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	actor = sanitizeDockerUsername(actor)
-	unique := make([]string, 0, len(usernames))
-	userIDs := make(map[string]string, len(usernames))
-	seen := make(map[string]struct{}, len(usernames))
-	for _, candidate := range usernames {
-		username := sanitizeDockerUsername(candidate)
-		if username == "" {
-			return errors.New("docker member name is invalid")
-		}
-		if _, exists := seen[username]; exists {
-			continue
-		}
-		seen[username] = struct{}{}
-		userID, err := db.userIDForUsername(username)
-		if err != nil {
-			return core.ErrDockerImageNotFound
-		}
-		userIDs[username] = userID
-		unique = append(unique, username)
-	}
-	actorID := ""
-	if actor != "" {
-		var err error
-		actorID, err = db.userIDForUsername(actor)
-		if err != nil {
-			return core.ErrDockerPermissionDenied
-		}
-	}
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("begin Docker member removal: %w", err)
-	}
-	defer tx.Rollback()
-
-	if err := lockDockerImageTeam(tx, repository, imageName); err != nil {
-		return err
-	}
-	if actor != "" {
-		var actorLevel int
-		if err := tx.QueryRow(`SELECT permission_level FROM docker_members
-			WHERE repository = ? AND image_name = ? AND user_id = ?`,
-			repository, imageName, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
-			return core.ErrDockerPermissionDenied
-		} else if err != nil {
-			return fmt.Errorf("inspect Docker removal actor: %w", err)
-		}
-		for _, username := range unique {
-			if username != actor && actorLevel < core.DockerPermissionTeam {
-				return core.ErrDockerPermissionDenied
-			}
-			if username == actor && actorLevel == core.DockerPermissionOwner {
-				return core.ErrDockerOwnerCannotLeave
-			}
-		}
-	}
-	fullRemoved := 0
-	for _, username := range unique {
-		var current int
-		if err := tx.QueryRow(`SELECT permission_level FROM docker_members
-			WHERE repository = ? AND image_name = ? AND user_id = ?`, repository, imageName, userIDs[username]).Scan(&current); errors.Is(err, sql.ErrNoRows) {
-			return core.ErrDockerImageNotFound
-		} else if err != nil {
-			return fmt.Errorf("inspect Docker member removal: %w", err)
-		}
-		if current == core.DockerPermissionOwner {
-			fullRemoved++
-		}
-	}
-	if fullRemoved > 0 {
-		var fullCount int
-		if err := tx.QueryRow(`SELECT COUNT(*) FROM docker_members WHERE repository = ? AND image_name = ? AND permission_level = ?`,
-			repository, imageName, core.DockerPermissionOwner).Scan(&fullCount); err != nil {
-			return fmt.Errorf("count Docker L4 members: %w", err)
-		}
-		if fullRemoved >= fullCount {
-			return core.ErrDockerLastFullMember
-		}
-	}
-	for _, username := range unique {
-		if _, err := tx.Exec(`DELETE FROM docker_members WHERE repository = ? AND image_name = ? AND user_id = ?`,
-			repository, imageName, userIDs[username]); err != nil {
-			return fmt.Errorf("remove Docker member: %w", err)
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit Docker member removal: %w", err)
-	}
-	return nil
+	return db.removeTeamMembers(repository, imageName, actor, usernames, sanitizeDockerUsername, dockerTeamRemovalSpec)
 }
 
 func requireDockerMemberPermission(tx *Tx, repository, imageName, userID string, required int) error {

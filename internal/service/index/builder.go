@@ -48,7 +48,24 @@ func entryFileInfo(entry os.DirEntry) FileInfo {
 	return FileInfo{Size: size, ModTime: modTime}
 }
 
-func scanSingleDirTree(dirCleaned string, idx *FileIndex) {
+type scanSink interface {
+	addFile(path string, info FileInfo)
+	addDir(path string)
+}
+
+type fileIndexScanSink struct {
+	index *FileIndex
+}
+
+func (sink fileIndexScanSink) addFile(path string, info FileInfo) {
+	sink.index.InsertFile(path, info)
+}
+
+func (sink fileIndexScanSink) addDir(path string) {
+	sink.index.InsertDir(path)
+}
+
+func scanSingleDirTree(dirCleaned string, sink scanSink) {
 	dirsToVisit := []string{dirCleaned}
 	for len(dirsToVisit) > 0 {
 		dir := dirsToVisit[len(dirsToVisit)-1]
@@ -64,16 +81,16 @@ func scanSingleDirTree(dirCleaned string, idx *FileIndex) {
 			}
 			fullPath := dir + "/" + entry.Name()
 			if entry.IsDir() {
-				idx.InsertDir(fullPath)
+				sink.addDir(fullPath)
 				dirsToVisit = append(dirsToVisit, fullPath)
 			} else {
-				idx.InsertFile(fullPath, entryFileInfo(entry))
+				sink.addFile(fullPath, entryFileInfo(entry))
 			}
 		}
 	}
 }
 
-func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
+func scanLocalDir(dirPath string, sink scanSink, skipRootFiles bool) {
 	dirCleaned := toSlashFast(filepath.Clean(dirPath))
 	entries, err := os.ReadDir(dirCleaned)
 	if err != nil {
@@ -87,10 +104,10 @@ func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
 		}
 		fullPath := dirCleaned + "/" + entry.Name()
 		if entry.IsDir() {
-			idx.InsertDir(fullPath)
+			sink.addDir(fullPath)
 			subdirs = append(subdirs, fullPath)
 		} else if !skipRootFiles {
-			idx.InsertFile(fullPath, entryFileInfo(entry))
+			sink.addFile(fullPath, entryFileInfo(entry))
 		}
 	}
 
@@ -104,10 +121,18 @@ func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
 		sd := subdir
 		go func() {
 			defer wg.Done()
-			scanSingleDirTree(sd, idx)
+			scanSingleDirTree(sd, sink)
 		}()
 	}
 	wg.Wait()
+}
+
+// ScanLocalDir adds a local directory tree to idx.
+func ScanLocalDir(dirPath string, idx *FileIndex, skipRootFiles bool) {
+	if idx == nil {
+		return
+	}
+	scanLocalDir(dirPath, fileIndexScanSink{index: idx}, skipRootFiles)
 }
 
 func BuildIndexSync(basePath string, idx *FileIndex) error {
@@ -127,78 +152,16 @@ type scanMaps struct {
 	mu    sync.Mutex
 }
 
-func (s *scanMaps) insertFile(path string, info FileInfo) {
+func (s *scanMaps) addFile(path string, info FileInfo) {
 	s.mu.Lock()
 	s.files[path] = info
 	s.mu.Unlock()
 }
 
-func (s *scanMaps) insertDir(path string) {
+func (s *scanMaps) addDir(path string) {
 	s.mu.Lock()
 	s.dirs[path] = struct{}{}
 	s.mu.Unlock()
-}
-
-func scanSingleDirTreeMaps(dirCleaned string, out *scanMaps) {
-	dirsToVisit := []string{dirCleaned}
-	for len(dirsToVisit) > 0 {
-		dir := dirsToVisit[len(dirsToVisit)-1]
-		dirsToVisit = dirsToVisit[:len(dirsToVisit)-1]
-
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-		for _, entry := range entries {
-			if isTemporaryPath(entry.Name()) {
-				continue
-			}
-			fullPath := dir + "/" + entry.Name()
-			if entry.IsDir() {
-				out.insertDir(fullPath)
-				dirsToVisit = append(dirsToVisit, fullPath)
-			} else {
-				out.insertFile(fullPath, entryFileInfo(entry))
-			}
-		}
-	}
-}
-
-func scanLocalDirMaps(dirPath string, out *scanMaps, skipRootFiles bool) {
-	dirCleaned := toSlashFast(filepath.Clean(dirPath))
-	entries, err := os.ReadDir(dirCleaned)
-	if err != nil {
-		return
-	}
-
-	var subdirs []string
-	for _, entry := range entries {
-		if isTemporaryPath(entry.Name()) {
-			continue
-		}
-		fullPath := dirCleaned + "/" + entry.Name()
-		if entry.IsDir() {
-			out.insertDir(fullPath)
-			subdirs = append(subdirs, fullPath)
-		} else if !skipRootFiles {
-			out.insertFile(fullPath, entryFileInfo(entry))
-		}
-	}
-
-	if len(subdirs) == 0 {
-		return
-	}
-
-	var wg sync.WaitGroup
-	for _, subdir := range subdirs {
-		wg.Add(1)
-		sd := subdir
-		go func() {
-			defer wg.Done()
-			scanSingleDirTreeMaps(sd, out)
-		}()
-	}
-	wg.Wait()
 }
 
 func buildScanMaps(basePath string) *scanMaps {
@@ -208,7 +171,7 @@ func buildScanMaps(basePath string) *scanMaps {
 	}
 	baseCleaned := filepath.ToSlash(filepath.Clean(basePath))
 	out.dirs[baseCleaned] = struct{}{}
-	scanLocalDirMaps(baseCleaned, out, true)
+	scanLocalDir(baseCleaned, out, true)
 	return out
 }
 

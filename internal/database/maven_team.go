@@ -17,9 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goccy/go-json"
-	"github.com/google/uuid"
-
 	"renop/internal/core"
 )
 
@@ -240,15 +237,10 @@ func (db *DB) ForceAddMavenMembers(repository, domain, actor string, usernames [
 			[]any{repository, domain, username}, now); err != nil {
 			return err
 		}
-		payload, err := json.Marshal(map[string]any{"repository": repository, "domain": domain, "inviter": actor, "level": level})
-		if err != nil {
-			return fmt.Errorf("encode Maven membership message: %w", err)
-		}
-		if _, err := tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			uuid.NewString(), username, actor, "maven_domain_invite", "info", "Maven domain membership added",
+		if err := insertAcceptedMembershipMessage(tx, username, actor, "maven_domain_invite",
+			"Maven domain membership added",
 			fmt.Sprintf("%s added you to Maven domain %s with L%d permission.", actor, domain, level),
-			string(payload), "maven_domain_invite", core.MessageActionAccepted, now, 0, now,
-			now+7*24*3600*1000, nil); err != nil {
+			map[string]any{"repository": repository, "domain": domain, "inviter": actor, "level": level}, now); err != nil {
 			return fmt.Errorf("create Maven membership message: %w", err)
 		}
 	}
