@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "messages.open": "Открыть центр сообщений",
+    "messages.title": "Сообщения",
+    "messages.subtitle": "Уведомления и запросы для вашей учётной записи.",
+    "messages.markAllRead": "Отметить всё прочитанным",
+    "messages.clearAll": "Очистить уведомления",
+    "messages.clearAllConfirm": "Удалить все доступные для удаления уведомления? Ожидающие запросы будут сохранены.",
+    "messages.cleared": "Удалено уведомлений: {count}.",
+    "messages.clearFailed": "Не удалось очистить уведомления",
+    "messages.compose": "Отправить уведомление",
+    "messages.composeTitle": "Новое уведомление",
+    "messages.composeHint": "Отправьте текстовое уведомление выбранным или всем пользователям.",
+    "messages.recipients": "Получатели",
+    "messages.recipientsPlaceholder": "alice, bob",
+    "messages.sendAll": "Отправить всем пользователям",
+    "messages.severity": "Важность",
+    "messages.severityInfo": "Информация",
+    "messages.severitySuccess": "Успех",
+    "messages.severityWarning": "Предупреждение",
+    "messages.severityError": "Важно",
+    "messages.subject": "Тема",
+    "messages.body": "Сообщение",
+    "messages.send": "Отправить",
+    "messages.loading": "Загрузка сообщений...",
+    "messages.empty": "Сообщений пока нет.",
+    "messages.loadMore": "Загрузить ещё",
+    "messages.unread": "Не прочитано",
+    "messages.from": "От {name}",
+    "messages.system": "Система",
+    "messages.accept": "Принять",
+    "messages.reject": "Отклонить",
+    "messages.action.pending": "Требуется действие",
+    "messages.action.accepted": "Принято",
+    "messages.action.rejected": "Отклонено",
+    "messages.action.cancelled": "Отменено",
+    "messages.loadFailed": "Не удалось загрузить сообщения",
+    "messages.updateFailed": "Не удалось обновить сообщения",
+    "messages.deleteFailed": "Не удалось удалить сообщение",
+    "messages.actionFailed": "Не удалось выполнить действие",
+    "messages.invalidNotification": "Укажите получателей, тему и сообщение",
+    "messages.sent": "Уведомление отправлено пользователям: {count}",
+    "messages.sendFailed": "Не удалось отправить уведомление",
+    "team.inviteUsernameRequired": "Введите имя пользователя, которого нужно пригласить.",
+    "team.leave": "Покинуть команду",
+    "team.leaveConfirm": "Покинуть эту команду? Вы потеряете доступ, предоставленный участникам.",
+    "team.left": "Вы покинули команду.",
+    "team.transferOwnership": "Передать права владельца",
+    "team.transferOwnershipConfirm": "Передать права владельца L4 пользователю {name}? Ваши уровни доступа будут обменены.",
+});

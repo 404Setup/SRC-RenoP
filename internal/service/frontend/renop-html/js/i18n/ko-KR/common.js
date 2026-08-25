@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "nav.signIn": "로그인",
+    "nav.logout": "로그아웃",
+    "nav.toggleTheme": "테마 전환",
+    "nav.backHome": "홈으로 돌아가기",
+    "language.selectTitle": "언어 선택",
+    "language.modalTitle": "언어 선택",
+    "language.modalSubtitle": "선호하는 UI 언어를 선택하세요",
+    "tabs.overview": "개요",
+    "tabs.dashboard": "대시보드",
+    "tabs.users": "사용자 관리",
+    "tabs.repositories": "저장소 관리",
+    "tabs.settings": "시스템 설정",
+    "prompt.title": "입력 필요",
+    "prompt.clickToCopy": "클릭하여 복사",
+    "prompt.copied": "클립보드에 복사되었습니다!",
+    "footer.organization": "조직",
+    "footer.privacyPolicy": "개인정보 처리방침",
+    "footer.legalNotice": "법적 고지",
+    "footer.allRights": "모든 권리 보유.",
+    "footer.licenseNotice": "소스 코드는 MPL-2.0 라이선스에 따라 라이선스가 부여됩니다.",
+    "modal.close": "모달 닫기",
+    "privacy.title": "개인정보 처리방침",
+    "privacy.loading": "로딩 중…",
+    "privacy.failedLoad": "개인정보 처리방침을 불러오지 못했습니다.",
+    "offline.title": "백엔드 서비스가 시작되지 않았습니다",
+    "offline.retryBtn": "다시 시도",
+    "confirm.title": "작업 확인",
+    "confirm.confirmBtn": "확인",
+    "confirm.cancelBtn": "취소",
+    "common.delete": "삭제",
+    "common.edit": "편집",
+    "common.cancel": "취소",
+    "common.ok": "확인",
+    "common.yes": "예",
+    "common.no": "아니오",
+    "common.none": "없음",
+    "common.remove": "제거",
+    "common.loading": "불러오는 중…",
+    "common.error": "오류",
+    "common.close": "닫기",
+    "common.page": "페이지",
+    "common.record": "개",
+    "common.records": "개",
+    "common.prev": "이전",
+    "common.next": "다음",
+    "common.nexts": "다음",
+    "main.updateAvailable": "업데이트 사용 가능",
+    "main.updateAvailableDesc": "에셋의 새 버전을 사용할 수 있습니다. 계속하려면 업데이트하세요.",
+    "main.forceUpdate": "강제 업데이트",
+    "common.unknown": "알 수 없음",
+    "common.unknownSize": "알 수 없는 크기",
+});

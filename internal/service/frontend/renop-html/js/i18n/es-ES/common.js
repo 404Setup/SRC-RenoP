@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "nav.signIn": "Iniciar sesión",
+    "nav.logout": "Cerrar sesión",
+    "nav.toggleTheme": "Cambiar tema",
+    "nav.backHome": "Volver al inicio",
+    "language.selectTitle": "Seleccionar idioma",
+    "language.modalTitle": "Seleccionar idioma",
+    "language.modalSubtitle": "Elija su idioma de interfaz preferido",
+    "tabs.overview": "Resumen",
+    "tabs.dashboard": "Panel de control",
+    "tabs.users": "Usuarios",
+    "tabs.repositories": "Repositorios",
+    "tabs.settings": "Configuración",
+    "prompt.title": "Entrada requerida",
+    "prompt.clickToCopy": "Haga clic para copiar",
+    "prompt.copied": "¡Copiado al portapapeles!",
+    "footer.organization": "Organización",
+    "footer.privacyPolicy": "Política de privacidad",
+    "footer.legalNotice": "Aviso legal",
+    "footer.allRights": "Todos los derechos reservados.",
+    "footer.licenseNotice": "El código fuente está licenciado bajo MPL-2.0.",
+    "modal.close": "Cerrar ventana",
+    "privacy.title": "Política de privacidad",
+    "privacy.loading": "Cargando…",
+    "privacy.failedLoad": "Error al cargar la política de privacidad.",
+    "offline.title": "El servidor no se ha iniciado",
+    "offline.retryBtn": "Reintentar",
+    "confirm.title": "Confirmar acción",
+    "confirm.confirmBtn": "Confirmar",
+    "confirm.cancelBtn": "Cancelar",
+    "common.delete": "Eliminar",
+    "common.edit": "Editar",
+    "common.cancel": "Cancelar",
+    "common.ok": "Aceptar",
+    "common.yes": "Sí",
+    "common.no": "No",
+    "common.none": "Ninguno",
+    "common.remove": "Quitar",
+    "common.loading": "Cargando…",
+    "common.error": "Error",
+    "common.close": "Cerrar",
+    "common.page": "Página",
+    "common.record": "registro",
+    "common.records": "registros",
+    "common.prev": "Anterior",
+    "common.next": "Siguiente",
+    "common.nexts": "Siguiente",
+    "main.updateAvailable": "Actualización disponible",
+    "main.updateAvailableDesc": "Una nueva versión de los elementos está disponible. Por favor, actualice para continuar.",
+    "main.forceUpdate": "Forzar actualización",
+    "common.unknown": "Desconocido",
+    "common.unknownSize": "Tamaño desconocido",
+});

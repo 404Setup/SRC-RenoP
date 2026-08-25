@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "nav.signIn": "Sign in",
+    "nav.logout": "Log out",
+    "nav.toggleTheme": "Toggle theme",
+    "nav.backHome": "Back to home",
+    "language.selectTitle": "Select Language",
+    "language.modalTitle": "Select Language",
+    "language.modalSubtitle": "Choose your preferred interface language",
+    "tabs.overview": "Overview",
+    "tabs.dashboard": "Dashboard",
+    "tabs.users": "Users",
+    "tabs.repositories": "Repositories",
+    "tabs.settings": "Settings",
+    "prompt.title": "Input Required",
+    "prompt.clickToCopy": "Click to copy",
+    "prompt.copied": "Copied to clipboard!",
+    "footer.organization": "Organization",
+    "footer.privacyPolicy": "Privacy Policy",
+    "footer.legalNotice": "Legal Notice",
+    "footer.allRights": "All rights reserved.",
+    "footer.licenseNotice": "Source code is licensed under a MPL-2.0 License.",
+    "modal.close": "Close modal",
+    "privacy.title": "Privacy Policy",
+    "privacy.loading": "Loading…",
+    "privacy.failedLoad": "Failed to load policy.",
+    "offline.title": "Backend not started",
+    "offline.retryBtn": "Retry",
+    "confirm.title": "Confirm Action",
+    "confirm.confirmBtn": "Confirm",
+    "confirm.cancelBtn": "Cancel",
+    "common.delete": "Delete",
+    "common.edit": "Edit",
+    "common.cancel": "Cancel",
+    "common.ok": "OK",
+    "common.yes": "Yes",
+    "common.no": "No",
+    "common.none": "None",
+    "common.remove": "Remove",
+    "common.loading": "Loading…",
+    "common.error": "Error",
+    "common.close": "Close",
+    "common.page": "Page",
+    "common.record": "record",
+    "common.records": "records",
+    "common.prev": "Prev",
+    "common.next": "Next",
+    "common.nexts": "Next",
+    "main.updateAvailable": "Update Available",
+    "main.updateAvailableDesc": "A new version of assets is available. Please update to continue.",
+    "main.forceUpdate": "Force Update",
+    "common.unknown": "Unknown",
+    "common.unknownSize": "Unknown size",
+});

@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "nav.signIn": "登录",
+    "nav.logout": "退出登录",
+    "nav.toggleTheme": "切换主题",
+    "nav.backHome": "返回主页",
+    "language.selectTitle": "选择语言",
+    "language.modalTitle": "选择语言",
+    "language.modalSubtitle": "选择您偏好的界面语言",
+    "tabs.overview": "概览",
+    "tabs.dashboard": "仪表盘",
+    "tabs.users": "用户管理",
+    "tabs.repositories": "仓库管理",
+    "tabs.settings": "系统设置",
+    "prompt.title": "需要输入",
+    "prompt.clickToCopy": "点击复制",
+    "prompt.copied": "已复制到剪贴板！",
+    "footer.organization": "组织",
+    "footer.privacyPolicy": "隐私政策",
+    "footer.legalNotice": "法律声明",
+    "footer.allRights": "保留所有权利。",
+    "footer.licenseNotice": "源码采用 MPL-2.0 许可证授权。",
+    "modal.close": "关闭弹窗",
+    "privacy.title": "隐私政策",
+    "privacy.loading": "加载中…",
+    "privacy.failedLoad": "加载隐私政策失败。",
+    "offline.title": "后端服务未启动",
+    "offline.retryBtn": "重试",
+    "confirm.title": "确认操作",
+    "confirm.confirmBtn": "确认",
+    "confirm.cancelBtn": "取消",
+    "common.delete": "删除",
+    "common.edit": "编辑",
+    "common.cancel": "取消",
+    "common.ok": "确定",
+    "common.yes": "是",
+    "common.no": "否",
+    "common.none": "无",
+    "common.remove": "移除",
+    "common.loading": "加载中…",
+    "common.error": "错误",
+    "common.close": "关闭",
+    "common.page": "页",
+    "common.record": "条记录",
+    "common.records": "条记录",
+    "common.prev": "上一页",
+    "common.next": "下一页",
+    "common.nexts": "下一页",
+    "main.updateAvailable": "有可用更新",
+    "main.updateAvailableDesc": "检测到前端静态资源有新版本发布，请更新以继续使用。",
+    "main.forceUpdate": "强制更新",
+    "common.unknown": "未知",
+    "common.unknownSize": "未知大小",
+});

@@ -7,6 +7,8 @@
     "build:web": "pnpm --filter renop-web build",
     "test:web": "pnpm --filter renop-web test",
     "build:frontend": "pnpm --filter renop-html build",
+    "test:frontend": "pnpm --filter renop-html test",
+    "check:i18n": "pnpm --filter renop-html check:i18n",
     "build:ui-consumers": "pnpm --filter renop-web build && pnpm --filter renop-html build"
   }
 }

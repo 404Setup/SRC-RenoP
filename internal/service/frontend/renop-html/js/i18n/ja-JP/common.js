@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "nav.signIn": "サインイン",
+    "nav.logout": "ログアウト",
+    "nav.toggleTheme": "テーマ切り替え",
+    "nav.backHome": "ホームに戻る",
+    "language.selectTitle": "言語を選択",
+    "language.modalTitle": "言語を選択",
+    "language.modalSubtitle": "ご希望の UI 言語を選択してください",
+    "tabs.overview": "概要",
+    "tabs.dashboard": "ダッシュボード",
+    "tabs.users": "ユーザー管理",
+    "tabs.repositories": "リポジトリ管理",
+    "tabs.settings": "システム設定",
+    "prompt.title": "入力が必要です",
+    "prompt.clickToCopy": "クリックしてコピー",
+    "prompt.copied": "クリップボードにコピーしました！",
+    "footer.organization": "組織",
+    "footer.privacyPolicy": "プライバシーポリシー",
+    "footer.legalNotice": "法的通知",
+    "footer.allRights": "すべての権利を留保します。",
+    "footer.licenseNotice": "ソースコードは MPL-2.0 ライセンスの下でライセンスされています。",
+    "modal.close": "モーダルを閉じる",
+    "privacy.title": "プライバシーポリシー",
+    "privacy.loading": "読み込み中…",
+    "privacy.failedLoad": "プライバシーポリシーの読み込みに失敗しました。",
+    "offline.title": "バックエンドサービスが起動していません",
+    "offline.retryBtn": "再試行",
+    "confirm.title": "操作の確認",
+    "confirm.confirmBtn": "確認",
+    "confirm.cancelBtn": "キャンセル",
+    "common.delete": "削除",
+    "common.edit": "編集",
+    "common.cancel": "キャンセル",
+    "common.ok": "OK",
+    "common.yes": "はい",
+    "common.no": "いいえ",
+    "common.none": "なし",
+    "common.remove": "削除",
+    "common.loading": "読み込み中…",
+    "common.error": "エラー",
+    "common.close": "閉じる",
+    "common.page": "ページ",
+    "common.record": "件",
+    "common.records": "件",
+    "common.prev": "前へ",
+    "common.next": "次へ",
+    "common.nexts": "次へ",
+    "main.updateAvailable": "更新が利用可能です",
+    "main.updateAvailableDesc": "アセットの新しいバージョンが利用可能です。続行するには更新してください。",
+    "main.forceUpdate": "強制更新",
+    "common.unknown": "不明",
+    "common.unknownSize": "不明なサイズ",
+});

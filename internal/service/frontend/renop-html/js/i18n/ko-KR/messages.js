@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "messages.open": "메시지 센터 열기",
+    "messages.title": "메시지",
+    "messages.subtitle": "계정의 알림과 요청을 확인합니다.",
+    "messages.markAllRead": "모두 읽음으로 표시",
+    "messages.clearAll": "알림 모두 지우기",
+    "messages.clearAllConfirm": "삭제 가능한 알림을 모두 지울까요? 처리 대기 중인 요청은 유지됩니다.",
+    "messages.cleared": "알림 {count}개를 지웠습니다.",
+    "messages.clearFailed": "알림을 지우지 못했습니다",
+    "messages.compose": "알림 보내기",
+    "messages.composeTitle": "새 알림",
+    "messages.composeHint": "선택한 사용자 또는 모든 사용자에게 텍스트 알림을 보냅니다.",
+    "messages.recipients": "받는 사람",
+    "messages.recipientsPlaceholder": "alice, bob",
+    "messages.sendAll": "모든 사용자에게 보내기",
+    "messages.severity": "중요도",
+    "messages.severityInfo": "정보",
+    "messages.severitySuccess": "성공",
+    "messages.severityWarning": "경고",
+    "messages.severityError": "중요",
+    "messages.subject": "제목",
+    "messages.body": "메시지",
+    "messages.send": "보내기",
+    "messages.loading": "메시지를 불러오는 중...",
+    "messages.empty": "아직 메시지가 없습니다.",
+    "messages.loadMore": "더 불러오기",
+    "messages.unread": "읽지 않음",
+    "messages.from": "{name} 보냄",
+    "messages.system": "시스템",
+    "messages.accept": "수락",
+    "messages.reject": "거절",
+    "messages.action.pending": "작업 필요",
+    "messages.action.accepted": "수락됨",
+    "messages.action.rejected": "거절됨",
+    "messages.action.cancelled": "취소됨",
+    "messages.loadFailed": "메시지를 불러오지 못했습니다",
+    "messages.updateFailed": "메시지를 업데이트하지 못했습니다",
+    "messages.deleteFailed": "메시지를 삭제하지 못했습니다",
+    "messages.actionFailed": "메시지 작업을 완료하지 못했습니다",
+    "messages.invalidNotification": "받는 사람, 제목 및 메시지를 입력하세요",
+    "messages.sent": "{count}명의 사용자에게 알림을 보냈습니다",
+    "messages.sendFailed": "알림을 보내지 못했습니다",
+    "team.inviteUsernameRequired": "초대할 사용자 이름을 입력하세요.",
+    "team.leave": "팀 나가기",
+    "team.leaveConfirm": "이 팀에서 나가시겠습니까? 멤버십으로 부여된 접근 권한을 잃게 됩니다.",
+    "team.left": "팀에서 나갔습니다.",
+    "team.transferOwnership": "소유권 이전",
+    "team.transferOwnershipConfirm": "L4 소유권을 {name}에게 이전하시겠습니까? 두 사용자의 권한 레벨이 서로 바뀝니다.",
+});

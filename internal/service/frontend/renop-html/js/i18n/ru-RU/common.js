@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "nav.signIn": "Войти",
+    "nav.logout": "Выйти",
+    "nav.toggleTheme": "Сменить тему",
+    "nav.backHome": "Вернуться на главную",
+    "language.selectTitle": "Выбор языка",
+    "language.modalTitle": "Выбор языка",
+    "language.modalSubtitle": "Выберите предпочитаемый язык интерфейса",
+    "tabs.overview": "Обзор",
+    "tabs.dashboard": "Панель управления",
+    "tabs.users": "Пользователи",
+    "tabs.repositories": "Репозитории",
+    "tabs.settings": "Настройки",
+    "prompt.title": "Требуется ввод",
+    "prompt.clickToCopy": "Нажмите, чтобы скопировать",
+    "prompt.copied": "Скопировано в буфер обмена!",
+    "footer.organization": "Организация",
+    "footer.privacyPolicy": "Политика конфиденциальности",
+    "footer.legalNotice": "Правовая информация",
+    "footer.allRights": "Все права защищены.",
+    "footer.licenseNotice": "Исходный код лицензирован под MPL-2.0.",
+    "modal.close": "Закрыть окно",
+    "privacy.title": "Политика конфиденциальности",
+    "privacy.loading": "Загрузка…",
+    "privacy.failedLoad": "Не удалось загрузить политику конфиденциальности.",
+    "offline.title": "Бэкенд не запущен",
+    "offline.retryBtn": "Повторить",
+    "confirm.title": "Подтверждение действия",
+    "confirm.confirmBtn": "Подтвердить",
+    "confirm.cancelBtn": "Отмена",
+    "common.delete": "Удалить",
+    "common.edit": "Редактировать",
+    "common.cancel": "Отмена",
+    "common.ok": "ОК",
+    "common.yes": "Да",
+    "common.no": "Нет",
+    "common.none": "Нет",
+    "common.remove": "Удалить",
+    "common.loading": "Загрузка…",
+    "common.error": "Ошибка",
+    "common.close": "Закрыть",
+    "common.page": "Страница",
+    "common.record": "запись",
+    "common.records": "записей",
+    "common.prev": "Назад",
+    "common.next": "Вперед",
+    "common.nexts": "Вперед",
+    "main.updateAvailable": "Доступно обновление",
+    "main.updateAvailableDesc": "Доступна новая версия элементов. Пожалуйста, обновите, чтобы продолжить.",
+    "main.forceUpdate": "Принудительное обновление",
+    "common.unknown": "Неизвестно",
+    "common.unknownSize": "Неизвестный размер",
+});

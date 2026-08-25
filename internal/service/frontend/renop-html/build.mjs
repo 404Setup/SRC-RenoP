@@ -11,7 +11,6 @@
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
   rmSync,
   statSync,
@@ -22,6 +21,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { rolldown } from 'rolldown';
 import { bundleAsync } from 'lightningcss';
+import {generateI18nCatalog} from './scripts/i18n-catalog.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const outDir = join(root, 'dist');
@@ -88,161 +88,19 @@ function generateProtobuf() {
   }
 }
 
-/**
- * Lists the translation fragment modules for one locale.
- *
- * @param {string} locale Locale directory name.
- * @returns {string[]} Sorted fragment file names.
- */
-function listLocaleFragments(locale) {
-  const localeDir = join(i18nDir, locale);
-  const fragments = [];
-  for (const entry of readdirSync(localeDir, { withFileTypes: true })) {
-    if (!entry.isFile() || !/^[a-z][a-z0-9-]*\.js$/.test(entry.name)) {
-      throw new Error(`invalid i18n fragment in ${locale}: ${entry.name}`);
-    }
-    fragments.push(entry.name);
-  }
-  fragments.sort();
-  return fragments;
-}
-
-/**
- * Loads and validates one locale fragment's default export.
- *
- * @param {string} locale Locale directory name.
- * @param {string} fragment Fragment file name.
- * @returns {Promise<string[]>} Sorted translation keys.
- */
-async function loadLocaleFragment(locale, fragment) {
-  const fragmentPath = join(i18nDir, locale, fragment);
-  const module = await import(pathToFileURL(fragmentPath).href);
-  const translations = module.default;
-  if (!translations || typeof translations !== 'object' || Array.isArray(translations)) {
-    throw new Error(`i18n fragment must default-export an object: ${locale}/${fragment}`);
-  }
-
-  const keys = Object.keys(translations);
-  for (const key of keys) {
-    if (!key || typeof translations[key] !== 'string') {
-      throw new Error(`invalid i18n entry in ${locale}/${fragment}: ${key || '<empty key>'}`);
-    }
-  }
-  keys.sort();
-  return keys;
-}
-
-/**
- * Creates a stable JavaScript identifier for a locale fragment import.
- *
- * @param {string} locale Locale directory name.
- * @param {string} fragment Fragment file name.
- * @returns {string} Import identifier.
- */
-function localeImportIdentifier(locale, fragment) {
-  return `${locale}_${fragment.slice(0, -3)}`.replaceAll('-', '_');
-}
-
-/**
- * Validates locale parity and generates the static locale catalog imported by the browser.
- *
- * @returns {Promise<void>}
- */
-async function generateI18nCatalog() {
-  if (!existsSync(i18nDir)) {
-    throw new Error(`i18n directory not found: ${i18nDir}`);
-  }
-
-  const locales = [];
-  for (const entry of readdirSync(i18nDir, { withFileTypes: true })) {
-    if (entry.isFile() && entry.name === i18nCatalogName) {
-      continue;
-    }
-    if (!entry.isDirectory() || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})+$/.test(entry.name)) {
-      throw new Error(`invalid entry in i18n directory: ${entry.name}`);
-    }
-    locales.push(entry.name);
-  }
-  locales.sort();
-  if (!locales.includes(i18nReferenceLocale)) {
-    throw new Error(`reference locale is missing: ${i18nReferenceLocale}`);
-  }
-
-  const referenceFragments = listLocaleFragments(i18nReferenceLocale);
-  if (!referenceFragments.includes('core.js')) {
-    throw new Error(`${i18nReferenceLocale} must provide core.js`);
-  }
-
-  const referenceKeys = new Map();
-  const referenceCombinedKeys = new Set();
-  for (const fragment of referenceFragments) {
-    const keys = await loadLocaleFragment(i18nReferenceLocale, fragment);
-    for (const key of keys) {
-      if (referenceCombinedKeys.has(key)) {
-        throw new Error(`duplicate i18n key in ${i18nReferenceLocale}: ${key}`);
-      }
-      referenceCombinedKeys.add(key);
-    }
-    referenceKeys.set(fragment, keys);
-  }
-
-  for (const locale of locales) {
-    const fragments = listLocaleFragments(locale);
-    if (fragments.join('\0') !== referenceFragments.join('\0')) {
-      throw new Error(
-        `i18n fragments for ${locale} must match ${i18nReferenceLocale}: ${referenceFragments.join(', ')}`,
-      );
-    }
-
-    const combinedKeys = new Set();
-    for (const fragment of fragments) {
-      const keys = await loadLocaleFragment(locale, fragment);
-      const expectedKeys = referenceKeys.get(fragment);
-      if (keys.join('\0') !== expectedKeys.join('\0')) {
-        throw new Error(`i18n keys for ${locale}/${fragment} must match ${i18nReferenceLocale}/${fragment}`);
-      }
-      for (const key of keys) {
-        if (combinedKeys.has(key)) {
-          throw new Error(`duplicate i18n key in ${locale}: ${key}`);
-        }
-        combinedKeys.add(key);
-      }
-    }
-  }
-
-  const imports = [];
-  const catalogEntries = [];
-  for (const locale of locales) {
-    const identifiers = [];
-    for (const fragment of referenceFragments) {
-      const identifier = localeImportIdentifier(locale, fragment);
-      identifiers.push(identifier);
-      imports.push(`import ${identifier} from './${locale}/${fragment}';`);
-    }
-    catalogEntries.push(`    '${locale}': Object.freeze(Object.assign({}, ${identifiers.join(', ')})),`);
-  }
-
-  const generated = [
-    '/* This file is generated by build.mjs. Do not edit it directly. */',
-    '',
-    ...imports,
-    '',
-    'const localeCatalog = Object.freeze({',
-    ...catalogEntries,
-    '});',
-    '',
-    'export default localeCatalog;',
-    '',
-  ].join('\n');
-  if (!existsSync(i18nCatalogFile) || readFileSync(i18nCatalogFile, 'utf8') !== generated) {
-    writeFileSync(i18nCatalogFile, generated, 'utf8');
-  }
-  console.log('Generated i18n catalog:', i18nCatalogFile.replaceAll('\\', '/'));
-}
-
 const protoOnly = process.argv.includes('--proto-only');
+const i18nOnly = process.argv.includes('--i18n-only');
 
-await generateI18nCatalog();
+await generateI18nCatalog({
+  i18nDir,
+  catalogFile: i18nCatalogFile,
+  referenceLocale: i18nReferenceLocale,
+  catalogName: i18nCatalogName,
+});
+if (i18nOnly) {
+  console.log('Frontend i18n sources are complete.');
+  process.exit(0);
+}
 generateProtobuf();
 if (protoOnly) {
   console.log('Frontend generated sources are up to date.');

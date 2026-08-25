@@ -7,8 +7,10 @@
   "description": "RenoP frontend sources and Rolldown bundle config",
   "scripts": {
     "proto": "node ./build.mjs --proto-only",
+    "check:i18n": "node ./build.mjs --i18n-only",
     "build": "node ./build.mjs",
-    "build:bundle": "node ./build.mjs"
+    "build:bundle": "node ./build.mjs",
+    "test": "node --test ./test/*.test.mjs"
   },
   "devDependencies": {
     "lightningcss": "^1.33.0",

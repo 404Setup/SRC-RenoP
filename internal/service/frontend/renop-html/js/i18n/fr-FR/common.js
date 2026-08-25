@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
+ */
+
+export default Object.freeze({
+    "nav.signIn": "Se connecter",
+    "nav.logout": "Se déconnecter",
+    "nav.toggleTheme": "Changer de thème",
+    "nav.backHome": "Retour à l’accueil",
+    "language.selectTitle": "Choisir la langue",
+    "language.modalTitle": "Choisir la langue",
+    "language.modalSubtitle": "Choisissez votre langue d'interface préférée",
+    "tabs.overview": "Aperçu",
+    "tabs.dashboard": "Tableau de bord",
+    "tabs.users": "Gestion des utilisateurs",
+    "tabs.repositories": "Gestion des dépôts",
+    "tabs.settings": "Paramètres",
+    "prompt.title": "Saisie requise",
+    "prompt.clickToCopy": "Cliquer pour copier",
+    "prompt.copied": "Copié dans le presse-papier !",
+    "footer.organization": "Organisation",
+    "footer.privacyPolicy": "Politique de confidentialité",
+    "footer.legalNotice": "Mentions légales",
+    "footer.allRights": "Tous droits réservés.",
+    "footer.licenseNotice": "Le code source est sous licence MPL-2.0.",
+    "modal.close": "Fermer la fenêtre",
+    "privacy.title": "Politique de confidentialité",
+    "privacy.loading": "Chargement…",
+    "privacy.failedLoad": "Échec du chargement de la politique de confidentialité.",
+    "offline.title": "Service arrière-plan non démarré",
+    "offline.retryBtn": "Réessayer",
+    "confirm.title": "Confirmer l'action",
+    "confirm.confirmBtn": "Confirmer",
+    "confirm.cancelBtn": "Annuler",
+    "common.delete": "Supprimer",
+    "common.edit": "Modifier",
+    "common.cancel": "Annuler",
+    "common.ok": "OK",
+    "common.yes": "Oui",
+    "common.no": "Non",
+    "common.none": "Aucun",
+    "common.remove": "Retirer",
+    "common.loading": "Chargement…",
+    "common.error": "Erreur",
+    "common.close": "Fermer",
+    "common.page": "Page",
+    "common.record": "enregistrement",
+    "common.records": "enregistrements",
+    "common.prev": "Précédent",
+    "common.next": "Suivant",
+    "common.nexts": "Suivant",
+    "main.updateAvailable": "Mise à jour disponible",
+    "main.updateAvailableDesc": "Une nouvelle version des éléments est disponible. Veuillez mettre à jour pour continuer.",
+    "main.forceUpdate": "Forcer la mise à jour",
+    "common.unknown": "Inconnu",
+    "common.unknownSize": "Taille inconnue",
+});

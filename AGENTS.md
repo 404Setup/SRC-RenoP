@@ -46,7 +46,9 @@
   navigation and administrator page entry points; the settings UI groups the server, outbound-proxy, and storage APIs
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n
-  catalogs, including dedicated profile fragments, live under `js/i18n/<locale>/` and are compiled via
+  catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,
+  repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads fragments in
+  parallel and reports all missing/extra keys and placeholder drift against the English catalog during
   `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`. Cargo and Docker team invitations
@@ -80,6 +82,8 @@
 | **Website & Docs Build**               | `pnpm run build:web`                                                             |
 | **Website Markdown Tests**             | `pnpm run test:web`                                                              |
 | **Frontend Build & Embed**              | `pnpm install --frozen-lockfile && pnpm run build:frontend && go generate ./...` |
+| **Frontend Unit Tests**                 | `pnpm run test:frontend`                                                        |
+| **Frontend i18n Validation**            | `pnpm run check:i18n`                                                           |
 | **Protobuf Generation**                 | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
 | **Run All Tests**                       | `go test ./...`                                                                  |
 | **Run Package Tests**                   | `go test -v ./internal/...`                                                      |
