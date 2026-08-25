@@ -20,8 +20,7 @@ func (h Handler) setYanked(c fiber.Ctx, state *core.AppState, repo *config.Repos
 	if err := validatePackage(crateName, version); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true)
-	if err != nil {
+	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true); err != nil {
 		return cargoError(c, err)
 	}
 	lockPath := cargoPackageLockPath(storagePath, repo, crateName)
@@ -34,7 +33,7 @@ func (h Handler) setYanked(c fiber.Ctx, state *core.AppState, repo *config.Repos
 	}
 	succeeded := false
 	defer func() { release(succeeded) }()
-	user, details, err = authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionVersion, true)
 	if err != nil {
 		return cargoError(c, err)
 	}

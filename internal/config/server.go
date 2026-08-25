@@ -301,7 +301,7 @@ func matchOriginPattern(origin, pattern string) bool {
 			if err != nil {
 				return false
 			}
-			if strings.ToLower(pu.Scheme) != strings.ToLower(ou.Scheme) {
+			if !strings.EqualFold(pu.Scheme, ou.Scheme) {
 				return false
 			}
 			if pu.Port() != "" && pu.Port() != ou.Port() {

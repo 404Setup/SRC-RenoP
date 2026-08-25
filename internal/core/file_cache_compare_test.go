@@ -84,7 +84,7 @@ func fmtDeltaMB(b uint64) string {
 		return fmt.Sprintf("%.2f MiB", float64(neg)/1024/1024)
 	}
 	if b > 1<<40 {
-		return fmt.Sprintf("~0 (noise)")
+		return "~0 (noise)"
 	}
 	return fmtMB(b)
 }

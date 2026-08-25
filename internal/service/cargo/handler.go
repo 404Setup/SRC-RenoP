@@ -99,15 +99,6 @@ func (h Handler) handleCrateAPI(c fiber.Ctx, state *core.AppState, repo *config.
 	}
 }
 
-func parseYankPath(requestPath string) (crateName, version, operation string, ok bool) {
-	parts := strings.Split(strings.Trim(requestPath, "/"), "/")
-	if len(parts) != 6 || parts[0] != "api" || parts[1] != "v1" || parts[2] != "crates" ||
-		(parts[5] != "yank" && parts[5] != "unyank") {
-		return "", "", "", false
-	}
-	return parts[3], parts[4], parts[5], true
-}
-
 func cargoIndexPath(storagePath string, repo *config.Repository, crateName string) string {
 	return filepath.Join(storagePath, repo.Name, filepath.FromSlash(indexPath(crateName)))
 }

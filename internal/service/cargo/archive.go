@@ -88,14 +88,14 @@ func validateArchive(reader io.Reader, crateName, version string) (*cargoManifes
 			return nil, errors.New("Cargo crate contains a duplicate path")
 		}
 		seenPaths[clean] = struct{}{}
-		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA && header.Typeflag != tar.TypeDir {
+		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeDir {
 			return nil, errors.New("Cargo crate contains an unsupported file type")
 		}
 		if header.Size < 0 || unpacked > maxUnpackedSize-header.Size {
 			return nil, errors.New("Cargo crate expands beyond the size limit")
 		}
 		unpacked += header.Size
-		if clean == manifest && (header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA) {
+		if clean == manifest && header.Typeflag == tar.TypeReg {
 			if header.Size > maxManifestSize {
 				return nil, errors.New("Cargo.toml exceeds the size limit")
 			}

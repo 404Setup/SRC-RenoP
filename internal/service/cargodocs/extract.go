@@ -206,7 +206,7 @@ func extractTarGzCargodoc(archivePath, tempDir, crateName string, maxExtractedSi
 			}
 			continue
 		}
-		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA {
+		if header.Typeflag != tar.TypeReg {
 			continue
 		}
 

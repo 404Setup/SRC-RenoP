@@ -287,16 +287,6 @@ func userIDForUsernameTx(tx *Tx, username string) (string, error) {
 	return userID, nil
 }
 
-func (db *DB) usernameForUserID(userID string) (string, error) {
-	var username string
-	if err := db.QueryRow(`SELECT username FROM user_profiles WHERE user_id = ?`, userID).Scan(&username); errors.Is(err, sql.ErrNoRows) {
-		return "", core.ErrUserProfileNotFound
-	} else if err != nil {
-		return "", fmt.Errorf("resolve username for user ID %s: %w", userID, err)
-	}
-	return username, nil
-}
-
 func (db *DB) ensureUserProfile(username string) (string, error) {
 	if userID, err := db.userIDForUsername(username); err == nil {
 		return userID, nil

@@ -10,18 +10,6 @@
 
 package utils
 
-func isDigit(s string) bool {
-	if s == "" {
-		return false
-	}
-	for i := 0; i < len(s); i++ {
-		if s[i] < '0' || s[i] > '9' {
-			return false
-		}
-	}
-	return true
-}
-
 func CompareVersions(a, b string) int {
 	aIdx, bIdx := 0, 0
 	aLen, bLen := len(a), len(b)

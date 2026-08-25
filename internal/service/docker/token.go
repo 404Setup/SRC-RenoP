@@ -12,15 +12,13 @@ package docker
 
 import (
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
+	"errors"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"golang.org/x/crypto/bcrypt"
@@ -30,6 +28,8 @@ import (
 	"renop/internal/service/auth"
 	"renop/internal/utils"
 )
+
+const dockerTokenHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
 
 type AccessEntry struct {
 	Type    string   `json:"type"`
@@ -47,21 +47,8 @@ type TokenClaims struct {
 	Access    []AccessEntry `json:"access"`
 }
 
-// GenerateDockerSecret creates 32 cryptographically secure random bytes for Docker HMAC signing.
-func GenerateDockerSecret() []byte {
-	b := make([]byte, 32)
-	_, _ = rand.Read(b)
-	return b
-}
-
 // GenerateDockerToken creates a signed JWT for Docker CLI authorization.
 func GenerateDockerToken(signingSecret []byte, subject, audience string, access []AccessEntry, ttl time.Duration) (string, error) {
-	headerJSON, _ := json.Marshal(map[string]string{
-		"typ": "JWT",
-		"alg": "HS256",
-	})
-	headerEncoded := base64.RawURLEncoding.EncodeToString(headerJSON)
-
 	now := time.Now().Unix()
 	claims := TokenClaims{
 		Issuer:    "renop",
@@ -79,9 +66,9 @@ func GenerateDockerToken(signingSecret []byte, subject, audience string, access 
 	}
 	claimsEncoded := base64.RawURLEncoding.EncodeToString(claimsJSON)
 
-	message := headerEncoded + "." + claimsEncoded
+	message := dockerTokenHeader + "." + claimsEncoded
 	mac := hmac.New(sha256.New, signingSecret)
-	mac.Write(unsafeConvert.BytePointer(message))
+	mac.Write([]byte(message))
 	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 
 	return message + "." + signature, nil
@@ -89,45 +76,46 @@ func GenerateDockerToken(signingSecret []byte, subject, audience string, access 
 
 // ValidateDockerToken verifies the HMAC signature and expiration of a Docker bearer token.
 func ValidateDockerToken(signingSecret []byte, tokenStr string) (*TokenClaims, error) {
-	parts := strings.Split(tokenStr, ".")
-	if len(parts) != 3 {
-		return nil, errorsNew("invalid token format")
+	headerEncoded, remainder, ok := strings.Cut(tokenStr, ".")
+	if !ok {
+		return nil, errors.New("invalid token format")
 	}
-
-	message := parts[0] + "." + parts[1]
-	expectedSig := parts[2]
-
-	mac := hmac.New(sha256.New, signingSecret)
-	mac.Write(unsafeConvert.BytePointer(message))
-	actualSig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
-
-	if !hmac.Equal([]byte(expectedSig), []byte(actualSig)) {
-		return nil, errorsNew("invalid token signature")
+	claimsEncoded, signatureEncoded, ok := strings.Cut(remainder, ".")
+	if !ok || headerEncoded == "" || claimsEncoded == "" || signatureEncoded == "" || strings.Contains(signatureEncoded, ".") {
+		return nil, errors.New("invalid token format")
 	}
-
-	claimsBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	providedSignature, err := base64.RawURLEncoding.DecodeString(signatureEncoded)
 	if err != nil {
-		return nil, errorsNew("invalid claims encoding")
+		return nil, errors.New("invalid token signature")
+	}
+
+	message := headerEncoded + "." + claimsEncoded
+	mac := hmac.New(sha256.New, signingSecret)
+	mac.Write([]byte(message))
+
+	if !hmac.Equal(providedSignature, mac.Sum(nil)) {
+		return nil, errors.New("invalid token signature")
+	}
+
+	claimsBytes, err := base64.RawURLEncoding.DecodeString(claimsEncoded)
+	if err != nil {
+		return nil, errors.New("invalid claims encoding")
 	}
 
 	var claims TokenClaims
 	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
-		return nil, errorsNew("invalid claims JSON")
+		return nil, errors.New("invalid claims JSON")
 	}
 
 	now := time.Now().Unix()
 	if claims.ExpiresAt < now {
-		return nil, errorsNew("token expired")
+		return nil, errors.New("token expired")
 	}
 	if claims.NotBefore > now+60 {
-		return nil, errorsNew("token not yet valid")
+		return nil, errors.New("token not yet valid")
 	}
 
 	return &claims, nil
-}
-
-func errorsNew(msg string) error {
-	return fmt.Errorf("%s", msg)
 }
 
 // HandleTokenAuth handles the /v2/token and /v2/auth endpoints.
@@ -149,7 +137,7 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 		if after, ok := strings.CutPrefix(authHeader, "Basic "); ok {
 			basicAuth := after
 			if decoded, err := utils.DecodeB64(basicAuth); err == nil {
-				parts := strings.SplitN(unsafeConvert.StringPointer(decoded), ":", 2)
+				parts := strings.SplitN(string(decoded), ":", 2)
 				if len(parts) == 2 {
 					u := strings.ToLower(parts[0])
 					p := parts[1]

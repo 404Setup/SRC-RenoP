@@ -447,7 +447,7 @@ func SanitizeTarGzDocArchive(reader io.Reader, crateName string, writer io.Write
 			continue
 		}
 
-		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
+		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
 

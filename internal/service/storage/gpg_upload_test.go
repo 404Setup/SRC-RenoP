@@ -37,6 +37,17 @@ import (
 func setupGPGUploadState(t *testing.T) (*core.AppState, *database.DB, *config.Repository, string) {
 	t.Helper()
 	storagePath := t.TempDir()
+	t.Cleanup(func() {
+		var cleanupErr error
+		for range 5 {
+			cleanupErr = os.RemoveAll(storagePath)
+			if cleanupErr == nil {
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		t.Errorf("remove GPG test storage: %v", cleanupErr)
+	})
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = storagePath
 	cfg.Database = config.DatabaseConfig{

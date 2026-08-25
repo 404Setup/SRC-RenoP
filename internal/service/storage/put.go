@@ -417,17 +417,3 @@ func isMutableMavenMetadataPath(path string) bool {
 	}
 	return isArtifactCompanionPath(name)
 }
-
-func uploadAndCleanup(localPath string) error {
-	if !IsS3Enabled(localPath) {
-		return nil
-	}
-	s3Key := utils.GetS3Key(localPath)
-
-	err := UploadToS3(localPath, s3Key)
-	if err != nil {
-		return err
-	}
-	_ = os.Remove(localPath)
-	return nil
-}

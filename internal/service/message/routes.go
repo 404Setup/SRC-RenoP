@@ -43,22 +43,12 @@ const (
 	maxUserSuggestions = 8
 )
 
-type listResponse struct {
-	Messages    []*core.UserMessage `json:"messages"`
-	UnreadCount int                 `json:"unread_count"`
-	NextCursor  string              `json:"next_cursor,omitempty"`
-}
-
 type notificationRequest struct {
 	Recipients []string `json:"recipients"`
 	All        bool     `json:"all"`
 	Severity   string   `json:"severity"`
 	Title      string   `json:"title"`
 	Body       string   `json:"body"`
-}
-
-type userSearchResponse struct {
-	Users []string `json:"users"`
 }
 
 func SetupRoutes(router fiber.Router, state *core.AppState) {

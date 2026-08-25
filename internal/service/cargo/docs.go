@@ -11,20 +11,14 @@
 package cargo
 
 import (
-	"archive/tar"
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
-
-	"github.com/klauspost/compress/zip"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/klauspost/compress/gzip"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -35,9 +29,7 @@ import (
 )
 
 const (
-	maxDocArchiveSize  = 128 << 20
-	maxDocUnpackedSize = 512 << 20
-	maxDocEntries      = 50000
+	maxDocArchiveSize = 128 << 20
 )
 
 type DocStatusResponse struct {
@@ -225,159 +217,4 @@ func (h Handler) deleteDocs(c fiber.Ctx, state *core.AppState, repo *config.Repo
 		OK:      true,
 		Message: "Documentation deleted successfully",
 	})
-}
-
-func validateDocArchive(reader io.Reader, size int64) error {
-	var header [4]byte
-	if _, err := io.ReadFull(reader, header[:]); err != nil {
-		return errors.New("Invalid or empty documentation archive")
-	}
-
-	isGz := header[0] == 0x1f && header[1] == 0x8b
-	isZip := header[0] == 0x50 && header[1] == 0x4b
-
-	combined := io.MultiReader(bytes.NewReader(header[:]), reader)
-
-	if isGz {
-		return validateTarGzDoc(combined)
-	} else if isZip {
-		return validateZipDoc(combined, size)
-	}
-
-	return errors.New("Unsupported documentation archive format (expected .tar.gz or .zip)")
-}
-
-func validateTarGzDoc(reader io.Reader) error {
-	gz, err := gzip.NewReader(reader)
-	if err != nil {
-		return errors.New("Invalid gzip documentation archive")
-	}
-	defer gz.Close()
-
-	tr := tar.NewReader(io.LimitReader(gz, maxDocUnpackedSize+1))
-	var entries int
-	var totalSize int64
-	hasHTML := false
-	hasIndexHTML := false
-
-	for {
-		hdr, err := tr.Next()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return errors.New("Invalid tar structure in documentation archive")
-		}
-		entries++
-		if entries > maxDocEntries {
-			return errors.New("Documentation archive contains too many files")
-		}
-		if strings.ContainsAny(hdr.Name, "\\\x00:") {
-			return errors.New("Documentation archive contains unsafe paths")
-		}
-		clean := path.Clean(hdr.Name)
-		if clean == "." || clean == ".." || strings.HasPrefix(clean, "../") || strings.HasPrefix(clean, "/") {
-			return errors.New("Documentation archive contains unsafe paths")
-		}
-		if hdr.Typeflag == tar.TypeDir {
-			continue
-		}
-		if hdr.Size < 0 || totalSize+hdr.Size > maxDocUnpackedSize {
-			return errors.New("Documentation archive exceeds unpacked size limit")
-		}
-		totalSize += hdr.Size
-
-		cleanLower := strings.ToLower(clean)
-		base := path.Base(cleanLower)
-		if base == "index.html" || base == "index.htm" {
-			hasIndexHTML = true
-		}
-		if strings.HasSuffix(cleanLower, ".html") || strings.HasSuffix(cleanLower, ".htm") {
-			hasHTML = true
-		}
-	}
-
-	if entries == 0 {
-		return errors.New("Documentation archive is empty")
-	}
-	if !hasIndexHTML || !hasHTML {
-		return errors.New("Documentation archive does not contain index.html")
-	}
-	return nil
-}
-
-func validateZipDoc(reader io.Reader, size int64) error {
-	var readerAt io.ReaderAt
-	var tempPath string
-	if rAt, ok := reader.(io.ReaderAt); ok && size > 0 {
-		readerAt = rAt
-	} else {
-		tempFile, err := os.CreateTemp("", "renop-zip-validate-*")
-		if err != nil {
-			return errors.New("Invalid zip documentation archive")
-		}
-		tempPath = tempFile.Name()
-		defer func() {
-			_ = tempFile.Close()
-			if tempPath != "" {
-				_ = os.Remove(tempPath)
-			}
-		}()
-		written, copyErr := io.Copy(tempFile, io.LimitReader(reader, maxDocArchiveSize+1))
-		if copyErr != nil {
-			return errors.New("Invalid zip documentation archive")
-		}
-		if written > maxDocArchiveSize {
-			return errors.New("Documentation archive exceeds size limit")
-		}
-		size = written
-		readerAt = tempFile
-	}
-
-	zr, err := zip.NewReader(readerAt, size)
-	if err != nil {
-		return errors.New("Invalid zip documentation archive")
-	}
-
-	if len(zr.File) == 0 {
-		return errors.New("Documentation archive is empty")
-	}
-	if len(zr.File) > maxDocEntries {
-		return errors.New("Documentation archive contains too many files")
-	}
-
-	var totalSize int64
-	hasHTML := false
-	hasIndexHTML := false
-
-	for _, f := range zr.File {
-		if strings.ContainsAny(f.Name, "\\\x00:") {
-			return errors.New("Documentation archive contains unsafe paths")
-		}
-		clean := path.Clean(f.Name)
-		if clean == "." || clean == ".." || strings.HasPrefix(clean, "../") || strings.HasPrefix(clean, "/") {
-			return errors.New("Documentation archive contains unsafe paths")
-		}
-		if f.FileInfo().IsDir() {
-			continue
-		}
-		if f.UncompressedSize64 > maxDocUnpackedSize || totalSize+int64(f.UncompressedSize64) > maxDocUnpackedSize {
-			return errors.New("Documentation archive exceeds unpacked size limit")
-		}
-		totalSize += int64(f.UncompressedSize64)
-
-		cleanLower := strings.ToLower(clean)
-		base := path.Base(cleanLower)
-		if base == "index.html" || base == "index.htm" {
-			hasIndexHTML = true
-		}
-		if strings.HasSuffix(cleanLower, ".html") || strings.HasSuffix(cleanLower, ".htm") {
-			hasHTML = true
-		}
-	}
-
-	if !hasIndexHTML || !hasHTML {
-		return errors.New("Documentation archive does not contain index.html")
-	}
-	return nil
 }

@@ -742,10 +742,9 @@ func RestartProcess() error {
 func scheduleReexec(exePath string) error {
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		if err := reexecProcess(exePath); err != nil {
-			log.Printf("[Updater] Failed to restart process: %v", err)
-			os.Exit(1)
-		}
+		err := reexecProcess(exePath)
+		log.Printf("[Updater] Failed to restart process: %v", err)
+		os.Exit(1)
 	}()
 	return nil
 }

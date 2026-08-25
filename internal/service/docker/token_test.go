@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/3JoB/unsafeConvert"
 	"github.com/goccy/go-json"
 )
 
@@ -105,24 +104,9 @@ func TestDockerTokenLifecycle(t *testing.T) {
 
 	msg := parts[0] + ".???invalidbase64???"
 	mac := hmac.New(sha256.New, secret)
-	mac.Write(unsafeConvert.BytePointer(msg))
+	mac.Write([]byte(msg))
 	sig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 	if _, err := ValidateDockerToken(secret, msg+"."+sig); err == nil {
 		t.Fatal("expected decode error for corrupted claims encoding")
-	}
-}
-
-func TestGenerateDockerSecret(t *testing.T) {
-	s1 := GenerateDockerSecret()
-	s2 := GenerateDockerSecret()
-
-	if len(s1) != 32 {
-		t.Fatalf("expected 32 bytes secret, got %d", len(s1))
-	}
-	if len(s2) != 32 {
-		t.Fatalf("expected 32 bytes secret, got %d", len(s2))
-	}
-	if hmac.Equal(s1, s2) {
-		t.Fatal("two independently generated secrets should not be identical")
 	}
 }

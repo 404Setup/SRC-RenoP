@@ -124,8 +124,7 @@ func (h Handler) setPackageArchived(c fiber.Ctx, state *core.AppState, repo *con
 	if err := validateCrateName(crateName); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
-	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
-	if err != nil {
+	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true); err != nil {
 		return cargoError(c, err)
 	}
 	lockPath := cargoPackageLockPath(storagePath, repo, crateName)
@@ -138,7 +137,7 @@ func (h Handler) setPackageArchived(c fiber.Ctx, state *core.AppState, repo *con
 	}
 	succeeded := false
 	defer func() { release(succeeded) }()
-	user, details, err = authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
+	user, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -226,8 +225,7 @@ func (h Handler) deletePackage(c fiber.Ctx, state *core.AppState, repo *config.R
 	if err := validateCrateName(crateName); err != nil {
 		return errorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
-	_, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
-	if err != nil {
+	if _, _, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true); err != nil {
 		return cargoError(c, err)
 	}
 	lockPath := cargoPackageLockPath(storagePath, repo, crateName)
@@ -240,7 +238,7 @@ func (h Handler) deletePackage(c fiber.Ctx, state *core.AppState, repo *config.R
 	}
 	succeeded := false
 	defer func() { release(succeeded) }()
-	_, details, err = authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
+	_, details, err := authorizePackageMutation(c, state, repo.Name, crateName, core.CargoPermissionFull, true)
 	if err != nil {
 		return cargoError(c, err)
 	}
