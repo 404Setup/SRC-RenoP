@@ -11,6 +11,7 @@
 package frontend
 
 import (
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -275,6 +276,55 @@ func TestRepositoryTeamsShareUserSuggestionController(t *testing.T) {
 		}
 		if strings.Contains(string(source), "-user-suggestion") {
 			t.Fatalf("%s retains format-specific autocomplete CSS", sourcePath)
+		}
+	}
+}
+
+func TestFrontendUsesSharedClipboardAndTimeUtilities(t *testing.T) {
+	jsRoot := filepath.Join("renop-html", "js")
+	clipboardPath := filepath.Join(jsRoot, "clipboard.js")
+	clipboardSource, err := os.ReadFile(clipboardPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"navigator.clipboard", "document.execCommand('copy')", "textarea.remove()"} {
+		if !strings.Contains(string(clipboardSource), required) {
+			t.Fatalf("shared clipboard utility is missing %q", required)
+		}
+	}
+
+	timestampPattern := regexp.MustCompile(`new Date\([^\r\n]*\)\.toLocale(?:Date|Time)?String\(`)
+	err = filepath.WalkDir(jsRoot, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".js" || strings.Contains(path, string(filepath.Separator)+"proto"+string(filepath.Separator)) {
+			return nil
+		}
+		data, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		text := string(data)
+		if path != clipboardPath && (strings.Contains(text, "navigator.clipboard") || strings.Contains(text, "execCommand('copy')")) {
+			t.Fatalf("%s bypasses the shared clipboard utility", path)
+		}
+		if timestampPattern.MatchString(text) {
+			t.Fatalf("%s contains duplicate timestamp normalization", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	timeSource, err := os.ReadFile(filepath.Join(jsRoot, "time.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"export function timestampMilliseconds", "export function formatTimestamp"} {
+		if !strings.Contains(string(timeSource), required) {
+			t.Fatalf("shared time utility is missing %q", required)
 		}
 	}
 }

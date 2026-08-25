@@ -18,6 +18,7 @@ import {createButton} from './components/button.js';
 import {createBadge} from './components/badge.js';
 import {createEmptyState} from './components/empty-state.js';
 import {logout} from './auth.js';
+import {formatTimestamp} from './time.js';
 
 /**
  * @typedef {object} SessionView
@@ -68,12 +69,7 @@ function shortSessionId(publicId) {
  * @returns {string}
  */
 function formatDateTime(ms) {
-    if (!ms || !Number.isFinite(Number(ms))) return '—';
-    try {
-        return new Date(Number(ms)).toLocaleString();
-    } catch {
-        return '—';
-    }
+    return formatTimestamp(ms, {fallback: '—'});
 }
 
 /**

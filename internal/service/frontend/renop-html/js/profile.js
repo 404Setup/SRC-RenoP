@@ -28,6 +28,8 @@ import {
 } from './proto/index.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
+import {writeClipboardText} from './clipboard.js';
+import {formatTimestamp} from './time.js';
 import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
 import {
 	getUserProfile,
@@ -46,10 +48,7 @@ let profilePageLoadSeq = 0;
  * @returns {string}
  */
 function formatGPGDate(value) {
-	const timestamp = Number(value);
-	return Number.isFinite(timestamp) && timestamp > 0
-		? new Date(timestamp).toLocaleDateString()
-		: t('profile.gpgNoExpiry');
+	return formatTimestamp(value, {dateOnly: true, fallback: t('profile.gpgNoExpiry')});
 }
 
 /**
@@ -419,7 +418,7 @@ export async function loadProfileFidoDevices() {
                 nameEl.textContent = dev.name || 'FIDO Device';
                 const dateEl = document.createElement('span');
                 dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
-                dateEl.textContent = new Date(dev.created_at).toLocaleString();
+                dateEl.textContent = formatTimestamp(dev.created_at, {fallback: t('common.unknown')});
                 info.appendChild(nameEl);
                 info.appendChild(dateEl);
 
@@ -566,8 +565,7 @@ export async function addFidoDevice() {
  * @returns {string} Localized date or a fallback label.
  */
 function formatProfileCreatedAt(value) {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? t('common.unknown') : date.toLocaleDateString();
+    return formatTimestamp(value, {dateOnly: true, fallback: t('common.unknown')});
 }
 
 /**
@@ -607,7 +605,7 @@ function profileRenameHint(profile) {
     return remaining > 0
         ? t('profile.renameRemaining', {count: remaining})
         : t('profile.renameUnavailable', {
-            date: resetAt > 0 ? new Date(resetAt).toLocaleString() : t('profile.later')
+            date: formatTimestamp(resetAt, {fallback: t('profile.later')})
         });
 }
 
@@ -1167,9 +1165,10 @@ function wireProfileEditActions(profile) {
                                 title: t('prompt.clickToCopy'),
                                 onClick: async () => {
                                     try {
-                                        await navigator.clipboard.writeText(data.token);
+                                        await writeClipboardText(data.token);
                                         showAlert(t('prompt.copied'), 'success');
                                     } catch (err) {
+                                        console.error('Failed to copy regenerated upload token', err);
                                     }
                                 }
                             }, data.token)

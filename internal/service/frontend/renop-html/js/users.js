@@ -21,6 +21,7 @@ import {openSessionsDialog} from './sessions.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
 import {morphElementHeight} from '@renop/ui/height-anim';
+import {formatTimestamp, timestampMilliseconds} from './time.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -71,8 +72,8 @@ function sortTokens(tokens) {
     return [...tokens].sort((a, b) => {
         let cmp;
         if (sortKey === 'created_at') {
-            const ta = new Date(a.created_at || 0).getTime();
-            const tb = new Date(b.created_at || 0).getTime();
+            const ta = timestampMilliseconds(a.created_at || 0);
+            const tb = timestampMilliseconds(b.created_at || 0);
             cmp = (Number.isFinite(ta) ? ta : 0) - (Number.isFinite(tb) ? tb : 0);
         } else if (sortKey === 'permissions') {
             cmp = compareByFirstChar(permissionsSortKey(a), permissionsSortKey(b));
@@ -307,7 +308,7 @@ export async function openUserFidoDialog(username) {
                     nameEl.textContent = dev.name || 'FIDO Device';
                     const dateEl = document.createElement('span');
                     dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
-                    dateEl.textContent = new Date(dev.created_at).toLocaleString();
+                    dateEl.textContent = formatTimestamp(dev.created_at, {fallback: t('common.unknown')});
                     info.appendChild(nameEl);
                     info.appendChild(dateEl);
 

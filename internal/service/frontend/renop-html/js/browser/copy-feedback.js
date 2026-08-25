@@ -10,6 +10,7 @@
 
 import {el} from '@renop/ui/dom';
 import {createIcon} from '../components/icon.js';
+import {writeClipboardText} from '../clipboard.js';
 
 const activeCopyFeedback = new WeakMap();
 
@@ -22,7 +23,7 @@ const activeCopyFeedback = new WeakMap();
  */
 export async function copyWithFeedback(button, text, {copiedLabel, duration = 2000}) {
     if (!(button instanceof HTMLButtonElement) || !text) return;
-    await navigator.clipboard.writeText(text);
+    await writeClipboardText(text);
     const current = activeCopyFeedback.get(button);
     if (current) clearTimeout(current.timer);
     const originalTitle = current?.originalTitle ?? button.title;

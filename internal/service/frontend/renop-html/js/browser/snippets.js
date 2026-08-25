@@ -12,6 +12,7 @@ import {t} from '../i18n.js';
 import {createIcon} from '../components.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {decodePathSegment} from './utils.js';
+import {copyWithFeedback} from './copy-feedback.js';
 
 let currentSnippets = {};
 let snippetUpdateSequence = 0;
@@ -272,19 +273,6 @@ function renderSnippetTabs(types) {
 }
 
 /**
- * Restore the copy button after its success feedback.
- * @param {HTMLButtonElement} button - Copy button.
- * @param {string} title - Previous title.
- * @returns {void}
- */
-function restoreCopyButton(button, title) {
-    button.classList.remove('copied');
-    button.title = title;
-    button.innerHTML = '';
-    button.appendChild(createIcon('copy', {class: 'icon-svg'}));
-}
-
-/**
  * Copy the currently visible snippet and show bounded success feedback.
  * @param {MouseEvent} event - Copy button click.
  * @returns {Promise<void>}
@@ -294,17 +282,7 @@ async function copyCurrentSnippet(event) {
     const code = document.getElementById('snippet-code');
     if (!(button instanceof HTMLButtonElement) || !code) return;
     try {
-        await navigator.clipboard.writeText(code.textContent || '');
-        const originalTitle = button.title;
-        button.classList.add('copied');
-        button.title = t('details.copied');
-        button.innerHTML = '';
-        button.appendChild(createIcon('check', {class: 'icon-svg'}));
-        const toast = document.createElement('span');
-        toast.className = 'copy-toast';
-        toast.textContent = t('details.copied');
-        button.appendChild(toast);
-        setTimeout(restoreCopyButton.bind(null, button, originalTitle), 2000);
+        await copyWithFeedback(button, code.textContent || '', {copiedLabel: t('details.copied')});
     } catch (error) {
         console.error('Failed to copy repository snippet', error);
     }

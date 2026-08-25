@@ -15,6 +15,7 @@ import {createUserIdentity} from './user-identity.js';
 import {createButton} from './button.js';
 import {createIcon} from './icon.js';
 import {RenopDialog} from './dialog.js';
+import {formatTimestamp} from '../time.js';
 
 /**
  * Create a skeleton placeholder table row for the users list.
@@ -317,7 +318,7 @@ export function createUserRow(token, options = {}) {
             color: 'var(--text-color)',
             opacity: '0.8'
         }
-    }, new Date(token.created_at).toLocaleDateString());
+    }, formatTimestamp(token.created_at, {dateOnly: true, fallback: t('common.unknown')}));
 
     const actionsBtn = createButton('', {
         class: 'table-action-btn action-btn',

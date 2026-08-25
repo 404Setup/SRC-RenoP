@@ -36,6 +36,7 @@ import {hideMavenRepositoryView, renderMavenRepository} from './browser/maven.js
 import {localizeRepositorySearch, updateRepositorySearch} from './browser/search.js';
 import {FileDetails, GpgSignatureDetails} from './proto/index.js';
 import {getRepositoryFormat} from './repository-formats.js';
+import {formatTimestamp} from './time.js';
 
 const fileList = document.getElementById('file-list');
 const fileListContainer = document.getElementById('file-list-container');
@@ -468,9 +469,7 @@ function createFileItemElement(file, index, path) {
  * @returns {string}
  */
 function formatSignatureTime(value) {
-	const timestamp = Number(value);
-	if (!Number.isFinite(timestamp) || timestamp <= 0) return t('common.none');
-	return new Date(timestamp).toLocaleString();
+	return formatTimestamp(value, {fallback: t('common.none')});
 }
 
 /**

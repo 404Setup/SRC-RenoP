@@ -19,6 +19,8 @@ import {
     uploadUpdaterSingle,
 } from './chunked-upload.js';
 import {InstanceStatus} from './proto/index.js';
+import {writeClipboardText} from './clipboard.js';
+import {formatTimestamp} from './time.js';
 
 /**
  * Show a transient toast alert that auto-dismisses after 5 seconds.
@@ -103,9 +105,10 @@ export function showPrompt(message, defaultValue = '', readOnly = false, options
             input.onclick = async () => {
                 input.select();
                 try {
-                    await navigator.clipboard.writeText(input.value);
+                    await writeClipboardText(input.value);
                     showAlert(t('prompt.copied'), 'success');
                 } catch (e) {
+                    console.error('Failed to copy prompt value', e);
                 }
             };
         }
@@ -188,14 +191,9 @@ export function showUpdateModal(updateData = {}) {
     const formattedSize = updateData.size && updateData.size > 0 ? formatBytes(updateData.size) : t('common.unknownSize');
     const estDisk = updateData.estimated_disk_space || (updateData.size && updateData.size > 0 ? updateData.size * 3 : 0);
     const formattedEstDisk = estDisk > 0 ? formatBytes(estDisk) : t('common.unknownSize');
-    let formattedDate = t('common.unknown');
-    if (updateData.release_date) {
-        try {
-            formattedDate = new Date(updateData.release_date).toLocaleString();
-        } catch (e) {
-            formattedDate = updateData.release_date;
-        }
-    }
+    const formattedDate = updateData.release_date
+        ? formatTimestamp(updateData.release_date, {fallback: updateData.release_date})
+        : t('common.unknown');
 
     const channelLabel = updateData.channel === 'nightly' ? t('settings.channelNightly') : t('settings.channelRelease');
     const commitText = updateData.commit_sha ? (updateData.commit_sha.length > 7 ? updateData.commit_sha.substring(0, 7) : updateData.commit_sha) : '';

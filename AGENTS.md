@@ -51,7 +51,8 @@
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`. Cargo and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
-  Shared asynchronous actions use the
+  All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
+  and `js/time.js`. Shared asynchronous actions use the
   button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed
   requests. Docker management
   failures expose stable `X-Renop-Error-Code` values that `js/docker-errors.js` maps to the Docker locale catalogs;

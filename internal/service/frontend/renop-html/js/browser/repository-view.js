@@ -9,6 +9,7 @@
 import {el} from '@renop/ui/dom';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {createIcon} from '../components/icon.js';
+import {formatTimestamp} from '../time.js';
 
 const entranceTimers = new WeakMap();
 
@@ -137,12 +138,5 @@ export function createRepositoryBackButton({path, label, navigate, className, ic
  * @returns {string} Localized timestamp or fallback.
  */
 export function formatRepositoryTimestamp(value, {dateOnly = false, fallback = ''} = {}) {
-    if (value === null || value === undefined || value === '') return fallback;
-    const numeric = Number(value);
-    const timestamp = Number.isFinite(numeric)
-        ? (numeric > 1e11 ? numeric : numeric * 1000)
-        : Date.parse(String(value));
-    if (!Number.isFinite(timestamp) || timestamp <= 0) return fallback;
-    const date = new Date(timestamp);
-    return dateOnly ? date.toLocaleDateString() : date.toLocaleString();
+    return formatTimestamp(value, {dateOnly, fallback});
 }

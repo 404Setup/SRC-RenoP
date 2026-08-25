@@ -14,6 +14,7 @@ import {t} from './i18n.js';
 import {logout} from './auth.js';
 import {showAlert} from './alert.js';
 import {InstanceStatus, StatusSnapshotList, UpdateState} from './proto/index.js';
+import {formatTimestamp} from './time.js';
 
 let refreshInterval = null;
 let snapshotsInterval = null;
@@ -378,7 +379,7 @@ function _snapshotMemoryBytes(point) {
  * @returns {string}
  */
 function _memoryBarTitle(rssBytes, vssBytes, timestamp) {
-    const time = new Date(timestamp).toLocaleTimeString();
+    const time = formatTimestamp(timestamp, {timeOnly: true, fallback: t('common.unknown')});
     const totalBytes = Math.max(rssBytes, vssBytes);
     return t('dashboard.chartBarTitle', {
         rss: formatBytes(rssBytes),

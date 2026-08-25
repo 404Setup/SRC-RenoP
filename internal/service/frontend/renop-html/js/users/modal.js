@@ -22,6 +22,7 @@ import {
 } from '../components.js';
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError} from '../password-strength.js';
 import {getUserProfile, invalidateUserProfiles} from '../user-profiles.js';
+import {writeClipboardText} from '../clipboard.js';
 
 let secretStrengthCtrl = null;
 let currentDialogInstance = null;
@@ -503,15 +504,10 @@ export function showUserResultModal(generatedSecret) {
         onClick: async () => {
             if (!codeEl.textContent) return;
             try {
-                await navigator.clipboard.writeText(codeEl.textContent);
+                await writeClipboardText(codeEl.textContent);
                 showAlert(t('prompt.copied'), 'success');
             } catch (err) {
-                const range = document.createRange();
-                range.selectNodeContents(codeEl);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-                showAlert(t('prompt.copied'), 'success');
+                console.error('Failed to copy generated user secret', err);
             }
         }
     }, t('prompt.clickToCopy'));

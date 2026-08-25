@@ -29,6 +29,7 @@ import {
     UserMessageList,
     UserSearchResponse
 } from './proto/index.js';
+import {timestampMilliseconds} from './time.js';
 
 const actionHandlers = new Map();
 const messageRenderers = new Map();
@@ -416,7 +417,7 @@ function actionStatusLabel(status) {
  * @returns {string} Localized date/time.
  */
 function formatMessageDate(timestamp) {
-    const value = Number(timestamp);
+    const value = timestampMilliseconds(timestamp);
     if (!Number.isFinite(value) || value <= 0) return '';
     return new Intl.DateTimeFormat(undefined, {dateStyle: 'medium', timeStyle: 'short'}).format(new Date(value));
 }

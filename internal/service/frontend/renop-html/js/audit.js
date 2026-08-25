@@ -15,6 +15,7 @@ import {el} from '@renop/ui/dom';
 import {createUserIdentity, RenopDialog} from './components.js';
 import {enableDragToScroll} from '@renop/ui/scroll';
 import {AuditLogList} from './proto/index.js';
+import {formatTimestamp} from './time.js';
 
 let currentAuditModal = null;
 
@@ -208,7 +209,7 @@ export async function openAuditLogsDialog(options = {}) {
                         });
 
                         const timeTd = el('td', {style: {padding: '8px 12px', whiteSpace: 'nowrap', opacity: '0.75'}},
-                            new Date(log.created_at).toLocaleString()
+                            formatTimestamp(log.created_at, {fallback: t('common.unknown')})
                         );
 
                         const actionBadge = renderActionBadge(log.action);
