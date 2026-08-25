@@ -60,4 +60,5 @@ export default Object.freeze({
     "main.forceUpdate": "强制更新",
     "common.unknown": "未知",
     "common.unknownSize": "未知大小",
+    "common.fromMirror": "来自镜像源",
 });

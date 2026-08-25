@@ -60,4 +60,5 @@ export default Object.freeze({
     "main.forceUpdate": "Принудительное обновление",
     "common.unknown": "Неизвестно",
     "common.unknownSize": "Неизвестный размер",
+    "common.fromMirror": "Получено из зеркала",
 });

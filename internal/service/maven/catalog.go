@@ -31,6 +31,16 @@ func normalizeCatalogTimestamp(value int64) int64 {
 	return value
 }
 
+func isMirroredMavenCompanion(path string) bool {
+	name := strings.ToLower(filepath.Base(path))
+	for _, suffix := range []string{".md5", ".sha1", ".sha256", ".sha512", ".asc"} {
+		if strings.HasSuffix(name, suffix) {
+			return true
+		}
+	}
+	return false
+}
+
 // RecordPublishedPath updates the Maven catalog for one successfully published file.
 func RecordPublishedPath(state *core.AppState, repository, path, username string, size, modTime int64) error {
 	coordinate, ok := ParseArtifactPath(path)
@@ -54,6 +64,46 @@ func RecordPublishedPath(state *core.AppState, repository, path, username string
 		Repository: repository, GroupID: coordinate.GroupID, ArtifactID: coordinate.ArtifactID,
 		Version: coordinate.Version, Publisher: strings.ToLower(strings.TrimSpace(username)),
 		Size: size, CreatedAt: timestamp,
+	})
+}
+
+// RecordMirroredPath catalogs one Maven version fetched through a configured upstream mirror.
+func RecordMirroredPath(state *core.AppState, repository, path string, size, modTime int64) error {
+	if isMirroredMavenCompanion(path) {
+		return nil
+	}
+	coordinate, ok := ParseArtifactPath(path)
+	if !ok || state == nil || state.GetDB() == nil {
+		return nil
+	}
+	domains, err := state.GetDB().ListMavenDomains("", true)
+	if err != nil {
+		return err
+	}
+	domainName := ""
+	for _, domain := range domains {
+		if domain == nil || !domain.Verified || !domainContainsGroup(domain.Domain, strings.ToLower(coordinate.GroupID)) {
+			continue
+		}
+		if len(domain.Domain) > len(domainName) {
+			domainName = domain.Domain
+		}
+	}
+	if domainName == "" {
+		var inferred bool
+		domainName, inferred = legacyDomainForGroup(coordinate.GroupID)
+		if !inferred {
+			return nil
+		}
+	}
+	timestamp := normalizeCatalogTimestamp(modTime)
+	return state.GetDB().RecordMavenMirrorPublication(&core.MavenArtifact{
+		Repository: repository, Domain: domainName, GroupID: coordinate.GroupID,
+		ArtifactID: coordinate.ArtifactID, LatestVersion: coordinate.Version,
+		CreatedAt: timestamp, UpdatedAt: timestamp, Mirrored: true,
+	}, &core.MavenVersion{
+		Repository: repository, GroupID: coordinate.GroupID, ArtifactID: coordinate.ArtifactID,
+		Version: coordinate.Version, Size: size, CreatedAt: timestamp, Mirrored: true,
 	})
 }
 

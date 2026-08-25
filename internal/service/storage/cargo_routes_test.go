@@ -9,14 +9,17 @@
 package storage
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/database"
 	"renop/internal/service/index"
 )
 
@@ -62,5 +65,60 @@ func TestHiddenCargoConfigDoesNotRequireAuthentication(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != fiber.StatusOK {
 		t.Fatalf("status = %d, want %d", resp.StatusCode, fiber.StatusOK)
+	}
+}
+
+func TestCargoMirrorDownloadRecordsPackageProvenance(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/api/v1/crates/serde/1.0.0/download" {
+			http.NotFound(writer, request)
+			return
+		}
+		_, _ = writer.Write([]byte("mirrored crate"))
+	}))
+	t.Cleanup(upstream.Close)
+
+	storagePath := storageTestTempDir(t)
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories["cargo"] = &config.Repository{
+		Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
+		Mirrors: []config.Mirror{{Name: "upstream", URL: upstream.URL, TimeoutSecs: 5}},
+	}
+	InitS3(cfg)
+	state := core.NewAppState()
+	state.Inner.Config.Store(cfg)
+	state.Inner.FileIndex = index.NewFileIndex()
+	state.Inner.FileCache = core.NewFileByteCache(1 << 20)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-mirror.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+	app := fiber.New(fiber.Config{UnescapePath: false})
+	app.All("/:repo_name/*", func(c fiber.Ctx) error { return HandleRepository(c, state) })
+
+	response, err := app.Test(httptest.NewRequest(http.MethodGet,
+		"http://registry.example/cargo/api/v1/crates/serde/1.0.0/download", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || string(body) != "mirrored crate" {
+		t.Fatalf("mirror response = %d %q", response.StatusCode, body)
+	}
+	details, err := db.GetCargoPackageDetails("cargo", "serde", "guest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if details == nil || details.Package == nil || !details.Package.Mirrored || len(details.Versions) != 1 || !details.Versions[0].Mirrored {
+		t.Fatalf("mirrored Cargo provenance was not cataloged: %#v", details)
 	}
 }

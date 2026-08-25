@@ -1264,7 +1264,7 @@ components:
 
     MavenArtifact:
       type: object
-      required: [repository, domain, group_id, artifact_id, version_count, total_size, created_at, updated_at]
+      required: [repository, domain, group_id, artifact_id, version_count, total_size, mirrored, created_at, updated_at]
       properties:
         repository:
           type: string
@@ -1289,6 +1289,9 @@ components:
           format: int64
           minimum: 0
           description: Sum of cataloged version sizes in bytes.
+        mirrored:
+          type: boolean
+          description: True when at least one cataloged version was obtained from an upstream mirror.
         created_at:
           type: integer
           format: int64
@@ -1302,7 +1305,7 @@ components:
 
     MavenVersion:
       type: object
-      required: [version, size, created_at]
+      required: [version, size, mirrored, created_at]
       properties:
         version:
           type: string
@@ -1311,6 +1314,9 @@ components:
         size:
           type: integer
           format: int64
+        mirrored:
+          type: boolean
+          description: True when this version was obtained from an upstream mirror.
         created_at:
           type: integer
           format: int64
@@ -1330,7 +1336,7 @@ components:
 
     DockerRepositoryImage:
       type: object
-      required: [repository, image_name, description, publisher, tag_count, pull_count, private, push_enabled, created_at, updated_at]
+      required: [repository, image_name, description, publisher, tag_count, pull_count, private, push_enabled, mirrored, created_at, updated_at]
       properties:
         repository:
           type: string
@@ -1356,6 +1362,9 @@ components:
         push_enabled:
           type: boolean
           description: False for mirror-discovered images, whose names cannot be reserved for local pushes.
+        mirrored:
+          type: boolean
+          description: True for images discovered and cached through an upstream registry mirror.
         permission_level:
           type: integer
           minimum: 0

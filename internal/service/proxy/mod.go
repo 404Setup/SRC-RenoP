@@ -41,6 +41,7 @@ var (
 	UploadStreamToS3          func(repo *config.Repository, s3Key string, reader io.Reader, size int64, contentType string) error
 	OnArtifactStored          func(localPath string)
 	OnArtifactStoredWithState func(state *core.AppState, repo *config.Repository, localPath string)
+	OnMirrorArtifactStored    func(state *core.AppState, repo *config.Repository, localPath string, size, modTime int64)
 )
 
 // ErrUpstreamProbeUnavailable indicates that at least one applicable mirror
@@ -66,12 +67,15 @@ type multiReadCloser struct {
 	io.Closer
 }
 
-func notifyArtifactStored(state *core.AppState, repo *config.Repository, localPath string) {
+func notifyArtifactStored(state *core.AppState, repo *config.Repository, localPath string, size, modTime int64) {
 	if OnArtifactStored != nil {
 		OnArtifactStored(localPath)
 	}
 	if OnArtifactStoredWithState != nil {
 		OnArtifactStoredWithState(state, repo, localPath)
+	}
+	if OnMirrorArtifactStored != nil {
+		OnMirrorArtifactStored(state, repo, localPath, size, modTime)
 	}
 }
 
@@ -161,12 +165,13 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 		contentType := utils.ContentTypeByExt(filepath.Ext(localFilePath))
 		err := UploadStreamToS3(repo, s3Key, bytes.NewReader(data), int64(len(data)), contentType)
 		if err == nil {
+			storedAt := time.Now().UnixNano()
 			state.Inner.FileIndex.EnsureParentDirs(localFilePath)
 			state.Inner.FileIndex.InsertFile(localFilePath, index.FileInfo{
 				Size:    int64(len(data)),
-				ModTime: time.Now().UnixNano(),
+				ModTime: storedAt,
 			})
-			notifyArtifactStored(state, repo, localFilePath)
+			notifyArtifactStored(state, repo, localFilePath, int64(len(data)), storedAt)
 			return true
 		}
 		return false
@@ -185,12 +190,13 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 	}
 
 	if err := os.Rename(tmpPath, localFilePath); err == nil {
+		storedAt := time.Now().UnixNano()
 		state.Inner.FileIndex.EnsureParentDirs(localFilePath)
 		state.Inner.FileIndex.InsertFile(localFilePath, index.FileInfo{
 			Size:    int64(len(data)),
-			ModTime: time.Now().UnixNano(),
+			ModTime: storedAt,
 		})
-		notifyArtifactStored(state, repo, localFilePath)
+		notifyArtifactStored(state, repo, localFilePath, int64(len(data)), storedAt)
 
 		return true
 	}
@@ -314,6 +320,10 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 			var onSuccess func(string) bool
 			if IsS3Enabled != nil && IsS3Enabled(repo) {
 				onSuccess = func(p string) bool {
+					stat, statErr := os.Stat(p)
+					if statErr != nil {
+						return false
+					}
 					s3Key := utils.GetS3Key(p)
 					if err := UploadToS3(repo, p, s3Key); err != nil {
 						return false
@@ -321,12 +331,16 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 					if err := os.Remove(p); err != nil {
 						return false
 					}
-					notifyArtifactStored(state, repo, p)
+					notifyArtifactStored(state, repo, p, stat.Size(), stat.ModTime().UnixNano())
 					return true
 				}
-			} else if OnArtifactStored != nil || OnArtifactStoredWithState != nil {
+			} else if OnArtifactStored != nil || OnArtifactStoredWithState != nil || OnMirrorArtifactStored != nil {
 				onSuccess = func(p string) bool {
-					notifyArtifactStored(state, repo, p)
+					stat, err := os.Stat(p)
+					if err != nil {
+						return false
+					}
+					notifyArtifactStored(state, repo, p, stat.Size(), stat.ModTime().UnixNano())
 					return true
 				}
 			}

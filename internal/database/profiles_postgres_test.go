@@ -84,6 +84,17 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 		Repository: "cargo", Package: "profile-pg-crate", Version: "1.0.0",
 		Publisher: account.Name, CreatedAt: changedAt,
 	}, account.Name))
+	require.NoError(t, db.RecordCargoMirrorPublication(&core.CargoPackage{
+		Repository: "cargo", Name: "mirror-pg-crate", NormalizedName: "mirror-pg-crate",
+		CreatedAt: changedAt, UpdatedAt: changedAt,
+	}, &core.CargoVersion{
+		Repository: "cargo", Package: "mirror-pg-crate", Version: "1.0.0", Size: 512, CreatedAt: changedAt,
+	}))
+	mirroredCargo, err := db.GetCargoPackageDetails("cargo", "mirror-pg-crate", "profile_pg")
+	require.NoError(t, err)
+	require.True(t, mirroredCargo.Package.Mirrored)
+	require.Len(t, mirroredCargo.Versions, 1)
+	require.True(t, mirroredCargo.Versions[0].Mirrored)
 	_, err = db.CreateDockerImage("docker", "profile/pg", account.Name, false, changedAt)
 	require.NoError(t, err)
 	require.NoError(t, db.PutDockerManifest(&core.DockerManifest{
@@ -169,6 +180,13 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 		Repository: "releases", GroupID: "com.example", ArtifactID: "postgres-demo",
 		Version: "1.0.0", Publisher: "maven_bob", Size: 2048, CreatedAt: publishedAt,
 	}))
+	require.NoError(t, db.RecordMavenMirrorPublication(&core.MavenArtifact{
+		Repository: "releases", Domain: "com.example", GroupID: "com.example",
+		ArtifactID: "postgres-demo", LatestVersion: "2.0.0", CreatedAt: publishedAt, UpdatedAt: publishedAt + 1,
+	}, &core.MavenVersion{
+		Repository: "releases", GroupID: "com.example", ArtifactID: "postgres-demo",
+		Version: "2.0.0", Size: 4096, CreatedAt: publishedAt + 1,
+	}))
 	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "maven_bob")
 	require.NoError(t, err)
 	require.Len(t, repositoryDomains, 1)
@@ -178,7 +196,10 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 	require.Equal(t, 2, repositoryDomains[0].MemberCount)
 	artifactDetails, err := db.GetMavenArtifactDetails("releases", "com.example", "postgres-demo")
 	require.NoError(t, err)
-	require.Equal(t, int64(2048), artifactDetails.Artifact.TotalSize)
+	require.Equal(t, int64(6144), artifactDetails.Artifact.TotalSize)
+	require.True(t, artifactDetails.Artifact.Mirrored)
+	require.Len(t, artifactDetails.Versions, 2)
+	require.True(t, artifactDetails.Versions[0].Mirrored)
 	require.NoError(t, db.RemoveMavenMember("com.example", "maven_bob", "maven_alice"))
 	requireTeamRemovalMessage(t, db, "maven_alice", "maven", "", "com.example", "maven_bob")
 }

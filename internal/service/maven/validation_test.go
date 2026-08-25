@@ -58,6 +58,9 @@ func TestParseArtifactPath(t *testing.T) {
 	assert.True(t, isMavenPublicationPath("com/example/library/1.0/library-1.0.pom.asc"))
 	assert.False(t, isMavenPublicationPath("com/example/readme.txt"))
 	assert.False(t, isMavenPublicationPath("com/example/library/notes.txt"))
+	assert.True(t, isMirroredMavenCompanion("com/example/library/1.0/library-1.0.jar.sha256"))
+	assert.True(t, isMirroredMavenCompanion("com/example/library/1.0/library-1.0.pom.asc"))
+	assert.False(t, isMirroredMavenCompanion("com/example/library/1.0/library-1.0.jar"))
 }
 
 func TestNewVerificationCodeIsUniqueAndBounded(t *testing.T) {

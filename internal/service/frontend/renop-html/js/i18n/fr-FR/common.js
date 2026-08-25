@@ -60,4 +60,5 @@ export default Object.freeze({
     "main.forceUpdate": "Forcer la mise à jour",
     "common.unknown": "Inconnu",
     "common.unknownSize": "Taille inconnue",
+    "common.fromMirror": "Issu d’une source miroir",
 });

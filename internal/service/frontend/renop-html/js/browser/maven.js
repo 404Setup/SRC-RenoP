@@ -20,6 +20,7 @@ import {copyWithFeedback} from './copy-feedback.js';
 import {
     createRepositoryBackButton,
     createRepositoryFactsSection,
+    createRepositoryMirrorBadge,
     ensureRepositoryView,
     formatRepositoryTimestamp,
     hideRepositoryView,
@@ -189,6 +190,7 @@ function artifactCard(repository, artifact) {
         el('span', {}, artifact.description || t('maven.noDescription'))
     ),
     el('span', {class: 'maven-artifact-meta'},
+        artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
         artifact.latest_version ? el('code', {}, artifact.latest_version) : null,
         el('span', {}, t('maven.versionCount', {count: Number(artifact.version_count) || 0})),
         Number(artifact.total_size) > 0 ? el('span', {}, formatBytes(Number(artifact.total_size))) : null
@@ -760,6 +762,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             el('div', {class: 'maven-stats'},
                 el('span', {}, artifact.domain),
                 el('span', {}, t('maven.versionCount', {count: versions.length})),
+                artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
                 artifact.publisher ? el('span', {}, t('maven.publishedBy'), createUserIdentity(artifact.publisher)) : null
             )
         );
@@ -781,6 +784,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                 el('div', {class: 'maven-version-main'}, el('code', {}, version.version),
                     el('span', {}, formatDate(version.created_at))),
                 el('div', {class: 'maven-version-meta'},
+                    version.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
                     version.publisher ? createUserIdentity(version.publisher) : null,
                     el('span', {}, formatBytes(Number(version.size) || 0)), actions)
             ));

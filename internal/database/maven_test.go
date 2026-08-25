@@ -206,3 +206,28 @@ func TestMavenArtifactMovesToMostSpecificDomain(t *testing.T) {
 	assert.Equal(t, "com.example.tools", repositoryDomains[0].Domain)
 	assert.Equal(t, 1, repositoryDomains[0].ArtifactCount)
 }
+
+func TestMavenMirrorPublicationRetainsVersionProvenance(t *testing.T) {
+	db := newMavenDB(t)
+	const now int64 = 4000
+	artifact := &core.MavenArtifact{
+		Repository: "central", Domain: "com.example", GroupID: "com.example", ArtifactID: "demo",
+		LatestVersion: "1.0.0", CreatedAt: now, UpdatedAt: now,
+	}
+	version := &core.MavenVersion{
+		Repository: "central", GroupID: "com.example", ArtifactID: "demo",
+		Version: "1.0.0", Size: 4096, CreatedAt: now,
+	}
+	require.NoError(t, db.RecordMavenMirrorPublication(artifact, version))
+	details, err := db.GetMavenArtifactDetails("central", "com.example", "demo")
+	require.NoError(t, err)
+	assert.True(t, details.Artifact.Mirrored)
+	require.Len(t, details.Versions, 1)
+	assert.True(t, details.Versions[0].Mirrored)
+	artifacts, total, err := db.ListMavenArtifacts("central", "", "", 10, 0)
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+	require.Len(t, artifacts, 1)
+	assert.True(t, artifacts[0].Mirrored)
+	require.NoError(t, db.DeleteMavenVersionMetadata("central", "com.example", "demo", "1.0.0"))
+}

@@ -24,7 +24,7 @@ import (
 
 const cargoPackageColumns = `repository, normalized_name, package_name, description,
 	repository_url, homepage, documentation,
-	archived, admin_archived, created_at, updated_at`
+	archived, admin_archived, mirrored, created_at, updated_at`
 
 var cargoTeamRemovalSpec = &teamRemovalSpec{
 	format:           "Cargo",
@@ -47,16 +47,17 @@ type cargoPackageScanner interface {
 
 func scanCargoPackage(scanner cargoPackageScanner) (*core.CargoPackage, error) {
 	result := &core.CargoPackage{}
-	var archived, adminArchived int
+	var archived, adminArchived, mirrored int
 	if err := scanner.Scan(
 		&result.Repository, &result.NormalizedName, &result.Name, &result.Description,
 		&result.RepositoryURL, &result.Homepage, &result.Documentation,
-		&archived, &adminArchived, &result.CreatedAt, &result.UpdatedAt,
+		&archived, &adminArchived, &mirrored, &result.CreatedAt, &result.UpdatedAt,
 	); err != nil {
 		return nil, err
 	}
 	result.Archived = archived != 0
 	result.AdminArchived = adminArchived != 0
+	result.Mirrored = mirrored != 0
 	return result, nil
 }
 
@@ -107,7 +108,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		}
 	}
 
-	versionRows, err := db.Query(`SELECT version, description, publisher, size, checksum, rust_version, license, repository_url, homepage, documentation, yanked, admin_yanked, archive_yanked, created_at
+	versionRows, err := db.Query(`SELECT version, description, publisher, size, checksum, rust_version, license, repository_url, homepage, documentation, yanked, admin_yanked, archive_yanked, mirrored, created_at
 		FROM cargo_versions WHERE repository = ? AND normalized_name = ? ORDER BY created_at DESC, version DESC`,
 		pkg.Repository, pkg.NormalizedName)
 	if err != nil {
@@ -116,12 +117,12 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 	versions := make([]*core.CargoVersion, 0)
 	for versionRows.Next() {
 		version := &core.CargoVersion{Repository: pkg.Repository, Package: pkg.NormalizedName}
-		var yanked, adminYanked, archiveYanked int
+		var yanked, adminYanked, archiveYanked, mirrored int
 		if err := versionRows.Scan(
 			&version.Version, &version.Description, &version.Publisher,
 			&version.Size, &version.Checksum, &version.RustVersion, &version.License,
 			&version.RepositoryURL, &version.Homepage, &version.Documentation,
-			&yanked, &adminYanked, &archiveYanked, &version.CreatedAt,
+			&yanked, &adminYanked, &archiveYanked, &mirrored, &version.CreatedAt,
 		); err != nil {
 			_ = versionRows.Close()
 			return nil, fmt.Errorf("scan Cargo version: %w", err)
@@ -129,6 +130,7 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		version.Yanked = yanked != 0
 		version.AdminYanked = adminYanked != 0
 		version.ArchiveYanked = archiveYanked != 0
+		version.Mirrored = mirrored != 0
 		versions = append(versions, version)
 	}
 	if err := versionRows.Err(); err != nil {
@@ -177,7 +179,7 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 	}
 	query := `SELECT p.repository, p.normalized_name, p.package_name, p.description,
 		p.repository_url, p.homepage, p.documentation,
-		p.archived, p.admin_archived, p.created_at, p.updated_at, COALESCE(m.permission_level, 0)
+		p.archived, p.admin_archived, p.mirrored, p.created_at, p.updated_at, COALESCE(m.permission_level, 0)
 		FROM cargo_packages p LEFT JOIN cargo_members m ON m.repository = p.repository
 		AND m.normalized_name = p.normalized_name AND m.user_id = ? WHERE p.repository = ?`
 	if !administrator {
@@ -192,16 +194,17 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 	packages := make([]*core.CargoPackage, 0)
 	for rows.Next() {
 		pkg := &core.CargoPackage{}
-		var archived, adminArchived int
+		var archived, adminArchived, mirrored int
 		if err := rows.Scan(
 			&pkg.Repository, &pkg.NormalizedName, &pkg.Name, &pkg.Description,
 			&pkg.RepositoryURL, &pkg.Homepage, &pkg.Documentation,
-			&archived, &adminArchived, &pkg.CreatedAt, &pkg.UpdatedAt, &pkg.PermissionLevel,
+			&archived, &adminArchived, &mirrored, &pkg.CreatedAt, &pkg.UpdatedAt, &pkg.PermissionLevel,
 		); err != nil {
 			return nil, fmt.Errorf("scan Cargo package list: %w", err)
 		}
 		pkg.Archived = archived != 0
 		pkg.AdminArchived = adminArchived != 0
+		pkg.Mirrored = mirrored != 0
 		packages = append(packages, pkg)
 	}
 	if err := rows.Err(); err != nil {
@@ -418,6 +421,85 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	return nil
 }
 
+// RecordCargoMirrorPublication records a crate version fetched from an upstream mirror without creating a local owner.
+func (db *DB) RecordCargoMirrorPublication(pkg *core.CargoPackage, version *core.CargoVersion) error {
+	if db == nil || db.SQLDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	if pkg == nil || version == nil {
+		return errors.New("mirrored Cargo metadata is missing")
+	}
+	repository, normalizedName := sanitizeCargoKey(pkg.Repository, pkg.NormalizedName)
+	packageName := SanitizeInputString(strings.TrimSpace(pkg.Name), 64)
+	versionName := SanitizeInputString(strings.TrimSpace(version.Version), 128)
+	description := SanitizeInputString(strings.TrimSpace(pkg.Description), 4000)
+	createdAt := pkg.CreatedAt
+	if createdAt <= 0 {
+		createdAt = time.Now().UnixMilli()
+	}
+	updatedAt := max(pkg.UpdatedAt, createdAt)
+	if repository == "" || normalizedName == "" || packageName == "" || versionName == "" {
+		return errors.New("mirrored Cargo metadata is invalid")
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin mirrored Cargo publication: %w", err)
+	}
+	defer tx.Rollback()
+	var storedName string
+	err = tx.QueryRow(`SELECT package_name FROM cargo_packages WHERE repository = ? AND normalized_name = ?`,
+		repository, normalizedName).Scan(&storedName)
+	if errors.Is(err, sql.ErrNoRows) {
+		if _, err := tx.Exec(`INSERT INTO cargo_packages
+			(repository, normalized_name, package_name, description, repository_url, homepage, documentation,
+			archived, admin_archived, mirrored, created_at, updated_at)
+			VALUES (?, ?, ?, ?, '', '', '', 0, 0, 1, ?, ?)`,
+			repository, normalizedName, packageName, description, createdAt, updatedAt); err != nil {
+			return fmt.Errorf("create mirrored Cargo package: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("inspect mirrored Cargo package: %w", err)
+	} else {
+		if storedName != packageName {
+			return errors.New("mirrored Cargo crate name collides with an existing package")
+		}
+		if _, err := tx.Exec(`UPDATE cargo_packages SET mirrored = 1,
+			description = CASE WHEN description = '' AND ? != '' THEN ? ELSE description END,
+			updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
+			WHERE repository = ? AND normalized_name = ?`, description, description, updatedAt, updatedAt,
+			repository, normalizedName); err != nil {
+			return fmt.Errorf("update mirrored Cargo package: %w", err)
+		}
+	}
+	var exists int
+	err = tx.QueryRow(`SELECT 1 FROM cargo_versions WHERE repository = ? AND normalized_name = ? AND version = ?`,
+		repository, normalizedName, versionName).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		versionCreatedAt := version.CreatedAt
+		if versionCreatedAt <= 0 {
+			versionCreatedAt = createdAt
+		}
+		if _, err := tx.Exec(`INSERT INTO cargo_versions
+			(repository, normalized_name, version, description, publisher, size, checksum, rust_version, license,
+			repository_url, homepage, documentation, yanked, admin_yanked, archive_yanked, mirrored, created_at)
+			VALUES (?, ?, ?, ?, '', ?, '', '', '', '', '', '', 0, 0, 0, 1, ?)`, repository,
+			normalizedName, versionName, description, max(version.Size, 0), versionCreatedAt); err != nil {
+			return fmt.Errorf("record mirrored Cargo version: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("inspect mirrored Cargo version: %w", err)
+	} else if _, err := tx.Exec(`UPDATE cargo_versions SET mirrored = 1,
+		size = CASE WHEN ? > size THEN ? ELSE size END
+		WHERE repository = ? AND normalized_name = ? AND version = ?`,
+		version.Size, version.Size, repository, normalizedName, versionName); err != nil {
+		return fmt.Errorf("update mirrored Cargo version: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit mirrored Cargo publication: %w", err)
+	}
+	return nil
+}
+
 func (db *DB) SetCargoVersionYanked(repository, normalizedName, version string, yanked, administrator bool) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
@@ -470,7 +552,12 @@ func (db *DB) DeleteCargoVersion(repository, normalizedName, version string) err
 		return core.ErrDatabaseUnavailable
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
-	result, err := db.Exec(`DELETE FROM cargo_versions WHERE repository = ? AND normalized_name = ? AND version = ?`,
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Cargo version deletion: %w", err)
+	}
+	defer tx.Rollback()
+	result, err := tx.Exec(`DELETE FROM cargo_versions WHERE repository = ? AND normalized_name = ? AND version = ?`,
 		repository, normalizedName, SanitizeInputString(strings.TrimSpace(version), 128))
 	if err != nil {
 		return fmt.Errorf("delete Cargo version: %w", err)
@@ -481,6 +568,15 @@ func (db *DB) DeleteCargoVersion(repository, normalizedName, version string) err
 	}
 	if rows == 0 {
 		return core.ErrCargoVersionNotFound
+	}
+	if _, err := tx.Exec(`UPDATE cargo_packages SET mirrored = CASE WHEN EXISTS (
+		SELECT 1 FROM cargo_versions v WHERE v.repository = cargo_packages.repository
+		AND v.normalized_name = cargo_packages.normalized_name AND v.mirrored = 1
+	) THEN 1 ELSE 0 END WHERE repository = ? AND normalized_name = ?`, repository, normalizedName); err != nil {
+		return fmt.Errorf("update Cargo package mirror provenance: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Cargo version deletion: %w", err)
 	}
 	return nil
 }

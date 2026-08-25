@@ -49,6 +49,7 @@ func wireStorageHooks() {
 	}
 	storage.MavenReadAuthorizer = CanReadRepository
 	storage.MavenPublicationRecorder = RecordPublishedPath
+	storage.MavenMirrorRecorder = RecordMirroredPath
 }
 
 // SetupRoutes registers Maven domain and catalog management APIs.

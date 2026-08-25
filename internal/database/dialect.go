@@ -69,6 +69,7 @@ func initMavenTables(db *sql.DB) error {
 			description TEXT NOT NULL,
 			publisher VARCHAR(255) NOT NULL,
 			latest_version VARCHAR(255) NOT NULL,
+			mirrored INT NOT NULL DEFAULT 0,
 			created_at BIGINT NOT NULL,
 			updated_at BIGINT NOT NULL,
 			PRIMARY KEY (repository, group_id, artifact_id)
@@ -80,6 +81,7 @@ func initMavenTables(db *sql.DB) error {
 			version VARCHAR(255) NOT NULL,
 			publisher VARCHAR(255) NOT NULL,
 			size BIGINT NOT NULL DEFAULT 0,
+			mirrored INT NOT NULL DEFAULT 0,
 			created_at BIGINT NOT NULL,
 			PRIMARY KEY (repository, group_id, artifact_id, version)
 		);`,
@@ -162,6 +164,7 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "cargo_packages.repository_url", Query: "ALTER TABLE cargo_packages ADD COLUMN repository_url VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_packages.homepage", Query: "ALTER TABLE cargo_packages ADD COLUMN homepage VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_packages.documentation", Query: "ALTER TABLE cargo_packages ADD COLUMN documentation VARCHAR(1024) NOT NULL DEFAULT '';"},
+	{Name: "cargo_packages.mirrored", Query: "ALTER TABLE cargo_packages ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
 	{Name: "cargo_versions.size", Query: "ALTER TABLE cargo_versions ADD COLUMN size BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "cargo_versions.checksum", Query: "ALTER TABLE cargo_versions ADD COLUMN checksum VARCHAR(64) NOT NULL DEFAULT '';"},
 	{Name: "cargo_versions.rust_version", Query: "ALTER TABLE cargo_versions ADD COLUMN rust_version VARCHAR(64) NOT NULL DEFAULT '';"},
@@ -169,6 +172,9 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "cargo_versions.repository_url", Query: "ALTER TABLE cargo_versions ADD COLUMN repository_url VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_versions.homepage", Query: "ALTER TABLE cargo_versions ADD COLUMN homepage VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_versions.documentation", Query: "ALTER TABLE cargo_versions ADD COLUMN documentation VARCHAR(1024) NOT NULL DEFAULT '';"},
+	{Name: "cargo_versions.mirrored", Query: "ALTER TABLE cargo_versions ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
+	{Name: "maven_artifacts.mirrored", Query: "ALTER TABLE maven_artifacts ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
+	{Name: "maven_versions.mirrored", Query: "ALTER TABLE maven_versions ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
 	{Name: "docker_images.publisher", Query: "ALTER TABLE docker_images ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
 	{Name: "docker_images.pull_count", Query: "ALTER TABLE docker_images ADD COLUMN pull_count BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "docker_images.private", Query: "ALTER TABLE docker_images ADD COLUMN private INT NOT NULL DEFAULT 0;"},

@@ -60,4 +60,5 @@ export default Object.freeze({
     "main.forceUpdate": "강제 업데이트",
     "common.unknown": "알 수 없음",
     "common.unknownSize": "알 수 없는 크기",
+    "common.fromMirror": "미러에서 가져옴",
 });

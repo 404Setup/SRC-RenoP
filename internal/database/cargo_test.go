@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"renop/internal/config"
@@ -191,4 +192,31 @@ func TestExpiredCargoInvitationCanBeReissued(t *testing.T) {
 	details, err := db.GetCargoPackageDetails("cargo", "demo", "bob")
 	require.NoError(t, err)
 	require.Equal(t, core.CargoPermissionPublish, details.Package.PermissionLevel)
+}
+
+func TestCargoMirrorPublicationHasNoOwnerAndRetainsProvenance(t *testing.T) {
+	db := newCargoDB(t)
+	const now int64 = 3000
+	pkg := &core.CargoPackage{
+		Repository: "cargo", Name: "serde", NormalizedName: "serde", CreatedAt: now, UpdatedAt: now,
+	}
+	version := &core.CargoVersion{
+		Repository: "cargo", Package: "serde", Version: "1.0.0", Size: 1024, CreatedAt: now,
+	}
+	require.NoError(t, db.RecordCargoMirrorPublication(pkg, version))
+	version.Size = 2048
+	require.NoError(t, db.RecordCargoMirrorPublication(pkg, version))
+	details, err := db.GetCargoPackageDetails("cargo", "serde", "guest")
+	require.NoError(t, err)
+	require.NotNil(t, details.Package)
+	assert.True(t, details.Package.Mirrored)
+	assert.Empty(t, details.Members)
+	require.Len(t, details.Versions, 1)
+	assert.True(t, details.Versions[0].Mirrored)
+	assert.Equal(t, int64(2048), details.Versions[0].Size)
+	packages, total, err := db.SearchCargoPackages("cargo", "serde", 10, 0)
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+	require.Len(t, packages, 1)
+	assert.True(t, packages[0].Mirrored)
 }

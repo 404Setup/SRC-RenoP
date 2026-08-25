@@ -74,3 +74,30 @@
     background-color: color-mix(in srgb, #ef4444 12%, transparent);
     color: #ef4444;
 }
+
+.repository-mirror-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: max-content;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid color-mix(in srgb, #3b82f6 28%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, #3b82f6 10%, transparent);
+    color: #2563eb;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.repository-mirror-badge svg,
+.repository-mirror-badge renop-icon {
+    width: 0.78rem;
+    height: 0.78rem;
+    flex-shrink: 0;
+}
+
+html.dark .repository-mirror-badge {
+    color: #93c5fd;
+}

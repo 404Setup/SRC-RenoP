@@ -48,7 +48,7 @@ func (h Handler) search(c fiber.Ctx, state *core.AppState, repo *config.Reposito
 			continue
 		}
 		results = append(results, searchCrate{
-			Name: pkg.Name, MaxVersion: pkg.MaxVersion, Description: pkg.Description,
+			Name: pkg.Name, MaxVersion: pkg.MaxVersion, Description: pkg.Description, Mirrored: pkg.Mirrored,
 		})
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")

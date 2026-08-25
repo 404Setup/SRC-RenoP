@@ -33,6 +33,7 @@ type DockerRepositoryImage struct {
 	PullCount       int64  `json:"pull_count"`
 	Private         bool   `json:"private"`
 	PushEnabled     bool   `json:"push_enabled"`
+	Mirrored        bool   `json:"mirrored"`
 	PermissionLevel int    `json:"permission_level,omitempty"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`

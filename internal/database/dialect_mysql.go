@@ -217,6 +217,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		documentation VARCHAR(1024) NOT NULL DEFAULT '',
 		archived TINYINT(1) NOT NULL DEFAULT 0,
 		admin_archived TINYINT(1) NOT NULL DEFAULT 0,
+		mirrored TINYINT(1) NOT NULL DEFAULT 0,
 		created_at BIGINT NOT NULL,
 		updated_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, normalized_name),
@@ -240,6 +241,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		yanked TINYINT(1) NOT NULL DEFAULT 0,
 		admin_yanked TINYINT(1) NOT NULL DEFAULT 0,
 		archive_yanked TINYINT(1) NOT NULL DEFAULT 0,
+		mirrored TINYINT(1) NOT NULL DEFAULT 0,
 		created_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, normalized_name, version),
 		INDEX idx_cargo_versions_package (repository, normalized_name, created_at)

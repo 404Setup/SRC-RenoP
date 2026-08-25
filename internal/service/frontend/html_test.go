@@ -393,6 +393,33 @@ func TestRepositoryListUsesTypeIconsAndVisibilityDots(t *testing.T) {
 	}
 }
 
+func TestPackageViewsUseExplicitMirrorProvenance(t *testing.T) {
+	for _, sourcePath := range []string{
+		filepath.Join("renop-html", "js", "browser", "maven.js"),
+		filepath.Join("renop-html", "js", "browser", "cargo.js"),
+		filepath.Join("renop-html", "js", "browser", "docker.js"),
+	} {
+		source, err := os.ReadFile(sourcePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(source)
+		if !strings.Contains(text, "createRepositoryMirrorBadge") || !strings.Contains(text, ".mirrored") {
+			t.Fatalf("%s does not render explicit mirror provenance", sourcePath)
+		}
+		if strings.Contains(text, "push_enabled === false") {
+			t.Fatalf("%s infers mirror provenance from an unrelated capability", sourcePath)
+		}
+	}
+	sharedSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "repository-view.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(sharedSource), "export function createRepositoryMirrorBadge") {
+		t.Fatal("repository views are missing the shared mirror provenance badge")
+	}
+}
+
 func TestFrontendUsesSharedClipboardAndTimeUtilities(t *testing.T) {
 	jsRoot := filepath.Join("renop-html", "js")
 	clipboardPath := filepath.Join(jsRoot, "clipboard.js")

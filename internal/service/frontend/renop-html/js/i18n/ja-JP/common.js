@@ -60,4 +60,5 @@ export default Object.freeze({
     "main.forceUpdate": "強制更新",
     "common.unknown": "不明",
     "common.unknownSize": "不明なサイズ",
+    "common.fromMirror": "ミラー取得",
 });

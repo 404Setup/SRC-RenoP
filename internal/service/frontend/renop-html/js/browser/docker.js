@@ -22,6 +22,7 @@ import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} f
 import {resolveUserDisplayName} from '../user-profiles.js';
 import {
     createRepositoryBackButton,
+    createRepositoryMirrorBadge,
     ensureRepositoryView,
     formatRepositoryTimestamp,
     hideRepositoryView,
@@ -359,8 +360,7 @@ async function renderCatalogView(container, repoName, seq) {
                         el('span', {}, img.image_name),
                         img.private ? el('span', {class: 'docker-private-badge'},
                             createIcon('ssl', {class: 'icon-svg'}), t('docker.private')) : null,
-                        img.push_enabled === false ? el('span', {class: 'docker-mirror-badge'},
-                            createIcon('network', {class: 'icon-svg'}), t('docker.mirrorOnly')) : null
+                        img.mirrored === true ? createRepositoryMirrorBadge(t('common.fromMirror')) : null
                     ),
                     img.description ? el('p', {class: 'docker-image-desc'}, img.description) : null
                 ),
@@ -677,9 +677,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip is-private'},
                 createIcon('ssl', {class: 'icon-svg'}), el('span', {}, t('docker.private'))));
         }
-        if (image.push_enabled === false) {
-            metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
-                createIcon('network', {class: 'icon-svg'}), el('span', {}, t('docker.mirrorOnly'))));
+        if (image.mirrored === true) {
+            metaRow.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
         }
 
         metaRow.appendChild(

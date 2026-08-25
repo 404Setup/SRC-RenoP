@@ -482,6 +482,15 @@ func (db *DB) HasMavenMembership(username string) (bool, error) {
 
 // RecordMavenPublication upserts one catalog artifact and version after storage publication.
 func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core.MavenVersion) error {
+	return db.recordMavenPublication(artifact, version, false)
+}
+
+// RecordMavenMirrorPublication upserts catalog metadata for a version fetched from an upstream mirror.
+func (db *DB) RecordMavenMirrorPublication(artifact *core.MavenArtifact, version *core.MavenVersion) error {
+	return db.recordMavenPublication(artifact, version, true)
+}
+
+func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core.MavenVersion, mirrored bool) error {
 	if db == nil || db.SQLDB == nil {
 		return core.ErrDatabaseUnavailable
 	}
@@ -501,29 +510,41 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 	if groupID != domain && !strings.HasPrefix(groupID, domain+".") {
 		return core.ErrMavenPermissionDenied
 	}
+	createdAt := artifact.CreatedAt
+	if createdAt <= 0 {
+		createdAt = time.Now().UnixMilli()
+	}
+	updatedAt := max(artifact.UpdatedAt, createdAt)
+	versionCreatedAt := version.CreatedAt
+	if versionCreatedAt <= 0 {
+		versionCreatedAt = createdAt
+	}
+	mirroredValue := boolInt(mirrored)
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin Maven publication: %w", err)
 	}
 	defer tx.Rollback()
-	var verified int
-	if err := tx.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`,
-		globalMavenRepository, domain).Scan(&verified); errors.Is(err, sql.ErrNoRows) {
-		return core.ErrMavenDomainNotFound
-	} else if err != nil {
-		return fmt.Errorf("inspect Maven publication domain: %w", err)
-	}
-	if verified == 0 {
-		return core.ErrMavenDomainUnverified
+	if !mirrored {
+		var verified int
+		if err := tx.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`,
+			globalMavenRepository, domain).Scan(&verified); errors.Is(err, sql.ErrNoRows) {
+			return core.ErrMavenDomainNotFound
+		} else if err != nil {
+			return fmt.Errorf("inspect Maven publication domain: %w", err)
+		}
+		if verified == 0 {
+			return core.ErrMavenDomainUnverified
+		}
 	}
 	var latestVersion string
 	err = tx.QueryRow(`SELECT latest_version FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
 		repository, groupID, artifactID).Scan(&latestVersion)
 	if errors.Is(err, sql.ErrNoRows) {
 		if _, err := tx.Exec(`INSERT INTO maven_artifacts
-			(repository, domain, group_id, artifact_id, description, publisher, latest_version, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, repository, domain, groupID, artifactID,
-			description, publisher, versionName, artifact.CreatedAt, artifact.UpdatedAt); err != nil {
+			(repository, domain, group_id, artifact_id, description, publisher, latest_version, mirrored, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, repository, domain, groupID, artifactID,
+			description, publisher, versionName, mirroredValue, createdAt, updatedAt); err != nil {
 			return fmt.Errorf("create Maven artifact: %w", err)
 		}
 	} else if err != nil {
@@ -537,10 +558,10 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 		if _, err := tx.Exec(`UPDATE maven_artifacts SET
 		domain = ?, description = CASE WHEN ? != '' THEN ? ELSE description END,
 		publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
-		latest_version = ?, updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
+			latest_version = ?, updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
 		WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
 			domain, description, description, latestPublisher, latestPublisher, latestVersion,
-			artifact.UpdatedAt, artifact.UpdatedAt,
+			updatedAt, updatedAt,
 			repository, groupID, artifactID); err != nil {
 			return fmt.Errorf("update Maven artifact: %w", err)
 		}
@@ -550,16 +571,25 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 		repository, groupID, artifactID, versionName).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		if _, err := tx.Exec(`INSERT INTO maven_versions
-			(repository, group_id, artifact_id, version, publisher, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			repository, groupID, artifactID, versionName, publisher, version.Size, version.CreatedAt); err != nil {
+			(repository, group_id, artifact_id, version, publisher, size, mirrored, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			repository, groupID, artifactID, versionName, publisher, max(version.Size, 0), mirroredValue, versionCreatedAt); err != nil {
 			return fmt.Errorf("create Maven version: %w", err)
 		}
 	} else if err != nil {
 		return fmt.Errorf("inspect Maven version: %w", err)
 	} else if _, err := tx.Exec(`UPDATE maven_versions SET publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
-		size = CASE WHEN ? > size THEN ? ELSE size END WHERE repository = ? AND group_id = ? AND artifact_id = ? AND version = ?`,
-		publisher, publisher, version.Size, version.Size, repository, groupID, artifactID, versionName); err != nil {
+		size = CASE WHEN ? > size THEN ? ELSE size END,
+		mirrored = CASE WHEN ? = 1 THEN 1 ELSE mirrored END
+		WHERE repository = ? AND group_id = ? AND artifact_id = ? AND version = ?`,
+		publisher, publisher, version.Size, version.Size, mirroredValue, repository, groupID, artifactID, versionName); err != nil {
 		return fmt.Errorf("update Maven version: %w", err)
+	}
+	if _, err := tx.Exec(`UPDATE maven_artifacts SET mirrored = CASE WHEN EXISTS (
+		SELECT 1 FROM maven_versions v WHERE v.repository = maven_artifacts.repository
+		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id
+		AND v.mirrored = 1) THEN 1 ELSE 0 END
+		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, repository, groupID, artifactID); err != nil {
+		return fmt.Errorf("update Maven artifact mirror provenance: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit Maven publication: %w", err)
@@ -597,7 +627,7 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
-		created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id LIMIT ? OFFSET ?`,
+		mirrored, created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id LIMIT ? OFFSET ?`,
 		append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list Maven artifacts: %w", err)
@@ -606,11 +636,13 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 	artifacts := make([]*core.MavenArtifact, 0, min(limit, total))
 	for rows.Next() {
 		artifact := &core.MavenArtifact{}
+		var mirrored int
 		if err := rows.Scan(&artifact.Repository, &artifact.Domain, &artifact.GroupID, &artifact.ArtifactID,
 			&artifact.Description, &artifact.Publisher, &artifact.LatestVersion, &artifact.VersionCount,
-			&artifact.TotalSize, &artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
+			&artifact.TotalSize, &mirrored, &artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan Maven artifact: %w", err)
 		}
+		artifact.Mirrored = mirrored != 0
 		artifacts = append(artifacts, artifact)
 	}
 	if err := rows.Err(); err != nil {
@@ -628,23 +660,25 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 	groupID = sanitizeMavenDomain(groupID)
 	artifactID = SanitizeInputString(strings.TrimSpace(artifactID), 255)
 	result := &core.MavenArtifactDetails{Artifact: &core.MavenArtifact{}}
+	var mirrored int
 	err := db.QueryRow(`SELECT repository, domain, group_id, artifact_id, description, publisher,
 		latest_version, (SELECT COUNT(*) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
-		created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+		mirrored, created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
 		repository, groupID, artifactID).Scan(&result.Artifact.Repository, &result.Artifact.Domain,
 		&result.Artifact.GroupID, &result.Artifact.ArtifactID, &result.Artifact.Description,
 		&result.Artifact.Publisher, &result.Artifact.LatestVersion, &result.Artifact.VersionCount,
-		&result.Artifact.TotalSize, &result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
+		&result.Artifact.TotalSize, &mirrored, &result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrMavenArtifactNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("load Maven artifact: %w", err)
 	}
-	rows, err := db.Query(`SELECT repository, group_id, artifact_id, version, publisher, size, created_at
+	result.Artifact.Mirrored = mirrored != 0
+	rows, err := db.Query(`SELECT repository, group_id, artifact_id, version, publisher, size, mirrored, created_at
 		FROM maven_versions WHERE repository = ? AND group_id = ? AND artifact_id = ? ORDER BY created_at DESC`,
 		repository, groupID, artifactID)
 	if err != nil {
@@ -653,10 +687,12 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 	defer rows.Close()
 	for rows.Next() {
 		version := &core.MavenVersion{}
+		var versionMirrored int
 		if err := rows.Scan(&version.Repository, &version.GroupID, &version.ArtifactID, &version.Version,
-			&version.Publisher, &version.Size, &version.CreatedAt); err != nil {
+			&version.Publisher, &version.Size, &versionMirrored, &version.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan Maven version: %w", err)
 		}
+		version.Mirrored = versionMirrored != 0
 		result.Versions = append(result.Versions, version)
 	}
 	if err := rows.Err(); err != nil {
@@ -738,7 +774,10 @@ func (db *DB) DeleteMavenVersionMetadata(repository, groupID, artifactID, versio
 		}
 	} else {
 		slices.SortFunc(versions, func(left, right string) int { return -utils.CompareVersions(left, right) })
-		if _, err := tx.Exec(`UPDATE maven_artifacts SET latest_version = ?, updated_at = ?
+		if _, err := tx.Exec(`UPDATE maven_artifacts SET latest_version = ?, updated_at = ?,
+			mirrored = CASE WHEN EXISTS (SELECT 1 FROM maven_versions v
+				WHERE v.repository = maven_artifacts.repository AND v.group_id = maven_artifacts.group_id
+				AND v.artifact_id = maven_artifacts.artifact_id AND v.mirrored = 1) THEN 1 ELSE 0 END
 		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, versions[0], time.Now().UnixMilli(),
 			repository, groupID, artifactID); err != nil {
 			return fmt.Errorf("update latest Maven version: %w", err)

@@ -309,6 +309,7 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		documentation VARCHAR(1024) NOT NULL DEFAULT '',
 		archived INT NOT NULL DEFAULT 0,
 		admin_archived INT NOT NULL DEFAULT 0,
+		mirrored INT NOT NULL DEFAULT 0,
 		created_at BIGINT NOT NULL,
 		updated_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, normalized_name)
@@ -331,6 +332,7 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		yanked INT NOT NULL DEFAULT 0,
 		admin_yanked INT NOT NULL DEFAULT 0,
 		archive_yanked INT NOT NULL DEFAULT 0,
+		mirrored INT NOT NULL DEFAULT 0,
 		created_at BIGINT NOT NULL,
 		PRIMARY KEY (repository, normalized_name, version)
 	);`

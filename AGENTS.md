@@ -16,11 +16,12 @@
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, and durable username-change throttling.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
-  authoritative upstream name-conflict checks, upstream proxying, and sandboxed documentation extraction/viewer
+  authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation extraction/viewer
   (`/cargodoc/...`).
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
-  automatic migration of repository-scoped legacy domains.
+  automatic migration of repository-scoped legacy domains. Maven and Cargo mirror downloads are cataloged through
+  the format-aware proxy completion hook in `internal/service/storage/mirror.go` without buffering artifact bodies.
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
   Maven publication paths in both layouts.
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based
@@ -60,7 +61,7 @@
   `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
-  metadata grids are built by `js/browser/repository-view.js`. Cargo and Docker team invitations
+  metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`. Cargo and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
   and `js/time.js`. Shared asynchronous actions use the

@@ -122,6 +122,7 @@ type StateDB interface {
 	DeleteMavenDomain(domain, actor string, administrator bool, actedAt int64) error
 	HasMavenMembership(username string) (bool, error)
 	RecordMavenPublication(artifact *MavenArtifact, version *MavenVersion) error
+	RecordMavenMirrorPublication(artifact *MavenArtifact, version *MavenVersion) error
 	ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*MavenArtifact, int, error)
 	GetMavenArtifactDetails(repository, groupID, artifactID string) (*MavenArtifactDetails, error)
 	UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error
@@ -141,6 +142,7 @@ type StateDB interface {
 	SearchCargoPackages(repository, query string, limit, offset int) ([]*CargoPackage, int, error)
 	HasCargoMembership(repository, username string) (bool, error)
 	RecordCargoPublication(pkg *CargoPackage, version *CargoVersion, username string) error
+	RecordCargoMirrorPublication(pkg *CargoPackage, version *CargoVersion) error
 	SetCargoVersionYanked(repository, normalizedName, version string, yanked, administrator bool) error
 	DeleteCargoVersion(repository, normalizedName, version string) error
 	SetCargoPackageArchived(repository, normalizedName string, archived, administrator bool) error

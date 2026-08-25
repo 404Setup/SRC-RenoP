@@ -88,6 +88,7 @@ type MavenArtifact struct {
 	LatestVersion   string `json:"latest_version,omitempty"`
 	VersionCount    int    `json:"version_count"`
 	TotalSize       int64  `json:"total_size"`
+	Mirrored        bool   `json:"mirrored"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`
 	PermissionLevel int    `json:"permission_level,omitempty"`
@@ -101,6 +102,7 @@ type MavenVersion struct {
 	Version    string `json:"version"`
 	Publisher  string `json:"publisher,omitempty"`
 	Size       int64  `json:"size"`
+	Mirrored   bool   `json:"mirrored"`
 	CreatedAt  int64  `json:"created_at"`
 }
 

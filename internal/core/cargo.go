@@ -49,7 +49,7 @@ type CargoDependency struct {
 	Package         *string  `json:"package,omitempty"`
 }
 
-// CargoPackage is durable registry metadata for a locally owned crate.
+// CargoPackage is durable registry metadata for a local or mirrored crate.
 type CargoPackage struct {
 	Repository      string `json:"repository"`
 	Name            string `json:"name"`
@@ -60,13 +60,14 @@ type CargoPackage struct {
 	Documentation   string `json:"documentation,omitempty"`
 	Archived        bool   `json:"archived"`
 	AdminArchived   bool   `json:"admin_archived"`
+	Mirrored        bool   `json:"mirrored"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`
 	PermissionLevel int    `json:"permission_level,omitempty"`
 	MaxVersion      string `json:"-"`
 }
 
-// CargoVersion tracks local versions and the origin of yank state.
+// CargoVersion tracks local or mirrored versions and the origin of yank state.
 type CargoVersion struct {
 	Features      map[string][]string `json:"features,omitempty"`
 	Links         *string             `json:"links,omitempty"`
@@ -88,6 +89,7 @@ type CargoVersion struct {
 	AdminYanked   bool                `json:"admin_yanked"`
 	ArchiveYanked bool                `json:"-"`
 	HasDocs       bool                `json:"has_docs,omitempty"`
+	Mirrored      bool                `json:"mirrored"`
 }
 
 // CargoMember is one package-team membership.

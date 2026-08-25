@@ -45,6 +45,12 @@ func sanitizeDockerUsername(username string) string {
 	return strings.ToLower(SanitizeInputString(strings.TrimSpace(username), 255))
 }
 
+func setDockerImageFlags(image *core.DockerRepositoryImage, privateValue, pushEnabledValue int) {
+	image.Private = privateValue != 0
+	image.PushEnabled = pushEnabledValue != 0
+	image.Mirrored = !image.PushEnabled
+}
+
 // CreateDockerImage reserves an empty image and assigns its initial L4 owner.
 func (db *DB) CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*core.DockerRepositoryImage, error) {
 	if db == nil || db.SQLDB == nil {
@@ -135,8 +141,7 @@ func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerReposito
 	if err != nil {
 		return nil, fmt.Errorf("get Docker image: %w", err)
 	}
-	img.Private = privateValue != 0
-	img.PushEnabled = pushEnabledValue != 0
+	setDockerImageFlags(img, privateValue, pushEnabledValue)
 
 	if img.Publisher == "" {
 		var tagPub string
@@ -251,8 +256,7 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 			&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan Docker image: %w", err)
 		}
-		img.Private = privateValue != 0
-		img.PushEnabled = pushEnabledValue != 0
+		setDockerImageFlags(img, privateValue, pushEnabledValue)
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
@@ -331,8 +335,7 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 			&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan Docker search result: %w", err)
 		}
-		img.Private = privateValue != 0
-		img.PushEnabled = pushEnabledValue != 0
+		setDockerImageFlags(img, privateValue, pushEnabledValue)
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {

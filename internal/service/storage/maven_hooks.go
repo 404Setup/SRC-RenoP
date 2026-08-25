@@ -23,3 +23,6 @@ var MavenReadAuthorizer func(state *core.AppState, user *config.User, repo *conf
 
 // MavenPublicationRecorder is wired by the Maven service to maintain its catalog after storage commits.
 var MavenPublicationRecorder func(state *core.AppState, repository, path, username string, size, modTime int64) error
+
+// MavenMirrorRecorder is wired by the Maven service to retain mirror provenance in its catalog.
+var MavenMirrorRecorder func(state *core.AppState, repository, path string, size, modTime int64) error

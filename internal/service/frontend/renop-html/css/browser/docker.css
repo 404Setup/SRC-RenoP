@@ -1031,20 +1031,6 @@
     color: #b45309;
 }
 
-.docker-mirror-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.18rem 0.42rem;
-    border: 1px solid color-mix(in srgb, var(--link-hover-color) 28%, var(--border-color));
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--link-hover-color) 9%, transparent);
-    color: var(--link-hover-color);
-    font-size: 0.67rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
 html.dark .docker-meta-chip.is-private,
 html.dark .docker-private-badge {
     color: #fcd34d;
@@ -1063,9 +1049,7 @@ html.dark .docker-private-badge {
 }
 
 .docker-private-badge .icon-svg,
-.docker-private-badge renop-icon,
-.docker-mirror-badge .icon-svg,
-.docker-mirror-badge renop-icon {
+.docker-private-badge renop-icon {
     width: 11px;
     height: 11px;
     color: currentColor;

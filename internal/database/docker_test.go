@@ -256,6 +256,8 @@ func TestDockerManifestRequiresPrecreatedImageAndMirrorCanImport(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mirrored)
 	require.False(t, mirrored.Private)
+	require.True(t, mirrored.Mirrored)
+	require.False(t, created.Mirrored)
 	_, _, pushEnabled, member, _, err := db.GetDockerImageAccess("docker-local", "upstream/app", "mirror")
 	require.NoError(t, err)
 	require.False(t, pushEnabled)

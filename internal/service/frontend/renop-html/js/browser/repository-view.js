@@ -170,3 +170,13 @@ export function createRepositoryFactsSection(title, facts, {className = ''} = {}
         class: `repository-facts-section${className ? ` ${className}` : ''}`
     }, el('h3', {class: 'repository-facts-title'}, title), grid);
 }
+
+/**
+ * Build the shared provenance badge used for packages obtained from mirrors.
+ * @param {string} label - Localized mirror-source label.
+ * @returns {HTMLSpanElement} Mirror provenance badge.
+ */
+export function createRepositoryMirrorBadge(label) {
+    return el('span', {class: 'repository-mirror-badge'},
+        createIcon('network'), el('span', {}, label));
+}

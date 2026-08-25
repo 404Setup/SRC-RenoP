@@ -28,6 +28,7 @@ import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
 import {
+    createRepositoryMirrorBadge,
     formatRepositoryTimestamp,
     hideRepositoryView,
     replaceRepositoryView,
@@ -191,6 +192,9 @@ function buildCargoPackageRow(packageRecord) {
     const badges = el('span', {class: 'cargo-package-row-badges'});
     if (packageRecord?.archived) {
         badges.appendChild(el('span', {class: 'cargo-state-badge is-archived'}, t('cargo.archived')));
+    }
+    if (packageRecord?.mirrored) {
+        badges.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
     }
     if (Number(packageRecord?.permission_level) > 0) {
         badges.appendChild(el('span', {class: 'cargo-permission-badge'}, `L${Number(packageRecord.permission_level)}`));
@@ -753,6 +757,9 @@ function buildCargoVersionsSection() {
             if (version.yanked) {
                 titleLine.appendChild(el('span', {class: 'cargo-state-badge is-yanked'}, t('cargo.yanked')));
             }
+            if (version.mirrored) {
+                titleLine.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
+            }
             const meta = el('div', {class: 'cargo-version-meta'},
                 titleLine,
                 el('span', {class: 'cargo-version-publisher'},
@@ -1031,6 +1038,10 @@ function buildCargoPackageHero() {
     const yankedBadge = el('span', {class: 'cargo-state-badge is-yanked'}, t('cargo.yanked'));
     yankedBadge.hidden = !activeVersion?.yanked;
     titleRow.appendChild(yankedBadge);
+
+    if (packageRecord?.mirrored) {
+        titleRow.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
+    }
 
     const hero = el('header', {class: 'cargo-page-hero cargo-package-hero'}, back, titleRow);
 

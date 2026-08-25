@@ -123,6 +123,7 @@ type searchCrate struct {
 	Name        string `json:"name"`
 	MaxVersion  string `json:"max_version"`
 	Description string `json:"description"`
+	Mirrored    bool   `json:"mirrored"`
 }
 
 type searchMeta struct {
