@@ -17,6 +17,8 @@ const FRONTEND_MODAL_IDS = [
     'privacy-policy-modal',
     'repo-mirrors-modal',
     'language-modal',
+    'message-center-modal',
+    'message-compose-modal',
     'renop-confirm-container',
     'renop-prompt-container',
 ];

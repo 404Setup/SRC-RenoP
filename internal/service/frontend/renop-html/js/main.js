@@ -25,7 +25,7 @@ import {populateRoles} from './users/modal.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
 import {openMavenDomainCenter} from './browser/maven.js';
-import {initMessageCenter} from './messages.js';
+import {initMessageCenter, openMessageCenter, openNotificationComposer} from './messages.js';
 import './cargo-messages.js';
 import './docker-messages.js';
 import './maven-messages.js';
@@ -402,10 +402,6 @@ async function initializeApplication() {
         instanceUrlSpan.textContent = window.location.origin + '/';
     }
 
-    const modalIds = [
-        'create-token-modal', 'user-result-modal', 'login-modal', 'privacy-policy-modal', 'repo-mirrors-modal',
-        'language-modal', 'message-center-modal', 'renop-confirm-container', 'renop-prompt-container'
-    ];
     const _checkModals = () => {
         updateModalInertState();
     };
@@ -451,10 +447,20 @@ async function initializeApplication() {
                 if (!item || !profileMenu.contains(item)) return;
                 setProfileMenuOpen(false);
                 const username = localStorage.getItem('username') || '';
-                if (item.dataset.accountAction === 'maven-domains') {
+                const accountAction = item.dataset.accountAction || '';
+                if (accountAction === 'maven-domains') {
                     openMavenDomainCenter();
                     return;
                 }
+                if (accountAction === 'messages') {
+                    await openMessageCenter();
+                    return;
+                }
+                if (accountAction === 'compose-notification') {
+                    openNotificationComposer();
+                    return;
+                }
+                if (accountAction === 'logout') return;
                 if (item.dataset.profileAction) {
                     navigateToUserProfile(username, item.dataset.profileAction === 'edit' ? 'edit' : '');
                     return;

@@ -420,6 +420,55 @@ func TestPackageViewsUseExplicitMirrorProvenance(t *testing.T) {
 	}
 }
 
+func TestAccountMenuOwnsMessagesLogoutAndNotificationComposer(t *testing.T) {
+	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexText := string(indexSource)
+	menuStart := strings.Index(indexText, `id="profile-menu"`)
+	appStart := strings.Index(indexText, `id="app"`)
+	if menuStart < 0 || appStart <= menuStart {
+		t.Fatal("account menu boundary is missing")
+	}
+	accountMenu := indexText[menuStart:appStart]
+	for _, required := range []string{
+		`id="message-center-btn"`, `data-account-action="messages"`, `id="logout-btn"`,
+		`id="message-compose-menu-btn"`, `data-account-action="compose-notification"`,
+	} {
+		if !strings.Contains(accountMenu, required) {
+			t.Fatalf("account menu is missing %q", required)
+		}
+	}
+	composeModalStart := strings.Index(indexText, `id="message-compose-modal"`)
+	messageModalStart := strings.Index(indexText, `id="message-center-modal"`)
+	if messageModalStart < 0 || composeModalStart <= messageModalStart {
+		t.Fatal("administrator notification composer is not an independent modal")
+	}
+	messageCenterMarkup := indexText[messageModalStart:composeModalStart]
+	for _, obsolete := range []string{`id="message-compose-toggle"`, `id="message-compose-form"`} {
+		if strings.Contains(messageCenterMarkup, obsolete) {
+			t.Fatalf("message center still contains administrator composer markup %q", obsolete)
+		}
+	}
+	messagesSource, err := os.ReadFile(filepath.Join("renop-html", "js", "messages.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	messagesText := string(messagesSource)
+	for _, required := range []string{
+		"export function openNotificationComposer", "messages.length > 0 && nextCursor !== ''",
+		"button.disabled = loading || !hasMore", "button.hidden = !hasMore",
+	} {
+		if !strings.Contains(messagesText, required) {
+			t.Fatalf("message controls are missing %q", required)
+		}
+	}
+	if strings.Contains(messagesText, "loadMore.disabled = false") {
+		t.Fatal("message pagination still enables load-more without a server cursor")
+	}
+}
+
 func TestFrontendUsesSharedClipboardAndTimeUtilities(t *testing.T) {
 	jsRoot := filepath.Join("renop-html", "js")
 	clipboardPath := filepath.Join(jsRoot, "clipboard.js")

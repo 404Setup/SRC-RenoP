@@ -216,6 +216,22 @@
     outline: none;
 }
 
+.nav-controls-group .nav-profile-menu-item.is-danger {
+    color: #dc2626;
+}
+
+.nav-controls-group .nav-profile-menu-item.is-danger:hover,
+.nav-controls-group .nav-profile-menu-item.is-danger:focus-visible {
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+    color: #dc2626;
+}
+
+html.dark .nav-controls-group .nav-profile-menu-item.is-danger,
+html.dark .nav-controls-group .nav-profile-menu-item.is-danger:hover,
+html.dark .nav-controls-group .nav-profile-menu-item.is-danger:focus-visible {
+    color: #f87171;
+}
+
 .nav-profile-menu-item renop-icon,
 .nav-profile-menu-item renop-icon svg {
     width: 1rem;

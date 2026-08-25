@@ -51,8 +51,8 @@
   package-membership routes plus shared nickname-first identity components. Maven repositories use a domain catalog
   by default and can switch to the classic file-tree presentation. Repository catalogs list only domains containing
   artifacts in that repository, while global Maven domain and team configuration lives in the signed-in account menu.
-  The signed-in account menu owns profile
-  navigation and administrator page entry points; the settings UI groups the server, outbound-proxy, and storage APIs
+  The signed-in account menu owns profile navigation, messages, logout, Maven domains, administrator pages, and the
+  standalone administrator notification composer; the settings UI groups the server, outbound-proxy, and storage APIs
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n
   catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,

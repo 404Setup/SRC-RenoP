@@ -10,7 +10,7 @@
 
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
-import {collapseElement, expandElement, morphElementHeight, prefersReducedMotion} from '@renop/ui/height-anim';
+import {morphElementHeight, prefersReducedMotion} from '@renop/ui/height-anim';
 import {openModalWithAnim} from '@renop/ui/modal';
 import {createToggle} from '@renop/ui/toggle';
 import {fetchProto, postProto, sendProto} from './api.js';
@@ -51,7 +51,6 @@ let composerOpen = false;
 let clearingMessages = false;
 let messageDialogHeightAnimation = null;
 let messageDialogHeightGeneration = 0;
-let composerContentAnimation = null;
 
 /**
  * Register a trusted handler for one typed message action.
@@ -86,13 +85,13 @@ export function registerMessageRenderer(kind, renderer) {
 export function initMessageCenter() {
     if (initialized) return;
     initialized = true;
-    document.getElementById('message-center-btn')?.addEventListener('click', openMessageCenter);
     document.getElementById('message-center-close')?.addEventListener('click', closeMessageCenter);
     document.getElementById('message-center-backdrop')?.addEventListener('click', closeMessageCenter);
     document.getElementById('message-mark-all-read')?.addEventListener('click', markAllRead);
     document.getElementById('message-clear-all')?.addEventListener('click', clearAllMessages);
-    document.getElementById('message-compose-toggle')?.addEventListener('click', toggleComposer);
-    document.getElementById('message-compose-cancel')?.addEventListener('click', hideComposer);
+    document.getElementById('message-compose-close')?.addEventListener('click', closeNotificationComposer);
+    document.getElementById('message-compose-backdrop')?.addEventListener('click', closeNotificationComposer);
+    document.getElementById('message-compose-cancel')?.addEventListener('click', closeNotificationComposer);
     document.getElementById('message-compose-form')?.addEventListener('submit', submitNotification);
     document.getElementById('message-compose-recipients')?.addEventListener('input', handleRecipientInput);
     document.getElementById('message-compose-recipients')?.addEventListener('keydown', handleRecipientKeydown);
@@ -100,6 +99,7 @@ export function initMessageCenter() {
     document.getElementById('message-center-list')?.addEventListener('click', handleMessageListClick);
     const loadMore = document.getElementById('message-load-more');
     bindLoadMoreButton(loadMore);
+    syncLoadMoreButton(loadMore);
     document.addEventListener('click', handleRecipientDocumentClick);
     window.addEventListener('authChanged', handleAuthChanged);
     window.addEventListener('languageChanged', handleLanguageChanged);
@@ -114,7 +114,7 @@ export function initMessageCenter() {
  * Open the modal and refresh its first page.
  * @returns {Promise<void>}
  */
-async function openMessageCenter() {
+export async function openMessageCenter() {
     const modal = document.getElementById('message-center-modal');
     if (!modal || !cachedIsLoggedIn) return;
     openModalWithAnim(modal);
@@ -128,8 +128,44 @@ async function openMessageCenter() {
  */
 function closeMessageCenter() {
     const modal = document.getElementById('message-center-modal');
-    void hideComposer();
     if (modal) closeModalWithAnim(modal);
+}
+
+/**
+ * Open the administrator notification composer as an independent feature.
+ * @returns {void}
+ */
+export function openNotificationComposer() {
+    if (!cachedIsManager || notificationSending) return;
+    const modal = document.getElementById('message-compose-modal');
+    if (!modal) return;
+    composerOpen = true;
+    setNotificationSubmitState('idle');
+    openModalWithAnim(modal);
+    window.requestAnimationFrame(() => document.getElementById('message-compose-recipients')?.focus());
+}
+
+/**
+ * Close and reset the independent administrator notification composer.
+ * @param {Event} [event] - User close event; blocked while a send is active.
+ * @returns {void}
+ */
+function closeNotificationComposer(event) {
+    if (notificationSending && event?.type) return;
+    composerOpen = false;
+    if (notificationCompletionTimer) {
+        window.clearTimeout(notificationCompletionTimer);
+        notificationCompletionTimer = 0;
+    }
+    hideRecipientSuggestions();
+    const modal = document.getElementById('message-compose-modal');
+    if (modal) closeModalWithAnim(modal);
+    const form = document.getElementById('message-compose-form');
+    form?.reset();
+    severitySelect?.setValue('info');
+    if (broadcastToggle) broadcastToggle.checked = false;
+    handleBroadcastChange();
+    setNotificationSubmitState('idle');
 }
 
 /**
@@ -148,6 +184,7 @@ async function fetchMessages(reset, requestedCursor = '') {
     if (loadMore) {
         loadMore.setAttribute('aria-busy', 'true');
         loadMore.classList.toggle('is-loading', !reset);
+        syncLoadMoreButton(loadMore);
     }
     try {
         const cursor = reset ? '' : requestedCursor;
@@ -161,7 +198,7 @@ async function fetchMessages(reset, requestedCursor = '') {
         } else {
             firstAddedMessageID = appendUniqueMessagePage(page);
         }
-        nextCursor = typeof payload?.next_cursor === 'string' ? payload.next_cursor : '';
+        nextCursor = page.length > 0 && typeof payload?.next_cursor === 'string' ? payload.next_cursor : '';
         setUnreadCount(Number(payload?.unread_count) || 0);
         renderMessages(firstAddedMessageID, true, reset);
     } catch (error) {
@@ -171,9 +208,9 @@ async function fetchMessages(reset, requestedCursor = '') {
         loading = false;
         if (loadingNode) loadingNode.hidden = true;
         if (loadMore) {
-            loadMore.disabled = false;
             loadMore.setAttribute('aria-busy', 'false');
             loadMore.classList.remove('is-loading');
+            syncLoadMoreButton(loadMore);
         }
         updateMessageToolbarState();
     }
@@ -204,10 +241,24 @@ function appendUniqueMessagePage(page) {
  * @returns {void}
  */
 function bindLoadMoreButton(button) {
-    if (!button) return;
-    button.disabled = false;
+    if (!button || button.dataset.paginationBound === 'true') return;
     button.onclick = handleLoadMoreButtonClick;
     button.dataset.paginationBound = 'true';
+}
+
+/**
+ * Synchronize message pagination visibility and disabled state.
+ * @param {HTMLElement|null} button - Pagination button.
+ * @returns {void}
+ */
+function syncLoadMoreButton(button) {
+    if (!button) return;
+    const hasMore = messages.length > 0 && nextCursor !== '';
+    button.hidden = !hasMore;
+    button.disabled = loading || !hasMore;
+    button.dataset.nextCursor = hasMore ? nextCursor : '';
+    button.setAttribute('aria-disabled', String(button.disabled));
+    bindLoadMoreButton(button);
 }
 
 /**
@@ -218,8 +269,8 @@ function bindLoadMoreButton(button) {
 function handleLoadMoreButtonClick(event) {
     event.preventDefault();
     const button = event.currentTarget;
-    if (!(button instanceof HTMLElement)) return;
-    void loadMoreMessages(button.dataset.nextCursor || nextCursor);
+    if (!(button instanceof HTMLElement) || button.disabled || button.hidden) return;
+    void loadMoreMessages(button.dataset.nextCursor || '');
 }
 
 /**
@@ -256,10 +307,7 @@ function renderMessages(focusMessageID = '', animateEntries = false, hideLoading
             if (loadingNode) loadingNode.hidden = true;
         }
         empty.hidden = messages.length !== 0;
-        loadMore.hidden = nextCursor === '';
-        loadMore.disabled = false;
-        loadMore.dataset.nextCursor = nextCursor;
-        bindLoadMoreButton(loadMore);
+        syncLoadMoreButton(loadMore);
         let startIndex = 0;
         if (focusMessageID) {
             for (let index = 0; index < messages.length; index++) {
@@ -732,11 +780,7 @@ function syncMessageListControls() {
     const empty = document.getElementById('message-center-empty');
     const loadMore = document.getElementById('message-load-more');
     if (empty) empty.hidden = messages.length !== 0;
-    if (loadMore) {
-        loadMore.hidden = nextCursor === '';
-        loadMore.dataset.nextCursor = nextCursor;
-        bindLoadMoreButton(loadMore);
-    }
+    syncLoadMoreButton(loadMore);
     updateMessageToolbarState();
 }
 
@@ -773,33 +817,6 @@ function beginMessageDialogResize() {
     }
     dialog.style.height = '';
     return {dialog, from, to: from, generation: messageDialogHeightGeneration};
-}
-
-/**
- * Measure the shell height after the composer reaches its target state.
- * @param {HTMLElement} region - Composer height wrapper.
- * @param {boolean} opening - Whether to measure the expanded state.
- * @returns {{dialog: HTMLElement, from: number, to: number, generation: number}|null} Resize plan.
- */
-function prepareComposerDialogResize(region, opening) {
-    const previousStyle = region.getAttribute('style');
-    const previousHidden = region.hidden;
-    const previousVisible = region.classList.contains('is-visible');
-    const plan = beginMessageDialogResize();
-    if (!plan) return null;
-    region.hidden = !opening;
-    region.style.display = opening ? 'block' : 'none';
-    region.style.height = opening ? 'auto' : '0px';
-    region.style.opacity = opening ? '1' : '0';
-    region.style.overflow = opening ? 'visible' : 'hidden';
-    region.classList.toggle('is-visible', opening);
-    void plan.dialog.offsetHeight;
-    plan.to = plan.dialog.getBoundingClientRect().height;
-    restoreInlineStyle(region, previousStyle);
-    region.hidden = previousHidden;
-    region.classList.toggle('is-visible', previousVisible);
-    plan.dialog.style.height = `${plan.from}px`;
-    return plan;
 }
 
 /**
@@ -1082,125 +1099,11 @@ function syncBroadcastToggleLabel() {
 }
 
 /**
- * Show or hide the admin compose trigger and close unauthorized composer UI.
+ * Close the independent composer when manager access is lost.
  * @returns {void}
  */
 function updateComposerVisibility() {
-    const toggle = document.getElementById('message-compose-toggle');
-    if (toggle) toggle.style.display = cachedIsManager ? 'inline-flex' : 'none';
-    if (!cachedIsManager) void hideComposer();
-}
-
-/**
- * Toggle the administrator notification composer.
- * @returns {Promise<void>}
- */
-async function toggleComposer() {
-    if (!cachedIsManager || notificationSending) return;
-    if (composerOpen) {
-        await hideComposer();
-    } else {
-        await showComposer();
-    }
-}
-
-/**
- * Reveal the administrator composer while its measured height and opacity animate.
- * @returns {Promise<void>}
- */
-async function showComposer() {
-    const region = document.getElementById('message-compose-region');
-    const form = document.getElementById('message-compose-form');
-    const toggle = document.getElementById('message-compose-toggle');
-    if (!region) return;
-    composerOpen = true;
-    toggle?.setAttribute('aria-expanded', 'true');
-    const resizePlan = prepareComposerDialogResize(region, true);
-    const expansion = expandElement(region, {
-        duration: 280,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-    });
-    const contentAnimation = animateComposerContent(form, true);
-    const dialogAnimation = animateMessageDialogResize(resizePlan, 280);
-    await Promise.all([expansion, contentAnimation, dialogAnimation]);
-    if (composerOpen) document.getElementById('message-compose-recipients')?.focus();
-}
-
-/**
- * Hide and reset the administrator notification composer.
- * @returns {Promise<void>}
- */
-async function hideComposer() {
-    const region = document.getElementById('message-compose-region');
-    const form = document.getElementById('message-compose-form');
-    const toggle = document.getElementById('message-compose-toggle');
-    composerOpen = false;
-    toggle?.setAttribute('aria-expanded', 'false');
-    if (notificationCompletionTimer) {
-        window.clearTimeout(notificationCompletionTimer);
-        notificationCompletionTimer = 0;
-    }
-    hideRecipientSuggestions();
-    const resizePlan = region ? prepareComposerDialogResize(region, false) : null;
-    const collapse = collapseElement(region, {
-        duration: 240,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        marginTop: false
-    });
-    const contentAnimation = animateComposerContent(form, false);
-    const dialogAnimation = animateMessageDialogResize(resizePlan, 240);
-    await Promise.all([collapse, contentAnimation, dialogAnimation]);
-    if (composerOpen || !form) return;
-    form.reset();
-    severitySelect?.setValue('info');
-    if (broadcastToggle) broadcastToggle.checked = false;
-    handleBroadcastChange();
-    if (!notificationSending) setNotificationSubmitState('idle');
-}
-
-/**
- * Animate composer content independently from its measured-height wrapper.
- * @param {HTMLElement|null} form - Notification form.
- * @param {boolean} opening - Whether the form is entering.
- * @returns {Promise<void>}
- */
-async function animateComposerContent(form, opening) {
-    if (!form || prefersReducedMotion() || typeof form.animate !== 'function') return;
-    if (composerContentAnimation) {
-        try {
-            composerContentAnimation.cancel();
-        } catch (error) {
-            console.warn('Failed to cancel composer content animation', error);
-        }
-        composerContentAnimation = null;
-    }
-    const keyframes = opening
-        ? [
-            {opacity: 0, transform: 'translateY(-10px) scale(0.985)'},
-            {opacity: 1, transform: 'translateY(0) scale(1)'}
-        ]
-        : [
-            {opacity: 1, transform: 'translateY(0) scale(1)'},
-            {opacity: 0, transform: 'translateY(-8px) scale(0.985)'}
-        ];
-    const animation = form.animate(keyframes, {
-        duration: opening ? 280 : 240,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        fill: 'both'
-    });
-    composerContentAnimation = animation;
-    try {
-        await animation.finished;
-    } catch (error) {
-        if (error?.name !== 'AbortError') console.warn('Composer animation did not finish', error);
-    }
-    if (composerContentAnimation !== animation) return;
-    composerContentAnimation = null;
-    try {
-        animation.cancel();
-    } catch (error) {
-        console.warn('Failed to release composer content animation', error);
-    }
+    if (!cachedIsManager && composerOpen) closeNotificationComposer();
 }
 
 /**
@@ -1426,7 +1329,7 @@ function parseRecipientNames(value) {
 function setNotificationSubmitState(state) {
     const submit = document.getElementById('message-compose-submit');
     const cancel = document.getElementById('message-compose-cancel');
-    const toggle = document.getElementById('message-compose-toggle');
+    const close = document.getElementById('message-compose-close');
     const form = document.getElementById('message-compose-form');
     const sending = state === 'sending';
     if (submit) {
@@ -1436,7 +1339,7 @@ function setNotificationSubmitState(state) {
         submit.setAttribute('aria-busy', String(sending));
     }
     if (cancel) cancel.disabled = sending;
-    if (toggle) toggle.disabled = sending;
+    if (close) close.disabled = sending;
     broadcastToggle?.toggleAttribute('disabled', sending);
     if (form) form.classList.toggle('is-sent', state === 'success');
 }
@@ -1447,7 +1350,7 @@ function setNotificationSubmitState(state) {
  */
 function completeSuccessfulNotification() {
     notificationCompletionTimer = 0;
-    void hideComposer();
+    closeNotificationComposer();
 }
 
 /**

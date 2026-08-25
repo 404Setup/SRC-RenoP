@@ -4,20 +4,13 @@
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-.message-center-trigger {
-    position: relative;
-    align-self: center;
-    vertical-align: middle;
-}
-
 .message-unread-badge {
-    position: absolute;
-    top: -0.25rem;
-    right: -0.3rem;
+    flex: 0 0 auto;
+    margin-left: auto;
     min-width: 1rem;
     height: 1rem;
     padding: 0 0.2rem;
-    border: 2px solid var(--bg-color);
+    border: 0;
     border-radius: 999px;
     color: #fff;
     background: #ef4444;
@@ -36,6 +29,12 @@
                 max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.message-compose-modal-content {
+    width: min(680px, calc(100vw - 2rem));
+    max-width: 680px;
+    max-height: min(86vh, 780px);
+}
+
 .message-center-header {
     padding-bottom: 0.6rem;
 }
@@ -45,6 +44,10 @@
     margin: 0.35rem 0 0;
     color: color-mix(in srgb, var(--text-color) 66%, transparent);
     font-size: 0.85rem;
+}
+
+.message-compose-heading {
+    display: block;
 }
 
 .message-center-body {
@@ -94,11 +97,9 @@
 
 .message-compose-region {
     box-sizing: border-box;
-    padding: 0;
-}
-
-.message-compose-shell {
-    padding: 0.8rem 0 1rem;
+    max-height: min(72vh, 650px);
+    overflow-y: auto;
+    padding: 0 1.5rem 1.5rem;
 }
 
 .message-compose-form {
@@ -113,15 +114,9 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.message-compose-heading,
 .message-compose-actions,
 .message-compose-field:has(textarea) {
     grid-column: 1 / -1;
-}
-
-.message-compose-heading h3 {
-    margin: 0;
-    font-size: 0.95rem;
 }
 
 .message-compose-field {
@@ -176,13 +171,13 @@
     flex: 0 0 auto;
 }
 
-.message-center-modal-content .message-compose-all-control .cfg-toggle {
+.message-compose-modal-content .message-compose-all-control .cfg-toggle {
     display: inline-flex;
     margin: 0;
     opacity: 1;
 }
 
-.message-center-modal-content .message-compose-all-control .cfg-toggle-track {
+.message-compose-modal-content .message-compose-all-control .cfg-toggle-track {
     display: block;
 }
 
@@ -417,6 +412,12 @@
     padding-left: 2rem;
 }
 
+.message-load-more:disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.55;
+}
+
 .message-load-more.is-loading::before {
     position: absolute;
     top: 50%;
@@ -459,6 +460,11 @@
         max-height: 92vh;
     }
 
+    .message-compose-modal-content {
+        width: calc(100vw - 1rem);
+        max-height: 92vh;
+    }
+
     .message-compose-form {
         grid-template-columns: 1fr;
     }
@@ -467,7 +473,6 @@
         flex-wrap: wrap;
     }
 
-    .message-compose-heading,
     .message-compose-actions,
     .message-compose-field:has(textarea) {
         grid-column: 1;
@@ -491,6 +496,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .message-center-modal-content,
+    .message-compose-modal-content,
     .message-card.is-entering,
     #message-compose-submit.is-success::after {
         animation: none;
