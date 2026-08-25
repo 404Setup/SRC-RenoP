@@ -5,6 +5,7 @@
   "description": "RenoP monorepo root (workspace for web, frontend, shared UI)",
   "scripts": {
     "build:web": "pnpm --filter renop-web build",
+    "test:web": "pnpm --filter renop-web test",
     "build:frontend": "pnpm --filter renop-html build",
     "build:ui-consumers": "pnpm --filter renop-web build && pnpm --filter renop-html build"
   }

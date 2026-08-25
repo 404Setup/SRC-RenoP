@@ -50,7 +50,8 @@
   `pnpm run build:frontend`. Shared asynchronous actions use the button-state helper exported by
   `js/components/button.js`, which restores controls after both successful and failed requests. Docker management
   failures expose stable `X-Renop-Error-Code` values that `js/docker-errors.js` maps to the Docker locale catalogs;
-  browser and message-center views never display raw backend error text.
+  browser and message-center views never display raw backend error text. The official website Markdown renderer derives
+  heading labels and anchors from visible inline-token text so emphasis delimiters are not repeated in the docs TOC.
 
 ---
 
@@ -71,6 +72,7 @@
 | **Packaged Release Build** (current OS) | `pwsh ./build.ps1 c`                                                             |
 | **Full Matrix Release Build**           | `pwsh ./build.ps1`                                                               |
 | **Website & Docs Build**               | `pnpm run build:web`                                                             |
+| **Website Markdown Tests**             | `pnpm run test:web`                                                              |
 | **Frontend Build & Embed**              | `pnpm install --frozen-lockfile && pnpm run build:frontend && go generate ./...` |
 | **Protobuf Generation**                 | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
 | **Run All Tests**                       | `go test ./...`                                                                  |

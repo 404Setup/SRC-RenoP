@@ -8,6 +8,7 @@
   "scripts": {
     "build": "node ./build.mjs",
     "build:bundle": "rolldown -c rolldown.config.mjs",
+    "test": "node --test ./test/*.test.mjs",
     "dev": "node ./build.mjs --watch",
     "preview": "node ./preview.mjs"
   },

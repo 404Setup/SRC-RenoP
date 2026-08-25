@@ -48,6 +48,25 @@ export function stripFrontMatter(raw) {
 }
 
 /**
+ * Extract visible heading text from Marked inline tokens without retaining
+ * emphasis delimiters, link destinations, or inline HTML tags.
+ * @param {Array<object>} tokens - Marked inline tokens.
+ * @param {string} fallback - Raw heading text when tokens are unavailable.
+ * @returns {string} Plain heading text for TOC labels and anchors.
+ */
+function headingText(tokens, fallback) {
+    const visit = (items) => items.map((token) => {
+        if (Array.isArray(token.tokens) && token.tokens.length > 0) {
+            return visit(token.tokens);
+        }
+        if (typeof token.text === 'string') return token.text;
+        return typeof token.raw === 'string' ? token.raw : '';
+    }).join('');
+    const text = Array.isArray(tokens) && tokens.length > 0 ? visit(tokens) : String(fallback || '');
+    return text.replace(/<[^>]*>/g, '').trim();
+}
+
+/**
  * Render GitHub-flavored markdown to HTML and collect h2/h3 TOC entries with stable ids.
  * @param {string} [source] - Markdown source (front matter is stripped).
  * @returns {{ html: string, toc: Array<{ id: string, text: string, level: number }> }}
@@ -58,15 +77,9 @@ export function renderMarkdown(source) {
     const used = new Map();
 
     const renderer = new marked.Renderer();
-    const originHeading = renderer.heading.bind(renderer);
 
     renderer.heading = function heading({tokens, depth, text}) {
-        const plain =
-            typeof text === 'string'
-                ? text
-                : tokens
-                    ? tokens.map((t) => t.raw || t.text || '').join('')
-                    : '';
+        const plain = headingText(tokens, text);
         let id = slugify(plain);
         const n = used.get(id) || 0;
         used.set(id, n + 1);
@@ -85,10 +98,6 @@ export function renderMarkdown(source) {
         const inner = originTable(token);
         return `<div class="docs-table-wrap">${inner}</div>\n`;
     };
-
-    if (typeof originHeading === 'function') {
-        // keep custom only
-    }
 
     let html;
     try {
