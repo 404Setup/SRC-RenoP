@@ -495,64 +495,6 @@ html.dark .cargo-state-badge.is-yanked {
     color: color-mix(in srgb, var(--text-color) 45%, transparent);
 }
 
-.cargo-user-suggestions {
-    position: fixed;
-    z-index: 10020;
-    right: auto;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    max-height: 13rem;
-    overflow-y: auto;
-    padding: 0.3rem;
-    border: 1px solid var(--border-color);
-    border-radius: 0.65rem;
-    background: var(--card-bg);
-    box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.25), 0 4px 12px -2px rgba(0, 0, 0, 0.12);
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-6px) scale(0.985);
-    transform-origin: top center;
-    transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.cargo-user-suggestions.opens-upward {
-    transform-origin: bottom center;
-}
-
-.cargo-user-suggestions.is-visible {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0) scale(1);
-}
-
-.cargo-user-suggestions.is-leaving {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-5px) scale(0.985);
-}
-
-.cargo-user-suggestions[hidden] {
-    display: none !important;
-}
-
-.cargo-user-suggestion {
-    padding: 0.58rem 0.68rem;
-    color: var(--text-color);
-    text-align: left;
-    border: 0;
-    border-radius: 0.45rem;
-    background: transparent;
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.cargo-user-suggestion:hover,
-.cargo-user-suggestion.is-active {
-    background: color-mix(in srgb, var(--link-hover-color) 10%, transparent);
-    color: var(--link-hover-color);
-}
-
 .cargo-page-loading,
 .cargo-page-error {
     min-height: 12rem;
@@ -1265,10 +1207,6 @@ html.dark .cargo-dep-badge.is-target {
 @media (prefers-reduced-motion: reduce) {
     .cargo-repository-view.is-visible > * {
         animation: none;
-    }
-
-    .cargo-user-suggestions {
-        transition: none;
     }
 
     .cargo-team-list.is-updated .cargo-team-row {

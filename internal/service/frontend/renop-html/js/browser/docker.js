@@ -27,27 +27,39 @@ import {
     hideRepositoryView,
     replaceRepositoryView
 } from './repository-view.js';
+import {RepositoryUserSuggestions} from './user-suggestions.js';
 
 let dockerViewContainer = null;
 let activeRepository = '';
 let activeNavigate = null;
 let dockerLoadSequence = 0;
 
-let inviteSuggestionPanel = null;
-let inviteInput = null;
-let inviteSuggestionTimer = 0;
-let inviteCloseTimer = 0;
-let inviteSuggestions = [];
-let activeInviteSuggestion = -1;
-let inviteSuggestionVersion = 0;
 let inviteLevel = 1;
-
-const INVITE_SEARCH_DELAY_MS = 140;
-const INVITE_CLOSE_DELAY_MS = 160;
 
 marked.setOptions({
     gfm: true,
     breaks: false
+});
+
+/**
+ * Search users for the active Docker image invitation form.
+ * @param {string} query - Username prefix.
+ * @returns {Promise<string[]>} Bounded username results.
+ */
+async function searchDockerInvitationUsers(query) {
+    if (!activeRepository) return [];
+    const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(activeRepository)}/users/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data?.users) ? data.users : [];
+}
+
+const dockerUserSuggestions = new RepositoryUserSuggestions({
+    id: 'docker-invite-suggestions',
+    searchDelay: 140,
+    closeDelay: 160,
+    fetchUsers: searchDockerInvitationUsers,
+    onError: (error) => console.error('Failed to search Docker invitation users', error)
 });
 
 /**
@@ -71,7 +83,7 @@ function ensureDockerContainer() {
  */
 export function hideDockerRepositoryView() {
     hideRepositoryView(dockerViewContainer);
-    closeInviteSuggestions(true);
+    dockerUserSuggestions.detach();
 }
 
 /**
@@ -264,6 +276,7 @@ export async function renderDockerRepository(path, repoDetails, navigateToPath) 
  * @returns {Promise<void>}
  */
 async function renderCatalogView(container, repoName, seq) {
+    dockerUserSuggestions.detach();
     container.classList.add('is-updating');
     try {
         const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`);
@@ -376,153 +389,6 @@ async function renderCatalogView(container, repoName, seq) {
                 el('p', {class: 'error-text'}, t('docker.loadFailed'))),
             {duration: 260, enter: false});
     }
-}
-
-/**
- * Return the body-level username suggestion panel for Docker invitation.
- * @returns {HTMLElement} Suggestion panel.
- */
-function ensureInviteSuggestionPanel() {
-    if (inviteSuggestionPanel?.isConnected) return inviteSuggestionPanel;
-    inviteSuggestionPanel = el('div', {
-        id: 'docker-invite-suggestions',
-        class: 'docker-user-suggestions',
-        role: 'listbox',
-        hidden: true
-    });
-    inviteSuggestionPanel.addEventListener('click', handleSuggestionClick);
-    document.body.appendChild(inviteSuggestionPanel);
-    return inviteSuggestionPanel;
-}
-
-/**
- * Position the suggestion panel anchored beneath the invite input.
- * @returns {void}
- */
-function positionInviteSuggestions() {
-    const panel = ensureInviteSuggestionPanel();
-    if (!(inviteInput instanceof HTMLInputElement) || panel.hidden) return;
-    const rect = inviteInput.getBoundingClientRect();
-    panel.style.left = `${Math.max(10, rect.left)}px`;
-    panel.style.width = `${Math.min(rect.width, window.innerWidth - 20)}px`;
-    panel.style.top = `${rect.bottom + 6}px`;
-}
-
-/**
- * Hide suggestion panel with animation.
- * @param {boolean} [immediate=false] - Skip exit transition.
- * @returns {void}
- */
-function closeInviteSuggestions(immediate = false) {
-    const panel = ensureInviteSuggestionPanel();
-    if (inviteCloseTimer) clearTimeout(inviteCloseTimer);
-    panel.classList.remove('is-visible');
-    inviteInput?.setAttribute('aria-expanded', 'false');
-    if (immediate || panel.hidden) {
-        panel.hidden = true;
-        panel.classList.remove('is-leaving');
-        inviteCloseTimer = 0;
-        return;
-    }
-    panel.classList.add('is-leaving');
-    inviteCloseTimer = setTimeout(() => {
-        panel.hidden = true;
-        panel.classList.remove('is-leaving');
-        inviteCloseTimer = 0;
-    }, INVITE_CLOSE_DELAY_MS);
-}
-
-/**
- * Handle username autocomplete typing.
- * @param {InputEvent} event - Input event.
- * @returns {void}
- */
-function handleInviteInput(event) {
-    if (inviteSuggestionTimer) {
-        clearTimeout(inviteSuggestionTimer);
-        inviteSuggestionTimer = 0;
-    }
-    const version = ++inviteSuggestionVersion;
-    const query = String(event.currentTarget.value || '').trim();
-    if (!query) {
-        renderInviteSuggestions([]);
-        closeInviteSuggestions(true);
-        return;
-    }
-    inviteSuggestionTimer = setTimeout(() => fetchInviteSuggestions(query, version), INVITE_SEARCH_DELAY_MS);
-}
-
-/**
- * Fetch username suggestions from API.
- * @param {string} query - Query string.
- * @param {number} version - Request version.
- * @returns {Promise<void>}
- */
-async function fetchInviteSuggestions(query, version) {
-    if (!activeRepository) return;
-    try {
-        const res = await apiRequest(`/api/docker/repositories/${encodeURIComponent(activeRepository)}/users/search?q=${encodeURIComponent(query)}`);
-        if (version !== inviteSuggestionVersion || String(inviteInput?.value || '').trim() !== query) return;
-        if (res.ok) {
-            const data = await res.json();
-            renderInviteSuggestions(Array.isArray(data?.users) ? data.users : []);
-        } else {
-            renderInviteSuggestions([]);
-        }
-    } catch {
-        if (version === inviteSuggestionVersion) renderInviteSuggestions([]);
-    }
-}
-
-/**
- * Render username suggestions in panel.
- * @param {string[]} users - User list.
- * @returns {void}
- */
-function renderInviteSuggestions(users) {
-    const panel = ensureInviteSuggestionPanel();
-    inviteSuggestions = users.slice(0, 8);
-    activeInviteSuggestion = -1;
-    panel.replaceChildren();
-    for (const username of inviteSuggestions) {
-        panel.appendChild(el('button', {
-            type: 'button',
-            role: 'option',
-            class: 'docker-user-suggestion',
-            'data-suggestion': username
-        }, username));
-    }
-    if (inviteSuggestions.length === 0) {
-        closeInviteSuggestions();
-        return;
-    }
-    if (inviteCloseTimer) {
-        clearTimeout(inviteCloseTimer);
-        inviteCloseTimer = 0;
-    }
-    panel.hidden = false;
-    panel.classList.remove('is-leaving');
-    inviteInput?.setAttribute('aria-expanded', 'true');
-    positionInviteSuggestions();
-    requestAnimationFrame(() => panel.classList.add('is-visible'));
-}
-
-/**
- * Apply selected suggestion.
- * @param {MouseEvent} event - Click event.
- * @returns {void}
- */
-function handleSuggestionClick(event) {
-    if (inviteSuggestionPanel?.hidden || !inviteSuggestionPanel?.classList.contains('is-visible') ||
-        !String(inviteInput?.value || '').trim()) return;
-    const opt = event.target.closest('[data-suggestion]');
-    if (!opt) return;
-    const username = opt.dataset.suggestion;
-    if (inviteInput instanceof HTMLInputElement) {
-        inviteInput.value = username;
-        inviteInput.focus();
-    }
-    closeInviteSuggestions();
 }
 
 /**
@@ -713,6 +579,7 @@ async function removeDockerTeamMember({container, repoName, imageName, sequence,
  */
 async function renderImageDetailsView(container, repoName, imageName, seq) {
     const animateTeam = container.querySelector('.docker-team-list') !== null;
+    dockerUserSuggestions.detach();
     container.classList.add('is-updating');
     try {
         const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`);
@@ -1104,16 +971,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
             let inviteForm = null;
             if (canManageL3) {
-                inviteInput = el('input', {
+                const inviteInput = el('input', {
                     type: 'text',
                     class: 'docker-invite-input',
                     placeholder: t('docker.invitePlaceholder'),
-                    autocomplete: 'off',
-                    oninput: handleInviteInput,
-                    onkeydown: (e) => {
-                        if (e.key === 'Escape') closeInviteSuggestions();
-                    }
+                    autocomplete: 'off'
                 });
+                dockerUserSuggestions.attach(inviteInput);
 
                 inviteLevel = 1;
                 const inviteLevelSelect = makeCustomSelect(
@@ -1164,8 +1028,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                                 })
                             });
                             if (inviteResp.ok) {
-                                inviteInput.value = '';
-                                closeInviteSuggestions();
+                                dockerUserSuggestions.clear();
                                 showAlert(t('docker.inviteSent', {name: userToInvite}), 'success');
                                 renderImageDetailsView(container, repoName, imageName, seq);
                             } else {

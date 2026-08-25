@@ -1024,60 +1024,6 @@
     outline: none;
 }
 
-.docker-user-suggestions {
-    position: fixed;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-    overflow: hidden;
-    max-height: 220px;
-    overflow-y: auto;
-    box-sizing: border-box;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(4px);
-    transition: opacity 0.16s ease, transform 0.16s ease;
-}
-
-.docker-user-suggestions.is-visible {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-}
-
-.docker-user-suggestions.is-leaving {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(4px);
-}
-
-.docker-user-suggestions[hidden] {
-    display: none !important;
-}
-
-.docker-user-suggestion {
-    padding: 0.55rem 0.85rem;
-    font-size: 0.84rem;
-    color: var(--text-color);
-    background: transparent;
-    border: none;
-    text-align: left;
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    transition: background-color 0.12s ease, color 0.12s ease;
-}
-
-.docker-user-suggestion:hover,
-.docker-user-suggestion.is-active {
-    background: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
-    color: var(--link-hover-color);
-}
-
 .docker-meta-chip.is-private,
 .docker-private-badge {
     border-color: color-mix(in srgb, #f59e0b 32%, var(--border-color));
@@ -1200,10 +1146,6 @@ html.dark .docker-private-badge {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .docker-user-suggestions {
-        transition: none;
-    }
-
     .docker-team-list.is-updated .docker-team-row {
         animation: none;
     }

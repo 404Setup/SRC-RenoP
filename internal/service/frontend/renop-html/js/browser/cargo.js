@@ -33,9 +33,8 @@ import {
     replaceRepositoryView,
     setRepositoryViewBusy
 } from './repository-view.js';
+import {RepositoryUserSuggestions} from './user-suggestions.js';
 
-const INVITE_SEARCH_DELAY_MS = 160;
-const INVITE_CLOSE_DELAY_MS = 150;
 const CARGO_CATALOG_PAGE_SIZE = 50;
 const CARGO_VERSION_PAGE_SIZE = 5;
 let cargoLoadSequence = 0;
@@ -61,13 +60,27 @@ let activeVersionsUpdater = null;
 let activeVersionsObserver = null;
 let listenersInitialized = false;
 let inviteLevel = 1;
-let inviteSuggestionTimer = 0;
-let inviteSuggestionVersion = 0;
-let inviteCloseTimer = 0;
-let inviteSuggestions = [];
-let activeInviteSuggestion = -1;
-let inviteSuggestionPanel = null;
-let inviteInput = null;
+
+/**
+ * Search users for the active Cargo package invitation form.
+ * @param {string} query - Username prefix.
+ * @returns {Promise<string[]>} Bounded username results.
+ */
+async function searchCargoInvitationUsers(query) {
+    if (!activePackageDetails?.package) return [];
+    const payload = await cargoRequest(
+        `${cargoAPIPath('crates', activePackageDetails.package.name, 'users')}?q=${encodeURIComponent(query)}`
+    );
+    return Array.isArray(payload?.users) ? payload.users : [];
+}
+
+const cargoUserSuggestions = new RepositoryUserSuggestions({
+    id: 'cargo-invite-suggestions',
+    searchDelay: 160,
+    closeDelay: 180,
+    fetchUsers: searchCargoInvitationUsers,
+    onError: (error) => console.error('Failed to search Cargo invitation users', error)
+});
 
 /**
  * Extract a useful bounded error from a Cargo JSON or text response.
@@ -253,7 +266,7 @@ function buildCargoCatalogSection() {
  */
 function renderCargoOverview() {
     if (!activeView) return;
-    closeInviteSuggestions(true);
+    cargoUserSuggestions.detach();
     activePackageDetails = null;
     activeRouteKind = 'overview';
     activeView.replaceChildren(buildCargoOverviewHero(), buildCargoCatalogSection());
@@ -970,15 +983,11 @@ function handleInviteLevelChange(level) {
  */
 function buildCargoInviteForm() {
     inviteLevel = 1;
-    inviteSuggestions = [];
-    activeInviteSuggestion = -1;
-    inviteInput = el('input', {
-        id: 'cargo-invite-username', type: 'text', role: 'combobox', autocomplete: 'off', maxlength: '255',
-        placeholder: t('cargo.inviteUsernamePlaceholder'), 'aria-autocomplete': 'list',
-        'aria-controls': 'cargo-invite-suggestions', 'aria-expanded': 'false'
+    const inviteInput = el('input', {
+        id: 'cargo-invite-username', type: 'text', autocomplete: 'off', maxlength: '255',
+        placeholder: t('cargo.inviteUsernamePlaceholder')
     });
-    inviteInput.addEventListener('input', handleCargoInviteInput);
-    inviteInput.addEventListener('keydown', handleCargoInviteKeydown);
+    cargoUserSuggestions.attach(inviteInput);
     const inputWrap = el('div', {class: 'cargo-invite-input-wrap'}, inviteInput);
     const levelSelect = makeCustomSelect([1, 2, 3, 4].map(buildPermissionOption), '1', handleInviteLevelChange);
     levelSelect.classList.add('cargo-invite-permission-select');
@@ -1158,7 +1167,7 @@ function buildCargoPackageHero() {
  */
 function renderCargoPackagePage(animateTeam = false) {
     if (!activeView || !activePackageDetails?.package) return;
-    closeInviteSuggestions(true);
+    cargoUserSuggestions.detach();
     activeRouteKind = 'package';
     const packageName = String(activePackageDetails.package.name || '');
     const sections = [
@@ -1744,191 +1753,6 @@ async function updateCargoMemberLevel(username, userID, level) {
 }
 
 /**
- * Return the body-level username suggestion panel.
- * @returns {HTMLElement} Suggestion panel.
- */
-function ensureInviteSuggestionPanel() {
-    if (inviteSuggestionPanel?.isConnected) return inviteSuggestionPanel;
-    inviteSuggestionPanel = el('div', {
-        id: 'cargo-invite-suggestions', class: 'cargo-user-suggestions', role: 'listbox', hidden: true
-    });
-    inviteSuggestionPanel.addEventListener('click', handleCargoSuggestionClick);
-    document.body.appendChild(inviteSuggestionPanel);
-    return inviteSuggestionPanel;
-}
-
-/**
- * Keep the body-level username suggestions anchored to their input.
- * @returns {void}
- */
-function positionInviteSuggestions() {
-    const panel = ensureInviteSuggestionPanel();
-    if (!(inviteInput instanceof HTMLInputElement) || panel.hidden) return;
-    const rect = inviteInput.getBoundingClientRect();
-    panel.style.left = `${Math.max(10, rect.left)}px`;
-    panel.style.width = `${Math.min(rect.width, window.innerWidth - 20)}px`;
-    panel.style.top = `${rect.bottom + 6}px`;
-    const height = panel.getBoundingClientRect().height;
-    if (rect.bottom + height + 12 > window.innerHeight && rect.top > height + 12) {
-        panel.style.top = `${rect.top - height - 6}px`;
-        panel.classList.add('opens-upward');
-    } else {
-        panel.classList.remove('opens-upward');
-    }
-}
-
-/**
- * Hide invitation suggestions after a smooth exit transition.
- * @param {boolean} [immediate=false] - Skip the transition during page teardown.
- * @returns {void}
- */
-function closeInviteSuggestions(immediate = false) {
-    const panel = ensureInviteSuggestionPanel();
-    if (inviteCloseTimer) clearTimeout(inviteCloseTimer);
-    panel.classList.remove('is-visible');
-    inviteInput?.setAttribute('aria-expanded', 'false');
-    if (immediate || panel.hidden) {
-        panel.hidden = true;
-        panel.classList.remove('is-leaving');
-        inviteCloseTimer = 0;
-        return;
-    }
-    panel.classList.add('is-leaving');
-    inviteCloseTimer = setTimeout(() => {
-        panel.hidden = true;
-        panel.classList.remove('is-leaving');
-        inviteCloseTimer = 0;
-    }, 180);
-}
-
-/**
- * Schedule bounded username autocomplete after the invitation input changes.
- * @param {InputEvent} event - Username input event.
- * @returns {void}
- */
-function handleCargoInviteInput(event) {
-    if (inviteSuggestionTimer) {
-        clearTimeout(inviteSuggestionTimer);
-        inviteSuggestionTimer = 0;
-    }
-    const version = ++inviteSuggestionVersion;
-    const query = String(event.currentTarget.value || '').trim();
-    if (!query) {
-        renderCargoInviteSuggestions([]);
-        closeInviteSuggestions(true);
-        return;
-    }
-    inviteSuggestionTimer = setTimeout(fetchCargoInviteSuggestions.bind(null, query, version), INVITE_SEARCH_DELAY_MS);
-}
-
-/**
- * Fetch prefix-bounded username suggestions for the active package.
- * @param {string} query - Username prefix.
- * @param {number} version - Input version owning the request.
- * @returns {Promise<void>}
- */
-async function fetchCargoInviteSuggestions(query, version) {
-    if (!activePackageDetails?.package) return;
-    try {
-        const payload = await cargoRequest(
-            `${cargoAPIPath('crates', activePackageDetails.package.name, 'users')}?q=${encodeURIComponent(query)}`
-        );
-        if (version !== inviteSuggestionVersion || String(inviteInput?.value || '').trim() !== query) return;
-        renderCargoInviteSuggestions(Array.isArray(payload?.users) ? payload.users : []);
-    } catch (error) {
-        console.error('Failed to search Cargo invitation users', error);
-        if (version === inviteSuggestionVersion) renderCargoInviteSuggestions([]);
-    }
-}
-
-/**
- * Render the invitation username suggestion dropdown outside page layout.
- * @param {string[]} users - Suggested usernames.
- * @returns {void}
- */
-function renderCargoInviteSuggestions(users) {
-    const panel = ensureInviteSuggestionPanel();
-    inviteSuggestions = users.slice(0, 8);
-    activeInviteSuggestion = -1;
-    panel.replaceChildren();
-    for (const username of inviteSuggestions) {
-        panel.appendChild(el('button', {
-            type: 'button', role: 'option', class: 'cargo-user-suggestion', 'data-cargo-suggestion': username
-        }, username));
-    }
-    if (inviteSuggestions.length === 0) {
-        closeInviteSuggestions();
-        return;
-    }
-    if (inviteCloseTimer) {
-        clearTimeout(inviteCloseTimer);
-        inviteCloseTimer = 0;
-    }
-    panel.hidden = false;
-    panel.classList.remove('is-leaving');
-    inviteInput?.setAttribute('aria-expanded', 'true');
-    positionInviteSuggestions();
-    requestAnimationFrame(() => panel.classList.add('is-visible'));
-}
-
-/**
- * Apply one clicked username autocomplete suggestion.
- * @param {MouseEvent} event - Suggestion click.
- * @returns {void}
- */
-function handleCargoSuggestionClick(event) {
-    if (inviteSuggestionPanel?.hidden || !inviteSuggestionPanel?.classList.contains('is-visible') ||
-        !String(inviteInput?.value || '').trim()) return;
-    const option = event.target.closest('[data-cargo-suggestion]');
-    if (!(option instanceof HTMLElement)) return;
-    applyCargoInviteSuggestion(option.dataset.cargoSuggestion || '');
-}
-
-/**
- * Fill the invitation input from a selected username suggestion.
- * @param {string} username - Selected username.
- * @returns {void}
- */
-function applyCargoInviteSuggestion(username) {
-    if (inviteInput instanceof HTMLInputElement) {
-        inviteInput.value = username;
-        inviteInput.focus();
-    }
-    inviteSuggestions = [];
-    closeInviteSuggestions();
-}
-
-/**
- * Support ArrowUp, ArrowDown, Escape, and Enter in username autocomplete.
- * @param {KeyboardEvent} event - Username input key event.
- * @returns {void}
- */
-function handleCargoInviteKeydown(event) {
-    if (event.key === 'Escape') {
-        closeInviteSuggestions();
-        return;
-    }
-    if (inviteSuggestions.length === 0) return;
-    if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        activeInviteSuggestion = (activeInviteSuggestion + 1) % inviteSuggestions.length;
-    } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        activeInviteSuggestion = (activeInviteSuggestion - 1 + inviteSuggestions.length) % inviteSuggestions.length;
-    } else if (event.key === 'Enter' && activeInviteSuggestion >= 0) {
-        event.preventDefault();
-        applyCargoInviteSuggestion(inviteSuggestions[activeInviteSuggestion]);
-        return;
-    } else {
-        return;
-    }
-    const options = ensureInviteSuggestionPanel().querySelectorAll('.cargo-user-suggestion');
-    for (let index = 0; index < options.length; index++) {
-        options[index].classList.toggle('is-active', index === activeInviteSuggestion);
-    }
-}
-
-/**
  * Send a package-team invitation at the selected permission level.
  * @param {SubmitEvent} event - Invitation form submission.
  * @returns {Promise<void>}
@@ -1936,11 +1760,13 @@ function handleCargoInviteKeydown(event) {
 async function submitCargoInvitation(event) {
     event.preventDefault();
     const form = event.currentTarget;
-    const username = inviteInput instanceof HTMLInputElement ? inviteInput.value.trim() : '';
+    const username = cargoUserSuggestions.input instanceof HTMLInputElement
+        ? cargoUserSuggestions.input.value.trim()
+        : '';
     if (!activePackageDetails?.package) return;
     if (!username) {
         showAlert(t('team.inviteUsernameRequired'), 'warning');
-        closeInviteSuggestions(true);
+        cargoUserSuggestions.close(true);
         return;
     }
     const submit = form.querySelector('button[type="submit"]');
@@ -1950,9 +1776,7 @@ async function submitCargoInvitation(event) {
             method: 'PUT', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({users: [username], level: inviteLevel})
         });
-        if (inviteInput instanceof HTMLInputElement) inviteInput.value = '';
-        inviteSuggestions = [];
-        closeInviteSuggestions();
+        cargoUserSuggestions.clear();
         showAlert(resp?.message || t('cargo.inviteSent', {name: username}), 'success');
         if (activeAdministrator) {
             await refreshCargoPackagePage();
@@ -1963,24 +1787,6 @@ async function submitCargoInvitation(event) {
     } finally {
         if (submit) submit.disabled = false;
     }
-}
-
-/**
- * Close username suggestions after a click outside their input and panel.
- * @param {MouseEvent} event - Document click event.
- * @returns {void}
- */
-function handleCargoDocumentClick(event) {
-    if (inviteInput?.contains(event.target) || inviteSuggestionPanel?.contains(event.target)) return;
-    closeInviteSuggestions();
-}
-
-/**
- * Keep username suggestions anchored without resizing their owner page.
- * @returns {void}
- */
-function handleCargoViewportChange() {
-    if (inviteSuggestionPanel && !inviteSuggestionPanel.hidden) positionInviteSuggestions();
 }
 
 /**
@@ -2011,11 +1817,7 @@ function handleCargoLanguageChanged() {
 function initializeCargoPageListeners() {
     if (listenersInitialized) return;
     listenersInitialized = true;
-    ensureInviteSuggestionPanel();
     document.getElementById('cargo-repository-view')?.addEventListener('click', handleCargoPageClick);
-    document.addEventListener('click', handleCargoDocumentClick);
-    window.addEventListener('scroll', handleCargoViewportChange, {passive: true});
-    window.addEventListener('resize', handleCargoViewportChange, {passive: true});
     window.addEventListener('authChanged', handleCargoStateChanged);
     window.addEventListener('cargoMembershipChanged', handleCargoStateChanged);
     window.addEventListener('languageChanged', handleCargoLanguageChanged);
@@ -2066,7 +1868,7 @@ export async function renderCargoRepository(path, repositoryDetails, navigate) {
  */
 export function hideCargoRepositoryView() {
     cargoLoadSequence++;
-    closeInviteSuggestions(true);
+    cargoUserSuggestions.detach();
     activeRepository = '';
     activeAdministrator = false;
     activePackageDetails = null;

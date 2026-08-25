@@ -221,6 +221,64 @@ func TestRepositoryViewsUseSharedLifecycleAndCopyHelpers(t *testing.T) {
 	}
 }
 
+func TestRepositoryTeamsShareUserSuggestionController(t *testing.T) {
+	controllerSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "user-suggestions.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	controllerText := string(controllerSource)
+	for _, required := range []string{
+		"export class RepositoryUserSuggestions",
+		"aria-activedescendant",
+		"opens-upward",
+		"handleDocumentClick",
+		"handleViewportChange",
+	} {
+		if !strings.Contains(controllerText, required) {
+			t.Fatalf("repository user suggestion controller is missing %q", required)
+		}
+	}
+
+	for _, sourcePath := range []string{
+		filepath.Join("renop-html", "js", "browser", "cargo.js"),
+		filepath.Join("renop-html", "js", "browser", "docker.js"),
+	} {
+		source, readErr := os.ReadFile(sourcePath)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		text := string(source)
+		if !strings.Contains(text, "RepositoryUserSuggestions") {
+			t.Fatalf("%s does not use the shared user suggestion controller", sourcePath)
+		}
+		for _, obsolete := range []string{"ensureInviteSuggestionPanel", "positionInviteSuggestions", "inviteSuggestionTimer"} {
+			if strings.Contains(text, obsolete) {
+				t.Fatalf("%s retains duplicate autocomplete state %q", sourcePath, obsolete)
+			}
+		}
+	}
+
+	componentsCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "components.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(componentsCSS), "components/user-suggestions.css") {
+		t.Fatal("shared user suggestion styles are not part of the component bundle")
+	}
+	for _, sourcePath := range []string{
+		filepath.Join("renop-html", "css", "browser", "cargo.css"),
+		filepath.Join("renop-html", "css", "browser", "docker.css"),
+	} {
+		source, readErr := os.ReadFile(sourcePath)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if strings.Contains(string(source), "-user-suggestion") {
+			t.Fatalf("%s retains format-specific autocomplete CSS", sourcePath)
+		}
+	}
+}
+
 func TestDockerI18nCatalogsCoverUIAndAuditMessages(t *testing.T) {
 	i18nRoot := filepath.Join("renop-html", "js", "i18n")
 	keyPattern := regexp.MustCompile(`"(docker\.[^"]+|audit\.action\.DOCKER_[^"]+)"\s*:`)
