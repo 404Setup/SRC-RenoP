@@ -610,6 +610,7 @@
 }
 
 .docker-tag-digest {
+    appearance: none;
     position: relative;
     display: inline-flex;
     align-items: center;

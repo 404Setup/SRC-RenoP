@@ -9,7 +9,7 @@
  */
 
 import {el} from '@renop/ui/dom';
-import {createIcon} from '../components.js';
+import {createIcon} from '../components/icon.js';
 
 const activeCopyFeedback = new WeakMap();
 
@@ -26,6 +26,7 @@ export async function copyWithFeedback(button, text, {copiedLabel, duration = 20
     const current = activeCopyFeedback.get(button);
     if (current) clearTimeout(current.timer);
     const originalTitle = current?.originalTitle ?? button.title;
+    const originalChildren = current?.originalChildren ?? Array.from(button.childNodes);
     button.classList.add('copied');
     button.title = copiedLabel;
     button.replaceChildren(
@@ -37,7 +38,7 @@ export async function copyWithFeedback(button, text, {copiedLabel, duration = 20
         if (!button.isConnected) return;
         button.classList.remove('copied');
         button.title = originalTitle;
-        button.replaceChildren(createIcon('copy', {class: 'icon-svg'}));
+        button.replaceChildren(...originalChildren);
     }, duration);
-    activeCopyFeedback.set(button, {originalTitle, timer});
+    activeCopyFeedback.set(button, {originalChildren, originalTitle, timer});
 }

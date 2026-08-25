@@ -47,8 +47,11 @@
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n
   catalogs, including dedicated profile fragments, live under `js/i18n/<locale>/` and are compiled via
-  `pnpm run build:frontend`. Shared asynchronous actions use the button-state helper exported by
-  `js/components/button.js`, which restores controls after both successful and failed requests. Docker management
+  `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
+  route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`;
+  repository clipboard feedback is centralized in `js/browser/copy-feedback.js`. Shared asynchronous actions use the
+  button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed
+  requests. Docker management
   failures expose stable `X-Renop-Error-Code` values that `js/docker-errors.js` maps to the Docker locale catalogs;
   browser and message-center views never display raw backend error text. The official website Markdown renderer derives
   heading labels and anchors from visible inline-token text so emphasis delimiters are not repeated in the docs TOC.

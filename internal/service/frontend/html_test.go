@@ -172,6 +172,55 @@ func TestRegistryAsyncActionsRestoreInitiatingButtons(t *testing.T) {
 
 }
 
+func TestRepositoryViewsUseSharedLifecycleAndCopyHelpers(t *testing.T) {
+	helperSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "repository-view.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	helperText := string(helperSource)
+	for _, required := range []string{
+		"export function ensureRepositoryView",
+		"export function hideRepositoryView",
+		"export function setRepositoryViewBusy",
+		"export async function replaceRepositoryView",
+		"export function createRepositoryBackButton",
+		"export function formatRepositoryTimestamp",
+	} {
+		if !strings.Contains(helperText, required) {
+			t.Fatalf("repository view helper is missing %q", required)
+		}
+	}
+
+	for _, sourcePath := range []string{
+		filepath.Join("renop-html", "js", "browser", "cargo.js"),
+		filepath.Join("renop-html", "js", "browser", "docker.js"),
+		filepath.Join("renop-html", "js", "browser", "maven.js"),
+	} {
+		source, readErr := os.ReadFile(sourcePath)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if !strings.Contains(string(source), "./repository-view.js") {
+			t.Fatalf("%s does not use the shared repository view lifecycle", sourcePath)
+		}
+	}
+
+	dockerSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "docker.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(dockerSource), "navigator.clipboard.writeText") {
+		t.Fatal("Docker view still maintains a duplicate clipboard implementation")
+	}
+	copySource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "copy-feedback.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(copySource), "originalChildren") {
+		t.Fatal("shared copy feedback does not restore arbitrary button content")
+	}
+}
+
 func TestDockerI18nCatalogsCoverUIAndAuditMessages(t *testing.T) {
 	i18nRoot := filepath.Join("renop-html", "js", "i18n")
 	keyPattern := regexp.MustCompile(`"(docker\.[^"]+|audit\.action\.DOCKER_[^"]+)"\s*:`)

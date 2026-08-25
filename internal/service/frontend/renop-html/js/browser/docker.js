@@ -10,7 +10,6 @@
 
 import {marked} from 'marked';
 import {el} from '@renop/ui/dom';
-import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {canUpdateRepo} from '../auth.js';
@@ -18,8 +17,16 @@ import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {dockerResponseError} from '../docker-errors.js';
 import {t} from '../i18n.js';
+import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
+import {
+    createRepositoryBackButton,
+    ensureRepositoryView,
+    formatRepositoryTimestamp,
+    hideRepositoryView,
+    replaceRepositoryView
+} from './repository-view.js';
 
 let dockerViewContainer = null;
 let activeRepository = '';
@@ -48,25 +55,14 @@ marked.setOptions({
  * @returns {HTMLElement} View container element.
  */
 function ensureDockerContainer() {
-    if (dockerViewContainer && dockerViewContainer.isConnected) {
-        return dockerViewContainer;
-    }
-    let container = document.getElementById('docker-repository-view');
-    if (!container) {
-        container = el('section', {
-            id: 'docker-repository-view',
-            class: 'docker-repository-view',
-            hidden: true
-        });
-        const browserColumn = document.querySelector('.browser-column') || document.querySelector('.file-list-container')?.parentElement;
-        if (browserColumn) {
-            browserColumn.appendChild(container);
-        } else {
-            document.body.appendChild(container);
-        }
-    }
-    dockerViewContainer = container;
-    return container;
+    dockerViewContainer = ensureRepositoryView(dockerViewContainer, {
+        id: 'docker-repository-view',
+        className: 'docker-repository-view',
+        create: true,
+        mountResolver: () => document.querySelector('.browser-column') ||
+            document.querySelector('.file-list-container')?.parentElement || null
+    });
+    return dockerViewContainer;
 }
 
 /**
@@ -74,11 +70,7 @@ function ensureDockerContainer() {
  * @returns {void}
  */
 export function hideDockerRepositoryView() {
-    if (dockerViewContainer) {
-        dockerViewContainer.hidden = true;
-        dockerViewContainer.classList.remove('is-updating', 'is-entering');
-        dockerViewContainer.replaceChildren();
-    }
+    hideRepositoryView(dockerViewContainer);
     closeInviteSuggestions(true);
 }
 
@@ -86,24 +78,16 @@ export function hideDockerRepositoryView() {
  * Trigger copy animation with toast feedback on a copy button or element.
  * @param {HTMLElement} element - Copy button or badge.
  * @param {string} text - Text to copy to clipboard.
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function triggerDockerCopy(element, text) {
+async function triggerDockerCopy(element, text) {
     if (!element || !text) return;
-    navigator.clipboard.writeText(text).then(() => {
-        element.classList.add('copied');
-        const toast = el('span', {class: 'copy-toast'}, t('details.copied'));
-        element.appendChild(toast);
-        setTimeout(() => {
-            if (element.isConnected) {
-                element.classList.remove('copied');
-                toast.remove();
-            }
-        }, 1600);
-    }).catch((err) => {
+    try {
+        await copyWithFeedback(element, text, {copiedLabel: t('details.copied')});
+    } catch (err) {
         console.error('Failed to copy', err);
         showAlert(t('docker.copyFailed'), 'error');
-    });
+    }
 }
 
 /**
@@ -112,11 +96,7 @@ function triggerDockerCopy(element, text) {
  * @returns {string} Formatted date string.
  */
 function dockerDate(value) {
-    if (!value) return '';
-    const timestamp = typeof value === 'number' ? (value > 1e11 ? value : value * 1000) : Date.parse(value);
-    return Number.isFinite(timestamp) && timestamp > 0
-        ? new Date(timestamp).toLocaleString()
-        : '';
+    return formatRepositoryTimestamp(value);
 }
 
 /**
@@ -289,14 +269,10 @@ async function renderCatalogView(container, repoName, seq) {
         const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`);
         if (seq !== dockerLoadSequence) return;
         if (!response.ok) {
-            await morphElementHeight(container, () => {
-                container.replaceChildren(
-                    el('div', {class: 'docker-page-hero'},
-                        el('p', {class: 'error-text'}, t('docker.loadFailed'))
-                    )
-                );
-                container.classList.remove('is-updating');
-            }, {duration: 260});
+            await replaceRepositoryView(container,
+                el('div', {class: 'docker-page-hero'},
+                    el('p', {class: 'error-text'}, t('docker.loadFailed'))),
+                {duration: 260, enter: false});
             return;
         }
 
@@ -318,12 +294,7 @@ async function renderCatalogView(container, repoName, seq) {
                 el('p', {class: 'docker-create-first-hint'}, t('docker.createFirstHint'))
             );
 
-            await morphElementHeight(container, () => {
-                container.replaceChildren(hero);
-                container.classList.remove('is-updating');
-                container.classList.add('is-entering');
-                setTimeout(() => container.classList.remove('is-entering'), 400);
-            }, {duration: 280});
+            await replaceRepositoryView(container, hero, {duration: 280, enterDuration: 400});
             return;
         }
 
@@ -396,23 +367,14 @@ async function renderCatalogView(container, repoName, seq) {
             grid
         );
 
-        await morphElementHeight(container, () => {
-            container.replaceChildren(hero, imagesSection);
-            container.classList.remove('is-updating');
-            container.classList.add('is-entering');
-            setTimeout(() => container.classList.remove('is-entering'), 400);
-        }, {duration: 280});
+        await replaceRepositoryView(container, [hero, imagesSection], {duration: 280, enterDuration: 400});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
         console.error('Failed to load Docker image catalog', err);
-        await morphElementHeight(container, () => {
-            container.replaceChildren(
-                el('div', {class: 'docker-page-hero'},
-                    el('p', {class: 'error-text'}, t('docker.loadFailed'))
-                )
-            );
-            container.classList.remove('is-updating');
-        }, {duration: 260});
+        await replaceRepositoryView(container,
+            el('div', {class: 'docker-page-hero'},
+                el('p', {class: 'error-text'}, t('docker.loadFailed'))),
+            {duration: 260, enter: false});
     }
 }
 
@@ -756,21 +718,17 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`);
         if (seq !== dockerLoadSequence) return;
         if (!response.ok) {
-            await morphElementHeight(container, () => {
-                container.replaceChildren(
-                    el('div', {class: 'docker-page-hero'},
-                        el('button', {
-                            class: 'docker-page-back',
-                            type: 'button',
-                            onclick: () => {
-                                if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
-                            }
-                        }, createIcon('chevronLeft', {class: 'icon-svg'}), el('span', {}, t('docker.backToImages'))),
-                        el('p', {class: 'error-text'}, t('docker.imageNotFound'))
-                    )
-                );
-                container.classList.remove('is-updating');
-            }, {duration: 260});
+            await replaceRepositoryView(container,
+                el('div', {class: 'docker-page-hero'},
+                    createRepositoryBackButton({
+                        path: `/${encodePathSegment(repoName)}`,
+                        label: t('docker.backToImages'),
+                        navigate: activeNavigate,
+                        className: 'docker-page-back',
+                        iconClass: 'icon-svg'
+                    }),
+                    el('p', {class: 'error-text'}, t('docker.imageNotFound'))),
+                {duration: 260, enter: false});
             return;
         }
 
@@ -792,13 +750,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             ? `docker pull ${window.location.host}/${repoName}/${imageName}:${latestTag}`
             : (canPush ? `docker push ${window.location.host}/${repoName}/${imageName}:<tag>` : '');
 
-        const backBtn = el('button', {
-            class: 'docker-page-back',
-            type: 'button',
-            onclick: () => {
-                if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
-            }
-        }, createIcon('chevronLeft', {class: 'icon-svg'}), el('span', {}, t('docker.backToImages')));
+        const backBtn = createRepositoryBackButton({
+            path: `/${encodePathSegment(repoName)}`,
+            label: t('docker.backToImages'),
+            navigate: activeNavigate,
+            className: 'docker-page-back',
+            iconClass: 'icon-svg'
+        });
 
         const topNav = el('div', {class: 'docker-hero-nav'},
             backBtn,
@@ -945,7 +903,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 const tagPublisher = tObj.publisher || image.publisher || '';
 
                 const digestPill = shortDigest
-                    ? el('span', {
+                    ? el('button', {
+                        type: 'button',
                         class: 'docker-tag-digest',
                         title: `${tObj.digest} (${t('docker.copyDigest')})`,
                         onclick: (e) => triggerDockerCopy(e.currentTarget, tObj.digest)
@@ -1237,23 +1196,14 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             sections.push(teamSection);
         }
 
-        await morphElementHeight(container, () => {
-            container.replaceChildren(...sections);
-            container.classList.remove('is-updating');
-            container.classList.add('is-entering');
-            setTimeout(() => container.classList.remove('is-entering'), 400);
-        }, {duration: 280});
+        await replaceRepositoryView(container, sections, {duration: 280, enterDuration: 400});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
         console.error('Failed to load Docker image details', err);
-        await morphElementHeight(container, () => {
-            container.replaceChildren(
-                el('div', {class: 'docker-page-hero'},
-                    el('p', {class: 'error-text'}, t('docker.imageNotFound'))
-                )
-            );
-            container.classList.remove('is-updating');
-        }, {duration: 260});
+        await replaceRepositoryView(container,
+            el('div', {class: 'docker-page-hero'},
+                el('p', {class: 'error-text'}, t('docker.imageNotFound'))),
+            {duration: 260, enter: false});
     }
 }
 

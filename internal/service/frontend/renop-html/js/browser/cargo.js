@@ -14,12 +14,25 @@ import {morphElementHeight} from '@renop/ui/height-anim';
 import {apiRequest, getAuthHeaders} from '../api.js';
 import {cachedIsLoggedIn} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
-import {createDropzone, createFileCard, createIcon, createSkeleton, createUserIdentity, RenopDialog} from '../components.js';
+import {
+    createDropzone,
+    createFileCard,
+    createIcon,
+    createSkeleton,
+    createUserIdentity,
+    RenopDialog
+} from '../components.js';
 import {t} from '../i18n.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
+import {
+    formatRepositoryTimestamp,
+    hideRepositoryView,
+    replaceRepositoryView,
+    setRepositoryViewBusy
+} from './repository-view.js';
 
 const INVITE_SEARCH_DELAY_MS = 160;
 const INVITE_CLOSE_DELAY_MS = 150;
@@ -131,10 +144,7 @@ function cargoPermissionLabel(level) {
  * @returns {string} Localized date.
  */
 function cargoDate(value) {
-    const timestamp = Number(value);
-    return Number.isFinite(timestamp) && timestamp > 0
-        ? new Date(timestamp).toLocaleDateString()
-        : t('common.unknown');
+    return formatRepositoryTimestamp(value, {dateOnly: true, fallback: t('common.unknown')});
 }
 
 /**
@@ -357,7 +367,8 @@ function buildCargoCommandsSection(packageName) {
         title: t('cargo.copyCommand'), 'aria-label': t('cargo.copyCommand')
     }, createIcon('copy', {class: 'icon-svg'}));
     copyBtn.addEventListener('click', () => {
-        void copyWithFeedback(copyBtn, currentSnippet, {copiedLabel: t('details.copied')}).catch(() => {});
+        void copyWithFeedback(copyBtn, currentSnippet, {copiedLabel: t('details.copied')}).catch(() => {
+        });
     });
     codeBox.append(pre, copyBtn);
     section.appendChild(codeBox);
@@ -437,7 +448,8 @@ function buildCargoVersionFactsSection() {
             );
             const btn = cksumEl.querySelector('.cargo-checksum-copy-btn');
             btn?.addEventListener('click', () => {
-                void copyWithFeedback(btn, cksum, {copiedLabel: t('details.copied')}).catch(() => {});
+                void copyWithFeedback(btn, cksum, {copiedLabel: t('details.copied')}).catch(() => {
+                });
             });
             items.push(cksumEl);
         }
@@ -865,7 +877,7 @@ function buildPermissionOption(level) {
  * @returns {void}
  */
 function handleMemberLevelChange(username, userID, level) {
-	void updateCargoMemberLevel(username, userID, Number(level));
+    void updateCargoMemberLevel(username, userID, Number(level));
 }
 
 /**
@@ -875,7 +887,7 @@ function handleMemberLevelChange(username, userID, level) {
  */
 function buildMemberLevelSelect(member) {
     const username = String(member.login || '');
-	const userID = String(member.user_id || '');
+    const userID = String(member.user_id || '');
     const level = Number(member.level);
     const canTransferOwnership = activeAdministrator ||
         Number(activePackageDetails?.package?.permission_level) === 4;
@@ -923,7 +935,7 @@ function buildCargoTeamSection(animate = false) {
                 controls.appendChild(el('button', {
                     type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
                     'data-cargo-action': 'remove-member', 'data-cargo-user': username,
-					'data-cargo-user-id': String(member.user_id || '')
+                    'data-cargo-user-id': String(member.user_id || '')
                 }, isSelf ? t('team.leave') : t('common.remove')));
             }
             row.appendChild(controls);
@@ -932,7 +944,7 @@ function buildCargoTeamSection(animate = false) {
                 el('button', {
                     type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm',
                     'data-cargo-action': 'remove-member', 'data-cargo-user': username,
-					'data-cargo-user-id': String(member.user_id || '')
+                    'data-cargo-user-id': String(member.user_id || '')
                 }, t('team.leave'))
             ));
         }
@@ -1057,6 +1069,7 @@ function buildCargoPackageHero() {
             ? `${t('cargo.downloadCrate')} (${formatBytes(Number(curVer.size))})`
             : t('cargo.downloadCrate');
     }
+
     updateDownloadBtn(activeVersion);
     actions.appendChild(downloadBtn);
 
@@ -1087,6 +1100,7 @@ function buildCargoPackageHero() {
             if (uploadDocBtn) uploadDocBtn.hidden = !canModifyPackage;
         }
     }
+
     updateDocsButtons(activeVersion);
 
     const canManagePackage = activeAdministrator || Number(packageRecord?.permission_level) >= 3;
@@ -1191,10 +1205,7 @@ function renderCargoError(message) {
  * @returns {void}
  */
 function setCargoUpdating(updating) {
-    if (!activeView) return;
-    activeView.classList.toggle('is-updating', updating);
-    if (updating) activeView.setAttribute('aria-busy', 'true');
-    else activeView.removeAttribute('aria-busy');
+    setRepositoryViewBusy(activeView, updating);
 }
 
 /**
@@ -1296,9 +1307,7 @@ async function loadCargoOverview(sequence) {
     try {
         await loadCargoCatalog(sequence);
         if (sequence !== cargoLoadSequence) return;
-        activeView?.classList.add('is-entering');
-        await morphElementHeight(activeView, renderCargoOverview, {duration: 300});
-        setTimeout(() => activeView?.classList.remove('is-entering'), 350);
+        await replaceRepositoryView(activeView, renderCargoOverview, {duration: 300, enterDuration: 350});
     } catch (error) {
         if (sequence !== cargoLoadSequence) return;
         console.error('Failed to load Cargo packages', error);
@@ -1331,9 +1340,7 @@ async function loadCargoPackage(packageName, sequence) {
         if (sequence !== cargoLoadSequence) return;
         activePackageDetails = details;
         activeAdministrator = details?.administrator === true;
-        activeView?.classList.add('is-entering');
-        await morphElementHeight(activeView, renderCargoPackagePage, {duration: 300});
-        setTimeout(() => activeView?.classList.remove('is-entering'), 350);
+        await replaceRepositoryView(activeView, renderCargoPackagePage, {duration: 300, enterDuration: 350});
     } catch (error) {
         if (sequence !== cargoLoadSequence) return;
         console.error('Failed to load Cargo package', error);
@@ -1417,7 +1424,7 @@ async function handleCargoPageClick(event) {
     const packageName = activePackageDetails.package.name;
     const version = button.dataset.cargoVersion || '';
     const username = button.dataset.cargoUser || '';
-	const userID = button.dataset.cargoUserId || '';
+    const userID = button.dataset.cargoUserId || '';
     button.disabled = true;
     try {
         switch (action) {
@@ -1677,9 +1684,9 @@ async function removeCargoMember(packageName, username, userID = '') {
     const displayName = isSelf ? '' : await resolveUserDisplayName(username);
     const confirmed = await showConfirm(
         isSelf ? t('team.leaveConfirm') : t('cargo.removeMemberConfirm', {name: displayName}), {
-        title: isSelf ? t('team.leave') : t('cargo.removeMember'),
-        confirmText: isSelf ? t('team.leave') : t('common.remove'), danger: true
-    });
+            title: isSelf ? t('team.leave') : t('cargo.removeMember'),
+            confirmText: isSelf ? t('team.leave') : t('common.remove'), danger: true
+        });
     if (!confirmed) return;
     const path = cargoAPIPath('crates', packageName, 'owners', userID || username);
     if (isSelf) {
@@ -2080,10 +2087,5 @@ export function hideCargoRepositoryView() {
         activeVersionsObserver = null;
     }
     activeView = document.getElementById('cargo-repository-view');
-    if (activeView) {
-        activeView.classList.remove('is-visible', 'is-updating', 'is-entering');
-        activeView.removeAttribute('aria-busy');
-        activeView.hidden = true;
-        activeView.replaceChildren();
-    }
+    hideRepositoryView(activeView);
 }

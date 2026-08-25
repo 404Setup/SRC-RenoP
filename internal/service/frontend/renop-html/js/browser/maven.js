@@ -9,7 +9,6 @@
  */
 
 import {el} from '@renop/ui/dom';
-import {morphElementHeight} from '@renop/ui/height-anim';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {cachedIsLoggedIn, cachedIsManager} from '../auth.js';
@@ -18,6 +17,13 @@ import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAc
 import {t} from '../i18n.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
+import {
+    createRepositoryBackButton,
+    ensureRepositoryView,
+    formatRepositoryTimestamp,
+    hideRepositoryView,
+    replaceRepositoryView
+} from './repository-view.js';
 
 let mavenContainer = null;
 let mavenLoadSequence = 0;
@@ -28,17 +34,13 @@ let activeNavigate = null;
  * @returns {HTMLElement}
  */
 function ensureContainer() {
-    if (mavenContainer?.isConnected) return mavenContainer;
-    mavenContainer = document.getElementById('maven-repository-view');
+    mavenContainer = ensureRepositoryView(mavenContainer, {id: 'maven-repository-view'});
     return mavenContainer;
 }
 
 /** Hide and clear the Maven view. */
 export function hideMavenRepositoryView() {
-    if (!mavenContainer) return;
-    mavenContainer.hidden = true;
-    mavenContainer.classList.remove('is-updating', 'is-entering');
-    mavenContainer.replaceChildren();
+    hideRepositoryView(mavenContainer);
 }
 
 /**
@@ -57,8 +59,7 @@ function permissionLabel(level) {
  * @returns {string}
  */
 function formatDate(value) {
-    const timestamp = Number(value);
-    return Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString() : t('common.unknown');
+    return formatRepositoryTimestamp(value, {fallback: t('common.unknown')});
 }
 
 /**
@@ -82,9 +83,7 @@ async function copyText(button, value) {
  * @returns {HTMLButtonElement}
  */
 function backButton(path, label) {
-    return el('button', {
-        type: 'button', class: 'maven-back-btn', onclick: () => activeNavigate?.(path)
-    }, createIcon('chevronLeft'), el('span', {}, label));
+    return createRepositoryBackButton({path, label, navigate: activeNavigate, className: 'maven-back-btn'});
 }
 
 /**
@@ -242,16 +241,12 @@ async function renderCatalog(container, repository, sequence) {
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.domainsTitle')), domainList),
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.artifactsTitle')), artifactList)
         ];
-        await morphElementHeight(container, () => container.replaceChildren(...content), {duration: 280});
-        container.classList.remove('is-updating');
-        container.classList.add('is-entering');
-        setTimeout(() => container.classList.remove('is-entering'), 380);
+        await replaceRepositoryView(container, content, {duration: 280, enterDuration: 380});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
-        await morphElementHeight(container, () => container.replaceChildren(
-            el('div', {class: 'maven-error'}, createIcon('alertCircle'), el('span', {}, error.message || t('maven.loadFailed')))
-        ), {duration: 240});
-        container.classList.remove('is-updating');
+        await replaceRepositoryView(container,
+            el('div', {class: 'maven-error'}, createIcon('alertCircle'), el('span', {}, error.message || t('maven.loadFailed'))),
+            {duration: 240, enter: false});
     }
 }
 
@@ -468,13 +463,13 @@ async function renderDomain(container, repository, domainName, sequence) {
         const sections = [hero, el('section', {class: 'maven-section'}, el('h3', {}, t('maven.artifactsTitle')), artifactList)];
         const team = teamPanel(container, repository, details, sequence);
         if (team) sections.push(team);
-        await morphElementHeight(container, () => container.replaceChildren(...sections), {duration: 280});
-        container.classList.remove('is-updating');
+        await replaceRepositoryView(container, sections, {duration: 280, enter: false});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
-        container.replaceChildren(backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
-            el('div', {class: 'maven-error'}, error.message || t('maven.domainLoadFailed')));
-        container.classList.remove('is-updating');
+        await replaceRepositoryView(container, [
+            backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
+            el('div', {class: 'maven-error'}, error.message || t('maven.domainLoadFailed'))
+        ], {duration: 240, enter: false});
     }
 }
 
@@ -585,14 +580,15 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             ));
         });
         if (versions.length === 0) versionList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noVersions')));
-        await morphElementHeight(container, () => container.replaceChildren(hero,
-            el('section', {class: 'maven-section'}, el('h3', {}, t('maven.versionsTitle')), versionList)), {duration: 280});
-        container.classList.remove('is-updating');
+        await replaceRepositoryView(container, [hero,
+            el('section', {class: 'maven-section'}, el('h3', {}, t('maven.versionsTitle')), versionList)
+        ], {duration: 280, enter: false});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
-        container.replaceChildren(backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
-            el('div', {class: 'maven-error'}, error.message || t('maven.artifactLoadFailed')));
-        container.classList.remove('is-updating');
+        await replaceRepositoryView(container, [
+            backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
+            el('div', {class: 'maven-error'}, error.message || t('maven.artifactLoadFailed'))
+        ], {duration: 240, enter: false});
     }
 }
 
