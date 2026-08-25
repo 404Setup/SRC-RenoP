@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -166,6 +167,106 @@ func TestRegistryAsyncActionsRestoreInitiatingButtons(t *testing.T) {
 		}
 		if !strings.Contains(text, "runButtonAction") {
 			t.Fatalf("%s does not use the shared asynchronous button action", sourcePath)
+		}
+	}
+
+}
+
+func TestDockerI18nCatalogsCoverUIAndAuditMessages(t *testing.T) {
+	i18nRoot := filepath.Join("renop-html", "js", "i18n")
+	keyPattern := regexp.MustCompile(`"(docker\.[^"]+|audit\.action\.DOCKER_[^"]+)"\s*:`)
+	readKeys := func(path string) map[string]struct{} {
+		t.Helper()
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		keys := make(map[string]struct{})
+		for _, match := range keyPattern.FindAllStringSubmatch(string(data), -1) {
+			keys[match[1]] = struct{}{}
+		}
+		return keys
+	}
+
+	baseKeys := readKeys(filepath.Join(i18nRoot, "en-US", "docker.js"))
+	locales, err := os.ReadDir(i18nRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, locale := range locales {
+		if !locale.IsDir() {
+			continue
+		}
+		localeKeys := readKeys(filepath.Join(i18nRoot, locale.Name(), "docker.js"))
+		for key := range baseKeys {
+			if _, exists := localeKeys[key]; !exists {
+				t.Fatalf("Docker locale %s is missing %s", locale.Name(), key)
+			}
+		}
+		for key := range localeKeys {
+			if _, exists := baseKeys[key]; !exists {
+				t.Fatalf("Docker locale %s has non-canonical key %s", locale.Name(), key)
+			}
+		}
+	}
+
+	usagePattern := regexp.MustCompile(`['"](docker\.[A-Za-z0-9_.]+)['"]`)
+	for _, sourcePath := range []string{
+		filepath.Join("renop-html", "js", "browser", "docker.js"),
+		filepath.Join("renop-html", "js", "docker-errors.js"),
+		filepath.Join("renop-html", "js", "docker-messages.js"),
+	} {
+		source, readErr := os.ReadFile(sourcePath)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		text := string(source)
+		for _, match := range usagePattern.FindAllStringSubmatch(text, -1) {
+			if match[1] == "docker.permissionL" {
+				continue
+			}
+			if _, exists := baseKeys[match[1]]; !exists {
+				t.Fatalf("%s uses missing Docker i18n key %s", sourcePath, match[1])
+			}
+		}
+		for _, forbidden := range []string{"response.text()", "String(err.message", "String(error.message"} {
+			if strings.Contains(text, forbidden) {
+				t.Fatalf("%s exposes an unlocalized Docker response through %q", sourcePath, forbidden)
+			}
+		}
+	}
+
+	actionPattern := regexp.MustCompile(`"(DOCKER_[A-Z_]+)"`)
+	usedActions := make(map[string]struct{})
+	for _, sourcePath := range []string{
+		filepath.Join("..", "..", "api", "docker.go"),
+		filepath.Join("..", "docker", "handler.go"),
+	} {
+		source, readErr := os.ReadFile(sourcePath)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		for _, match := range actionPattern.FindAllStringSubmatch(string(source), -1) {
+			if match[1] == "DOCKER_INVITE_" {
+				usedActions["DOCKER_INVITE_ACCEPT"] = struct{}{}
+				usedActions["DOCKER_INVITE_REJECT"] = struct{}{}
+				continue
+			}
+			usedActions[match[1]] = struct{}{}
+		}
+	}
+	for action := range usedActions {
+		if _, exists := baseKeys["audit.action."+action]; !exists {
+			t.Fatalf("Docker audit action %s has no i18n key", action)
+		}
+	}
+	for key := range baseKeys {
+		if !strings.HasPrefix(key, "audit.action.DOCKER_") {
+			continue
+		}
+		action := strings.TrimPrefix(key, "audit.action.")
+		if _, exists := usedActions[action]; !exists {
+			t.Fatalf("Docker audit i18n key %s has no backend action", key)
 		}
 	}
 }

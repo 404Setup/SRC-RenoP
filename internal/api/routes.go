@@ -35,6 +35,9 @@ func getCachedPolicy() []byte {
 }
 
 func SetupApiRoutes(router fiber.Router, state *core.AppState) {
+	dockerRoute := func(handler func(fiber.Ctx, *core.AppState) error) fiber.Handler {
+		return withDockerAPIErrorCode(func(c fiber.Ctx) error { return handler(c, state) })
+	}
 	router.Get("/maven/details", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
 	router.Get("/maven/details/", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
 	router.Get("/maven/details/:repo_name", func(c fiber.Ctx) error { return GetDetailsRoot(c, state) })
@@ -48,28 +51,28 @@ func SetupApiRoutes(router fiber.Router, state *core.AppState) {
 	router.Get("/repositories/repo-details/:repo_name", func(c fiber.Ctx) error { return GetRepoDetails(c, state) })
 	router.Get("/repositories/search/:repo_name", func(c fiber.Ctx) error { return SearchRepository(c, state) })
 
-	router.Get("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error {
+	router.Get("/docker/repositories/:repo_name/images", withDockerAPIErrorCode(func(c fiber.Ctx) error {
 		if c.Query("image") != "" {
 			return GetDockerImageDetailsAPI(c, state)
 		}
 		return ListDockerImagesAPI(c, state)
-	})
-	router.Post("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error { return CreateDockerImageAPI(c, state) })
-	router.Get("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return GetDockerImageDetailsAPI(c, state) })
-	router.Put("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error { return UpdateDockerImageDescriptionAPI(c, state) })
-	router.Put("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return UpdateDockerImageDescriptionAPI(c, state) })
-	router.Get("/docker/repositories/:repo_name/manifests", func(c fiber.Ctx) error { return GetDockerManifestAPI(c, state) })
-	router.Get("/docker/repositories/:repo_name/manifests/*", func(c fiber.Ctx) error { return GetDockerManifestAPI(c, state) })
-	router.Delete("/docker/repositories/:repo_name/images", func(c fiber.Ctx) error { return DeleteDockerImageAPI(c, state) })
-	router.Delete("/docker/repositories/:repo_name/images/*", func(c fiber.Ctx) error { return DeleteDockerImageAPI(c, state) })
-	router.Delete("/docker/repositories/:repo_name/tags", func(c fiber.Ctx) error { return DeleteDockerTagAPI(c, state) })
-	router.Delete("/docker/repositories/:repo_name/tags/*", func(c fiber.Ctx) error { return DeleteDockerTagAPI(c, state) })
-	router.Get("/docker/repositories/:repo_name/owners", func(c fiber.Ctx) error { return ListDockerOwnersAPI(c, state) })
-	router.Post("/docker/repositories/:repo_name/owners", func(c fiber.Ctx) error { return InviteDockerOwnersAPI(c, state) })
-	router.Put("/docker/repositories/:repo_name/owners/:username", func(c fiber.Ctx) error { return SetDockerOwnerLevelAPI(c, state) })
-	router.Delete("/docker/repositories/:repo_name/owners/:username", func(c fiber.Ctx) error { return RemoveDockerOwnerAPI(c, state) })
-	router.Get("/docker/repositories/:repo_name/users/search", func(c fiber.Ctx) error { return SearchDockerUsersAPI(c, state) })
-	router.Post("/docker/repositories/:repo_name/invitations/:id/:decision", func(c fiber.Ctx) error { return RespondDockerInvitationAPI(c, state) })
+	}))
+	router.Post("/docker/repositories/:repo_name/images", dockerRoute(CreateDockerImageAPI))
+	router.Get("/docker/repositories/:repo_name/images/*", dockerRoute(GetDockerImageDetailsAPI))
+	router.Put("/docker/repositories/:repo_name/images", dockerRoute(UpdateDockerImageDescriptionAPI))
+	router.Put("/docker/repositories/:repo_name/images/*", dockerRoute(UpdateDockerImageDescriptionAPI))
+	router.Get("/docker/repositories/:repo_name/manifests", dockerRoute(GetDockerManifestAPI))
+	router.Get("/docker/repositories/:repo_name/manifests/*", dockerRoute(GetDockerManifestAPI))
+	router.Delete("/docker/repositories/:repo_name/images", dockerRoute(DeleteDockerImageAPI))
+	router.Delete("/docker/repositories/:repo_name/images/*", dockerRoute(DeleteDockerImageAPI))
+	router.Delete("/docker/repositories/:repo_name/tags", dockerRoute(DeleteDockerTagAPI))
+	router.Delete("/docker/repositories/:repo_name/tags/*", dockerRoute(DeleteDockerTagAPI))
+	router.Get("/docker/repositories/:repo_name/owners", dockerRoute(ListDockerOwnersAPI))
+	router.Post("/docker/repositories/:repo_name/owners", dockerRoute(InviteDockerOwnersAPI))
+	router.Put("/docker/repositories/:repo_name/owners/:username", dockerRoute(SetDockerOwnerLevelAPI))
+	router.Delete("/docker/repositories/:repo_name/owners/:username", dockerRoute(RemoveDockerOwnerAPI))
+	router.Get("/docker/repositories/:repo_name/users/search", dockerRoute(SearchDockerUsersAPI))
+	router.Post("/docker/repositories/:repo_name/invitations/:id/:decision", dockerRoute(RespondDockerInvitationAPI))
 
 	router.Get("/maven/versions/:repo_name/*", func(c fiber.Ctx) error { return FindVersions(c, state) })
 	router.Get("/maven/latest/version/:repo_name/*", func(c fiber.Ctx) error { return LatestVersion(c, state) })

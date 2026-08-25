@@ -16,6 +16,7 @@ import {apiRequest} from '../api.js';
 import {canUpdateRepo} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
+import {dockerResponseError} from '../docker-errors.js';
 import {t} from '../i18n.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
@@ -91,7 +92,7 @@ function triggerDockerCopy(element, text) {
     if (!element || !text) return;
     navigator.clipboard.writeText(text).then(() => {
         element.classList.add('copied');
-        const toast = el('span', {class: 'copy-toast'}, t('details.copied') || 'Copied!');
+        const toast = el('span', {class: 'copy-toast'}, t('details.copied'));
         element.appendChild(toast);
         setTimeout(() => {
             if (element.isConnected) {
@@ -101,6 +102,7 @@ function triggerDockerCopy(element, text) {
         }, 1600);
     }).catch((err) => {
         console.error('Failed to copy', err);
+        showAlert(t('docker.copyFailed'), 'error');
     });
 }
 
@@ -130,31 +132,31 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
     try {
         const resp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/manifests?image=${encodeURIComponent(imageName)}&ref=${encodeURIComponent(reference)}`);
         if (!resp.ok) {
-            showAlert(t('docker.manifestLoadFailed') || 'Failed to load manifest details.');
+            showAlert(t('docker.manifestLoadFailed'), 'error');
             return;
         }
         const manifest = await resp.json();
         const bodyNodes = [];
 
         const gridItems = [
-            { label: t('docker.digest') || 'Digest', value: manifest.digest || '-', isCode: true },
-            { label: t('docker.mediaType') || 'Media Type', value: manifest.media_type || '-', isCode: true },
-            { label: t('docker.configDigest') || 'Config Digest', value: manifest.config_digest || '-', isCode: true },
-            { label: t('docker.size') || 'Size', value: manifest.size > 0 ? formatBytes(manifest.size) : '-' },
-            { label: t('docker.updated') || 'Updated', value: dockerDate(manifest.created_at) || '-' }
+            {label: t('docker.digest'), value: manifest.digest || '-', isCode: true},
+            {label: t('docker.mediaType'), value: manifest.media_type || '-', isCode: true},
+            {label: t('docker.configDigest'), value: manifest.config_digest || '-', isCode: true},
+            {label: t('docker.size'), value: manifest.size > 0 ? formatBytes(manifest.size) : '-'},
+            {label: t('docker.updated'), value: dockerDate(manifest.created_at) || '-'}
         ];
         if (manifest.publisher) {
-            gridItems.push({ label: t('docker.publisher') || 'Publisher', value: createUserIdentity(manifest.publisher) });
+            gridItems.push({label: t('docker.publisher'), value: createUserIdentity(manifest.publisher)});
         }
         bodyNodes.push(createMetaGrid(gridItems));
 
         if (manifest.raw_json) {
             const rawHeader = el('div', {style: {display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.75rem', marginBottom: '0.35rem'}},
-                el('strong', {style: {fontSize: '0.85rem', color: 'var(--text-color)'}}, t('docker.rawManifest') || 'Raw Manifest JSON'),
+                el('strong', {style: {fontSize: '0.85rem', color: 'var(--text-color)'}}, t('docker.rawManifest')),
                 el('button', {
                     class: 'docker-pull-copy-btn',
                     type: 'button',
-                    title: t('details.copy') || 'Copy',
+                    title: t('details.copy'),
                     onclick: (e) => triggerDockerCopy(e.currentTarget, manifest.raw_json)
                 }, createIcon('copy', {class: 'icon-svg'}))
             );
@@ -167,21 +169,22 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
         const bodyWrap = el('div', {class: 'docker-manifest-dialog-body'}, ...bodyNodes);
 
         RenopDialog.show({
-            title: t('docker.manifestDetails') || 'Manifest Details',
+            title: t('docker.manifestDetails'),
             subtitle: `${imageName}:${tag || 'latest'}`,
             icon: 'box',
             maxWidth: '640px',
             body: bodyWrap,
             footer: [
                 {
-                    text: t('common.close') || 'Close',
+                    text: t('common.close'),
                     className: 'action-btn',
                     onClick: (e, dlg) => dlg.close()
                 }
             ]
         });
     } catch (err) {
-        showAlert(t('docker.manifestLoadFailed') || String(err.message || err));
+        console.error('Failed to load Docker manifest details', err);
+        showAlert(t('docker.manifestLoadFailed'), 'error');
     }
 }
 
@@ -195,25 +198,25 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
  */
 function openReadmeEditor(repoName, imageName, currentDescription, onSaved) {
     const textarea = el('textarea', {
-        placeholder: t('docker.readmePlaceholder') || 'Write markdown description or documentation for this container image...'
+        placeholder: t('docker.readmePlaceholder')
     }, currentDescription || '');
 
     const editorWrap = el('div', {class: 'docker-readme-editor'}, textarea);
 
     RenopDialog.show({
-        title: t('docker.editReadme') || 'Edit README',
+        title: t('docker.editReadme'),
         subtitle: `${repoName}/${imageName}`,
         icon: 'fileText',
         maxWidth: '680px',
         body: editorWrap,
         footer: [
             {
-                text: t('common.cancel') || 'Cancel',
+                text: t('common.cancel'),
                 className: 'action-btn',
                 onClick: (e, dlg) => dlg.close()
             },
             {
-                text: t('docker.saveReadme') || 'Save README',
+                text: t('docker.saveReadme'),
                 className: 'action-btn primary-btn',
                 onClick: async (e, dlg) => {
                     const newDescription = textarea.value.trim();
@@ -225,13 +228,14 @@ function openReadmeEditor(repoName, imageName, currentDescription, onSaved) {
                         });
                         if (resp.ok) {
                             dlg.close();
-                            showAlert(t('docker.readmeSaved') || 'README updated successfully.');
+                            showAlert(t('docker.readmeSaved'), 'success');
                             if (typeof onSaved === 'function') onSaved(newDescription);
                         } else {
-                            showAlert(t('docker.updateReadmeFailed') || 'Failed to update README.');
+                            showAlert(dockerResponseError(resp, 'docker.updateReadmeFailed'), 'error');
                         }
                     } catch (err) {
-                        showAlert(String(err.message || err));
+                        console.error('Failed to update Docker image README', err);
+                        showAlert(t('docker.updateReadmeFailed'), 'error');
                     }
                 }
             }
@@ -288,7 +292,7 @@ async function renderCatalogView(container, repoName, seq) {
             await morphElementHeight(container, () => {
                 container.replaceChildren(
                     el('div', {class: 'docker-page-hero'},
-                        el('p', {class: 'error-text'}, t('docker.noImages') || 'Failed to load container images.')
+                        el('p', {class: 'error-text'}, t('docker.loadFailed'))
                     )
                 );
                 container.classList.remove('is-updating');
@@ -302,7 +306,7 @@ async function renderCatalogView(container, repoName, seq) {
 
         if (images.length === 0) {
             const hero = el('div', {class: 'docker-page-hero'},
-                el('span', {class: 'docker-page-kicker'}, t('docker.kickerRegistry') || 'Docker Registry'),
+                el('span', {class: 'docker-page-kicker'}, t('docker.kickerRegistry')),
                 el('div', {class: 'docker-hero-header'},
                     el('h2', {class: 'docker-hero-title'},
                         createIcon('box', {class: 'icon-svg'}),
@@ -310,7 +314,7 @@ async function renderCatalogView(container, repoName, seq) {
                     ),
                     createImageButton(repoName)
                 ),
-                el('p', {class: 'text-muted', style: {marginBottom: '1rem'}}, t('docker.noImages') || 'No container images found in this repository.'),
+                el('p', {class: 'text-muted', style: {marginBottom: '1rem'}}, t('docker.noImages')),
                 el('p', {class: 'docker-create-first-hint'}, t('docker.createFirstHint'))
             );
 
@@ -324,7 +328,7 @@ async function renderCatalogView(container, repoName, seq) {
         }
 
         const hero = el('div', {class: 'docker-page-hero'},
-            el('span', {class: 'docker-page-kicker'}, t('docker.kickerRegistry') || 'Docker Registry'),
+            el('span', {class: 'docker-page-kicker'}, t('docker.kickerRegistry')),
             el('div', {class: 'docker-hero-header'},
                 el('h2', {class: 'docker-hero-title'},
                     createIcon('box', {class: 'icon-svg'}),
@@ -332,7 +336,7 @@ async function renderCatalogView(container, repoName, seq) {
                 ),
                 createImageButton(repoName)
             ),
-            el('p', {class: 'text-muted'}, t('docker.imagesSubtitle') || 'Browse and manage Docker / OCI container images and tags in this repository.'),
+            el('p', {class: 'text-muted'}, t('docker.imagesSubtitle')),
             el('div', {class: 'docker-hero-meta-row'},
                 el('div', {class: 'docker-meta-chip'},
                     createIcon('box', {class: 'icon-svg'}),
@@ -377,17 +381,18 @@ async function renderCatalogView(container, repoName, seq) {
                     img.description ? el('p', {class: 'docker-image-desc'}, img.description) : null
                 ),
                 el('div', {class: 'docker-image-meta'},
-                    el('span', {class: 'docker-tag-badge'}, img.latest_tag ? `tag: ${img.latest_tag}` : `${img.tag_count || 0} tags`),
+                    el('span', {class: 'docker-tag-badge'}, img.latest_tag
+                        ? t('docker.latestTag', {tag: img.latest_tag})
+                        : t('docker.tagCount', {count: img.tag_count || 0})),
                     publisherMeta,
-                    pullMeta,
-                    el('span', {}, t('docker.tagCount', {count: img.tag_count || 0}))
+                    pullMeta
                 )
             );
             grid.appendChild(card);
         }
 
         const imagesSection = el('div', {class: 'docker-page-section'},
-            el('h3', {style: {fontSize: '1rem', fontWeight: '650', marginBottom: '0.85rem', color: 'var(--text-color)'}}, t('docker.imagesTitle') || 'Container Images'),
+            el('h3', {style: {fontSize: '1rem', fontWeight: '650', marginBottom: '0.85rem', color: 'var(--text-color)'}}, t('docker.imagesTitle')),
             grid
         );
 
@@ -399,10 +404,11 @@ async function renderCatalogView(container, repoName, seq) {
         }, {duration: 280});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
+        console.error('Failed to load Docker image catalog', err);
         await morphElementHeight(container, () => {
             container.replaceChildren(
                 el('div', {class: 'docker-page-hero'},
-                    el('p', {class: 'error-text'}, t('docker.loadFailed') || String(err.message || err))
+                    el('p', {class: 'error-text'}, t('docker.loadFailed'))
                 )
             );
             container.classList.remove('is-updating');
@@ -687,15 +693,15 @@ async function updateDockerTeamMember({
             body: JSON.stringify({level: newLevel})
         });
         if (!response.ok) {
-            const message = await response.text();
-            throw new Error(message || t('docker.updateMemberFailed'));
+            throw new Error(dockerResponseError(response, 'docker.updateMemberFailed'));
         }
         member.level = newLevel;
         showAlert(t('docker.memberUpdated'), 'success');
         await renderImageDetailsView(container, repoName, imageName, sequence);
     } catch (error) {
         if (typeof selector.setValue === 'function') selector.setValue(String(previousLevel));
-        showAlert(error.message || t('docker.updateMemberFailed'), 'error');
+        console.error('Failed to update Docker team permission', error);
+        showAlert(t('docker.updateMemberFailed'), 'error');
     }
 }
 
@@ -724,8 +730,7 @@ async function removeDockerTeamMember({container, repoName, imageName, sequence,
         method: 'DELETE'
     });
     if (!response.ok) {
-        const message = await response.text();
-        showAlert(message || t('docker.removeMemberFailed'), 'error');
+        showAlert(dockerResponseError(response, 'docker.removeMemberFailed'), 'error');
         return;
     }
     showAlert(isSelf ? t('team.left') : t('docker.memberRemoved'), 'success');
@@ -760,8 +765,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                             onclick: () => {
                                 if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
                             }
-                        }, createIcon('chevronLeft', {class: 'icon-svg'}), el('span', {}, t('docker.backToImages') || 'Back')),
-                        el('p', {class: 'error-text'}, 'Container image not found.')
+                        }, createIcon('chevronLeft', {class: 'icon-svg'}), el('span', {}, t('docker.backToImages'))),
+                        el('p', {class: 'error-text'}, t('docker.imageNotFound'))
                     )
                 );
                 container.classList.remove('is-updating');
@@ -793,11 +798,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             onclick: () => {
                 if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
             }
-        }, createIcon('chevronLeft', {class: 'icon-svg'}), el('span', {}, t('docker.backToImages') || 'Back'));
+        }, createIcon('chevronLeft', {class: 'icon-svg'}), el('span', {}, t('docker.backToImages')));
 
         const topNav = el('div', {class: 'docker-hero-nav'},
             backBtn,
-            el('span', {class: 'docker-page-kicker'}, t('docker.kickerImage') || 'Container Image')
+            el('span', {class: 'docker-page-kicker'}, t('docker.kickerImage'))
         );
 
         let deleteImgBtn = null;
@@ -805,24 +810,27 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             deleteImgBtn = el('button', {
                 class: 'docker-btn-danger',
                 type: 'button',
-                title: t('docker.deleteImage') || 'Delete Image',
+                title: t('docker.deleteImage'),
                 onclick: async () => {
-                    const confirmed = await showConfirm(
-                        t('docker.deleteImageConfirm', {image: imageName}) || `Delete image "${imageName}"?`
-                    );
+                    const confirmed = await showConfirm(t('docker.deleteImageConfirm', {image: imageName}));
                     if (confirmed) {
-                        const delResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`, {
-                            method: 'DELETE'
-                        });
-                        if (delResp.ok) {
-                            showAlert(t('docker.imageDeleted') || 'Image deleted.');
-                            if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
-                        } else {
-                            showAlert(t('docker.deleteImageFailed') || 'Failed to delete image.');
+                        try {
+                            const delResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`, {
+                                method: 'DELETE'
+                            });
+                            if (delResp.ok) {
+                                showAlert(t('docker.imageDeleted'), 'success');
+                                if (activeNavigate) activeNavigate(`/${encodePathSegment(repoName)}`);
+                            } else {
+                                showAlert(dockerResponseError(delResp, 'docker.deleteImageFailed'), 'error');
+                            }
+                        } catch (error) {
+                            console.error('Failed to delete Docker image', error);
+                            showAlert(t('docker.deleteImageFailed'), 'error');
                         }
                     }
                 }
-            }, createIcon('delete', {class: 'icon-svg'}), el('span', {}, t('docker.deleteImage') || 'Delete Image'));
+            }, createIcon('delete', {class: 'icon-svg'}), el('span', {}, t('docker.deleteImage')));
         }
 
         const metaRow = el('div', {class: 'docker-hero-meta-row'},
@@ -882,7 +890,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             metaRow.appendChild(
                 el('div', {class: 'docker-meta-chip'},
                     createIcon('clock', {class: 'icon-svg'}),
-                    el('span', {}, `${t('docker.created') || 'Created'}: ${dockerDate(image.created_at)}`)
+                    el('span', {}, `${t('docker.created')}: ${dockerDate(image.created_at)}`)
                 )
             );
         }
@@ -890,7 +898,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             metaRow.appendChild(
                 el('div', {class: 'docker-meta-chip'},
                     createIcon('clock', {class: 'icon-svg'}),
-                    el('span', {}, `${t('docker.updated') || 'Updated'}: ${dockerDate(image.updated_at)}`)
+                    el('span', {}, `${t('docker.updated')}: ${dockerDate(image.updated_at)}`)
                 )
             );
         }
@@ -925,7 +933,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             tagListEl.appendChild(
                 el('div', {class: 'docker-readme-empty'},
                     createIcon('fileCode', {class: 'icon-svg'}),
-                    el('span', {}, t('docker.noTags') || 'No tags or manifests found for this container image.')
+                    el('span', {}, t('docker.noTags'))
                 )
             );
         } else {
@@ -939,7 +947,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 const digestPill = shortDigest
                     ? el('span', {
                         class: 'docker-tag-digest',
-                        title: `${tObj.digest} (${t('docker.copyDigest') || 'Click to copy digest'})`,
+                        title: `${tObj.digest} (${t('docker.copyDigest')})`,
                         onclick: (e) => triggerDockerCopy(e.currentTarget, tObj.digest)
                     }, createIcon('fileHash', {class: 'icon-svg'}), el('span', {}, shortDigest))
                     : null;
@@ -960,13 +968,13 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     el('button', {
                         class: 'docker-action-btn',
                         type: 'button',
-                        title: t('docker.copyPull') || 'Copy pull command',
+                        title: t('docker.copyPull'),
                         onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
                     }, createIcon('copy', {class: 'icon-svg'})),
                     el('button', {
                         class: 'docker-action-btn',
                         type: 'button',
-                        title: t('docker.inspect') || 'Inspect Manifest',
+                        title: t('docker.inspect'),
                         onclick: () => openManifestDetails(repoName, imageName, tObj.digest, tObj.tag)
                     }, createIcon('eye', {class: 'icon-svg'}))
                 );
@@ -976,20 +984,23 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                         el('button', {
                             class: 'docker-action-btn docker-action-btn--delete',
                             type: 'button',
-                            title: t('docker.deleteTag') || 'Delete tag',
+                            title: t('docker.deleteTag'),
                             onclick: async () => {
-                                const confirmed = await showConfirm(
-                                    t('docker.deleteTagConfirm', {tag: tObj.tag, image: imageName}) || `Delete tag "${tObj.tag}"?`
-                                );
+                                const confirmed = await showConfirm(t('docker.deleteTagConfirm', {tag: tObj.tag, image: imageName}));
                                 if (confirmed) {
-                                    const delResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/tags?image=${encodeURIComponent(imageName)}&tag=${encodeURIComponent(tObj.tag)}`, {
-                                        method: 'DELETE'
-                                    });
-                                    if (delResp.ok) {
-                                        showAlert(t('docker.tagDeleted') || 'Tag deleted.');
-                                        renderImageDetailsView(container, repoName, imageName, seq);
-                                    } else {
-                                        showAlert(t('docker.deleteTagFailed') || 'Failed to delete tag.');
+                                    try {
+                                        const delResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/tags?image=${encodeURIComponent(imageName)}&tag=${encodeURIComponent(tObj.tag)}`, {
+                                            method: 'DELETE'
+                                        });
+                                        if (delResp.ok) {
+                                            showAlert(t('docker.tagDeleted'), 'success');
+                                            renderImageDetailsView(container, repoName, imageName, seq);
+                                        } else {
+                                            showAlert(dockerResponseError(delResp, 'docker.deleteTagFailed'), 'error');
+                                        }
+                                    } catch (error) {
+                                        console.error('Failed to delete Docker tag', error);
+                                        showAlert(t('docker.deleteTagFailed'), 'error');
                                     }
                                 }
                             }
@@ -1013,7 +1024,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
         const tagsSection = el('div', {class: 'docker-page-section'},
             el('div', {style: {display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem'}},
-                el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.tagsTitle') || 'Tags & Manifests'),
+                el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.tagsTitle')),
                 el('span', {class: 'docker-tag-badge'}, `${tags.length}`)
             ),
             tagListEl
@@ -1029,7 +1040,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 readmeContent.className = 'docker-readme-empty';
                 readmeContent.replaceChildren(
                     createIcon('fileText', {class: 'icon-svg'}),
-                    el('span', {}, t('docker.noReadme') || 'No README or description provided for this container image.')
+                    el('span', {}, t('docker.noReadme'))
                 );
             }
         };
@@ -1040,21 +1051,21 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             editReadmeBtn = el('button', {
                 class: 'docker-btn-secondary',
                 type: 'button',
-                title: t('docker.editReadme') || 'Edit README',
+                title: t('docker.editReadme'),
                 onclick: () => {
                     openReadmeEditor(repoName, imageName, image.description || '', (newDesc) => {
                         image.description = newDesc;
                         updateReadmeView(newDesc);
                     });
                 }
-            }, createIcon('edit', {class: 'icon-svg'}), el('span', {}, t('docker.editReadme') || 'Edit README'));
+            }, createIcon('edit', {class: 'icon-svg'}), el('span', {}, t('docker.editReadme')));
         }
 
         const readmeSection = el('div', {class: 'docker-readme-card'},
             el('div', {class: 'docker-readme-header'},
                 el('h3', {class: 'docker-readme-title'},
                     createIcon('fileText', {class: 'icon-svg'}),
-                    t('docker.readme') || 'README'
+                    t('docker.readme')
                 ),
                 editReadmeBtn
             ),
@@ -1137,7 +1148,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 inviteInput = el('input', {
                     type: 'text',
                     class: 'docker-invite-input',
-                    placeholder: t('docker.invitePlaceholder') || 'Enter username to invite...',
+                    placeholder: t('docker.invitePlaceholder'),
                     autocomplete: 'off',
                     oninput: handleInviteInput,
                     onkeydown: (e) => {
@@ -1166,8 +1177,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 const sendInviteBtn = el('button', {
                     type: 'submit',
                     class: 'docker-btn-secondary primary-btn',
-                    title: t('docker.invite') || 'Invite'
-                }, createIcon('userPlus', {class: 'icon-svg'}), el('span', {}, t('docker.invite') || 'Invite'));
+                    title: t('docker.invite')
+                }, createIcon('userPlus', {class: 'icon-svg'}), el('span', {}, t('docker.invite')));
 
                 inviteForm = el('form', {
                     class: 'docker-invite-form',
@@ -1175,12 +1186,12 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                         e.preventDefault();
                         const userToInvite = inviteInput.value.trim();
                         if (!userToInvite) {
-                            showAlert(t('team.inviteUsernameRequired'), 'warning');
+                            showAlert(t('docker.inviteUsernameRequired'), 'warning');
                             return;
                         }
                         const currentUser = localStorage.getItem('username') || '';
                         if (currentUser && userToInvite.toLowerCase() === currentUser.toLowerCase()) {
-                            showAlert(t('docker.cannotInviteSelf') || 'You cannot invite yourself.', 'warning');
+                            showAlert(t('docker.cannotInviteSelf'), 'warning');
                             return;
                         }
                         sendInviteBtn.disabled = true;
@@ -1196,28 +1207,14 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                             if (inviteResp.ok) {
                                 inviteInput.value = '';
                                 closeInviteSuggestions();
-                                const respData = await inviteResp.json().catch(() => null);
-                                showAlert(respData?.message || t('docker.inviteSent', {name: userToInvite}) || `Invitation sent to ${userToInvite}.`, 'success');
+                                showAlert(t('docker.inviteSent', {name: userToInvite}), 'success');
                                 renderImageDetailsView(container, repoName, imageName, seq);
                             } else {
-                                const errStatus = inviteResp.status;
-                                const errText = await inviteResp.text();
-                                let msg = t('docker.sendInviteFailed') || 'Failed to send invitation.';
-                                if (errText.includes('already a member')) {
-                                    msg = t('docker.memberAlreadyExists') || 'User is already a member of this image team.';
-                                } else if (errText.includes('pending')) {
-                                    msg = t('docker.invitationAlreadyPending') || 'An active invitation is already pending for this user.';
-                                } else if (errText.includes('does not exist')) {
-                                    msg = t('docker.userNotFound', {name: userToInvite}) || `User "${userToInvite}" does not exist.`;
-                                } else if (errText.includes('yourself')) {
-                                    msg = t('docker.cannotInviteSelf') || 'You cannot invite yourself.';
-                                } else if (errStatus === 403) {
-                                    msg = t('docker.permissionDenied') || 'Permission denied.';
-                                }
-                                showAlert(msg);
+                                showAlert(dockerResponseError(inviteResp, 'docker.sendInviteFailed', {name: userToInvite}), 'error');
                             }
                         } catch (err) {
-                            showAlert(String(err.message || err));
+                            console.error('Failed to invite Docker image member', err);
+                            showAlert(t('docker.sendInviteFailed'), 'error');
                         } finally {
                             sendInviteBtn.disabled = false;
                         }
@@ -1227,7 +1224,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
             teamSection = el('div', {class: 'docker-page-section'},
                 el('div', {style: {display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem'}},
-                    el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.teamTitle') || 'Team & Collaborators'),
+                    el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.teamTitle')),
                     el('span', {class: 'docker-tag-badge'}, `${members.length}`)
                 ),
                 teamListEl,
@@ -1248,10 +1245,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         }, {duration: 280});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
+        console.error('Failed to load Docker image details', err);
         await morphElementHeight(container, () => {
             container.replaceChildren(
                 el('div', {class: 'docker-page-hero'},
-                    el('p', {class: 'error-text'}, t('docker.imageNotFound') || String(err.message || err))
+                    el('p', {class: 'error-text'}, t('docker.imageNotFound'))
                 )
             );
             container.classList.remove('is-updating');

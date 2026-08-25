@@ -10,6 +10,7 @@
 
 import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
+import {dockerResponseError} from './docker-errors.js';
 import {t} from './i18n.js';
 import {registerMessageActionHandler, registerMessageRenderer} from './messages.js';
 
@@ -45,14 +46,16 @@ function dockerInvitationPayload(message) {
  */
 function renderDockerInvitation(message) {
     const payload = dockerInvitationPayload(message);
-    if (!payload) return {};
+    if (!payload) {
+        return {title: t('docker.inviteTitle'), body: t('docker.invitationInvalid')};
+    }
     return {
-        title: t('docker.inviteTitle') || 'Docker Image Invitation',
+        title: t('docker.inviteTitle'),
         body: t('docker.inviteBody', {
             inviter: payload.inviter,
             image: payload.image,
             level: payload.level
-        }) || `${payload.inviter} invited you to collaborate on ${payload.image} (L${payload.level}).`
+        })
     };
 }
 
@@ -65,15 +68,14 @@ function renderDockerInvitation(message) {
 async function handleDockerInvitation(message, decision) {
     const payload = dockerInvitationPayload(message);
     if (!payload || (decision !== 'accept' && decision !== 'reject')) {
-        throw new Error('Invalid Docker image invitation');
+        throw new Error(t('docker.invitationInvalid'));
     }
     const endpoint = `/api/docker/repositories/${encodeURIComponent(payload.repository)}/invitations/${encodeURIComponent(message.id)}/${decision}`;
     const response = await apiRequest(endpoint, {method: 'POST'});
     if (!response.ok) {
-        const detail = (await response.text()).slice(0, 512);
-        throw new Error(detail || `HTTP ${response.status}`);
+        throw new Error(dockerResponseError(response, 'docker.inviteActionFailed'));
     }
-    showAlert(t(decision === 'accept' ? 'docker.inviteAccepted' : 'docker.inviteRejected') || `Invitation ${decision}ed.`, 'success');
+    showAlert(t(decision === 'accept' ? 'docker.inviteAccepted' : 'docker.inviteRejected'), 'success');
     window.dispatchEvent(new CustomEvent('dockerMembershipChanged', {
         detail: {repository: payload.repository, image: payload.image}
     }));

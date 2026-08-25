@@ -27,7 +27,8 @@ info:
 
     **Error bodies:**
     Management errors are plain text (`Unauthorized`, `Forbidden`, `Not found`).
-    Docker errors follow `{"errors":[{"code":"...","message":"...","detail":"..."}]}`.
+    Docker browser-management errors additionally expose a stable `X-Renop-Error-Code` header for localization.
+    Docker Distribution API errors follow `{"errors":[{"code":"...","message":"...","detail":"..."}]}`.
     Cargo errors follow `{"errors":[{"detail":"..."}]}`.
     Always prefer the HTTP status code for programmatic handling.
 
@@ -79,7 +80,7 @@ tags:
   - name: cargo
     description: Sparse Cargo (Rust) registry endpoints mounted per-repository at `/{repo}/api/v1/` and `/{repo}/config.json`.
   - name: docker
-    description: OCI Distribution Specification v1.1.0 and Docker Registry v2, mounted at `/v2/`.
+    description: OCI Distribution Specification v1.1.0 and Docker Registry v2, mounted at `/v2/`; browser-management failures use `X-Renop-Error-Code` for localized presentation.
 
 # ---------------------------------------------------------------------------
 # Security

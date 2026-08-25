@@ -48,7 +48,9 @@
   `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n
   catalogs, including dedicated profile fragments, live under `js/i18n/<locale>/` and are compiled via
   `pnpm run build:frontend`. Shared asynchronous actions use the button-state helper exported by
-  `js/components/button.js`, which restores controls after both successful and failed requests.
+  `js/components/button.js`, which restores controls after both successful and failed requests. Docker management
+  failures expose stable `X-Renop-Error-Code` values that `js/docker-errors.js` maps to the Docker locale catalogs;
+  browser and message-center views never display raw backend error text.
 
 ---
 

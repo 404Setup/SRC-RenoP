@@ -30,6 +30,24 @@ import (
 	"renop/internal/utils"
 )
 
+const dockerAPIErrorCodeHeader = "X-Renop-Error-Code"
+
+func dockerAPIError(c fiber.Ctx, status int, code, message string) error {
+	c.Set(dockerAPIErrorCodeHeader, code)
+	return c.Status(status).SendString(message)
+}
+
+func withDockerAPIErrorCode(handler fiber.Handler) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		err := handler(c)
+		if (err != nil || c.Response().StatusCode() >= fiber.StatusBadRequest) &&
+			len(c.Response().Header.Peek(dockerAPIErrorCodeHeader)) == 0 {
+			c.Set(dockerAPIErrorCodeHeader, "request_failed")
+		}
+		return err
+	}
+}
+
 func logDockerAudit(c fiber.Ctx, state *core.AppState, action, details string) {
 	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -521,38 +539,38 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 	repoName := c.Params("repo_name")
 	imageName := strings.Trim(c.Query("image"), "/")
 	if !utils.IsValidRepositoryName(repoName) || imageName == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid parameters")
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid parameters")
 	}
 
 	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists || repo.NormalizedFormat() != config.RepositoryFormatDocker {
-		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+		return dockerAPIError(c, fiber.StatusNotFound, "repository_not_found", "Repository not found")
 	}
 
 	db := state.GetDB()
 	if db == nil {
-		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+		return dockerAPIError(c, fiber.StatusServiceUnavailable, "service_unavailable", "Database unavailable")
 	}
 
 	user := auth.GetUser(c)
 	isAdmin := user.IsManager() || user.CheckUpdatePermission(repoName)
 	memberLevel, err := db.GetDockerMemberLevel(repoName, imageName, user.Username)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect member permission")
+		return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to inspect member permission")
 	}
 	canManage := isAdmin || memberLevel >= core.DockerPermissionTeam
 	if !canManage {
-		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+		return dockerAPIError(c, fiber.StatusForbidden, "permission_denied", "Forbidden")
 	}
 
 	var req dockerInviteRequest
 	if err := c.Bind().Body(&req); err != nil || len(req.Users) == 0 || len(req.Users) > 20 {
-		return c.Status(fiber.StatusBadRequest).SendString("Choose between 1 and 20 members to invite")
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "Choose between 1 and 20 members to invite")
 	}
 
 	if req.Level < core.DockerPermissionRead || req.Level > core.DockerPermissionOwner {
-		return c.Status(fiber.StatusBadRequest).SendString("Permission level must be between 0 and 4")
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_permission_level", "Permission level must be between 0 and 4")
 	}
 
 	if isAdmin {
@@ -570,20 +588,20 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 
 			token, err := db.GetTokenByName(recipient)
 			if err != nil || token == nil {
-				return c.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("User %s does not exist", recipient))
+				return dockerAPIError(c, fiber.StatusBadRequest, "user_not_found", fmt.Sprintf("User %s does not exist", recipient))
 			}
 			validUsers = append(validUsers, recipient)
 		}
 
 		if len(validUsers) == 0 {
-			return c.Status(fiber.StatusBadRequest).SendString("No valid recipients provided")
+			return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "No valid recipients provided")
 		}
 
 		if err := db.ForceAddDockerMembers(repoName, imageName, user.Username, validUsers, req.Level); err != nil {
 			if errors.Is(err, core.ErrDockerMemberExists) {
-				return c.Status(fiber.StatusConflict).SendString("User is already a member of this image team")
+				return dockerAPIError(c, fiber.StatusConflict, "member_exists", "User is already a member of this image team")
 			}
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to add members directly")
+			return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to add members directly")
 		}
 
 		logDockerAudit(c, state, "DOCKER_TEAM_ADD", fmt.Sprintf("Repository: %s, image: %s, members: %d, level: L%d", repoName, imageName, len(validUsers), req.Level))
@@ -605,7 +623,7 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 			continue
 		}
 		if recipient == strings.ToLower(user.Username) {
-			return c.Status(fiber.StatusBadRequest).SendString("Cannot invite yourself")
+			return dockerAPIError(c, fiber.StatusBadRequest, "cannot_invite_self", "Cannot invite yourself")
 		}
 		if _, dup := seen[recipient]; dup {
 			continue
@@ -614,7 +632,7 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 
 		token, err := db.GetTokenByName(recipient)
 		if err != nil || token == nil {
-			return c.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("User %s does not exist", recipient))
+			return dockerAPIError(c, fiber.StatusBadRequest, "user_not_found", fmt.Sprintf("User %s does not exist", recipient))
 		}
 
 		invID := uuid.NewString()
@@ -652,20 +670,20 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	if len(invitations) == 0 {
-		return c.Status(fiber.StatusBadRequest).SendString("No valid recipients provided")
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "No valid recipients provided")
 	}
 
 	if err := db.CreateDockerInvitations(invitations, messages); err != nil {
 		if errors.Is(err, core.ErrDockerPermissionDenied) {
-			return c.Status(fiber.StatusForbidden).SendString("Permission denied")
+			return dockerAPIError(c, fiber.StatusForbidden, "permission_denied", "Permission denied")
 		}
 		if errors.Is(err, core.ErrDockerMemberExists) {
-			return c.Status(fiber.StatusConflict).SendString("User is already a member of this image team")
+			return dockerAPIError(c, fiber.StatusConflict, "member_exists", "User is already a member of this image team")
 		}
 		if errors.Is(err, core.ErrDockerInvitationExists) {
-			return c.Status(fiber.StatusConflict).SendString("An active invitation is already pending for this user")
+			return dockerAPIError(c, fiber.StatusConflict, "invitation_pending", "An active invitation is already pending for this user")
 		}
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create invitations")
+		return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to create invitations")
 	}
 
 	logDockerAudit(c, state, "DOCKER_TEAM_INVITE", fmt.Sprintf("Repository: %s, image: %s, recipients: %d, level: L%d", repoName, imageName, len(invitations), req.Level))
@@ -858,26 +876,26 @@ func RespondDockerInvitationAPI(c fiber.Ctx, state *core.AppState) error {
 	decision := strings.ToLower(strings.TrimSpace(c.Params("decision")))
 
 	if !utils.IsValidRepositoryName(repoName) || invitationID == "" || (decision != "accept" && decision != "reject") {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid parameters")
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid parameters")
 	}
 
 	user := auth.GetUser(c)
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
-		return c.Status(fiber.StatusUnauthorized).SendString("Authentication required")
+		return dockerAPIError(c, fiber.StatusUnauthorized, "authentication_required", "Authentication required")
 	}
 
 	db := state.GetDB()
 	if db == nil {
-		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+		return dockerAPIError(c, fiber.StatusServiceUnavailable, "service_unavailable", "Database unavailable")
 	}
 
 	accept := decision == "accept"
 	now := time.Now().UnixMilli()
 	if err := db.RespondDockerInvitation(invitationID, user.Username, repoName, accept, now); err != nil {
 		if errors.Is(err, core.ErrDockerInvitationInvalid) {
-			return c.Status(fiber.StatusBadRequest).SendString("Invitation is invalid or has expired")
+			return dockerAPIError(c, fiber.StatusBadRequest, "invitation_invalid", "Invitation is invalid or has expired")
 		}
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to process invitation response")
+		return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to process invitation response")
 	}
 
 	logDockerAudit(c, state, "DOCKER_INVITE_"+strings.ToUpper(decision), fmt.Sprintf("Repository: %s, invitation: %s", repoName, invitationID))

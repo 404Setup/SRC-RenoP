@@ -17,6 +17,10 @@ Image creation returns `409 Conflict` when the normalized name is already used l
 upstream mirror. It returns `503 Service Unavailable` instead of claiming the name when an upstream check is
 inconclusive.
 
+Browser-management endpoints keep a human-readable plain-text error body and also return `X-Renop-Error-Code` for
+stable programmatic handling. The RenoP frontend maps this code through its active locale instead of displaying raw
+server text. OCI Distribution endpoints continue to use the specification-defined structured `errors` response.
+
 ## 1. Version Check
 
 - **Path**: `GET /v2/` or `HEAD /v2/`

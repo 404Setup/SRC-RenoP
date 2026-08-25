@@ -146,6 +146,25 @@ func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 	return app, state
 }
 
+func TestDockerAPIErrorCodeFallback(t *testing.T) {
+	app := fiber.New()
+	app.Get("/failed", withDockerAPIErrorCode(func(c fiber.Ctx) error {
+		return c.Status(http.StatusTeapot).SendString("test failure")
+	}))
+	app.Get("/ok", withDockerAPIErrorCode(func(c fiber.Ctx) error {
+		return c.SendStatus(http.StatusNoContent)
+	}))
+
+	failed, err := app.Test(httptest.NewRequest(http.MethodGet, "/failed", nil))
+	require.NoError(t, err)
+	require.Equal(t, "request_failed", failed.Header.Get(dockerAPIErrorCodeHeader))
+	require.NoError(t, failed.Body.Close())
+	ok, err := app.Test(httptest.NewRequest(http.MethodGet, "/ok", nil))
+	require.NoError(t, err)
+	require.Empty(t, ok.Header.Get(dockerAPIErrorCodeHeader))
+	require.NoError(t, ok.Body.Close())
+}
+
 func TestCreateDockerImageRejectsLocalAndUpstreamNameConflicts(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -406,6 +425,9 @@ func TestDockerRESTAPIs(t *testing.T) {
 	if err != nil || overwriteResp.StatusCode != http.StatusConflict {
 		t.Fatalf("expected force overwrite of an existing member to return 409, got %d (err: %v)", overwriteResp.StatusCode, err)
 	}
+	if code := overwriteResp.Header.Get(dockerAPIErrorCodeHeader); code != "member_exists" {
+		t.Fatalf("existing-member error code = %q, want member_exists", code)
+	}
 
 	ownerLeaveReq := httptest.NewRequest(http.MethodDelete, "/api/docker/repositories/docker-pub/owners/"+adminUserID+"?image=web/backend", nil)
 	ownerLeaveReq.Header.Set("Authorization", "Bearer admin-test-token")
@@ -430,6 +452,16 @@ func TestDockerRESTAPIs(t *testing.T) {
 	if err != nil || inviteCarolResp.StatusCode != http.StatusOK {
 		t.Fatalf("Bob invite carol failed: %v (status: %d)", err, inviteCarolResp.StatusCode)
 	}
+	pendingInviteReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/owners?image=web/backend", strings.NewReader(`{"users":["carol"],"level":1}`))
+	pendingInviteReq.Header.Set("Content-Type", "application/json")
+	pendingInviteReq.Header.Set("Authorization", "Bearer bob-test-token")
+	pendingInviteResp, err := app.Test(pendingInviteReq)
+	if err != nil || pendingInviteResp.StatusCode != http.StatusConflict {
+		t.Fatalf("duplicate pending invitation status = %d, err = %v", pendingInviteResp.StatusCode, err)
+	}
+	if code := pendingInviteResp.Header.Get(dockerAPIErrorCodeHeader); code != "invitation_pending" {
+		t.Fatalf("pending-invitation error code = %q, want invitation_pending", code)
+	}
 
 	messages, err := db.ListMessages("carol", 10, 0, "", time.Now().UnixMilli()+1000)
 	if err != nil || len(messages) == 0 {
@@ -442,6 +474,15 @@ func TestDockerRESTAPIs(t *testing.T) {
 	acceptResp, err := app.Test(acceptReq)
 	if err != nil || acceptResp.StatusCode != http.StatusOK {
 		t.Fatalf("Accept invitation failed: %v (status: %d)", err, acceptResp.StatusCode)
+	}
+	repeatAcceptReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/invitations/"+invID+"/accept", nil)
+	repeatAcceptReq.Header.Set("Authorization", "Bearer carol-test-token")
+	repeatAcceptResp, err := app.Test(repeatAcceptReq)
+	if err != nil || repeatAcceptResp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("repeated invitation response status = %d, err = %v", repeatAcceptResp.StatusCode, err)
+	}
+	if code := repeatAcceptResp.Header.Get(dockerAPIErrorCodeHeader); code != "invitation_invalid" {
+		t.Fatalf("invalid-invitation error code = %q, want invitation_invalid", code)
 	}
 
 	setLevelReq := httptest.NewRequest(http.MethodPut, "/api/docker/repositories/docker-pub/owners/"+bobUserID+"?image=web/backend", strings.NewReader(`{"level":1}`))
