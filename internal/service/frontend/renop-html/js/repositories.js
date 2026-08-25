@@ -31,8 +31,7 @@ import {
     makeCfgInput,
     makeInlineNumber,
     makeInlineToggle,
-    makeTagListInput,
-    makeVisibilityBadge
+    makeTagListInput
 } from './cfg-ui.js';
 import {
     createRepositoryDraft,
@@ -45,6 +44,40 @@ let currentConfig = null;
 let initialReposMap = {};
 let globalProxyConfig = {selected: '', proxies: []};
 const saveSeqByRepo = new Map();
+
+/**
+ * Return the icon assigned to a repository protocol.
+ * @param {object} format - Canonical repository format descriptor.
+ * @returns {string} Icon name.
+ */
+function repositoryFormatIcon(format) {
+    return ({
+        maven: 'fileJava',
+        cargo: 'fileCargo',
+        docker: 'box',
+        files: 'folder',
+        npm: 'fileNpm'
+    })[format.protocol] || 'filePackage';
+}
+
+/**
+ * Build the color-only repository visibility indicator with an accessible label.
+ * @param {string} visibility - Repository visibility.
+ * @returns {HTMLSpanElement} Visibility indicator.
+ */
+function repositoryVisibilityIndicator(visibility) {
+    const normalized = ['PUBLIC', 'HIDDEN', 'PRIVATE'].includes(visibility) ? visibility : 'PUBLIC';
+    const labelKey = {
+        PUBLIC: 'repos.visibilityPublic',
+        HIDDEN: 'repos.visibilityHidden',
+        PRIVATE: 'repos.visibilityPrivate'
+    }[normalized];
+    const label = t(labelKey);
+    return el('span', {
+        class: `cfg-repository-visibility is-${normalized.toLowerCase()}`,
+        role: 'img', title: label, 'aria-label': label
+    });
+}
 
 /**
  * Renders a repository-list skeleton placeholder in the repositories container.
@@ -138,17 +171,19 @@ function buildRepoSection(container, data, repoKey, repo) {
 
     const header = el('div', {class: 'cfg-section-header'});
 
-    const iconBox = el('div', {class: 'cfg-section-icon'}, createIcon('box'));
+    const formatLabel = t(format.labelKey);
+    let visibilityIndicator = repositoryVisibilityIndicator(repo.visibility || 'PUBLIC');
+    const iconBox = el('div', {
+        class: `cfg-section-icon cfg-repository-type-icon is-${format.protocol}`
+    },
+    el('span', {
+        class: 'cfg-repository-format-icon', role: 'img', title: formatLabel, 'aria-label': formatLabel
+    }, createIcon(repositoryFormatIcon(format))),
+    visibilityIndicator);
 
     const meta = el('div', {class: 'cfg-section-meta'});
-    const titleRow = el('div', {
-        class: 'cfg-section-title-row',
-        style: {display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: '0', flexWrap: 'nowrap'}
-    });
+    const titleRow = el('div', {class: 'cfg-section-title-row'});
     titleRow.appendChild(el('p', {class: 'cfg-section-title'}, repoKey));
-    titleRow.appendChild(el('span', {class: 'cfg-format-badge'}, t(format.labelKey)));
-    let visibilityBadge = makeVisibilityBadge(repo.visibility || 'PUBLIC');
-    titleRow.appendChild(visibilityBadge);
     meta.appendChild(titleRow);
 
     const mirrorCount = (repo.mirrors || []).length;
@@ -157,10 +192,11 @@ function buildRepoSection(container, data, repoKey, repo) {
     ));
 
     const deleteBtn = el('button', {
-        class: 'pill-btn pill-btn--danger pill-btn--sm',
+        class: 'pill-btn pill-btn--danger pill-btn--sm cfg-repository-delete-btn',
         type: 'button',
-        title: t('repos.deleteRepoTitle', {name: repoKey})
-    }, createIcon('delete'), el('span', {}, t('common.delete')));
+        title: t('repos.deleteRepoTitle', {name: repoKey}),
+        'aria-label': t('repos.deleteRepoTitle', {name: repoKey})
+    }, createIcon('delete'));
     deleteBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (await window.showConfirm(t('repos.confirmDelete', {name: repoKey}))) {
@@ -215,16 +251,16 @@ function buildRepoSection(container, data, repoKey, repo) {
     ];
 
     /**
-     * Persist visibility and replace only the visibility badge in the header.
+     * Persist visibility and replace only the visibility indicator on the type icon.
      * @param {string} value - Selected visibility.
      * @returns {void}
      */
     function handleVisibilityChange(value) {
         repo.visibility = value;
-        if (visibilityBadge.isConnected) {
-            const newBadge = makeVisibilityBadge(value);
-            titleRow.replaceChild(newBadge, visibilityBadge);
-            visibilityBadge = newBadge;
+        if (visibilityIndicator.isConnected) {
+            const newIndicator = repositoryVisibilityIndicator(value);
+            iconBox.replaceChild(newIndicator, visibilityIndicator);
+            visibilityIndicator = newIndicator;
         }
         saveRepoSettings(repoKey, repo);
     }

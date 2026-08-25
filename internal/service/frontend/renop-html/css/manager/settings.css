@@ -396,6 +396,73 @@ html.dark .pill-btn--ghost-danger:hover:not(:disabled) {
     height: 18px;
 }
 
+.cfg-repository-type-icon {
+    position: relative;
+}
+
+.cfg-repository-format-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cfg-repository-type-icon.is-maven {
+    color: #ea580c;
+    background-color: color-mix(in srgb, #f97316 13%, transparent);
+}
+
+.cfg-repository-type-icon.is-cargo {
+    color: #b45309;
+    background-color: color-mix(in srgb, #d97706 13%, transparent);
+}
+
+.cfg-repository-type-icon.is-docker {
+    color: #2563eb;
+    background-color: color-mix(in srgb, #3b82f6 13%, transparent);
+}
+
+.cfg-repository-type-icon.is-files {
+    color: #7c3aed;
+    background-color: color-mix(in srgb, #8b5cf6 13%, transparent);
+}
+
+.cfg-repository-type-icon.is-npm {
+    color: #dc2626;
+    background-color: color-mix(in srgb, #ef4444 13%, transparent);
+}
+
+.cfg-repository-visibility {
+    position: absolute;
+    right: -0.12rem;
+    bottom: -0.12rem;
+    width: 0.62rem;
+    height: 0.62rem;
+    box-sizing: border-box;
+    border: 2px solid var(--card-bg);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-color) 13%, transparent);
+}
+
+.cfg-repository-visibility.is-public {
+    background: #10b981;
+}
+
+.cfg-repository-visibility.is-hidden {
+    background: #f59e0b;
+}
+
+.cfg-repository-visibility.is-private {
+    background: #ef4444;
+}
+
+.cfg-repository-delete-btn {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    justify-content: center;
+}
+
 .cfg-section-chevron {
     display: flex;
     align-items: center;
@@ -1914,20 +1981,6 @@ html.dark .cfg-warning-banner {
 
 .cfg-field-row--top-align .cfg-field-label {
     padding-top: 0.25rem;
-}
-
-.cfg-format-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.16rem 0.45rem;
-    border: 1px solid color-mix(in srgb, var(--link-hover-color) 22%, transparent);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--link-hover-color) 8%, transparent);
-    color: var(--link-hover-color);
-    font-size: 0.68rem;
-    font-weight: 700;
-    line-height: 1.2;
-    white-space: nowrap;
 }
 
 .cfg-readonly-value {

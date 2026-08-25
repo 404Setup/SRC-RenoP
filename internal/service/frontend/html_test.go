@@ -358,6 +358,41 @@ func TestTeamRemovalMessagesHideOperator(t *testing.T) {
 	}
 }
 
+func TestRepositoryListUsesTypeIconsAndVisibilityDots(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join("renop-html", "js", "repositories.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	for _, required := range []string{
+		"maven: 'fileJava'", "cargo: 'fileCargo'", "docker: 'box'", "files: 'folder'",
+		"cfg-repository-visibility is-", "cfg-repository-delete-btn", "'aria-label': t('repos.deleteRepoTitle'",
+	} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("repository list visual metadata is missing %q", required)
+		}
+	}
+	for _, obsolete := range []string{"cfg-format-badge", "makeVisibilityBadge", "createIcon('delete'), el('span'"} {
+		if strings.Contains(text, obsolete) {
+			t.Fatalf("repository list retains obsolete text badge markup %q", obsolete)
+		}
+	}
+	cssSource, err := os.ReadFile(filepath.Join("renop-html", "css", "manager", "settings.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cssText := string(cssSource)
+	for _, required := range []string{
+		".cfg-repository-visibility.is-public", ".cfg-repository-visibility.is-hidden",
+		".cfg-repository-visibility.is-private", ".cfg-repository-type-icon.is-maven",
+		".cfg-repository-type-icon.is-cargo", ".cfg-repository-type-icon.is-docker",
+	} {
+		if !strings.Contains(cssText, required) {
+			t.Fatalf("repository list styles are missing %q", required)
+		}
+	}
+}
+
 func TestFrontendUsesSharedClipboardAndTimeUtilities(t *testing.T) {
 	jsRoot := filepath.Join("renop-html", "js")
 	clipboardPath := filepath.Join(jsRoot, "clipboard.js")

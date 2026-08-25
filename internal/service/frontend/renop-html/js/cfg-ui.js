@@ -388,32 +388,6 @@ export function makeTagListInput({
 
 
 /**
- * Creates a localized visibility badge pill for a repository visibility level.
- * @param {string} visibility - Visibility key: `PUBLIC`, `HIDDEN`, or `PRIVATE` (defaults to PUBLIC styling).
- * @returns {HTMLSpanElement} Badge element.
- */
-export function makeVisibilityBadge(visibility) {
-    const modifierMap = {
-        PUBLIC: 'badge-pill--public',
-        HIDDEN: 'badge-pill--hidden',
-        PRIVATE: 'badge-pill--private'
-    };
-    const modifier = modifierMap[visibility] || modifierMap.PUBLIC;
-    const keyMap = {
-        PUBLIC: 'repos.visibilityPublic',
-        HIDDEN: 'repos.visibilityHidden',
-        PRIVATE: 'repos.visibilityPrivate'
-    };
-    const labelKey = keyMap[visibility] || 'repos.visibilityPublic';
-    const labelText = t(labelKey);
-    return el('span', {
-        'data-i18n': labelKey,
-        class: `badge-pill ${modifier}`
-    }, labelText);
-}
-
-
-/**
  * Creates a config section with header (icon, title, subtitle) and a `.cfg-fields` body.
  * Collapsed by default when collapsible; `appendChild` is patched to append into the body.
  * @param {string|Node|null|undefined} iconSvg - Icon HTML string or Node for the header.
