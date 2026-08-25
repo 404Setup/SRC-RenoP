@@ -68,6 +68,8 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 	require.Len(t, publicDomains, 1)
 	assert.True(t, publicDomains[0].Verified)
 	assert.False(t, publicDomains[0].Member)
+	assert.Equal(t, 1, publicDomains[0].MemberCount)
+	assert.Zero(t, publicDomains[0].RepositoryCount)
 
 	duplicate := &core.MavenDomain{Repository: "snapshots", Domain: "com.example", VerificationHost: "example.com", VerificationCode: "other"}
 	assert.ErrorIs(t, db.CreateMavenDomain(duplicate, "bob"), core.ErrMavenDomainExists)
@@ -93,6 +95,7 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 	}
 	assert.Equal(t, core.MavenPermissionOwner, levels["bob"])
 	assert.Equal(t, core.MavenPermissionRead, levels["alice"])
+	assert.Equal(t, 2, details.Domain.MemberCount)
 	require.NoError(t, db.RemoveMavenMember("com.example", "alice", "alice"))
 	assert.ErrorIs(t, db.RemoveMavenMember("com.example", "bob", "bob"), core.ErrMavenOwnerCannotLeave)
 
@@ -111,6 +114,7 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 	assert.Equal(t, 1, total)
 	require.Len(t, artifacts, 1)
 	assert.Equal(t, "1.0.0", artifacts[0].LatestVersion)
+	assert.Equal(t, int64(1024), artifacts[0].TotalSize)
 	artifactDetails, err := db.GetMavenArtifactDetails("releases", artifact.GroupID, artifact.ArtifactID)
 	require.NoError(t, err)
 	require.Len(t, artifactDetails.Versions, 1)
@@ -125,6 +129,7 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, artifactDetails.Versions, 3)
 	assert.Equal(t, "10.0.0", artifactDetails.Artifact.LatestVersion)
+	assert.Equal(t, int64(3*1024), artifactDetails.Artifact.TotalSize)
 	assert.Equal(t, []string{"10.0.0", "2.0.0", "1.0.0"}, []string{
 		artifactDetails.Versions[0].Version, artifactDetails.Versions[1].Version, artifactDetails.Versions[2].Version,
 	})
@@ -191,6 +196,8 @@ func TestMavenArtifactMovesToMostSpecificDomain(t *testing.T) {
 	childDetails, err := db.GetMavenDomainDetails("com.example.tools", "bob")
 	require.NoError(t, err)
 	assert.Equal(t, 1, childDetails.Domain.ArtifactCount)
+	assert.Equal(t, 1, childDetails.Domain.RepositoryCount)
+	assert.Equal(t, 1, childDetails.Domain.MemberCount)
 	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "alice")
 	require.NoError(t, err)
 	require.Len(t, repositoryDomains, 1)

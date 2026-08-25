@@ -38,5 +38,15 @@ export default {
     "maven.noManagedDomains": "К вашей учётной записи не привязаны домены Maven.",
     "maven.backToDomains": "Назад к доменам",
     "maven.inviteRequired": "Введите хотя бы одно имя пользователя.",
-    "maven.userNotFound": "Один или несколько получателей приглашения Maven не существуют."
+    "maven.userNotFound": "Один или несколько получателей приглашения Maven не существуют.",
+    "maven.accessLevel": "Уровень доступа", "maven.administratorAccess": "Системный администратор", "maven.artifactId": "ID артефакта",
+    "maven.artifactInformation": "Информация об артефакте", "maven.createdAt": "Создан", "maven.domainInformation": "Информация о домене",
+    "maven.domainLabel": "Домен публикации", "maven.domainScope": "Область действия", "maven.domainScopeGlobal": "Глобально во всех репозиториях Maven",
+    "maven.domainStatus": "Состояние", "maven.globalArtifactCount": "Артефакты во всех репозиториях", "maven.groupId": "ID группы",
+    "maven.lastChecked": "Последняя проверка", "maven.lastUpdated": "Последнее обновление", "maven.latestVersion": "Последняя версия",
+    "maven.publisher": "Издатель", "maven.readOnlyAccess": "Доступ только для чтения", "maven.repositoryArtifactCount": "Артефакты в {repository}",
+    "maven.repositoryCount": "Репозитории", "maven.repositoryLabel": "Репозиторий", "maven.teamMembers": "Участники команды",
+    "maven.totalSize": "Общий размер версий", "maven.verificationDns": "DNS-запись TXT", "maven.verificationGithub": "Профиль GitHub",
+    "maven.verificationGitlab": "Профиль GitLab", "maven.verificationLegacy": "Импорт старого репозитория", "maven.verificationMethod": "Способ проверки",
+    "maven.verificationTarget": "Цель проверки", "maven.verifiedAtLabel": "Подтверждён", "maven.versionCountLabel": "Версии"
 };

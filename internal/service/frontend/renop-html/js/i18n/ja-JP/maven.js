@@ -38,5 +38,15 @@ export default {
     "maven.noManagedDomains": "アカウントに関連付けられた Maven ドメインはありません。",
     "maven.backToDomains": "ドメイン一覧に戻る",
     "maven.inviteRequired": "ユーザー名を1つ以上入力してください。",
-    "maven.userNotFound": "Maven の招待先に存在しないユーザーが含まれています。"
+    "maven.userNotFound": "Maven の招待先に存在しないユーザーが含まれています。",
+    "maven.accessLevel": "アクセスレベル", "maven.administratorAccess": "システム管理者", "maven.artifactId": "アーティファクト ID",
+    "maven.artifactInformation": "アーティファクト情報", "maven.createdAt": "作成日時", "maven.domainInformation": "ドメイン情報",
+    "maven.domainLabel": "公開ドメイン", "maven.domainScope": "適用範囲", "maven.domainScopeGlobal": "すべての Maven リポジトリでグローバル",
+    "maven.domainStatus": "状態", "maven.globalArtifactCount": "全リポジトリの成果物", "maven.groupId": "グループ ID",
+    "maven.lastChecked": "最終検証日時", "maven.lastUpdated": "最終更新日時", "maven.latestVersion": "最新バージョン",
+    "maven.publisher": "公開者", "maven.readOnlyAccess": "読み取り専用アクセス", "maven.repositoryArtifactCount": "{repository} の成果物",
+    "maven.repositoryCount": "リポジトリ数", "maven.repositoryLabel": "リポジトリ", "maven.teamMembers": "チームメンバー",
+    "maven.totalSize": "バージョンの合計サイズ", "maven.verificationDns": "DNS TXT レコード", "maven.verificationGithub": "GitHub プロフィール",
+    "maven.verificationGitlab": "GitLab プロフィール", "maven.verificationLegacy": "旧リポジトリのインポート", "maven.verificationMethod": "検証方法",
+    "maven.verificationTarget": "検証対象", "maven.verifiedAtLabel": "検証日時", "maven.versionCountLabel": "バージョン数"
 };

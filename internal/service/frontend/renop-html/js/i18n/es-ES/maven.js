@@ -38,5 +38,15 @@ export default {
     "maven.noManagedDomains": "No hay dominios Maven vinculados a tu cuenta.",
     "maven.backToDomains": "Volver a los dominios",
     "maven.inviteRequired": "Introduce al menos un nombre de usuario.",
-    "maven.userNotFound": "Uno o varios destinatarios de la invitación Maven no existen."
+    "maven.userNotFound": "Uno o varios destinatarios de la invitación Maven no existen.",
+    "maven.accessLevel": "Nivel de acceso", "maven.administratorAccess": "Administrador del sistema", "maven.artifactId": "ID del artefacto",
+    "maven.artifactInformation": "Información del artefacto", "maven.createdAt": "Creado", "maven.domainInformation": "Información del dominio",
+    "maven.domainLabel": "Dominio de publicación", "maven.domainScope": "Ámbito", "maven.domainScopeGlobal": "Global en todos los repositorios Maven",
+    "maven.domainStatus": "Estado", "maven.globalArtifactCount": "Artefactos en todos los repositorios", "maven.groupId": "ID del grupo",
+    "maven.lastChecked": "Última comprobación de verificación", "maven.lastUpdated": "Última actualización", "maven.latestVersion": "Versión más reciente",
+    "maven.publisher": "Publicador", "maven.readOnlyAccess": "Acceso de solo lectura", "maven.repositoryArtifactCount": "Artefactos en {repository}",
+    "maven.repositoryCount": "Repositorios", "maven.repositoryLabel": "Repositorio", "maven.teamMembers": "Miembros del equipo",
+    "maven.totalSize": "Tamaño total de versiones", "maven.verificationDns": "Registro TXT de DNS", "maven.verificationGithub": "Perfil de GitHub",
+    "maven.verificationGitlab": "Perfil de GitLab", "maven.verificationLegacy": "Importación de repositorio antiguo", "maven.verificationMethod": "Método de verificación",
+    "maven.verificationTarget": "Objetivo de verificación", "maven.verifiedAtLabel": "Verificado el", "maven.versionCountLabel": "Versiones"
 };

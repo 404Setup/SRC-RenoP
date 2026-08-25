@@ -58,7 +58,8 @@
   parallel and reports all missing/extra keys and placeholder drift against the English catalog during
   `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`;
-  repository clipboard feedback is centralized in `js/browser/copy-feedback.js`. Cargo and Docker team invitations
+  repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
+  metadata grids are built by `js/browser/repository-view.js`. Cargo and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
   and `js/time.js`. Shared asynchronous actions use the

@@ -140,3 +140,33 @@ export function createRepositoryBackButton({path, label, navigate, className, ic
 export function formatRepositoryTimestamp(value, {dateOnly = false, fallback = ''} = {}) {
     return formatTimestamp(value, {dateOnly, fallback});
 }
+
+/**
+ * Build a shared metadata facts section for repository package and namespace pages.
+ * @param {string} title - Localized section heading.
+ * @param {{label: string, value: Node|string|number, code?: boolean, wide?: boolean}[]} facts - Display facts.
+ * @param {object} [options={}] - Optional view-specific classes.
+ * @param {string} [options.className=''] - Additional section class.
+ * @returns {HTMLElement} Metadata section.
+ */
+export function createRepositoryFactsSection(title, facts, {className = ''} = {}) {
+    const grid = el('div', {class: 'repository-facts-grid'});
+    for (const fact of facts) {
+        if (!fact || fact.value === null || fact.value === undefined || fact.value === '') continue;
+        let value = fact.value;
+        if (!value?.nodeType) {
+            value = fact.code
+                ? el('code', {title: String(value)}, String(value))
+                : el('span', {}, String(value));
+        }
+        grid.appendChild(el('div', {
+            class: `repository-fact${fact.wide ? ' is-wide' : ''}`
+        },
+            el('span', {class: 'repository-fact-label'}, fact.label),
+            el('div', {class: 'repository-fact-value'}, value)
+        ));
+    }
+    return el('section', {
+        class: `repository-facts-section${className ? ` ${className}` : ''}`
+    }, el('h3', {class: 'repository-facts-title'}, title), grid);
+}

@@ -148,6 +148,21 @@ func logAudit(c fiber.Ctx, state *core.AppState, action, details string) {
 	})
 }
 
+func redactMavenDomainForViewer(domain *core.MavenDomain, administrator, globalArtifactCount bool) {
+	if domain == nil || administrator {
+		return
+	}
+	if domain.PermissionLevel < core.MavenPermissionManage {
+		domain.VerificationCode = ""
+	}
+	if !domain.Member {
+		domain.RepositoryCount = 0
+		if globalArtifactCount {
+			domain.ArtifactCount = 0
+		}
+	}
+}
+
 func listDomains(c fiber.Ctx, state *core.AppState) error {
 	user := auth.GetUser(c)
 	username := ""
@@ -172,9 +187,7 @@ func listDomains(c fiber.Ctx, state *core.AppState) error {
 			return apiError(c, err)
 		}
 		for _, domain := range domains {
-			if domain != nil && !administrator && domain.PermissionLevel < core.MavenPermissionManage {
-				domain.VerificationCode = ""
-			}
+			redactMavenDomainForViewer(domain, administrator, false)
 		}
 		c.Set(fiber.HeaderCacheControl, "no-store")
 		return c.JSON(fiber.Map{"repository": repo.Name, "domains": domains})
@@ -184,9 +197,7 @@ func listDomains(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, err)
 	}
 	for _, domain := range domains {
-		if domain != nil && !administrator && domain.PermissionLevel < core.MavenPermissionManage {
-			domain.VerificationCode = ""
-		}
+		redactMavenDomainForViewer(domain, administrator, true)
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return c.JSON(fiber.Map{"domains": domains})
@@ -274,8 +285,8 @@ func getDomain(c fiber.Ctx, state *core.AppState) error {
 	if administrator {
 		details.Administrator = true
 	}
+	redactMavenDomainForViewer(details.Domain, administrator, true)
 	if !administrator && details.Domain.PermissionLevel < core.MavenPermissionManage {
-		details.Domain.VerificationCode = ""
 		details.Members = nil
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")

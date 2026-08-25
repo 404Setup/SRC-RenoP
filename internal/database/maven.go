@@ -205,7 +205,9 @@ func (db *DB) ListMavenDomains(username string, includeAll bool) ([]*core.MavenD
 		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
 		COALESCE(m.permission_level, 0),
 		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain)
+		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain),
+		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
+		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)
 		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
 		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ?`
 	if !includeAll {
@@ -223,7 +225,8 @@ func (db *DB) ListMavenDomains(username string, includeAll bool) ([]*core.MavenD
 		var verified, member int
 		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
 			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
-			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member, &domain.ArtifactCount); err != nil {
+			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member,
+			&domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
 			return nil, fmt.Errorf("scan Maven domain: %w", err)
 		}
 		domain.Verified = verified != 0
@@ -257,7 +260,9 @@ func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.M
 	rows, err := db.Query(`SELECT d.repository, d.domain, d.verification_type, d.verification_host,
 		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
 		COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		catalog.artifact_count
+		catalog.artifact_count,
+		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
+		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)
 		FROM maven_domains d JOIN (
 			SELECT domain, COUNT(*) AS artifact_count FROM maven_artifacts
 			WHERE repository = ? GROUP BY domain
@@ -276,7 +281,7 @@ func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.M
 		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
 			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
 			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member,
-			&domain.ArtifactCount); err != nil {
+			&domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
 			return nil, fmt.Errorf("scan Maven repository domain: %w", err)
 		}
 		domain.Verified = verified != 0
@@ -310,13 +315,16 @@ func (db *DB) GetMavenDomainDetails(domain, username string) (*core.MavenDomainD
 		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
 		COALESCE(m.permission_level, 0),
 		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain)
+		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain),
+		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
+		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)
 		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
 		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ? AND d.domain = ?`,
 		userID, globalMavenRepository, domain).Scan(&result.Domain.Repository, &result.Domain.Domain,
 		&result.Domain.VerificationType, &result.Domain.VerificationHost, &result.Domain.VerificationCode,
 		&verified, &result.Domain.CreatedAt, &result.Domain.VerifiedAt, &result.Domain.LastCheckAt,
-		&result.Domain.PermissionLevel, &member, &result.Domain.ArtifactCount)
+		&result.Domain.PermissionLevel, &member, &result.Domain.ArtifactCount,
+		&result.Domain.RepositoryCount, &result.Domain.MemberCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrMavenDomainNotFound
 	}
@@ -587,6 +595,8 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 	rows, err := db.Query(`SELECT repository, domain, group_id, artifact_id, description, publisher,
 		latest_version, (SELECT COUNT(*) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
+		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
+		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
 		created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id LIMIT ? OFFSET ?`,
 		append(args, limit, offset)...)
 	if err != nil {
@@ -598,7 +608,7 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 		artifact := &core.MavenArtifact{}
 		if err := rows.Scan(&artifact.Repository, &artifact.Domain, &artifact.GroupID, &artifact.ArtifactID,
 			&artifact.Description, &artifact.Publisher, &artifact.LatestVersion, &artifact.VersionCount,
-			&artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
+			&artifact.TotalSize, &artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan Maven artifact: %w", err)
 		}
 		artifacts = append(artifacts, artifact)
@@ -621,11 +631,13 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 	err := db.QueryRow(`SELECT repository, domain, group_id, artifact_id, description, publisher,
 		latest_version, (SELECT COUNT(*) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
+		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
+		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
 		created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
 		repository, groupID, artifactID).Scan(&result.Artifact.Repository, &result.Artifact.Domain,
 		&result.Artifact.GroupID, &result.Artifact.ArtifactID, &result.Artifact.Description,
 		&result.Artifact.Publisher, &result.Artifact.LatestVersion, &result.Artifact.VersionCount,
-		&result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
+		&result.Artifact.TotalSize, &result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrMavenArtifactNotFound
 	}

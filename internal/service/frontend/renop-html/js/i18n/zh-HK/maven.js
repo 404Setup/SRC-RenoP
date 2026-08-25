@@ -38,5 +38,15 @@ export default {
     "maven.noManagedDomains": "你的帳戶尚未連結 Maven 網域。",
     "maven.backToDomains": "返回網域清單",
     "maven.inviteRequired": "請至少輸入一個使用者名稱。",
-    "maven.userNotFound": "一個或多個 Maven 邀請接收者不存在。"
+    "maven.userNotFound": "一個或多個 Maven 邀請接收者不存在。",
+    "maven.accessLevel": "存取級別", "maven.administratorAccess": "系統管理員", "maven.artifactId": "製品 ID",
+    "maven.artifactInformation": "製品資料", "maven.createdAt": "建立時間", "maven.domainInformation": "發布網域資料",
+    "maven.domainLabel": "發布網域", "maven.domainScope": "作用範圍", "maven.domainScopeGlobal": "全域適用於所有 Maven 儲存庫",
+    "maven.domainStatus": "狀態", "maven.globalArtifactCount": "所有儲存庫中的製品", "maven.groupId": "Group ID",
+    "maven.lastChecked": "最近驗證檢查", "maven.lastUpdated": "最近更新", "maven.latestVersion": "最新版本",
+    "maven.publisher": "發布者", "maven.readOnlyAccess": "唯讀存取", "maven.repositoryArtifactCount": "{repository} 中的製品",
+    "maven.repositoryCount": "儲存庫數量", "maven.repositoryLabel": "儲存庫", "maven.teamMembers": "團隊成員",
+    "maven.totalSize": "版本總大小", "maven.verificationDns": "DNS TXT 記錄", "maven.verificationGithub": "GitHub 個人資料",
+    "maven.verificationGitlab": "GitLab 個人資料", "maven.verificationLegacy": "舊版儲存庫匯入", "maven.verificationMethod": "驗證方式",
+    "maven.verificationTarget": "驗證目標", "maven.verifiedAtLabel": "驗證時間", "maven.versionCountLabel": "版本數量"
 };

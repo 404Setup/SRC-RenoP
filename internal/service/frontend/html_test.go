@@ -310,6 +310,18 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	if !strings.Contains(mavenText, "members.length === 0 && !administrator") {
 		t.Fatal("administrators cannot assign the first member of an imported Maven domain")
 	}
+	for _, detailSection := range []string{"domainInformationSection(details", "artifactInformationSection(details"} {
+		if !strings.Contains(mavenText, detailSection) {
+			t.Fatalf("Maven detail pages are missing %q", detailSection)
+		}
+	}
+	repositoryViewSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "repository-view.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(repositoryViewSource), "export function createRepositoryFactsSection") {
+		t.Fatal("repository detail pages are missing the shared metadata facts component")
+	}
 	messageSource, err := os.ReadFile(filepath.Join("renop-html", "js", "maven-messages.js"))
 	if err != nil {
 		t.Fatal(err)

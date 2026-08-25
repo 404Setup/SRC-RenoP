@@ -167,11 +167,16 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 		CreatedAt: publishedAt, UpdatedAt: publishedAt,
 	}, &core.MavenVersion{
 		Repository: "releases", GroupID: "com.example", ArtifactID: "postgres-demo",
-		Version: "1.0.0", Publisher: "maven_bob", CreatedAt: publishedAt,
+		Version: "1.0.0", Publisher: "maven_bob", Size: 2048, CreatedAt: publishedAt,
 	}))
 	repositoryDomains, err := db.ListMavenRepositoryDomains("releases", "maven_bob")
 	require.NoError(t, err)
 	require.Len(t, repositoryDomains, 1)
 	require.Equal(t, "com.example", repositoryDomains[0].Domain)
 	require.Equal(t, 1, repositoryDomains[0].ArtifactCount)
+	require.Equal(t, 1, repositoryDomains[0].RepositoryCount)
+	require.Equal(t, 2, repositoryDomains[0].MemberCount)
+	artifactDetails, err := db.GetMavenArtifactDetails("releases", "com.example", "postgres-demo")
+	require.NoError(t, err)
+	require.Equal(t, int64(2048), artifactDetails.Artifact.TotalSize)
 }

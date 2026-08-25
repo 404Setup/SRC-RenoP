@@ -38,5 +38,15 @@ export default {
     "maven.noManagedDomains": "계정에 연결된 Maven 도메인이 없습니다.",
     "maven.backToDomains": "도메인 목록으로",
     "maven.inviteRequired": "사용자 이름을 하나 이상 입력하세요.",
-    "maven.userNotFound": "Maven 초대 대상 중 하나 이상이 존재하지 않습니다."
+    "maven.userNotFound": "Maven 초대 대상 중 하나 이상이 존재하지 않습니다.",
+    "maven.accessLevel": "접근 수준", "maven.administratorAccess": "시스템 관리자", "maven.artifactId": "아티팩트 ID",
+    "maven.artifactInformation": "아티팩트 정보", "maven.createdAt": "생성 시각", "maven.domainInformation": "도메인 정보",
+    "maven.domainLabel": "게시 도메인", "maven.domainScope": "적용 범위", "maven.domainScopeGlobal": "모든 Maven 저장소에서 전역 사용",
+    "maven.domainStatus": "상태", "maven.globalArtifactCount": "전체 저장소의 아티팩트", "maven.groupId": "그룹 ID",
+    "maven.lastChecked": "마지막 검증 확인", "maven.lastUpdated": "마지막 업데이트", "maven.latestVersion": "최신 버전",
+    "maven.publisher": "게시자", "maven.readOnlyAccess": "읽기 전용 접근", "maven.repositoryArtifactCount": "{repository}의 아티팩트",
+    "maven.repositoryCount": "저장소 수", "maven.repositoryLabel": "저장소", "maven.teamMembers": "팀 구성원",
+    "maven.totalSize": "버전 전체 크기", "maven.verificationDns": "DNS TXT 레코드", "maven.verificationGithub": "GitHub 프로필",
+    "maven.verificationGitlab": "GitLab 프로필", "maven.verificationLegacy": "이전 저장소 가져오기", "maven.verificationMethod": "검증 방법",
+    "maven.verificationTarget": "검증 대상", "maven.verifiedAtLabel": "검증 시각", "maven.versionCountLabel": "버전 수"
 };

@@ -260,6 +260,64 @@
     opacity: 1;
 }
 
+.repository-facts-section {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.85rem;
+    background: var(--card-bg);
+}
+
+.repository-facts-title {
+    margin: 0 0 0.8rem;
+    font-size: 0.9rem;
+}
+
+.repository-facts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.65rem;
+}
+
+.repository-fact {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+}
+
+.repository-fact.is-wide {
+    grid-column: 1 / -1;
+}
+
+.repository-fact-label {
+    color: color-mix(in srgb, var(--text-color) 60%, transparent);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.repository-fact-value {
+    min-width: 0;
+    color: var(--text-color);
+    font-size: 0.82rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.repository-fact-value code {
+    color: inherit;
+    font-size: 0.78rem;
+}
+
+.repository-fact-value .user-identity {
+    max-width: 100%;
+}
+
 .snippet-content code.code-changing {
     opacity: 0;
     transform: translateY(4px);

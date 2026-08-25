@@ -56,6 +56,8 @@ type MavenDomain struct {
 	LastCheckAt      int64  `json:"last_check_at,omitempty"`
 	PermissionLevel  int    `json:"permission_level,omitempty"`
 	ArtifactCount    int    `json:"artifact_count"`
+	RepositoryCount  int    `json:"repository_count"`
+	MemberCount      int    `json:"member_count"`
 	Verified         bool   `json:"verified"`
 	Member           bool   `json:"member,omitempty"`
 }
@@ -85,6 +87,7 @@ type MavenArtifact struct {
 	Publisher       string `json:"publisher,omitempty"`
 	LatestVersion   string `json:"latest_version,omitempty"`
 	VersionCount    int    `json:"version_count"`
+	TotalSize       int64  `json:"total_size"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`
 	PermissionLevel int    `json:"permission_level,omitempty"`

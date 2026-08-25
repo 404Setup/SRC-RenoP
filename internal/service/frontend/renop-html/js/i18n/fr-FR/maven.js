@@ -38,5 +38,15 @@ export default {
     "maven.noManagedDomains": "Aucun domaine Maven n’est associé à votre compte.",
     "maven.backToDomains": "Retour aux domaines",
     "maven.inviteRequired": "Saisissez au moins un nom d’utilisateur.",
-    "maven.userNotFound": "Un ou plusieurs destinataires de l’invitation Maven n’existent pas."
+    "maven.userNotFound": "Un ou plusieurs destinataires de l’invitation Maven n’existent pas.",
+    "maven.accessLevel": "Niveau d’accès", "maven.administratorAccess": "Administrateur système", "maven.artifactId": "ID de l’artefact",
+    "maven.artifactInformation": "Informations sur l’artefact", "maven.createdAt": "Créé", "maven.domainInformation": "Informations sur le domaine",
+    "maven.domainLabel": "Domaine de publication", "maven.domainScope": "Portée", "maven.domainScopeGlobal": "Global dans tous les dépôts Maven",
+    "maven.domainStatus": "État", "maven.globalArtifactCount": "Artefacts dans tous les dépôts", "maven.groupId": "ID du groupe",
+    "maven.lastChecked": "Dernière vérification", "maven.lastUpdated": "Dernière mise à jour", "maven.latestVersion": "Dernière version",
+    "maven.publisher": "Éditeur", "maven.readOnlyAccess": "Accès en lecture seule", "maven.repositoryArtifactCount": "Artefacts dans {repository}",
+    "maven.repositoryCount": "Dépôts", "maven.repositoryLabel": "Dépôt", "maven.teamMembers": "Membres de l’équipe",
+    "maven.totalSize": "Taille totale des versions", "maven.verificationDns": "Enregistrement TXT DNS", "maven.verificationGithub": "Profil GitHub",
+    "maven.verificationGitlab": "Profil GitLab", "maven.verificationLegacy": "Import d’un ancien dépôt", "maven.verificationMethod": "Méthode de vérification",
+    "maven.verificationTarget": "Cible de vérification", "maven.verifiedAtLabel": "Vérifié le", "maven.versionCountLabel": "Versions"
 };

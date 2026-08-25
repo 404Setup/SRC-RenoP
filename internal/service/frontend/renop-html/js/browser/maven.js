@@ -19,6 +19,7 @@ import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {
     createRepositoryBackButton,
+    createRepositoryFactsSection,
     ensureRepositoryView,
     formatRepositoryTimestamp,
     hideRepositoryView,
@@ -189,7 +190,8 @@ function artifactCard(repository, artifact) {
     ),
     el('span', {class: 'maven-artifact-meta'},
         artifact.latest_version ? el('code', {}, artifact.latest_version) : null,
-        el('span', {}, t('maven.versionCount', {count: Number(artifact.version_count) || 0}))
+        el('span', {}, t('maven.versionCount', {count: Number(artifact.version_count) || 0})),
+        Number(artifact.total_size) > 0 ? el('span', {}, formatBytes(Number(artifact.total_size))) : null
     ));
 }
 
@@ -205,6 +207,86 @@ async function readArtifactPage(response) {
         throw new Error(t('maven.loadFailed'));
     }
     return data;
+}
+
+/**
+ * Return a localized Maven domain verification method.
+ * @param {string} verificationType
+ * @returns {string}
+ */
+function verificationMethodLabel(verificationType) {
+    const labels = {
+        dns: 'maven.verificationDns',
+        github: 'maven.verificationGithub',
+        gitlab: 'maven.verificationGitlab',
+        legacy: 'maven.verificationLegacy'
+    };
+    return t(labels[String(verificationType || '').toLowerCase()] || 'common.unknown');
+}
+
+/**
+ * Build globally consistent domain facts, plus an optional repository-local artifact count.
+ * @param {object} details
+ * @param {object} [options={}]
+ * @param {string} [options.repository='']
+ * @param {number|null} [options.repositoryArtifactCount=null]
+ * @returns {HTMLElement}
+ */
+function domainInformationSection(details, {repository = '', repositoryArtifactCount = null} = {}) {
+    const domain = details.domain;
+    const canViewGlobalCounts = Boolean(details.administrator || domain.member);
+    const access = details.administrator
+        ? t('maven.administratorAccess')
+        : (domain.member ? permissionLabel(domain.permission_level) : t('maven.readOnlyAccess'));
+    const facts = [
+        {label: t('maven.domainScope'), value: t('maven.domainScopeGlobal')},
+        {label: t('maven.verificationMethod'), value: verificationMethodLabel(domain.verification_type)},
+        {label: t('maven.verificationTarget'), value: domain.verification_host, code: true},
+        {label: t('maven.domainStatus'), value: domain.verified ? t('maven.verified') : t('maven.pending')},
+        {label: t('maven.createdAt'), value: formatDate(domain.created_at)},
+        {label: t('maven.verifiedAtLabel'), value: domain.verified_at ? formatDate(domain.verified_at) : null},
+        {label: t('maven.lastChecked'), value: domain.last_check_at ? formatDate(domain.last_check_at) : null},
+        {label: t('maven.teamMembers'), value: Number(domain.member_count) || 0},
+        {label: t('maven.repositoryCount'), value: canViewGlobalCounts ? Number(domain.repository_count) || 0 : null},
+        {label: t('maven.globalArtifactCount'), value: canViewGlobalCounts ? Number(domain.artifact_count) || 0 : null},
+        {
+            label: repository ? t('maven.repositoryArtifactCount', {repository}) : '',
+            value: repository && Number.isFinite(Number(repositoryArtifactCount)) ? Number(repositoryArtifactCount) : null
+        },
+        {label: t('maven.accessLevel'), value: access}
+    ];
+    return createRepositoryFactsSection(t('maven.domainInformation'), facts);
+}
+
+/**
+ * Build Maven artifact facts from durable catalog metadata.
+ * @param {object} details
+ * @param {string} repository
+ * @returns {HTMLElement}
+ */
+function artifactInformationSection(details, repository) {
+    const artifact = details.artifact;
+    const access = details.administrator
+        ? t('maven.administratorAccess')
+        : (Number(artifact.permission_level) > 0
+            ? permissionLabel(artifact.permission_level)
+            : t('maven.readOnlyAccess'));
+    return createRepositoryFactsSection(t('maven.artifactInformation'), [
+        {label: t('maven.repositoryLabel'), value: repository, code: true},
+        {label: t('maven.domainLabel'), value: artifact.domain, code: true},
+        {label: t('maven.groupId'), value: artifact.group_id, code: true},
+        {label: t('maven.artifactId'), value: artifact.artifact_id, code: true},
+        {label: t('maven.latestVersion'), value: artifact.latest_version || t('common.unknown'), code: Boolean(artifact.latest_version)},
+        {label: t('maven.versionCountLabel'), value: Number(artifact.version_count) || 0},
+        {label: t('maven.totalSize'), value: formatBytes(Number(artifact.total_size) || 0)},
+        {label: t('maven.createdAt'), value: formatDate(artifact.created_at)},
+        {label: t('maven.lastUpdated'), value: formatDate(artifact.updated_at)},
+        {
+            label: t('maven.publisher'),
+            value: artifact.publisher ? createUserIdentity(artifact.publisher) : t('common.unknown')
+        },
+        {label: t('maven.accessLevel'), value: access}
+    ]);
 }
 
 /**
@@ -512,7 +594,7 @@ async function renderManagedDomain(container, domainName) {
             !domain.verified ? verificationPanel(domain) : null
         );
         const team = teamPanel(details, refresh);
-        container.replaceChildren(...[hero, team].filter(Boolean));
+        container.replaceChildren(...[hero, domainInformationSection(details), team].filter(Boolean));
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
         container.replaceChildren(
@@ -582,7 +664,11 @@ async function renderDomain(container, repository, domainName, sequence) {
         const artifactList = el('div', {class: 'maven-artifact-list'});
         if (artifacts.length === 0) artifactList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noDomainArtifacts')));
         else artifacts.forEach(artifact => artifactList.appendChild(artifactCard(repository, artifact)));
-        const sections = [hero, el('section', {class: 'maven-section'}, el('h3', {}, t('maven.artifactsTitle')), artifactList)];
+        const sections = [
+            hero,
+            domainInformationSection(details, {repository, repositoryArtifactCount: artifactData.total}),
+            el('section', {class: 'maven-section'}, el('h3', {}, t('maven.artifactsTitle')), artifactList)
+        ];
         await replaceRepositoryView(container, sections, {duration: 280, enter: false});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
@@ -700,7 +786,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             ));
         });
         if (versions.length === 0) versionList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noVersions')));
-        await replaceRepositoryView(container, [hero,
+        await replaceRepositoryView(container, [hero, artifactInformationSection(details, repository),
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.versionsTitle')), versionList)
         ], {duration: 280, enter: false});
     } catch (error) {

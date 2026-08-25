@@ -162,6 +162,7 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	assert.Equal(t, 1, releaseCatalog.Total)
 	require.Len(t, releaseCatalog.Artifacts, 1)
 	assert.Equal(t, "com.example:demo", releaseCatalog.Artifacts[0].GroupID+":"+releaseCatalog.Artifacts[0].ArtifactID)
+	assert.Positive(t, releaseCatalog.Artifacts[0].TotalSize)
 	response = mavenRequest(t, app, http.MethodGet, "/api/maven/repositories/releases/domains", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var releaseDomains struct {
@@ -215,6 +216,30 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 	require.NotNil(t, crossRepositoryDetails.Domain)
 	assert.Equal(t, 2, crossRepositoryDetails.Domain.ArtifactCount)
+	assert.Equal(t, 2, crossRepositoryDetails.Domain.RepositoryCount)
+	assert.Equal(t, 2, crossRepositoryDetails.Domain.MemberCount)
+
+	currentUser = &config.User{Username: "guest", Roles: []string{"guest"}}
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/domains/com.example", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var publicDomainDetails core.MavenDomainDetails
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&publicDomainDetails))
+	require.NoError(t, response.Body.Close())
+	require.NotNil(t, publicDomainDetails.Domain)
+	assert.Zero(t, publicDomainDetails.Domain.ArtifactCount)
+	assert.Zero(t, publicDomainDetails.Domain.RepositoryCount)
+	assert.Equal(t, 2, publicDomainDetails.Domain.MemberCount)
+	assert.Empty(t, publicDomainDetails.Members)
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/repositories/releases/domains", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var publicRepositoryDomains struct {
+		Domains []*core.MavenDomain `json:"domains"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&publicRepositoryDomains))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, publicRepositoryDomains.Domains, 1)
+	assert.Equal(t, 1, publicRepositoryDomains.Domains[0].ArtifactCount)
+	assert.Zero(t, publicRepositoryDomains.Domains[0].RepositoryCount)
 
 	currentUser = &config.User{Username: "bob", Roles: []string{"base"}}
 	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains", `{"domain":"org.third"}`)
