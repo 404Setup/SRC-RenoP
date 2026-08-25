@@ -469,6 +469,54 @@ func TestAccountMenuOwnsMessagesLogoutAndNotificationComposer(t *testing.T) {
 	}
 }
 
+func TestSharedShellRoutingAvatarCodeAndSearchAnimations(t *testing.T) {
+	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(indexSource), `id="home-link" href="/"`) {
+		t.Fatal("navigation title is missing the explicit home control")
+	}
+	mainSource, err := os.ReadFile(filepath.Join("renop-html", "js", "main.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mainText := string(mainSource)
+	for _, required := range []string{"async function navigateHome()", "window.history.pushState(null, '', '/')", "await switchTab('overview')"} {
+		if !strings.Contains(mainText, required) {
+			t.Fatalf("home navigation is missing %q", required)
+		}
+	}
+	navigationCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "layout", "navigation.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"flex: 0 0 2.5rem", "min-width: 2.5rem", "aspect-ratio: 1"} {
+		if !strings.Contains(string(navigationCSS), required) {
+			t.Fatalf("navigation avatar sizing is missing %q", required)
+		}
+	}
+	detailsCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "browser", "details.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"overflow-x: auto", "width: max-content", "min-width: 100%"} {
+		if !strings.Contains(string(detailsCSS), required) {
+			t.Fatalf("copyable code viewport is missing %q", required)
+		}
+	}
+	searchSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "search.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	searchText := string(searchSource)
+	for _, required := range []string{"morphElementHeight(panel, mutate", "function replaceResultsContent", "panel.style.bottom"} {
+		if !strings.Contains(searchText, required) {
+			t.Fatalf("repository search height animation is missing %q", required)
+		}
+	}
+}
+
 func TestFrontendUsesSharedClipboardAndTimeUtilities(t *testing.T) {
 	jsRoot := filepath.Join("renop-html", "js")
 	clipboardPath := filepath.Join(jsRoot, "clipboard.js")

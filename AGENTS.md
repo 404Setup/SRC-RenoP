@@ -54,7 +54,8 @@
   The signed-in account menu owns profile navigation, messages, logout, Maven domains, administrator pages, and the
   standalone administrator notification composer; the settings UI groups the server, outbound-proxy, and storage APIs
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
-  `js/main.js` is the single owner of browser `popstate` dispatch to prevent concurrent route loads. Modular i18n
+  `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
+  loads. Modular i18n
   catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,
   repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads fragments in
   parallel and reports all missing/extra keys and placeholder drift against the English catalog during

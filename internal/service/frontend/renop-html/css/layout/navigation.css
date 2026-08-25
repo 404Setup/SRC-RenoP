@@ -251,6 +251,10 @@ html.dark .nav-controls-group .nav-profile-menu-item.is-danger:focus-visible {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    flex: 0 0 2.5rem;
+    aspect-ratio: 1;
     border-radius: 50%;
     background-color: var(--card-bg);
     font-weight: bold;

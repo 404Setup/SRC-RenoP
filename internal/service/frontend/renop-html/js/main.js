@@ -236,6 +236,17 @@ function updateProfileMenuSelection(tabId) {
 }
 
 /**
+ * Reset the browser route and active application view to the home page.
+ * @returns {Promise<void>}
+ */
+async function navigateHome() {
+    if (window.location.pathname !== '/' || window.location.search || window.location.hash) {
+        window.history.pushState(null, '', '/');
+    }
+    await switchTab('overview');
+}
+
+/**
  * Activate a main app tab: update tab UI, show matching content, and run tab-specific init.
  * @param {string} tabId - Tab id (e.g. 'overview', 'dashboard', 'settings').
  * @returns {Promise<void>}
@@ -468,10 +479,7 @@ async function initializeApplication() {
                 const targetTab = item.dataset.profileTab;
                 if (!targetTab) return;
                 if (targetTab === 'overview') {
-                    if (window.location.pathname !== '/') {
-                        window.history.pushState(null, '', '/');
-                    }
-                    await switchTab('overview');
+                    await navigateHome();
                     return;
                 }
                 if (!cachedIsManager) return;
@@ -512,6 +520,15 @@ async function initializeApplication() {
         const reloadBtn = document.getElementById('reload-btn');
         if (reloadBtn) {
             reloadBtn.addEventListener('click', () => window.location.reload());
+        }
+
+        const homeLink = document.getElementById('home-link');
+        if (homeLink) {
+            homeLink.addEventListener('click', event => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                void navigateHome();
+            });
         }
 
         const headerLogo = document.getElementById('header-logo');

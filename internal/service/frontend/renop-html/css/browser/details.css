@@ -219,7 +219,8 @@
     box-sizing: border-box;
     background-color: var(--snippet-bg);
     padding: 1.2rem 1.5rem;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     border-top: 1px solid var(--border-color);
     position: relative;
     display: flex;
@@ -244,12 +245,14 @@
 }
 
 .snippet-content pre {
+    width: max-content;
+    min-width: 100%;
     margin: 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
     font-size: 0.82rem;
     color: var(--text-color);
     line-height: 1.6;
-    overflow-x: auto;
+    overflow: visible;
 }
 
 .snippet-content code {

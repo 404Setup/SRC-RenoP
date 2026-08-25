@@ -9,6 +9,7 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {morphElementHeight} from '@renop/ui/height-anim';
 import {fetchProto} from '../api.js';
 import {createIcon} from '../components.js';
 import {t} from '../i18n.js';
@@ -69,10 +70,12 @@ function positionResultsPanel() {
     panel.style.left = `${left}px`;
     panel.style.width = `${width}px`;
     panel.style.top = `${rect.bottom + 7}px`;
+    panel.style.bottom = '';
 
     const panelHeight = panel.getBoundingClientRect().height;
     if (rect.bottom + panelHeight + 12 > window.innerHeight && rect.top > panelHeight + 12) {
-        panel.style.top = `${rect.top - panelHeight - 7}px`;
+        panel.style.top = 'auto';
+        panel.style.bottom = `${window.innerHeight - rect.top + 7}px`;
         panel.classList.add('opens-upward');
     } else {
         panel.classList.remove('opens-upward');
@@ -119,18 +122,36 @@ function closeResultsPanel(immediate = false) {
 }
 
 /**
+ * Replace visible search content while smoothly adapting the panel height.
+ * @param {() => void} mutate - Search DOM mutation.
+ * @returns {void}
+ */
+function replaceResultsContent(mutate) {
+    const panel = ensureResultsPanel();
+    if (panel.hidden || !panel.classList.contains('is-visible')) {
+        mutate();
+        openResultsPanel();
+        return;
+    }
+    void morphElementHeight(panel, mutate, {
+        duration: 220,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)'
+    }).then(positionResultsPanel);
+}
+
+/**
  * Render one status message inside the search result panel.
  * @param {string} message - Localized status copy.
  * @param {boolean} [isError=false] - Whether to use error styling.
  * @returns {void}
  */
 function renderSearchStatus(message, isError = false) {
-    const panel = ensureResultsPanel();
-    panel.replaceChildren(el('p', {
-        class: `repository-search-status${isError ? ' is-error' : ''}`,
-        role: 'status'
-    }, message));
-    openResultsPanel();
+    replaceResultsContent(() => {
+        ensureResultsPanel().replaceChildren(el('p', {
+            class: `repository-search-status${isError ? ' is-error' : ''}`,
+            role: 'status'
+        }, message));
+    });
 }
 
 /**
@@ -181,22 +202,23 @@ function buildSearchResult(result) {
  * @returns {void}
  */
 function renderSearchResults(payload) {
-    const panel = ensureResultsPanel();
     const results = Array.isArray(payload?.results) ? payload.results : [];
-    panel.replaceChildren();
-    if (results.length === 0) {
-        panel.appendChild(el('p', {class: 'repository-search-status', role: 'status'}, t('search.noResults')));
-    } else {
-        const summary = t('search.resultCount', {count: Number(payload?.total || results.length)});
-        panel.appendChild(el('p', {class: 'repository-search-summary'}, summary));
-        const list = el('div', {class: 'repository-search-result-list'});
-        for (const result of results) list.appendChild(buildSearchResult(result));
-        panel.appendChild(list);
-        if (payload?.has_more === true) {
-            panel.appendChild(el('p', {class: 'repository-search-more'}, t('search.moreResults')));
+    replaceResultsContent(() => {
+        const panel = ensureResultsPanel();
+        panel.replaceChildren();
+        if (results.length === 0) {
+            panel.appendChild(el('p', {class: 'repository-search-status', role: 'status'}, t('search.noResults')));
+        } else {
+            const summary = t('search.resultCount', {count: Number(payload?.total || results.length)});
+            panel.appendChild(el('p', {class: 'repository-search-summary'}, summary));
+            const list = el('div', {class: 'repository-search-result-list'});
+            for (const result of results) list.appendChild(buildSearchResult(result));
+            panel.appendChild(list);
+            if (payload?.has_more === true) {
+                panel.appendChild(el('p', {class: 'repository-search-more'}, t('search.moreResults')));
+            }
         }
-    }
-    openResultsPanel();
+    });
 }
 
 /**
