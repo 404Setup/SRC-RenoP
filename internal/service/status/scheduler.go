@@ -221,74 +221,58 @@ func UpdateDiskStats(state *core.AppState) (renopUsed, diskUsed, diskTotal uint6
 	return
 }
 
-func StartStatusSnapshotScheduler(state *core.AppState, intervalDuration time.Duration) {
-	go func() {
-		ticker := time.NewTicker(intervalDuration)
-		defer ticker.Stop()
+// UpdateStatusSnapshot records the current process and storage metrics once.
+func UpdateStatusSnapshot(state *core.AppState) {
+	if state == nil || state.Inner == nil {
+		return
+	}
+	usedMemory, vssMemory := processMemoryWithFallback()
+	totalMemory := cachedTotalMemory
+	if totalMemory == 0 {
+		if v, err := mem.VirtualMemory(); err == nil {
+			totalMemory = v.Total
+			cachedTotalMemory = totalMemory
+		}
+	}
+	logicalCores := cachedLogicalCores
+	physicalCores := cachedPhysicalCores
 
-		updateMemory := func() {
-			usedMemory, vssMemory := processMemoryWithFallback()
-			totalMemory := cachedTotalMemory
-			if totalMemory == 0 {
-				if v, err := mem.VirtualMemory(); err == nil {
-					totalMemory = v.Total
-					cachedTotalMemory = totalMemory
-				}
-			}
-			logicalCores := cachedLogicalCores
-			physicalCores := cachedPhysicalCores
+	renopUsedDisk, diskUsed, diskTotal := UpdateDiskStats(state)
 
-			renopUsedDisk, diskUsed, diskTotal := UpdateDiskStats(state)
+	CachedMemory.Store(&CachedMemoryState{
+		UsedMemory:    usedMemory,
+		VssMemory:     vssMemory,
+		TotalMemory:   totalMemory,
+		RenopUsedDisk: renopUsedDisk,
+		DiskUsed:      diskUsed,
+		DiskTotal:     diskTotal,
+		LogicalCores:  logicalCores,
+		PhysicalCores: physicalCores,
+	})
 
-			CachedMemory.Store(&CachedMemoryState{
-				UsedMemory:    usedMemory,
-				VssMemory:     vssMemory,
-				TotalMemory:   totalMemory,
-				RenopUsedDisk: renopUsedDisk,
-				DiskUsed:      diskUsed,
-				DiskTotal:     diskTotal,
-				LogicalCores:  logicalCores,
-				PhysicalCores: physicalCores,
-			})
+	snapshot := core.StatusSnapshot{
+		Timestamp:   time.Now().UnixMilli(),
+		UsedMemory:  usedMemory,
+		VssMemory:   vssMemory,
+		UsedThreads: uint64(runtime.NumGoroutine()),
+		OpenFiles:   0,
+	}
 
-			usedThreads := uint64(runtime.NumGoroutine())
-			snapshot := core.StatusSnapshot{
-				Timestamp:   time.Now().UnixMilli(),
-				UsedMemory:  usedMemory,
-				VssMemory:   vssMemory,
-				UsedThreads: usedThreads,
-				OpenFiles:   0,
-			}
-
-			// Forced scavenges and working-set trims thrash the heap and inflate private
-			// commit (dashboard VSS) without a lasting win.
-
-			for {
-				currentPtr := state.Inner.StatusSnapshots.Load()
-				var currentSlice []core.StatusSnapshot
-
-				if currentPtr != nil {
-					currentSlice = *currentPtr
-				}
-
-				nextSlice := make([]core.StatusSnapshot, 0, len(currentSlice)+1)
-				nextSlice = append(nextSlice, currentSlice...)
-				nextSlice = append(nextSlice, snapshot)
-
-				if len(nextSlice) > maxStatusSnapshots {
-					nextSlice = nextSlice[len(nextSlice)-maxStatusSnapshots:]
-				}
-
-				if state.Inner.StatusSnapshots.CompareAndSwap(currentPtr, &nextSlice) {
-					break
-				}
-			}
+	for {
+		currentPtr := state.Inner.StatusSnapshots.Load()
+		var currentSlice []core.StatusSnapshot
+		if currentPtr != nil {
+			currentSlice = *currentPtr
 		}
 
-		updateMemory()
-
-		for range ticker.C {
-			updateMemory()
+		nextSlice := make([]core.StatusSnapshot, 0, min(len(currentSlice)+1, maxStatusSnapshots))
+		if len(currentSlice) >= maxStatusSnapshots {
+			currentSlice = currentSlice[len(currentSlice)-maxStatusSnapshots+1:]
 		}
-	}()
+		nextSlice = append(nextSlice, currentSlice...)
+		nextSlice = append(nextSlice, snapshot)
+		if state.Inner.StatusSnapshots.CompareAndSwap(currentPtr, &nextSlice) {
+			return
+		}
+	}
 }

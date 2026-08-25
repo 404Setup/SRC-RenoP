@@ -43,8 +43,6 @@ type TTLCache[K comparable, V any] struct {
 	shards     [numShards]*cacheShard[K, V]
 	stats      CacheStats
 	defaultTTL time.Duration
-	stopEvict  chan struct{}
-	closeOnce  sync.Once
 	evictPool  syncv2.Pool[*[]K]
 }
 
@@ -94,7 +92,6 @@ func hashKey[K comparable](key K) uint64 {
 func NewTTLCache[K comparable, V any](defaultTTL time.Duration) *TTLCache[K, V] {
 	cache := &TTLCache[K, V]{
 		defaultTTL: defaultTTL,
-		stopEvict:  make(chan struct{}),
 	}
 	cache.evictPool = syncv2.Pool[*[]K]{
 		New: func() *[]K {
@@ -108,34 +105,12 @@ func NewTTLCache[K comparable, V any](defaultTTL time.Duration) *TTLCache[K, V] 
 		}
 	}
 
-	evictInterval := min(max(defaultTTL/2, 30*time.Second), 2*time.Minute)
-	go cache.startEvictionLoop(evictInterval)
-
 	return cache
 }
 
 func (c *TTLCache[K, V]) getShard(key K) *cacheShard[K, V] {
 	idx := hashKey(key) % numShards
 	return c.shards[idx]
-}
-
-func (c *TTLCache[K, V]) startEvictionLoop(interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			c.EvictExpired()
-		case <-c.stopEvict:
-			return
-		}
-	}
-}
-
-func (c *TTLCache[K, V]) Close() {
-	c.closeOnce.Do(func() {
-		close(c.stopEvict)
-	})
 }
 
 func (c *TTLCache[K, V]) Stats() (hits, misses int64) {

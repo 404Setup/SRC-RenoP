@@ -11,23 +11,93 @@
 package bootstrap
 
 import (
+	"context"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"go.yaml.in/yaml/v3"
 
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/middleware"
+	"renop/internal/service/audit"
+	"renop/internal/service/auth"
 	"renop/internal/service/cargodocs"
+	"renop/internal/service/docker"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/service/tasks"
+	"renop/internal/service/updater"
+	"renop/internal/service/upload"
 	"renop/internal/utils"
 )
+
+const (
+	statusSnapshotInterval   = 20 * time.Second
+	indexSaveInterval        = 10 * time.Second
+	sessionCleanupInterval   = time.Minute
+	securityCleanupInterval  = time.Minute
+	fidoCleanupInterval      = 5 * time.Minute
+	ipLimiterCleanupInterval = 5 * time.Minute
+	databaseCacheInterval    = 2 * time.Minute
+	auditCleanupInterval     = 10 * time.Minute
+	dockerPullFlushInterval  = 2 * time.Second
+	gpgQueuePollInterval     = time.Second
+	uploadCleanupInterval    = time.Minute
+)
+
+// ServiceRuntime owns the shared periodic scheduler and shutdown finalizers.
+type ServiceRuntime struct {
+	scheduler   *tasks.Scheduler
+	state       *core.AppState
+	indexSave   func(context.Context)
+	pullCounter *docker.PullCounter
+	closeOnce   sync.Once
+	closeErr    error
+}
+
+// Close stops periodic work, persists pending index and pull-counter state, and
+// releases the file watcher.
+func (runtime *ServiceRuntime) Close() error {
+	if runtime == nil {
+		return nil
+	}
+	runtime.closeOnce.Do(func() {
+		if runtime.scheduler != nil {
+			runtime.scheduler.Close()
+		}
+		var closeErrors []error
+		if runtime.state != nil && runtime.state.Inner != nil {
+			runtime.state.Inner.IndexWatcherMutex.Lock()
+			watcher := runtime.state.Inner.IndexWatcher
+			runtime.state.Inner.IndexWatcher = nil
+			runtime.state.Inner.IndexWatcherMutex.Unlock()
+			if watcher != nil {
+				if err := watcher.Close(); err != nil {
+					closeErrors = append(closeErrors, err)
+				}
+			}
+		}
+		if runtime.pullCounter != nil {
+			if err := runtime.pullCounter.Flush(); err != nil {
+				closeErrors = append(closeErrors, err)
+			}
+		}
+		if runtime.indexSave != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			runtime.indexSave(ctx)
+			cancel()
+		}
+		runtime.closeErr = errors.Join(closeErrors...)
+	})
+	return runtime.closeErr
+}
 
 func Initialize() (*core.AppState, BootstrapContext) {
 	configPath := os.Getenv("RENOP_CONFIG")
@@ -120,27 +190,95 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	return state, bootstrapCtx
 }
 
-func StartServices(state *core.AppState, context BootstrapContext) {
-	status.StartStatusSnapshotScheduler(state, 20*time.Second)
-	tasks.StartIndexSaver(state, context.IndexPath)
-	tasks.StartSessionCleaner(state)
-	storage.StartGPGReleaseWorker(state)
-
-	go func() {
-		for {
-			time.Sleep(1 * time.Minute)
-			now := time.Now().UnixMilli()
-			state.Inner.AuthCache.Range(func(key string, val core.AuthCacheEntry) bool {
-				if now > val.ExpiredAt {
-					state.DeleteAuthCache(key)
-				}
-				return true
-			})
-		}
-	}()
-
+// StartServices starts event-driven workers and registers coalescible periodic
+// maintenance on one process-wide scheduler.
+func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*ServiceRuntime, error) {
+	if state == nil || state.Inner == nil {
+		return nil, errors.New("application state is unavailable")
+	}
 	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return nil, errors.New("application configuration is unavailable")
+	}
 	storagePath := cfg.StoragePath
+	indexSave := tasks.NewIndexSaveTask(state, bootstrapContext.IndexPath)
+	pullCounter := docker.GetPullCounter(state)
+	uploadCleanup := upload.NewCleanupTask(storagePath)
+	scheduler := tasks.NewScheduler()
+	runtimeServices := &ServiceRuntime{
+		scheduler:   scheduler,
+		state:       state,
+		indexSave:   indexSave,
+		pullCounter: pullCounter,
+	}
+	schedule := func(name string, interval, initialDelay time.Duration, run func(context.Context)) error {
+		if err := scheduler.Schedule(name, interval, initialDelay, run); err != nil {
+			_ = runtimeServices.Close()
+			return err
+		}
+		return nil
+	}
+
+	registrations := []struct {
+		name         string
+		interval     time.Duration
+		initialDelay time.Duration
+		run          func(context.Context)
+	}{
+		{"status-snapshot", statusSnapshotInterval, 0, func(context.Context) {
+			status.UpdateStatusSnapshot(state)
+		}},
+		{"index-save", indexSaveInterval, indexSaveInterval, indexSave},
+		{"session-cleanup", sessionCleanupInterval, sessionCleanupInterval, func(context.Context) {
+			if err := tasks.CleanExpiredSessions(state, time.Now()); err != nil {
+				state.Inner.FailuresCount.Add(1)
+				log.Printf("Failed to clean expired sessions: %v", err)
+			}
+		}},
+		{"security-cache-cleanup", securityCleanupInterval, securityCleanupInterval, func(context.Context) {
+			tasks.PruneAuthCache(state, time.Now())
+			state.Inner.AnomalyFailures.PruneExpired()
+		}},
+		{"fido-session-cleanup", fidoCleanupInterval, fidoCleanupInterval, func(context.Context) {
+			auth.PruneExpiredFidoSessions(time.Now())
+		}},
+		{"ip-limiter-cleanup", ipLimiterCleanupInterval, ipLimiterCleanupInterval, func(context.Context) {
+			middleware.PruneIPLimiters()
+		}},
+		{"database-cache-eviction", databaseCacheInterval, databaseCacheInterval, func(context.Context) {
+			if evicter, ok := state.Inner.DB.(interface{ EvictExpiredCaches() }); ok {
+				evicter.EvictExpiredCaches()
+			}
+		}},
+		{"audit-log-cleanup", auditCleanupInterval, auditCleanupInterval, func(context.Context) {
+			audit.CleanExpiredLogs(state)
+		}},
+		{"docker-pull-flush", dockerPullFlushInterval, dockerPullFlushInterval, func(context.Context) {
+			if err := pullCounter.Flush(); err != nil {
+				state.Inner.FailuresCount.Add(1)
+				log.Printf("Failed to flush Docker pull counts: %v", err)
+			}
+		}},
+		{"gpg-release-poll", gpgQueuePollInterval, gpgQueuePollInterval, func(context.Context) {
+			storage.NotifyGPGReleaseWorker(state)
+		}},
+		{"upload-cleanup", uploadCleanupInterval, 0, func(context.Context) {
+			uploadCleanup()
+		}},
+		{"updater-check", updater.AutoCheckInterval, updater.AutoCheckInitialDelay, func(ctx context.Context) {
+			if err := updater.RunScheduledCheck(ctx, state); err != nil {
+				state.Inner.FailuresCount.Add(1)
+				log.Printf("Scheduled updater check failed: %v", err)
+			}
+		}},
+	}
+	for _, registration := range registrations {
+		if err := schedule(registration.name, registration.interval, registration.initialDelay, registration.run); err != nil {
+			return nil, err
+		}
+	}
+
+	storage.StartGPGReleaseWorker(state)
 
 	watcher, err := index.StartFileWatcher(storagePath, state.Inner.FileIndex)
 	if err == nil {
@@ -155,4 +293,5 @@ func StartServices(state *core.AppState, context BootstrapContext) {
 		repoDir := filepath.Join(storagePath, repoName)
 		_ = os.MkdirAll(repoDir, 0755)
 	}
+	return runtimeServices, nil
 }

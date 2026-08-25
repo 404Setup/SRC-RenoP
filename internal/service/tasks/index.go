@@ -12,49 +12,47 @@ package tasks
 
 import (
 	"bufio"
+	"context"
 	"os"
-	"time"
 
 	"renop/internal/core"
 	"renop/internal/utils"
 )
 
-func StartIndexSaver(state *core.AppState, path string) {
-	go func() {
-		hasWritten := false
-		for {
-			time.Sleep(10 * time.Second)
+// NewIndexSaveTask returns a non-reentrant callback that prunes negative index
+// entries and atomically persists dirty index state.
+func NewIndexSaveTask(state *core.AppState, path string) func(context.Context) {
+	hasWritten := false
+	return func(ctx context.Context) {
+		if ctx == nil || ctx.Err() != nil || state == nil || state.Inner == nil || state.Inner.FileIndex == nil || path == "" {
+			return
+		}
+		state.Inner.FileIndex.PruneNotFound()
+		dirty := state.Inner.FileIndex.IsDirty.Swap(false)
+		if !dirty && hasWritten {
+			return
+		}
 
-			state.Inner.FileIndex.PruneNotFound()
-
-			dirty := state.Inner.FileIndex.IsDirty.Swap(false)
-			if !dirty && hasWritten {
-				continue
+		tmpPath := path + ".tmp"
+		file, err := os.Create(tmpPath)
+		if err == nil {
+			writer := bufio.NewWriterSize(file, 64*1024)
+			err = state.Inner.FileIndex.WriteJSONTo(writer)
+			if flushErr := writer.Flush(); err == nil {
+				err = flushErr
 			}
-
-			tmpPath := path + ".tmp"
-			f, err := os.Create(tmpPath)
+			if closeErr := file.Close(); err == nil {
+				err = closeErr
+			}
 			if err == nil {
-				bw := bufio.NewWriterSize(f, 64*1024)
-				err = state.Inner.FileIndex.WriteJSONTo(bw)
-				if flushErr := bw.Flush(); err == nil {
-					err = flushErr
-				}
-				if closeErr := f.Close(); err == nil {
-					err = closeErr
-				}
-				if err == nil {
-					err = utils.SafeRename(tmpPath, path)
-				}
-				if err == nil {
-					hasWritten = true
-				} else {
-					_ = os.Remove(tmpPath)
-					state.Inner.FileIndex.IsDirty.Store(true)
-				}
-			} else {
-				state.Inner.FileIndex.IsDirty.Store(true)
+				err = utils.SafeRename(tmpPath, path)
 			}
 		}
-	}()
+		if err == nil {
+			hasWritten = true
+			return
+		}
+		_ = os.Remove(tmpPath)
+		state.Inner.FileIndex.IsDirty.Store(true)
+	}
 }

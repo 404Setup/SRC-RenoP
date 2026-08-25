@@ -19,19 +19,11 @@ import (
 
 // StartAuditLogConsumer processes audit log entries asynchronously in a single thread.
 func StartAuditLogConsumer(state *core.AppState) {
-	ticker := time.NewTicker(10 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case entry, ok := <-state.Inner.AuditLogChan:
-			if !ok {
-				return
-			}
-			persistAuditEntry(state, entry, 3)
-		case <-ticker.C:
-			cleanLogs(state)
-		}
+	if state == nil || state.Inner == nil {
+		return
+	}
+	for entry := range state.Inner.AuditLogChan {
+		persistAuditEntry(state, entry, 3)
 	}
 }
 
@@ -64,7 +56,8 @@ func persistAuditEntry(state *core.AppState, entry *core.AuditLogEntry, attempts
 	log.Printf("Failed to persist audit log action %q for user %q: %v", entry.Action, entry.Username, err)
 }
 
-func cleanLogs(state *core.AppState) {
+// CleanExpiredLogs enforces the configured audit retention and row limits once.
+func CleanExpiredLogs(state *core.AppState) {
 	if state == nil || state.Inner == nil {
 		return
 	}

@@ -59,6 +59,19 @@ func TestAnomalyFailureStoreHardCap(t *testing.T) {
 	}
 }
 
+func TestAnomalyFailureStorePruneExpired(t *testing.T) {
+	store := &AnomalyFailureStore{entries: map[string]anomalyFailure{
+		"expired": {Count: 1, ExpiresAt: 1},
+		"live":    {Count: 2, ExpiresAt: 1 << 62},
+	}}
+	if removed := store.PruneExpired(); removed != 1 {
+		t.Fatalf("removed entries = %d, want 1", removed)
+	}
+	if got := store.Count("live"); got != 2 {
+		t.Fatalf("live count = %d, want 2", got)
+	}
+}
+
 func itoa(i int) string {
 	if i == 0 {
 		return "0"

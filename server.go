@@ -86,7 +86,10 @@ func main() {
 
 func startServer() {
 	state, context := bootstrap.Initialize()
-	bootstrap.StartServices(state, context)
+	services, err := bootstrap.StartServices(state, context)
+	if err != nil {
+		log.Fatalf("Failed to start background services: %v", err)
+	}
 	cfg := state.Inner.Config.Load()
 	status.InitDebugMode(cfg.Server.DebugMode)
 
@@ -160,13 +163,19 @@ func startServer() {
 
 	if cfg.Server.SslEnabled {
 		log.Printf("Listening on https://%s", listenAddr)
-		log.Fatal(app.Listen(listenAddr, fiber.ListenConfig{
+		err = app.Listen(listenAddr, fiber.ListenConfig{
 			CertFile:    cfg.Server.SslCertPath,
 			CertKeyFile: cfg.Server.SslKeyPath,
-		}))
-		return
+		})
+	} else {
+		log.Printf("Listening on http://%s", listenAddr)
+		err = app.Listen(listenAddr)
 	}
 
-	log.Printf("Listening on http://%s", listenAddr)
-	log.Fatal(app.Listen(listenAddr))
+	if closeErr := services.Close(); closeErr != nil {
+		log.Printf("Failed to stop background services cleanly: %v", closeErr)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
 }

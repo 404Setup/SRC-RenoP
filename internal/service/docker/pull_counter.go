@@ -11,8 +11,9 @@
 package docker
 
 import (
+	"errors"
+	"fmt"
 	"sync"
-	"time"
 
 	"renop/internal/core"
 )
@@ -22,28 +23,47 @@ type pullKey struct {
 	imageName  string
 }
 
-// PullCounter aggregates image pull increments in memory and flushes them to the database asynchronously.
+// PullCounter aggregates image pull increments in memory for scheduled batch writes.
 type PullCounter struct {
-	mu      sync.Mutex
-	pending map[pullKey]int64
-	state   *core.AppState
+	mu       sync.Mutex
+	pending  map[pullKey]int64
+	database func() pullCountStore
 }
 
-var (
-	globalPullCounter *PullCounter
-	pullCounterOnce   sync.Once
-)
+type pullCountStore interface {
+	BatchIncrementDockerPullCount(repository, imageName string, delta int64) error
+}
 
-// GetPullCounter returns the singleton PullCounter instance initialized with background flushing.
-func GetPullCounter(state *core.AppState) *PullCounter {
-	pullCounterOnce.Do(func() {
-		globalPullCounter = &PullCounter{
-			pending: make(map[pullKey]int64),
-			state:   state,
+// NewPullCounter creates an application-scoped Docker pull counter.
+func NewPullCounter(state *core.AppState) *PullCounter {
+	return newPullCounter(func() pullCountStore {
+		if state == nil {
+			return nil
 		}
-		go globalPullCounter.flusher()
+		return state.GetDB()
 	})
-	return globalPullCounter
+}
+
+func newPullCounter(database func() pullCountStore) *PullCounter {
+	return &PullCounter{
+		pending:  make(map[pullKey]int64),
+		database: database,
+	}
+}
+
+// GetPullCounter returns the pull counter owned by state.
+func GetPullCounter(state *core.AppState) *PullCounter {
+	if state == nil || state.Inner == nil {
+		return nil
+	}
+	state.Inner.DockerPullCounterMu.Lock()
+	defer state.Inner.DockerPullCounterMu.Unlock()
+	if counter, ok := state.Inner.DockerPullCounter.(*PullCounter); ok {
+		return counter
+	}
+	counter := NewPullCounter(state)
+	state.Inner.DockerPullCounter = counter
+	return counter
 }
 
 // RecordPull atomically records a pull event in memory without triggering database write locks.
@@ -57,35 +77,52 @@ func (pc *PullCounter) RecordPull(repository, imageName string) {
 	pc.mu.Unlock()
 }
 
-// Flush synchronously writes all buffered pull counts to the database.
-func (pc *PullCounter) Flush() {
+// Flush synchronously writes all buffered pull counts to the database. Failed
+// increments are returned to the pending batch so transient errors do not lose statistics.
+func (pc *PullCounter) Flush() error {
 	if pc == nil {
-		return
+		return nil
 	}
 	pc.mu.Lock()
 	if len(pc.pending) == 0 {
 		pc.mu.Unlock()
-		return
+		return nil
 	}
 	batch := pc.pending
 	pc.pending = make(map[pullKey]int64)
 	pc.mu.Unlock()
 
-	db := pc.state.GetDB()
+	var db pullCountStore
+	if pc.database != nil {
+		db = pc.database()
+	}
 	if db == nil {
-		return
+		pc.requeue(batch)
+		return core.ErrDatabaseUnavailable
 	}
 
+	failed := make(map[pullKey]int64)
+	var flushErrors []error
 	for k, count := range batch {
-		if count > 0 {
-			_ = db.BatchIncrementDockerPullCount(k.repository, k.imageName, count)
+		if count <= 0 {
+			continue
+		}
+		if err := db.BatchIncrementDockerPullCount(k.repository, k.imageName, count); err != nil {
+			failed[k] += count
+			flushErrors = append(flushErrors, fmt.Errorf("increment %s/%s: %w", k.repository, k.imageName, err))
 		}
 	}
+	pc.requeue(failed)
+	return errors.Join(flushErrors...)
 }
 
-func (pc *PullCounter) flusher() {
-	ticker := time.NewTicker(2 * time.Second)
-	for range ticker.C {
-		pc.Flush()
+func (pc *PullCounter) requeue(batch map[pullKey]int64) {
+	if len(batch) == 0 {
+		return
 	}
+	pc.mu.Lock()
+	for key, count := range batch {
+		pc.pending[key] += count
+	}
+	pc.mu.Unlock()
 }

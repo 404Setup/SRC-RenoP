@@ -113,6 +113,7 @@ func StartFileWatcher(basePath string, idx *FileIndex) (*fsnotify.Watcher, error
 		return nil
 	})
 	if err != nil {
+		_ = watcher.Close()
 		return nil, err
 	}
 

@@ -48,22 +48,16 @@ type IPLimiter struct {
 }
 
 func NewIPLimiter(r rate.Limit, b int) *IPLimiter {
-	i := &IPLimiter{
+	return &IPLimiter{
 		r: r,
 		b: b,
 	}
-
-	go func() {
-		for {
-			time.Sleep(5 * time.Minute)
-			i.cleanup()
-		}
-	}()
-
-	return i
 }
 
-func (i *IPLimiter) cleanup() {
+func (i *IPLimiter) cleanup() int64 {
+	if i == nil {
+		return 0
+	}
 	nowUnix := time.Now().UnixNano()
 	timeoutNano := (5 * time.Minute).Nanoseconds()
 
@@ -79,6 +73,7 @@ func (i *IPLimiter) cleanup() {
 	if removed > 0 {
 		i.count.Add(-removed)
 	}
+	return removed
 }
 
 func (i *IPLimiter) GetLimiter(ip string) *rate.Limiter {
@@ -113,6 +108,11 @@ func (i *IPLimiter) GetLimiter(ip string) *rate.Limiter {
 }
 
 var GlobalIPLimiter = NewIPLimiter(rate.Every(time.Minute/time.Duration(MaxRequestsPerMinute)), MaxRequestsBurst)
+
+// PruneIPLimiters removes inactive global request limiters.
+func PruneIPLimiters() int64 {
+	return GlobalIPLimiter.cleanup()
+}
 
 func verifyTokenSecret(state *core.AppState, username, secret string) bool {
 	token := state.GetTokenByName(strings.ToLower(username))

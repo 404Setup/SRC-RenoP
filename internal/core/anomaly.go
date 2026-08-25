@@ -32,30 +32,28 @@ type AnomalyFailureStore struct {
 }
 
 func NewAnomalyFailureStore() *AnomalyFailureStore {
-	s := &AnomalyFailureStore{
+	return &AnomalyFailureStore{
 		entries: make(map[string]anomalyFailure),
 	}
-	go s.cleanupLoop()
-	return s
 }
 
-func (s *AnomalyFailureStore) cleanupLoop() {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		s.pruneExpired()
+// PruneExpired removes stale authentication failure counters and returns the
+// number of entries removed.
+func (s *AnomalyFailureStore) PruneExpired() int {
+	if s == nil {
+		return 0
 	}
-}
-
-func (s *AnomalyFailureStore) pruneExpired() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := time.Now().UnixMilli()
+	removed := 0
 	for ip, e := range s.entries {
 		if e.ExpiresAt <= now {
 			delete(s.entries, ip)
+			removed++
 		}
 	}
+	return removed
 }
 
 // Count returns the live failure count for ip, or 0 if missing/expired.

@@ -103,7 +103,6 @@ const (
 
 var (
 	fidoSessionMap syncv2.Map[string, *fidoSessionEntry]
-	cleanFidoOnce  sync.Once
 	fidoSessionMu  sync.Mutex
 	fidoSessionLen int
 )
@@ -119,18 +118,11 @@ func purgeExpiredFidoSessionsLocked(now time.Time) {
 	})
 }
 
-func startFidoSessionCleanup() {
-	cleanFidoOnce.Do(func() {
-		go func() {
-			ticker := time.NewTicker(5 * time.Minute)
-			defer ticker.Stop()
-			for now := range ticker.C {
-				fidoSessionMu.Lock()
-				purgeExpiredFidoSessionsLocked(now)
-				fidoSessionMu.Unlock()
-			}
-		}()
-	})
+// PruneExpiredFidoSessions removes expired WebAuthn challenges.
+func PruneExpiredFidoSessions(now time.Time) {
+	fidoSessionMu.Lock()
+	purgeExpiredFidoSessionsLocked(now)
+	fidoSessionMu.Unlock()
 }
 
 // storeFidoSession returns false when the process-wide challenge budget is full.
@@ -153,7 +145,6 @@ func storeFidoSession(sessionID string, sessionData *webauthn.SessionData, usern
 	}
 	fidoSessionMu.Unlock()
 
-	startFidoSessionCleanup()
 	return true
 }
 

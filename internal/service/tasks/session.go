@@ -16,30 +16,27 @@ import (
 	"renop/internal/core"
 )
 
-// StartSessionCleaner periodically removes expired sessions from the DB and in-memory cache.
-func StartSessionCleaner(state *core.AppState) {
-	go func() {
-		ticker := time.NewTicker(60 * time.Second)
-		defer ticker.Stop()
+// CleanExpiredSessions removes expired database and in-memory sessions.
+func CleanExpiredSessions(state *core.AppState, now time.Time) error {
+	if state == nil || state.Inner == nil {
+		return nil
+	}
+	nowMillis := now.UnixMilli()
+	var cleanupErr error
+	if db := state.GetDB(); db != nil {
+		cleanupErr = db.DeleteExpiredSessions(nowMillis - core.SessionIdleTimeoutMillis)
+	}
 
-		for range ticker.C {
-			now := time.Now().UnixMilli()
-			if db := state.GetDB(); db != nil {
-				_ = db.DeleteExpiredSessions(now - core.SessionIdleTimeoutMillis)
-			}
-
-			var toRemove []string
-			state.Inner.Sessions.Range(func(key string, value *core.Session) bool {
-				if now-value.LastActive.Load() > core.SessionIdleTimeoutMillis {
-					toRemove = append(toRemove, key)
-				}
-				return true
-			})
-
-			for _, token := range toRemove {
-				state.Inner.Sessions.Delete(token)
-				state.DeleteAuthCache("Session " + token)
-			}
+	toRemove := make([]string, 0, 16)
+	state.Inner.Sessions.Range(func(key string, value *core.Session) bool {
+		if value == nil || nowMillis-value.LastActive.Load() > core.SessionIdleTimeoutMillis {
+			toRemove = append(toRemove, key)
 		}
-	}()
+		return true
+	})
+	for _, token := range toRemove {
+		state.Inner.Sessions.Delete(token)
+		state.DeleteAuthCache("Session " + token)
+	}
+	return cleanupErr
 }

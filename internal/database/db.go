@@ -276,15 +276,6 @@ func (db *DB) Close() error {
 	if db == nil {
 		return nil
 	}
-	if db.tokenCache != nil {
-		db.tokenCache.Close()
-	}
-	if db.tokenSecretCache != nil {
-		db.tokenSecretCache.Close()
-	}
-	if db.sessionCache != nil {
-		db.sessionCache.Close()
-	}
 	if db.SqlDB == nil {
 		return nil
 	}
@@ -292,4 +283,20 @@ func (db *DB) Close() error {
 		_, _ = db.SqlDB.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
 	}
 	return db.SqlDB.Close()
+}
+
+// EvictExpiredCaches removes expired entries from all database lookup caches.
+func (db *DB) EvictExpiredCaches() {
+	if db == nil {
+		return
+	}
+	if db.tokenCache != nil {
+		db.tokenCache.EvictExpired()
+	}
+	if db.tokenSecretCache != nil {
+		db.tokenSecretCache.EvictExpired()
+	}
+	if db.sessionCache != nil {
+		db.sessionCache.EvictExpired()
+	}
 }

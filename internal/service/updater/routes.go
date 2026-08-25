@@ -15,7 +15,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -26,11 +25,11 @@ import (
 	"renop/internal/version"
 )
 
-var (
-	lastAutoCheck       time.Time
-	autoCheckLock       sync.Mutex
-	autoCheckInterval   = 6 * time.Hour
-	autoCheckWorkerOnce sync.Once
+const (
+	// AutoCheckInterval controls scheduled update checks.
+	AutoCheckInterval = 6 * time.Hour
+	// AutoCheckInitialDelay lets startup activity settle before the first check.
+	AutoCheckInitialDelay = 30 * time.Second
 )
 
 // resolveConfiguredUpdater returns the channel and mode from live config.
@@ -59,77 +58,54 @@ func resolveCheckChannel(query string, state *core.AppState) Channel {
 	return ch
 }
 
-func StartAutoCheckTicker(state *core.AppState) {
-	autoCheckWorkerOnce.Do(func() {
-		go func() {
-			ticker := time.NewTicker(autoCheckInterval)
-			defer ticker.Stop()
-			time.Sleep(30 * time.Second)
-			ch, mode := resolveConfiguredUpdater(state)
-			TriggerAutoCheck(ch, mode)
-			for range ticker.C {
-				ch, mode := resolveConfiguredUpdater(state)
-				TriggerAutoCheck(ch, mode)
-			}
-		}()
-	})
-}
-
-func TriggerAutoCheck(channel Channel, mode UpdateMode) {
+// RunScheduledCheck performs one configured update check and optional install.
+func RunScheduledCheck(ctx context.Context, state *core.AppState) error {
+	channel, mode := resolveConfiguredUpdater(state)
 	if mode == ModeManual {
-		return
+		return nil
 	}
-	autoCheckLock.Lock()
-	if time.Since(lastAutoCheck) < autoCheckInterval {
-		autoCheckLock.Unlock()
-		return
+	checkContext, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	res, err := CheckUpdate(checkContext, channel)
+	if err != nil || !res.HasUpdate {
+		return err
 	}
-	lastAutoCheck = time.Now()
-	autoCheckLock.Unlock()
 
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		defer cancel()
-		res, err := CheckUpdate(ctx, channel)
-		if err != nil || !res.HasUpdate {
-			return
-		}
-
-		updateStateFields(func(s *UpdateState) {
-			s.Status = "available"
-			s.LatestVersion = strings.Clone(res.LatestVersion)
-			s.DownloadUrl = strings.Clone(res.DownloadUrl)
-			s.Size = res.Size
-			s.EstimatedDiskSpace = res.EstimatedDiskSpace
-			s.ReleaseDate = strings.Clone(res.ReleaseDate)
-			s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
-			s.CommitSha = strings.Clone(res.CommitSha)
-			s.SHA256 = strings.Clone(res.SHA256)
-			s.IsRelease = res.IsRelease
-		})
-		if mode != ModeAutoInstall {
-			return
-		}
-		reqSpace := res.EstimatedDiskSpace
-		if reqSpace <= 0 {
-			reqSpace = 100 * 1024 * 1024
-		}
-		if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
-			return
-		}
-		targetPath, err := DownloadAndExtract(ctx, res.DownloadUrl, res.SHA256)
-		if err != nil {
-			return
-		}
-		if applyErr := ApplyUpdateAndRestart(targetPath); applyErr != nil {
-			_ = os.Remove(targetPath)
-		}
-	}()
+	updateStateFields(func(s *UpdateState) {
+		s.Status = "available"
+		s.LatestVersion = strings.Clone(res.LatestVersion)
+		s.DownloadUrl = strings.Clone(res.DownloadUrl)
+		s.Size = res.Size
+		s.EstimatedDiskSpace = res.EstimatedDiskSpace
+		s.ReleaseDate = strings.Clone(res.ReleaseDate)
+		s.ReleaseNotes = strings.Clone(res.ReleaseNotes)
+		s.CommitSha = strings.Clone(res.CommitSha)
+		s.SHA256 = strings.Clone(res.SHA256)
+		s.IsRelease = res.IsRelease
+	})
+	if mode != ModeAutoInstall {
+		return nil
+	}
+	reqSpace := res.EstimatedDiskSpace
+	if reqSpace <= 0 {
+		reqSpace = 100 * 1024 * 1024
+	}
+	if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
+		return nil
+	}
+	targetPath, err := DownloadAndExtract(checkContext, res.DownloadUrl, res.SHA256)
+	if err != nil {
+		return err
+	}
+	if err := ApplyUpdateAndRestart(targetPath); err != nil {
+		_ = os.Remove(targetPath)
+		return err
+	}
+	return nil
 }
 
 func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 	CleanOldExecutables()
-	StartAutoCheckTicker(state)
 
 	api := router.Group("/updater")
 

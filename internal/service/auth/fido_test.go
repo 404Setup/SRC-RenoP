@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/goccy/go-json"
@@ -183,6 +184,34 @@ func TestFidoSessionStoreHasGlobalBound(t *testing.T) {
 	remaining := fidoSessionLen
 	fidoSessionMu.Unlock()
 	assert.Equal(t, maxFidoSessions-1, remaining)
+}
+
+func TestPruneExpiredFidoSessions(t *testing.T) {
+	fidoSessionMu.Lock()
+	fidoSessionMap.Clear()
+	fidoSessionLen = 1
+	fidoSessionMap.Store("expired", &fidoSessionEntry{
+		sessionData: &webauthn.SessionData{},
+		createdAt:   time.Now().Add(-fidoSessionTTL - time.Second),
+	})
+	fidoSessionMu.Unlock()
+	t.Cleanup(func() {
+		fidoSessionMu.Lock()
+		fidoSessionMap.Clear()
+		fidoSessionLen = 0
+		fidoSessionMu.Unlock()
+	})
+
+	PruneExpiredFidoSessions(time.Now())
+	if _, ok := fidoSessionMap.Load("expired"); ok {
+		t.Fatal("expired FIDO session remained")
+	}
+	fidoSessionMu.Lock()
+	remaining := fidoSessionLen
+	fidoSessionMu.Unlock()
+	if remaining != 0 {
+		t.Fatalf("FIDO session count = %d, want 0", remaining)
+	}
 }
 
 type webAuthnEngineTestCase struct {

@@ -159,7 +159,6 @@ type Manager struct {
 	mu       sync.Mutex
 	sessions map[string]*Session
 	pending  int
-	once     sync.Once
 }
 
 var defaultManager = &Manager{
@@ -171,26 +170,21 @@ func DefaultManager() *Manager {
 	return defaultManager
 }
 
-// StartBackgroundCleanup launches orphan-temp sweeps and session expiry.
-// storagePath is the Maven storage root (may be empty to skip storage walks).
-// Safe to call multiple times; only the first call starts the worker.
-func StartBackgroundCleanup(storagePath string) {
-	defaultManager.once.Do(func() {
-		go func() {
+// NewCleanupTask returns a callback that removes expired upload sessions and
+// abandoned temporary files. Its first run also performs startup cleanup.
+func NewCleanupTask(storagePath string) func() {
+	startup := true
+	return func() {
+		if startup {
+			startup = false
 			CleanupOrphanPartials(storagePath, 0)
 			_ = CleanupStaleOSTempUploads(0, true)
-		}()
-
-		go func() {
-			ticker := time.NewTicker(time.Minute)
-			defer ticker.Stop()
-			for range ticker.C {
-				defaultManager.CleanupExpired()
-				_ = CleanupOrphanPartials(storagePath, SessionTTL)
-				_ = CleanupStaleOSTempUploads(SessionTTL, false)
-			}
-		}()
-	})
+			return
+		}
+		defaultManager.CleanupExpired()
+		_ = CleanupOrphanPartials(storagePath, SessionTTL)
+		_ = CleanupStaleOSTempUploads(SessionTTL, false)
+	}
 }
 
 // CreateSession allocates a pre-sized temp file and registers the session.

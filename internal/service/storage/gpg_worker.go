@@ -83,16 +83,9 @@ func StartGPGReleaseWorker(state *core.AppState) {
 		return
 	}
 	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
 		processGPGReleaseQueue(state)
-		for {
-			select {
-			case <-state.Inner.GPGReleaseWake:
-				processGPGReleaseQueue(state)
-			case <-ticker.C:
-				processGPGReleaseQueue(state)
-			}
+		for range state.Inner.GPGReleaseWake {
+			processGPGReleaseQueue(state)
 		}
 	}()
 }

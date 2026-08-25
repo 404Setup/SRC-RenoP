@@ -40,9 +40,6 @@ import (
 // Init and complete use application/x-protobuf. Part bodies are raw octets.
 // Original single-shot PUT (repo paths) and POST /api/updater/upload remain unchanged.
 func SetupChunkedUploadRoutes(router fiber.Router, state *core.AppState) {
-	cfg := state.Inner.Config.Load()
-	StartBackgroundCleanup(cfg.StoragePath)
-
 	mgr := DefaultManager()
 	api := router.Group("/upload/chunked")
 

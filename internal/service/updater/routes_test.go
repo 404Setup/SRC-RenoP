@@ -11,6 +11,7 @@
 package updater
 
 import (
+	"context"
 	"io"
 	"net/http/httptest"
 	"testing"
@@ -18,6 +19,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"google.golang.org/protobuf/proto"
 
+	"renop/internal/config"
+	"renop/internal/core"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
@@ -55,6 +58,18 @@ func TestGetUpdaterStatusProtobuf(t *testing.T) {
 	}
 	if got.GetStatus() != "idle" {
 		t.Fatalf("expected status 'idle', got %q", got.GetStatus())
+	}
+}
+
+func TestRunScheduledCheckSkipsManualMode(t *testing.T) {
+	state := core.NewAppState()
+	state.Inner.Config.Store(&config.Config{
+		Updater: config.UpdaterConfig{Channel: "release", Mode: "manual"},
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := RunScheduledCheck(ctx, state); err != nil {
+		t.Fatalf("manual scheduled check returned %v", err)
 	}
 }
 

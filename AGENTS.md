@@ -35,6 +35,10 @@
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
   administrator notices.
+- **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
+  status snapshots, cache/session cleanup, index persistence, pull-count flushing, upload cleanup, and update checks.
+  Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain
+  dedicated and serial where ordering matters.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (Maven file index vs. Cargo package catalog),
   anomaly detection, and brute-force mitigation.
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`, `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
