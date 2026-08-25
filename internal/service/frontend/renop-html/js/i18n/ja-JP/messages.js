@@ -56,4 +56,7 @@ export default Object.freeze({
     "team.left": "チームから退出しました。",
     "team.transferOwnership": "所有権を移譲",
     "team.transferOwnershipConfirm": "L4 所有権を {name} に移譲しますか？双方の権限レベルが入れ替わります。",
+    "team.removedTitle": "チームから削除されました",
+    "team.removedRepositoryBody": "{repository} - {package} のチームから削除されました。",
+    "team.removedMavenBody": "Maven ドメイン {domain} のチームから削除されました。",
 });

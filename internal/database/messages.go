@@ -34,6 +34,23 @@ func insertAcceptedMembershipMessage(tx *Tx, recipient, sender, actionKind, titl
 	return err
 }
 
+func insertTeamRemovalMessage(tx *Tx, recipient, format, repository, resource string, now int64) error {
+	payloadBytes, err := json.Marshal(map[string]string{
+		"format": format, "repository": repository, "package": resource,
+	})
+	if err != nil {
+		return fmt.Errorf("encode team removal message payload: %w", err)
+	}
+	target := resource
+	if repository != "" {
+		target = repository + " - " + resource
+	}
+	_, err = tx.Exec(`INSERT INTO user_messages (`+messageColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		uuid.NewString(), recipient, "", "package_team_removed", "warning", "Team membership removed",
+		"You were removed from "+target+".", string(payloadBytes), "", "", now, 0, 0, 0, nil)
+	return err
+}
+
 type messageScanner interface {
 	Scan(dest ...any) error
 }

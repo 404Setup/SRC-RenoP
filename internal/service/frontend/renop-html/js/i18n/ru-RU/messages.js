@@ -56,4 +56,7 @@ export default Object.freeze({
     "team.left": "Вы покинули команду.",
     "team.transferOwnership": "Передать права владельца",
     "team.transferOwnershipConfirm": "Передать права владельца L4 пользователю {name}? Ваши уровни доступа будут обменены.",
+    "team.removedTitle": "Удаление из команды",
+    "team.removedRepositoryBody": "Вас удалили из команды {repository} - {package}.",
+    "team.removedMavenBody": "Вас удалили из команды домена Maven {domain}.",
 });

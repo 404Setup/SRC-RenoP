@@ -210,6 +210,7 @@ func TestDockerDatabaseOperations(t *testing.T) {
 	if err := db.RemoveDockerMember("docker-local", "ubuntu", "admin", "bob"); err != nil {
 		t.Fatalf("RemoveDockerMember failed: %v", err)
 	}
+	requireTeamRemovalMessage(t, db, "bob", "docker", "docker-local", "ubuntu", "admin")
 	bobLevel, _ = db.GetDockerMemberLevel("docker-local", "ubuntu", "bob")
 	if bobLevel != 0 {
 		t.Fatalf("expected bob level 0, got %d", bobLevel)
@@ -308,4 +309,5 @@ func TestDockerTeamTransferPreservesRolesAndRejectsForceOverwrite(t *testing.T) 
 		core.ErrDockerOwnerCannotLeave,
 	)
 	require.NoError(t, db.RemoveDockerMember("docker-local", "team/demo", "alice", "alice"))
+	requireNoTeamRemovalMessage(t, db, "alice")
 }

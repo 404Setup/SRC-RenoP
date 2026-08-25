@@ -35,7 +35,8 @@
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
-  administrator notices.
+  administrator notices. Package-team removals create operator-neutral notifications localized by
+  `internal/service/frontend/renop-html/js/team-messages.js`.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
   status snapshots, cache/session cleanup, index persistence, pull-count flushing, upload cleanup, and update checks.
   Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain

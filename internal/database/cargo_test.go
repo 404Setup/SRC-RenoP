@@ -111,6 +111,8 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	require.NoError(t, db.SetCargoPackageArchived("cargo", "demo", true, true))
 	err = db.SetCargoPackageArchived("cargo", "demo", false, false)
 	require.ErrorIs(t, err, core.ErrCargoAdminArchived)
+	require.NoError(t, db.RemoveCargoMember("cargo", "demo", "alice", "bob"))
+	requireTeamRemovalMessage(t, db, "bob", "cargo", "cargo", "demo", "alice")
 
 	err = db.RemoveCargoMember("cargo", "demo", "alice", "alice")
 	require.True(t, errors.Is(err, core.ErrCargoOwnerCannotLeave))
@@ -156,6 +158,7 @@ func TestCargoTeamTransferPreservesRolesAndRejectsForceOverwrite(t *testing.T) {
 		core.ErrCargoOwnerCannotLeave,
 	)
 	require.NoError(t, db.RemoveCargoMember("cargo", "team-demo", "alice", "alice"))
+	requireNoTeamRemovalMessage(t, db, "alice")
 }
 
 func TestExpiredCargoInvitationCanBeReissued(t *testing.T) {

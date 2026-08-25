@@ -86,6 +86,7 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 		"com.example", "ghost", "00000000-0000-0000-0000-000000000099", core.MavenPermissionRead, now)
 	require.NoError(t, err)
 	require.NoError(t, db.RemoveMavenMember("com.example", "alice", "ghost"))
+	requireTeamRemovalMessage(t, db, "ghost", "maven", "", "com.example", "alice")
 	require.NoError(t, db.SetMavenMemberLevel("com.example", "alice", "bob", core.MavenPermissionOwner))
 	details, err := db.GetMavenDomainDetails("com.example", "bob")
 	require.NoError(t, err)
@@ -97,6 +98,7 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 	assert.Equal(t, core.MavenPermissionRead, levels["alice"])
 	assert.Equal(t, 2, details.Domain.MemberCount)
 	require.NoError(t, db.RemoveMavenMember("com.example", "alice", "alice"))
+	requireNoTeamRemovalMessage(t, db, "alice")
 	assert.ErrorIs(t, db.RemoveMavenMember("com.example", "bob", "bob"), core.ErrMavenOwnerCannotLeave)
 
 	artifact := &core.MavenArtifact{

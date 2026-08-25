@@ -56,4 +56,7 @@ export default Object.freeze({
     "team.left": "팀에서 나갔습니다.",
     "team.transferOwnership": "소유권 이전",
     "team.transferOwnershipConfirm": "L4 소유권을 {name}에게 이전하시겠습니까? 두 사용자의 권한 레벨이 서로 바뀝니다.",
+    "team.removedTitle": "팀에서 제외됨",
+    "team.removedRepositoryBody": "{repository} - {package} 팀에서 제외되었습니다.",
+    "team.removedMavenBody": "Maven 도메인 {domain} 팀에서 제외되었습니다.",
 });

@@ -473,6 +473,11 @@ func (db *DB) RemoveMavenMember(domain, actor, username string) error {
 		globalMavenRepository, domain, targetID); err != nil {
 		return fmt.Errorf("remove Maven member: %w", err)
 	}
+	if actor == "" || username != actor {
+		if err := insertTeamRemovalMessage(tx, username, "maven", "", domain, time.Now().UnixMilli()); err != nil {
+			return fmt.Errorf("notify removed Maven member: %w", err)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit Maven member removal: %w", err)
 	}

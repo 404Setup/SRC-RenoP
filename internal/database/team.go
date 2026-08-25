@@ -14,6 +14,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"renop/internal/core"
 )
@@ -94,6 +96,7 @@ func (db *DB) removeTeamMembers(repository, resource, actor string, usernames []
 		}
 	}
 	ownersRemoved := 0
+	removedAt := time.Now().UnixMilli()
 	for _, username := range unique {
 		var current int
 		if err := tx.QueryRow("SELECT permission_level FROM "+spec.table+" WHERE "+predicate+" AND user_id = ?",
@@ -120,6 +123,12 @@ func (db *DB) removeTeamMembers(repository, resource, actor string, usernames []
 		if _, err := tx.Exec("DELETE FROM "+spec.table+" WHERE "+predicate+" AND user_id = ?",
 			repository, resource, userIDs[username]); err != nil {
 			return fmt.Errorf("remove %s member: %w", spec.format, err)
+		}
+		if actor == "" || username != actor {
+			if err := insertTeamRemovalMessage(tx, username, strings.ToLower(spec.format),
+				repository, resource, removedAt); err != nil {
+				return fmt.Errorf("notify removed %s member: %w", spec.format, err)
+			}
 		}
 	}
 	if err := tx.Commit(); err != nil {

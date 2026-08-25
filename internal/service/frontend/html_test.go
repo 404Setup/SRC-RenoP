@@ -331,6 +331,33 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	}
 }
 
+func TestTeamRemovalMessagesHideOperator(t *testing.T) {
+	moduleSource, err := os.ReadFile(filepath.Join("renop-html", "js", "team-messages.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(moduleSource)
+	for _, required := range []string{
+		"registerMessageRenderer('package_team_removed'", "team.removedRepositoryBody", "team.removedMavenBody",
+	} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("team removal message renderer is missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{"message.sender", "payload.actor", "payload.operator", "payload.inviter"} {
+		if strings.Contains(text, forbidden) {
+			t.Fatalf("team removal message renderer exposes operator metadata through %q", forbidden)
+		}
+	}
+	mainSource, err := os.ReadFile(filepath.Join("renop-html", "js", "main.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(mainSource), "import './team-messages.js'") {
+		t.Fatal("team removal message renderer is not loaded by the application")
+	}
+}
+
 func TestFrontendUsesSharedClipboardAndTimeUtilities(t *testing.T) {
 	jsRoot := filepath.Join("renop-html", "js")
 	clipboardPath := filepath.Join(jsRoot, "clipboard.js")

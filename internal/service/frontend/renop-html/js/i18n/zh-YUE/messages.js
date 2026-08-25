@@ -56,4 +56,7 @@ export default Object.freeze({
     "team.left": "已經退出團隊。",
     "team.transferOwnership": "轉讓管理員權限",
     "team.transferOwnershipConfirm": "確定將 L4 管理員權限轉讓畀 {name} 嗎？雙方嘅權限等級會對調。",
+    "team.removedTitle": "已被移出團隊",
+    "team.removedRepositoryBody": "你已被移出 {repository} - {package} 嘅團隊。",
+    "team.removedMavenBody": "你已被移出 Maven 網域 {domain} 嘅團隊。",
 });

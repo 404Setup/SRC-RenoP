@@ -56,4 +56,7 @@ export default Object.freeze({
     "team.left": "You left the team.",
     "team.transferOwnership": "Transfer Ownership",
     "team.transferOwnershipConfirm": "Transfer L4 ownership to {name}? Your permission levels will be exchanged.",
+    "team.removedTitle": "Removed from team",
+    "team.removedRepositoryBody": "You were removed from the team for {repository} - {package}.",
+    "team.removedMavenBody": "You were removed from the team for Maven domain {domain}.",
 });

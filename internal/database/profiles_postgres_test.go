@@ -179,4 +179,6 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 	artifactDetails, err := db.GetMavenArtifactDetails("releases", "com.example", "postgres-demo")
 	require.NoError(t, err)
 	require.Equal(t, int64(2048), artifactDetails.Artifact.TotalSize)
+	require.NoError(t, db.RemoveMavenMember("com.example", "maven_bob", "maven_alice"))
+	requireTeamRemovalMessage(t, db, "maven_alice", "maven", "", "com.example", "maven_bob")
 }
