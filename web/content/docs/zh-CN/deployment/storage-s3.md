@@ -1,45 +1,48 @@
 ---
-title: 存储引擎选型
+title: 存储架构
 order: 3
-category: 运维部署
-description: 本地磁盘存储与 S3 兼容对象存储的特性与选型配置
+category: 部署
+description: 本地文件系统与存储库独立的 S3 兼容对象存储
 ---
 
-# 存储引擎选型
+# 存储架构
 
-RenoP 支持本地文件系统与 S3 兼容对象存储两种存储模式，不同仓库可以按需独立配置不同的存储后端。
+RenoP 支持本地 Disk 与 S3 兼容对象服务。每个存储库独立选择后端；切换后端时，存储库门控会与活跃操作进行
+串行化。
 
-## 1. 本地磁盘存储
+## 1. 本地文件系统
 
-本地存储适合单节点部署或对 I/O 延迟敏感的私有化环境。
+根目录由 `config.yaml` 的 `storage_path` 配置，默认值为 `storage`。
 
-### 目录组织规范
+### 目录组织
 
-在 `config.yaml` 中设置 `storage_path`（默认值为 `storage`）。磁盘结构按照各协议标准组织：
+- **Maven/files**：`{storage_path}/{repo}/{path}`
+- **Cargo**：索引与归档数据隔离在存储库目录下
+- **Docker**：Blob、Manifest 与引用相互隔离，并按镜像校验
 
-- **Maven**：`{storage_path}/{repo_name}/{group_path}/{artifact}/{version}/{files}`
-- **Cargo**：`{storage_path}/{repo_name}/crates/{crate_name}/{version}.crate`
-- **Docker**：`{storage_path}/_docker/blobs/...` 与 `{storage_path}/_docker/manifests/...`
+物理名称属于内部实现。应使用协议 API，不得直接修改存储目录。
 
-### 写入可靠性保障
+### 写入可靠性
 
-- 客户端上传过程中，数据先写入 `.tmp` 临时文件并计算校验和。
-- 上传完成并校验成功后，通过操作系统原子的重命名（Rename）操作移动至目标路径，防止不完整写入。
+- 上传使用有界临时文件，提交前校验大小、哈希与策略；
+- 文件系统支持时，最终发布使用原子操作；
+- 镜像提交、删除、迁移和 GPG 发布会与后端变更同步。
 
 ---
 
 ## 2. S3 兼容对象存储
 
-在分布式部署、多节点共享存储或云原生部署场景下，推荐将仓库的后端存储设置为 S3 兼容对象存储。
+S3 适合托管对象存储。多节点运行还需要外部数据库，以及符合 RenoP 保证范围的协调机制；仅使用 S3 不会
+将单个进程变成集群。
 
-### 支持的对象存储服务
+### 服务提供方
 
 - **AWS S3**
-- **MinIO**（私有化部署对象存储）
+- **MinIO**
 - **Cloudflare R2**
-- **阿里云 OSS / 腾讯云 COS / 华为云 OBS**（通过 S3 兼容 API 接入）
+- 实现所需 S3 API 的其他服务
 
-### 在 `repositories.yaml` 中配置
+### 配置示例 (`repositories.yaml`)
 
 ```yaml
 repositories:
@@ -57,14 +60,12 @@ repositories:
       redirect_downloads: false
 ```
 
-### 两种下载模式对比
+应先创建 Bucket。凭据需要对 `key_prefix` 下对象具有读取、写入、列表与删除权限。必须使用 TLS 与密钥管理
+工具，不得将访问密钥提交到 Git。
 
-1. **代理流式传输 (`redirect_downloads: false`)**：
-    - 客户端向 RenoP 发起下载请求，RenoP 从 S3 流式拉取数据并通过 HTTP 连接直接转发给客户端。
-    - 优点：S3 存储桶无需对公网开放，完全由 RenoP 进行鉴权与流量控制。
-    - 缺点：占用 RenoP 节点的下行网络带宽。
+### 下载方式
 
-2. **直连重定向 (`redirect_downloads: true`)**：
-    - 客户端向 RenoP 发起下载请求，RenoP 校验权限后返回 302 重定向至 S3 预签名下载链接（Presigned URL）。
-    - 优点：制品下载流量直接由对象存储承载，极大减轻 RenoP 服务器的网络负载。
-    - 缺点：客户端环境必须能够直接访问 S3 的 endpoint 地址。
+1. **代理流式传输 (`redirect_downloads: false`)**：RenoP 完成授权后从 S3 流式返回数据。Bucket 可保持私有，
+   不会暴露 S3 URL。
+2. **直接跳转 (`redirect_downloads: true`)**：RenoP 完成授权后返回指向短时预签名 URL 的 `302 Found`，降低
+   RenoP 带宽占用。

@@ -2,43 +2,43 @@
 title: Configuration Overview
 order: 1
 category: Configuration
-description: Overview of config.yaml parameters, server settings, and environment variables
+description: Configuration files, server settings, storage, proxies, branding, and updates
 ---
 
 # Configuration Overview
 
-The primary configuration file for RenoP is `config.yaml`. By default, it is read from the process working directory or
-overridden by the `RENOP_CONFIG` environment variable.
+RenoP reads `config.yaml` from the working directory unless `RENOP_CONFIG` overrides it. Settings written through the
+administrator UI use the same validated structures and private-file permissions.
 
-## Configuration Files
+## Configuration files
 
-| File                | Environment Variable | Description                                                                |
-|:--------------------|:---------------------|:---------------------------------------------------------------------------|
-| `config.yaml`       | `RENOP_CONFIG`       | Server ports, TLS, database connection, storage path, proxies, and updater |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Repository definitions, visibility, upstream mirrors, and S3 configs       |
-| `tokens.yaml`       | `RENOP_TOKENS`       | Bootstrap user accounts and static tokens (migrated to DB on startup)      |
-| `index.json`        | `RENOP_INDEX`        | Search metadata index cache                                                |
-| `sessions.bin`      | `RENOP_SESSIONS`     | Active web session cache                                                   |
+| File | Override | Purpose |
+|:-----|:---------|:--------|
+| `config.yaml` | `RENOP_CONFIG` | Server, database, previews, proxy, frontend, audit, and updater |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | Repository engines, visibility, mirrors, Maven policy, and S3 |
+| `index.json` | `RENOP_INDEX` | Persisted file-index snapshot rebuilt from storage when required |
 
-## `config.yaml` Schema
+Accounts, API tokens, sessions, teams, audit logs, and messages are database records. They are not configured in YAML.
+Keep configuration and repository files readable only by the service account because they may contain credentials.
 
-### Storage & Documentation Preview
+## `config.yaml` schema
+
+### Storage and documentation previews
 
 ```yaml
 storage_path: "storage"
 enable_javadoc_preview: true
 javadoc_extract_path: ""
 max_javadoc_size_mb: 48
+enable_cargodoc_preview: true
+cargodoc_extract_path: ""
+max_cargodoc_size_mb: 128
 ```
 
-| Parameter                | Default   | Description                                                |
-|:-------------------------|:----------|:-----------------------------------------------------------|
-| `storage_path`           | `storage` | Root directory for local artifact storage                  |
-| `enable_javadoc_preview` | `true`    | Enables HTML extraction and preview of Javadoc JARs        |
-| `javadoc_extract_path`   | `""`      | Extraction cache directory (uses system cache when empty)  |
-| `max_javadoc_size_mb`    | `48`      | Maximum allowable size (MB) for extracted Javadoc archives |
+An empty extraction path uses the platform cache directory. Extraction validates paths and size limits before content
+is exposed through `/javadoc` or `/cargodoc`.
 
-### `server` Network & Security
+### `server` network and security
 
 ```yaml
 server:
@@ -47,8 +47,7 @@ server:
   ssl_enabled: false
   ssl_cert_path: ""
   ssl_key_path: ""
-  domains:
-    - "localhost"
+  domains: ["localhost"]
   cors_origins: []
   enable_compression: false
   file_cache_size_mb: 16
@@ -57,35 +56,19 @@ server:
   cdn_ip_header: "X-Forwarded-For"
   debug_mode: false
   gpg:
-    key_servers:
-      - "https://keys.openpgp.org"
-      - "https://keyserver.ubuntu.com"
+    key_servers: ["https://keys.openpgp.org", "https://keyserver.ubuntu.com"]
 ```
 
-| Parameter             | Default            | Description                                                   |
-|:----------------------|:-------------------|:--------------------------------------------------------------|
-| `host`                | `0.0.0.0`          | IP address to bind                                            |
-| `port`                | `3000`             | Port to listen on                                             |
-| `ssl_enabled`         | `false`            | Enables built-in TLS/HTTPS                                    |
-| `ssl_cert_path`       | `""`               | Path to TLS certificate (`.crt` or `.pem`)                    |
-| `ssl_key_path`        | `""`               | Path to TLS private key (`.key`)                              |
-| `domains`             | `["localhost"]`    | Public hostnames used for download links and default CORS     |
-| `cors_origins`        | `[]`               | Allowed CORS origins (empty = `domains` only, `*` = all)      |
-| `enable_compression`  | `false`            | Enables gzip/brotli HTTP response compression                 |
-| `file_cache_size_mb`  | `16`               | In-memory cache size for small static files and metadata      |
-| `max_active_requests` | `512`              | Max concurrent active requests (returns 503 when exceeded)    |
-| `trusted_proxies`     | `[]`               | Trusted reverse proxy IPs or CIDRs                            |
-| `cdn_ip_header`       | `X-Forwarded-For`  | Request header containing real client IP from trusted proxies |
-| `debug_mode`          | `false`            | Enables `/api/debug` pprof diagnostic endpoints               |
-| `gpg.key_servers`     | Default keyservers | OpenPGP keyservers used for signature verification            |
+`domains` supplies public hostnames and default CORS hosts. `cors_origins` may add exact origins, hosts, or wildcard
+hosts; `*` allows every origin. Forwarded client-IP headers are trusted only when the immediate peer matches
+`trusted_proxies`. Host, port, TLS, compression, debug mode, and some cache changes require a restart.
 
-> **Note**: Modifying `host`, `port`, or TLS settings requires restarting the RenoP process.
+GitHub OAuth is also stored under `server.github_oauth`; configure its client ID and write-only secret from the UI.
 
-### `database` Connection
+### `database` connection
 
 ```yaml
 database:
-  enabled: true
   driver: "sqlite3"
   dsn: "renop.db"
   max_open_conns: 25
@@ -93,22 +76,25 @@ database:
   conn_max_lifetime_sec: 300
 ```
 
-Supports `sqlite3`, `mysql`, and `postgres`. See [Database Configuration](./database.md) for details.
+Supported drivers are `sqlite3` (or `sqlite`), `mysql`, and `postgres`. See
+[Database Configuration](./database.md).
 
-### `proxy` Outbound Proxy
+### `proxy` outbound routing
 
 ```yaml
 proxy:
   selected: ""
   proxies:
-    corp_proxy:
+    - name: "corp_proxy"
       url: "http://proxy.internal:8080"
+      username: ""
+      password: ""
 ```
 
-Configures outbound HTTP/HTTPS/SOCKS5 proxies for upstream mirroring.
-See [Outbound Proxy Configuration](./outbound-proxy.md).
+The list supports up to 16 HTTP, HTTPS, or SOCKS5 proxies. See
+[Outbound Proxy Configuration](./outbound-proxy.md).
 
-### `frontend` Branding
+### `frontend` branding
 
 ```yaml
 frontend:
@@ -123,12 +109,15 @@ frontend:
   legal_notice_url: ""
 ```
 
-Customizes page title, logo, organization URL, and footer compliance text.
+Branding URLs are validated before use. Background images must satisfy the configured WebP and size policy.
 
-### `updater` Auto-Updates
+### `updater` policy
 
 ```yaml
 updater:
-  channel: "release"    # release or nightly
-  mode: "manual"        # manual updates via UI button
+  channel: "release"
+  mode: "manual"
 ```
+
+`channel` is `release` or `nightly`. `mode` is `manual`, `auto_check`, or `auto_install`. Automatic checks are coalesced
+by the process-wide scheduler; update results are delivered to administrators through the message center.

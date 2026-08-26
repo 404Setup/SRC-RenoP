@@ -18,7 +18,6 @@ RenoP uses an embedded SQLite database out of the box with zero external configu
 
 ```yaml
 database:
-  enabled: true
   driver: "sqlite3"
   dsn: "renop.db"
   max_open_conns: 25
@@ -35,7 +34,6 @@ For multi-instance deployments or enterprise environments:
 
 ```yaml
 database:
-  enabled: true
   driver: "mysql"
   dsn: "renop_user:password@tcp(127.0.0.1:3306)/renop_db?charset=utf8mb4&parseTime=True&loc=Local"
   max_open_conns: 50
@@ -55,7 +53,6 @@ RenoP supports PostgreSQL via the `jackc/pgx/v5` driver:
 
 ```yaml
 database:
-  enabled: true
   driver: "postgres"
   dsn: "postgres://renop_user:password@127.0.0.1:5432/renop_db?sslmode=disable"
   max_open_conns: 50

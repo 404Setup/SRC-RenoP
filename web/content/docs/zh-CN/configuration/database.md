@@ -17,7 +17,6 @@ RenoP 支持使用内嵌 SQLite、外部 MySQL 或 PostgreSQL 作为元数据与
 
 ```yaml
 database:
-  enabled: true
   driver: "sqlite3"
   dsn: "renop.db"
   max_open_conns: 25
@@ -34,7 +33,6 @@ database:
 
 ```yaml
 database:
-  enabled: true
   driver: "mysql"
   dsn: "renop_user:your_password@tcp(127.0.0.1:3306)/renop_db?charset=utf8mb4&parseTime=True&loc=Local"
   max_open_conns: 50
@@ -54,7 +52,6 @@ RenoP 支持 PostgreSQL（基于 `jackc/pgx/v5` 驱动）：
 
 ```yaml
 database:
-  enabled: true
   driver: "postgres"
   dsn: "postgres://renop_user:your_password@127.0.0.1:5432/renop_db?sslmode=disable"
   max_open_conns: 50

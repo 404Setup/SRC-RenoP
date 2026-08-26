@@ -1,17 +1,16 @@
 ---
-title: 反向代理配置
+title: 反向代理
 order: 2
-category: 运维部署
-description: 配置 Nginx 与 Caddy 反向代理、HTTPS 终止与真实 IP 传递
+category: 部署
+description: 使用 Nginx 与 Caddy 进行 TLS 终止、流式传输与可信客户端 IP 转发
 ---
 
-# 反向代理配置
+# 反向代理
 
-在生产环境中，通常将 RenoP 部署在 Nginx、Caddy 或云厂商负载均衡器之后，由反向代理负责 TLS 证书托管、请求路由与流量清洗。
+生产环境通常将 RenoP 部署在 Nginx、Caddy 或负载均衡器后方，以提供 TLS、路由与网络防护。代理必须能够
+流式转发大型上传与 Blob，不应将完整正文缓冲到内存或磁盘。
 
-## 1. Nginx 配置示例
-
-对于包含大文件上传与制品流式下载的场景，需要调整 Nginx 的客户端请求体限制与缓冲设置：
+## 1. Nginx
 
 ```nginx
 server {
@@ -27,46 +26,46 @@ server {
     ssl_certificate     /etc/ssl/certs/renop.example.com.crt;
     ssl_certificate_key /etc/ssl/private/renop.example.com.key;
 
-    # 允许上传大型制品与 Docker 镜像分块
+    # Allow large artifact uploads
     client_max_body_size 0;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
 
-        # 传递真实客户端 IP 与协议
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # 禁用请求体缓冲以支持流式上传
+        # Disable buffering for real-time streaming
         proxy_request_buffering off;
         proxy_buffering off;
 
-        # 调整超时时间以支持大文件传输
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
     }
 }
 ```
 
-## 2. Caddy 配置示例
+必须保留 Docker 使用的 `Location`、`Range`、`Content-Range` 与 `Docker-Upload-UUID` 请求头。发布大型制品时，
+代理的正文上限不可低于 RenoP 限制。
 
-Caddy 支持自动申请并维护 HTTPS 证书：
+## 2. Caddy
 
 ```caddy
 renop.example.com {
     reverse_proxy 127.0.0.1:3000 {
-        # 禁用流式缓冲
         flush_interval -1
     }
 }
 ```
 
-## 3. RenoP 端信任反向代理配置
+Caddy 自动管理 TLS；`flush_interval -1` 可避免延迟流式响应。
 
-当经过反向代理时，为了让 RenoP 正确识别客户端的真实 IP 并进行合理的限流与审计日志记录，需在 `config.yaml` 中配置受信任代理：
+## 3. RenoP 信任配置
+
+只配置公开主机名及由自己控制的代理 CIDR：
 
 ```yaml
 server:
@@ -75,5 +74,8 @@ server:
   trusted_proxies:
     - "127.0.0.1"
     - "10.0.0.0/8"
-  cdn_ip_header: "X-Forwarded-For" # 若使用 Cloudflare 可设为 "CF-Connecting-IP"
+  cdn_ip_header: "X-Forwarded-For" # or "CF-Connecting-IP" for Cloudflare
 ```
+
+直接连接来源不受信任时，RenoP 会忽略转发 IP 请求头。过宽的信任范围会允许客户端伪造行为日志与速率限制所
+使用的 IP。

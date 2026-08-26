@@ -2,54 +2,64 @@
 title: Outbound Proxy
 order: 4
 category: Configuration
-description: HTTP, HTTPS, and SOCKS5 outbound proxy configuration and routing
+description: Named HTTP, HTTPS, and SOCKS5 proxies and per-mirror routing
 ---
 
 # Outbound Proxy Configuration
 
-When RenoP is deployed inside an isolated corporate network and needs to reach public upstream registries (such as Maven
-Central, crates.io, or Docker Hub), configure outbound proxies under the `proxy` block in `config.yaml`.
+Configure outbound proxies when RenoP must reach Maven Central, crates.io, Docker registries, GitHub, GitLab, or GPG
+key servers through a controlled egress path. The process shares bounded HTTP transports per routing policy.
 
-## Configuration Schema
+## Configuration schema
 
 ```yaml
 proxy:
-  selected: "corp_http"   # Default active proxy name; empty for direct connection
+  selected: "corp_http"
   proxies:
-    corp_http:
+    - name: "corp_http"
       url: "http://10.0.0.1:8080"
-    socks_proxy:
-      url: "socks5://user:pass@10.0.0.2:1080"
-    https_proxy:
-      url: "https://proxy.internal:8443"
+      username: "proxy-user"
+      password: "proxy-password"
+    - name: "socks_proxy"
+      url: "socks5://10.0.0.2:1080"
+      username: ""
+      password: ""
 ```
 
-## Parameter Reference
+`selected` is the global default. An empty value means direct access. At most 16 named proxies are accepted. Names must
+be unique. URLs support `http`, `https`, or `socks5`, must include an appropriate host and port, and must not contain
+credentials, paths, queries, or fragments. Put credentials only in `username` and `password`.
 
-| Parameter            | Type   | Description                                                                                      |
-|:---------------------|:-------|:-------------------------------------------------------------------------------------------------|
-| `selected`           | string | Global default proxy identifier. Leave empty (`""`) for direct connection.                       |
-| `proxies`            | map    | Named dictionary of proxy servers.                                                               |
-| `proxies.<name>.url` | string | Proxy URL supporting `http://`, `https://`, and `socks5://` protocols with embedded credentials. |
+## Routing behavior
 
-## Per-Mirror Proxy Routing
+| Selector | Result |
+|:---------|:-------|
+| `""` | Inherit the global `proxy.selected` value |
+| `direct` | Bypass every proxy |
+| A proxy name | Use that exact configured proxy |
 
-In `repositories.yaml`, individual mirrors can specify their own proxy behavior via the `proxy` field:
+Changing the selected proxy or credentials invalidates the relevant pooled clients. An unknown selector is rejected
+instead of silently falling back to direct access.
+
+## Per-mirror selection
+
+Each repository mirror may override the global route with its `proxy` field:
 
 ```yaml
 repositories:
   releases:
     name: releases
+    format: maven
     mirrors:
-      - name: "upstream-maven"
+      - name: "maven-central"
         url: "https://repo1.maven.org/maven2"
-        proxy: "corp_http"     # Routes via named proxy corp_http
-
-      - name: "internal-mirror"
-        url: "http://mirror.internal/maven"
-        proxy: "direct"        # Forces direct connection, bypassing global proxy
-
-      - name: "default-mirror"
+        proxy: "corp_http"
+      - name: "internal"
+        url: "https://mirror.internal/maven"
+        proxy: "direct"
+      - name: "default-route"
         url: "https://plugins.gradle.org/m2"
-        proxy: ""              # Inherits global proxy.selected setting
+        proxy: ""
 ```
+
+Use `direct` for internal services that must never traverse the global proxy. Keep secrets out of mirror URLs and logs.

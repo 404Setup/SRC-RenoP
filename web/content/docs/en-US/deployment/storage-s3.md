@@ -2,43 +2,47 @@
 title: Storage Architecture
 order: 3
 category: Deployment
-description: Local filesystem storage and S3-compatible object storage backends
+description: Local filesystem and per-repository S3-compatible object backends
 ---
 
 # Storage Architecture
 
-RenoP supports both local filesystem storage and S3-compatible cloud object storage. Each repository can be configured
-with an independent storage backend.
+RenoP supports local Disk and S3-compatible object services. Each repository selects its backend; the repository gate
+serializes backend changes with active operations.
 
-## 1. Local Filesystem Storage
+## 1. Local filesystem
 
-Configured via `storage_path` in `config.yaml` (default: `storage`).
+The root is `storage_path` in `config.yaml`, defaulting to `storage`.
 
-### Layout Organization
+### Organization
 
-- **Maven**: `{storage_path}/{repo}/{group_path}/{artifact}/{version}/{files}`
-- **Cargo**: `{storage_path}/{repo}/crates/{crate}/{version}.crate`
-- **Docker**: `{storage_path}/_docker/blobs/...` and `{storage_path}/_docker/manifests/...`
+- **Maven/files**: `{storage_path}/{repo}/{path}`
+- **Cargo**: Index and archive data remain isolated under the repository directory
+- **Docker**: Blobs, manifests, and references are isolated and validated per image
 
-### Write Reliability
+Physical names are implementation details. Use protocol APIs instead of modifying the directory directly.
 
-- Uploaded files are written to `.tmp` temporary files with checksum verification.
-- Once verified, the file is atomically renamed into its final location.
+### Write reliability
+
+- Uploads use bounded temporary files and validate size, hash, and policy before commit.
+- Final publication is atomic when the filesystem supports it.
+- Mirror commits, deletes, migrations, and GPG publications synchronize with backend changes.
 
 ---
 
-## 2. S3-Compatible Object Storage
+## 2. S3-compatible object storage
 
-Suitable for multi-node deployments, container clusters, or distributed environments.
+S3 is suitable for managed object storage. Multi-node operation also requires an external database and coordination
+consistent with RenoP's guarantees; S3 alone does not turn one process into a cluster.
 
-### Supported Providers
+### Providers
 
 - **AWS S3**
-- **MinIO** (Self-hosted)
+- **MinIO**
 - **Cloudflare R2**
-- **Aliyun OSS / Tencent COS / Huawei OBS** (via S3 compatibility layer)
+- Any service implementing the required S3 API
 
-### Configuration Example (`repositories.yaml`)
+### Example (`repositories.yaml`)
 
 ```yaml
 repositories:
@@ -56,11 +60,12 @@ repositories:
       redirect_downloads: false
 ```
 
-### Download Delivery Modes
+Create the bucket first. Credentials need read, write, list, and delete access below `key_prefix`. Use TLS and a secret
+manager; never commit access keys to Git.
 
-1. **Proxy Streaming (`redirect_downloads: false`)**:
-    - RenoP streams data from S3 to the client.
-    - Ideal when the S3 bucket is private and not exposed to the public Internet.
-2. **Direct Redirect (`redirect_downloads: true`)**:
-    - RenoP authenticates the request and responds with a `302 Found` redirecting to a presigned S3 URL.
-    - Reduces bandwidth overhead on the RenoP server.
+### Download modes
+
+1. **Proxy streaming (`redirect_downloads: false`)**: RenoP authorizes and streams S3 data to the client. The bucket can
+   remain private and its URL is not exposed.
+2. **Direct redirect (`redirect_downloads: true`)**: RenoP authorizes and returns `302 Found` to a short-lived presigned
+   URL, reducing RenoP bandwidth.

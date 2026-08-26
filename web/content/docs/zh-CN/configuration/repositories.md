@@ -1,97 +1,97 @@
 ---
-title: 仓库与镜像
+title: 存储库与镜像
 order: 2
 category: 配置
-description: repositories.yaml 仓库定义、可见性、上游镜像与 S3 存储
+description: 仓库引擎、可见性、上游镜像、迁移与 S3 存储
 ---
 
-# 仓库与镜像配置
+# 存储库与镜像
 
-仓库的定义存放在 `repositories.yaml` 中（可通过环境变量 `RENOP_REPOSITORIES` 覆盖路径）。大部分选项也可以在 Web
-控制台的「仓库设置」中进行可视化修改。
+存储库定义位于 `repositories.yaml`，可由 `RENOP_REPOSITORIES` 覆盖路径。管理员可在仓库管理中修改同一套
+经过校验的配置。仓库名称是不可变的小写 slug，并作为 URL 的第一个路径段。
 
-## 配置文件示例
+## 配置示例
 
 ```yaml
 repositories:
   releases:
     name: releases
+    format: maven
     visibility: PUBLIC
     allow_redeployment: false
-    require_gpg_signature: false
-    mirrors: [ ]
-    s3:
-      enabled: false
-
-  snapshots:
-    name: snapshots
+    require_gpg_signature: true
+    mirrors: []
+  crates:
+    name: crates
+    format: cargo
     visibility: PUBLIC
-    allow_redeployment: true
-    require_gpg_signature: false
-    mirrors: [ ]
-    s3:
-      enabled: false
-
-  private:
-    name: private
+    mirrors: []
+  containers:
+    name: containers
+    format: docker
     visibility: PRIVATE
     allow_redeployment: false
-    require_gpg_signature: false
-    mirrors: [ ]
-    s3:
-      enabled: false
+    mirrors: []
 ```
 
-## 仓库基础字段
+## 存储库字段
 
-| 字段名                  | 类型   | 默认值   | 说明                                                     |
-|:------------------------|:-------|:---------|:---------------------------------------------------------|
-| `name`                  | string | 必填     | 仓库标识与 URL 路径前缀（如 `http://host:3000/{name}/`） |
-| `visibility`            | string | `PUBLIC` | 仓库可见性级别，可选 `PUBLIC`、`HIDDEN`、`PRIVATE`       |
-| `allow_redeployment`    | bool   | `false`  | 是否允许重新上传并覆盖已存在的同名同版本制品文件         |
-| `require_gpg_signature` | bool   | `false`  | 是否强制要求附带 GPG 分离签名并在验签通过前暂存隔离区    |
-| `mirrors`               | list   | `[]`     | 上游镜像代理列表                                         |
-| `s3`                    | object | `{}`     | 该仓库绑定的 S3 兼容对象存储配置                         |
+| 字段 | 默认值 | 说明 |
+|:-----|:-------|:-----|
+| `name` | 必填 | 不可变仓库 slug 与 URL 前缀 |
+| `format` | `maven` | `maven`、`maven-classic`、`files`、`cargo` 或 `docker` |
+| `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN` 或 `PRIVATE` |
+| `allow_redeployment` | `false` | 在支持的引擎中允许 Maven 版本重发或 files/Docker 覆盖 |
+| `require_gpg_signature` | `false` | Maven 发布要求通过 OpenPGP 分离签名校验 |
+| `mirrors` | `[]` | 按顺序执行的上游镜像定义 |
+| `s3` | 省略 | 当前仓库独立的 S3 兼容存储 |
 
-### 可见性级别说明
+`maven-classic` 只改变前端布局，仍执行 Maven 发布规则。`files` 为非结构化存储，不生成校验文件、POM 或
+签名校验。Maven 可迁移到 `files` 并反向迁移，存储对象保持原位；切回 Maven 时重建目录并恢复保存的策略。
 
-- **PUBLIC**：公开可读。匿名用户无需登录即可直接拉取依赖或浏览制品列表。
-- **HIDDEN**：不参与发现，但可按精确路径直接读取。所有用户的仓库目录与个人资料包成员关系列表均不显示该
-  仓库；知晓具体制品 URL 的用户仍可下载。系统管理员仍可在仓库管理页面中查看和配置它。
-- **PRIVATE**：私有仓库。拉取制品、浏览列表与上传均需要提供凭据，且当前用户必须拥有该仓库的查看或写入权限。
+### 可见性
 
-## 上游镜像代理配置 (`mirrors`)
+- **PUBLIC**：允许匿名读取与发现。
+- **HIDDEN**：所有用户的前端目录与个人资料成员关系均不显示；精确已知路径仍可读取，管理员仍可在仓库管理
+  中查看。
+- **PRIVATE**：读取、列表与写入均要求显式授权。私有 Docker 镜像还会检查镜像级 L0-L4 成员关系。
 
-当本地仓库中未找到客户端请求的依赖时，RenoP 可向上游镜像仓库代理请求，并可将制品缓存至本地。
+## 上游镜像
+
+本地对象缺失时，RenoP 可按顺序从已启用镜像流式获取。成功结果可直接持久化，无需将完整正文读入内存。
+Cargo 与 Docker 在适用上游名称已存在时会拒绝本地创建。
 
 ```yaml
 mirrors:
-  - name: "aliyun-maven"
-    url: "https://maven.aliyun.com/repository/public"
+  - name: "central"
+    url: "https://repo1.maven.org/maven2"
     persist: true
     cache_ttl_secs: 86400
     negative_cache: true
     timeout_secs: 30
     proxy: ""
-    allow_artifacts: [ ]
-    deny_artifacts: [ ]
+    allow_artifacts: []
+    deny_artifacts: []
 ```
 
-| 字段名            | 默认值  | 说明                                                                                  |
-|:------------------|:--------|:--------------------------------------------------------------------------------------|
-| `name`            | 必填    | 镜像标识名称                                                                          |
-| `url`             | 必填    | 上游仓库的基础 URL                                                                    |
-| `persist`         | `true`  | 是否将从上游成功拉取的制品持久化保存到本地存储中                                      |
-| `cache_ttl_secs`  | `86400` | 镜像拉取制品的缓存有效期（秒）                                                        |
-| `negative_cache`  | `true`  | 是否对上游 404 响应开启负缓存（避免短时间内重复发起无效请求）                         |
-| `timeout_secs`    | `30`    | 请求上游的超时时间（秒）                                                              |
-| `proxy`           | `""`    | 留空使用全局默认代理；设为 `direct` 表示直连；或填写在 `config.yaml` 中配置的代理名称 |
-| `allow_artifacts` | `[]`    | 白名单规则列表（如 `com.example` 或 `com.example:lib`），仅代理匹配的坐标             |
-| `deny_artifacts`  | `[]`    | 黑名单规则列表，阻止代理匹配的坐标                                                    |
+| 字段 | 默认值 | 说明 |
+|:-----|:-------|:-----|
+| `name` | 必填 | 当前存储库内唯一的镜像名称 |
+| `url` | 必填 | 上游基础 URL |
+| `persist` | `true` | 将成功响应写入仓库存储后端 |
+| `cache_ttl_secs` | `86400` | 正缓存有效时间 |
+| `negative_cache` | `true` | 缓存引擎支持的上游未命中结果 |
+| `timeout_secs` | `30` | 单次上游请求超时 |
+| `proxy` | `""` | 使用全局路由、`direct` 或精确命名代理 |
+| `allow_artifacts` | `[]` | 按引擎解释的允许规则 |
+| `deny_artifacts` | `[]` | 按引擎解释的拒绝规则，拒绝优先 |
 
-## S3 对象存储配置 (`s3`)
+需要凭据时使用结构化 authorization 字段，不得将密钥嵌入 `url`。
 
-如果需要将特定仓库的数据存储在云端或自建 MinIO 中，可为该仓库启用 S3 配置：
+## S3 兼容存储
+
+每个存储库可使用 Disk 或独立 S3 兼容后端。切换存储或引擎时，存储库门控会与上传、删除、GPG 提交及镜像
+写入进行串行化。
 
 ```yaml
 s3:
@@ -106,14 +106,5 @@ s3:
   redirect_downloads: false
 ```
 
-| 字段名               | 默认值  | 说明                                                                          |
-|:---------------------|:--------|:------------------------------------------------------------------------------|
-| `enabled`            | `false` | 是否启用该仓库的 S3 存储                                                      |
-| `endpoint`           | 必填    | S3 API 服务端点 URL（使用 AWS 时可填对应区域端点，自建 MinIO 填实际地址）     |
-| `bucket`             | 必填    | 存储桶名称                                                                    |
-| `key_prefix`         | `""`    | 存储对象键的前缀路径（例如 `releases/`）                                      |
-| `region`             | `auto`  | S3 存储桶所属区域                                                             |
-| `access_key_id`      | 必填    | S3 访问密钥 ID                                                                |
-| `secret_access_key`  | 必填    | S3 访问密钥密码                                                               |
-| `force_path_style`   | `true`  | 是否强制使用路径风格 URL（MinIO 通常需设为 `true`）                           |
-| `redirect_downloads` | `false` | 是否将下载请求重定向到 S3 预签名 URL（设为 `true` 可减少 RenoP 节点下行带宽） |
+MinIO 通常要求 `force_path_style`。启用 `redirect_downloads` 后，RenoP 完成授权并返回短时预签名跳转；否则
+由 RenoP 流式代理对象。
