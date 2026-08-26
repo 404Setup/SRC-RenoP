@@ -28,6 +28,18 @@ import (
 
 var errInsufficientProxyDiskSpace = errors.New("insufficient disk space for proxy cache")
 
+type repositoryMutationReadCloser struct {
+	io.ReadCloser
+	release func()
+	once    sync.Once
+}
+
+func (r *repositoryMutationReadCloser) Close() error {
+	err := r.ReadCloser.Close()
+	r.once.Do(r.release)
+	return err
+}
+
 type proxyStreamReader struct {
 	bodyReader io.ReadCloser
 	tmpFile    *os.File

@@ -21,22 +21,31 @@ type Repository struct {
 	Name string `json:"name" yaml:"name"`
 	// Format selects the client protocol. Empty is treated as Maven for
 	// backwards compatibility with existing repositories.yaml files.
-	Format              string    `json:"format,omitempty" yaml:"format,omitempty"`
-	Visibility          string    `json:"visibility" yaml:"visibility"`
-	Mirrors             []Mirror  `json:"mirrors" yaml:"mirrors"`
-	AllowRedeployment   bool      `json:"allow_redeployment" yaml:"allow_redeployment"`
-	RequireGPGSignature bool      `json:"require_gpg_signature" yaml:"require_gpg_signature"`
-	S3                  *S3Config `json:"s3,omitempty" yaml:"s3,omitempty"`
+	Format              string                `json:"format,omitempty" yaml:"format,omitempty"`
+	Visibility          string                `json:"visibility" yaml:"visibility"`
+	Mirrors             []Mirror              `json:"mirrors" yaml:"mirrors"`
+	AllowRedeployment   bool                  `json:"allow_redeployment" yaml:"allow_redeployment"`
+	RequireGPGSignature bool                  `json:"require_gpg_signature" yaml:"require_gpg_signature"`
+	S3                  *S3Config             `json:"s3,omitempty" yaml:"s3,omitempty"`
+	MavenRestore        *MavenRestoreSettings `json:"maven_restore,omitempty" yaml:"maven_restore,omitempty"`
+}
+
+// MavenRestoreSettings preserves Maven-only policy while a repository uses the files engine.
+type MavenRestoreSettings struct {
+	Format              string `json:"format" yaml:"format"`
+	AllowRedeployment   bool   `json:"allow_redeployment" yaml:"allow_redeployment"`
+	RequireGPGSignature bool   `json:"require_gpg_signature" yaml:"require_gpg_signature"`
 }
 
 type repositorySerialization struct {
-	Name                string    `json:"name" yaml:"name"`
-	Format              string    `json:"format,omitempty" yaml:"format,omitempty"`
-	Visibility          string    `json:"visibility" yaml:"visibility"`
-	Mirrors             []Mirror  `json:"mirrors" yaml:"mirrors"`
-	AllowRedeployment   *bool     `json:"allow_redeployment,omitempty" yaml:"allow_redeployment,omitempty"`
-	RequireGPGSignature *bool     `json:"require_gpg_signature,omitempty" yaml:"require_gpg_signature,omitempty"`
-	S3                  *S3Config `json:"s3,omitempty" yaml:"s3,omitempty"`
+	Name                string                `json:"name" yaml:"name"`
+	Format              string                `json:"format,omitempty" yaml:"format,omitempty"`
+	Visibility          string                `json:"visibility" yaml:"visibility"`
+	Mirrors             []Mirror              `json:"mirrors" yaml:"mirrors"`
+	AllowRedeployment   *bool                 `json:"allow_redeployment,omitempty" yaml:"allow_redeployment,omitempty"`
+	RequireGPGSignature *bool                 `json:"require_gpg_signature,omitempty" yaml:"require_gpg_signature,omitempty"`
+	S3                  *S3Config             `json:"s3,omitempty" yaml:"s3,omitempty"`
+	MavenRestore        *MavenRestoreSettings `json:"maven_restore,omitempty" yaml:"maven_restore,omitempty"`
 }
 
 const (
@@ -87,7 +96,7 @@ func (r *Repository) UsesModernMavenLayout() bool {
 func (r Repository) serialization() repositorySerialization {
 	serialized := repositorySerialization{
 		Name: r.Name, Format: r.ConfiguredFormat(), Visibility: r.Visibility, S3: r.S3,
-		Mirrors: make([]Mirror, len(r.Mirrors)),
+		Mirrors: make([]Mirror, len(r.Mirrors)), MavenRestore: r.MavenRestore.DeepCopy(),
 	}
 	for i := range r.Mirrors {
 		serialized.Mirrors[i] = r.Mirrors[i].DeepCopy()
@@ -250,6 +259,16 @@ func (m *MavenSettings) setDefaults() {
 		if repo != nil && repo.NormalizedFormat() == RepositoryFormatFiles {
 			repo.AllowRedeployment = true
 			repo.RequireGPGSignature = false
+			if repo.MavenRestore != nil {
+				restoredFormat := strings.ToLower(strings.TrimSpace(repo.MavenRestore.Format))
+				if restoredFormat != RepositoryFormatMaven && restoredFormat != RepositoryFormatMavenClassic {
+					repo.MavenRestore = nil
+				} else {
+					repo.MavenRestore.Format = restoredFormat
+				}
+			}
+		} else if repo != nil {
+			repo.MavenRestore = nil
 		}
 	}
 	delete(m.Repositories, "snapshot")
@@ -304,6 +323,17 @@ func (s *S3Config) DeepCopy() *S3Config {
 	}
 }
 
+// DeepCopy returns an independent Maven policy snapshot.
+func (m *MavenRestoreSettings) DeepCopy() *MavenRestoreSettings {
+	if m == nil {
+		return nil
+	}
+	return &MavenRestoreSettings{
+		Format: strings.Clone(m.Format), AllowRedeployment: m.AllowRedeployment,
+		RequireGPGSignature: m.RequireGPGSignature,
+	}
+}
+
 func (r *Repository) DeepCopy() *Repository {
 	if r == nil {
 		return nil
@@ -315,6 +345,7 @@ func (r *Repository) DeepCopy() *Repository {
 		AllowRedeployment:   r.AllowRedeployment,
 		RequireGPGSignature: r.RequireGPGSignature,
 		S3:                  r.S3.DeepCopy(),
+		MavenRestore:        r.MavenRestore.DeepCopy(),
 	}
 	if r.Mirrors != nil {
 		cloned.Mirrors = make([]Mirror, len(r.Mirrors))

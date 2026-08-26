@@ -38,6 +38,7 @@ import (
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
@@ -78,6 +79,11 @@ func WriteChecksumFile(parent string, baseName string, ext string, hash string, 
 }
 
 func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, localFilePath string) error {
+	if repo == nil {
+		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+	}
+	releaseMutation := repositorygate.AcquireMutation(repo.Name)
+	defer releaseMutation()
 	lockKey := filepath.ToSlash(GPGUploadLockPath(localFilePath))
 	upload := state.Inner.InFlightDownloads.AcquirePath(lockKey)
 	uploadSucceeded := false
@@ -208,7 +214,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	if user != nil && user.Username != "guest" {
 		username = user.Username
 	}
-	result, err := ProcessUploadedFile(c.Context(), state, repo, &PreparedUpload{
+	result, err := processUploadedFileLocked(c.Context(), state, repo, &PreparedUpload{
 		LocalFilePath: localFilePath, TempPath: tmpPath, Username: username,
 		FileSize: fileSize, ModTime: modTime, Existed: exists,
 		GenerateChecksums: generateChecksums,

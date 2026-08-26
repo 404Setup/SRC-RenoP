@@ -24,6 +24,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/gpg"
+	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -36,15 +37,16 @@ const (
 )
 
 var (
-	ErrGPGPendingConflict     = errors.New("another GPG release is already pending for this artifact")
-	ErrGPGPendingLimit        = errors.New("too many GPG releases are awaiting publication")
-	ErrGPGSignatureLarge      = errors.New("GPG detached signature exceeds the size limit")
-	ErrGPGSignatureSuffix     = errors.New("GPG detached signatures must use the lowercase .asc suffix")
-	ErrGPGUploaderRequired    = errors.New("authenticated uploader is required for GPG verification")
-	ErrGPGRepositoryMissing   = errors.New("repository is no longer available")
-	ErrRedeploymentDenied     = errors.New("artifact redeployment is not allowed")
-	ErrGPGStoragePathChange   = errors.New("storage path cannot be changed while GPG publications are pending")
-	gpgReleaseStorageMutation sync.Mutex
+	ErrGPGPendingConflict      = errors.New("another GPG release is already pending for this artifact")
+	ErrGPGPendingLimit         = errors.New("too many GPG releases are awaiting publication")
+	ErrGPGSignatureLarge       = errors.New("GPG detached signature exceeds the size limit")
+	ErrGPGSignatureSuffix      = errors.New("GPG detached signatures must use the lowercase .asc suffix")
+	ErrGPGUploaderRequired     = errors.New("authenticated uploader is required for GPG verification")
+	ErrGPGRepositoryMissing    = errors.New("repository is no longer available")
+	ErrRepositoryFormatChanged = errors.New("repository engine changed during the operation")
+	ErrRedeploymentDenied      = errors.New("artifact redeployment is not allowed")
+	ErrGPGStoragePathChange    = errors.New("storage path cannot be changed while GPG publications are pending")
+	gpgReleaseStorageMutation  sync.Mutex
 )
 
 var gpgChecksumSuffixes = [...]string{".md5", ".sha1", ".sha256", ".sha512"}
@@ -450,12 +452,33 @@ func enqueueGPGCompanion(
 // ProcessUploadedFile commits ordinary files immediately and queues protected
 // Maven artifacts, signatures, and active publication checksum companions.
 func ProcessUploadedFile(ctx context.Context, state *core.AppState, repo *config.Repository, upload *PreparedUpload) (GPGUploadResult, error) {
+	if repo == nil {
+		return GPGUploadResult{}, errors.New("invalid prepared upload")
+	}
+	releaseMutation := repositorygate.AcquireMutation(repo.Name)
+	defer releaseMutation()
+	return processUploadedFileLocked(ctx, state, repo, upload)
+}
+
+func processUploadedFileLocked(ctx context.Context, state *core.AppState, repo *config.Repository, upload *PreparedUpload) (GPGUploadResult, error) {
 	if state == nil || state.Inner == nil || repo == nil || upload == nil || upload.TempPath == "" {
 		return GPGUploadResult{}, errors.New("invalid prepared upload")
 	}
 	if err := ctx.Err(); err != nil {
 		return GPGUploadResult{}, err
 	}
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return GPGUploadResult{}, ErrGPGRepositoryMissing
+	}
+	currentRepo := cfg.Maven.Repositories[repo.Name]
+	if currentRepo == nil {
+		return GPGUploadResult{}, ErrGPGRepositoryMissing
+	}
+	if currentRepo.NormalizedFormat() != repo.NormalizedFormat() {
+		return GPGUploadResult{}, ErrRepositoryFormatChanged
+	}
+	repo = currentRepo
 	if repo.NormalizedFormat() == config.RepositoryFormatFiles {
 		err := CommitUploadedFile(state, upload.LocalFilePath, upload.TempPath, upload.FileSize, upload.ModTime,
 			upload.Existed, false, nil)
@@ -478,7 +501,7 @@ func ProcessUploadedFile(ctx context.Context, state *core.AppState, repo *config
 	if err != nil {
 		return GPGUploadResult{}, err
 	}
-	cfg := state.Inner.Config.Load()
+	cfg = state.Inner.Config.Load()
 	currentRepo, exists := cfg.Maven.Repositories[repository]
 	if !exists || currentRepo == nil {
 		return GPGUploadResult{}, ErrGPGRepositoryMissing
@@ -547,6 +570,8 @@ func GPGUploadErrorResponse(err error) (int, string) {
 	case errors.Is(err, ErrGPGSignatureSuffix):
 		return http.StatusBadRequest, err.Error()
 	case errors.Is(err, ErrGPGPendingConflict), errors.Is(err, ErrRedeploymentDenied):
+		return http.StatusConflict, err.Error()
+	case errors.Is(err, ErrRepositoryFormatChanged):
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, ErrGPGPendingLimit):
 		return http.StatusTooManyRequests, err.Error()

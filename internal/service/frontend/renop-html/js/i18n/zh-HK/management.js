@@ -86,6 +86,7 @@ export default Object.freeze({
     "audit.action.MAVEN_TEAM_LEVEL": "Maven 域團隊權限已更新",
     "audit.action.MAVEN_TEAM_REMOVE": "Maven 域團隊成員已移除",
     "audit.action.MAVEN_TEAM_INVITATION": "Maven 邀請已處理",
+    "audit.action.REPOSITORY_MIGRATE": "儲存庫引擎已遷移",
     "sessions.title": "活躍工作階段",
     "sessions.subtitle": "僅顯示瀏覽器登入（Basic / Bearer 認證不會出現在此列表）。不會展示 Session Token。",
     "sessions.adminTitle": "工作階段 — {name}",

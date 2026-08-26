@@ -211,6 +211,23 @@ func TestRepositoryFormatVariantsAndLegacyUpgradeDefaults(t *testing.T) {
 	if !strings.Contains(text, `"allow_redeployment":true`) || strings.Contains(text, "require_gpg_signature") {
 		t.Fatalf("file repository serialization has invalid publication policy fields: %s", text)
 	}
+	files.MavenRestore = &MavenRestoreSettings{
+		Format: RepositoryFormatMavenClassic, AllowRedeployment: true, RequireGPGSignature: true,
+	}
+	restoreYAML, err := yaml.Marshal(&MavenSettings{Repositories: map[string]*Repository{"downloads": &files}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var restored MavenSettings
+	if err := yaml.Unmarshal(restoreYAML, &restored); err != nil {
+		t.Fatal(err)
+	}
+	restoredFiles := restored.Repositories["downloads"]
+	if restoredFiles == nil || restoredFiles.MavenRestore == nil ||
+		restoredFiles.MavenRestore.Format != RepositoryFormatMavenClassic ||
+		!restoredFiles.MavenRestore.AllowRedeployment || !restoredFiles.MavenRestore.RequireGPGSignature {
+		t.Fatalf("Maven restore policy did not survive YAML round trip: %#v", restoredFiles)
+	}
 
 	mirror := &Mirror{AllowArtifacts: []string{"public/*"}}
 	if allowed, _ := mirror.IsArtifactAllowedFor(RepositoryFormatFiles, "public/releases/app.zip"); !allowed {

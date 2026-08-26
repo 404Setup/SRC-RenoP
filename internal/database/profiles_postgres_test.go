@@ -202,4 +202,10 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 	require.True(t, artifactDetails.Versions[0].Mirrored)
 	require.NoError(t, db.RemoveMavenMember("com.example", "maven_bob", "maven_alice"))
 	requireTeamRemovalMessage(t, db, "maven_alice", "maven", "", "com.example", "maven_bob")
+	require.NoError(t, db.DeleteMavenRepository("releases"))
+	_, err = db.GetMavenArtifactDetails("releases", "com.example", "postgres-demo")
+	require.ErrorIs(t, err, core.ErrMavenArtifactNotFound)
+	domainAfterDelete, err := db.GetMavenDomainDetails("com.example", "maven_bob")
+	require.NoError(t, err)
+	require.True(t, domainAfterDelete.Domain.Verified)
 }

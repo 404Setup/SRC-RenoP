@@ -86,6 +86,7 @@ export default Object.freeze({
     "audit.action.MAVEN_TEAM_LEVEL": "Maven 팀 권한 업데이트",
     "audit.action.MAVEN_TEAM_REMOVE": "Maven 팀 구성원 제거",
     "audit.action.MAVEN_TEAM_INVITATION": "Maven 초대 응답",
+    "audit.action.REPOSITORY_MIGRATE": "저장소 엔진 마이그레이션",
     "sessions.title": "활성 세션",
     "sessions.subtitle": "브라우저 로그인만 표시됩니다(Basic/Bearer는 목록에 없음). 세션 토큰은 표시되지 않습니다.",
     "sessions.adminTitle": "세션 — {name}",

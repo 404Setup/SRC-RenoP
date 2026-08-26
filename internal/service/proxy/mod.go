@@ -31,6 +31,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/cargo"
 	"renop/internal/service/index"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
@@ -206,6 +207,13 @@ func saveToDiskAndS3(state *core.AppState, repo *config.Repository, localFilePat
 }
 
 func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, storagePath string, pathStr string, dl *core.InFlightDownload) (io.ReadCloser, error) {
+	releaseMutation := repositorygate.AcquireMutation(repo.Name)
+	mutationTransferred := false
+	defer func() {
+		if !mutationTransferred {
+			releaseMutation()
+		}
+	}()
 	shouldNegativeCache := false
 	var negativeTTL uint64 = 3600
 	networkAttempted := false
@@ -372,7 +380,8 @@ func ProxyArtifact(state *core.AppState, repo *config.Repository, path string, s
 				responseLimit,
 				func(next uint64) bool { return canAllocateProxyDisk(state, next) },
 			)
-			return stream, nil
+			mutationTransferred = true
+			return &repositoryMutationReadCloser{ReadCloser: stream, release: releaseMutation}, nil
 		}
 
 		utils.DrainAndClose(res.Body)

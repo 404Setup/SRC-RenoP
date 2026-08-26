@@ -26,6 +26,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
+	"renop/internal/service/repositorygate"
 	"renop/internal/utils"
 )
 
@@ -505,6 +506,8 @@ func publishGPGRelease(state *core.AppState, release *core.GPGRelease) error {
 	if state == nil || release == nil {
 		return errors.New("invalid GPG release")
 	}
+	releaseMutation := repositorygate.AcquireMutation(release.Repository)
+	defer releaseMutation()
 	if err := validateReleaseStagingPaths(state, release); err != nil {
 		return err
 	}

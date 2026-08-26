@@ -13,6 +13,7 @@ package settings
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,12 +25,23 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
+	mavenservice "renop/internal/service/maven"
 	"renop/internal/service/outboundproxy"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
+
+const repositoryMigrationErrorHeader = "X-Renop-Error-Code"
+
+var errRepositoryMigrationConflict = errors.New("repository engine changed concurrently")
+
+func repositoryMigrationError(c fiber.Ctx, status int, code, message string) error {
+	c.Set(repositoryMigrationErrorHeader, code)
+	return c.Status(status).SendString(message)
+}
 
 func GetMavenRepositories(c fiber.Ctx, state *core.AppState) error {
 	if !isManager(c) {
@@ -45,6 +57,8 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	if !isManager(c) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
+	releaseMigration := repositorygate.AcquireMigration(repoName)
+	defer releaseMigration()
 	cfg := state.Inner.Config.Load()
 	existing := cfg.Maven.Repositories[repoName]
 	for configuredName := range cfg.Maven.Repositories {
@@ -87,6 +101,12 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	repo.Format = requestedFormat
 	if existing != nil && existing.NormalizedFormat() != repo.NormalizedFormat() {
 		return c.Status(fiber.StatusConflict).SendString("Repository format cannot be changed after creation")
+	}
+	if existing != nil && existing.NormalizedFormat() == config.RepositoryFormatFiles &&
+		repo.NormalizedFormat() == config.RepositoryFormatFiles {
+		repo.MavenRestore = existing.MavenRestore.DeepCopy()
+	} else if repo.NormalizedFormat() != config.RepositoryFormatFiles {
+		repo.MavenRestore = nil
 	}
 	if repo.Format == config.RepositoryFormatCargo {
 		repo.AllowRedeployment = false
@@ -192,6 +212,154 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	return c.Status(fiber.StatusOK).SendString("")
 }
 
+func repositoryWithMigratedEngine(repo *config.Repository, target string) *config.Repository {
+	migrated := repo.DeepCopy()
+	if target == config.RepositoryFormatFiles {
+		migrated.MavenRestore = &config.MavenRestoreSettings{
+			Format: repo.ConfiguredFormat(), AllowRedeployment: repo.AllowRedeployment,
+			RequireGPGSignature: repo.RequireGPGSignature,
+		}
+		migrated.Format = config.RepositoryFormatFiles
+		migrated.AllowRedeployment = true
+		migrated.RequireGPGSignature = false
+		return migrated
+	}
+	migrated.Format = config.RepositoryFormatMaven
+	migrated.AllowRedeployment = false
+	migrated.RequireGPGSignature = false
+	if restore := repo.MavenRestore; restore != nil {
+		if restore.Format == config.RepositoryFormatMaven || restore.Format == config.RepositoryFormatMavenClassic {
+			migrated.Format = restore.Format
+		}
+		migrated.AllowRedeployment = restore.AllowRedeployment
+		migrated.RequireGPGSignature = restore.RequireGPGSignature
+	}
+	migrated.MavenRestore = nil
+	return migrated
+}
+
+func replaceRepositoryConfig(state *core.AppState, repository, expectedFormat string, replacement *config.Repository) error {
+	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil || replacement == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	return state.Inner.FileIndex.UpdateMetadataCallback(func() error {
+		currentConfig := state.Inner.Config.Load()
+		if currentConfig == nil {
+			return core.ErrDatabaseUnavailable
+		}
+		current := currentConfig.Maven.Repositories[repository]
+		if current == nil || current.NormalizedFormat() != expectedFormat {
+			return errRepositoryMigrationConflict
+		}
+		updatedConfig := currentConfig.DeepCopy()
+		updatedConfig.Maven.Repositories[repository] = replacement.DeepCopy()
+		if err := saveRepositories(updatedConfig); err != nil {
+			return err
+		}
+		state.Inner.Config.Store(updatedConfig)
+		config.ClearRepoCacheConfigs()
+		return nil
+	})
+}
+
+func repositoryHasPendingGPG(state *core.AppState, repository string) (bool, error) {
+	db := state.GetDB()
+	if db == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	releases, err := db.ListPendingGPGReleases()
+	if err != nil {
+		return false, err
+	}
+	for _, release := range releases {
+		if release != nil && strings.EqualFold(release.Repository, repository) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// MigrateRepositoryEngine converts a Maven repository to files storage or restores it to Maven.
+func MigrateRepositoryEngine(c fiber.Ctx, state *core.AppState) error {
+	if !isManager(c) {
+		return repositoryMigrationError(c, fiber.StatusForbidden, "repository_migration_forbidden", "Forbidden")
+	}
+	repository := strings.Clone(c.Params("name"))
+	if !utils.IsValidRepositoryName(repository) {
+		return repositoryMigrationError(c, fiber.StatusBadRequest, "repository_migration_invalid", "Invalid repository name")
+	}
+	target := strings.ToLower(strings.TrimSpace(c.Params("target")))
+	if target != config.RepositoryFormatMaven && target != config.RepositoryFormatFiles {
+		return repositoryMigrationError(c, fiber.StatusBadRequest, "repository_migration_invalid", "Invalid target repository engine")
+	}
+	releaseMigration := repositorygate.AcquireMigration(repository)
+	defer releaseMigration()
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return repositoryMigrationError(c, fiber.StatusServiceUnavailable, "repository_migration_unavailable", "Repository configuration is unavailable")
+	}
+	current := cfg.Maven.Repositories[repository]
+	if current == nil {
+		return repositoryMigrationError(c, fiber.StatusNotFound, "repository_migration_not_found", "Repository not found")
+	}
+	source := current.NormalizedFormat()
+	if source == target {
+		return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_unchanged", "Repository already uses the requested engine")
+	}
+	if (source != config.RepositoryFormatMaven && source != config.RepositoryFormatFiles) ||
+		(target != config.RepositoryFormatMaven && target != config.RepositoryFormatFiles) {
+		return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_unsupported", "Only Maven and files repositories can be migrated")
+	}
+	if pending, err := repositoryHasPendingGPG(state, repository); err != nil {
+		return repositoryMigrationError(c, fiber.StatusServiceUnavailable, "repository_migration_unavailable", "Repository publication state is unavailable")
+	} else if pending {
+		return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_pending_gpg", "Repository has pending GPG publications")
+	}
+
+	original := current.DeepCopy()
+	replacement := repositoryWithMigratedEngine(current, target)
+	if target == config.RepositoryFormatMaven {
+		if err := mavenservice.RebuildRepositoryCatalog(state, repository); err != nil {
+			return repositoryMigrationError(c, fiber.StatusInternalServerError, "repository_migration_rebuild_failed", "Failed to rebuild Maven repository metadata")
+		}
+		if err := replaceRepositoryConfig(state, repository, source, replacement); err != nil {
+			cleanupErr := state.GetDB().DeleteMavenRepository(repository)
+			if cleanupErr != nil {
+				log.Printf("failed to clean Maven metadata after repository migration error: %v", errors.Join(err, cleanupErr))
+				return repositoryMigrationError(c, fiber.StatusInternalServerError, "repository_migration_cleanup_failed", "Failed to clean incomplete Maven repository metadata")
+			}
+			if errors.Is(err, errRepositoryMigrationConflict) {
+				return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_conflict", "Repository settings changed during migration")
+			}
+			return repositoryMigrationError(c, fiber.StatusInternalServerError, "repository_migration_failed", "Failed to save migrated repository settings")
+		}
+	} else {
+		if err := replaceRepositoryConfig(state, repository, source, replacement); err != nil {
+			if errors.Is(err, errRepositoryMigrationConflict) {
+				return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_conflict", "Repository settings changed during migration")
+			}
+			return repositoryMigrationError(c, fiber.StatusInternalServerError, "repository_migration_failed", "Failed to save migrated repository settings")
+		}
+		if err := state.GetDB().DeleteMavenRepository(repository); err != nil {
+			rollbackErr := replaceRepositoryConfig(state, repository, target, original)
+			if rollbackErr != nil {
+				return repositoryMigrationError(c, fiber.StatusInternalServerError, "repository_migration_rollback_failed", "Repository migration rollback failed")
+			}
+			return repositoryMigrationError(c, fiber.StatusInternalServerError, "repository_migration_failed", "Failed to remove Maven repository metadata")
+		}
+	}
+	if latest := state.Inner.Config.Load(); latest != nil {
+		storage.InitS3(latest)
+	}
+	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
+	audit.Log(state, &core.AuditLogEntry{
+		Username: username, Operator: operator, Action: audit.ActionRepositoryMigrate,
+		Details:    "Repository: " + repository + ", engine: " + source + " -> " + target,
+		AuthMethod: authMethod, SessionID: sessionID, IP: ip,
+	})
+	return protohttp.Write(c, &pb.StatusOk{Status: "ok"})
+}
+
 func ensureRepositoryStorageDir(state *core.AppState, repoName string) error {
 	if state == nil || state.Inner == nil {
 		return errors.New("application state is unavailable")
@@ -237,6 +405,8 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	if !isManager(c) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
+	releaseMigration := repositorygate.AcquireMigration(repoName)
+	defer releaseMigration()
 
 	var (
 		notFound         bool

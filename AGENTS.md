@@ -23,7 +23,9 @@
   automatic migration of repository-scoped legacy domains. Maven and Cargo mirror downloads are cataloged through
   the format-aware proxy completion hook in `internal/service/storage/mirror.go` without buffering artifact bodies.
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
-  Maven publication paths in both layouts.
+  Maven publication paths in both layouts. Administrators can migrate Maven repositories to the unstructured files
+  engine and back without moving stored objects; returning to Maven streams the existing Disk/S3 index into a rebuilt
+  catalog and restores the prior Maven layout and publication policy.
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based
   Bearer authentication, explicitly reserved images, L0-L4 image teams, per-image private visibility, image-scoped
   blob references, chunked uploads, authorized cross-repository mounting, upstream mirror proxying, and catalog
@@ -32,6 +34,8 @@
   mirror-discovered images remain permanently pull-only.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
+- **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
+  configuration changes with uploads, deletes, GPG publication, and mirror cache commits.
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.

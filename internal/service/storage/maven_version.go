@@ -22,6 +22,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
@@ -126,8 +127,11 @@ func RemoveMavenVersion(state *core.AppState, repository, groupID, artifactID, v
 	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil {
 		return core.ErrDatabaseUnavailable
 	}
+	releaseMutation := repositorygate.AcquireMutation(repository)
+	defer releaseMutation()
 	cfg := state.Inner.Config.Load()
-	if cfg == nil || cfg.Maven.Repositories[repository] == nil {
+	if cfg == nil || cfg.Maven.Repositories[repository] == nil ||
+		cfg.Maven.Repositories[repository].NormalizedFormat() != config.RepositoryFormatMaven {
 		return core.ErrMavenArtifactNotFound
 	}
 	groupPath := filepath.FromSlash(strings.ReplaceAll(groupID, ".", "/"))

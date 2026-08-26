@@ -169,7 +169,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	case fiber.MethodPut, fiber.MethodPost:
 		return HandlePut(c, state, repo, localFilePath)
 	case fiber.MethodDelete:
-		return HandleDelete(c, state, path, localFilePath)
+		return HandleDelete(c, state, repo, path, localFilePath)
 	default:
 		return c.Status(fiber.StatusMethodNotAllowed).SendString("Method not allowed")
 	}

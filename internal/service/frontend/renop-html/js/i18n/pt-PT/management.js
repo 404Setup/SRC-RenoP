@@ -86,6 +86,7 @@ export default Object.freeze({
     "audit.action.MAVEN_TEAM_LEVEL": "Permissão da equipa Maven atualizada",
     "audit.action.MAVEN_TEAM_REMOVE": "Membro da equipa Maven removido",
     "audit.action.MAVEN_TEAM_INVITATION": "Resposta ao convite Maven",
+    "audit.action.REPOSITORY_MIGRATE": "Motor do repositório migrado",
     "sessions.title": "Sessões ativas",
     "sessions.subtitle": "Apenas logins do browser (Basic e Bearer não são listados). O token de sessão nunca é mostrado.",
     "sessions.adminTitle": "Sessões — {name}",

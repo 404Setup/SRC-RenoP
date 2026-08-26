@@ -25,7 +25,10 @@ import (
 	"renop/internal/service/index"
 )
 
-const legacyMavenVerificationType = "legacy"
+const (
+	legacyMavenVerificationType = "legacy"
+	maxImportedMavenDomains     = 4096
+)
 
 var legacyUpgradeMutex sync.Mutex
 
@@ -53,7 +56,10 @@ func legacyDomainForGroup(groupID string) (string, bool) {
 	return fallback, true
 }
 
-func importLegacyMavenPath(state *core.AppState, repository, path string, info index.FileInfo, importedAt int64) error {
+func importLegacyMavenPath(state *core.AppState, repository, path string, info index.FileInfo, importedAt int64, importedDomains map[string]struct{}) error {
+	if isMirroredMavenCompanion(path) {
+		return nil
+	}
 	coordinate, ok := ParseArtifactPath(path)
 	if !ok {
 		return nil
@@ -62,13 +68,19 @@ func importLegacyMavenPath(state *core.AppState, repository, path string, info i
 	if !ok {
 		return nil
 	}
-	domain := &core.MavenDomain{
-		Repository: repository, Domain: domainName, VerificationType: legacyMavenVerificationType,
-		VerificationHost: domainName, VerificationCode: "renop-legacy-import",
-		Verified: true, CreatedAt: importedAt, VerifiedAt: importedAt,
-	}
-	if err := state.GetDB().EnsureImportedMavenDomain(domain); err != nil {
-		return err
+	if _, imported := importedDomains[domainName]; !imported {
+		if len(importedDomains) >= maxImportedMavenDomains {
+			return errors.New("Maven catalog import domain limit exceeded")
+		}
+		domain := &core.MavenDomain{
+			Repository: repository, Domain: domainName, VerificationType: legacyMavenVerificationType,
+			VerificationHost: domainName, VerificationCode: "renop-legacy-import",
+			Verified: true, CreatedAt: importedAt, VerifiedAt: importedAt,
+		}
+		if err := state.GetDB().EnsureImportedMavenDomain(domain); err != nil {
+			return err
+		}
+		importedDomains[domainName] = struct{}{}
 	}
 	timestamp := normalizeCatalogTimestamp(info.ModTime)
 	return state.GetDB().RecordMavenPublication(&core.MavenArtifact{
@@ -79,6 +91,87 @@ func importLegacyMavenPath(state *core.AppState, repository, path string, info i
 		Repository: repository, GroupID: coordinate.GroupID, ArtifactID: coordinate.ArtifactID,
 		Version: coordinate.Version, Size: info.Size, CreatedAt: timestamp,
 	})
+}
+
+func importRepositoryCatalog(state *core.AppState, repository string, repo *config.Repository, importedAt int64) error {
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	root := filepath.Join(cfg.StoragePath, repository)
+	importedDomains := make(map[string]struct{})
+	if repo.S3 != nil && repo.S3.Enabled {
+		if !state.Inner.FileIndex.HasDir(root) {
+			return nil
+		}
+		var importErr error
+		state.Inner.FileIndex.Walk(root, func(path string, info index.FileInfo, isDir bool) bool {
+			if isDir {
+				return true
+			}
+			relative, relErr := filepath.Rel(root, filepath.FromSlash(path))
+			if relErr != nil || strings.HasPrefix(relative, "..") {
+				return true
+			}
+			if err := importLegacyMavenPath(state, repository, filepath.ToSlash(relative), info, importedAt, importedDomains); err != nil {
+				importErr = err
+				return false
+			}
+			return true
+		})
+		return importErr
+	}
+	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			if errors.Is(walkErr, os.ErrNotExist) {
+				return nil
+			}
+			return walkErr
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return infoErr
+		}
+		relative, relErr := filepath.Rel(root, path)
+		if relErr != nil || strings.HasPrefix(relative, "..") {
+			return relErr
+		}
+		return importLegacyMavenPath(state, repository, filepath.ToSlash(relative), index.FileInfo{
+			Size: info.Size(), ModTime: info.ModTime().UnixNano(),
+		}, importedAt, importedDomains)
+	})
+}
+
+// RebuildRepositoryCatalog replaces repository-local Maven metadata from existing stored files.
+func RebuildRepositoryCatalog(state *core.AppState, repository string) error {
+	if state == nil || state.Inner == nil || state.GetDB() == nil || state.Inner.FileIndex == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	legacyUpgradeMutex.Lock()
+	defer legacyUpgradeMutex.Unlock()
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repo := cfg.Maven.Repositories[repository]
+	if repo == nil || (repo.NormalizedFormat() != config.RepositoryFormatFiles && repo.NormalizedFormat() != config.RepositoryFormatMaven) {
+		return errors.New("repository cannot be rebuilt as Maven")
+	}
+	db := state.GetDB()
+	if err := db.DeleteMavenRepository(repository); err != nil {
+		return err
+	}
+	importedAt := time.Now().UnixMilli()
+	if err := importRepositoryCatalog(state, repository, repo, importedAt); err != nil {
+		return errors.Join(err, db.DeleteMavenRepository(repository))
+	}
+	if err := db.MarkMavenRepositoryUpgraded(repository, importedAt); err != nil {
+		return errors.Join(err, db.DeleteMavenRepository(repository))
+	}
+	return nil
 }
 
 // UpgradeLegacyRepository catalogs files from a pre-domain Maven repository once.
@@ -100,56 +193,9 @@ func UpgradeLegacyRepository(state *core.AppState, repository string) error {
 	if repo == nil || repo.NormalizedFormat() != config.RepositoryFormatMaven {
 		return nil
 	}
-	root := filepath.Join(cfg.StoragePath, repository)
 	importedAt := time.Now().UnixMilli()
-	if repo.S3 != nil && repo.S3.Enabled {
-		if !state.Inner.FileIndex.HasDir(root) {
-			return nil
-		}
-		var importErr error
-		state.Inner.FileIndex.Walk(root, func(path string, info index.FileInfo, isDir bool) bool {
-			if isDir {
-				return true
-			}
-			relative, relErr := filepath.Rel(root, filepath.FromSlash(path))
-			if relErr != nil || strings.HasPrefix(relative, "..") {
-				return true
-			}
-			if err := importLegacyMavenPath(state, repository, filepath.ToSlash(relative), info, importedAt); err != nil {
-				importErr = err
-				return false
-			}
-			return true
-		})
-		if importErr != nil {
-			return importErr
-		}
-	} else {
-		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
-			if walkErr != nil {
-				if errors.Is(walkErr, os.ErrNotExist) {
-					return nil
-				}
-				return walkErr
-			}
-			if entry.IsDir() {
-				return nil
-			}
-			info, infoErr := entry.Info()
-			if infoErr != nil {
-				return infoErr
-			}
-			relative, relErr := filepath.Rel(root, path)
-			if relErr != nil || strings.HasPrefix(relative, "..") {
-				return relErr
-			}
-			return importLegacyMavenPath(state, repository, filepath.ToSlash(relative), index.FileInfo{
-				Size: info.Size(), ModTime: info.ModTime().UnixNano(),
-			}, importedAt)
-		})
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
+	if err := importRepositoryCatalog(state, repository, repo, importedAt); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
 	}
 	return state.GetDB().MarkMavenRepositoryUpgraded(repository, importedAt)
 }

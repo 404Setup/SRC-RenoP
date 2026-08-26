@@ -455,6 +455,52 @@ html.dark .pill-btn--ghost-danger:hover:not(:disabled) {
     background: #ef4444;
 }
 
+.repository-migration-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--link-hover-color) 18%, var(--border-color));
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--link-hover-color) 5%, transparent);
+}
+
+.repository-migration-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.24rem;
+}
+
+.repository-migration-copy strong {
+    color: var(--text-color);
+    font-size: 0.82rem;
+}
+
+.repository-migration-copy span {
+    color: color-mix(in srgb, var(--text-color) 62%, transparent);
+    font-size: 0.74rem;
+    line-height: 1.45;
+}
+
+.repository-migration-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .repository-migration-control {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .repository-migration-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 .cfg-repository-delete-btn {
     width: 2rem;
     height: 2rem;

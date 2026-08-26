@@ -563,3 +563,21 @@ func TestGPGSignatureRequiresCanonicalSuffix(t *testing.T) {
 	assert.ErrorIs(t, err, ErrGPGSignatureSuffix)
 	assert.NoFileExists(t, signaturePath)
 }
+
+func TestPreparedUploadRejectsConcurrentRepositoryEngineChange(t *testing.T) {
+	state, _, repo, storagePath := setupGPGUploadState(t)
+	originalRepo := repo.DeepCopy()
+	updatedConfig := state.Inner.Config.Load().DeepCopy()
+	filesRepo := repo.DeepCopy()
+	filesRepo.Format = config.RepositoryFormatFiles
+	filesRepo.AllowRedeployment = true
+	filesRepo.RequireGPGSignature = false
+	updatedConfig.Maven.Repositories[repo.Name] = filesRepo
+	state.Inner.Config.Store(updatedConfig)
+
+	target := filepath.Join(storagePath, repo.Name, "com", "example", "demo", "1.0", "demo-1.0.jar")
+	upload := preparedTestUpload(t, target, "alice", []byte("stale upload"))
+	_, err := ProcessUploadedFile(context.Background(), state, originalRepo, upload)
+	assert.ErrorIs(t, err, ErrRepositoryFormatChanged)
+	assert.NoFileExists(t, target)
+}

@@ -406,6 +406,43 @@ func TestRepositoryListUsesTypeIconsAndVisibilityDots(t *testing.T) {
 	}
 }
 
+func TestRepositoryEngineMigrationUIUsesRecoverableLocalizedAction(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join("renop-html", "js", "repositories.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	for _, required := range []string{
+		"function buildRepositoryMigrationControl", "migrate/${target}", "runButtonAction(button",
+		"repository_migration_pending_gpg", "repos.migrationPendingGpg", "repos.migrationSuccess",
+		"await initRepositories()",
+	} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("repository migration UI is missing %q", required)
+		}
+	}
+	start := strings.Index(text, "function repositoryMigrationErrorMessage")
+	if start < 0 {
+		t.Fatal("repository migration UI boundary is missing")
+	}
+	end := strings.Index(text[start:], "function buildRepoSection")
+	if end < 0 {
+		t.Fatal("repository migration UI boundary is missing")
+	}
+	if strings.Contains(text[start:start+end], "response.text()") {
+		t.Fatal("repository migration UI exposes raw backend response text")
+	}
+	cssSource, err := os.ReadFile(filepath.Join("renop-html", "css", "manager", "settings.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{".repository-migration-control", ".repository-migration-button"} {
+		if !strings.Contains(string(cssSource), required) {
+			t.Fatalf("repository migration styling is missing %q", required)
+		}
+	}
+}
+
 func TestPackageViewsUseExplicitMirrorProvenance(t *testing.T) {
 	for _, sourcePath := range []string{
 		filepath.Join("renop-html", "js", "browser", "maven.js"),

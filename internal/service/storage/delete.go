@@ -29,14 +29,31 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/repositorygate"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
 
-func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath string) error {
+func HandleDelete(c fiber.Ctx, state *core.AppState, repo *config.Repository, path string, localFilePath string) error {
 	defer status.MarkStorageUpdated()
 	if path == "" || path == "/" {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	}
+	if repo == nil {
+		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+	}
+	releaseMutation := repositorygate.AcquireMutation(repo.Name)
+	defer releaseMutation()
+	cfg := state.Inner.Config.Load()
+	if cfg == nil {
+		return c.Status(fiber.StatusServiceUnavailable).SendString("Repository configuration is unavailable")
+	}
+	currentRepo := cfg.Maven.Repositories[repo.Name]
+	if currentRepo == nil {
+		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+	}
+	if currentRepo.NormalizedFormat() != repo.NormalizedFormat() {
+		return c.Status(fiber.StatusConflict).SendString(ErrRepositoryFormatChanged.Error())
 	}
 	gpgReleaseStorageMutation.Lock()
 	defer gpgReleaseStorageMutation.Unlock()

@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,4 +60,44 @@ func TestUpgradeLegacyRepositoryImportsCatalogWithoutGrantingTeamAccess(t *testi
 	require.Len(t, artifact.Versions, 1)
 	assert.Equal(t, "1.0", artifact.Versions[0].Version)
 	require.NoError(t, UpgradeLegacyRepository(state, "legacy"))
+}
+
+func TestRebuildRepositoryCatalogStreamsS3IndexAndIgnoresArbitraryFiles(t *testing.T) {
+	storagePath := t.TempDir()
+	repositoryRoot := filepath.Join(storagePath, "files")
+	artifactPath := filepath.Join(repositoryRoot, "org", "example", "demo", "2.0", "demo-2.0.jar")
+	arbitraryPath := filepath.Join(repositoryRoot, "notes", "readme.txt")
+
+	state := core.NewAppState()
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"files": {
+			Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC",
+			S3: &config.S3Config{Enabled: true},
+		},
+	}
+	state.Inner.Config.Store(cfg)
+	state.Inner.FileIndex = index.NewFileIndexCustom(true)
+	state.Inner.FileIndex.InsertDir(repositoryRoot)
+	state.Inner.FileIndex.EnsureParentDirs(artifactPath)
+	state.Inner.FileIndex.InsertFile(artifactPath, index.FileInfo{Size: 42, ModTime: time.Now().UnixNano()})
+	state.Inner.FileIndex.EnsureParentDirs(arbitraryPath)
+	state.Inner.FileIndex.InsertFile(arbitraryPath, index.FileInfo{Size: 7, ModTime: time.Now().UnixNano()})
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "rebuild.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+
+	require.NoError(t, RebuildRepositoryCatalog(state, "files"))
+	details, err := db.GetMavenArtifactDetails("files", "org.example", "demo")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "2.0", details.Versions[0].Version)
+	assert.Equal(t, int64(42), details.Versions[0].Size)
+	_, total, err := db.ListMavenArtifacts("files", "", "readme", 10, 0)
+	require.NoError(t, err)
+	assert.Zero(t, total)
 }

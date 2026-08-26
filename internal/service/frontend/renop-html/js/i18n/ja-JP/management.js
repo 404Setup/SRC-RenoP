@@ -86,6 +86,7 @@ export default Object.freeze({
     "audit.action.MAVEN_TEAM_LEVEL": "Maven チーム権限更新",
     "audit.action.MAVEN_TEAM_REMOVE": "Maven チームメンバー削除",
     "audit.action.MAVEN_TEAM_INVITATION": "Maven 招待への応答",
+    "audit.action.REPOSITORY_MIGRATE": "リポジトリエンジン移行",
     "sessions.title": "アクティブなセッション",
     "sessions.subtitle": "ブラウザログインのみ（Basic / Bearer は一覧に含まれません）。セッショントークンは表示されません。",
     "sessions.adminTitle": "セッション — {name}",

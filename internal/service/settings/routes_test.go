@@ -1076,6 +1076,178 @@ func TestMavenLayoutCanChangeAndFilePolicyIsForced(t *testing.T) {
 	}
 }
 
+func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
+	storagePath := t.TempDir()
+	repository := "migration"
+	repositoryRoot := filepath.Join(storagePath, repository)
+	versionOne := filepath.Join(repositoryRoot, "com", "example", "demo", "1.0", "demo-1.0.jar")
+	if err := os.MkdirAll(filepath.Dir(versionOne), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(versionOne, []byte("one"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		repository: {
+			Name: repository, Format: config.RepositoryFormatMavenClassic, Visibility: "PUBLIC",
+			AllowRedeployment: true, RequireGPGSignature: true, Mirrors: []config.Mirror{},
+		},
+	}
+	app, state := setupSettingsTestApp(t, cfg)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "migration.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+
+	toFiles := protoPOST(t, app, "/repositories/"+repository+"/migrate/files", &pb.StatusOk{})
+	defer toFiles.Body.Close()
+	if toFiles.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(toFiles.Body)
+		t.Fatalf("Maven to files migration returned %d: %s", toFiles.StatusCode, body)
+	}
+	filesRepo := state.Inner.Config.Load().Maven.Repositories[repository]
+	if filesRepo.NormalizedFormat() != config.RepositoryFormatFiles || !filesRepo.AllowRedeployment || filesRepo.RequireGPGSignature {
+		t.Fatalf("files migration policy mismatch: %#v", filesRepo)
+	}
+	if filesRepo.MavenRestore == nil || filesRepo.MavenRestore.Format != config.RepositoryFormatMavenClassic ||
+		!filesRepo.MavenRestore.AllowRedeployment || !filesRepo.MavenRestore.RequireGPGSignature {
+		t.Fatalf("Maven restore policy was not preserved: %#v", filesRepo.MavenRestore)
+	}
+	filesUpdate := protoPUT(t, app, "/repositories/"+repository, &pb.Repository{
+		Name: repository, Format: config.RepositoryFormatFiles, Visibility: "HIDDEN", Mirrors: []*pb.Mirror{},
+	})
+	defer filesUpdate.Body.Close()
+	if filesUpdate.StatusCode != http.StatusOK {
+		t.Fatalf("files repository update after migration returned %d", filesUpdate.StatusCode)
+	}
+	filesRepo = state.Inner.Config.Load().Maven.Repositories[repository]
+	if filesRepo.MavenRestore == nil || filesRepo.MavenRestore.Format != config.RepositoryFormatMavenClassic {
+		t.Fatalf("ordinary files settings update discarded Maven restore policy: %#v", filesRepo.MavenRestore)
+	}
+
+	versionTwo := filepath.Join(repositoryRoot, "com", "example", "demo", "2.0", "demo-2.0.jar")
+	if err := os.MkdirAll(filepath.Dir(versionTwo), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(versionTwo, []byte("two"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	arbitraryFile := filepath.Join(repositoryRoot, "notes", "readme.txt")
+	if err := os.MkdirAll(filepath.Dir(arbitraryFile), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(arbitraryFile, []byte("preserve me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	toMaven := protoPOST(t, app, "/repositories/"+repository+"/migrate/maven", &pb.StatusOk{})
+	defer toMaven.Body.Close()
+	if toMaven.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(toMaven.Body)
+		t.Fatalf("files to Maven migration returned %d: %s", toMaven.StatusCode, body)
+	}
+	mavenRepo := state.Inner.Config.Load().Maven.Repositories[repository]
+	if mavenRepo.ConfiguredFormat() != config.RepositoryFormatMavenClassic ||
+		!mavenRepo.AllowRedeployment || !mavenRepo.RequireGPGSignature || mavenRepo.MavenRestore != nil {
+		t.Fatalf("Maven policy was not restored: %#v", mavenRepo)
+	}
+	details, err := db.GetMavenArtifactDetails(repository, "com.example", "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(details.Versions) != 2 {
+		t.Fatalf("rebuilt Maven versions = %d, want 2", len(details.Versions))
+	}
+	if contents, err := os.ReadFile(arbitraryFile); err != nil || string(contents) != "preserve me" {
+		t.Fatalf("arbitrary file was not preserved: %q, %v", contents, err)
+	}
+
+	backToFiles := protoPOST(t, app, "/repositories/"+repository+"/migrate/files", &pb.StatusOk{})
+	defer backToFiles.Body.Close()
+	if backToFiles.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(backToFiles.Body)
+		t.Fatalf("second Maven to files migration returned %d: %s", backToFiles.StatusCode, body)
+	}
+	if _, err := db.GetMavenArtifactDetails(repository, "com.example", "demo"); !errors.Is(err, core.ErrMavenArtifactNotFound) {
+		t.Fatalf("Maven catalog survived files migration: %v", err)
+	}
+	if _, err := os.Stat(versionOne); err != nil {
+		t.Fatalf("stored Maven file was removed during migration: %v", err)
+	}
+}
+
+func TestRepositoryEngineMigrationRejectsUnsupportedFormats(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"cargo": {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
+	}
+	app, state := setupSettingsTestApp(t, cfg)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "unsupported.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+
+	response := protoPOST(t, app, "/repositories/cargo/migrate/files", &pb.StatusOk{})
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("unsupported migration status = %d, want 409", response.StatusCode)
+	}
+	if code := response.Header.Get(repositoryMigrationErrorHeader); code != "repository_migration_unsupported" {
+		t.Fatalf("unsupported migration error code = %q", code)
+	}
+	if state.Inner.Config.Load().Maven.Repositories["cargo"].NormalizedFormat() != config.RepositoryFormatCargo {
+		t.Fatal("unsupported migration changed the repository format")
+	}
+}
+
+func TestRepositoryEngineMigrationRejectsPendingGPGPublication(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
+	}
+	app, state := setupSettingsTestApp(t, cfg)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "pending-migration.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+	now := time.Now().UnixMilli()
+	if err := db.SaveGPGRelease(&core.GPGRelease{
+		ID: "22222222-2222-4222-8222-222222222222", ActiveKey: strings.Repeat("b", 64),
+		Repository: "releases", ArtifactPath: "com/example/demo/1.0/demo-1.0.jar",
+		Uploader: "alice", Status: core.GPGReleaseQueued, CreatedAt: now, UpdatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	response := protoPOST(t, app, "/repositories/releases/migrate/files", &pb.StatusOk{})
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("pending GPG migration status = %d, want 409", response.StatusCode)
+	}
+	if code := response.Header.Get(repositoryMigrationErrorHeader); code != "repository_migration_pending_gpg" {
+		t.Fatalf("pending GPG migration error code = %q", code)
+	}
+	if state.Inner.Config.Load().Maven.Repositories["releases"].NormalizedFormat() != config.RepositoryFormatMaven {
+		t.Fatal("rejected pending GPG migration changed the repository format")
+	}
+}
+
 func TestCargoMirrorAllowsIndexURLWithoutArtifactTemplate(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = t.TempDir()

@@ -26,6 +26,7 @@ const (
 	ActionGPGUpdate            = "GPG_UPDATE"
 	ActionProfileUpdate        = "PROFILE_UPDATE"
 	ActionMessageSend          = "MESSAGE_SEND"
+	ActionRepositoryMigrate    = "REPOSITORY_MIGRATE"
 
 	ActionCargoPublish        = "CARGO_PUBLISH"
 	ActionCargoDocsUpload     = "CARGO_DOCS_UPLOAD"
@@ -90,6 +91,7 @@ func KnownActions() []string {
 		ActionGPGUpdate,
 		ActionProfileUpdate,
 		ActionMessageSend,
+		ActionRepositoryMigrate,
 		ActionCargoPublish,
 		ActionCargoDocsUpload,
 		ActionCargoDocsDelete,

@@ -10,9 +10,9 @@
 
 import {t} from './i18n.js';
 import {showAlert} from './alert.js';
-import {fetchProto, getAuthHeaders, putProto} from './api.js';
+import {fetchProto, getAuthHeaders, putProto, sendProto} from './api.js';
 import {logout} from './auth.js';
-import {MavenRepositoriesResponse, ProxyConfig, Repository} from './proto/index.js';
+import {MavenRepositoriesResponse, ProxyConfig, Repository, StatusOk} from './proto/index.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {
@@ -24,7 +24,8 @@ import {
     createSkeleton,
     createSubHeader,
     createToggleRow as makeToggleRow,
-    RenopDialog
+    RenopDialog,
+    runButtonAction
 } from './components.js';
 import {
     animateFieldsToggle,
@@ -140,6 +141,69 @@ function renderRepositories(container, data) {
     } finally {
         container.style.minHeight = '';
     }
+}
+
+/**
+ * Resolve a safe localized migration failure without exposing backend response text.
+ * @param {Response} response - Failed migration response.
+ * @returns {string} Localized user-facing error.
+ */
+function repositoryMigrationErrorMessage(response) {
+    if (response.headers.get('X-Renop-Error-Code') === 'repository_migration_pending_gpg') {
+        return t('repos.migrationPendingGpg');
+    }
+    return t('repos.migrationFailed');
+}
+
+/**
+ * Build the Maven/files-only engine migration control.
+ * @param {string} repository - Repository name.
+ * @param {object} format - Canonical current format descriptor.
+ * @returns {HTMLElement|null} Migration control or null for immutable engines.
+ */
+function buildRepositoryMigrationControl(repository, format) {
+    if (format.protocol !== 'maven' && format.protocol !== 'files') return null;
+    const target = format.protocol === 'maven' ? 'files' : 'maven';
+    const labelKey = target === 'files' ? 'repos.migrationToFiles' : 'repos.migrationToMaven';
+    const hintKey = target === 'files' ? 'repos.migrationToFilesHint' : 'repos.migrationToMavenHint';
+    const confirmKey = target === 'files' ? 'repos.migrationToFilesConfirm' : 'repos.migrationToMavenConfirm';
+    const button = createButton(t(labelKey), {
+        class: 'pill-btn pill-btn--soft repository-migration-button',
+        icon: 'refresh'
+    });
+    button.addEventListener('click', async event => {
+        event.stopPropagation();
+        const confirmed = await window.showConfirm(t(confirmKey, {name: repository}), {danger: false});
+        if (!confirmed) return;
+        await runButtonAction(button, async () => {
+            try {
+                const {response} = await sendProto(
+                    `/api/settings/repositories/${encodeURIComponent(repository)}/migrate/${target}`,
+                    'POST', null, null, StatusOk
+                );
+                if (!response.ok) {
+                    showAlert(repositoryMigrationErrorMessage(response), 'error');
+                    return;
+                }
+                const targetFormat = getRepositoryFormat(target);
+                showAlert(t('repos.migrationSuccess', {format: t(targetFormat.labelKey)}), 'success');
+                window.dispatchEvent(new CustomEvent('repositorySettingsChanged', {
+                    detail: {repository, format: targetFormat.id}
+                }));
+                await initRepositories();
+            } catch (error) {
+                console.error('Failed to migrate repository engine', error);
+                showAlert(t('repos.migrationFailed'), 'error');
+            }
+        });
+    });
+    return el('div', {class: 'repository-migration-control'},
+        el('div', {class: 'repository-migration-copy'},
+            el('strong', {}, t('repos.engineMigration')),
+            el('span', {}, t(hintKey))
+        ),
+        button
+    );
 }
 
 /**
@@ -311,6 +375,8 @@ function buildRepoSection(container, data, repoKey, repo) {
             handleGpgRequirementChange
         ));
     }
+    const migrationControl = buildRepositoryMigrationControl(repoKey, format);
+    if (migrationControl) fields.appendChild(migrationControl);
 
     bodyInner.appendChild(fields);
     bodyInner.appendChild(buildS3Section(repoKey, repo));

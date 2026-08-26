@@ -86,6 +86,7 @@ export default Object.freeze({
     "audit.action.MAVEN_TEAM_LEVEL": "Права команды Maven обновлены",
     "audit.action.MAVEN_TEAM_REMOVE": "Участник команды Maven удалён",
     "audit.action.MAVEN_TEAM_INVITATION": "Ответ на приглашение Maven",
+    "audit.action.REPOSITORY_MIGRATE": "Движок репозитория перенесён",
     "sessions.title": "Активные сеансы",
     "sessions.subtitle": "Только входы через браузер (Basic и Bearer не показываются). Токен сеанса не отображается.",
     "sessions.adminTitle": "Сеансы — {name}",
