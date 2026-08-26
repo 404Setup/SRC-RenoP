@@ -47,25 +47,32 @@ test('pure JS Brotli conversion produces a standard executable ZIP', () => {
     assert.throws(() => brotliExecutableToZip(compressed, 'renop', executable.length + 1), /uncompressed_size_mismatch/);
 });
 
-test('release tooling emits raw Brotli packages through the installed Go CLI', () => {
+test('release tooling decouples bounded compilation from raw Brotli packaging', () => {
     const repositoryRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
     const build = readFileSync(resolve(repositoryRoot, 'build.ps1'), 'utf8');
     const targetWorker = readFileSync(resolve(repositoryRoot, 'scripts/build-target.ps1'), 'utf8');
+    const compressionWorker = readFileSync(resolve(repositoryRoot, 'scripts/compress-target.ps1'), 'utf8');
     const publish = readFileSync(resolve(repositoryRoot, '.github/scripts/publish-update.ps1'), 'utf8');
     const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/build.yml'), 'utf8');
     assert.match(build, /go install \.\/cmd\/renop-brotli/);
     assert.match(build, /Join-Path \$dist "\$name\.br"/);
     assert.match(build, /\[ValidateRange\(1, 4\)\]/);
-    assert.match(build, /\$activeWorkers\.Count -lt \$BuildConcurrency/);
-    assert.match(build, /Start-TargetBuildWorker/);
-    assert.match(targetWorker, /& go build[\s\S]+& \$brotliTool/);
-    assert.match(targetWorker, /-quality 11/);
+    assert.match(build, /\[ValidateRange\(1, 8\)\]/);
+    assert.match(build, /\$activeCompileWorkers\.Count -lt \$BuildConcurrency/);
+    assert.match(build, /\$activeCompressionWorkers\.Count -lt \$CompressionConcurrency/);
+    assert.match(build, /Start-TargetWorker -Job \$job -WorkerScript \$workerScript -Phase compile/);
+    assert.match(build, /Start-TargetWorker -Job \$job -WorkerScript \$compressionWorkerScript -Phase compress/);
+    assert.match(targetWorker, /& go build/);
+    assert.doesNotMatch(targetWorker, /brotli|quality 11/i);
+    assert.match(compressionWorker, /& \$brotliTool/);
+    assert.match(compressionWorker, /-quality 11/);
     assert.match(build, /version\.PreviousCommit=\$previousCommitFull/);
     assert.doesNotMatch(build, /Compress-Archive/);
     assert.match(publish, /-Filter '\*\.br'/);
     assert.match(publish, /application\/x-brotli/);
     assert.match(publish, /previous_commit/);
     assert.match(workflow, /dist\/\*\.br/);
-    assert.match(workflow, /dist\/THIRD_PARTY_NOTICES\.md/);
+    assert.match(workflow, /^\s+THIRD_PARTY_NOTICES\.md$/m);
+    assert.doesNotMatch(publish, /README\.md|THIRD_PARTY_NOTICES\.md|LICENSE/);
     assert.match(workflow, /previous_commit/);
 });
