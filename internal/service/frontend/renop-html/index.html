@@ -553,8 +553,8 @@
                     </div>
                 </details>
 
-                <div id="profile-account-security-section" class="profile-settings-section profile-account-security-section" hidden>
-                    <div class="profile-section-card-header">
+                <details id="profile-account-security-section" class="profile-settings-section profile-account-security-section profile-collapsible-card" hidden>
+                    <summary class="profile-section-card-header profile-collapsible-summary">
                         <div class="profile-section-icon profile-section-icon--account-security" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
                         </div>
@@ -562,12 +562,14 @@
                             <h3 class="profile-section-title" data-i18n="profile.accountSecurityTitle">Account Security</h3>
                             <p class="profile-section-desc" data-i18n="profile.accountSecurityDesc">Manage your private login email, password login, and one-time recovery codes.</p>
                         </div>
-                    </div>
+                        <renop-icon name="chevronDown" class="profile-collapse-chevron" aria-hidden="true"></renop-icon>
+                    </summary>
+                    <div class="profile-collapsible-content" hidden>
                     <div class="profile-section-body profile-account-security-body">
                         <form id="profile-private-email-form" class="profile-security-email-form" action="javascript:void(0);">
-                            <label for="profile-private-email" data-i18n="profile.privateEmailLabel">Private login email</label>
+                            <label for="profile-private-email" data-i18n="profile.privateEmailLabel">Email</label>
                             <div class="profile-security-inline">
-                                <input id="profile-private-email" class="profile-input" type="email" maxlength="254" autocomplete="email"
+                                <input id="profile-private-email" class="profile-input" type="email" maxlength="254" autocomplete="email" required
                                        placeholder="name@example.com" data-i18n-placeholder="profile.privateEmailPlaceholder">
                                 <button type="submit" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.savePrivateEmail">Save</button>
                             </div>
@@ -592,7 +594,8 @@
                             <button id="btn-profile-recovery-codes" type="button" class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.generateRecoveryCodes">Generate codes</button>
                         </div>
                     </div>
-                </div>
+                    </div>
+                </details>
 
                 <div id="profile-api-token-section" class="profile-settings-section">
                     <div class="profile-section-card-header">

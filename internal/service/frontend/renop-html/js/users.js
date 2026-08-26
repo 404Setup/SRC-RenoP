@@ -16,7 +16,7 @@ import {editToken as openEditModal, initUsersModal, setTokensRefreshHandler} fro
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {logout} from './auth.js';
-import {AccessTokenList, FidoDeviceList, GenerateTokenResponse} from './proto/index.js';
+import {AccessTokenList, FidoDeviceList} from './proto/index.js';
 import {openSessionsDialog} from './sessions.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
@@ -393,7 +393,6 @@ function createUserRowElement(token) {
         formatPermissionTag,
         onEdit: (t) => openEditModal(t),
         onDelete: (t) => deleteToken(t.name),
-        onReset: (t) => createUserPublishingToken(t.name),
         onSessions: (tok) => openSessionsDialog({mode: 'admin', username: tok.name}),
         onFido: (tok) => openUserFidoDialog(tok.name),
         onAuditLogs: (tok) => openAuditLogsDialog({mode: 'user', username: tok.name}),
@@ -663,33 +662,6 @@ export async function deleteToken(name) {
     } catch (e) {
         if (row) row.classList.remove('user-row--deleting');
         console.error('Failed to delete token', e);
-    }
-}
-
-/**
- * Confirm and create a user's additional publishing API token, then show it once.
- * @param {string} name
- * @returns {Promise<void>}
- */
-export async function createUserPublishingToken(name) {
-    if (!(await window.showConfirm(t('users.confirmRegenToken', {name})))) return;
-
-    try {
-        const {response, data} = await fetchProto(`/api/tokens/${name}/token`, GenerateTokenResponse, {method: 'POST'});
-        if (response.ok && data) {
-            const row = Array.from(document.querySelectorAll('#tokens-table-body tr')).find(r => r.dataset.userName === name);
-            if (row) {
-                row.classList.add('user-row--reset-flash');
-                setTimeout(() => row.classList.remove('user-row--reset-flash'), 1000);
-            }
-            window.showPrompt(t('users.newTokenPrompt', {name}), data.token, true);
-            fetchTokens();
-        } else {
-            const errText = await response.text();
-            showAlert(errText || t('users.failedRegenToken'), 'error');
-        }
-    } catch (e) {
-        console.error('Failed to create publishing token', e);
     }
 }
 

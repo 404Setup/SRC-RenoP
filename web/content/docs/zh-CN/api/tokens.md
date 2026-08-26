@@ -88,5 +88,5 @@ Cargo 会把 Token 作为不带 Bearer 前缀的完整 `Authorization` 值发送
 Docker 先在 `/v2/token` 交换短期 Registry Token，其 pull、push 和 delete 动作会同时受 API Token 范围与
 镜像团队权限限制。
 
-管理员用户增删改查仍位于 `/api/tokens`。兼容接口 `POST /api/tokens/{name}/token` 和
-`POST /api/auth/profile/token` 现在会额外创建一个不设有效期的发布 Token，不再使现有 Token 失效。
+管理员用户增删改查仍位于 `/api/tokens`，但管理员不能代替其他用户创建凭据。兼容接口
+`POST /api/auth/profile/token` 仍可为当前登录账号额外创建一个不设有效期的发布 Token；新集成应使用细粒度接口。

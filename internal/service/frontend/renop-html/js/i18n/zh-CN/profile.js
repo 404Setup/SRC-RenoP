@@ -149,7 +149,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "GitHub 是当前唯一登录方式；请先添加密码或 Passkey。",
     "profile.accountSecurityTitle": "账号安全",
     "profile.accountSecurityDesc": "管理私有登录邮箱、密码登录和一次性恢复代码。",
-    "profile.privateEmailLabel": "私有登录邮箱",
+    "profile.privateEmailLabel": "邮箱",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "该邮箱不会公开显示，可用于登录或恢复账号。",
     "profile.savePrivateEmail": "保存邮箱",

@@ -324,6 +324,13 @@ func TestFindAllTokensWithDB(t *testing.T) {
 	resp, err := app.Test(req)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	_ = resp.Body.Close()
+
+	legacyTokenRequest := httptest.NewRequest(http.MethodPost, "/tokens/user2/token", nil)
+	legacyTokenResponse, err := app.Test(legacyTokenRequest)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, legacyTokenResponse.StatusCode)
+	_ = legacyTokenResponse.Body.Close()
 
 	tokens := state.GetAllTokens()
 	assert.Len(t, tokens, 2)

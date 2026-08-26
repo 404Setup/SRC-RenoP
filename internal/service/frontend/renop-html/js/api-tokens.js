@@ -14,6 +14,7 @@ import {runButtonAction} from './components/button.js';
 import {t} from './i18n.js';
 import {formatTimestamp} from './time.js';
 import {el} from '@renop/ui/dom';
+import {makeCustomSelect} from '@renop/ui/custom-select';
 
 const scopeKeys = Object.freeze({
     'repository:read': 'repositoryRead',
@@ -38,6 +39,7 @@ let apiTokenLoadSequence = 0;
 let cachedTokenCount = null;
 let cachedTokenLimit = 50;
 let activeAPITokenManager = null;
+let activeAPITokenCreate = null;
 
 /**
  * Translate one stable API-token scope.
@@ -73,6 +75,17 @@ function renderAPITokenSummary(count, limit) {
 function setInlineError(target, key) {
     target.dataset.i18n = key;
     target.textContent = t(key);
+}
+
+/**
+ * Build localized expiration choices for the shared custom-select control.
+ * @returns {Array<{value: string, label: string}>}
+ */
+function expirationOptions() {
+    return [
+        ['7', 'sevenDays'], ['30', 'thirtyDays'], ['90', 'ninetyDays'],
+        ['365', 'oneYear'], ['0', 'never']
+    ].map(([value, key]) => ({value, label: t(`profile.apiTokenExpiry.${key}`)}));
 }
 
 /**
@@ -198,16 +211,11 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
         placeholder: t('profile.apiTokenNamePlaceholder'),
         'data-i18n-placeholder': 'profile.apiTokenNamePlaceholder'
     });
-    const expiration = el('select', {class: 'profile-input profile-api-token-expiration'});
-    for (const [value, key] of [
-        ['7', 'sevenDays'], ['30', 'thirtyDays'], ['90', 'ninetyDays'],
-        ['365', 'oneYear'], ['0', 'never']
-    ]) {
-        expiration.appendChild(el('option', {
-            value, 'data-i18n': `profile.apiTokenExpiry.${key}`
-        }, t(`profile.apiTokenExpiry.${key}`)));
-    }
-    expiration.value = '30';
+    let expirationValue = '30';
+    const expiration = makeCustomSelect(expirationOptions(), expirationValue, value => {
+        expirationValue = value;
+    });
+    expiration.classList.add('profile-api-token-expiration');
     const scopeGrid = el('div', {class: 'profile-api-token-scope-grid'},
         ...allowedScopes.map(createScopeOption)
     );
@@ -226,6 +234,7 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
     );
     void RenopDialog.show({
         id: 'profile-api-token-create-dialog',
+        className: 'profile-api-token-create-modal',
         maxWidth: '720px',
         icon: 'fileKey',
         title: el('span', {'data-i18n': 'profile.createApiToken'}, t('profile.createApiToken')),
@@ -249,7 +258,7 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
                 }
                 const submit = dialog.querySelector('#profile-api-token-create-submit');
                 await runButtonAction(submit, async () => {
-                    const days = Number(expiration.value) || 0;
+                    const days = Number(expirationValue) || 0;
                     const response = await apiRequest('/api/auth/profile/api-tokens', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -293,7 +302,13 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
                 className: 'action-btn primary-btn', type: 'submit'
             }
         ]
+    }).finally(() => {
+        if (activeAPITokenCreate?.expiration === expiration) activeAPITokenCreate = null;
     });
+    activeAPITokenCreate = {
+        expiration,
+        getValue: () => expirationValue,
+    };
     requestAnimationFrame(() => nameInput.focus());
 }
 
@@ -469,5 +484,9 @@ window.addEventListener('languageChanged', () => {
             count: manager.tokens.length, limit: manager.limit
         });
         renderAPITokenList(manager.list, manager.tokens, manager.reload);
+    }
+    if (activeAPITokenCreate?.expiration?.isConnected) {
+        const value = activeAPITokenCreate.getValue();
+        activeAPITokenCreate.expiration.setOptions(expirationOptions(), value);
     }
 });

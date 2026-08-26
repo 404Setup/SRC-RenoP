@@ -251,9 +251,13 @@
     grid-template-columns: 1fr !important;
 }
 
-.profile-account-security-section > .profile-section-body {
+.profile-account-security-section > .profile-collapsible-content > .profile-section-body {
     align-items: stretch !important;
     padding: 0 1.35rem 1.35rem !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .profile-section-icon--account-security {
@@ -270,11 +274,18 @@
     display: grid;
     gap: 1rem;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .profile-security-email-form,
 .profile-security-control {
     display: grid;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     gap: 0.55rem;
     padding: 1rem;
     border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
@@ -293,6 +304,8 @@
     display: flex;
     align-items: center;
     gap: 0.7rem;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .profile-security-inline .profile-input {
@@ -304,6 +317,17 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 1rem;
+}
+
+.profile-security-control > div {
+    min-width: 0;
+}
+
+.profile-security-inline .profile-action-btn,
+.profile-recovery-control .profile-action-btn {
+    max-width: 100%;
+    flex: 0 1 auto;
+    white-space: normal;
 }
 
 .profile-security-hint {
@@ -530,6 +554,11 @@
 
 .profile-api-token-expiration {
     width: 100%;
+    max-width: none;
+}
+
+.profile-api-token-expiration .custom-select-btn {
+    max-width: none;
 }
 
 .profile-api-token-scopes {
@@ -612,6 +641,22 @@
     user-select: all;
 }
 
+.profile-api-token-create-modal {
+    height: min(85vh, calc(100dvh - 2rem));
+}
+
+.profile-api-token-create-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-bottom: 1.5rem;
+    scrollbar-gutter: stable;
+}
+
+.profile-api-token-create-modal .profile-api-token-create-form {
+    min-height: min-content;
+    padding-bottom: 0.25rem;
+}
+
 @media (max-width: 600px) {
     .profile-security-inline,
     .profile-security-control {
@@ -644,6 +689,10 @@
     .profile-api-token-manager-toolbar .pill-btn,
     .profile-api-token-card-head .pill-btn {
         width: 100%;
+    }
+
+    .profile-api-token-create-modal {
+        height: calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)));
     }
 }
 

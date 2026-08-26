@@ -710,6 +710,8 @@ func TestFineGrainedAPITokenProfileUI(t *testing.T) {
 	indexText := string(indexSource)
 	for _, required := range []string{
 		`id="profile-api-token-section"`, `id="profile-api-token-status"`, `id="btn-manage-api-tokens"`,
+		`id="profile-account-security-section" class="profile-settings-section profile-account-security-section profile-collapsible-card"`,
+		`id="profile-private-email" class="profile-input" type="email" maxlength="254" autocomplete="email" required`,
 	} {
 		if !strings.Contains(indexText, required) {
 			t.Fatalf("fine-grained API token profile UI is missing %q", required)
@@ -726,7 +728,7 @@ func TestFineGrainedAPITokenProfileUI(t *testing.T) {
 	for _, required := range []string{
 		"/api/auth/profile/api-tokens", "expires_at", "repository:publish", "runButtonAction",
 		"writeClipboardText", "profile.apiTokenSecretWarning", "data-api-token-scope",
-		"data-i18n-placeholder", "languageChanged",
+		"data-i18n-placeholder", "languageChanged", "makeCustomSelect", "profile-api-token-create-modal",
 	} {
 		if !strings.Contains(sourceText, required) {
 			t.Fatalf("fine-grained API token controller is missing %q", required)
@@ -738,10 +740,32 @@ func TestFineGrainedAPITokenProfileUI(t *testing.T) {
 	}
 	for _, required := range []string{
 		".profile-api-token-scope-grid", ".profile-api-token-secret", "overflow-x: auto",
+		".profile-api-token-create-modal .modal-body", "scrollbar-gutter: stable",
 	} {
 		if !strings.Contains(string(profileCSS), required) {
 			t.Fatalf("fine-grained API token styling is missing %q", required)
 		}
+	}
+	userRowSource, err := os.ReadFile(filepath.Join("renop-html", "js", "components", "user-row.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(userRowSource), "options.onReset") {
+		t.Fatal("administrator user actions still expose obsolete token creation")
+	}
+	componentsSource, err := os.ReadFile(filepath.Join("renop-html", "css", "components.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(componentsSource), `@import "@renop/ui/css/components/custom-select.css";`) {
+		t.Fatal("frontend does not import the canonical custom-select stylesheet")
+	}
+	fieldRowSource, err := os.ReadFile(filepath.Join("renop-html", "css", "components", "field-row.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(fieldRowSource), ".custom-select-dropdown") {
+		t.Fatal("field-row stylesheet still duplicates the shared custom-select implementation")
 	}
 }
 

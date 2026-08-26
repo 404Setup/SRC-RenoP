@@ -149,7 +149,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "唯一のログイン方法を解除する前に、パスワードまたは Passkey を追加してください。",
     "profile.accountSecurityTitle": "アカウントのセキュリティ",
     "profile.accountSecurityDesc": "非公開ログインメール、パスワードログイン、使い捨て復旧コードを管理します。",
-    "profile.privateEmailLabel": "非公開ログインメール",
+    "profile.privateEmailLabel": "メールアドレス",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "公開されず、ログインまたはアカウント復旧に使用できます。",
     "profile.savePrivateEmail": "メールを保存",

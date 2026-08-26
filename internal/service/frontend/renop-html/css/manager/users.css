@@ -332,19 +332,6 @@ html.dark #tokens-table th {
     }
 }
 
-#tokens-table tbody tr.user-row--reset-flash {
-    animation: userRowResetFlash 1s ease-in-out both;
-}
-
-@keyframes userRowResetFlash {
-    0%, 100% {
-        background-color: transparent;
-    }
-    30% {
-        background-color: color-mix(in srgb, var(--link-hover-color) 20%, transparent);
-    }
-}
-
 #tokens-table tbody tr.row-search-in {
     animation: rowSearchIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

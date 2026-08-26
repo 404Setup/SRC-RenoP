@@ -2499,29 +2499,6 @@ paths:
         "403":
           $ref: "#/components/responses/PlainForbidden"
 
-  /api/tokens/{name}/token:
-    post:
-      tags: [tokens]
-      summary: Create an additional publishing token for a user (manager)
-      description: Creates a non-expiring `repository:read` and `repository:publish` token; existing tokens remain valid.
-      operationId: postTokenUploadToken
-      security:
-        - sessionCookie: []
-        - bearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/TokenName"
-      responses:
-        "200":
-          description: "New publishing API token. Returned once with Cache-Control: no-store."
-          content:
-            application/x-protobuf:
-              schema:
-                $ref: "#/components/schemas/GenerateTokenResponse"
-        "403":
-          $ref: "#/components/responses/PlainForbidden"
-        "404":
-          $ref: "#/components/responses/PlainNotFound"
-
   /api/auth/users/{username}/fido:
     get:
       tags: [tokens]

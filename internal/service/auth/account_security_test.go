@@ -105,6 +105,12 @@ func TestPrivateEmailPasswordPolicyAndRecoveryRoutes(t *testing.T) {
 	SetupAuthRoutes(app, state, operations)
 
 	response := accountSecurityRequest(t, app, http.MethodPut, "/auth/profile/email",
+		map[string]any{"email": ""}, sessionToken)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.Equal(t, "ACCOUNT_EMAIL_INVALID", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
+
+	response = accountSecurityRequest(t, app, http.MethodPut, "/auth/profile/email",
 		map[string]any{"email": "Alice@Example.COM"}, sessionToken)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, response.Body.Close())

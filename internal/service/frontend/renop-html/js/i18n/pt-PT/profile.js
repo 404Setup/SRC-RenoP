@@ -149,7 +149,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Adicione uma palavra-passe ou Passkey antes de desligar o seu único método de início de sessão alternativo.",
     "profile.accountSecurityTitle": "Segurança da conta",
     "profile.accountSecurityDesc": "Gira o e-mail privado, o início por palavra-passe e os códigos de recuperação de utilização única.",
-    "profile.privateEmailLabel": "E-mail privado de início de sessão",
+    "profile.privateEmailLabel": "E-mail",
     "profile.privateEmailPlaceholder": "nome@example.com",
     "profile.privateEmailHint": "Nunca é apresentado publicamente e pode ser usado para iniciar sessão ou recuperar a conta.",
     "profile.savePrivateEmail": "Guardar e-mail",

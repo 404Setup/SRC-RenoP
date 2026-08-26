@@ -149,7 +149,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Fügen Sie vor dem Trennen ein Passwort oder einen Passkey als weitere Anmeldemethode hinzu.",
     "profile.accountSecurityTitle": "Kontosicherheit",
     "profile.accountSecurityDesc": "Verwalten Sie private Anmelde-E-Mail, Passwortanmeldung und einmalige Wiederherstellungscodes.",
-    "profile.privateEmailLabel": "Private Anmelde-E-Mail",
+    "profile.privateEmailLabel": "E-Mail",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "Diese E-Mail wird nie öffentlich angezeigt und kann zur Anmeldung oder Wiederherstellung verwendet werden.",
     "profile.savePrivateEmail": "E-Mail speichern",

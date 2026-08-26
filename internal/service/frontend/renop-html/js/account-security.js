@@ -138,12 +138,19 @@ document.getElementById('profile-private-email-form')?.addEventListener('submit'
     const input = document.getElementById('profile-private-email');
     const button = form.querySelector('button[type="submit"]');
     if (!input || !button) return;
+    const email = input.value.trim();
+    if (!email || !input.checkValidity()) {
+        showAlert(t('profile.privateEmailInvalid'), 'error');
+        input.focus();
+        input.reportValidity();
+        return;
+    }
     button.disabled = true;
     try {
         const response = await apiRequest('/api/auth/profile/email', {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({email: input.value.trim()}),
+            body: JSON.stringify({email}),
         });
         if (!response.ok) {
             const code = response.headers.get('X-Renop-Error-Code');

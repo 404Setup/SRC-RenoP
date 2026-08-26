@@ -149,7 +149,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "Add a password or Passkey before disconnecting your only other login method.",
     "profile.accountSecurityTitle": "Account Security",
     "profile.accountSecurityDesc": "Manage your private login email, password login, and one-time recovery codes.",
-    "profile.privateEmailLabel": "Private login email",
+    "profile.privateEmailLabel": "Email",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "This email is never shown publicly and can be used to sign in or recover your account.",
     "profile.savePrivateEmail": "Save email",

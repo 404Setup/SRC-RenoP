@@ -115,9 +115,8 @@ Cargo sends the configured token as an opaque `Authorization` value; RenoP appli
 exchanges Basic credentials at `/v2/token`, and the issued short-lived registry token contains only the pull or push
 actions allowed by both API-token scopes and package permissions.
 
-## Administrator compatibility endpoints
+## Compatibility endpoint
 
-Administrator user CRUD remains under `/api/tokens`. `POST /api/tokens/{name}/token` creates an additional
-non-expiring publishing token for the target account and returns it once; existing API tokens remain valid. The older
-`POST /api/auth/profile/token` endpoint has the same additive behavior for the signed-in account. New integrations
-should use the fine-grained profile endpoints.
+Administrator user CRUD remains under `/api/tokens`, but administrators cannot create credentials on another user's
+behalf. The older `POST /api/auth/profile/token` endpoint still creates an additional non-expiring publishing token for
+the signed-in account. New integrations should use the fine-grained profile endpoints.

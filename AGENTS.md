@@ -33,6 +33,7 @@
   uses twelve 160-bit codes, Argon2id verifiers, four-code atomic consumption, and session revocation; password login
   may be disabled only while a GitHub identity or Passkey remains available. API tokens use one-time 256-bit secrets,
   optional expiration, current-account-permission intersection, endpoint capability scopes, and immediate revocation.
+  Token secrets are owner-managed from a browser session; administrators cannot mint credentials for another user.
   Browser session secrets are cookie-only, while Basic/password credentials are restricted to package protocols.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation
@@ -100,7 +101,8 @@
   allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   Private email, password-login policy, and one-time recovery-code controls are isolated in
-  `js/account-security.js`, while the public four-code reset workflow lives in `js/password-recovery.js`.
+  `js/account-security.js` inside a default-collapsed, width-contained security card, while the public four-code reset
+  workflow lives in `js/password-recovery.js`.
   `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, one-time secret display, shared
   clipboard feedback, immediate revocation, and live language refresh without exposing stored credential material.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
@@ -117,7 +119,8 @@
   into a bounded set of shared visual families. Cargo and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
-  and `js/time.js`. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
+  and `js/time.js`. Shared select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; native
+  option popups are not used for styled application dialogs. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
   shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the
   button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed
   requests. `js/backend-availability.js` confirms same-origin request failures with foreground health probes so browser

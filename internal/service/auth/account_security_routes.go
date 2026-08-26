@@ -91,7 +91,7 @@ func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid email request")
 	}
 	email, valid := core.NormalizeEmail(request.Email)
-	if !valid {
+	if !valid || email == "" {
 		c.Set("X-Renop-Error-Code", "ACCOUNT_EMAIL_INVALID")
 		return c.Status(fiber.StatusBadRequest).SendString("Email address is invalid")
 	}

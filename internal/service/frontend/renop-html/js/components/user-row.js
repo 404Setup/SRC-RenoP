@@ -100,7 +100,6 @@ if (!customElements.get('renop-user-row')) {
  * @property {(perm: string) => string} [formatPermissionTag] - Format a permission for display
  * @property {(token: object) => void} [onEdit] - Edit action handler
  * @property {(token: object) => void} [onDelete] - Delete action handler
- * @property {(token: object) => void} [onReset] - Reset-token action handler
  * @property {(token: object) => void} [onSessions] - Sessions action handler
  */
 
@@ -149,15 +148,6 @@ export function openUserActionsDialog(token, options = {}) {
             title: t('users.sessions') || 'Sessions',
             desc: t('users.sessionsDesc') || 'View and revoke active login sessions',
             handler: options.onSessions
-        },
-        {
-            id: 'reset',
-            icon: 'refresh',
-            iconColor: '#f59e0b',
-            iconBg: 'rgba(245, 158, 11, 0.1)',
-            title: t('users.reset') || 'Reset Token',
-            desc: t('users.resetDesc') || 'Regenerate API access token',
-            handler: options.onReset
         },
         {
             id: 'edit',

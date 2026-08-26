@@ -149,7 +149,7 @@ export default Object.freeze({
     "profile.githubOnlyLogin": "유일한 로그인 방법을 해제하기 전에 비밀번호 또는 Passkey를 추가하세요.",
     "profile.accountSecurityTitle": "계정 보안",
     "profile.accountSecurityDesc": "비공개 로그인 이메일, 비밀번호 로그인 및 일회용 복구 코드를 관리합니다.",
-    "profile.privateEmailLabel": "비공개 로그인 이메일",
+    "profile.privateEmailLabel": "이메일",
     "profile.privateEmailPlaceholder": "name@example.com",
     "profile.privateEmailHint": "공개되지 않으며 로그인 또는 계정 복구에 사용할 수 있습니다.",
     "profile.savePrivateEmail": "이메일 저장",

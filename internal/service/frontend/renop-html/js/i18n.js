@@ -349,7 +349,6 @@ const ERROR_KEY_MAP = {
     'Failed to parse assertion response': 'error.fidoParseAssertionFailed',
     'Failed to parse creation response': 'error.fidoParseCreationFailed',
     'Failed to read chunk': 'error.readChunk',
-    'Failed to regenerate token': 'users.failedRegenToken',
     'Failed to revoke session': 'sessions.revokeFailed',
     'Failed to revoke sessions': 'sessions.revokeOthersFailed',
     'Failed to save FIDO device': 'error.failedSaveFidoDevice',
