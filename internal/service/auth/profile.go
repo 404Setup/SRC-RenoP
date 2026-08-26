@@ -11,6 +11,8 @@
 package auth
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -61,13 +63,14 @@ func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.Token
 	}
 	hashed := string(hashBytes)
 
-	err = token.UpdateTokenSync(opChan, user.Username, func(accessToken *core.AccessToken) {
-		accessToken.EncryptedSecret = hashed
-	})
+	state.Inner.TokenWriteLock.Lock()
+	err = state.GetDB().SetAccountPassword(user.Username, hashed, time.Now().UnixMilli())
+	state.Inner.TokenWriteLock.Unlock()
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
+	state.ClearAuthCache()
 
 	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{

@@ -132,8 +132,11 @@ func verifyTokenSecret(state *core.AppState, username, secret string) bool {
 		}
 	}
 	if token.EncryptedSecret != "" {
-		if err := bcrypt.CompareHashAndPassword([]byte(token.EncryptedSecret), []byte(secret)); err == nil {
-			return true
+		passwordEnabled, err := state.GetDB().PasswordLoginEnabled(token.Name)
+		if err == nil && passwordEnabled {
+			if err := bcrypt.CompareHashAndPassword([]byte(token.EncryptedSecret), []byte(secret)); err == nil {
+				return true
+			}
 		}
 	}
 	return false

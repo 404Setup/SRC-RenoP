@@ -60,6 +60,21 @@
     margin-top: 0.9rem;
 }
 
+.login-secondary-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 10px;
+    font-size: 0.82rem;
+}
+
+.login-secondary-actions .fido-login-link {
+    color: var(--link-hover-color);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .github-login-wrapper[hidden] {
     display: none !important;
 }

@@ -252,18 +252,12 @@ func getProfileGitHub(c fiber.Ctx, state *core.AppState) error {
 }
 
 func canDisconnectGitHub(state *core.AppState, username string) (bool, error) {
-	accessToken := state.GetTokenByName(username)
-	if accessToken == nil {
-		return false, core.ErrUserProfileNotFound
-	}
-	if strings.TrimSpace(accessToken.EncryptedSecret) != "" {
-		return true, nil
-	}
-	devices, err := state.GetDB().ListFidoDevices(username)
+	security, err := state.GetDB().GetAccountSecurity(username)
 	if err != nil {
 		return false, err
 	}
-	return len(devices) > 0, nil
+	return security.FidoDeviceCount > 0 ||
+		(security.PasswordConfigured && security.PasswordLoginEnabled), nil
 }
 
 func deleteProfileGitHub(c fiber.Ctx, state *core.AppState) error {
@@ -283,7 +277,10 @@ func deleteProfileGitHub(c fiber.Ctx, state *core.AppState) error {
 		c.Set("X-Renop-Error-Code", "GITHUB_LAST_LOGIN_METHOD")
 		return c.Status(fiber.StatusConflict).SendString("Another login method is required")
 	}
-	if err := state.GetDB().DeleteGitHubIdentity(user.Username); err != nil {
+	if err := state.GetDB().DeleteGitHubIdentity(user.Username); errors.Is(err, core.ErrLastLoginMethod) {
+		c.Set("X-Renop-Error-Code", "GITHUB_LAST_LOGIN_METHOD")
+		return c.Status(fiber.StatusConflict).SendString("Another login method is required")
+	} else if err != nil {
 		if errors.Is(err, core.ErrGitHubIdentityNotFound) {
 			return c.SendStatus(fiber.StatusNotFound)
 		}

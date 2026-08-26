@@ -67,7 +67,8 @@ func TestFidoBeginEndpoints(t *testing.T) {
 
 	t.Run("FidoDeviceStateOperations", func(t *testing.T) {
 		tok := &core.AccessToken{
-			Name: "user1",
+			Name:            "user1",
+			EncryptedSecret: "configured-password-hash",
 		}
 		require.NoError(t, db.SaveToken(tok))
 

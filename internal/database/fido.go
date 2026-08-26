@@ -145,11 +145,46 @@ func (db *DB) DeleteFidoDevice(username, deviceID string) error {
 	}
 
 	lowerName := strings.ToLower(username)
-	_, err := db.Exec(`DELETE FROM fido_devices WHERE username = ? AND id = ?`, lowerName, deviceID)
+	tx, err := db.Begin()
 	if err != nil {
+		return fmt.Errorf("begin fido device deletion: %w", err)
+	}
+	defer tx.Rollback()
+	var userID string
+	if err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, lowerName).Scan(&userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			if _, deleteErr := tx.Exec(`DELETE FROM fido_devices WHERE username = ? AND id = ?`,
+				lowerName, deviceID); deleteErr != nil {
+				return fmt.Errorf("delete orphaned fido device: %w", deleteErr)
+			}
+			return tx.Commit()
+		}
+		return fmt.Errorf("resolve fido device owner: %w", err)
+	}
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return fmt.Errorf("lock account login methods before fido deletion: %w", err)
+	}
+	var exists int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM fido_devices WHERE username = ? AND id = ?`,
+		lowerName, deviceID).Scan(&exists); err != nil {
+		return fmt.Errorf("inspect fido device: %w", err)
+	}
+	if exists == 0 {
+		return nil
+	}
+	hasAlternate, err := hasLoginWithoutFidoTx(tx, userID, lowerName, deviceID)
+	if err != nil {
+		return fmt.Errorf("inspect login methods before fido deletion: %w", err)
+	}
+	if !hasAlternate {
+		return core.ErrLastLoginMethod
+	}
+	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ? AND id = ?`, lowerName, deviceID); err != nil {
 		return fmt.Errorf("failed to delete fido device (%s) for user (%s): %w", deviceID, lowerName, err)
 	}
-
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit fido device deletion: %w", err)
+	}
 	return nil
 }
 

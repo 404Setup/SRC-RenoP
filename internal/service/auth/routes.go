@@ -29,6 +29,14 @@ import (
 
 const sessionCookieName = "renop_session"
 
+var invalidPasswordHash = func() []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte("renop-invalid-password-probe"), bcrypt.DefaultCost)
+	if err != nil {
+		panic("failed to initialize password verification")
+	}
+	return hash
+}()
+
 func isSecure(c fiber.Ctx) bool {
 	if c.Secure() {
 		return true
@@ -89,6 +97,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Get("/profile/sessions", func(c fiber.Ctx) error { return ListSessions(c, state) })
 	auth.Post("/profile/sessions/revoke-others", func(c fiber.Ctx) error { return RevokeOtherSessions(c, state) })
 	auth.Delete("/profile/sessions/:session_id", func(c fiber.Ctx) error { return DeleteSession(c, state) })
+	setupAccountSecurityRoutes(auth, state)
 	setupGitHubRoutes(auth, state, opChan)
 	SetupFidoRoutes(auth, state, opChan)
 }
@@ -175,7 +184,7 @@ func CreateSessionDetails(user *config.User, sessionToken string) core.SessionDe
 }
 
 func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan<- token.TokenOp) (*config.User, error) {
-	if len(body.Name) == 0 || len(body.Name) > 128 || len(body.Secret) == 0 || len(body.Secret) > 72 {
+	if len(body.Name) == 0 || len(body.Name) > core.MaxEmailLength || len(body.Secret) == 0 || len(body.Secret) > 72 {
 		return nil, nil
 	}
 	isEmpty := state.Inner.TokensCount.Load() == 0
@@ -186,18 +195,35 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 		}
 	}
 
-	accessToken := state.GetTokenByName(strings.ToLower(body.Name))
+	identifier := strings.ToLower(strings.TrimSpace(body.Name))
+	accessToken := state.GetTokenByName(identifier)
+	if accessToken == nil && strings.Contains(identifier, "@") {
+		var err error
+		accessToken, err = state.GetDB().GetTokenByEmail(identifier)
+		if err != nil {
+			return nil, err
+		}
+	}
+	passwordHash := invalidPasswordHash
+	passwordEnabled := false
 	if accessToken != nil {
 		if isAccessTokenExpired(accessToken) {
 			return nil, fiber.ErrForbidden
 		}
-
-		err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(body.Secret))
-		if err == nil {
-			synthUser := buildSynthUser(accessToken)
-			synthUser.Tokens = []string{"Bearer " + body.Name + ":" + body.Secret}
-			return synthUser, nil
+		policyEnabled, err := state.GetDB().PasswordLoginEnabled(accessToken.Name)
+		if err != nil {
+			return nil, err
 		}
+		passwordEnabled = policyEnabled && accessToken.EncryptedSecret != ""
+		if passwordEnabled {
+			passwordHash = []byte(accessToken.EncryptedSecret)
+		}
+	}
+	err := bcrypt.CompareHashAndPassword(passwordHash, []byte(body.Secret))
+	if err == nil && accessToken != nil && passwordEnabled {
+		synthUser := buildSynthUser(accessToken)
+		synthUser.Tokens = []string{"Bearer " + accessToken.Name + ":" + body.Secret}
+		return synthUser, nil
 	}
 
 	return nil, nil

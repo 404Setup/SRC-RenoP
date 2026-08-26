@@ -337,18 +337,21 @@ export async function login(name, secret) {
             const permissions = (sessionData && sessionData.permissions) || [];
             const routes = (sessionData && sessionData.routes) || [];
             const isManager = isManagerFromSession(permissions);
+            const serverName = sessionData && sessionData.access_token && sessionData.access_token.name
+                ? sessionData.access_token.name
+                : name;
 
             localStorage.removeItem('token-name');
             localStorage.removeItem('token-secret');
-            localStorage.setItem('username', name);
+            localStorage.setItem('username', serverName);
             localStorage.removeItem('session-token');
 
-            updateAuthUI(true, name, isManager, permissions, routes);
+            updateAuthUI(true, serverName, isManager, permissions, routes);
             closeModalWithAnim(loginModal, () => {
                 loginForm.reset();
             });
 
-            showAlert(t('login.welcomeBack', {name}), 'success');
+            showAlert(t('login.welcomeBack', {name: serverName}), 'success');
             loadDirectory(window.location.pathname);
         } else {
             loginError.textContent = window.translateError ? window.translateError('Invalid credentials') : 'Invalid credentials';

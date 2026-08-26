@@ -170,7 +170,8 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 }
 
 // UpdateUserProfile atomically updates a nickname and, when requested, renames all account references.
-func (db *DB) UpdateUserProfile(oldUsername, newUsername, nickname string, token *core.AccessToken, changedAt int64) (*core.UserProfile, error) {
+func (db *DB) UpdateUserProfile(oldUsername, newUsername, nickname string, token *core.AccessToken,
+	changedAt int64, changes core.AccountTokenChanges) (*core.UserProfile, error) {
 	if db == nil || db.SQLDB == nil || token == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
@@ -189,19 +190,7 @@ func (db *DB) UpdateUserProfile(oldUsername, newUsername, nickname string, token
 	}
 	defer tx.Rollback()
 
-	var createdAt string
-	if err := tx.QueryRow(`SELECT created_at FROM tokens WHERE name = ?`, oldUsername).Scan(&createdAt); errors.Is(err, sql.ErrNoRows) {
-		return nil, core.ErrUserProfileNotFound
-	} else if err != nil {
-		return nil, fmt.Errorf("inspect profile account %s: %w", oldUsername, err)
-	}
-	if !renamed {
-		if err := db.saveTokenInTx(tx, oldUsername, token); err != nil {
-			return nil, err
-		}
-	}
-
-	profile := &core.UserProfile{Username: oldUsername, CreatedAt: createdAt}
+	profile := &core.UserProfile{Username: oldUsername}
 	profileExists := true
 	if err := tx.QueryRow(`SELECT user_id, nickname, rename_window_started_at, rename_count
 		FROM user_profiles WHERE username = ?`, oldUsername).Scan(
@@ -214,6 +203,33 @@ func (db *DB) UpdateUserProfile(oldUsername, newUsername, nickname string, token
 		profile.UsernameChangeCount = 0
 	} else if err != nil {
 		return nil, fmt.Errorf("inspect durable user profile %s: %w", oldUsername, err)
+	}
+	if profileExists {
+		if err := lockAccountLoginMethodsTx(tx, profile.UserID); err != nil {
+			return nil, fmt.Errorf("lock user profile %s: %w", oldUsername, err)
+		}
+	}
+	currentToken, err := tokenByNameTx(tx, oldUsername)
+	if err != nil {
+		return nil, fmt.Errorf("inspect profile account %s: %w", oldUsername, err)
+	}
+	if currentToken == nil {
+		return nil, core.ErrUserProfileNotFound
+	}
+	profile.CreatedAt = currentToken.CreatedAt
+	desiredToken := token
+	token = currentToken
+	if changes.Password {
+		token.EncryptedSecret = desiredToken.EncryptedSecret
+		token.PasswordHash = desiredToken.PasswordHash
+	}
+	if changes.Permissions {
+		token.Permissions = append([]string(nil), desiredToken.Permissions...)
+	}
+	if !renamed {
+		if err := db.saveTokenInTx(tx, oldUsername, token); err != nil {
+			return nil, err
+		}
 	}
 
 	if renamed {

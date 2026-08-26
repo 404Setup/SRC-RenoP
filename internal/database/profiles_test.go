@@ -92,7 +92,8 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.NoError(t, db.SaveToken(bob))
 
 	const changedAt int64 = 1_800_000_000_000
-	profile, err := db.UpdateUserProfile("alice", "alice", "Alice Example", alice, changedAt)
+	profile, err := db.UpdateUserProfile("alice", "alice", "Alice Example", alice, changedAt,
+		core.AccountTokenChanges{})
 	require.NoError(t, err)
 	require.Equal(t, "Alice Example", profile.Nickname)
 	require.Equal(t, 0, profile.UsernameChangeCount)
@@ -129,7 +130,8 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 		MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(`{"schemaVersion":2}`),
 	}, "latest", "alice"))
 
-	profile, err = db.UpdateUserProfile("alice", "alice_one", "Alice Example", alice, changedAt+1)
+	profile, err = db.UpdateUserProfile("alice", "alice_one", "Alice Example", alice, changedAt+1,
+		core.AccountTokenChanges{})
 	require.NoError(t, err)
 	require.Equal(t, "alice_one", profile.Username)
 	require.Equal(t, stableUserID, profile.UserID)
@@ -171,12 +173,14 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "alice_one", message.Sender)
 
-	_, err = db.UpdateUserProfile("alice_one", "bobby", "Alice Example", mustToken(t, db, "alice_one"), changedAt+2)
+	_, err = db.UpdateUserProfile("alice_one", "bobby", "Alice Example", mustToken(t, db, "alice_one"), changedAt+2,
+		core.AccountTokenChanges{})
 	require.ErrorIs(t, err, core.ErrUsernameAlreadyExists)
 	require.NotNil(t, mustToken(t, db, "alice_one"))
 
 	profile, err = db.UpdateUserProfile(
 		"alice_one", "alice_two", "Alice Example", mustToken(t, db, "alice_one"), changedAt+3,
+		core.AccountTokenChanges{},
 	)
 	require.NoError(t, err)
 	require.Equal(t, 2, profile.UsernameChangeCount)
@@ -186,6 +190,7 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	db = openDatabase()
 	_, err = db.UpdateUserProfile(
 		"alice_two", "alice_three", "Alice Example", mustToken(t, db, "alice_two"), changedAt+4,
+		core.AccountTokenChanges{},
 	)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, core.ErrUsernameChangeRateLimited))

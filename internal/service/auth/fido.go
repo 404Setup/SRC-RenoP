@@ -98,7 +98,7 @@ const (
 	// Account names are capped by password-login validation as well.  Keeping
 	// the same byte limit here prevents an anonymous FIDO challenge from
 	// retaining an oversized caller-controlled username until expiry.
-	maxFidoUsernameLength = 128
+	maxFidoUsernameLength = core.MaxEmailLength
 )
 
 var (
@@ -485,7 +485,10 @@ func DeleteProfileFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	user := userInt.(*config.User)
 	deviceID := c.Params("device_id")
 
-	if err := state.DeleteFidoDevice(user.Username, deviceID); err != nil {
+	if err := state.DeleteFidoDevice(user.Username, deviceID); errors.Is(err, core.ErrLastLoginMethod) {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_LAST_LOGIN_METHOD")
+		return c.Status(fiber.StatusConflict).SendString("Another login method is required")
+	} else if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete FIDO device")
 	}
 
@@ -522,7 +525,10 @@ func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	username := c.Params("username")
 	deviceID := c.Params("device_id")
 
-	if err := state.DeleteFidoDevice(username, deviceID); err != nil {
+	if err := state.DeleteFidoDevice(username, deviceID); errors.Is(err, core.ErrLastLoginMethod) {
+		c.Set("X-Renop-Error-Code", "ACCOUNT_LAST_LOGIN_METHOD")
+		return c.Status(fiber.StatusConflict).SendString("Another login method is required")
+	} else if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete FIDO device")
 	}
 
@@ -557,6 +563,11 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 	reqUsername := strings.TrimSpace(req.Username)
 	if len(reqUsername) > maxFidoUsernameLength {
 		return c.Status(fiber.StatusBadRequest).SendString("Username is too long")
+	}
+	if strings.Contains(reqUsername, "@") {
+		if account, lookupErr := state.GetDB().GetTokenByEmail(reqUsername); lookupErr == nil && account != nil {
+			reqUsername = account.Name
+		}
 	}
 	var options *protocol.CredentialAssertion
 	var sessionData *webauthn.SessionData

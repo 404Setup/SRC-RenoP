@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -73,7 +74,8 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	}
 	require.NoError(t, db.SaveToken(account))
 	const changedAt int64 = 1_800_000_100_000
-	profile, err := db.UpdateUserProfile("profile_pg", "profile_pg", "PostgreSQL User", account, changedAt)
+	profile, err := db.UpdateUserProfile("profile_pg", "profile_pg", "PostgreSQL User", account, changedAt,
+		core.AccountTokenChanges{})
 	require.NoError(t, err)
 	require.Equal(t, "PostgreSQL User", profile.Nickname)
 	stableUserID := profile.UserID
@@ -87,6 +89,24 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	githubAuthorized, err := db.HasRecentGitHubPrincipal("profile_pg", "renop-pg", changedAt)
 	require.NoError(t, err)
 	require.True(t, githubAuthorized)
+	privateSecurity, err := db.UpdateAccountEmail("profile_pg", "profile.pg@example.com", changedAt)
+	require.NoError(t, err)
+	require.Equal(t, "profile.pg@example.com", privateSecurity.Email)
+	privateSecurity, err = db.SetPasswordLoginEnabled("profile_pg", false, changedAt+1)
+	require.NoError(t, err)
+	require.False(t, privateSecurity.PasswordLoginEnabled)
+	recoveryHashes := make([]core.RecoveryCodeHash, core.RecoveryCodeCount)
+	for index := range recoveryHashes {
+		recoveryHashes[index] = core.RecoveryCodeHash{
+			SelectorHash: fmt.Sprintf("%064x", index+1),
+			PasswordHash: fmt.Sprintf("postgres-argon-%d", index+1),
+			CreatedAt:    changedAt + 2,
+		}
+	}
+	require.NoError(t, db.ReplaceRecoveryCodes("profile_pg", recoveryHashes))
+	privateSecurity, err = db.GetAccountSecurity("profile_pg")
+	require.NoError(t, err)
+	require.Equal(t, core.RecoveryCodeCount, privateSecurity.RecoveryCodesRemaining)
 	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
 		Repository: "cargo", Name: "profile-pg-crate", NormalizedName: "profile-pg-crate",
 		CreatedAt: changedAt, UpdatedAt: changedAt,
@@ -112,15 +132,16 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdee",
 		MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(`{"schemaVersion":2}`),
 	}, "latest", account.Name))
-	profile, err = db.UpdateUserProfile("profile_pg", "profile_pg_one", profile.Nickname, account, changedAt+1)
+	profile, err = db.UpdateUserProfile("profile_pg", "profile_pg_one", profile.Nickname, account, changedAt+1,
+		core.AccountTokenChanges{})
 	require.NoError(t, err)
 	require.Equal(t, stableUserID, profile.UserID)
 	profile, err = db.UpdateUserProfile("profile_pg_one", "profile_pg_two", profile.Nickname,
-		mustToken(t, db, "profile_pg_one"), changedAt+2)
+		mustToken(t, db, "profile_pg_one"), changedAt+2, core.AccountTokenChanges{})
 	require.NoError(t, err)
 	require.Equal(t, stableUserID, profile.UserID)
 	_, err = db.UpdateUserProfile("profile_pg_two", "profile_pg_three", profile.Nickname,
-		mustToken(t, db, "profile_pg_two"), changedAt+3)
+		mustToken(t, db, "profile_pg_two"), changedAt+3, core.AccountTokenChanges{})
 	require.ErrorIs(t, err, core.ErrUsernameChangeRateLimited)
 	loaded, err := db.GetUserProfiles([]string{"profile_pg_two", "missing"})
 	require.NoError(t, err)
@@ -137,6 +158,95 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, dockerMemberships, 1)
 	require.Equal(t, "profile/pg", dockerMemberships[0].Name)
+}
+
+func TestPostgresAccountSecuritySerialization(t *testing.T) {
+	dsn, _, _ := newPostgresTestSchema(t, "renop_account_security_test")
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "postgres", Dsn: dsn, MaxOpenConns: 4, MaxIdleConns: 2,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "security_pg", EncryptedSecret: "initial-password",
+		CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	}))
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.SaveFidoDevice(&core.FidoDevice{
+		ID: "security-key", Username: "security_pg", Name: "Passkey",
+		CredentialID: []byte("security-credential"), PublicKey: []byte("public"), CreatedAt: now,
+	}))
+
+	start := make(chan struct{})
+	loginResults := make(chan error, 2)
+	var workers sync.WaitGroup
+	workers.Add(2)
+	go func() {
+		defer workers.Done()
+		<-start
+		_, updateErr := db.SetPasswordLoginEnabled("security_pg", false, now+1)
+		loginResults <- updateErr
+	}()
+	go func() {
+		defer workers.Done()
+		<-start
+		loginResults <- db.DeleteFidoDevice("security_pg", "security-key")
+	}()
+	close(start)
+	workers.Wait()
+	close(loginResults)
+	loginSuccesses := 0
+	for operationErr := range loginResults {
+		if operationErr == nil {
+			loginSuccesses++
+		}
+	}
+	require.Equal(t, 1, loginSuccesses)
+	security, err := db.GetAccountSecurity("security_pg")
+	require.NoError(t, err)
+	devices, err := db.ListFidoDevices("security_pg")
+	require.NoError(t, err)
+	require.True(t, security.PasswordLoginEnabled || len(devices) > 0)
+
+	recoveryHashes := make([]core.RecoveryCodeHash, core.RecoveryCodeCount)
+	for index := range recoveryHashes {
+		recoveryHashes[index] = core.RecoveryCodeHash{
+			SelectorHash: fmt.Sprintf("%064x", index+1),
+			PasswordHash: fmt.Sprintf("postgres-argon-%d", index+1),
+			CreatedAt:    now + 2,
+		}
+	}
+	require.NoError(t, db.ReplaceRecoveryCodes("security_pg", recoveryHashes))
+	selectors := []string{
+		recoveryHashes[0].SelectorHash, recoveryHashes[1].SelectorHash,
+		recoveryHashes[2].SelectorHash, recoveryHashes[3].SelectorHash,
+	}
+	start = make(chan struct{})
+	recoveryResults := make(chan error, 2)
+	workers.Add(2)
+	for index := range 2 {
+		go func() {
+			defer workers.Done()
+			<-start
+			_, resetErr := db.ResetPasswordWithRecoveryCodes(
+				"security_pg", selectors, fmt.Sprintf("recovered-password-%d", index), now+int64(index)+3)
+			recoveryResults <- resetErr
+		}()
+	}
+	close(start)
+	workers.Wait()
+	close(recoveryResults)
+	recoverySuccesses := 0
+	for resetErr := range recoveryResults {
+		if resetErr == nil {
+			recoverySuccesses++
+		}
+	}
+	require.Equal(t, 1, recoverySuccesses)
+	security, err = db.GetAccountSecurity("security_pg")
+	require.NoError(t, err)
+	require.True(t, security.PasswordLoginEnabled)
+	require.Equal(t, core.RecoveryCodeCount-core.RecoveryCodesRequired, security.RecoveryCodesRemaining)
 }
 
 func TestPostgresMessageDedupeInsert(t *testing.T) {

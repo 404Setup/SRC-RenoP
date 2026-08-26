@@ -52,6 +52,31 @@ func initGitHubIdentityTables(db *sql.DB) error {
 	return nil
 }
 
+func initAccountSecurityTables(db *sql.DB) error {
+	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS user_account_security (
+			user_id VARCHAR(36) PRIMARY KEY,
+			email VARCHAR(254) NULL UNIQUE,
+			password_login_enabled INT NOT NULL DEFAULT 1,
+			updated_at BIGINT NOT NULL DEFAULT 0
+		);`,
+		`CREATE TABLE IF NOT EXISTS user_recovery_codes (
+			user_id VARCHAR(36) NOT NULL,
+			selector_hash CHAR(64) NOT NULL,
+			password_hash VARCHAR(255) NOT NULL,
+			created_at BIGINT NOT NULL,
+			used_at BIGINT NOT NULL DEFAULT 0,
+			PRIMARY KEY (user_id, selector_hash)
+		);`,
+	}
+	for _, table := range tables {
+		if _, err := db.Exec(table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func initMavenTables(db *sql.DB) error {
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS maven_domains (

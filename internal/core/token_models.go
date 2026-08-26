@@ -33,6 +33,12 @@ type AccessToken struct {
 	Permissions     []string              `json:"permissions" yaml:"permissions"`
 }
 
+// AccountTokenChanges identifies the account-token fields intentionally changed with a profile update.
+type AccountTokenChanges struct {
+	Password    bool
+	Permissions bool
+}
+
 func (t *AccessToken) UnmarshalYAML(value *yaml.Node) error {
 	type alias AccessToken
 	var aux alias

@@ -19,11 +19,14 @@
   preserves deterministic manifest order and aggregates failures.
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
-  profiles, immutable user identities for package ownership, durable GitHub identity/principal snapshots, and
-  durable username-change throttling.
+  profiles, immutable user identities for package ownership, private normalized login emails, serialized login-method
+  invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, durable GitHub
+  identity/principal snapshots, and durable username-change throttling.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
-  `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted.
+  `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
+  uses twelve 160-bit codes, Argon2id verifiers, four-code atomic consumption, and session revocation; password login
+  may be disabled only while a GitHub identity or Passkey remains available.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation extraction/viewer
   (`/cargodoc/...`).
@@ -86,6 +89,8 @@
   profile linking request account/organization read access, persist immutable provider IDs without access tokens, and
   allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
+  Private email, password-login policy, and one-time recovery-code controls are isolated in
+  `js/account-security.js`, while the public four-code reset workflow lives in `js/password-recovery.js`.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
   loads. Modular i18n
   catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,

@@ -243,6 +243,226 @@
     align-items: center;
 }
 
+#profile-account-security-section[hidden] {
+    display: none !important;
+}
+
+.profile-account-security-section {
+    grid-template-columns: 1fr !important;
+}
+
+.profile-account-security-section > .profile-section-body {
+    align-items: stretch !important;
+    padding: 0 1.35rem 1.35rem !important;
+}
+
+.profile-section-icon--account-security {
+    color: #0f766e;
+    background: rgba(13, 148, 136, 0.12);
+}
+
+.profile-section-icon--account-security svg {
+    width: 20px;
+    height: 20px;
+}
+
+.profile-account-security-body {
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+}
+
+.profile-security-email-form,
+.profile-security-control {
+    display: grid;
+    gap: 0.55rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+}
+
+.profile-security-email-form > label,
+.profile-security-control strong {
+    font-size: 0.88rem;
+    font-weight: 650;
+    color: var(--text-color);
+}
+
+.profile-security-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.profile-security-inline .profile-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-security-control {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-security-hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.profile-security-switch {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.profile-security-switch input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.profile-security-switch > span:not(.sr-only) {
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-color) 18%, transparent);
+    cursor: pointer;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.profile-security-switch > span:not(.sr-only)::after {
+    content: "";
+    display: block;
+    width: 18px;
+    height: 18px;
+    margin: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+    transition: transform 0.2s ease;
+}
+
+.profile-security-switch input:checked + span {
+    background: var(--link-hover-color);
+}
+
+.profile-security-switch input:checked + span::after {
+    transform: translateX(18px);
+}
+
+.profile-security-switch input:focus-visible + span {
+    outline: 2px solid var(--link-hover-color);
+    outline-offset: 2px;
+}
+
+.profile-security-switch input:disabled + span {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.profile-recovery-dialog {
+    display: grid;
+    gap: 1rem;
+}
+
+.profile-recovery-warning {
+    padding: 0.8rem 0.9rem;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.1);
+    color: color-mix(in srgb, var(--text-color) 85%, #92400e);
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+
+.profile-recovery-code-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.profile-recovery-code {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    color: var(--text-color);
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.profile-recovery-code-index {
+    color: var(--text-muted);
+    user-select: none;
+}
+
+.password-recovery-layout,
+.password-recovery-form {
+    display: grid;
+    gap: 1rem;
+}
+
+.password-recovery-form label,
+.password-recovery-codes {
+    display: grid;
+    gap: 0.45rem;
+    color: var(--text-color);
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.password-recovery-codes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.password-recovery-label {
+    grid-column: 1 / -1;
+}
+
+.recovery-code-input {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: uppercase;
+}
+
+.password-recovery-error {
+    min-height: 1.2em;
+    margin: 0;
+    color: #dc2626;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 600px) {
+    .profile-security-inline,
+    .profile-security-control {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .profile-security-inline {
+        display: grid;
+    }
+
+    .profile-security-inline .profile-action-btn,
+    .profile-recovery-control .profile-action-btn {
+        width: 100%;
+    }
+
+    .profile-recovery-code-list,
+    .password-recovery-codes {
+        grid-template-columns: 1fr;
+    }
+}
+
 .profile-settings-section > .profile-section-card-header {
     border-bottom: 0;
     background: transparent;

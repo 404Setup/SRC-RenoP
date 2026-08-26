@@ -142,7 +142,7 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 					u := strings.ToLower(parts[0])
 					p := parts[1]
 					if tokenObj := state.GetTokenByName(u); tokenObj != nil {
-						if verifyTokenSecretDirect(tokenObj, p) {
+						if verifyTokenSecretDirect(state, tokenObj, p) {
 							user = &config.User{
 								Username: u,
 								Roles:    tokenObj.Permissions,
@@ -158,7 +158,7 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 			if password != "" {
 				u := strings.ToLower(account)
 				if tokenObj := state.GetTokenByName(u); tokenObj != nil {
-					if verifyTokenSecretDirect(tokenObj, password) {
+					if verifyTokenSecretDirect(state, tokenObj, password) {
 						user = &config.User{
 							Username: u,
 							Roles:    tokenObj.Permissions,
@@ -234,13 +234,16 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 	})
 }
 
-func verifyTokenSecretDirect(accessToken *core.AccessToken, secret string) bool {
+func verifyTokenSecretDirect(state *core.AppState, accessToken *core.AccessToken, secret string) bool {
 	if slices.Contains(accessToken.Tokens, secret) {
 		return true
 	}
 	if accessToken.EncryptedSecret != "" {
-		if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
-			return true
+		passwordEnabled, err := state.GetDB().PasswordLoginEnabled(accessToken.Name)
+		if err == nil && passwordEnabled {
+			if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
+				return true
+			}
 		}
 	}
 	return false

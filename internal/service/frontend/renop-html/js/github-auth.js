@@ -11,6 +11,7 @@
 import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
+import {refreshAccountSecurity} from './account-security.js';
 
 let githubProfileLoadSequence = 0;
 
@@ -138,6 +139,7 @@ document.getElementById('btn-profile-github-disconnect')?.addEventListener('clic
         }
         showAlert(t('profile.githubDisconnected'), 'success');
         await refreshGitHubConnection();
+        await refreshAccountSecurity();
     } catch (error) {
         console.error('Failed to disconnect GitHub account', error);
         showAlert(t('profile.githubDisconnectFailed'), 'error');

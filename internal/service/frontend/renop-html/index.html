@@ -553,6 +553,47 @@
                     </div>
                 </details>
 
+                <div id="profile-account-security-section" class="profile-settings-section profile-account-security-section" hidden>
+                    <div class="profile-section-card-header">
+                        <div class="profile-section-icon profile-section-icon--account-security" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+                        </div>
+                        <div class="profile-section-meta">
+                            <h3 class="profile-section-title" data-i18n="profile.accountSecurityTitle">Account Security</h3>
+                            <p class="profile-section-desc" data-i18n="profile.accountSecurityDesc">Manage your private login email, password login, and one-time recovery codes.</p>
+                        </div>
+                    </div>
+                    <div class="profile-section-body profile-account-security-body">
+                        <form id="profile-private-email-form" class="profile-security-email-form" action="javascript:void(0);">
+                            <label for="profile-private-email" data-i18n="profile.privateEmailLabel">Private login email</label>
+                            <div class="profile-security-inline">
+                                <input id="profile-private-email" class="profile-input" type="email" maxlength="254" autocomplete="email"
+                                       placeholder="name@example.com" data-i18n-placeholder="profile.privateEmailPlaceholder">
+                                <button type="submit" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.savePrivateEmail">Save</button>
+                            </div>
+                            <p class="profile-security-hint" data-i18n="profile.privateEmailHint">This email is never shown publicly and can be used to sign in or recover your account.</p>
+                        </form>
+                        <div class="profile-security-control">
+                            <div>
+                                <strong data-i18n="profile.passwordLoginTitle">Password login</strong>
+                                <p id="profile-password-login-hint" class="profile-security-hint"></p>
+                            </div>
+                            <label class="profile-security-switch">
+                                <input id="profile-password-login-toggle" type="checkbox">
+                                <span aria-hidden="true"></span>
+                                <span class="sr-only" data-i18n="profile.passwordLoginTitle">Password login</span>
+                            </label>
+                        </div>
+                        <div class="profile-security-control profile-recovery-control">
+                            <div>
+                                <strong data-i18n="profile.recoveryCodesTitle">Recovery codes</strong>
+                                <p id="profile-recovery-code-status" class="profile-security-hint" data-i18n="profile.recoveryCodesNone">No recovery codes have been generated.</p>
+                            </div>
+                            <button id="btn-profile-recovery-codes" type="button" class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.generateRecoveryCodes">Generate codes</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="profile-settings-section">
                     <div class="profile-section-card-header">
                         <div class="profile-section-icon profile-section-icon--token" aria-hidden="true">
@@ -921,15 +962,16 @@
         <div class="modal-body">
             <form id="login-form" action="javascript:void(0);">
                 <div class="form-group">
-                    <label for="username" data-i18n="login.usernameLabel">Username / Token Name</label>
-                    <input type="text" id="username" autocomplete="username" required placeholder="Enter username or token name" data-i18n-placeholder="login.usernamePlaceholder">
+                    <label for="username" data-i18n="login.usernameLabel">Username, email, or token name</label>
+                    <input type="text" id="username" autocomplete="username" required placeholder="Enter username, private email, or token name" data-i18n-placeholder="login.usernamePlaceholder">
                 </div>
                 <div class="form-group">
                     <label for="password" data-i18n="login.passwordLabel">Password / Secret</label>
                     <input type="password" id="password" autocomplete="current-password" required placeholder="Enter password or secret" data-i18n-placeholder="login.passwordPlaceholder">
                 </div>
                 <div id="login-error" style="display: none; color: #ef4444; margin-bottom: 12px; font-size: 0.85rem; font-weight: 500;"></div>
-                <div class="fido-login-wrapper" style="text-align: right; margin-bottom: 10px;">
+                <div class="fido-login-wrapper login-secondary-actions">
+                    <a href="javascript:void(0);" id="btn-forgot-password" class="fido-login-link" data-i18n="login.forgotPassword">Forgot password?</a>
                     <a href="javascript:void(0);" id="btn-fido-login" class="fido-login-link" style="font-size: 0.82rem; color: var(--accent-color, #3b82f6); text-decoration: underline;" data-i18n="login.fidoLogin">Sign in with FIDO / Passkey</a>
                 </div>
                 <button type="submit" class="submit-btn" style="margin-top: 0.25rem;" data-i18n="login.submitBtn">Login</button>

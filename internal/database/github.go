@@ -168,6 +168,16 @@ func (db *DB) DeleteGitHubIdentity(username string) error {
 		}
 		return fmt.Errorf("resolve GitHub identity for deletion: %w", err)
 	}
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return fmt.Errorf("lock account login methods before GitHub deletion: %w", err)
+	}
+	hasAlternate, err := hasLoginWithoutGitHubTx(tx, userID, username)
+	if err != nil {
+		return fmt.Errorf("inspect login methods before GitHub deletion: %w", err)
+	}
+	if !hasAlternate {
+		return core.ErrLastLoginMethod
+	}
 	if _, err := tx.Exec(`DELETE FROM github_principals WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("delete GitHub principals: %w", err)
 	}

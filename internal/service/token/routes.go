@@ -258,6 +258,9 @@ func UpsertToken(c fiber.Ctx, state *core.AppState, opChan chan<- TokenOp) error
 		opChan <- TokenOp{
 			Type: OpUserProfileUpdate, Name: strings.Clone(name), NewName: strings.Clone(targetName),
 			Token: token, Nickname: nickname,
+			AccountChanges: core.AccountTokenChanges{
+				Password: hashedSecret != "", Permissions: createReq.Permissions != nil,
+			},
 			ChangedAt: time.Now().UnixMilli(),
 			ErrChan:   errChan,
 		}

@@ -32,6 +32,7 @@ import {writeClipboardText} from './clipboard.js';
 import {formatTimestamp} from './time.js';
 import {getRepositoryFormat} from './repository-formats.js';
 import {refreshGitHubConnection} from './github-auth.js';
+import {refreshAccountSecurity} from './account-security.js';
 import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
 import {
 	getUserProfile,
@@ -437,8 +438,11 @@ export async function loadProfileFidoDevices() {
                             if (delRes.ok) {
                                 showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
                                 loadProfileFidoDevices();
+                                void refreshAccountSecurity();
                             } else {
-                                showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
+                                showAlert(t(delRes.headers.get('X-Renop-Error-Code') === 'ACCOUNT_LAST_LOGIN_METHOD'
+                                    ? 'profile.passwordLoginNeedsAlternative'
+                                    : 'common.error'), 'error');
                             }
                         } catch (err) {
                             showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
@@ -548,6 +552,7 @@ export async function addFidoDevice() {
         if (finishRes.ok) {
             showAlert(t('profile.fidoAdded') || 'FIDO device added successfully!', 'success');
             loadProfileFidoDevices();
+            void refreshAccountSecurity();
         } else {
             const msg = await finishRes.text();
             const translatedMsg = window.translateError ? window.translateError(msg) : msg;
@@ -1023,6 +1028,7 @@ function showProfileEdit(profile) {
         wireProfileDisclosure(card);
     });
     wireProfileEditActions(profile);
+    void refreshAccountSecurity();
     void refreshGitHubConnection();
     window.scrollTo({top: 0, behavior: 'smooth'});
 }
@@ -1135,6 +1141,7 @@ function wireProfileEditActions(profile) {
                     showAlert(t('profile.passwordUpdated'), 'success');
                     input.value = '';
                     if (strengthCtrl) strengthCtrl.reset();
+                    void refreshAccountSecurity();
                 } else {
                     const msg = await response.text();
                     showAlert(t('profile.updatePasswordFailed') + ': ' + msg, 'error');

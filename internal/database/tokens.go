@@ -72,6 +72,45 @@ func parseTokenRow(name, tokenType string, typeValue int32, encryptedSecret, pas
 	}, nil
 }
 
+func tokenByNameTx(tx *Tx, name string) (*core.AccessToken, error) {
+	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
+	var typeValue int32
+	var expiresAt sql.NullInt64
+	err := tx.QueryRow(`SELECT name, type, type_value, encrypted_secret, password_hash,
+		tokens_json, created_at, description, expires_at, permissions_json FROM tokens WHERE name = ?`, name).
+		Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON,
+			&createdAt, &description, &expiresAt, &permissionsJSON)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash,
+		tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+}
+
+func (db *DB) saveTokenInTx(tx *Tx, name string, token *core.AccessToken) error {
+	tokensJSON, err := json.Marshal(token.Tokens)
+	if err != nil {
+		return fmt.Errorf("encode token secrets: %w", err)
+	}
+	permissionsJSON, err := json.Marshal(token.Permissions)
+	if err != nil {
+		return fmt.Errorf("encode token permissions: %w", err)
+	}
+	var expiresAt sql.NullInt64
+	if token.ExpiresAt != nil {
+		expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
+	}
+	if _, err := tx.Exec(db.Dialect.UpsertTokenQuery(), name, string(token.Identifier.Type), token.Identifier.Value,
+		token.EncryptedSecret, token.PasswordHash, string(tokensJSON), token.CreatedAt, token.Description,
+		expiresAt, string(permissionsJSON)); err != nil {
+		return fmt.Errorf("update token %s: %w", name, err)
+	}
+	return nil
+}
+
 func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 	if db == nil || db.SQLDB == nil || name == "" {
 		return nil, nil
@@ -174,25 +213,76 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 
 	token.Name = strings.ToLower(token.Name)
 	name := token.Name
-	tokensJSON, _ := json.Marshal(token.Tokens)
-	permissionsJSON, _ := json.Marshal(token.Permissions)
 
-	var expiresAt sql.NullInt64
-	if token.ExpiresAt != nil {
-		expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
-	}
-
-	query := db.Dialect.UpsertTokenQuery()
-	_, err := db.Exec(query, name, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash, string(tokensJSON), token.CreatedAt, token.Description, expiresAt, string(permissionsJSON))
+	tx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to save token (%s): %w", name, err)
+		return fmt.Errorf("begin token save (%s): %w", name, err)
 	}
-	if _, err := db.ensureUserProfile(name); err != nil {
+	defer tx.Rollback()
+	var userID string
+	err = tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, name).Scan(&userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		userID = uuid.NewString()
+		if _, err := tx.Exec(`INSERT INTO user_profiles
+			(user_id, username, nickname, rename_window_started_at, rename_count, updated_at)
+			VALUES (?, ?, '', 0, 0, ?)`, userID, name, time.Now().UnixMilli()); err != nil {
+			return fmt.Errorf("create stable user identity for %s: %w", name, err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("resolve stable user identity for %s: %w", name, err)
+	} else if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return fmt.Errorf("lock account before token save (%s): %w", name, err)
+	}
+	if err := db.saveTokenInTx(tx, name, token); err != nil {
 		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit token save (%s): %w", name, err)
 	}
 
 	db.finishTokenUpdate(name, token)
 
+	return nil
+}
+
+// UpdateToken applies one mutation to the latest persisted token while holding the account write lock.
+func (db *DB) UpdateToken(name string, updateFn func(*core.AccessToken)) error {
+	if db == nil || db.SQLDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	name = strings.ToLower(SanitizeInputString(strings.TrimSpace(name), maxTokenNameLen))
+	if name == "" || updateFn == nil {
+		return errors.New("token update is invalid")
+	}
+	userID, err := db.userIDForExistingAccount(name)
+	if err != nil {
+		return err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin token update (%s): %w", name, err)
+	}
+	defer tx.Rollback()
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return fmt.Errorf("lock account before token update (%s): %w", name, err)
+	}
+	token, err := tokenByNameTx(tx, name)
+	if err != nil {
+		return fmt.Errorf("reload token before update (%s): %w", name, err)
+	}
+	if token == nil {
+		return core.ErrUserProfileNotFound
+	}
+	updateFn(token)
+	token.Name = name
+	token.Description = SanitizeInputString(token.Description, 2048)
+	if err := db.saveTokenInTx(tx, name, token); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit token update (%s): %w", name, err)
+	}
+	db.finishTokenUpdate(name, token)
 	return nil
 }
 
@@ -275,6 +365,9 @@ func (db *DB) DeleteToken(name string) error {
 	if err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, lowerName).Scan(&userID); err != nil {
 		return fmt.Errorf("failed to resolve stable identity for token (%s): %w", lowerName, err)
 	}
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return fmt.Errorf("lock account before token deletion (%s): %w", lowerName, err)
+	}
 	var soleMavenOwnerships int
 	if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members current_member
 		WHERE current_member.user_id = ? AND current_member.permission_level = ? AND NOT EXISTS (
@@ -338,6 +431,12 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM github_identities WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete GitHub identity for token (%s): %w", lowerName, err)
 	}
+	if _, err := tx.Exec(`DELETE FROM user_recovery_codes WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete recovery codes for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM user_account_security WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete private account security for token (%s): %w", lowerName, err)
+	}
 
 	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {
 		return fmt.Errorf("failed to delete fido devices for token (%s): %w", lowerName, err)
@@ -398,6 +497,24 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 		return fmt.Errorf("begin token rename: %w", err)
 	}
 	defer tx.Rollback()
+	var userID string
+	if err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, lowerOld).Scan(&userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return core.ErrUserProfileNotFound
+		}
+		return fmt.Errorf("resolve profile before token rename: %w", err)
+	}
+	if err := lockAccountLoginMethodsTx(tx, userID); err != nil {
+		return fmt.Errorf("lock account before token rename: %w", err)
+	}
+	currentToken, err := tokenByNameTx(tx, lowerOld)
+	if err != nil {
+		return fmt.Errorf("reload token before rename: %w", err)
+	}
+	if currentToken == nil {
+		return core.ErrUserProfileNotFound
+	}
+	token = currentToken
 	if err := db.renameTokenInTx(tx, lowerOld, lowerNew, token); err != nil {
 		return err
 	}
@@ -475,27 +592,6 @@ func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.Acces
 		if _, err := tx.Exec(update.query, newName, oldName); err != nil {
 			return fmt.Errorf("rename %s from %s to %s: %w", update.name, oldName, newName, err)
 		}
-	}
-	return nil
-}
-
-func (db *DB) saveTokenInTx(tx *Tx, name string, token *core.AccessToken) error {
-	tokensJSON, err := json.Marshal(token.Tokens)
-	if err != nil {
-		return fmt.Errorf("encode token secrets: %w", err)
-	}
-	permissionsJSON, err := json.Marshal(token.Permissions)
-	if err != nil {
-		return fmt.Errorf("encode token permissions: %w", err)
-	}
-	var expiresAt sql.NullInt64
-	if token.ExpiresAt != nil {
-		expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
-	}
-	if _, err := tx.Exec(db.Dialect.UpsertTokenQuery(), name, string(token.Identifier.Type), token.Identifier.Value,
-		token.EncryptedSecret, token.PasswordHash, string(tokensJSON), token.CreatedAt, token.Description,
-		expiresAt, string(permissionsJSON)); err != nil {
-		return fmt.Errorf("update token %s with profile: %w", name, err)
 	}
 	return nil
 }

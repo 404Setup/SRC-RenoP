@@ -84,6 +84,8 @@ func TestGitHubIdentityLifecycleAndPrincipalRefresh(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, authorized)
 
+	require.ErrorIs(t, db.DeleteGitHubIdentity("alice"), core.ErrLastLoginMethod)
+	require.NoError(t, db.SetAccountPassword("alice", "configured-password-hash", later+1))
 	require.NoError(t, db.DeleteGitHubIdentity("alice"))
 	identity, err = db.GetGitHubIdentity("alice")
 	require.NoError(t, err)

@@ -424,6 +424,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if err := initGitHubIdentityTables(db); err != nil {
 		return err
 	}
+	if err := initAccountSecurityTables(db); err != nil {
+		return err
+	}
 	if err := initMavenTables(db); err != nil {
 		return err
 	}

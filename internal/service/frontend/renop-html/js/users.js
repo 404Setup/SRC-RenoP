@@ -329,7 +329,9 @@ export async function openUserFidoDialog(username) {
                                     showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
                                     loadDevices();
                                 } else {
-                                    showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
+                                    showAlert(t(delRes.headers.get('X-Renop-Error-Code') === 'ACCOUNT_LAST_LOGIN_METHOD'
+                                        ? 'profile.passwordLoginNeedsAlternative'
+                                        : 'common.error'), 'error');
                                 }
                             } catch (err) {
                                 showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');

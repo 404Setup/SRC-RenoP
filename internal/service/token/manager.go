@@ -29,15 +29,16 @@ const (
 )
 
 type TokenOp struct {
-	Type      TokenOpType
-	Name      string
-	NewName   string // used by OpTokenRename
-	Token     *core.AccessToken
-	UpdateFn  func(*core.AccessToken)
-	Nickname  string
-	ChangedAt int64
-	ErrChan   chan error
-	State     *core.AppState // used by OpTokenRename to update sessions
+	Type           TokenOpType
+	Name           string
+	NewName        string // used by OpTokenRename
+	Token          *core.AccessToken
+	UpdateFn       func(*core.AccessToken)
+	Nickname       string
+	ChangedAt      int64
+	AccountChanges core.AccountTokenChanges
+	ErrChan        chan error
+	State          *core.AppState // used by OpTokenRename to update sessions
 }
 
 func cloneAccessToken(token *core.AccessToken) *core.AccessToken {
@@ -95,7 +96,8 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				err = db.SaveToken(clonedToken)
 			}
 			if err == nil && op.Nickname != "" {
-				_, err = db.UpdateUserProfile(safeName, safeName, op.Nickname, clonedToken, op.ChangedAt)
+				_, err = db.UpdateUserProfile(safeName, safeName, op.Nickname, clonedToken,
+					op.ChangedAt, core.AccountTokenChanges{})
 				if err != nil && existing == nil {
 					_ = db.DeleteToken(safeName)
 				}
@@ -170,28 +172,12 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				completeTokenOp(op, core.ErrDatabaseUnavailable)
 				continue
 			}
-			val, err := db.GetTokenByName(safeName)
-			if err != nil {
+			if err := db.UpdateToken(safeName, op.UpdateFn); err != nil {
 				completeTokenOp(op, err)
 				continue
 			}
-			if val != nil {
-				token := val
-				tCopy := *token
-				op.UpdateFn(&tCopy)
-
-				clonedToken := cloneAccessToken(&tCopy)
-				clonedToken.Name = safeName
-
-				if err := db.SaveToken(clonedToken); err != nil {
-					completeTokenOp(op, err)
-					continue
-				}
-				state.ClearAuthCache()
-				completeTokenOp(op, nil)
-			} else {
-				completeTokenOp(op, errors.New("token not found"))
-			}
+			state.ClearAuthCache()
+			completeTokenOp(op, nil)
 
 		case OpTokenRename:
 			oldName := strings.Clone(op.Name)
@@ -263,7 +249,8 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			if clonedToken == nil {
 				clonedToken = cloneAccessToken(value)
 			}
-			if _, err := db.UpdateUserProfile(oldName, newName, op.Nickname, clonedToken, op.ChangedAt); err != nil {
+			if _, err := db.UpdateUserProfile(oldName, newName, op.Nickname, clonedToken,
+				op.ChangedAt, op.AccountChanges); err != nil {
 				completeTokenOp(op, err)
 				continue
 			}

@@ -199,7 +199,7 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 
 	isVerified := false
 	if isValid {
-		isVerified = verifyTokenSecret(accessToken, password)
+		isVerified = verifyTokenSecret(state, accessToken, password)
 	}
 
 	if isValid && isVerified {
@@ -249,7 +249,7 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 			return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
 		}
 
-		if verifyTokenSecret(accessToken, secret) {
+		if verifyTokenSecret(state, accessToken, secret) {
 			setAuthTokenExpiry(c, accessToken)
 			return synthUserForToken(accessToken, username), nil
 		}
@@ -452,15 +452,18 @@ func CurrentSessionToken(c fiber.Ctx) string {
 	return ""
 }
 
-func verifyTokenSecret(accessToken *core.AccessToken, secret string) bool {
+func verifyTokenSecret(state *core.AppState, accessToken *core.AccessToken, secret string) bool {
 	for _, t := range accessToken.Tokens {
 		if secretEqual(t, secret) {
 			return true
 		}
 	}
 	if accessToken.EncryptedSecret != "" {
-		if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
-			return true
+		passwordEnabled, err := state.GetDB().PasswordLoginEnabled(accessToken.Name)
+		if err == nil && passwordEnabled {
+			if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
+				return true
+			}
 		}
 	}
 	return false

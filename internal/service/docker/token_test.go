@@ -14,11 +14,17 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
+
+	"renop/internal/core"
 )
 
 func TestDockerTokenLifecycle(t *testing.T) {
@@ -109,4 +115,48 @@ func TestDockerTokenLifecycle(t *testing.T) {
 	if _, err := ValidateDockerToken(secret, msg+"."+sig); err == nil {
 		t.Fatal("expected decode error for corrupted claims encoding")
 	}
+}
+
+func TestDockerBasicAuthHonorsPasswordLoginPolicy(t *testing.T) {
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "policy-app", false)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("account-password"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+	now := time.Now().UnixMilli()
+	require.NoError(t, state.GetDB().SetAccountPassword("admin", string(passwordHash), now))
+	require.NoError(t, state.GetDB().SaveFidoDevice(&core.FidoDevice{
+		ID: "admin-key", Username: "admin", Name: "Passkey", CredentialID: []byte("admin-credential"),
+		PublicKey: []byte("public"), CreatedAt: now,
+	}))
+	_, err = state.GetDB().SetPasswordLoginEnabled("admin", false, now+1)
+	require.NoError(t, err)
+
+	const tokenURL = "/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/policy-app:pull,push"
+	passwordRequest := httptest.NewRequest(http.MethodGet, tokenURL, nil)
+	passwordRequest.SetBasicAuth("admin", "account-password")
+	passwordResponse, err := app.Test(passwordRequest)
+	require.NoError(t, err)
+	var passwordToken TokenResponse
+	require.NoError(t, json.NewDecoder(passwordResponse.Body).Decode(&passwordToken))
+	require.NoError(t, passwordResponse.Body.Close())
+	require.Equal(t, http.StatusOK, passwordResponse.StatusCode)
+	passwordClaims, err := ValidateDockerToken(state.GetDockerSecret(), passwordToken.Token)
+	require.NoError(t, err)
+	require.Equal(t, "guest", passwordClaims.Subject)
+	require.Len(t, passwordClaims.Access, 1)
+	require.NotContains(t, passwordClaims.Access[0].Actions, "push")
+
+	tokenRequest := httptest.NewRequest(http.MethodGet, tokenURL, nil)
+	tokenRequest.SetBasicAuth("admin", "admin-secret-token")
+	tokenResponse, err := app.Test(tokenRequest)
+	require.NoError(t, err)
+	var apiToken TokenResponse
+	require.NoError(t, json.NewDecoder(tokenResponse.Body).Decode(&apiToken))
+	require.NoError(t, tokenResponse.Body.Close())
+	require.Equal(t, http.StatusOK, tokenResponse.StatusCode)
+	apiClaims, err := ValidateDockerToken(state.GetDockerSecret(), apiToken.Token)
+	require.NoError(t, err)
+	require.Equal(t, "admin", apiClaims.Subject)
+	require.Len(t, apiClaims.Access, 1)
+	require.ElementsMatch(t, []string{"pull", "push"}, apiClaims.Access[0].Actions)
 }

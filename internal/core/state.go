@@ -51,8 +51,10 @@ type StatusSnapshot struct {
 
 type StateDB interface {
 	GetTokenByName(name string) (*AccessToken, error)
+	GetTokenByEmail(email string) (*AccessToken, error)
 	GetTokenBySecret(secret string) (*AccessToken, error)
 	GetAllTokens() ([]*AccessToken, error)
+	UpdateToken(name string, updateFn func(*AccessToken)) error
 	SearchTokenNames(prefix string, limit int, now int64) ([]string, error)
 	CountTokens() (uint64, error)
 	SaveToken(token *AccessToken) error
@@ -63,7 +65,7 @@ type StateDB interface {
 	GetUserProfileByID(userID string) (*UserProfile, error)
 	GetUserProfiles(usernames []string) (map[string]*UserProfile, error)
 	ListUserPackageMemberships(userID, format string) ([]*UserPackageMembership, error)
-	UpdateUserProfile(oldUsername, newUsername, nickname string, token *AccessToken, changedAt int64) (*UserProfile, error)
+	UpdateUserProfile(oldUsername, newUsername, nickname string, token *AccessToken, changedAt int64, changes AccountTokenChanges) (*UserProfile, error)
 	GetSession(sessionToken string) (*Session, error)
 	SaveSession(session *Session, sessionToken string) error
 	UpdateSessionLastActive(sessionToken string, lastActive int64) error
@@ -82,6 +84,14 @@ type StateDB interface {
 	UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) error
 	DeleteFidoDevice(username, deviceID string) error
 	DeleteFidoDevicesByUsername(username string) error
+	GetAccountSecurity(username string) (*AccountSecurity, error)
+	PasswordLoginEnabled(username string) (bool, error)
+	UpdateAccountEmail(username, email string, updatedAt int64) (*AccountSecurity, error)
+	SetPasswordLoginEnabled(username string, enabled bool, updatedAt int64) (*AccountSecurity, error)
+	SetAccountPassword(username, passwordHash string, updatedAt int64) error
+	ReplaceRecoveryCodes(username string, codes []RecoveryCodeHash) error
+	GetRecoveryCodes(identifier string, selectorHashes []string) (string, []RecoveryCodeRecord, error)
+	ResetPasswordWithRecoveryCodes(identifier string, selectorHashes []string, passwordHash string, updatedAt int64) (string, error)
 	GetGitHubIdentity(username string) (*GitHubIdentity, error)
 	GetGitHubIdentityByProviderID(githubUserID int64) (*GitHubIdentity, error)
 	StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64) error
