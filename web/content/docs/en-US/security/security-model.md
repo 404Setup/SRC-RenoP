@@ -18,7 +18,7 @@ target package or domain team. No credential preserves authority after the ownin
 | `base` | Authenticated account without implicit repository writes |
 | `canview:{repo}` / `canview:*` | Read the named repository or every repository, including private content |
 | `canupdate:{repo}` / `canupdate:*` | Publish to the named repository or every repository, subject to package/domain policy |
-| `showing` | Legacy compatibility permission; hidden repositories still remain unlisted in user-facing catalogs |
+| `showing` | Legacy compatibility permission to discover hidden repositories in the browser catalog |
 | `allview` / `proview` | Legacy global private-read aliases |
 | `manager` / `admin` | System super-administrator; users, repositories, settings, audit, updates, and all package teams |
 
@@ -27,8 +27,8 @@ package/domain collaboration. Administrator operations are recorded and do not s
 
 ## Repository and team layers
 
-- **Repository visibility** controls discovery and the base read boundary: `PUBLIC`, unlisted `HIDDEN`, or authorized
-  `PRIVATE`.
+- **Repository visibility** controls discovery and the base read boundary: `PUBLIC`, permission-gated discovery for
+  `HIDDEN`, or authorized `PRIVATE`.
 - **Repository permissions** grant broad read/write ability but do not create a Cargo/Docker package or verify a Maven
   domain automatically.
 - **Cargo/Docker teams** use L0 read, L1 publish, L2 lifecycle/metadata, L3 member management, and L4 ownership.

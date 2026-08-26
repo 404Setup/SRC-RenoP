@@ -36,7 +36,7 @@ func CanReadRepository(state *core.AppState, user *config.User, repo *config.Rep
 	if repo == nil {
 		return false, nil
 	}
-	if strings.EqualFold(repo.Visibility, "PUBLIC") || strings.EqualFold(repo.Visibility, "HIDDEN") {
+	if strings.EqualFold(repo.Visibility, "PUBLIC") {
 		return true, nil
 	}
 	if user != nil && user.CheckReadPermission(repo.Name, path, repo.Visibility, isRoot) {

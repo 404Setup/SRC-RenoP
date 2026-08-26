@@ -18,7 +18,7 @@ Aucun identifiant ne conserve un droit perdu par son compte.
 | `base` | Compte authentifié sans écriture implicite |
 | `canview:{repo}` / `canview:*` | Lit le dépôt nommé ou tous, y compris privés |
 | `canupdate:{repo}` / `canupdate:*` | Publie dans le dépôt, sous réserve de la politique paquet/domaine |
-| `showing` | Compatibilité historique ; les dépôts cachés restent absents des catalogues |
+| `showing` | Droit historique permettant de découvrir les dépôts cachés dans le catalogue |
 | `allview` / `proview` | Alias historiques de lecture privée globale |
 | `manager` / `admin` | Super-administrateur système et de toutes les équipes |
 
@@ -27,7 +27,7 @@ administrateur est auditée et n’ajoute pas silencieusement un membre affiché
 
 ## Couches dépôt et équipe
 
-- La visibilité définit découverte et lecture de base : `PUBLIC`, `HIDDEN` non listé ou `PRIVATE` autorisé.
+- La visibilité définit découverte et lecture de base : `PUBLIC`, découverte de `HIDDEN` selon les droits ou `PRIVATE` autorisé.
 - Un droit de dépôt n’autorise pas la création automatique d’un paquet ni la vérification d’un domaine Maven.
 - Les équipes Cargo/Docker utilisent L0 lecture, L1 publication, L2 cycle/métadonnées, L3 membres, L4 propriété.
 - Une équipe Maven appartient à un domaine global vérifié et vaut dans tous les dépôts Maven.

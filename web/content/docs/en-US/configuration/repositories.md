@@ -54,8 +54,9 @@ moving objects; returning to Maven rebuilds the catalog and restores saved Maven
 ### Visibility
 
 - **PUBLIC**: Anonymous reads and discovery are allowed.
-- **HIDDEN**: User-facing catalogs and profile memberships omit the repository for every viewer. Exact known paths
-  remain readable; administrators still see it in repository management.
+- **HIDDEN**: Anonymous and unprivileged catalogs omit the repository, and profile memberships remain unlisted.
+  Managers and viewers with explicit repository-browser permission can discover it. Exact known file paths remain
+  readable.
 - **PRIVATE**: Reads, listings, and writes require explicit authorization. Private Docker images additionally enforce
   image-level L0-L4 membership.
 

@@ -18,7 +18,7 @@ RenoP 综合凭据类型、API Token 能力、账号角色、存储库可见性�
 | `base` | 已认证账号，不隐式授予存储库写入 |
 | `canview:{repo}` / `canview:*` | 读取指定或全部存储库，包括私有内容 |
 | `canupdate:{repo}` / `canupdate:*` | 在包/域策略允许范围内向指定或全部存储库发布 |
-| `showing` | 旧版兼容权限；隐藏存储库仍不显示在用户目录中 |
+| `showing` | 旧版兼容权限；允许在仓库目录中发现隐藏存储库 |
 | `allview` / `proview` | 旧版全局私有读取别名 |
 | `manager` / `admin` | 用户、存储库、设置、审计、更新及全部包团队的系统超级管理员 |
 
@@ -27,7 +27,7 @@ RenoP 综合凭据类型、API Token 能力、账号角色、存储库可见性�
 
 ## 存储库与团队层级
 
-- 存储库可见性定义发现与基础读取边界：`PUBLIC`、不参与发现的 `HIDDEN`、要求授权的 `PRIVATE`；
+- 存储库可见性定义发现与基础读取边界：`PUBLIC`、按权限发现的 `HIDDEN`、要求授权的 `PRIVATE`；
 - 存储库权限不会自动创建 Cargo/Docker 包，也不会自动验证 Maven 域；
 - Cargo/Docker 团队使用 L0 读取、L1 发布、L2 生命周期/元数据、L3 成员管理、L4 所有权；
 - Maven 团队归属于已验证全局域，并在全部 Maven 存储库中生效；

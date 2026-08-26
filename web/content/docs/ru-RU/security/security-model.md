@@ -18,7 +18,7 @@ Credential не сохраняет право после того, как его
 | `base` | Аутентифицированный аккаунт без неявной записи |
 | `canview:{repo}` / `canview:*` | Чтение указанного или всех репозиториев, включая private |
 | `canupdate:{repo}` / `canupdate:*` | Публикация с учётом package/domain policy |
-| `showing` | Legacy compatibility; hidden остаётся вне пользовательских catalog |
+| `showing` | Устаревшее право совместимости для отображения скрытых репозиториев в каталоге |
 | `allview` / `proview` | Legacy aliases глобального private read |
 | `manager` / `admin` | Super-administrator пользователей, настроек, обновлений и всех команд |
 
@@ -27,7 +27,7 @@ System administrator глобален. L0-L4 остаются обычным у�
 
 ## Уровни репозитория и команды
 
-- Visibility задаёт discovery/read boundary: `PUBLIC`, unlisted `HIDDEN` или authorized `PRIVATE`.
+- Видимость задаёт границы обнаружения и чтения: `PUBLIC`, доступный по правам `HIDDEN` или защищённый `PRIVATE`.
 - Repository permission не создаёт Cargo/Docker package и не проверяет Maven domain автоматически.
 - Cargo/Docker: L0 read, L1 publish, L2 lifecycle/metadata, L3 members, L4 ownership.
 - Maven team привязан к проверенному global domain и действует во всех Maven repositories.

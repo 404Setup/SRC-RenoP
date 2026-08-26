@@ -53,7 +53,8 @@ restaure la politique Maven.
 ### Visibilité
 
 - **PUBLIC** : lecture et découverte anonymes.
-- **HIDDEN** : absent des catalogues et profils pour tous ; un chemin exact reste lisible et l’administration le voit.
+- **HIDDEN** : absent des catalogues anonymes ou sans droit et des profils. Les gestionnaires et les utilisateurs ayant
+  un droit explicite de navigation le découvrent ; un chemin de fichier exact reste lisible.
 - **PRIVATE** : lecture, listes et écriture exigent un droit explicite. Une image Docker privée ajoute son équipe L0-L4.
 
 ## Miroirs amont

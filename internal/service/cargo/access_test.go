@@ -52,11 +52,21 @@ func TestPrivateCargoMembershipGrantsRegistryReadAccess(t *testing.T) {
 		t.Fatal("unrelated user unexpectedly received private Cargo registry access")
 	}
 
-	// Hidden Cargo repositories should allow direct route read access
 	hiddenRepo := &config.Repository{Name: "cargo-hidden", Format: config.RepositoryFormatCargo, Visibility: "HIDDEN"}
 	allowed, err = CanReadRepository(state, &config.User{Username: "guest"}, hiddenRepo, "config.json", false)
 	if err != nil || !allowed {
-		t.Fatalf("Hidden Cargo repository should allow read access, got %v, err=%v", allowed, err)
+		t.Fatalf("hidden Cargo direct file read access = %v, err = %v", allowed, err)
+	}
+	allowed, err = CanReadRepository(state, &config.User{Username: "guest"}, hiddenRepo, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if allowed {
+		t.Fatal("guest unexpectedly discovered hidden Cargo repository root")
+	}
+	allowed, err = CanReadRepository(state, &config.User{Username: "manager", Roles: []string{"manager"}}, hiddenRepo, "", true)
+	if err != nil || !allowed {
+		t.Fatalf("manager hidden Cargo root access = %v, err = %v", allowed, err)
 	}
 
 	repo.Format = config.RepositoryFormatMaven

@@ -18,7 +18,7 @@ RenoP は credential type、API Token capability、account role、repository vis
 | `base` | 暗黙 repository write のない認証 account |
 | `canview:{repo}` / `canview:*` | 指定または全 repository を private 含め read |
 | `canupdate:{repo}` / `canupdate:*` | package/domain policy の範囲で publish |
-| `showing` | legacy compatibility。hidden は user catalog に表示しない |
+| `showing` | 旧バージョンとの互換用権限。非表示リポジトリを一覧に表示する |
 | `allview` / `proview` | legacy global private-read alias |
 | `manager` / `admin` | user、repository、settings、audit、update、全 team の super administrator |
 
@@ -27,7 +27,7 @@ system admin は global です。package team L0-L4 は通常 collaboration の�
 
 ## Repository / team layer
 
-- visibility は discovery/read boundary の `PUBLIC`、unlisted `HIDDEN`、authorized `PRIVATE` です。
+- 可視性による発見と読み取りの境界は `PUBLIC`、権限に応じて表示する `HIDDEN`、認証が必要な `PRIVATE` です。
 - repository permission は Cargo/Docker package 作成や Maven domain 検証を自動で行いません。
 - Cargo/Docker team は L0 read、L1 publish、L2 lifecycle/metadata、L3 member、L4 owner です。
 - Maven team は検証済み global domain に属し、全 Maven repository で有効です。

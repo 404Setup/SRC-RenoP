@@ -240,7 +240,7 @@ func GetDetailsAllRepos(c fiber.Ctx, state *core.AppState) error {
 
 	var repos []FileDetails
 	for repoName, repo := range cfg.Maven.Repositories {
-		if repo == nil || strings.EqualFold(repo.Visibility, "HIDDEN") {
+		if repo == nil {
 			continue
 		}
 		canRead, err := canReadConfiguredRepository(state, user, repo, "", true)

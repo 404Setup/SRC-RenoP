@@ -48,6 +48,12 @@ func TestHiddenRepositoryIsNotDiscoverableButDirectFileRemainsReadable(t *testin
 	}
 
 	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		if c.Get("X-Test-Role") == "manager" {
+			c.Locals("user", &config.User{Username: "manager", Roles: []string{"manager"}})
+		}
+		return c.Next()
+	})
 	app.Get("/api/repositories/details", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
 	app.Get("/api/repositories/details/:repo_name/*", func(c fiber.Ctx) error { return GetDetails(c, state) })
 
@@ -66,6 +72,29 @@ func TestHiddenRepositoryIsNotDiscoverableButDirectFileRemainsReadable(t *testin
 	}
 	if len(listing.Files) != 1 || listing.Files[0].Name != "public" {
 		t.Fatalf("hidden repository leaked through discovery: %+v", listing.Files)
+	}
+
+	managerRequest := httptest.NewRequest(http.MethodGet, "/api/repositories/details", nil)
+	managerRequest.Header.Set("X-Test-Role", "manager")
+	managerResponse, err := app.Test(managerRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	managerBody, err := io.ReadAll(managerResponse.Body)
+	_ = managerResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var managerListing pb.FileDetails
+	if err := proto.Unmarshal(managerBody, &managerListing); err != nil {
+		t.Fatal(err)
+	}
+	managerRepositories := make(map[string]bool, len(managerListing.Files))
+	for _, repository := range managerListing.Files {
+		managerRepositories[repository.Name] = true
+	}
+	if len(managerRepositories) != 2 || !managerRepositories["hidden"] || !managerRepositories["public"] {
+		t.Fatalf("manager repository discovery = %+v, want hidden and public", managerListing.Files)
 	}
 
 	direct, err := app.Test(httptest.NewRequest(http.MethodGet,
