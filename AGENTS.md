@@ -72,7 +72,8 @@
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
-  `js/repository-formats.js` owns canonical per-engine icons, while `js/components/icon.js` maps detailed file types
+  `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository
+  name ordering plus engine filtering and bounded pagination, while `js/components/icon.js` maps detailed file types
   into a bounded set of shared visual families. Cargo and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`

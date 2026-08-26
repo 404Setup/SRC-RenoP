@@ -40,11 +40,15 @@ import {
     isValidRepositorySlug,
     listRepositoryFormats
 } from './repository-formats.js';
+import {paginateRepositoryNames, sortedRepositoryNames} from './repository-list.js';
 
 let currentConfig = null;
 let initialReposMap = {};
 let globalProxyConfig = {selected: '', proxies: []};
 const saveSeqByRepo = new Map();
+const selectedRepositoryEngines = new Set();
+const repositoryPageSize = 10;
+let repositoryPage = 0;
 
 /**
  * Build the color-only repository visibility indicator with an accessible label.
@@ -121,14 +125,18 @@ function renderRepositories(container, data) {
 
     try {
         const layout = el('div', {class: 'cfg-layout'});
+        const allKeys = sortedRepositoryNames(data.repositories);
+        const filteredKeys = sortedRepositoryNames(data.repositories, selectedRepositoryEngines);
+        const page = paginateRepositoryNames(filteredKeys, repositoryPage, repositoryPageSize);
+        repositoryPage = page.page;
 
-        const keys = Object.keys(data.repositories);
-
-        if (keys.length === 0) {
+        if (allKeys.length === 0) {
             layout.appendChild(createEmptyState(t('repos.noRepos')));
+        } else if (filteredKeys.length === 0) {
+            layout.appendChild(createEmptyState(t('repos.noFilteredRepos')));
         }
 
-        keys.forEach(repoKey => {
+        page.names.forEach(repoKey => {
             const repo = data.repositories[repoKey];
             layout.appendChild(buildRepoSection(container, data, repoKey, repo));
         });
@@ -137,10 +145,83 @@ function renderRepositories(container, data) {
         container.classList.remove('is-content-entering');
         void container.offsetWidth;
         container.classList.add('is-content-entering');
+        if (allKeys.length > 0) container.appendChild(buildRepositoryListToolbar(container, data));
         container.appendChild(layout);
+        const pagination = buildRepositoryPagination(container, data, page);
+        if (pagination) container.appendChild(pagination);
     } finally {
         container.style.minHeight = '';
     }
+}
+
+/**
+ * Build an engine filter that supports selecting multiple repository protocols.
+ * @param {HTMLElement} container - Repositories container element.
+ * @param {{repositories?: Object.<string, object>}} data - Current repositories config.
+ * @returns {HTMLElement} Filter toolbar.
+ */
+function buildRepositoryListToolbar(container, data) {
+    const filters = el('div', {class: 'repository-engine-filters', role: 'group', 'aria-label': t('repos.filterByEngine')});
+    const allSelected = selectedRepositoryEngines.size === 0;
+    filters.appendChild(el('button', {
+        type: 'button', class: `repository-engine-filter${allSelected ? ' is-active' : ''}`,
+        'aria-pressed': String(allSelected),
+        onclick: () => {
+            selectedRepositoryEngines.clear();
+            repositoryPage = 0;
+            renderRepositories(container, data);
+        }
+    }, t('repos.filterAll')));
+    for (const format of listRepositoryFormats()) {
+        const selected = selectedRepositoryEngines.has(format.protocol);
+        filters.appendChild(el('button', {
+            type: 'button', class: `repository-engine-filter${selected ? ' is-active' : ''}`,
+            'aria-pressed': String(selected),
+            onclick: () => {
+                if (selected) selectedRepositoryEngines.delete(format.protocol);
+                else selectedRepositoryEngines.add(format.protocol);
+                repositoryPage = 0;
+                renderRepositories(container, data);
+            }
+        }, createIcon(format.icon || 'repositoryFiles'), el('span', {}, t(format.labelKey))));
+    }
+    return el('div', {class: 'repository-list-toolbar'},
+        el('span', {class: 'repository-list-toolbar-label'}, t('repos.filterByEngine')),
+        filters
+    );
+}
+
+/**
+ * Build bounded repository-list pagination controls.
+ * @param {HTMLElement} container - Repositories container element.
+ * @param {{repositories?: Object.<string, object>}} data - Current repositories config.
+ * @param {{page: number, pages: number, total: number, start: number, end: number}} page - Current page metadata.
+ * @returns {HTMLElement|null} Pagination control when more than one page exists.
+ */
+function buildRepositoryPagination(container, data, page) {
+    if (page.pages <= 1) return null;
+    const previous = el('button', {
+        type: 'button', class: 'repository-pagination-btn', disabled: page.page === 0,
+        'aria-label': t('common.prev'),
+        onclick: () => {
+            repositoryPage = Math.max(0, page.page - 1);
+            renderRepositories(container, data);
+        }
+    }, createIcon('chevronLeft'), el('span', {}, t('common.prev')));
+    const next = el('button', {
+        type: 'button', class: 'repository-pagination-btn', disabled: page.page + 1 >= page.pages,
+        'aria-label': t('common.next'),
+        onclick: () => {
+            repositoryPage = Math.min(page.pages - 1, page.page + 1);
+            renderRepositories(container, data);
+        }
+    }, el('span', {}, t('common.next')), createIcon('chevronRight'));
+    return el('nav', {class: 'repository-list-pagination', 'aria-label': t('repos.paginationLabel')},
+        el('span', {class: 'repository-pagination-info', 'aria-live': 'polite'},
+            t('repos.paginationShowing', {start: page.start, end: page.end, total: page.total})),
+        el('div', {class: 'repository-pagination-controls'}, previous,
+            el('span', {}, `${page.page + 1} / ${page.pages}`), next)
+    );
 }
 
 /**
@@ -217,6 +298,7 @@ function buildRepositoryMigrationControl(repository, format) {
 function buildRepoSection(container, data, repoKey, repo) {
     const format = getRepositoryFormat(repo.format);
     const section = el('div', {class: 'cfg-section is-collapsed'});
+    section.dataset.repository = repoKey;
 
     const header = el('div', {class: 'cfg-section-header'});
 
@@ -1027,23 +1109,7 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
 }
 
 /**
- * Returns the `.cfg-layout` element inside the repositories container, creating it if needed.
- * @param {HTMLElement|null} container - Repositories container element.
- * @returns {HTMLElement|null} Layout element, or null if container is missing.
- */
-function getReposLayout(container) {
-    if (!container) return null;
-    let layout = container.querySelector('.cfg-layout');
-    if (!layout) {
-        layout = el('div', {class: 'cfg-layout'});
-        container.innerHTML = '';
-        container.appendChild(layout);
-    }
-    return layout;
-}
-
-/**
- * Animates removal of a repository section; shows empty state when no repos remain.
+ * Animate removal, then rebuild filters and pagination against the updated repository map.
  * @param {HTMLElement|null} section - Section to animate out; falls back to full re-render if null.
  * @param {HTMLElement} container - Repositories container element.
  * @param {{repositories?: Object.<string, object>}} data - Current repositories config.
@@ -1060,14 +1126,7 @@ function animateRemoveRepoSection(section, container, data) {
     const finish = () => {
         if (settled) return;
         settled = true;
-        if (section.parentNode) section.remove();
-        if (!data.repositories || Object.keys(data.repositories).length === 0) {
-            const layout = getReposLayout(container);
-            if (layout && !layout.querySelector('.cfg-section')) {
-                layout.innerHTML = '';
-                layout.appendChild(createEmptyState(t('repos.noRepos')));
-            }
-        }
+        renderRepositories(container, data);
     };
     const onEnd = (e) => {
         if (e.target !== section) return;
@@ -1083,21 +1142,17 @@ function animateRemoveRepoSection(section, container, data) {
  * @param {HTMLElement} container - Repositories container element.
  * @param {{repositories: Object.<string, object>}} data - Current repositories config.
  * @param {string} repoKey - New repository name/key.
- * @param {object} repo - New repository settings object.
  * @returns {void}
  */
-function animateAddRepoSection(container, data, repoKey, repo) {
-    const layout = getReposLayout(container);
-    if (!layout) {
-        renderRepositories(container, data);
-        return;
-    }
-    const empty = layout.querySelector('renop-empty-state, .renop-empty-state');
-    if (empty) empty.remove();
-
-    const section = buildRepoSection(container, data, repoKey, repo);
+function animateAddRepoSection(container, data, repoKey) {
+    selectedRepositoryEngines.clear();
+    const keys = sortedRepositoryNames(data.repositories);
+    repositoryPage = Math.max(0, Math.floor(keys.indexOf(repoKey) / repositoryPageSize));
+    renderRepositories(container, data);
+    const section = Array.from(container.querySelectorAll('.cfg-section'))
+        .find(candidate => candidate.dataset.repository === repoKey);
+    if (!section) return;
     section.classList.add('cfg-section--entering');
-    layout.appendChild(section);
     section.addEventListener('animationend', () => {
         section.classList.remove('cfg-section--entering');
     }, {once: true});
@@ -1196,7 +1251,7 @@ function openRepositoryCreateDialog() {
         dialog.close(true);
         showAlert(t('repos.createdSuccess', {name: repoName}), 'success');
         const container = document.getElementById('repositories-container');
-        animateAddRepoSection(container, currentConfig, repoName, repo);
+        animateAddRepoSection(container, currentConfig, repoName);
     }
 
     /**
