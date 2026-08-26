@@ -958,7 +958,7 @@ async function executeMessageAction(message, decision) {
  * Fetch and display only the unread badge count.
  * @returns {Promise<void>}
  */
-async function refreshUnreadCount() {
+export async function refreshMessageUnreadCount() {
     if (!cachedIsLoggedIn) return;
     try {
         const {response, data: payload} = await fetchProto('/api/messages/unread-count', UnreadCountResponse);
@@ -991,8 +991,8 @@ function setUnreadCount(count) {
  */
 function startPolling() {
     stopPolling();
-    void refreshUnreadCount();
-    pollTimer = window.setInterval(refreshUnreadCount, 60000);
+    void refreshMessageUnreadCount();
+    pollTimer = window.setInterval(refreshMessageUnreadCount, 60000);
 }
 
 /**

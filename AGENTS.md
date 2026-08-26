@@ -42,7 +42,8 @@
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
   administrator notices. Package-team removals create operator-neutral notifications localized by
-  `internal/service/frontend/renop-html/js/team-messages.js`.
+  `internal/service/frontend/renop-html/js/team-messages.js`; scheduled and interactive system-update results are
+  deduplicated per administrator and localized by `js/updater-messages.js` instead of transient dashboard prompts.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including

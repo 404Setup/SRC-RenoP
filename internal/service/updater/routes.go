@@ -68,8 +68,14 @@ func RunScheduledCheck(ctx context.Context, state *core.AppState) error {
 	checkContext, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 	res, err := CheckUpdate(checkContext, channel)
-	if err != nil || !res.HasUpdate {
+	if err != nil {
+		if notifyErr := deliverUpdateNotificationToManagers(state, updateNoticeCheckFailed, nil); notifyErr != nil {
+			log.Printf("[Updater] Failed to deliver scheduled check notification: %v", notifyErr)
+		}
 		return err
+	}
+	if !res.HasUpdate {
+		return nil
 	}
 
 	updateStateFields(func(s *UpdateState) {
@@ -84,6 +90,9 @@ func RunScheduledCheck(ctx context.Context, state *core.AppState) error {
 		s.SHA256 = strings.Clone(res.SHA256)
 		s.IsRelease = res.IsRelease
 	})
+	if err := deliverUpdateNotificationToManagers(state, updateNoticeAvailable, res); err != nil {
+		return err
+	}
 	if mode != ModeAutoInstall {
 		return nil
 	}
@@ -92,14 +101,23 @@ func RunScheduledCheck(ctx context.Context, state *core.AppState) error {
 		reqSpace = 100 * 1024 * 1024
 	}
 	if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
+		if notifyErr := deliverUpdateNotificationToManagers(state, updateNoticeInsufficientSpace, res); notifyErr != nil {
+			log.Printf("[Updater] Failed to deliver insufficient-space notification: %v", notifyErr)
+		}
 		return nil
 	}
 	targetPath, err := DownloadAndExtract(checkContext, res.DownloadURL, res.SHA256)
 	if err != nil {
+		if notifyErr := deliverUpdateNotificationToManagers(state, updateNoticeInstallFailed, res); notifyErr != nil {
+			log.Printf("[Updater] Failed to deliver update failure notification: %v", notifyErr)
+		}
 		return err
 	}
 	if err := ApplyUpdateAndRestart(targetPath); err != nil {
 		_ = os.Remove(targetPath)
+		if notifyErr := deliverUpdateNotificationToManagers(state, updateNoticeRestartFailed, res); notifyErr != nil {
+			log.Printf("[Updater] Failed to deliver restart failure notification: %v", notifyErr)
+		}
 		return err
 	}
 	return nil
@@ -123,6 +141,9 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 		channel := resolveCheckChannel(c.Query("channel"), state)
 		res, err := CheckUpdate(c.Context(), channel)
 		if err != nil {
+			if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeCheckFailed, nil); notifyErr != nil {
+				log.Printf("[Updater] Failed to deliver check failure notification: %v", notifyErr)
+			}
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
 
@@ -147,6 +168,14 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 				s.SHA256 = ""
 			}
 		})
+		event := updateNoticeCurrent
+		if res.HasUpdate {
+			event = updateNoticeAvailable
+		}
+		if err := deliverUpdateNotification(state, user.Username, event, res); err != nil {
+			log.Printf("[Updater] Failed to deliver manual update notification: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to deliver update notification"})
+		}
 
 		return c.JSON(res)
 	})
@@ -167,12 +196,21 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 				s.Status = "error"
 				s.ErrorMessage = "Insufficient disk space to download update package"
 			})
+			if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeInsufficientSpace, nil); notifyErr != nil {
+				log.Printf("[Updater] Failed to deliver insufficient-space notification: %v", notifyErr)
+			}
 			return c.Status(fiber.StatusInsufficientStorage).JSON(fiber.Map{"error": "Insufficient disk space to download update package"})
 		}
 
 		if !isInstalling.CompareAndSwap(false, true) {
 			return c.Status(fiber.StatusConflict).SendString("Installation already in progress")
 		}
+		if err := deliverUpdateNotification(state, user.Username, updateNoticeDownloading, nil); err != nil {
+			isInstalling.Store(false)
+			log.Printf("[Updater] Failed to deliver download notification: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to deliver update notification"})
+		}
+		recipient := strings.Clone(user.Username)
 
 		go func() {
 			defer isInstalling.Store(false)
@@ -184,6 +222,9 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 					s.Status = "error"
 					s.ErrorMessage = "No download URL for the current platform"
 				})
+				if notifyErr := deliverUpdateNotification(state, recipient, updateNoticeInstallFailed, nil); notifyErr != nil {
+					log.Printf("[Updater] Failed to deliver update failure notification: %v", notifyErr)
+				}
 				return
 			}
 
@@ -198,8 +239,14 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 					s.Status = "error"
 					s.ErrorMessage = err.Error()
 				})
+				if notifyErr := deliverUpdateNotification(state, recipient, updateNoticeInstallFailed, nil); notifyErr != nil {
+					log.Printf("[Updater] Failed to deliver update failure notification: %v", notifyErr)
+				}
 			} else {
 				SetReadyToRestart(targetPath, st.LatestVersion)
+				if notifyErr := deliverUpdateNotification(state, recipient, updateNoticeReady, nil); notifyErr != nil {
+					log.Printf("[Updater] Failed to deliver restart-ready notification: %v", notifyErr)
+				}
 			}
 		}()
 
@@ -285,6 +332,9 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 		if pending != "" {
 			log.Print("[Updater] Restarting application to apply update...")
 			if err := ApplyUpdateAndRestart(pending); err != nil {
+				if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeRestartFailed, nil); notifyErr != nil {
+					log.Printf("[Updater] Failed to deliver restart failure notification: %v", notifyErr)
+				}
 				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 			}
 			return c.JSON(fiber.Map{"status": "restarting"})
@@ -292,6 +342,9 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 
 		log.Print("[Updater] Restarting application...")
 		if err := RestartProcess(); err != nil {
+			if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeRestartFailed, nil); notifyErr != nil {
+				log.Printf("[Updater] Failed to deliver restart failure notification: %v", notifyErr)
+			}
 			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
 		return c.JSON(fiber.Map{"status": "restarting"})

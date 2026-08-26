@@ -367,6 +367,47 @@ func TestBackendOfflineDetectionRequiresForegroundConfirmation(t *testing.T) {
 	}
 }
 
+func TestSystemUpdatePromptsUseMessageCenter(t *testing.T) {
+	mainSource, err := os.ReadFile(filepath.Join("renop-html", "js", "main.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dashboardSource, err := os.ReadFile(filepath.Join("renop-html", "js", "dashboard.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rendererSource, err := os.ReadFile(filepath.Join("renop-html", "js", "updater-messages.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mainText := string(mainSource)
+	dashboardText := string(dashboardSource)
+	rendererText := string(rendererSource)
+	if !strings.Contains(mainText, "import './updater-messages.js'") ||
+		!strings.Contains(rendererText, "registerMessageRenderer('system_update'") {
+		t.Fatal("system update notifications are not registered with the message center")
+	}
+	for _, removedPrompt := range []string{
+		"showUpdateModal(data)",
+		"window.showAlert(t('dashboard.downloadingBg')",
+		"window.showAlert(t('dashboard.updateError'",
+	} {
+		if strings.Contains(dashboardText, removedPrompt) {
+			t.Fatalf("dashboard retains automatic system update prompt %q", removedPrompt)
+		}
+	}
+	if !strings.Contains(dashboardText, "showUpdateModal(updateInfo)") {
+		t.Fatal("explicit dashboard update review control was removed")
+	}
+	offlineSource, err := os.ReadFile(filepath.Join("renop-html", "js", "alert.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(offlineSource), "export function showOfflineUpdateModal") {
+		t.Fatal("offline update dialog was changed or removed")
+	}
+}
+
 func TestTeamRemovalMessagesHideOperator(t *testing.T) {
 	moduleSource, err := os.ReadFile(filepath.Join("renop-html", "js", "team-messages.js"))
 	if err != nil {

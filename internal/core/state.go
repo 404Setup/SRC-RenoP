@@ -105,6 +105,7 @@ type StateDB interface {
 	DeleteAuditLogsByUsername(username string) error
 	CleanExpiredAuditLogs(retentionDays int, maxRows int) error
 	SaveMessages(messages []*UserMessage) error
+	SaveMessageIfAbsent(message *UserMessage) (bool, error)
 	ListMessages(username string, limit int, beforeCreatedAt int64, beforeID string, now int64) ([]*UserMessage, error)
 	CountUnreadMessages(username string, now int64) (int, error)
 	GetUserMessage(id, username string, now int64) (*UserMessage, error)

@@ -129,6 +129,29 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	require.Equal(t, "profile/pg", dockerMemberships[0].Name)
 }
 
+func TestPostgresMessageDedupeInsert(t *testing.T) {
+	dsn, _, _ := newPostgresTestSchema(t, "renop_message_dedupe_test")
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "postgres", Dsn: dsn, MaxOpenConns: 2, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	now := time.Now().UnixMilli()
+	message := &core.UserMessage{
+		ID: "00000000-0000-4000-8000-000000000020", Recipient: "postgres-user", Kind: "system_update",
+		Severity: "info", Title: "Update", Body: "Available", Payload: []byte("{}"),
+		CreatedAt: now, DedupeKey: "system-update:available:v2",
+	}
+	inserted, err := db.SaveMessageIfAbsent(message)
+	require.NoError(t, err)
+	require.True(t, inserted)
+	duplicate := *message
+	duplicate.ID = "00000000-0000-4000-8000-000000000021"
+	inserted, err = db.SaveMessageIfAbsent(&duplicate)
+	require.NoError(t, err)
+	require.False(t, inserted)
+}
+
 func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 	dsn, _, _ := newPostgresTestSchema(t, "renop_maven_global_test")
 	db, err := database.InitDB(config.DatabaseConfig{

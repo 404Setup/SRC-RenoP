@@ -30,6 +30,7 @@ import './cargo-messages.js';
 import './docker-messages.js';
 import './maven-messages.js';
 import './team-messages.js';
+import './updater-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
 

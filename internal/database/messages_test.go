@@ -79,3 +79,28 @@ func TestPendingActionMessageCannotBeDeleted(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, deleted)
 }
+
+func TestMessageDedupeKeyIsIdempotent(t *testing.T) {
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "dedupe.db")})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	now := time.Now().UnixMilli()
+	first := &core.UserMessage{
+		ID: "00000000-0000-4000-8000-000000000010", Recipient: "alice", Kind: "system_update",
+		Severity: "info", Title: "Update", Body: "Available", Payload: []byte("{}"),
+		CreatedAt: now, DedupeKey: "system-update:available:v1",
+	}
+	inserted, err := db.SaveMessageIfAbsent(first)
+	require.NoError(t, err)
+	require.True(t, inserted)
+	duplicate := *first
+	duplicate.ID = "00000000-0000-4000-8000-000000000011"
+	inserted, err = db.SaveMessageIfAbsent(&duplicate)
+	require.NoError(t, err)
+	require.False(t, inserted)
+	page, err := db.ListMessages("alice", 10, 0, "", now+1)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, first.ID, page[0].ID)
+}

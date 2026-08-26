@@ -67,6 +67,24 @@ func Deliver(state *core.AppState, userMessage *core.UserMessage) error {
 	return DeliverBatch(state, []*core.UserMessage{userMessage})
 }
 
+// DeliverOnce persists one feature message unless its recipient-scoped dedupe key already exists.
+func DeliverOnce(state *core.AppState, userMessage *core.UserMessage) (bool, error) {
+	if state == nil || userMessage == nil {
+		return false, nil
+	}
+	if userMessage.ID == "" {
+		userMessage.ID = uuid.NewString()
+	}
+	if userMessage.CreatedAt == 0 {
+		userMessage.CreatedAt = time.Now().UnixMilli()
+	}
+	db := state.GetDB()
+	if db == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	return db.SaveMessageIfAbsent(userMessage)
+}
+
 // DeliverBatch persists messages atomically and fills server-owned IDs and
 // timestamps when the producer leaves them empty.
 func DeliverBatch(state *core.AppState, messages []*core.UserMessage) error {

@@ -149,6 +149,42 @@ func (db *DB) SaveMessages(messages []*core.UserMessage) error {
 	return nil
 }
 
+// SaveMessageIfAbsent inserts one message unless its recipient-scoped dedupe key already exists.
+func (db *DB) SaveMessageIfAbsent(message *core.UserMessage) (bool, error) {
+	if db == nil || db.SQLDB == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	if err := normalizeMessage(message); err != nil {
+		return false, err
+	}
+	if message.DedupeKey == "" {
+		if err := db.SaveMessages([]*core.UserMessage{message}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	query := `INSERT INTO user_messages (` + messageColumns + `) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	switch db.Dialect.Name() {
+	case "mysql":
+		query += ` ON DUPLICATE KEY UPDATE id = id`
+	default:
+		query += ` ON CONFLICT (recipient, dedupe_key) DO NOTHING`
+	}
+	result, err := db.Exec(query,
+		message.ID, message.Recipient, message.Sender, message.Kind, message.Severity,
+		message.Title, message.Body, string(message.Payload), message.ActionKind, message.ActionStatus,
+		message.CreatedAt, message.ReadAt, message.ActedAt, message.ExpiresAt, message.DedupeKey,
+	)
+	if err != nil {
+		return false, fmt.Errorf("insert deduplicated message for %s: %w", message.Recipient, err)
+	}
+	inserted, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("count deduplicated message insert: %w", err)
+	}
+	return inserted == 1, nil
+}
+
 // ListMessages returns a stable newest-first cursor page. Expired messages are
 // excluded without requiring a cleanup job on the request path.
 func (db *DB) ListMessages(username string, limit int, beforeCreatedAt int64, beforeID string, now int64) ([]*core.UserMessage, error) {

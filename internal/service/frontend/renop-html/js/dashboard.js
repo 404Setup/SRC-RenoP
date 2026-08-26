@@ -15,6 +15,7 @@ import {logout} from './auth.js';
 import {showAlert} from './alert.js';
 import {InstanceStatus, StatusSnapshotList, UpdateState} from './proto/index.js';
 import {formatTimestamp} from './time.js';
+import {refreshMessageUnreadCount} from './messages.js';
 
 let refreshInterval = null;
 let snapshotsInterval = null;
@@ -649,13 +650,14 @@ window.fetchUpdaterStatusQuietly = fetchUpdaterStatusQuietly;
 
 /**
  * Checks for application updates via the updater API.
- * When manual is true, shows loading state, alerts, and optional install confirmation.
+ * Manual checks show button progress while the backend records the result in the message center.
  * @param {boolean} [manual=false] - Whether the check was user-initiated.
  * @returns {Promise<void>}
  */
 export async function checkAppUpdate(manual = false) {
     const updateBtn = document.getElementById('btn-dashboard-update');
     const origText = updateBtn ? updateBtn.textContent : '';
+    let renderedResult = false;
 
     if (manual && updateBtn) {
         updateBtn.disabled = true;
@@ -666,43 +668,22 @@ export async function checkAppUpdate(manual = false) {
         const headers = getAuthHeaders();
         const resp = await fetch('/api/updater/check', {method: 'POST', headers});
         if (!resp.ok) {
-            let errorText = `HTTP ${resp.status}`;
-            try {
-                const errJson = await resp.json();
-                if (errJson.error) errorText = errJson.error;
-            } catch {}
-            if (manual) {
-                window.showAlert(t('dashboard.checkUpdateFailed', {error: errorText}), 'error');
-            }
             return;
         }
 
         const data = await resp.json();
         currentUpdateData = data;
 
-        if (data.has_update) {
-            updateDashboardVersionUI(data);
-            if (manual) {
-                const confirmed = window.showUpdateModal ? await window.showUpdateModal(data) : await window.showConfirm(t('dashboard.confirmDownload', {version: data.latest_version}));
-                if (confirmed) {
-                    await installAppUpdate();
-                }
-            }
-        } else {
-            updateDashboardVersionUI(data);
-            if (manual) {
-                window.showAlert(t('dashboard.alreadyLatest'), 'info');
-            }
-        }
+        updateDashboardVersionUI(data);
+        renderedResult = true;
     } catch (e) {
         console.error('Update check error', e);
-        if (manual) {
-            window.showAlert(t('dashboard.checkUpdateFailed', {error: e.message || t('common.unknown')}), 'error');
-        }
     } finally {
-        if (manual && updateBtn && (!currentUpdateData || !currentUpdateData.has_update)) {
-            updateBtn.disabled = false;
-            if (updateBtn.textContent === t('dashboard.checkingUpdate')) {
+        if (manual) await refreshMessageUnreadCount();
+        if (manual && updateBtn && !renderedResult) {
+            if (currentUpdateData) updateDashboardVersionUI(currentUpdateData);
+            else {
+                updateBtn.disabled = false;
                 updateBtn.textContent = origText || t('dashboard.checkUpdate');
             }
         }
@@ -718,19 +699,12 @@ export async function installAppUpdate() {
         const headers = getAuthHeaders();
         const resp = await fetch('/api/updater/install', {method: 'POST', headers});
         if (resp.ok) {
-            window.showAlert(t('dashboard.downloadingBg'), 'info');
             pollUpdaterStatus();
-        } else {
-            let errorText = `HTTP ${resp.status}`;
-            try {
-                const errJson = await resp.json();
-                if (errJson.error) errorText = errJson.error;
-            } catch {}
-            window.showAlert(t('dashboard.startDownloadFailed', {error: errorText}), 'error');
         }
     } catch (e) {
         console.error('Install update error', e);
-        window.showAlert(t('dashboard.startDownloadFailed', {error: e.message || t('common.unknown')}), 'error');
+    } finally {
+        await refreshMessageUnreadCount();
     }
 }
 
@@ -753,13 +727,11 @@ export function pollUpdaterStatus() {
             if (status.status === 'ready_to_restart') {
                 clearInterval(updaterPollTimer);
                 updaterPollTimer = null;
-                if (await window.showConfirm(t('dashboard.confirmRestart'))) {
-                    await restartApp();
-                }
+                await refreshMessageUnreadCount();
             } else if (status.status === 'error') {
                 clearInterval(updaterPollTimer);
                 updaterPollTimer = null;
-                window.showAlert(t('dashboard.updateError', {error: status.error_message || t('common.unknown')}), 'error');
+                await refreshMessageUnreadCount();
             }
         } catch {}
     }, 3000);
@@ -774,24 +746,13 @@ export async function restartApp() {
         const headers = getAuthHeaders();
         const resp = await fetch('/api/updater/restart', {method: 'POST', headers});
         if (!resp.ok) {
-            let errorText = `HTTP ${resp.status}`;
-            try {
-                const errJson = await resp.json();
-                if (errJson.error) errorText = errJson.error;
-            } catch {
-                try {
-                    const text = await resp.text();
-                    if (text) errorText = text;
-                } catch {}
-            }
-            window.showAlert(t('dashboard.restartFailed', {error: errorText}), 'error');
+            await refreshMessageUnreadCount();
             return;
         }
-        window.showAlert(t('dashboard.restarting'), 'success');
         setTimeout(() => window.location.reload(), 4000);
     } catch (e) {
         console.error('Restart error', e);
-        window.showAlert(t('dashboard.restartFailed', {error: e.message || t('common.unknown')}), 'error');
+        await refreshMessageUnreadCount();
     }
 }
 
