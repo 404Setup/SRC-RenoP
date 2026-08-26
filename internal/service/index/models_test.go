@@ -122,6 +122,35 @@ func TestEnsureParentDirsIndexesIntermediateFolders(t *testing.T) {
 	}
 }
 
+func TestFilePathsCannotRemainIndexedAsDirectories(t *testing.T) {
+	idx := NewFileIndexCustom(true)
+	path := "storage/releases/update.br"
+	idx.InsertDir("storage/releases")
+	idx.InsertDir(path)
+	idx.InsertFile(path+"/stale-child", FileInfo{Size: 3, ModTime: 1})
+	idx.InsertFile(path, FileInfo{Size: 42, ModTime: 2})
+
+	if idx.HasDir(path) {
+		t.Fatal("file path remained indexed as a directory")
+	}
+	if info, ok := idx.GetFileInfo(path); !ok || info.Size != 42 {
+		t.Fatalf("file info = %+v, %v; want size 42", info, ok)
+	}
+	if idx.HasFile(path+"/stale-child") || len(idx.GetChildren(path)) != 0 {
+		t.Fatal("directory descendants remained after the path became a file")
+	}
+
+	idx.InsertDir(path)
+	if idx.HasDir(path) || !idx.HasFile(path) {
+		t.Fatal("a later directory hint overrode an authoritative file entry")
+	}
+	idx.RemoveFile(path)
+	idx.InsertDir(path)
+	if !idx.HasDir(path) || idx.HasFile(path) {
+		t.Fatal("explicitly removed file could not be replaced by a directory")
+	}
+}
+
 func TestFileIndexWriteJSONEscapesPaths(t *testing.T) {
 	idx := NewFileIndexCustom(true)
 	idx.InsertFile(`storage/repo/quoted"name.jar`)

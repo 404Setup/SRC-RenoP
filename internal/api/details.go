@@ -122,6 +122,17 @@ func CreateFileDetails(state *core.AppState, localFilePath string, withChildren 
 	}
 	name := path.Base(localFilePath)
 
+	if info, ok := idx.GetFileInfo(localFilePath); ok {
+		modTime := time.Unix(0, info.ModTime).UTC().Format(time.RFC3339Nano)
+		size := info.Size
+		return &FileDetails{
+			Type:             FileDetailsTypeFile,
+			Name:             name,
+			ContentLength:    &size,
+			LastModifiedTime: &modTime,
+		}
+	}
+
 	if idx.HasDir(localFilePath) {
 		details := &FileDetails{
 			Type: FileDetailsTypeDirectory,
@@ -139,18 +150,6 @@ func CreateFileDetails(state *core.AppState, localFilePath string, withChildren 
 				}
 			}
 			details.Files = files
-		}
-		return details
-	}
-
-	if info, ok := idx.GetFileInfo(localFilePath); ok {
-		modTime := time.Unix(0, info.ModTime).UTC().Format(time.RFC3339Nano)
-		size := info.Size
-		details := &FileDetails{
-			Type:             FileDetailsTypeFile,
-			Name:             name,
-			ContentLength:    &size,
-			LastModifiedTime: &modTime,
 		}
 		return details
 	}

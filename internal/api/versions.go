@@ -283,14 +283,13 @@ func LatestDetails(c fiber.Ctx, state *core.AppState) error {
 	var size int64
 	var modTimeNano int64
 
-	if state.Inner.FileIndex.HasDir(localFilePath) {
-		isDirectory = true
+	if indexedDir, fileInfo, indexed, _ := state.Inner.FileIndex.GetPathState(localFilePath); indexed {
+		isDirectory = indexedDir
 		isFileExists = true
-	} else if fileInfo, ok := state.Inner.FileIndex.GetFileInfo(localFilePath); ok {
-		isDirectory = false
-		isFileExists = true
-		size = fileInfo.Size
-		modTimeNano = fileInfo.ModTime
+		if !indexedDir {
+			size = fileInfo.Size
+			modTimeNano = fileInfo.ModTime
+		}
 	} else {
 		info, err := os.Stat(localFilePath)
 		if err == nil {

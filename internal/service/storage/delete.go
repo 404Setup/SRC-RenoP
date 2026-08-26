@@ -61,12 +61,7 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, repo *config.Repository, pa
 	isDir := false
 	exists := false
 	if IsS3Enabled(localFilePath) {
-		if state.Inner.FileIndex.HasDir(localFilePath) {
-			isDir = true
-			exists = true
-		} else if state.Inner.FileIndex.HasFile(localFilePath) {
-			exists = true
-		}
+		isDir, _, exists, _ = state.Inner.FileIndex.GetPathState(localFilePath)
 	} else {
 		info, err := os.Stat(localFilePath)
 		if err == nil {

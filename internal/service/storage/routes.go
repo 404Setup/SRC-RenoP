@@ -64,7 +64,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	isDocker := repo.NormalizedFormat() == config.RepositoryFormatDocker
 	isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
 
-	if (isDocker || isCargo || c.Method() == fiber.MethodGet) && TryHTMLFallback(state, c) {
+	if (isDocker || isCargo) && TryHTMLFallback(state, c) {
 		return nil
 	}
 

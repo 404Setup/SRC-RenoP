@@ -326,6 +326,12 @@ func (idx *FileIndex) putFile(pathSlash string, info FileInfo) {
 	if idx.IsBlocked(pathSlash) {
 		return
 	}
+	if _, loaded := idx.Dirs.LoadAndDelete(pathSlash); loaded {
+		idx.removeDescendants(pathSlash)
+		idx.DirsCount.Add(^uint64(0))
+		idx.removeChild(pathSlash)
+		idx.IsDirty.Store(true)
+	}
 	old, loaded := idx.Files.LoadOrStore(pathSlash, info)
 	if !loaded {
 		idx.FilesCount.Add(1)
@@ -341,6 +347,19 @@ func (idx *FileIndex) putFile(pathSlash string, info FileInfo) {
 	}
 	idx.Files.Store(pathSlash, info)
 	idx.addChild(pathSlash)
+}
+
+// putDir stores a directory unless the same path is already an indexed file.
+func (idx *FileIndex) putDir(pathSlash string) {
+	pathSlash = utils.Intern(pathSlash)
+	if _, isFile := idx.Files.Load(pathSlash); isFile {
+		return
+	}
+	if _, loaded := idx.Dirs.LoadOrStore(pathSlash, true); !loaded {
+		idx.DirsCount.Add(1)
+		idx.IsDirty.Store(true)
+		idx.addChild(pathSlash)
+	}
 }
 
 // deleteFile removes a file entry and maintains FilesCount / TotalBytes.
@@ -377,11 +396,7 @@ func (idx *FileIndex) consumerLoop() {
 				idx.putFile(pathSlash, op.Info)
 				idx.clearNotFound(pathSlash)
 			case OpInsertDir:
-				if _, loaded := idx.Dirs.LoadOrStore(pathSlash, true); !loaded {
-					idx.DirsCount.Add(1)
-					idx.IsDirty.Store(true)
-					idx.addChild(pathSlash)
-				}
+				idx.putDir(pathSlash)
 				idx.clearNotFound(pathSlash)
 			case OpRemoveFile:
 				if idx.deleteFile(pathSlash) {
@@ -568,11 +583,7 @@ func (idx *FileIndex) IsBlocked(pathStr string) bool {
 func (idx *FileIndex) InsertDir(pathStr string) {
 	pathStr = utils.Intern(toSlashFast(pathStr))
 	if idx.isSync {
-		if _, loaded := idx.Dirs.LoadOrStore(pathStr, true); !loaded {
-			idx.DirsCount.Add(1)
-			idx.IsDirty.Store(true)
-			idx.addChild(pathStr)
-		}
+		idx.putDir(pathStr)
 		idx.clearNotFound(pathStr)
 		return
 	}
@@ -977,7 +988,11 @@ func (idx *FileIndex) Walk(root string, walkFn func(pathStr string, info FileInf
 
 	var traverse func(string) bool
 	traverse = func(current string) bool {
-		if idx.HasDir(current) {
+		if info, ok := idx.GetFileInfo(current); ok {
+			if !walkFn(current, info, false) {
+				return false
+			}
+		} else if idx.HasDir(current) {
 			if !walkFn(current, FileInfo{}, true) {
 				return false
 			}
@@ -987,10 +1002,6 @@ func (idx *FileIndex) Walk(root string, walkFn func(pathStr string, info FileInf
 				if !traverse(childPath) {
 					return false
 				}
-			}
-		} else if info, ok := idx.GetFileInfo(current); ok {
-			if !walkFn(current, info, false) {
-				return false
 			}
 		}
 		return true

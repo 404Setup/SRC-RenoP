@@ -27,6 +27,12 @@ func TestContentTypeByExt(t *testing.T) {
 		{ext: ".pom", want: "text/xml; charset=utf-8"},
 		{ext: ".json", want: "application/json; charset=utf-8"},
 		{ext: ".jar", want: "application/java-archive"},
+		{ext: ".br", want: "application/x-brotli"},
+		{ext: ".gz", want: "application/gzip"},
+		{ext: ".zst", want: "application/zstd"},
+		{ext: ".ZSTD", want: "application/zstd"},
+		{ext: ".lz4", want: "application/x-lz4"},
+		{ext: ".rar", want: "application/vnd.rar"},
 		{ext: "", want: "application/octet-stream"},
 		{ext: ".unknownxyz", want: "application/octet-stream"},
 	}
