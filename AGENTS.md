@@ -52,8 +52,9 @@
 - **`internal/service/storage/` & `internal/service/gpg/`**: Multi-backend storage (Disk/S3), OpenPGP signature
   verification, and quarantined publication queue (`.renop.tmp.gpg`). The independent `files` repository format
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
-  Browser navigation serves known files as attachments before considering the SPA fallback; Brotli, gzip, Zstandard,
-  and the other supported compressed formats receive explicit binary MIME types without HTTP content-encoding labels.
+  Browser navigation classifies indexed artifacts before format and authorization SPA branches, so a known file path
+  never receives the SPA shell; Brotli, gzip, Zstandard, and the other supported compressed formats receive explicit
+  binary MIME types without HTTP content-encoding labels.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
   administrator notices. Package-team removals create operator-neutral notifications localized by
   `internal/service/frontend/renop-html/js/team-messages.js`; scheduled and interactive system-update results are

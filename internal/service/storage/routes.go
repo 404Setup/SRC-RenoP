@@ -64,10 +64,6 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	isDocker := repo.NormalizedFormat() == config.RepositoryFormatDocker
 	isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
 
-	if (isDocker || isCargo) && TryHTMLFallback(state, c) {
-		return nil
-	}
-
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {
 		if TryHTMLFallback(state, c) {
@@ -82,6 +78,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	pathStr := localFilePath
 	isDirOnDisk, _, isIndexed, isNotFound := state.Inner.FileIndex.GetPathState(pathStr)
+	isConcreteArtifact := isIndexed && !isDirOnDisk
 
 	isRead := c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead
 	if isRead {
@@ -98,7 +95,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 				strings.EqualFold(repo.Visibility, "PRIVATE") && user.Username == "guest" {
 				return cargo.SendAuthChallenge(c)
 			}
-			if TryHTMLFallback(state, c) {
+			if !isConcreteArtifact && TryHTMLFallback(state, c) {
 				return nil
 			}
 			return c.Status(fiber.StatusNotFound).SendString("Not found")
@@ -129,7 +126,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 
 	path = sanitized
 	if isDocker {
-		if TryHTMLFallback(state, c) {
+		if !isConcreteArtifact && TryHTMLFallback(state, c) {
 			return nil
 		}
 		if isRead {

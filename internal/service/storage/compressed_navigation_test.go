@@ -177,3 +177,101 @@ func TestCompressedFilesBypassHTMLFallbackAndStreamAsAttachments(t *testing.T) {
 		t.Fatalf("directory/missing navigation invoked the SPA fallback %d time(s), want 2", fallbackCalls)
 	}
 }
+
+func TestKnownArtifactsNeverUseHTMLFallbackAcrossRepositoryFormats(t *testing.T) {
+	storagePath := storageTestTempDir(t)
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"files": {
+			Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC",
+			Mirrors: []config.Mirror{},
+		},
+		"maven": {
+			Name: "maven", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC",
+			Mirrors: []config.Mirror{},
+		},
+		"cargo": {
+			Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
+			Mirrors: []config.Mirror{},
+		},
+		"private-files": {
+			Name: "private-files", Format: config.RepositoryFormatFiles, Visibility: "PRIVATE",
+			Mirrors: []config.Mirror{},
+		},
+	}
+	InitS3(cfg)
+	state := core.NewAppState()
+	state.Inner.Config.Store(cfg)
+	state.Inner.FileIndex = index.NewFileIndexCustom(true)
+	payload := []byte("known browser artifact")
+	for repository := range cfg.Maven.Repositories {
+		repositoryRoot := filepath.Join(storagePath, repository)
+		artifactPath := filepath.Join(repositoryRoot, "packages", "artifact.bin")
+		if err := os.MkdirAll(filepath.Dir(artifactPath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(artifactPath, payload, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		state.Inner.FileIndex.InsertDir(filepath.ToSlash(repositoryRoot))
+		state.Inner.FileIndex.InsertDir(filepath.ToSlash(filepath.Dir(artifactPath)))
+		state.Inner.FileIndex.InsertFile(filepath.ToSlash(artifactPath), index.FileInfo{
+			Size: int64(len(payload)), ModTime: time.Now().UnixNano(),
+		})
+	}
+
+	previousFallback := HTMLFallback
+	previousMavenAuthorizer := MavenReadAuthorizer
+	fallbackCalls := 0
+	HTMLFallback = func(c fiber.Ctx, _ *core.AppState) error {
+		fallbackCalls++
+		return c.Status(http.StatusOK).SendString("<html>spa</html>")
+	}
+	MavenReadAuthorizer = func(_ *core.AppState, _ *config.User, _ *config.Repository,
+		_ string, _ bool) (bool, error) {
+		return true, nil
+	}
+	t.Cleanup(func() {
+		HTMLFallback = previousFallback
+		MavenReadAuthorizer = previousMavenAuthorizer
+	})
+	app := fiber.New(fiber.Config{UnescapePath: false})
+	SetupRoutes(app, state)
+
+	for _, repository := range []string{"files", "maven", "cargo"} {
+		request := httptest.NewRequest(http.MethodGet,
+			"http://repo.example/"+repository+"/packages/artifact.bin", nil)
+		request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+		response, err := app.Test(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, readErr := io.ReadAll(response.Body)
+		_ = response.Body.Close()
+		if readErr != nil || response.StatusCode != http.StatusOK || !bytes.Equal(body, payload) {
+			t.Fatalf("%s browser artifact response = %d %q: %v", repository,
+				response.StatusCode, body, readErr)
+		}
+		if strings.HasPrefix(response.Header.Get(fiber.HeaderContentType), fiber.MIMETextHTML) {
+			t.Fatalf("%s browser artifact was returned as HTML", repository)
+		}
+	}
+
+	privateRequest := httptest.NewRequest(http.MethodGet,
+		"http://repo.example/private-files/packages/artifact.bin", nil)
+	privateRequest.Header.Set("Accept", "text/html")
+	privateResponse, err := app.Test(privateRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	privateBody, readErr := io.ReadAll(privateResponse.Body)
+	_ = privateResponse.Body.Close()
+	if readErr != nil || privateResponse.StatusCode != http.StatusNotFound ||
+		strings.Contains(string(privateBody), "<html") {
+		t.Fatalf("private artifact response = %d %q: %v", privateResponse.StatusCode, privateBody, readErr)
+	}
+	if fallbackCalls != 0 {
+		t.Fatalf("known artifact requests invoked the SPA fallback %d time(s)", fallbackCalls)
+	}
+}
