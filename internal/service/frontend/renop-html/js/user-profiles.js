@@ -9,6 +9,7 @@
  */
 
 import {t} from './i18n.js';
+import {LocalizedResponseError, localizedResponseError} from './response-errors.js';
 
 const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 const profileCache = new Map();
@@ -26,10 +27,7 @@ async function fetchUserProfile(username) {
         credentials: 'include', cache: 'no-store'
     });
     if (!response.ok) {
-        const message = await response.text();
-        const error = new Error(message || t('profile.notFound'));
-        error.status = response.status;
-        throw error;
+        throw await localizedResponseError(response, 'profile.loadFailed');
     }
     return response.json();
 }
@@ -49,14 +47,13 @@ async function flushUserProfileBatch() {
             const response = await fetch(`/api/users/profiles?names=${encodeURIComponent(usernames.join(','))}`, {
                 credentials: 'include', cache: 'no-store'
             });
-            if (!response.ok) throw new Error(await response.text() || t('profile.loadFailed'));
+            if (!response.ok) throw await localizedResponseError(response, 'profile.loadFailed');
             const payload = await response.json();
             const profiles = new Map((payload.profiles || []).map(profile => [profile.username, profile]));
             for (const [username, handlers] of batch) {
                 const profile = profiles.get(username);
                 if (!profile) {
-                    const error = new Error(t('profile.notFound'));
-                    error.status = 404;
+                    const error = new LocalizedResponseError(t('profile.notFound'), 404);
                     handlers.reject(error);
                     continue;
                 }

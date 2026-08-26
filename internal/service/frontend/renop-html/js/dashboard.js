@@ -17,6 +17,7 @@ import {InstanceStatus, StatusSnapshotList, UpdateState} from './proto/index.js'
 import {formatTimestamp} from './time.js';
 import {refreshMessageUnreadCount} from './messages.js';
 import {updaterErrorMessage} from './updater-errors.js';
+import {responseErrorMessage} from './response-errors.js';
 
 let refreshInterval = null;
 let snapshotsInterval = null;
@@ -209,11 +210,7 @@ async function downloadMemoryProfile(kind, btn = null) {
     try {
         const response = await apiRequest(path, {method: 'GET'});
         if (!response.ok) {
-            const text = await response.text().catch(() => '');
-            showAlert(
-                `${t('dashboard.dumpFailed')}: ${text || response.status}`,
-                'error',
-            );
+            showAlert(await responseErrorMessage(response, 'dashboard.dumpFailed'), 'error');
             return;
         }
         const blob = await response.blob();
@@ -229,7 +226,7 @@ async function downloadMemoryProfile(kind, btn = null) {
     } catch (e) {
         if (e && e.message === 'Unauthorized') return;
         console.error('memory profile dump failed', e);
-        showAlert(`${t('dashboard.dumpFailed')}: ${e?.message || e}`, 'error');
+        showAlert(t('dashboard.dumpFailed'), 'error');
     } finally {
         if (btn) {
             btn.disabled = false;

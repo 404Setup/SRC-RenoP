@@ -120,7 +120,7 @@ export async function openAuditLogsDialog(options = {}) {
             contentArea.replaceChildren(
                 el('div', {class: 'sessions-loading'},
                     el('div', {class: 'sessions-loading-spinner', 'aria-hidden': 'true'}),
-                    el('span', {}, t('audit.loading') || t('common.loading') || 'Loading activity logs...')
+                    el('span', {}, t('audit.loading'))
                 )
             );
             paginationArea.innerHTML = '';
@@ -139,9 +139,9 @@ export async function openAuditLogsDialog(options = {}) {
             if (!res.ok || !data) {
                 contentArea.classList.remove('is-busy');
                 if (!hasLoadedOnce) {
-                    contentArea.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444; font-size: 0.9rem;">${t('common.error') || 'Failed to load activity logs'}</div>`;
+                    contentArea.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444; font-size: 0.9rem;">${t('common.error')}</div>`;
                 } else {
-                    showAlert(t('common.error') || 'Failed to load activity logs', 'error');
+                    showAlert(t('common.error'), 'error');
                 }
                 return;
             }
@@ -155,7 +155,7 @@ export async function openAuditLogsDialog(options = {}) {
 
                 container.style.minHeight = 'auto';
                 if (logs.length === 0) {
-                    contentArea.innerHTML = `<div style="padding: 2.5rem; text-align: center; opacity: 0.6; font-size: 0.9rem;">${t('common.none') || 'No activity logs found'}</div>`;
+                    contentArea.innerHTML = `<div style="padding: 2.5rem; text-align: center; opacity: 0.6; font-size: 0.9rem;">${t('common.none')}</div>`;
                 } else {
                     const table = el('table', {
                             class: 'audit-table',
@@ -315,9 +315,9 @@ export async function openAuditLogsDialog(options = {}) {
             console.error('Failed to load audit logs:', err);
             contentArea.classList.remove('is-busy');
             if (!hasLoadedOnce) {
-                contentArea.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444; font-size: 0.9rem;">${t('common.error') || 'Failed to load activity logs'}</div>`;
+                contentArea.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444; font-size: 0.9rem;">${t('common.error')}</div>`;
             } else {
-                showAlert(t('common.error') || 'Failed to load activity logs', 'error');
+                showAlert(t('common.error'), 'error');
             }
         } finally {
             isFetching = false;
@@ -332,18 +332,18 @@ export async function openAuditLogsDialog(options = {}) {
             text: t('users.clearAuditLogs') || 'Clear User Logs',
             className: 'pill-btn pill-btn--danger pill-btn--sm',
             onClick: async (e, dialog) => {
-                const confirmMsg = t('users.confirmClearAuditLogs', {user: targetUsername}) || `Are you sure you want to clear all activity logs for user "${targetUsername}"?`;
+                const confirmMsg = t('users.confirmClearAuditLogs', {user: targetUsername});
                 if (await window.showConfirm(confirmMsg)) {
                     try {
                         const delRes = await apiRequest(`/api/auth/users/${encodeURIComponent(targetUsername)}/audit-logs`, {method: 'DELETE'});
                         if (delRes.ok) {
-                            showAlert(t('users.auditLogsCleared') || 'Activity logs cleared successfully', 'success');
+                            showAlert(t('users.auditLogsCleared'), 'success');
                             loadLogs();
                         } else {
-                            showAlert(t('common.error') || 'Failed to clear activity logs', 'error');
+                            showAlert(t('common.error'), 'error');
                         }
                     } catch (err) {
-                        showAlert(t('common.error') || 'Failed to clear activity logs', 'error');
+                        showAlert(t('common.error'), 'error');
                     }
                 }
             }

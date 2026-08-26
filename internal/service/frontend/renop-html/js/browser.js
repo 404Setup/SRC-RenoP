@@ -37,6 +37,7 @@ import {localizeRepositorySearch, updateRepositorySearch} from './browser/search
 import {FileDetails, GpgSignatureDetails} from './proto/index.js';
 import {getRepositoryFormat} from './repository-formats.js';
 import {formatTimestamp} from './time.js';
+import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
 
 const fileList = document.getElementById('file-list');
 const fileListContainer = document.getElementById('file-list-container');
@@ -775,13 +776,7 @@ export async function loadDirectory(path) {
         const {response, data} = directoryResult || {};
 
         if (!response?.ok || !data) {
-            let msg = `HTTP error! status: ${response?.status || 500}`;
-            try {
-                const text = await response.text();
-                if (text && text.includes('Artifact blocked')) msg = text;
-            } catch {
-            }
-            throw new Error(msg);
+            throw await localizedResponseError(response, 'browser.errorState');
         }
 
         if (seq !== currentLoadSeq) return;
@@ -819,9 +814,7 @@ export async function loadDirectory(path) {
 		updateRepositorySearch('', 'maven', navigateToPath);
         if (fileList) fileList.innerHTML = '';
         if (errorState) {
-            errorState.textContent = (error.message && error.message.includes('Artifact blocked'))
-                ? error.message
-                : t('browser.errorState');
+            errorState.textContent = caughtErrorMessage(error, 'browser.errorState');
         }
         setStateVisibility({error: true});
         finishListTransition('error');

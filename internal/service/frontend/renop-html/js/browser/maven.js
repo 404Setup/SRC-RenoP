@@ -16,6 +16,7 @@ import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {t} from '../i18n.js';
 import {getRepositoryFormat} from '../repository-formats.js';
+import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {
@@ -165,7 +166,7 @@ function openCreateDomainDialog(onCreated) {
                                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({domain})
                             });
                             if (!response.ok) {
-                                showAlert(await response.text() || t('maven.createDomainFailed'), 'error');
+                                showAlert(await responseErrorMessage(response, 'maven.createDomainFailed'), 'error');
                                 return;
                             }
                             const created = await response.json();
@@ -173,7 +174,8 @@ function openCreateDomainDialog(onCreated) {
                             showAlert(t('maven.domainCreated'), 'success');
                             if (typeof onCreated === 'function') await onCreated(created);
                         } catch (error) {
-                            showAlert(error.message || t('maven.createDomainFailed'), 'error');
+                            console.error('Failed to create Maven domain', error);
+                            showAlert(caughtErrorMessage(error, 'maven.createDomainFailed'), 'error');
                         }
                     });
                 }
@@ -386,7 +388,8 @@ async function renderCatalog(container, repository, sequence) {
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
         await replaceRepositoryView(container,
-            el('div', {class: 'maven-error'}, createIcon('alertCircle'), el('span', {}, error.message || t('maven.loadFailed'))),
+            el('div', {class: 'maven-error'}, createIcon('alertCircle'),
+                el('span', {}, caughtErrorMessage(error, 'maven.loadFailed'))),
             {duration: 240, enter: false});
     }
 }
@@ -453,7 +456,9 @@ function teamPanel(details, refresh) {
                     const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {
                         method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level: Number(value)})
                     });
-                    if (!response.ok) showAlert(await response.text() || t('maven.updateMemberFailed'), 'error');
+                    if (!response.ok) {
+                        showAlert(await responseErrorMessage(response, 'maven.updateMemberFailed'), 'error');
+                    }
                     else await refresh();
                 }
             );
@@ -468,7 +473,9 @@ function teamPanel(details, refresh) {
                 onclick: async () => {
                     if (!(await showConfirm(isSelf ? t('maven.leaveConfirm') : t('maven.removeMemberConfirm', {name: member.username})))) return;
                     const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {method: 'DELETE'});
-                    if (!response.ok) showAlert(await response.text() || t('maven.removeMemberFailed'), 'error');
+                    if (!response.ok) {
+                        showAlert(await responseErrorMessage(response, 'maven.removeMemberFailed'), 'error');
+                    }
                     else await refresh();
                 }
             }, createIcon('delete')));
@@ -502,10 +509,7 @@ function teamPanel(details, refresh) {
                         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({users, level: inviteLevel})
                     });
                     if (!response.ok) {
-                        const errorCode = response.headers.get('X-RenoP-Error-Code');
-                        showAlert(errorCode === 'MAVEN_USER_NOT_FOUND'
-                            ? t('maven.userNotFound')
-                            : (await response.text() || t('maven.inviteFailed')), 'error');
+                        showAlert(await responseErrorMessage(response, 'maven.inviteFailed'), 'error');
                     }
                     else {
                         input.value = '';
@@ -613,7 +617,7 @@ async function renderDomainCenterList(container) {
     try {
         const response = await apiRequest(managedDomainListURL());
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
-        if (!response.ok) throw new Error(await response.text() || t('maven.loadFailed'));
+        if (!response.ok) throw await localizedResponseError(response, 'maven.loadFailed');
         const payload = await response.json();
         const domains = Array.isArray(payload.domains) ? payload.domains : [];
         const total = Number(payload.total);
@@ -666,7 +670,7 @@ async function renderDomainCenterList(container) {
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
         container.replaceChildren(el('div', {class: 'maven-error'}, createIcon('alertCircle'),
-            el('span', {}, error.message || t('maven.loadFailed'))));
+            el('span', {}, caughtErrorMessage(error, 'maven.loadFailed'))));
     } finally {
         if (sequence === domainCenterSequence) container.removeAttribute('aria-busy');
     }
@@ -686,7 +690,7 @@ async function renderManagedDomain(container, domainName) {
     try {
         const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(domainName)}`);
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
-        if (!response.ok) throw new Error(await response.text() || t('maven.domainLoadFailed'));
+        if (!response.ok) throw await localizedResponseError(response, 'maven.domainLoadFailed');
         const details = await response.json();
         const domain = details.domain;
         const canOwn = details.administrator || Number(domain.permission_level) === 4;
@@ -712,7 +716,9 @@ async function renderManagedDomain(container, domainName) {
                     if (!(await showConfirm(t('maven.forceVerifyConfirm', {domain: domain.domain})))) return;
                     await runButtonAction(event.currentTarget, async () => {
                         const verifyResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/verify/force`, {method: 'POST'});
-                        if (!verifyResponse.ok) showAlert(await verifyResponse.text() || t('maven.forceVerifyFailed'), 'error');
+                        if (!verifyResponse.ok) {
+                            showAlert(await responseErrorMessage(verifyResponse, 'maven.forceVerifyFailed'), 'error');
+                        }
                         else {
                             showAlert(t('maven.forceVerifySuccess'), 'success');
                             await refresh();
@@ -726,7 +732,9 @@ async function renderManagedDomain(container, domainName) {
                 type: 'button', class: 'pill-btn pill-btn--ghost-danger', onclick: async () => {
                     if (!(await showConfirm(t('maven.deleteDomainConfirm', {domain: domain.domain})))) return;
                     const deleteResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}`, {method: 'DELETE'});
-                    if (!deleteResponse.ok) showAlert(await deleteResponse.text() || t('maven.deleteDomainFailed'), 'error');
+                    if (!deleteResponse.ok) {
+                        showAlert(await responseErrorMessage(deleteResponse, 'maven.deleteDomainFailed'), 'error');
+                    }
                     else navigateMavenDomainCenter();
                 }
             }, createIcon('delete'), el('span', {}, t('maven.deleteDomain'))));
@@ -755,7 +763,7 @@ async function renderManagedDomain(container, domainName) {
         container.replaceChildren(
             el('button', {type: 'button', class: 'maven-back-btn', onclick: () => navigateMavenDomainCenter()},
                 createIcon('chevronLeft'), el('span', {}, t('maven.backToDomains'))),
-            el('div', {class: 'maven-error'}, error.message || t('maven.domainLoadFailed'))
+            el('div', {class: 'maven-error'}, caughtErrorMessage(error, 'maven.domainLoadFailed'))
         );
     } finally {
         if (sequence === domainCenterSequence) container.removeAttribute('aria-busy');
@@ -813,7 +821,7 @@ async function renderDomain(container, repository, domainName, sequence) {
             apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/packages?domain=${encodeURIComponent(domainName)}&limit=50&offset=0`)
         ]);
         if (sequence !== mavenLoadSequence) return;
-        if (!domainResponse.ok) throw new Error(await domainResponse.text() || t('maven.domainLoadFailed'));
+        if (!domainResponse.ok) throw await localizedResponseError(domainResponse, 'maven.domainLoadFailed');
         const details = await domainResponse.json();
         const artifactData = await readArtifactPage(artifactsResponse);
         const domain = details.domain;
@@ -844,7 +852,7 @@ async function renderDomain(container, repository, domainName, sequence) {
         if (sequence !== mavenLoadSequence) return;
         await replaceRepositoryView(container, [
             backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
-            el('div', {class: 'maven-error'}, error.message || t('maven.domainLoadFailed'))
+            el('div', {class: 'maven-error'}, caughtErrorMessage(error, 'maven.domainLoadFailed'))
         ], {duration: 240, enter: false});
     }
 }
@@ -873,7 +881,9 @@ function openDescriptionEditor(container, repository, artifact, sequence) {
                             const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`, {
                                 method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({description: textarea.value.trim()})
                             });
-                            if (!response.ok) showAlert(await response.text() || t('maven.updateDescriptionFailed'), 'error');
+                            if (!response.ok) {
+                                showAlert(await responseErrorMessage(response, 'maven.updateDescriptionFailed'), 'error');
+                            }
                             else {
                                 dialog.close(true);
                                 await renderArtifact(container, repository, artifact.group_id, artifact.artifact_id, sequence);
@@ -904,7 +914,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         const query = new URLSearchParams({group: groupID, artifact: artifactID});
         const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`);
         if (sequence !== mavenLoadSequence) return;
-        if (!response.ok) throw new Error(await response.text() || t('maven.artifactLoadFailed'));
+        if (!response.ok) throw await localizedResponseError(response, 'maven.artifactLoadFailed');
         const details = await response.json();
         const artifact = details.artifact;
         const versions = Array.isArray(details.versions) ? details.versions : [];
@@ -943,7 +953,9 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                         if (!(await showConfirm(t('maven.deleteVersionConfirm', {version: version.version})))) return;
                         const deleteQuery = new URLSearchParams({group: artifact.group_id, artifact: artifact.artifact_id, version: version.version});
                         const deleteResponse = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/versions?${deleteQuery}`, {method: 'DELETE'});
-                        if (!deleteResponse.ok) showAlert(await deleteResponse.text() || t('maven.deleteVersionFailed'), 'error');
+                        if (!deleteResponse.ok) {
+                            showAlert(await responseErrorMessage(deleteResponse, 'maven.deleteVersionFailed'), 'error');
+                        }
                         else await renderArtifact(container, repository, groupID, artifactID, sequence);
                     }
                 }, createIcon('delete')));
@@ -965,7 +977,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         if (sequence !== mavenLoadSequence) return;
         await replaceRepositoryView(container, [
             backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
-            el('div', {class: 'maven-error'}, error.message || t('maven.artifactLoadFailed'))
+            el('div', {class: 'maven-error'}, caughtErrorMessage(error, 'maven.artifactLoadFailed'))
         ], {duration: 240, enter: false});
     }
 }

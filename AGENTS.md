@@ -111,6 +111,9 @@
   workflow lives in `js/password-recovery.js`.
   `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, one-time secret display, shared
   clipboard feedback, immediate revocation, and live language refresh without exposing stored credential material.
+  `js/response-errors.js` is the shared boundary for user-facing HTTP failures: it reads only bounded error bodies,
+  accepts registered stable codes or known localized messages, maps common statuses, and never exposes unknown backend
+  text or runtime exception strings in the UI.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
   loads. Modular i18n
   catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,

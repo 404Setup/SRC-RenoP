@@ -90,7 +90,7 @@ export class RenopUploadEntry extends HTMLElement {
         } else if (status === 'error') {
             metaDiv.appendChild(el('span', {class: 'upload-file-status upload-file-status--error'},
                 createIcon('alertCircle', {width: '12', height: '12'}),
-                el('span', {}, t('common.error') || 'Error')
+                el('span', {}, t('common.error'))
             ));
         } else if (status === 'uploading') {
             metaDiv.appendChild(el('span', {class: 'upload-file-progress-text'}, progress || '0%'));
@@ -262,7 +262,7 @@ export class RenopUploadEntry extends HTMLElement {
         } else if (status === 'error') {
             metaDiv.appendChild(el('span', {class: 'upload-file-status upload-file-status--error'},
                 createIcon('alertCircle', {width: '12', height: '12'}),
-                el('span', {}, t('common.error') || 'Error')
+                el('span', {}, t('common.error'))
             ));
         } else if (status === 'uploading') {
             metaDiv.appendChild(el('span', {class: 'upload-file-progress-text'}, progress || '0%'));

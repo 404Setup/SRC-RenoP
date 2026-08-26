@@ -24,6 +24,7 @@ import {
 } from '../components.js';
 import {t} from '../i18n.js';
 import {getRepositoryFormat} from '../repository-formats.js';
+import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
@@ -86,31 +87,15 @@ const cargoUserSuggestions = new RepositoryUserSuggestions({
 });
 
 /**
- * Extract a useful bounded error from a Cargo JSON or text response.
- * @param {Response} response - Failed API response.
- * @returns {Promise<string>} Safe error detail.
- */
-async function cargoResponseError(response) {
-    const text = (await response.text()).slice(0, 1024);
-    if (!text) return `HTTP ${response.status}`;
-    try {
-        const payload = JSON.parse(text);
-        const detail = payload?.errors?.[0]?.detail || payload?.msg;
-        return String(detail || text).slice(0, 512);
-    } catch {
-        return text;
-    }
-}
-
-/**
  * Perform a same-origin Cargo registry API request and decode optional JSON.
  * @param {string} path - Absolute repository API path.
  * @param {RequestInit} [options] - Fetch options.
+ * @param {string} [fallbackKey='cargo.operationFailed'] - Localized request-failure fallback.
  * @returns {Promise<object|null>} Decoded response payload.
  */
-async function cargoRequest(path, options = {}) {
+async function cargoRequest(path, options = {}, fallbackKey = 'cargo.operationFailed') {
     const response = await apiRequest(path, options, {logoutOnForbidden: false});
-    if (!response.ok) throw new Error(await cargoResponseError(response));
+    if (!response.ok) throw await localizedResponseError(response, fallbackKey);
     if (response.status === 204) return null;
     const contentType = response.headers.get('content-type') || '';
     return contentType.includes('application/json') ? response.json() : null;
@@ -1280,10 +1265,10 @@ function mergeCargoPackageRecords(publicPackages, managedPackages, reset = false
  */
 async function loadCargoCatalog(sequence) {
     const catalogRequest = cargoRequest(
-        `${cargoAPIPath('crates')}?q=&per_page=${CARGO_CATALOG_PAGE_SIZE}&page=1`
+        `${cargoAPIPath('crates')}?q=&per_page=${CARGO_CATALOG_PAGE_SIZE}&page=1`, {}, 'cargo.loadFailed'
     );
     const managementRequest = cachedIsLoggedIn
-        ? cargoRequest(cargoAPIPath('me', 'crates'))
+        ? cargoRequest(cargoAPIPath('me', 'crates'), {}, 'cargo.loadFailed')
         : Promise.resolve(null);
     const [catalogResult, managementResult] = await Promise.allSettled([catalogRequest, managementRequest]);
     if (catalogResult.status === 'rejected') throw catalogResult.reason;
@@ -1359,7 +1344,7 @@ async function loadCargoPackage(packageName, sequence) {
     activeVersionListPage = 1;
     beginCargoRouteLoad(t('cargo.loadingPackage'));
     try {
-        const details = await cargoRequest(cargoAPIPath('crates', packageName));
+        const details = await cargoRequest(cargoAPIPath('crates', packageName), {}, 'cargo.loadFailed');
         if (sequence !== cargoLoadSequence) return;
         activePackageDetails = details;
         activeAdministrator = details?.administrator === true;
@@ -1367,7 +1352,7 @@ async function loadCargoPackage(packageName, sequence) {
     } catch (error) {
         if (sequence !== cargoLoadSequence) return;
         console.error('Failed to load Cargo package', error);
-        renderCargoError(error.message || t('cargo.loadFailed'));
+        renderCargoError(caughtErrorMessage(error, 'cargo.loadFailed'));
     } finally {
         if (sequence === cargoLoadSequence) setCargoUpdating(false);
     }
@@ -1384,7 +1369,9 @@ async function loadMoreCargoPackages() {
     setCargoUpdating(true);
     try {
         const payload = await cargoRequest(
-            `${cargoAPIPath('crates')}?q=&per_page=${CARGO_CATALOG_PAGE_SIZE}&page=${nextPage}`
+            `${cargoAPIPath('crates')}?q=&per_page=${CARGO_CATALOG_PAGE_SIZE}&page=${nextPage}`,
+            {},
+            'cargo.loadFailed'
         );
         if (sequence !== cargoLoadSequence) return;
         activeCatalogPage = nextPage;
@@ -1488,7 +1475,7 @@ async function handleCargoPageClick(event) {
         }
     } catch (error) {
         console.error('Cargo package operation failed', error);
-        showAlert(error.message || t('cargo.operationFailed'), 'error');
+        showAlert(caughtErrorMessage(error, 'cargo.operationFailed'), 'error');
     } finally {
         if (button.isConnected) button.disabled = false;
     }
@@ -1587,7 +1574,7 @@ export function showCargoDocUploadDialog(packageName, version) {
             if (closeBtn) closeBtn.disabled = true;
 
             progressContainer.style.display = 'flex';
-            progressMsg.textContent = t('common.loading') || 'Uploading…';
+            progressMsg.textContent = t('common.loading');
             progressFill.style.width = '30%';
 
             const resetProgressUI = () => {
@@ -1616,12 +1603,12 @@ export function showCargoDocUploadDialog(packageName, version) {
                     dialog.close(true);
                     await refreshCargoPackagePage();
                 } else {
-                    const text = await response.text().catch(() => '');
-                    showAlert(text || `HTTP ${response.status}`, 'error');
+                    showAlert(await responseErrorMessage(response, 'cargo.operationFailed'), 'error');
                     resetProgressUI();
                 }
             } catch (err) {
-                showAlert(err.message || t('common.unknown'), 'error');
+                console.error('Failed to upload Cargo documentation', err);
+                showAlert(caughtErrorMessage(err, 'cargo.operationFailed'), 'error');
                 resetProgressUI();
             }
         }
@@ -1762,7 +1749,7 @@ async function updateCargoMemberLevel(username, userID, level) {
     } catch (error) {
         console.error('Failed to update Cargo member permission', error);
         if (selector && typeof selector.setValue === 'function') selector.setValue(String(previousLevel));
-        showAlert(error.message || t('cargo.operationFailed'), 'error');
+        showAlert(caughtErrorMessage(error, 'cargo.operationFailed'), 'error');
     }
 }
 
@@ -1786,18 +1773,18 @@ async function submitCargoInvitation(event) {
     const submit = form.querySelector('button[type="submit"]');
     if (submit) submit.disabled = true;
     try {
-        const resp = await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners'), {
+        await cargoRequest(cargoAPIPath('crates', activePackageDetails.package.name, 'owners'), {
             method: 'PUT', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({users: [username], level: inviteLevel})
         });
         cargoUserSuggestions.clear();
-        showAlert(resp?.message || t('cargo.inviteSent', {name: username}), 'success');
+        showAlert(t('cargo.inviteSent', {name: username}), 'success');
         if (activeAdministrator) {
             await refreshCargoPackagePage();
         }
     } catch (error) {
         console.error('Failed to invite Cargo package member', error);
-        showAlert(error.message || t('cargo.operationFailed'), 'error');
+        showAlert(caughtErrorMessage(error, 'cargo.operationFailed'), 'error');
     } finally {
         if (submit) submit.disabled = false;
     }

@@ -422,6 +422,36 @@ const ERROR_KEY_MAP = {
 };
 
 /**
+ * Translate an exact backend error only when it has a registered locale entry.
+ * Unknown response text is intentionally rejected so callers can use a safe,
+ * localized fallback instead of exposing server internals.
+ * @param {string} errorText - Bounded backend error payload.
+ * @returns {string} Localized error, or an empty string when the payload is unknown.
+ */
+export function translateKnownError(errorText) {
+    if (!errorText || typeof errorText !== 'string') return '';
+    let normalized = errorText.trim();
+    if (normalized.startsWith('{') && normalized.endsWith('}')) {
+        try {
+            const parsed = JSON.parse(normalized);
+            if (parsed.error && typeof parsed.error === 'string') normalized = parsed.error.trim();
+            else if (parsed.message && typeof parsed.message === 'string') normalized = parsed.message.trim();
+        } catch {
+            return '';
+        }
+    }
+
+    const stripped = normalized.replace(/[\.:]+$/, '').trim();
+    for (const candidate of normalized === stripped ? [normalized] : [normalized, stripped]) {
+        const mappedKey = ERROR_KEY_MAP[candidate];
+        if (mappedKey) return t(mappedKey);
+        const direct = t(candidate);
+        if (direct !== candidate) return direct;
+    }
+    return '';
+}
+
+/**
  * Match and translate backend error messages or system messages.
  * Handles JSON error payloads, known phrase maps, trailing punctuation, and `prefix: rest` splitting.
  * @param {string} errorText - Raw error text from API or UI.

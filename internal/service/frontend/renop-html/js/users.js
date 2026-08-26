@@ -22,6 +22,7 @@ import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {formatTimestamp, timestampMilliseconds} from './time.js';
+import {responseErrorMessage} from './response-errors.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -292,7 +293,7 @@ export async function openUserFidoDialog(username) {
                             opacity: '0.6',
                             fontSize: '0.9rem',
                         }
-                    }, t('common.none') || 'No FIDO devices registered for this user'));
+                    }, t('common.none')));
                     return;
                 }
 
@@ -305,7 +306,7 @@ export async function openUserFidoDialog(username) {
                     info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
                     const nameEl = document.createElement('span');
                     nameEl.style.cssText = 'font-weight: 600; font-size: 0.9rem;';
-                    nameEl.textContent = dev.name || 'FIDO Device';
+                    nameEl.textContent = dev.name || t('profile.fidoTitle');
                     const dateEl = document.createElement('span');
                     dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
                     dateEl.textContent = formatTimestamp(dev.created_at, {fallback: t('common.unknown')});
@@ -316,25 +317,24 @@ export async function openUserFidoDialog(username) {
                     delBtn.type = 'button';
                     delBtn.className = 'pill-btn pill-btn--danger';
                     delBtn.style.cssText = 'padding: 4px 10px; font-size: 0.8rem;';
-                    delBtn.textContent = t('common.delete') || 'Delete';
+                    delBtn.textContent = t('common.delete');
                     delBtn.addEventListener('click', async () => {
                         const confirmMsg = t('users.confirmDeleteUserFido', {
                             user: username,
                             name: dev.name
-                        }) || `Are you sure you want to delete FIDO device "${dev.name}" for user "${username}"?`;
+                        });
                         if (await window.showConfirm(confirmMsg)) {
                             try {
                                 const delRes = await apiRequest(`/api/auth/users/${encodeURIComponent(username)}/fido/${dev.id}`, {method: 'DELETE'});
                                 if (delRes.ok) {
-                                    showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
+                                    showAlert(t('profile.fidoDeleted'), 'success');
                                     loadDevices();
                                 } else {
-                                    showAlert(t(delRes.headers.get('X-Renop-Error-Code') === 'ACCOUNT_LAST_LOGIN_METHOD'
-                                        ? 'profile.passwordLoginNeedsAlternative'
-                                        : 'common.error'), 'error');
+                                    showAlert(await responseErrorMessage(delRes, 'error.fidoDeleteFailed'), 'error');
                                 }
                             } catch (err) {
-                                showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
+                                console.error('Failed to delete user FIDO device', err);
+                                showAlert(t('error.fidoDeleteFailed'), 'error');
                             }
                         }
                     });
@@ -656,12 +656,12 @@ export async function deleteToken(name) {
             }, 200);
         } else {
             if (row) row.classList.remove('user-row--deleting');
-            const errText = await response.text();
-            showAlert(errText || t('users.failedDeleteToken'), 'error');
+            showAlert(await responseErrorMessage(response, 'users.failedDeleteToken'), 'error');
         }
     } catch (e) {
         if (row) row.classList.remove('user-row--deleting');
         console.error('Failed to delete token', e);
+        showAlert(t('users.failedDeleteToken'), 'error');
     }
 }
 

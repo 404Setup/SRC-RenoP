@@ -10,7 +10,7 @@
 
 import {apiRequest, fetchProto, postProto, putProto} from './api.js';
 import {showAlert} from './alert.js';
-import {t, translateError} from './i18n.js';
+import {t, translateKnownError} from './i18n.js';
 import {el} from '@renop/ui/dom';
 import {createIcon, RenopDialog} from './components.js';
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError} from './password-strength.js';
@@ -32,6 +32,12 @@ import {getRepositoryFormat} from './repository-formats.js';
 import {refreshGitHubConnection} from './github-auth.js';
 import {refreshAccountSecurity} from './account-security.js';
 import {refreshAPITokenSummary} from './api-tokens.js';
+import {
+	caughtErrorMessage,
+	LocalizedResponseError,
+	localizedResponseError,
+	responseErrorMessage
+} from './response-errors.js';
 import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
 import {
 	getUserProfile,
@@ -71,7 +77,7 @@ async function loadProfileGPGKeys(list, count, input, addButton) {
 	try {
 		const {response, data} = await fetchProto('/api/auth/profile/gpg', GpgKeyList);
 		if (!response.ok || !data) {
-			throw new Error(await response.text() || 'Failed to load GPG keys');
+			throw await localizedResponseError(response, 'profile.gpgLoadFailed');
 		}
 		const keys = Array.isArray(data.keys) ? data.keys : [];
 		count.textContent = t('profile.gpgKeyCount', {count: keys.length});
@@ -158,7 +164,7 @@ function openProfileGPGDialog() {
 				GpgKeyDto
 			);
 			if (!response.ok) {
-				showAlert(await response.text() || t('profile.gpgAddFailed'), 'error');
+				showAlert(await responseErrorMessage(response, 'profile.gpgAddFailed'), 'error');
 				return;
 			}
 			input.value = '';
@@ -223,7 +229,8 @@ function createProfileGPGReleaseItem(release) {
 		el('div', {class: 'gpg-release-meta'}, repository, signing, created)
 	];
 	if (status === 'failed' && release.failure_reason) {
-		children.push(el('div', {class: 'gpg-release-failure'}, translateError(release.failure_reason)));
+		children.push(el('div', {class: 'gpg-release-failure'},
+			translateKnownError(release.failure_reason) || t('profile.gpgFailure.generic')));
 	}
 	return el('div', {class: 'gpg-release-item'}, ...children);
 }
@@ -261,7 +268,7 @@ async function loadProfileGPGReleases(view, showLoading = false) {
 		const query = new URLSearchParams({limit: String(view.limit), offset: String(view.offset)});
 		const {response, data} = await fetchProto(`/api/auth/profile/gpg/releases?${query}`, GpgReleaseList);
 		if (!response.ok || !data) {
-			throw new Error(await response.text() || 'Failed to load GPG releases');
+			throw await localizedResponseError(response, 'profile.gpgReleasesLoadFailed');
 		}
 		const releases = Array.isArray(data.releases) ? data.releases : [];
 		const total = Number(data.total) || 0;
@@ -404,7 +411,7 @@ export async function loadProfileFidoDevices() {
                         fontSize: '0.85rem',
                         padding: '0.5rem 0',
                     }
-                }, t('common.none') || 'No FIDO devices registered'));
+                }, t('common.none')));
                 return;
             }
 
@@ -417,7 +424,7 @@ export async function loadProfileFidoDevices() {
                 info.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
                 const nameEl = document.createElement('span');
                 nameEl.style.cssText = 'font-weight: 600; font-size: 0.9rem;';
-                nameEl.textContent = dev.name || 'FIDO Device';
+                nameEl.textContent = dev.name || t('profile.fidoTitle');
                 const dateEl = document.createElement('span');
                 dateEl.style.cssText = 'font-size: 0.78rem; opacity: 0.65;';
                 dateEl.textContent = formatTimestamp(dev.created_at, {fallback: t('common.unknown')});
@@ -428,23 +435,22 @@ export async function loadProfileFidoDevices() {
                 delBtn.type = 'button';
                 delBtn.className = 'pill-btn pill-btn--danger';
                 delBtn.style.cssText = 'padding: 4px 10px; font-size: 0.8rem;';
-                delBtn.textContent = t('common.delete') || 'Delete';
+                delBtn.textContent = t('common.delete');
                 delBtn.addEventListener('click', async () => {
-                    const confirmMsg = t('profile.confirmDeleteFido', {name: dev.name}) || `Are you sure you want to delete FIDO device "${dev.name}"?`;
+                    const confirmMsg = t('profile.confirmDeleteFido', {name: dev.name});
                     if (await window.showConfirm(confirmMsg)) {
                         try {
                             const delRes = await apiRequest(`/api/auth/profile/fido/${dev.id}`, {method: 'DELETE'});
                             if (delRes.ok) {
-                                showAlert(t('profile.fidoDeleted') || 'FIDO device deleted', 'success');
+                                showAlert(t('profile.fidoDeleted'), 'success');
                                 loadProfileFidoDevices();
                                 void refreshAccountSecurity();
                             } else {
-                                showAlert(t(delRes.headers.get('X-Renop-Error-Code') === 'ACCOUNT_LAST_LOGIN_METHOD'
-                                    ? 'profile.passwordLoginNeedsAlternative'
-                                    : 'common.error'), 'error');
+                                showAlert(await responseErrorMessage(delRes, 'error.fidoDeleteFailed'), 'error');
                             }
                         } catch (err) {
-                            showAlert(t('common.error') || 'Failed to delete FIDO device', 'error');
+                            console.error('Failed to delete FIDO device', err);
+                            showAlert(caughtErrorMessage(err, 'error.fidoDeleteFailed'), 'error');
                         }
                     }
                 });
@@ -465,7 +471,7 @@ export async function loadProfileFidoDevices() {
                         textAlign: 'center',
                         color: '#ef4444',
                     }
-                }, t('error.fidoLoadFailed') || 'Error loading FIDO devices')
+                }, t('error.fidoLoadFailed'))
             );
         }, {duration: 300});
     }
@@ -473,12 +479,12 @@ export async function loadProfileFidoDevices() {
 
 export async function addFidoDevice() {
     if (!window.PublicKeyCredential) {
-        showAlert(t('login.fidoUnsupported') || 'FIDO/WebAuthn is not supported by your browser', 'error');
+        showAlert(t('login.fidoUnsupported'), 'error');
         return;
     }
 
     const deviceName = await window.showPrompt(
-        t('profile.fidoPromptName') || 'Enter a name for your FIDO device (e.g. MacBook TouchID, YubiKey 5):',
+        t('profile.fidoPromptName'),
         'YubiKey 5'
     );
 
@@ -491,9 +497,7 @@ export async function addFidoDevice() {
             method: 'POST'
         });
         if (!beginRes.ok) {
-            const msg = await beginRes.text();
-            const translatedMsg = window.translateError ? window.translateError(msg) : msg;
-            showAlert(translatedMsg || t('error.fidoBeginRegFailed') || 'Failed to begin FIDO registration', 'error');
+            showAlert(await responseErrorMessage(beginRes, 'error.fidoBeginRegFailed'), 'error');
             return;
         }
 
@@ -524,7 +528,7 @@ export async function addFidoDevice() {
 
         const credential = await navigator.credentials.create({publicKey});
         if (!credential) {
-            showAlert(t('login.fidoFailed') || 'FIDO registration cancelled', 'error');
+            showAlert(t('login.fidoFailed'), 'error');
             return;
         }
 
@@ -549,19 +553,15 @@ export async function addFidoDevice() {
         });
 
         if (finishRes.ok) {
-            showAlert(t('profile.fidoAdded') || 'FIDO device added successfully!', 'success');
+            showAlert(t('profile.fidoAdded'), 'success');
             loadProfileFidoDevices();
             void refreshAccountSecurity();
         } else {
-            const msg = await finishRes.text();
-            const translatedMsg = window.translateError ? window.translateError(msg) : msg;
-            showAlert(translatedMsg || t('error.fidoRegFailed') || 'Failed to finish FIDO registration', 'error');
+            showAlert(await responseErrorMessage(finishRes, 'error.fidoRegFailed'), 'error');
         }
     } catch (err) {
         console.error('FIDO registration error:', err);
-        const errMsg = err && (err.message || err.name || String(err));
-        const translatedMsg = errMsg && window.translateError ? window.translateError(errMsg) : errMsg;
-        showAlert(translatedMsg || t('error.fidoRegFailed') || 'FIDO registration failed', 'error');
+        showAlert(caughtErrorMessage(err, 'error.fidoRegFailed'), 'error');
     }
 }
 
@@ -714,7 +714,7 @@ async function renderProfileMemberships(profile, format, sequence) {
             `/api/users/${encodeURIComponent(profile.username)}/memberships?format=${encodeURIComponent(format)}`
         );
         if (sequence !== profilePageLoadSeq) return;
-        if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) throw await localizedResponseError(response, 'profile.membershipsLoadFailed');
         const payload = await response.json();
         const memberships = Array.isArray(payload.memberships) ? payload.memberships : [];
         await morphElementHeight(list, () => {
@@ -958,13 +958,14 @@ function buildProfileIdentityEditor(profile) {
                 body: JSON.stringify({username: requestedUsername, nickname: requestedNickname})
             });
             if (!response.ok) {
-                const responseMessage = await response.text();
                 const message = response.status === 409
                     ? t('profile.usernameExists')
                     : (response.status === 429
                         ? t('profile.renameRateLimited')
-                        : (response.status === 400 ? t('profile.identityInvalid') : responseMessage));
-                throw new Error(message || t('profile.updateFailed'));
+                        : (response.status === 400
+                            ? t('profile.identityInvalid')
+                            : await responseErrorMessage(response, 'profile.updateFailed')));
+                throw new LocalizedResponseError(message, response.status);
             }
             const updated = await response.json();
             const oldUsername = profile.username;
@@ -987,7 +988,8 @@ function buildProfileIdentityEditor(profile) {
             updateCounter();
             updateProfileEditHeading(updated);
         } catch (error) {
-            showAlert(error.message || t('profile.updateFailed'), 'error');
+            console.error('Failed to update profile identity', error);
+            showAlert(caughtErrorMessage(error, 'profile.updateFailed'), 'error');
         } finally {
             saveButton.disabled = false;
         }
@@ -1142,8 +1144,7 @@ function wireProfileEditActions(profile) {
                     if (strengthCtrl) strengthCtrl.reset();
                     void refreshAccountSecurity();
                 } else {
-                    const msg = await response.text();
-                    showAlert(t('profile.updatePasswordFailed') + ': ' + msg, 'error');
+                    showAlert(await responseErrorMessage(response, 'profile.updatePasswordFailed'), 'error');
                 }
             } catch (error) {
                 showAlert(t('profile.updatePasswordError'), 'error');

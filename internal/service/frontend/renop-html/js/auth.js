@@ -18,6 +18,7 @@ import {stopDashboardRefresh} from './dashboard.js';
 import {LoginRequest, SessionDetails} from './proto/index.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 import {getUserProfile, profileDisplayName} from './user-profiles.js';
+import {responseErrorMessage} from './response-errors.js';
 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
@@ -354,12 +355,12 @@ export async function login(name, secret) {
             showAlert(t('login.welcomeBack', {name: serverName}), 'success');
             loadDirectory(window.location.pathname);
         } else {
-            loginError.textContent = window.translateError ? window.translateError('Invalid credentials') : 'Invalid credentials';
+            loginError.textContent = await responseErrorMessage(response, 'login.invalidCreds');
             loginError.style.display = 'block';
         }
     } catch (error) {
         console.error('Login error:', error);
-        loginError.textContent = window.translateError ? window.translateError('An error occurred during login') : 'An error occurred during login';
+        loginError.textContent = t('login.loginError');
         loginError.style.display = 'block';
     }
 }
@@ -408,7 +409,7 @@ export async function fidoLogin() {
     loginError.style.display = 'none';
 
     if (!window.PublicKeyCredential) {
-        loginError.textContent = t('login.fidoUnsupported') || 'FIDO/WebAuthn is not supported by your browser.';
+        loginError.textContent = t('login.fidoUnsupported');
         loginError.style.display = 'block';
         return;
     }
@@ -424,16 +425,14 @@ export async function fidoLogin() {
         });
 
         if (!beginRes.ok) {
-            const errText = await beginRes.text();
-            const translatedErr = window.translateError ? window.translateError(errText) : errText;
-            loginError.textContent = translatedErr || t('login.fidoFailed') || 'FIDO login failed';
+            loginError.textContent = await responseErrorMessage(beginRes, 'login.fidoFailed');
             loginError.style.display = 'block';
             return;
         }
 
         const {session_id, options} = await beginRes.json();
         if (!options || !options.publicKey) {
-            loginError.textContent = t('login.fidoFailed') || 'FIDO login failed';
+            loginError.textContent = t('login.fidoFailed');
             loginError.style.display = 'block';
             return;
         }
@@ -460,7 +459,7 @@ export async function fidoLogin() {
 
         const assertion = await navigator.credentials.get({publicKey});
         if (!assertion) {
-            loginError.textContent = t('login.fidoFailed') || 'FIDO login failed';
+            loginError.textContent = t('login.fidoFailed');
             loginError.style.display = 'block';
             return;
         }
@@ -512,16 +511,12 @@ export async function fidoLogin() {
             showAlert(t('login.welcomeBack', {name: serverName}), 'success');
             loadDirectory(window.location.pathname);
         } else {
-            const errText = await finishRes.text();
-            const translatedErr = window.translateError ? window.translateError(errText) : errText;
-            loginError.textContent = translatedErr || (window.translateError ? window.translateError('Invalid FIDO credential') : 'Invalid FIDO credential');
+            loginError.textContent = await responseErrorMessage(finishRes, 'error.invalidFidoCred');
             loginError.style.display = 'block';
         }
     } catch (error) {
         console.error('FIDO Login error:', error);
-        const errMsg = error && (error.message || error.name || String(error));
-        const translatedMsg = errMsg && window.translateError ? window.translateError(errMsg) : errMsg;
-        loginError.textContent = translatedMsg || (window.translateError ? window.translateError('An error occurred during FIDO login') : 'An error occurred during FIDO login');
+        loginError.textContent = t('error.fidoLoginError');
         loginError.style.display = 'block';
     }
 }

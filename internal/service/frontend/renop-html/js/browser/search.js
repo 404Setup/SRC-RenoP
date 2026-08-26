@@ -246,7 +246,7 @@ async function fetchRepositorySearch(query, version) {
             {signal: requestController.signal}
         );
         if (version !== searchVersion) return;
-        if (!response.ok || !payload) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok || !payload) throw new Error(t('search.failed'));
         renderSearchResults(payload);
     } catch (error) {
         if (error?.name === 'AbortError' || version !== searchVersion) return;

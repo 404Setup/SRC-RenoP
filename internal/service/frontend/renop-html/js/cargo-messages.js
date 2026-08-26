@@ -12,6 +12,7 @@ import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {registerMessageActionHandler, registerMessageRenderer} from './messages.js';
+import {localizedResponseError} from './response-errors.js';
 
 /**
  * Return a trusted, bounded Cargo invitation payload from a server message.
@@ -71,10 +72,7 @@ async function handleCargoInvitation(message, decision) {
     }
     const endpoint = `/${encodeURIComponent(payload.repository)}/api/v1/invitations/${encodeURIComponent(message.id)}/${decision}`;
     const response = await apiRequest(endpoint, {method: 'POST'});
-    if (!response.ok) {
-        const detail = (await response.text()).slice(0, 512);
-        throw new Error(detail || `HTTP ${response.status}`);
-    }
+    if (!response.ok) throw await localizedResponseError(response, 'messages.actionFailed');
     showAlert(t(decision === 'accept' ? 'cargo.inviteAccepted' : 'cargo.inviteRejected'), 'success');
     window.dispatchEvent(new CustomEvent('cargoMembershipChanged', {
         detail: {repository: payload.repository, package: payload.package}

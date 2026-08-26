@@ -23,6 +23,7 @@ import {
 import {attachPasswordStrength, confirmWeakPasswordIfNeeded, getPasswordLengthError} from '../password-strength.js';
 import {getUserProfile, invalidateUserProfiles} from '../user-profiles.js';
 import {writeClipboardText} from '../clipboard.js';
+import {responseErrorMessage} from '../response-errors.js';
 
 let secretStrengthCtrl = null;
 let currentDialogInstance = null;
@@ -275,13 +276,14 @@ async function handleUserSubmit(e, dialog) {
             }
             refreshTokensList();
         } else {
-            const errText = await response.text();
 			const message = response.status === 409
 				? t('profile.usernameExists')
 				: (response.status === 429
 					? t('profile.renameRateLimited')
-					: (response.status === 400 ? t('profile.identityInvalid') : errText));
-            showAlert(message || t('users.failedSaveUser'), 'error');
+					: (response.status === 400
+                        ? t('profile.identityInvalid')
+                        : await responseErrorMessage(response, 'users.failedSaveUser')));
+            showAlert(message, 'error');
         }
     } catch (err) {
         console.error('Failed to save user', err);

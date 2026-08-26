@@ -30,6 +30,7 @@ import {
     UserSearchResponse
 } from './proto/index.js';
 import {timestampMilliseconds} from './time.js';
+import {localizedResponseError} from './response-errors.js';
 
 const actionHandlers = new Map();
 const messageRenderers = new Map();
@@ -190,7 +191,7 @@ async function fetchMessages(reset, requestedCursor = '') {
         const cursor = reset ? '' : requestedCursor;
         const url = cursor ? `/api/messages?limit=30&cursor=${encodeURIComponent(cursor)}` : '/api/messages?limit=30';
         const {response, data: payload} = await fetchProto(url, UserMessageList);
-        if (!response.ok) throw new Error(await responseError(response));
+        if (!response.ok) throw await localizedResponseError(response, 'messages.loadFailed');
         const page = Array.isArray(payload?.messages) ? payload.messages : [];
         let firstAddedMessageID = '';
         if (reset) {
@@ -501,7 +502,7 @@ async function handleMessageListClick(event) {
 async function markMessageRead(message) {
     try {
         const {response} = await postProto(`/api/messages/${encodeURIComponent(message.id)}/read`, null, null, StatusOk);
-        if (!response.ok) throw new Error(await responseError(response));
+        if (!response.ok) throw await localizedResponseError(response, 'messages.updateFailed');
         message.read_at = Date.now();
         setUnreadCount(Math.max(0, unreadCount - 1));
         renderMessages();
@@ -517,7 +518,7 @@ async function markMessageRead(message) {
 async function markAllRead() {
     try {
         const {response, data: payload} = await postProto('/api/messages/read-all', null, null, MarkAllReadResponse);
-        if (!response.ok) throw new Error(await responseError(response));
+        if (!response.ok) throw await localizedResponseError(response, 'messages.updateFailed');
         const now = Date.now();
         for (const message of messages) message.read_at = message.read_at || now;
         setUnreadCount(0);
@@ -546,7 +547,7 @@ async function clearAllMessages() {
         if (!confirmed) return;
         setClearMessagesBusy(true);
         const {response, data: payload} = await sendProto('/api/messages', 'DELETE', null, null, ClearMessagesResponse);
-        if (!response.ok) throw new Error(await responseError(response));
+        if (!response.ok) throw await localizedResponseError(response, 'messages.clearFailed');
         await animateDismissibleMessagesOut();
         await fetchMessages(true);
         showAlert(t('messages.cleared', {count: Number(payload?.deleted) || 0}), 'success');
@@ -591,7 +592,7 @@ function updateMessageToolbarState() {
 async function deleteMessage(message) {
     try {
         const {response} = await sendProto(`/api/messages/${encodeURIComponent(message.id)}`, 'DELETE', null, null, StatusOk);
-        if (!response.ok) throw new Error(await responseError(response));
+        if (!response.ok) throw await localizedResponseError(response, 'messages.deleteFailed');
         const remainingMessages = [];
         for (const candidate of messages) {
             if (candidate.id !== message.id) remainingMessages.push(candidate);
@@ -616,8 +617,6 @@ async function deleteMessage(message) {
         showAlert(t('messages.deleteFailed'), 'error');
     }
 }
-
-
 /**
  * Collapse and fade a message before removing it from local state.
  * @param {string} messageID - Server-owned message identifier.
@@ -1164,7 +1163,7 @@ async function fetchRecipientSuggestions() {
     const version = recipientSuggestionVersion;
     try {
         const {response, data: payload} = await fetchProto(`/api/messages/admin/users?q=${encodeURIComponent(query)}`, UserSearchResponse);
-        if (!response.ok) throw new Error(await responseError(response));
+        if (!response.ok) throw await localizedResponseError(response, 'messages.loadFailed');
         if (version !== recipientSuggestionVersion || query !== currentRecipientQuery(input)) return;
         renderRecipientSuggestions(Array.isArray(payload?.users) ? payload.users : []);
     } catch (error) {
@@ -1383,7 +1382,7 @@ async function submitNotification(event) {
             {all, recipients, severity, title, body},
             SendNotificationResponse
         );
-        if (!response.ok) throw new Error(await responseError(response));
+        if (!response.ok) throw await localizedResponseError(response, 'messages.sendFailed');
         notificationSending = false;
         setNotificationSubmitState('success');
         showAlert(t('messages.sent', {count: Number(payload?.sent) || 0}), 'success');
@@ -1394,15 +1393,4 @@ async function submitNotification(event) {
         console.error('Failed to send notification', error);
         showAlert(t('messages.sendFailed'), 'error');
     }
-}
-
-
-/**
- * Extract a bounded error string from an API response.
- * @param {Response} response - Failed response.
- * @returns {Promise<string>} Error text.
- */
-async function responseError(response) {
-    const text = await response.text();
-    return text.slice(0, 512) || `HTTP ${response.status}`;
 }

@@ -28,6 +28,11 @@ import {
 import {logout} from './auth.js';
 import {restartApp} from './dashboard.js';
 import {
+    caughtErrorMessage,
+    LocalizedResponseError,
+    responseErrorMessage
+} from './response-errors.js';
+import {
     FrontendConfig,
     IndexDomainSettings,
     ProxyConfig,
@@ -1557,8 +1562,7 @@ async function triggerIndexRebuild(mode) {
         if (response.ok) {
             showAlert(t('settings.rebuildSuccess', {mode}), 'success');
         } else {
-            const errText = await response.text();
-            showAlert(errText || t('settings.rebuildFailed', {mode}), 'error');
+            showAlert(await responseErrorMessage(response, 'settings.rebuildFailed', {mode}), 'error');
         }
     } catch (e) {
         console.error('Failed to trigger index rebuild', e);
@@ -1606,9 +1610,13 @@ export async function saveDomainSettings() {
                     ));
                 }
                 if (!response.ok) {
-                    throw new Error(domain === 'github_oauth'
-                        ? t('settings.githubOAuthSaveFailed')
-                        : (await response.text() || t('settings.saveFailed')));
+                    const fallbackKey = domain === 'github_oauth'
+                        ? 'settings.githubOAuthSaveFailed'
+                        : 'settings.saveFailed';
+                    throw new LocalizedResponseError(
+                        await responseErrorMessage(response, fallbackKey),
+                        response.status
+                    );
                 }
                 if (domain === 'github_oauth' && savedData) {
                     currentConfig[domain] = {
@@ -1641,12 +1649,11 @@ export async function saveDomainSettings() {
             const saveBtn = document.getElementById('settings-save-btn');
             if (saveBtn) saveBtn.disabled = true;
         } else {
-            const errText = await response.text();
-            showAlert(errText || t('settings.saveFailed'), 'error');
+            showAlert(await responseErrorMessage(response, 'settings.saveFailed'), 'error');
         }
     } catch (e) {
         console.error('Failed to save settings', e);
-        showAlert(e.message || t('settings.saveFailed'), 'error');
+        showAlert(caughtErrorMessage(e, 'settings.saveFailed'), 'error');
     }
 }
 

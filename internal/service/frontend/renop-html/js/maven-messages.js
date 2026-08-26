@@ -12,6 +12,7 @@ import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {registerMessageActionHandler, registerMessageRenderer} from './messages.js';
+import {localizedResponseError} from './response-errors.js';
 
 /**
  * Return a trusted, bounded Maven invitation payload from a server message.
@@ -67,10 +68,7 @@ async function handleMavenInvitation(message, decision) {
     }
     const endpoint = `/api/maven/invitations/${encodeURIComponent(message.id)}/${decision}`;
     const response = await apiRequest(endpoint, {method: 'POST'});
-    if (!response.ok) {
-        const detail = (await response.text()).slice(0, 512);
-        throw new Error(detail || `HTTP ${response.status}`);
-    }
+    if (!response.ok) throw await localizedResponseError(response, 'messages.actionFailed');
     showAlert(t(decision === 'accept' ? 'maven.inviteAccepted' : 'maven.inviteRejected'), 'success');
     window.dispatchEvent(new CustomEvent('mavenMembershipChanged', {
         detail: {domain: payload.domain}

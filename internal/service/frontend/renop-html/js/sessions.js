@@ -19,6 +19,7 @@ import {createBadge} from './components/badge.js';
 import {createEmptyState} from './components/empty-state.js';
 import {logout} from './auth.js';
 import {formatTimestamp} from './time.js';
+import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
 
 /**
  * @typedef {object} SessionView
@@ -133,12 +134,9 @@ async function loadSessions(opts) {
     const {response, data} = await fetchProto(listUrl(opts), SessionList);
     if (response.status === 401 || response.status === 403) {
         if (opts.mode === 'self') logout('kicked');
-        throw new Error(response.status === 403 ? 'Forbidden' : 'Unauthorized');
+        throw await localizedResponseError(response, 'sessions.loadFailed');
     }
-    if (!response.ok) {
-        const msg = await response.text().catch(() => '');
-        throw new Error(msg || t('sessions.loadFailed'));
-    }
+    if (!response.ok) throw await localizedResponseError(response, 'sessions.loadFailed');
     return data?.sessions || [];
 }
 
@@ -169,12 +167,9 @@ async function revokeOne(opts, publicId) {
     const response = await mutateSessions(revokeOneUrl(opts, publicId), 'DELETE');
     if (response.status === 401 || response.status === 403) {
         if (opts.mode === 'self') logout('kicked');
-        throw new Error(response.status === 403 ? 'Forbidden' : 'Unauthorized');
+        throw await localizedResponseError(response, 'sessions.revokeFailed');
     }
-    if (!response.ok) {
-        const msg = await response.text().catch(() => '');
-        throw new Error(msg || t('sessions.revokeFailed'));
-    }
+    if (!response.ok) throw await localizedResponseError(response, 'sessions.revokeFailed');
 }
 
 /**
@@ -186,12 +181,9 @@ async function revokeBulk(opts) {
     const response = await mutateSessions(revokeBulkUrl(opts), 'POST');
     if (response.status === 401 || response.status === 403) {
         if (opts.mode === 'self') logout('kicked');
-        throw new Error(response.status === 403 ? 'Forbidden' : 'Unauthorized');
+        throw await localizedResponseError(response, 'sessions.revokeOthersFailed');
     }
-    if (!response.ok) {
-        const msg = await response.text().catch(() => '');
-        throw new Error(msg || t('sessions.revokeOthersFailed'));
-    }
+    if (!response.ok) throw await localizedResponseError(response, 'sessions.revokeOthersFailed');
 }
 
 /**
@@ -428,7 +420,8 @@ export function openSessionsDialog(options = {mode: 'self'}) {
                 );
                 await refresh({animate: true, removeGone: true});
             } catch (e) {
-                showAlert(e?.message || t('sessions.revokeOthersFailed'), 'error');
+                console.error('Failed to revoke sessions', e);
+                showAlert(caughtErrorMessage(e, 'sessions.revokeOthersFailed'), 'error');
             } finally {
                 listHost.classList.remove('is-busy');
                 updateBulkDisabled();
@@ -552,7 +545,8 @@ export function openSessionsDialog(options = {mode: 'self'}) {
                     updateBulkDisabled();
                 } catch (e) {
                     revokeBtn.disabled = false;
-                    showAlert(e?.message || t('sessions.revokeFailed'), 'error');
+                    console.error('Failed to revoke session', e);
+                    showAlert(caughtErrorMessage(e, 'sessions.revokeFailed'), 'error');
                 }
             },
         });
@@ -724,7 +718,7 @@ export function openSessionsDialog(options = {mode: 'self'}) {
                 sessions = [];
                 showEmpty();
             }
-            showAlert(e?.message || t('sessions.loadFailed'), 'error');
+            showAlert(caughtErrorMessage(e, 'sessions.loadFailed'), 'error');
             updateBulkDisabled();
         } finally {
             listHost.classList.remove('is-refreshing');

@@ -41,6 +41,7 @@ import {
     listRepositoryFormats
 } from './repository-formats.js';
 import {paginateRepositoryNames, sortedRepositoryNames} from './repository-list.js';
+import {responseErrorMessage} from './response-errors.js';
 
 let currentConfig = null;
 let initialReposMap = {};
@@ -347,8 +348,7 @@ function buildRepoSection(container, data, repoKey, repo) {
                     showAlert(t('repos.deletedSuccess', {name: repoKey}), 'success');
                     animateRemoveRepoSection(section, container, data);
                 } else {
-                    const errText = await response.text();
-                    showAlert(errText || t('repos.failedDelete'), 'error');
+                    showAlert(await responseErrorMessage(response, 'repos.failedDelete'), 'error');
                 }
             } catch {
                 showAlert(t('repos.failedDelete'), 'error');
@@ -1323,8 +1323,7 @@ async function saveRepoSettings(repoKey, repo, options = {}) {
             }
             return true;
         }
-        const errText = await response.text();
-        showAlert(errText || t('repos.saveFailed'), 'error');
+        showAlert(await responseErrorMessage(response, 'repos.saveFailed'), 'error');
         return false;
     } catch {
         if (saveSeqByRepo.get(repoKey) === seq) {
