@@ -80,7 +80,8 @@
   and `js/time.js`. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
   shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the
   button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed
-  requests. Docker management
+  requests. `js/backend-availability.js` confirms same-origin request failures with foreground health probes so browser
+  suspension cannot produce a stale blocking offline state. Docker management
   failures expose stable `X-Renop-Error-Code` values that `js/docker-errors.js` maps to the Docker locale catalogs;
   browser and message-center views never display raw backend error text. The official website Markdown renderer derives
   heading labels and anchors from visible inline-token text so emphasis delimiters are not repeated in the docs TOC.

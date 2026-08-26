@@ -31,8 +31,10 @@ import './docker-messages.js';
 import './maven-messages.js';
 import './team-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
+import {installBackendAvailabilityMonitor} from './backend-availability.js';
 
 initI18n();
+const backendAvailability = installBackendAvailabilityMonitor();
 
 window.addEventListener('languageChanged', async () => {
     updateCopyrightFooter();
@@ -53,21 +55,6 @@ window.addEventListener('languageChanged', async () => {
         populateRoles();
     }
 });
-
-(function () {
-    const originalFetch = window.fetch;
-    window.fetch = async function (...args) {
-        try {
-            return await originalFetch.apply(this, args);
-        } catch (error) {
-            if (error instanceof TypeError) {
-                const offlineEl = document.getElementById('backend-offline');
-                if (offlineEl) offlineEl.style.display = 'flex';
-            }
-            throw error;
-        }
-    };
-})();
 
 (function () {
     const bgUrlMeta = document.querySelector('meta[name="renop-background-url"]');
@@ -542,7 +529,11 @@ async function initializeApplication() {
 
         const reloadBtn = document.getElementById('reload-btn');
         if (reloadBtn) {
-            reloadBtn.addEventListener('click', () => window.location.reload());
+            reloadBtn.addEventListener('click', async () => {
+                reloadBtn.disabled = true;
+                if (await backendAvailability.retry()) window.location.reload();
+                else reloadBtn.disabled = false;
+            });
         }
 
         const homeLink = document.getElementById('home-link');

@@ -340,6 +340,33 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	}
 }
 
+func TestBackendOfflineDetectionRequiresForegroundConfirmation(t *testing.T) {
+	mainSource, err := os.ReadFile(filepath.Join("renop-html", "js", "main.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	monitorSource, err := os.ReadFile(filepath.Join("renop-html", "js", "backend-availability.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mainText := string(mainSource)
+	monitorText := string(monitorSource)
+	if strings.Contains(mainText, "offlineEl.style.display = 'flex'") {
+		t.Fatal("main.js still exposes the offline overlay after a single fetch failure")
+	}
+	for _, required := range []string{
+		"installBackendAvailabilityMonitor", "/api/status/health", "visibilitychange",
+		"documentObject.visibilityState === 'visible'", "await this.delay(probeRetryDelayMs)",
+	} {
+		if !strings.Contains(mainText+monitorText, required) {
+			t.Fatalf("backend availability monitor is missing %q", required)
+		}
+	}
+	if strings.Count(monitorText, "await this.runProbe()") != 2 {
+		t.Fatal("backend availability failures are not confirmed by exactly two probes")
+	}
+}
+
 func TestTeamRemovalMessagesHideOperator(t *testing.T) {
 	moduleSource, err := os.ReadFile(filepath.Join("renop-html", "js", "team-messages.js"))
 	if err != nil {
