@@ -180,6 +180,7 @@
     right: 0;
     width: min(11.75rem, calc(100vw - 1rem));
     min-width: 0;
+    box-sizing: border-box;
     padding: 0.4rem;
     border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
     border-radius: 0.75rem;
@@ -197,6 +198,7 @@
 
 .nav-controls-group .nav-profile-menu-item {
     width: 100%;
+    box-sizing: border-box;
     justify-content: flex-start;
     gap: 0.55rem;
     padding: 0.52rem 0.62rem;
@@ -205,6 +207,7 @@
     font-size: 0.84rem;
     font-weight: 550;
     text-align: left;
+    white-space: normal;
 }
 
 .nav-profile-menu-item > span:not(.message-unread-badge) {
@@ -300,7 +303,7 @@ html.dark .nav-controls-group .nav-profile-menu-item.is-danger:focus-visible {
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
-        padding: 0.9rem 1rem 0.55rem 1rem;
+        padding: 0.9rem max(1rem, env(safe-area-inset-right)) 0.55rem max(1rem, env(safe-area-inset-left));
         gap: 0.5rem;
     }
 
@@ -331,7 +334,9 @@ html.dark .nav-controls-group .nav-profile-menu-item.is-danger:focus-visible {
     }
 
     .nav-profile-menu {
-        right: -2.4rem;
+        right: 0;
+        width: 11.75rem;
+        max-width: calc(100vw - max(1rem, env(safe-area-inset-left)) - max(1rem, env(safe-area-inset-right)));
     }
 
     .nav-sign-in-btn {

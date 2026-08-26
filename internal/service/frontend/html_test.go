@@ -643,11 +643,17 @@ func TestNotificationComposerAndAccountMenuUseCompactStructuredLayout(t *testing
 	}
 	for _, required := range []string{
 		"width: min(11.75rem, calc(100vw - 1rem))",
+		"max-width: calc(100vw - max(1rem, env(safe-area-inset-left)) - max(1rem, env(safe-area-inset-right)))",
+		"padding: 0.9rem max(1rem, env(safe-area-inset-right)) 0.55rem max(1rem, env(safe-area-inset-left))",
+		"white-space: normal",
 		".nav-profile-menu-item > span:not(.message-unread-badge)",
 	} {
 		if !strings.Contains(string(navigationCSS), required) {
 			t.Fatalf("compact account menu styling is missing %q", required)
 		}
+	}
+	if strings.Contains(string(navigationCSS), "right: -2.4rem") {
+		t.Fatal("mobile account menu still extends beyond the viewport")
 	}
 }
 
