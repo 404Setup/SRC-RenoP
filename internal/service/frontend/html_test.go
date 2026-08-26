@@ -777,6 +777,7 @@ func TestFineGrainedAPITokenProfileUI(t *testing.T) {
 	for _, required := range []string{
 		".profile-api-token-scope-grid", ".profile-api-token-secret", "overflow-x: auto",
 		".profile-api-token-create-modal .modal-body", "scrollbar-gutter: stable",
+		"padding: 1.1rem 1.35rem 1.35rem !important",
 	} {
 		if !strings.Contains(string(profileCSS), required) {
 			t.Fatalf("fine-grained API token styling is missing %q", required)
