@@ -71,7 +71,10 @@
                     <button id="profile-trigger" class="user-text nav-profile-trigger" type="button"
                             aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu"
                             data-i18n-title="profile.openOwnProfile" title="Open account menu">
-                        <span class="user-avatar-dot" id="user-avatar-dot" aria-hidden="true"></span>
+                        <span class="user-avatar-wrap" aria-hidden="true">
+                            <span class="user-avatar-dot" id="user-avatar-dot"></span>
+                            <span id="profile-message-unread-badge" class="message-unread-badge profile-message-unread-badge" hidden>0</span>
+                        </span>
                         <span id="username-display" class="user-name"></span>
                         <svg class="nav-profile-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <polyline points="6 9 12 15 18 9"></polyline>

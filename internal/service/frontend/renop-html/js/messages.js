@@ -977,11 +977,14 @@ export async function refreshMessageUnreadCount() {
  */
 function setUnreadCount(count) {
     unreadCount = Math.max(0, Number.isFinite(count) ? Math.floor(count) : 0);
-    const badge = document.getElementById('message-unread-badge');
-    if (badge) {
+    const badges = [
+        document.getElementById('message-unread-badge'),
+        document.getElementById('profile-message-unread-badge'),
+    ].filter(Boolean);
+    badges.forEach(badge => {
         badge.hidden = unreadCount === 0;
         badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
-    }
+    });
     updateMessageToolbarState();
 }
 

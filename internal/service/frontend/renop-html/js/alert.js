@@ -21,6 +21,7 @@ import {
 import {InstanceStatus} from './proto/index.js';
 import {writeClipboardText} from './clipboard.js';
 import {formatTimestamp} from './time.js';
+import {updaterErrorMessage} from './updater-errors.js';
 
 /**
  * Show a transient toast alert that auto-dismisses after 5 seconds.
@@ -326,7 +327,7 @@ export function showOfflineUpdateModal() {
                 const freeSpace = Math.max(0, Number(diskTotal) - Number(diskUsed));
                 if (freeSpace < requiredSpace || freeSpace <= 0) {
                     showAlert(t('updater.insufficientDiskSpace'), 'error');
-                    spaceWarning.textContent = `${t('updater.insufficientDiskSpace')} (${t('updater.estimatedDiskSpace')} ${formatBytes(requiredSpace)}, Free: ${formatBytes(freeSpace)})`;
+                    spaceWarning.textContent = `${t('updater.insufficientDiskSpace')} (${t('updater.estimatedDiskSpace')} ${formatBytes(requiredSpace)}, ${t('updater.availableDiskSpace')} ${formatBytes(freeSpace)})`;
                     spaceWarning.style.display = 'block';
                     return false;
                 }
@@ -461,21 +462,12 @@ export function showOfflineUpdateModal() {
                             await window.fetchUpdaterStatusQuietly();
                         }
                     } else {
-                        let errText = result.status ? `HTTP ${result.status}` : t('common.unknown');
-                        if (result.body && result.body.error) {
-                            errText = result.body.error;
-                        } else if (result.responseText) {
-                            try {
-                                const errJson = JSON.parse(result.responseText);
-                                if (errJson.error) errText = errJson.error;
-                            } catch (ex) { /* ignore */
-                            }
-                        }
-                        showAlert(errText, 'error');
+                        showAlert(updaterErrorMessage(result, 'updater.uploadFailed'), 'error');
                         resetProgressUI();
                     }
                 } catch (err) {
-                    showAlert(err.message || t('common.unknown'), 'error');
+                    console.error('Offline update upload failed', err);
+                    showAlert(t('updater.uploadFailed'), 'error');
                     resetProgressUI();
                 }
             }

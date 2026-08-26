@@ -83,7 +83,9 @@
   stale directory state and descendants so API traversal cannot expose a file as an empty folder.
 - **`internal/service/updater/`**: Authenticated update checking and installation with SHA-256 verification, bounded
   streaming decode of new raw `.br` executable packages, compatibility decode for legacy `.zip` packages, and
-  deduplicated administrator status notifications. Update results aggregate every retained release note between the
+  deduplicated administrator result notifications. Download-start and imminent-restart progress remain transient
+  frontend toasts; stable updater error codes localize online and offline failures without exposing filesystem details.
+  Update results aggregate every retained release note between the
   running build and target; embedded full commit IDs and each stable record's `previous_commit` preserve ordering when
   version labels or older hosted records are unavailable.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (modern Maven domain/artifact catalog,

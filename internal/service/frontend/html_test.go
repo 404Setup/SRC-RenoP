@@ -389,7 +389,6 @@ func TestSystemUpdatePromptsUseMessageCenter(t *testing.T) {
 	}
 	for _, removedPrompt := range []string{
 		"showUpdateModal(data)",
-		"window.showAlert(t('dashboard.downloadingBg')",
 		"window.showAlert(t('dashboard.updateError'",
 	} {
 		if strings.Contains(dashboardText, removedPrompt) {
@@ -399,6 +398,14 @@ func TestSystemUpdatePromptsUseMessageCenter(t *testing.T) {
 	if !strings.Contains(dashboardText, "showUpdateModal(updateInfo)") {
 		t.Fatal("explicit dashboard update review control was removed")
 	}
+	for _, transientToast := range []string{
+		"showAlert(t('dashboard.downloadingBg'), 'info')",
+		"showAlert(t('dashboard.restarting'), 'info')",
+	} {
+		if !strings.Contains(dashboardText, transientToast) {
+			t.Fatalf("transient update feedback is missing toast %q", transientToast)
+		}
+	}
 	offlineSource, err := os.ReadFile(filepath.Join("renop-html", "js", "alert.js"))
 	if err != nil {
 		t.Fatal(err)
@@ -406,10 +413,32 @@ func TestSystemUpdatePromptsUseMessageCenter(t *testing.T) {
 	if !strings.Contains(string(offlineSource), "export function showOfflineUpdateModal") {
 		t.Fatal("offline update dialog was changed or removed")
 	}
-	for _, required := range []string{"accept: '.br,.zip'", "isSupportedOfflineUpdate(file)"} {
+	for _, required := range []string{
+		"accept: '.br,.zip'", "isSupportedOfflineUpdate(file)",
+		"updaterErrorMessage(result, 'updater.uploadFailed')", "showAlert(t('updater.uploadFailed'), 'error')",
+	} {
 		if !strings.Contains(string(offlineSource), required) {
 			t.Fatalf("offline update dialog is missing Brotli/ZIP compatibility marker %q", required)
 		}
+	}
+	if strings.Contains(string(offlineSource), "result.status ? `HTTP ${result.status}` : t('common.unknown')") {
+		t.Fatal("offline update failures still fall back to an unknown or raw HTTP error")
+	}
+	updaterErrorSource, err := os.ReadFile(filepath.Join("renop-html", "js", "updater-errors.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	updaterErrorText := string(updaterErrorSource)
+	for _, required := range []string{
+		"X-Renop-Error-Code", "invalid_package", "incompatible_binary", "package_too_large",
+		"package_processing_failed", "restart_failed",
+	} {
+		if !strings.Contains(updaterErrorText, required) {
+			t.Fatalf("localized updater error mapping is missing %q", required)
+		}
+	}
+	if strings.Contains(updaterErrorText, "responseText") {
+		t.Fatal("updater error mapping exposes raw response bodies")
 	}
 }
 
@@ -563,6 +592,9 @@ func TestAccountMenuOwnsMessagesLogoutAndNotificationComposer(t *testing.T) {
 		t.Fatal("account menu boundary is missing")
 	}
 	accountMenu := indexText[menuStart:appStart]
+	if !strings.Contains(indexText[:menuStart], `id="profile-message-unread-badge"`) {
+		t.Fatal("account trigger is missing its unread-message badge")
+	}
 	for _, required := range []string{
 		`id="message-center-btn"`, `data-account-action="messages"`, `id="logout-btn"`,
 		`id="message-compose-menu-btn"`, `data-account-action="compose-notification"`,
@@ -589,6 +621,7 @@ func TestAccountMenuOwnsMessagesLogoutAndNotificationComposer(t *testing.T) {
 	messagesText := string(messagesSource)
 	for _, required := range []string{
 		"export function openNotificationComposer", "messages.length > 0 && nextCursor !== ''",
+		"document.getElementById('profile-message-unread-badge')",
 		"button.disabled = loading || !hasMore", "button.hidden = !hasMore",
 	} {
 		if !strings.Contains(messagesText, required) {
@@ -647,6 +680,7 @@ func TestNotificationComposerAndAccountMenuUseCompactStructuredLayout(t *testing
 		"padding: 0.9rem max(1rem, env(safe-area-inset-right)) 0.55rem max(1rem, env(safe-area-inset-left))",
 		"white-space: normal",
 		".nav-profile-menu-item > span:not(.message-unread-badge)",
+		".profile-message-unread-badge",
 	} {
 		if !strings.Contains(string(navigationCSS), required) {
 			t.Fatalf("compact account menu styling is missing %q", required)

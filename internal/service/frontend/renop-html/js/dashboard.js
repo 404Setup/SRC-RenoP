@@ -16,6 +16,7 @@ import {showAlert} from './alert.js';
 import {InstanceStatus, StatusSnapshotList, UpdateState} from './proto/index.js';
 import {formatTimestamp} from './time.js';
 import {refreshMessageUnreadCount} from './messages.js';
+import {updaterErrorMessage} from './updater-errors.js';
 
 let refreshInterval = null;
 let snapshotsInterval = null;
@@ -699,10 +700,14 @@ export async function installAppUpdate() {
         const headers = getAuthHeaders();
         const resp = await fetch('/api/updater/install', {method: 'POST', headers});
         if (resp.ok) {
+            showAlert(t('dashboard.downloadingBg'), 'info');
             pollUpdaterStatus();
+        } else {
+            showAlert(updaterErrorMessage(resp, 'updaterNotice.installFailedTitle'), 'error');
         }
     } catch (e) {
         console.error('Install update error', e);
+        showAlert(t('updaterNotice.installFailedTitle'), 'error');
     } finally {
         await refreshMessageUnreadCount();
     }
@@ -742,17 +747,18 @@ export function pollUpdaterStatus() {
  * @returns {Promise<void>}
  */
 export async function restartApp() {
+    showAlert(t('dashboard.restarting'), 'info');
     try {
         const headers = getAuthHeaders();
         const resp = await fetch('/api/updater/restart', {method: 'POST', headers});
         if (!resp.ok) {
+            showAlert(updaterErrorMessage(resp, 'updaterNotice.restartFailedTitle'), 'error');
             await refreshMessageUnreadCount();
             return;
         }
         setTimeout(() => window.location.reload(), 4000);
     } catch (e) {
         console.error('Restart error', e);
-        await refreshMessageUnreadCount();
     }
 }
 

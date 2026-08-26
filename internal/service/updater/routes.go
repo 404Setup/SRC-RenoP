@@ -135,16 +135,17 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 	api.Post("/check", func(c fiber.Ctx) error {
 		user := auth.GetUser(c)
 		if !user.IsManager() {
-			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+			return WriteAPIError(c, fiber.StatusForbidden, APIErrorForbidden, "Updater access is forbidden")
 		}
 
 		channel := resolveCheckChannel(c.Query("channel"), state)
 		res, err := CheckUpdate(c.Context(), channel)
 		if err != nil {
+			log.Printf("[Updater] Manual update check failed: %v", err)
 			if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeCheckFailed, nil); notifyErr != nil {
 				log.Printf("[Updater] Failed to deliver check failure notification: %v", notifyErr)
 			}
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return WriteAPIError(c, fiber.StatusInternalServerError, APIErrorCheckFailed, "Update check failed")
 		}
 
 		updateStateFields(func(s *UpdateState) {
@@ -174,7 +175,8 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 		}
 		if err := deliverUpdateNotification(state, user.Username, event, res); err != nil {
 			log.Printf("[Updater] Failed to deliver manual update notification: %v", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to deliver update notification"})
+			return WriteAPIError(c, fiber.StatusInternalServerError, APIErrorNotificationFailed,
+				"Failed to deliver update notification")
 		}
 
 		return c.JSON(res)
@@ -183,7 +185,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 	api.Post("/install", func(c fiber.Ctx) error {
 		user := auth.GetUser(c)
 		if !user.IsManager() {
-			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+			return WriteAPIError(c, fiber.StatusForbidden, APIErrorForbidden, "Updater access is forbidden")
 		}
 
 		st := GetUpdateState()
@@ -199,16 +201,12 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeInsufficientSpace, nil); notifyErr != nil {
 				log.Printf("[Updater] Failed to deliver insufficient-space notification: %v", notifyErr)
 			}
-			return c.Status(fiber.StatusInsufficientStorage).JSON(fiber.Map{"error": "Insufficient disk space to download update package"})
+			return WriteAPIError(c, fiber.StatusInsufficientStorage, APIErrorInsufficientSpace,
+				"Insufficient disk space to download update package")
 		}
 
 		if !isInstalling.CompareAndSwap(false, true) {
-			return c.Status(fiber.StatusConflict).SendString("Installation already in progress")
-		}
-		if err := deliverUpdateNotification(state, user.Username, updateNoticeDownloading, nil); err != nil {
-			isInstalling.Store(false)
-			log.Printf("[Updater] Failed to deliver download notification: %v", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to deliver update notification"})
+			return WriteAPIError(c, fiber.StatusConflict, APIErrorInstallBusy, "Installation already in progress")
 		}
 		recipient := strings.Clone(user.Username)
 
@@ -235,18 +233,16 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 
 			targetPath, err := DownloadAndExtract(context.Background(), downloadURL, st.SHA256)
 			if err != nil {
+				_, _, publicError := PackageAPIError(err)
 				updateStateFields(func(s *UpdateState) {
 					s.Status = "error"
-					s.ErrorMessage = err.Error()
+					s.ErrorMessage = publicError
 				})
 				if notifyErr := deliverUpdateNotification(state, recipient, updateNoticeInstallFailed, nil); notifyErr != nil {
 					log.Printf("[Updater] Failed to deliver update failure notification: %v", notifyErr)
 				}
 			} else {
 				SetReadyToRestart(targetPath, st.LatestVersion)
-				if notifyErr := deliverUpdateNotification(state, recipient, updateNoticeReady, nil); notifyErr != nil {
-					log.Printf("[Updater] Failed to deliver restart-ready notification: %v", notifyErr)
-				}
 			}
 		}()
 
@@ -256,7 +252,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 	api.Post("/upload", func(c fiber.Ctx) error {
 		user := auth.GetUser(c)
 		if !user.IsManager() {
-			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+			return WriteAPIError(c, fiber.StatusForbidden, APIErrorForbidden, "Updater access is forbidden")
 		}
 
 		contentLength := c.Request().Header.ContentLength()
@@ -267,7 +263,8 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 					s.Status = "error"
 					s.ErrorMessage = "Insufficient disk space to upload update package"
 				})
-				return c.Status(fiber.StatusInsufficientStorage).JSON(fiber.Map{"error": "Insufficient disk space to upload update package"})
+				return WriteAPIError(c, fiber.StatusInsufficientStorage, APIErrorInsufficientSpace,
+					"Insufficient disk space to upload update package")
 			}
 		}
 
@@ -275,7 +272,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 		if err != nil {
 			file, err = c.FormFile("package")
 			if err != nil {
-				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No update package file uploaded"})
+				return WriteAPIError(c, fiber.StatusBadRequest, APIErrorMissingFile, "No update package file uploaded")
 			}
 		}
 
@@ -285,16 +282,18 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 				s.Status = "error"
 				s.ErrorMessage = "Insufficient disk space to upload update package"
 			})
-			return c.Status(fiber.StatusInsufficientStorage).JSON(fiber.Map{"error": "Insufficient disk space to upload update package"})
+			return WriteAPIError(c, fiber.StatusInsufficientStorage, APIErrorInsufficientSpace,
+				"Insufficient disk space to upload update package")
 		}
 
 		if !isInstalling.CompareAndSwap(false, true) {
-			return c.Status(fiber.StatusConflict).SendString("Installation already in progress")
+			return WriteAPIError(c, fiber.StatusConflict, APIErrorInstallBusy, "Installation already in progress")
 		}
 		defer isInstalling.Store(false)
 
 		if !IsSupportedUpdatePackageName(file.Filename) {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Uploaded file must be a .br or .zip package"})
+			return WriteAPIError(c, fiber.StatusBadRequest, APIErrorInvalidPackage,
+				"Uploaded file must be a .br or .zip package")
 		}
 
 		updateStateFields(func(s *UpdateState) {
@@ -304,11 +303,13 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 
 		targetPath, err := SaveAndExtractUploadedPackage(file)
 		if err != nil {
+			_, _, publicError := PackageAPIError(err)
 			updateStateFields(func(s *UpdateState) {
 				s.Status = "error"
-				s.ErrorMessage = err.Error()
+				s.ErrorMessage = publicError
 			})
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+			log.Printf("[Updater] Failed to process offline update package: %v", err)
+			return WritePackageAPIError(c, err)
 		}
 
 		SetReadyToRestart(targetPath, "offline")
@@ -322,27 +323,31 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 	api.Post("/restart", func(c fiber.Ctx) error {
 		user := auth.GetUser(c)
 		if !user.IsManager() {
-			return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+			return WriteAPIError(c, fiber.StatusForbidden, APIErrorForbidden, "Updater access is forbidden")
 		}
 
 		pending := pendingBinary.get()
 		if pending != "" {
 			log.Print("[Updater] Restarting application to apply update...")
 			if err := ApplyUpdateAndRestart(pending); err != nil {
+				log.Printf("[Updater] Failed to apply update and restart: %v", err)
 				if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeRestartFailed, nil); notifyErr != nil {
 					log.Printf("[Updater] Failed to deliver restart failure notification: %v", notifyErr)
 				}
-				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+				return WriteAPIError(c, fiber.StatusInternalServerError, APIErrorRestartFailed,
+					"Failed to restart the service")
 			}
 			return c.JSON(fiber.Map{"status": "restarting"})
 		}
 
 		log.Print("[Updater] Restarting application...")
 		if err := RestartProcess(); err != nil {
+			log.Printf("[Updater] Failed to restart process: %v", err)
 			if notifyErr := deliverUpdateNotification(state, user.Username, updateNoticeRestartFailed, nil); notifyErr != nil {
 				log.Printf("[Updater] Failed to deliver restart failure notification: %v", notifyErr)
 			}
-			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			return WriteAPIError(c, fiber.StatusInternalServerError, APIErrorRestartFailed,
+				"Failed to restart the service")
 		}
 		return c.JSON(fiber.Map{"status": "restarting"})
 	})

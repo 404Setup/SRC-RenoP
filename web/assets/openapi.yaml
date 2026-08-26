@@ -218,6 +218,17 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorBody"
+    UpdaterJsonError:
+      description: Localizable updater failure with a stable machine-readable code.
+      headers:
+        X-Renop-Error-Code:
+          schema:
+            type: string
+            enum: [forbidden, insufficient_space, missing_file, install_busy, invalid_package, incompatible_binary, package_too_large, package_processing_failed, check_failed, notification_failed, restart_failed]
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorBody"
 
   schemas:
     ErrorBody:
@@ -3716,9 +3727,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/CheckResult"
         "403":
-          $ref: "#/components/responses/PlainForbidden"
+          $ref: "#/components/responses/UpdaterJsonError"
         "500":
-          $ref: "#/components/responses/JsonError"
+          $ref: "#/components/responses/UpdaterJsonError"
 
   /api/updater/install:
     post:
@@ -3737,17 +3748,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/InstallStarted"
         "403":
-          $ref: "#/components/responses/PlainForbidden"
+          $ref: "#/components/responses/UpdaterJsonError"
         "409":
-          $ref: "#/components/responses/PlainConflict"
+          $ref: "#/components/responses/UpdaterJsonError"
         "507":
-          $ref: "#/components/responses/JsonError"
+          $ref: "#/components/responses/UpdaterJsonError"
 
   /api/updater/upload:
     post:
       tags: [updater]
       summary: Install an offline update package
-      description: Accepts a `.zip` update package via multipart upload (field `file` or `package`). Requires the `manager` permission.
+      description: Accepts a raw `.br` or legacy `.zip` update package via multipart upload (field `file` or `package`). Requires the `manager` permission.
       operationId: postUpdaterUpload
       security:
         - sessionCookie: []
@@ -3773,13 +3784,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/OfflineInstallResult"
         "400":
-          $ref: "#/components/responses/JsonError"
+          $ref: "#/components/responses/UpdaterJsonError"
         "403":
-          $ref: "#/components/responses/PlainForbidden"
+          $ref: "#/components/responses/UpdaterJsonError"
         "409":
-          $ref: "#/components/responses/PlainConflict"
+          $ref: "#/components/responses/UpdaterJsonError"
+        "413":
+          $ref: "#/components/responses/UpdaterJsonError"
         "507":
-          $ref: "#/components/responses/JsonError"
+          $ref: "#/components/responses/UpdaterJsonError"
 
   /api/updater/restart:
     post:
@@ -3800,13 +3813,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Restarting"
         "403":
-          $ref: "#/components/responses/PlainForbidden"
+          $ref: "#/components/responses/UpdaterJsonError"
         "500":
-          description: Restart or update-apply failed.
-          content:
-            text/plain:
-              schema:
-                type: string
+          $ref: "#/components/responses/UpdaterJsonError"
 
   # ========== Chunked Upload ==========
   /api/upload/chunked/:

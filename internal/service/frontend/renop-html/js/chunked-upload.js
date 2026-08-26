@@ -98,7 +98,7 @@ export function suggestConcurrency(fileSize, chunkCount) {
  *
  * @param {File|Blob} file
  * @param {ChunkedUploadOptions} options
- * @returns {Promise<{ok: boolean, status: number, body: any, responseText: string}>}
+ * @returns {Promise<{ok: boolean, status: number, body: any, responseText: string, errorCode?: string}>}
  */
 export async function uploadFileChunked(file, options = {}) {
     const purpose = options.purpose || 'storage';
@@ -143,6 +143,7 @@ export async function uploadFileChunked(file, options = {}) {
             status: initResp.status,
             body: tryParseJsonError(text),
             responseText: text,
+            errorCode: initResp.headers.get('X-Renop-Error-Code') || '',
         };
     }
 
@@ -281,6 +282,7 @@ export async function uploadFileChunked(file, options = {}) {
                             status: result.status,
                             body: result.body,
                             responseText: result.responseText,
+                            errorCode: result.errorCode,
                         });
                     }
 
@@ -291,6 +293,7 @@ export async function uploadFileChunked(file, options = {}) {
                             status: result.status,
                             body: result.body,
                             responseText: result.responseText,
+                            errorCode: result.errorCode,
                         });
                     }
                 }
@@ -335,6 +338,7 @@ export async function uploadFileChunked(file, options = {}) {
                     status: firstError.status || 0,
                     body: firstError.body || null,
                     responseText: firstError.responseText || firstError.message || '',
+                    errorCode: firstError.errorCode || '',
                 };
             }
         } else {
@@ -361,6 +365,7 @@ export async function uploadFileChunked(file, options = {}) {
                 status: completeResp.status,
                 body: tryParseJsonError(text),
                 responseText: text,
+                errorCode: completeResp.headers.get('X-Renop-Error-Code') || '',
             };
         }
 
@@ -415,7 +420,7 @@ function tryParseJsonError(text) {
  * @param {Record<string, string>} [headers]
  * @param {AbortSignal} [signal]
  * @param {(loaded: number, total: number) => void} [onChunkProgress]
- * @returns {Promise<{ok: boolean, status: number, body: any, responseText: string}>}
+ * @returns {Promise<{ok: boolean, status: number, body: any, responseText: string, errorCode?: string}>}
  */
 function putChunkWithProgress(uploadId, index, blob, headers, signal, onChunkProgress) {
     return new Promise((resolve) => {
@@ -458,6 +463,7 @@ function putChunkWithProgress(uploadId, index, blob, headers, signal, onChunkPro
                 status: xhr.status,
                 body: tryParseJsonError(text),
                 responseText: text,
+                errorCode: xhr.getResponseHeader('X-Renop-Error-Code') || '',
             });
         };
 
@@ -533,6 +539,7 @@ export function uploadUpdaterSingle(file, onProgress) {
                 status: xhr.status,
                 body: tryParseJsonError(text),
                 responseText: text,
+                errorCode: xhr.getResponseHeader('X-Renop-Error-Code') || '',
             });
         };
         xhr.onerror = () => {

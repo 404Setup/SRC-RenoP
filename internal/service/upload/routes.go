@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -196,14 +197,17 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 
 	case PurposeUpdater:
 		if !user.IsManager() {
-			return jsonErr(c, fiber.StatusForbidden, "Forbidden")
+			return updater.WriteAPIError(c, fiber.StatusForbidden, updater.APIErrorForbidden,
+				"Updater access is forbidden")
 		}
 		if !updater.IsSupportedUpdatePackageName(filename) {
-			return jsonErr(c, fiber.StatusBadRequest, "Uploaded file must be a .br or .zip package")
+			return updater.WriteAPIError(c, fiber.StatusBadRequest, updater.APIErrorInvalidPackage,
+				"Uploaded file must be a .br or .zip package")
 		}
 		reqSpace := updater.EstimateUploadedPackageDiskSpace(filename, req.GetSize())
 		if updater.CanAllocateDiskSpace != nil && !updater.CanAllocateDiskSpace(uint64(reqSpace)) {
-			return jsonErr(c, fiber.StatusInsufficientStorage, "Insufficient disk space to upload update package")
+			return updater.WriteAPIError(c, fiber.StatusInsufficientStorage, updater.APIErrorInsufficientSpace,
+				"Insufficient disk space to upload update package")
 		}
 
 	default:
@@ -439,18 +443,21 @@ func completeUpdater(c fiber.Ctx, sess *Session) error {
 	user := auth.GetUser(c)
 	if user == nil || !user.IsManager() {
 		sess.Abort()
-		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
+		return updater.WriteAPIError(c, fiber.StatusForbidden, updater.APIErrorForbidden,
+			"Updater access is forbidden")
 	}
 
 	reqSpace := updater.EstimateUploadedPackageDiskSpace(sess.Filename, sess.TotalSize)
 	if updater.CanAllocateDiskSpace != nil && !updater.CanAllocateDiskSpace(uint64(reqSpace)) {
 		sess.Abort()
-		return jsonErr(c, fiber.StatusInsufficientStorage, "Insufficient disk space to upload update package")
+		return updater.WriteAPIError(c, fiber.StatusInsufficientStorage, updater.APIErrorInsufficientSpace,
+			"Insufficient disk space to upload update package")
 	}
 
 	if !updater.TryBeginInstall() {
 		sess.Abort()
-		return c.Status(fiber.StatusConflict).SendString("Installation already in progress")
+		return updater.WriteAPIError(c, fiber.StatusConflict, updater.APIErrorInstallBusy,
+			"Installation already in progress")
 	}
 	defer updater.EndInstall()
 
@@ -464,8 +471,10 @@ func completeUpdater(c fiber.Ctx, sess *Session) error {
 	sess.MarkCompleted()
 
 	if err != nil {
-		updater.SetError(err.Error())
-		return jsonErr(c, fiber.StatusBadRequest, err.Error())
+		_, _, publicError := updater.PackageAPIError(err)
+		updater.SetError(publicError)
+		log.Printf("[Updater] Failed to process chunked offline update package: %v", err)
+		return updater.WritePackageAPIError(c, err)
 	}
 
 	updater.SetReadyToRestart(targetPath, "offline")

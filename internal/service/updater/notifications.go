@@ -23,8 +23,6 @@ const (
 	updateNoticeAvailable         = "available"
 	updateNoticeCurrent           = "current"
 	updateNoticeCheckFailed       = "check_failed"
-	updateNoticeDownloading       = "downloading"
-	updateNoticeReady             = "ready"
 	updateNoticeInstallFailed     = "install_failed"
 	updateNoticeInsufficientSpace = "insufficient_space"
 	updateNoticeRestartFailed     = "restart_failed"
@@ -48,10 +46,6 @@ func updateNotificationPresentation(event, targetVersion string) (severity, titl
 		return "success", "RenoP is up to date", "This server is already running the latest version."
 	case updateNoticeCheckFailed:
 		return "error", "Update check failed", "RenoP could not check the configured update channel. Try again from Dashboard."
-	case updateNoticeDownloading:
-		return "info", "Update download started", "The system update is downloading and being verified in the background."
-	case updateNoticeReady:
-		return "success", "Update ready to restart", "RenoP " + targetVersion + " is ready. Restart the server from Dashboard when convenient."
 	case updateNoticeInsufficientSpace:
 		return "error", "Insufficient update space", "There is not enough disk space to prepare the system update."
 	case updateNoticeRestartFailed:
@@ -80,7 +74,7 @@ func deliverUpdateNotification(state *core.AppState, recipient, event string, re
 	severity, title, body := updateNotificationPresentation(event, targetVersion)
 	payload := updateNotificationPayload{
 		Event: event, Version: targetVersion, Current: version.Version,
-		RequiresAction: event == updateNoticeAvailable || event == updateNoticeReady,
+		RequiresAction: event == updateNoticeAvailable,
 	}
 	if result != nil {
 		payload.Channel = result.Channel
