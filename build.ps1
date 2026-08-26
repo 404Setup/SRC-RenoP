@@ -24,8 +24,12 @@
     Full source revision of the preceding formal release.
 
 .PARAMETER BuildConcurrency
-    Maximum number of target compile/compress pipelines running at once.
-    The upper bound is four.
+    Maximum number of target compilation tasks running at once. The upper
+    bound is four. Compilation slots are released before packaging begins.
+
+.PARAMETER CompressionConcurrency
+    Maximum number of asynchronous Brotli packaging tasks running at once.
+    The upper bound is eight.
 #>
 [CmdletBinding()]
 param(
@@ -43,7 +47,9 @@ param(
     [string]$Commit,
     [string]$PreviousCommit,
     [ValidateRange(1, 4)]
-    [int]$BuildConcurrency = 4
+    [int]$BuildConcurrency = 4,
+    [ValidateRange(1, 8)]
+    [int]$CompressionConcurrency = 8
 )
 
 $ErrorActionPreference = 'Stop'
@@ -290,11 +296,14 @@ function ConvertTo-ProcessArgument {
     return '"' + $Value.Replace('"', '\"') + '"'
 }
 
-function Start-TargetBuildWorker {
+function Start-TargetWorker {
     param(
         [Parameter(Mandatory = $true)]$Job,
-        [Parameter(Mandatory = $true)][string]$WorkerScript
+        [Parameter(Mandatory = $true)][string]$WorkerScript,
+        [Parameter(Mandatory = $true)][ValidateSet('compile', 'compress')][string]$Phase
     )
+    $stdoutPath = if ($Phase -eq 'compile') { $Job.CompileStdoutPath } else { $Job.CompressStdoutPath }
+    $stderrPath = if ($Phase -eq 'compile') { $Job.CompileStderrPath } else { $Job.CompressStderrPath }
     $pwshCommand = Get-Command pwsh -ErrorAction Stop
     $startParameters = @{
         FilePath = $pwshCommand.Source
@@ -308,8 +317,8 @@ function Start-TargetBuildWorker {
             (ConvertTo-ProcessArgument $Job.SpecPath)
         )
         WorkingDirectory = $repositoryRoot
-        RedirectStandardOutput = $Job.StdoutPath
-        RedirectStandardError = $Job.StderrPath
+        RedirectStandardOutput = $stdoutPath
+        RedirectStandardError = $stderrPath
         PassThru = $true
     }
     if ($IsWindows) {
@@ -319,22 +328,25 @@ function Start-TargetBuildWorker {
     return [pscustomobject]@{
         Job = $Job
         Process = $process
+        Phase = $Phase
+        StdoutPath = $stdoutPath
+        StderrPath = $stderrPath
     }
 }
 
-function Write-TargetBuildLogs {
+function Write-TargetWorkerLogs {
     param([Parameter(Mandatory = $true)]$Worker)
-    if (Test-Path -LiteralPath $Worker.Job.StdoutPath -PathType Leaf) {
-        Get-Content -LiteralPath $Worker.Job.StdoutPath | ForEach-Object {
+    if (Test-Path -LiteralPath $Worker.StdoutPath -PathType Leaf) {
+        Get-Content -LiteralPath $Worker.StdoutPath | ForEach-Object {
             if (-not [string]::IsNullOrWhiteSpace($_)) {
-                Write-Host "[$($Worker.Job.Label)] $_"
+                Write-Host "[$($Worker.Job.Label)/$($Worker.Phase)] $_"
             }
         }
     }
-    if (Test-Path -LiteralPath $Worker.Job.StderrPath -PathType Leaf) {
-        Get-Content -LiteralPath $Worker.Job.StderrPath | ForEach-Object {
+    if (Test-Path -LiteralPath $Worker.StderrPath -PathType Leaf) {
+        Get-Content -LiteralPath $Worker.StderrPath | ForEach-Object {
             if (-not [string]::IsNullOrWhiteSpace($_)) {
-                Write-Warning "[$($Worker.Job.Label)] $_"
+                Write-Warning "[$($Worker.Job.Label)/$($Worker.Phase)] $_"
             }
         }
     }
@@ -357,7 +369,8 @@ function Remove-BuildWorkspace {
 }
 
 $buildWorkspace = $null
-$activeWorkers = [System.Collections.Generic.List[object]]::new()
+$activeCompileWorkers = [System.Collections.Generic.List[object]]::new()
+$activeCompressionWorkers = [System.Collections.Generic.List[object]]::new()
 try {
     Invoke-ProtobufGenerate
     Build-FrontendAssets
@@ -371,6 +384,10 @@ try {
     $workerScript = Join-Path $repositoryRoot 'scripts/build-target.ps1'
     if (-not (Test-Path -LiteralPath $workerScript -PathType Leaf)) {
         throw "Build target worker not found at $workerScript"
+    }
+    $compressionWorkerScript = Join-Path $repositoryRoot 'scripts/compress-target.ps1'
+    if (-not $noBundle -and -not (Test-Path -LiteralPath $compressionWorkerScript -PathType Leaf)) {
+        throw "Compression target worker not found at $compressionWorkerScript"
     }
 
     $jobs = [System.Collections.Generic.List[object]]::new()
@@ -410,6 +427,7 @@ try {
         }
         $destinationDescription = if ($noBundle) { $binaryPath } else { $archivePath }
         $specPath = Join-Path $buildWorkspace "job-$targetIndex.json"
+        $compileResultPath = Join-Path $buildWorkspace "compile-result-$targetIndex.json"
         $resultPath = Join-Path $buildWorkspace "result-$targetIndex.json"
         $jobSpec = [ordered]@{
             index = $targetIndex
@@ -424,6 +442,7 @@ try {
             brotli_tool = $brotliPackTool
             bundled = (-not $noBundle)
             ldflags = $ldflags
+            compile_result_path = $compileResultPath
             result_path = $resultPath
         }
         $jobSpec | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $specPath -Encoding utf8
@@ -431,54 +450,110 @@ try {
             Index = $targetIndex
             Label = "$goos/$goarch"
             Destination = $destinationDescription
+            BinaryPath = $binaryPath
             SpecPath = $specPath
+            CompileResultPath = $compileResultPath
             ResultPath = $resultPath
-            StdoutPath = Join-Path $buildWorkspace "job-$targetIndex.stdout.log"
-            StderrPath = Join-Path $buildWorkspace "job-$targetIndex.stderr.log"
+            CompileStdoutPath = Join-Path $buildWorkspace "job-$targetIndex.compile.stdout.log"
+            CompileStderrPath = Join-Path $buildWorkspace "job-$targetIndex.compile.stderr.log"
+            CompressStdoutPath = Join-Path $buildWorkspace "job-$targetIndex.compress.stdout.log"
+            CompressStderrPath = Join-Path $buildWorkspace "job-$targetIndex.compress.stderr.log"
         })
     }
 
     $results = @{}
     $failures = [System.Collections.Generic.List[string]]::new()
+    $pendingCompression = [System.Collections.Generic.Queue[object]]::new()
     $nextJob = 0
     $stopLaunching = $false
-    while ($activeWorkers.Count -gt 0 -or (-not $stopLaunching -and $nextJob -lt $jobs.Count)) {
-        while (-not $stopLaunching -and $activeWorkers.Count -lt $BuildConcurrency -and $nextJob -lt $jobs.Count) {
+    while ($activeCompileWorkers.Count -gt 0 -or $activeCompressionWorkers.Count -gt 0 -or
+        (-not $stopLaunching -and ($nextJob -lt $jobs.Count -or $pendingCompression.Count -gt 0))) {
+        while (-not $stopLaunching -and $activeCompileWorkers.Count -lt $BuildConcurrency -and $nextJob -lt $jobs.Count) {
             $job = $jobs[$nextJob]
-            Write-Host "Starting $($job.Label) -> $($job.Destination)"
-            $activeWorkers.Add((Start-TargetBuildWorker -Job $job -WorkerScript $workerScript))
+            Write-Host "Starting compile $($job.Label) -> $($job.BinaryPath)"
+            $activeCompileWorkers.Add((Start-TargetWorker -Job $job -WorkerScript $workerScript -Phase compile))
             $nextJob++
+        }
+        while (-not $stopLaunching -and -not $noBundle -and
+            $activeCompressionWorkers.Count -lt $CompressionConcurrency -and $pendingCompression.Count -gt 0) {
+            $job = $pendingCompression.Dequeue()
+            Write-Host "Starting compression $($job.Label) -> $($job.Destination)"
+            $activeCompressionWorkers.Add((Start-TargetWorker -Job $job -WorkerScript $compressionWorkerScript -Phase compress))
         }
 
         $completedWorker = $false
-        for ($workerIndex = $activeWorkers.Count - 1; $workerIndex -ge 0; $workerIndex--) {
-            $worker = $activeWorkers[$workerIndex]
+        for ($workerIndex = $activeCompileWorkers.Count - 1; $workerIndex -ge 0; $workerIndex--) {
+            $worker = $activeCompileWorkers[$workerIndex]
             if (-not $worker.Process.HasExited) {
                 continue
             }
             $completedWorker = $true
             $worker.Process.WaitForExit()
-            Write-TargetBuildLogs -Worker $worker
+            Write-TargetWorkerLogs -Worker $worker
             if ($worker.Process.ExitCode -ne 0) {
-                $failures.Add("$($worker.Job.Label) exited with code $($worker.Process.ExitCode)")
+                $failures.Add("$($worker.Job.Label) compile exited with code $($worker.Process.ExitCode)")
                 $stopLaunching = $true
-            } elseif (-not (Test-Path -LiteralPath $worker.Job.ResultPath -PathType Leaf)) {
-                $failures.Add("$($worker.Job.Label) did not produce a result")
+            } elseif (-not (Test-Path -LiteralPath $worker.Job.CompileResultPath -PathType Leaf)) {
+                $failures.Add("$($worker.Job.Label) did not produce a compile result")
                 $stopLaunching = $true
             } else {
                 try {
-                    $result = Get-Content -LiteralPath $worker.Job.ResultPath -Raw | ConvertFrom-Json
-                    $results[[int]$result.index] = $result
-                    Write-Host "Completed $($worker.Job.Label)"
+                    $compileResult = Get-Content -LiteralPath $worker.Job.CompileResultPath -Raw | ConvertFrom-Json
+                    if ([int]$compileResult.index -ne $worker.Job.Index -or
+                        -not (Test-Path -LiteralPath ([string]$compileResult.binary) -PathType Leaf)) {
+                        throw 'compile result does not match its job or binary'
+                    }
+                    if ($noBundle) {
+                        $results[[int]$compileResult.index] = $compileResult
+                        Write-Host "Completed $($worker.Job.Label)"
+                    } else {
+                        $pendingCompression.Enqueue($worker.Job)
+                        Write-Host "Compiled $($worker.Job.Label); queued asynchronous compression"
+                    }
                 } catch {
-                    $failures.Add("$($worker.Job.Label) produced an invalid result: $($_.Exception.Message)")
+                    $failures.Add("$($worker.Job.Label) produced an invalid compile result: $($_.Exception.Message)")
                     $stopLaunching = $true
                 }
             }
             $worker.Process.Dispose()
-            $activeWorkers.RemoveAt($workerIndex)
+            $activeCompileWorkers.RemoveAt($workerIndex)
         }
-        if (-not $completedWorker -and $activeWorkers.Count -gt 0) {
+
+        for ($workerIndex = $activeCompressionWorkers.Count - 1; $workerIndex -ge 0; $workerIndex--) {
+            $worker = $activeCompressionWorkers[$workerIndex]
+            if (-not $worker.Process.HasExited) {
+                continue
+            }
+            $completedWorker = $true
+            $worker.Process.WaitForExit()
+            Write-TargetWorkerLogs -Worker $worker
+            if ($worker.Process.ExitCode -ne 0) {
+                $failures.Add("$($worker.Job.Label) compression exited with code $($worker.Process.ExitCode)")
+                $stopLaunching = $true
+            } elseif (-not (Test-Path -LiteralPath $worker.Job.ResultPath -PathType Leaf)) {
+                $failures.Add("$($worker.Job.Label) did not produce a compression result")
+                $stopLaunching = $true
+            } else {
+                try {
+                    $result = Get-Content -LiteralPath $worker.Job.ResultPath -Raw | ConvertFrom-Json
+                    if ([int]$result.index -ne $worker.Job.Index) {
+                        throw 'compression result does not match its job'
+                    }
+                    $results[[int]$result.index] = $result
+                    Write-Host "Completed $($worker.Job.Label)"
+                } catch {
+                    $failures.Add("$($worker.Job.Label) produced an invalid compression result: $($_.Exception.Message)")
+                    $stopLaunching = $true
+                }
+            }
+            $worker.Process.Dispose()
+            $activeCompressionWorkers.RemoveAt($workerIndex)
+        }
+        if ($stopLaunching -and $pendingCompression.Count -gt 0) {
+            $pendingCompression.Clear()
+        }
+        if (-not $completedWorker -and
+            ($activeCompileWorkers.Count -gt 0 -or $activeCompressionWorkers.Count -gt 0)) {
             Start-Sleep -Milliseconds 100
         }
     }
@@ -520,7 +595,7 @@ try {
     }
 }
 finally {
-    foreach ($worker in @($activeWorkers)) {
+    foreach ($worker in @($activeCompileWorkers) + @($activeCompressionWorkers)) {
         try {
             if (-not $worker.Process.HasExited) {
                 $worker.Process.Kill($true)

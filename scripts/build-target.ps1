@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Builds and optionally Brotli-compresses one RenoP release target.
+    Compiles one RenoP release target for the parent build scheduler.
 
 .PARAMETER SpecPath
     Path to the JSON job specification written by build.ps1.
@@ -17,7 +17,7 @@ try {
     $resolvedSpec = (Resolve-Path -LiteralPath $SpecPath).Path
     $spec = Get-Content -LiteralPath $resolvedSpec -Raw | ConvertFrom-Json
     foreach ($required in @('index', 'repository_root', 'goos', 'goarch', 'actual_goarch',
-            'binary_path', 'binary_name', 'ldflags', 'result_path')) {
+            'binary_path', 'binary_name', 'ldflags', 'compile_result_path')) {
         if ($null -eq $spec.$required -or [string]::IsNullOrWhiteSpace([string]$spec.$required)) {
             throw "Build job specification is missing '$required'."
         }
@@ -53,31 +53,7 @@ try {
         arch = [string]$spec.goarch
         binary = $binaryPath
     }
-    if ([bool]$spec.bundled) {
-        $archivePath = [string]$spec.archive_path
-        $brotliTool = [string]$spec.brotli_tool
-        if ([string]::IsNullOrWhiteSpace($archivePath) -or
-            [string]::IsNullOrWhiteSpace($brotliTool) -or
-            -not (Test-Path -LiteralPath $brotliTool -PathType Leaf)) {
-            throw 'Bundled build job is missing its archive path or Brotli tool.'
-        }
-        Write-Host "Compressing $($spec.goos)/$($spec.goarch)"
-        & $brotliTool -input $binaryPath -output $archivePath -quality 11
-        if ($LASTEXITCODE -ne 0) {
-            throw "renop-brotli failed for $($spec.goos)/$($spec.goarch) with exit code $LASTEXITCODE."
-        }
-        if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
-            throw "renop-brotli did not produce $archivePath"
-        }
-        $result.file = Split-Path -Leaf $archivePath
-        $result.sha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-        $result.size = (Get-Item -LiteralPath $archivePath).Length
-        $result.uncompressed_size = (Get-Item -LiteralPath $binaryPath).Length
-        $result.format = 'brotli'
-        $result.executable = [string]$spec.binary_name
-    }
-
-    $resultPath = [string]$spec.result_path
+    $resultPath = [string]$spec.compile_result_path
     $resultTempPath = $resultPath + '.tmp'
     $result | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $resultTempPath -Encoding utf8
     Move-Item -LiteralPath $resultTempPath -Destination $resultPath -Force
