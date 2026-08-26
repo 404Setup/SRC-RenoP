@@ -110,7 +110,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: dist-artifacts
-          path: dist/
+          path: |
+            dist/*.br
+            dist/manifest.json
 
   publish:
     name: Publish to official update host
@@ -128,6 +130,9 @@ jobs:
           pattern: '*'
           path: dist
           merge-multiple: true
+      - name: Validate update payload boundary
+        shell: pwsh
+        run: pwsh -NoProfile -File ./.github/scripts/test-release-payload.ps1 -DistDir ./dist
       - name: Generate changelog
         id: changelog
         shell: pwsh
@@ -200,6 +205,6 @@ jobs:
           body_path: ${{ steps.changelog.outputs.path }}
           files: |
             dist/*.br
-            dist/LICENSE
-            dist/README.md
-            dist/THIRD_PARTY_NOTICES.md
+            LICENSE
+            README.md
+            THIRD_PARTY_NOTICES.md

@@ -502,25 +502,6 @@ $targets | ForEach-Object -Parallel {
     }
 } -ThrottleLimit 8
 
-foreach ($legalName in @('LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md')) {
-    $legalPath = Join-Path $DistDir $legalName
-    if (-not (Test-Path -LiteralPath $legalPath -PathType Leaf)) {
-        throw "Required release document not found: $legalPath"
-    }
-    $legalUrl = "$BaseUrl/$channelRoot/$legalName"
-    Write-Host "PUT $legalName -> $legalUrl"
-    $legalBytes = [System.IO.File]::ReadAllBytes($legalPath)
-    $legalContent = [System.Net.Http.ByteArrayContent]::new($legalBytes)
-    $legalContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('text/plain; charset=utf-8')
-    $legalRequest = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Put, $legalUrl)
-    $legalRequest.Content = $legalContent
-    $legalResponse = $httpClient.SendAsync($legalRequest).GetAwaiter().GetResult()
-    $legalCode = [int]$legalResponse.StatusCode
-    if ($legalCode -ne 200 -and $legalCode -ne 201 -and $legalCode -ne 204) {
-        throw "PUT $legalUrl returned unexpected status $legalCode ($($legalResponse.ReasonPhrase))"
-    }
-}
-
 $info = [ordered]@{
     releases = $updatedReleases
 }

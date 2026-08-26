@@ -16,7 +16,10 @@
   as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
 - **`scripts/build-target.ps1`**: Isolated per-target release worker. `build.ps1` runs at most four workers at once;
   each worker starts Brotli compression immediately after its architecture finishes compiling, while the parent
-  preserves deterministic manifest order and aggregates failures.
+  preserves deterministic manifest order and aggregates failures. The `dist/` update payload is restricted to raw
+  `.br` packages plus `manifest.json`; `.github/scripts/test-release-payload.ps1` enforces that boundary before the
+  update API is called. License, README, and third-party notices are attached to GitHub releases directly from the
+  checkout and are never uploaded to the update API.
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, private normalized login emails, serialized login-method
@@ -28,12 +31,13 @@
   uses twelve 160-bit codes, Argon2id verifiers, four-code atomic consumption, and session revocation; password login
   may be disabled only while a GitHub identity or Passkey remains available.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
-  authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation extraction/viewer
-  (`/cargodoc/...`).
+  authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation
+  extraction/viewer (`/cargodoc/...`).
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
   automatic migration of repository-scoped legacy domains. Upstream mirror discovery persists unverified global
-  domains so administrators can filter, inspect, and explicitly approve them. Maven and Cargo mirror downloads are cataloged through
+  domains so administrators can filter, inspect, and explicitly approve them. Maven and Cargo mirror downloads are
+  cataloged through
   the format-aware proxy completion hook in `internal/service/storage/mirror.go` without buffering artifact bodies.
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
   Maven publication paths in both layouts. Administrators can migrate Maven repositories to the unstructured files
@@ -75,7 +79,8 @@
   version labels or older hosted records are unavailable.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (modern Maven domain/artifact catalog,
   classic Maven/files index, and Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
-- **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`, `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
+- **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`,
+  `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
@@ -135,21 +140,21 @@
 
 ### Build & Test Workflows
 
-| Task                                    | Command                                                                          |
-|-----------------------------------------|----------------------------------------------------------------------------------|
-| **Local Dev Build** (unzipped binary)   | `pwsh ./build.ps1 c nb`                                                          |
-| **Packaged Release Build** (current OS, raw Brotli) | `pwsh ./build.ps1 c`                                                    |
-| **Full Matrix Release Build** (raw Brotli)          | `pwsh ./build.ps1`                                                      |
-| **Website & Docs Build**               | `pnpm run build:web`                                                             |
-| **Website Markdown Tests**             | `pnpm run test:web`                                                              |
-| **Frontend Build & Embed**              | `pnpm install --frozen-lockfile && pnpm run build:frontend && go generate ./...` |
-| **Frontend Unit Tests**                 | `pnpm run test:frontend`                                                        |
-| **Frontend i18n Validation**            | `pnpm run check:i18n`                                                           |
-| **Protobuf Generation**                 | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
-| **Run All Tests**                       | `go test ./...`                                                                  |
-| **Run Package Tests**                   | `go test -v ./internal/...`                                                      |
-| **Install as Service**                  | `./renop --install`                                                              |
-| **Uninstall Service**                   | `./renop --uninstall`                                                            |
+| Task                                                | Command                                                                          |
+|-----------------------------------------------------|----------------------------------------------------------------------------------|
+| **Local Dev Build** (unzipped binary)               | `pwsh ./build.ps1 c nb`                                                          |
+| **Packaged Release Build** (current OS, raw Brotli) | `pwsh ./build.ps1 c`                                                             |
+| **Full Matrix Release Build** (raw Brotli)          | `pwsh ./build.ps1`                                                               |
+| **Website & Docs Build**                            | `pnpm run build:web`                                                             |
+| **Website Markdown Tests**                          | `pnpm run test:web`                                                              |
+| **Frontend Build & Embed**                          | `pnpm install --frozen-lockfile && pnpm run build:frontend && go generate ./...` |
+| **Frontend Unit Tests**                             | `pnpm run test:frontend`                                                         |
+| **Frontend i18n Validation**                        | `pnpm run check:i18n`                                                            |
+| **Protobuf Generation**                             | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
+| **Run All Tests**                                   | `go test ./...`                                                                  |
+| **Run Package Tests**                               | `go test -v ./internal/...`                                                      |
+| **Install as Service**                              | `./renop --install`                                                              |
+| **Uninstall Service**                               | `./renop --uninstall`                                                            |
 
 ---
 

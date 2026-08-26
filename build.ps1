@@ -365,11 +365,6 @@ try {
     $env:CGO_ENABLED = '0'
 
     $brotliPackTool = if ($noBundle) { $null } else { Install-BrotliPackTool }
-    if (-not $noBundle) {
-        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE') -Destination $dist
-        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'README.md') -Destination $dist
-        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'THIRD_PARTY_NOTICES.md') -Destination $dist
-    }
 
     $buildWorkspace = Join-Path ([IO.Path]::GetTempPath()) ("renop-build-$PID-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $buildWorkspace -Force | Out-Null
