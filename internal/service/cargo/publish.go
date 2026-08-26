@@ -27,6 +27,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/audit"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
@@ -283,7 +284,7 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 		return cargoError(c, err)
 	}
 	succeeded = true
-	logCargoAudit(c, state, "CARGO_PUBLISH", "Repository: "+repo.Name+", crate: "+packageName+", version: "+metadata.Version)
+	logCargoAudit(c, state, audit.ActionCargoPublish, "Repository: "+repo.Name+", crate: "+packageName+", version: "+metadata.Version)
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
 	return c.JSON(PublishResponse{
 		Warnings: Warnings{InvalidCategories: []string{}, InvalidBadges: []string{}, Other: []string{}},

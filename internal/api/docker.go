@@ -180,7 +180,7 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create Docker image")
 	}
-	logDockerAudit(c, state, "DOCKER_IMAGE_CREATE", fmt.Sprintf("Repository: %s, image: %s, private: %t",
+	logDockerAudit(c, state, audit.ActionDockerImageCreate, fmt.Sprintf("Repository: %s, image: %s, private: %t",
 		repoName, imageName, request.Private))
 	return c.Status(fiber.StatusCreated).JSON(image)
 }
@@ -285,7 +285,7 @@ func UpdateDockerImageDescriptionAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update description")
 	}
 
-	logDockerAudit(c, state, "DOCKER_IMAGE_UPDATE", fmt.Sprintf("Repository: %s, image: %s", repoName, imageName))
+	logDockerAudit(c, state, audit.ActionDockerImageUpdate, fmt.Sprintf("Repository: %s, image: %s", repoName, imageName))
 
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -338,7 +338,7 @@ func DeleteDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete image")
 	}
 
-	logDockerAudit(c, state, "DOCKER_IMAGE_DELETE", fmt.Sprintf("Repository: %s, image: %s", repoName, imageName))
+	logDockerAudit(c, state, audit.ActionDockerImageDelete, fmt.Sprintf("Repository: %s, image: %s", repoName, imageName))
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "deleted"})
 }
@@ -404,7 +404,7 @@ func DeleteDockerTagAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to delete tag")
 	}
 
-	logDockerAudit(c, state, "DOCKER_TAG_DELETE", fmt.Sprintf("Repository: %s, image: %s, tag: %s", repoName, imageName, tag))
+	logDockerAudit(c, state, audit.ActionDockerTagDelete, fmt.Sprintf("Repository: %s, image: %s, tag: %s", repoName, imageName, tag))
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "deleted"})
 }
@@ -604,7 +604,7 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 			return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to add members directly")
 		}
 
-		logDockerAudit(c, state, "DOCKER_TEAM_ADD", fmt.Sprintf("Repository: %s, image: %s, members: %d, level: L%d", repoName, imageName, len(validUsers), req.Level))
+		logDockerAudit(c, state, audit.ActionDockerTeamAdd, fmt.Sprintf("Repository: %s, image: %s, members: %d, level: L%d", repoName, imageName, len(validUsers), req.Level))
 
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"ok":      true,
@@ -686,7 +686,7 @@ func InviteDockerOwnersAPI(c fiber.Ctx, state *core.AppState) error {
 		return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to create invitations")
 	}
 
-	logDockerAudit(c, state, "DOCKER_TEAM_INVITE", fmt.Sprintf("Repository: %s, image: %s, recipients: %d, level: L%d", repoName, imageName, len(invitations), req.Level))
+	logDockerAudit(c, state, audit.ActionDockerTeamInvite, fmt.Sprintf("Repository: %s, image: %s, recipients: %d, level: L%d", repoName, imageName, len(invitations), req.Level))
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"ok":      true,
@@ -767,7 +767,7 @@ func SetDockerOwnerLevelAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update member level")
 	}
 
-	logDockerAudit(c, state, "DOCKER_TEAM_LEVEL", fmt.Sprintf("Repository: %s, image: %s, member: %s, level: L%d", repoName, imageName, targetUsername, req.Level))
+	logDockerAudit(c, state, audit.ActionDockerTeamLevel, fmt.Sprintf("Repository: %s, image: %s, member: %s, level: L%d", repoName, imageName, targetUsername, req.Level))
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"ok":      true,
@@ -833,7 +833,7 @@ func RemoveDockerOwnerAPI(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to remove member")
 	}
 
-	logDockerAudit(c, state, "DOCKER_TEAM_REMOVE", fmt.Sprintf("Repository: %s, image: %s, member: %s", repoName, imageName, targetUsername))
+	logDockerAudit(c, state, audit.ActionDockerTeamRemove, fmt.Sprintf("Repository: %s, image: %s, member: %s", repoName, imageName, targetUsername))
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"ok":      true,
@@ -898,7 +898,11 @@ func RespondDockerInvitationAPI(c fiber.Ctx, state *core.AppState) error {
 		return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to process invitation response")
 	}
 
-	logDockerAudit(c, state, "DOCKER_INVITE_"+strings.ToUpper(decision), fmt.Sprintf("Repository: %s, invitation: %s", repoName, invitationID))
+	action := audit.ActionDockerInviteReject
+	if decision == "accept" {
+		action = audit.ActionDockerInviteAccept
+	}
+	logDockerAudit(c, state, action, fmt.Sprintf("Repository: %s, invitation: %s", repoName, invitationID))
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"ok":      true,

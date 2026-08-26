@@ -107,7 +107,7 @@ func AddProfileKey(c fiber.Ctx, state *core.AppState) error {
 	}
 	usernameValue, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
-		Username: usernameValue, Operator: op, Action: "GPG_UPDATE",
+		Username: usernameValue, Operator: op, Action: audit.ActionGPGUpdate,
 		Details: "Registered GPG key (" + key.Fingerprint + ")", AuthMethod: authMethod,
 		SessionID: sessionID, IP: ip,
 	})
@@ -132,7 +132,7 @@ func DeleteProfileKey(c fiber.Ctx, state *core.AppState) error {
 	}
 	usernameValue, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
-		Username: usernameValue, Operator: op, Action: "GPG_UPDATE",
+		Username: usernameValue, Operator: op, Action: audit.ActionGPGUpdate,
 		Details: "Deleted GPG key (" + strings.ToUpper(fingerprint) + ")", AuthMethod: authMethod,
 		SessionID: sessionID, IP: ip,
 	})

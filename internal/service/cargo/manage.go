@@ -18,6 +18,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/audit"
 	"renop/internal/service/cargodocs"
 	"renop/internal/utils"
 )
@@ -79,7 +80,7 @@ func (h Handler) deleteVersion(c fiber.Ctx, state *core.AppState, repo *config.R
 		return cargoError(c, err)
 	}
 	succeeded = true
-	logCargoAudit(c, state, "CARGO_VERSION_DELETE", "Repository: "+repo.Name+", crate: "+details.Package.Name+", version: "+version)
+	logCargoAudit(c, state, audit.ActionCargoVersionDelete, "Repository: "+repo.Name+", crate: "+details.Package.Name+", version: "+version)
 	return c.JSON(OperationResponse{OK: true})
 }
 
@@ -182,9 +183,9 @@ func (h Handler) setPackageArchived(c fiber.Ctx, state *core.AppState, repo *con
 		return cargoError(c, err)
 	}
 	succeeded = true
-	action := "CARGO_PACKAGE_RESTORE"
+	action := audit.ActionCargoPackageRestore
 	if archived {
-		action = "CARGO_PACKAGE_ARCHIVE"
+		action = audit.ActionCargoPackageArchive
 	}
 	logCargoAudit(c, state, action, "Repository: "+repo.Name+", crate: "+details.Package.Name)
 	return c.JSON(OperationResponse{OK: true})
@@ -273,7 +274,7 @@ func (h Handler) deletePackage(c fiber.Ctx, state *core.AppState, repo *config.R
 		return cargoError(c, err)
 	}
 	succeeded = true
-	logCargoAudit(c, state, "CARGO_PACKAGE_DELETE", "Repository: "+repo.Name+", crate: "+details.Package.Name)
+	logCargoAudit(c, state, audit.ActionCargoPackageDelete, "Repository: "+repo.Name+", crate: "+details.Package.Name)
 	return c.JSON(OperationResponse{OK: true})
 }
 

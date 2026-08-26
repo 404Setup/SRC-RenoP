@@ -272,7 +272,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user,
 		Operator:   op,
-		Action:     "SETTINGS_UPDATE",
+		Action:     audit.ActionSettingsUpdate,
 		Details:    "Updated domain settings (" + name + ")",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,

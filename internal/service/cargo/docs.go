@@ -22,6 +22,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargodocs"
 	"renop/internal/service/status"
@@ -182,7 +183,7 @@ func (h Handler) uploadDocs(c fiber.Ctx, state *core.AppState, repo *config.Repo
 	_ = h.Store.Delete(state, oppositePath)
 
 	cargodocs.CleanupCargodoc(repo.Name, details.Package.Name, version)
-	logCargoAudit(c, state, "CARGO_DOCS_UPLOAD", fmt.Sprintf("Repository: %s, crate: %s, version: %s by %s", repo.Name, details.Package.Name, version, user.Username))
+	logCargoAudit(c, state, audit.ActionCargoDocsUpload, fmt.Sprintf("Repository: %s, crate: %s, version: %s by %s", repo.Name, details.Package.Name, version, user.Username))
 
 	docURL := fmt.Sprintf("/cargodoc/%s/%s/%s/", repo.Name, details.Package.Name, version)
 	return c.Status(fiber.StatusOK).JSON(DocOperationResponse{
@@ -211,7 +212,7 @@ func (h Handler) deleteDocs(c fiber.Ctx, state *core.AppState, repo *config.Repo
 	}
 
 	cargodocs.CleanupCargodoc(repo.Name, details.Package.Name, version)
-	logCargoAudit(c, state, "CARGO_DOCS_DELETE", fmt.Sprintf("Repository: %s, crate: %s, version: %s by %s", repo.Name, details.Package.Name, version, user.Username))
+	logCargoAudit(c, state, audit.ActionCargoDocsDelete, fmt.Sprintf("Repository: %s, crate: %s, version: %s by %s", repo.Name, details.Package.Name, version, user.Username))
 
 	return c.JSON(DocOperationResponse{
 		OK:      true,

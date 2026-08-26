@@ -119,7 +119,7 @@ func (h Handler) inviteOwners(c fiber.Ctx, state *core.AppState, repo *config.Re
 		if err := db.ForceAddCargoMembers(repo.Name, details.Package.NormalizedName, details.Package.Name, user.Username, validUsers, request.Level); err != nil {
 			return cargoError(c, err)
 		}
-		logCargoAudit(c, state, "CARGO_TEAM_ADD", fmt.Sprintf("Repository: %s, crate: %s, members: %d, level: L%d", repo.Name, details.Package.Name, len(validUsers), request.Level))
+		logCargoAudit(c, state, audit.ActionCargoTeamAdd, fmt.Sprintf("Repository: %s, crate: %s, members: %d, level: L%d", repo.Name, details.Package.Name, len(validUsers), request.Level))
 		return c.JSON(OperationResponse{OK: true, Message: fmt.Sprintf("Added %d user(s) to crate %s", len(validUsers), details.Package.Name)})
 	}
 
@@ -174,7 +174,7 @@ func (h Handler) inviteOwners(c fiber.Ctx, state *core.AppState, repo *config.Re
 	if err := db.CreateCargoInvitations(invitations, messages); err != nil {
 		return cargoError(c, err)
 	}
-	logCargoAudit(c, state, "CARGO_TEAM_INVITE", fmt.Sprintf("Repository: %s, crate: %s, recipients: %d, level: L%d", repo.Name, details.Package.Name, len(invitations), request.Level))
+	logCargoAudit(c, state, audit.ActionCargoTeamInvite, fmt.Sprintf("Repository: %s, crate: %s, recipients: %d, level: L%d", repo.Name, details.Package.Name, len(invitations), request.Level))
 	return c.JSON(OperationResponse{OK: true, Message: fmt.Sprintf("Invited %d user(s) to crate %s", len(invitations), details.Package.Name)})
 }
 
@@ -218,7 +218,7 @@ func (h Handler) removeOwners(c fiber.Ctx, state *core.AppState, repo *config.Re
 	if err := db.RemoveCargoMembers(repo.Name, details.Package.NormalizedName, actor, usernames); err != nil {
 		return cargoError(c, err)
 	}
-	logCargoAudit(c, state, "CARGO_TEAM_REMOVE", fmt.Sprintf("Repository: %s, crate: %s, members: %d", repo.Name, details.Package.Name, len(usernames)))
+	logCargoAudit(c, state, audit.ActionCargoTeamRemove, fmt.Sprintf("Repository: %s, crate: %s, members: %d", repo.Name, details.Package.Name, len(usernames)))
 	return c.JSON(OperationResponse{OK: true, Message: "Owners successfully removed"})
 }
 
@@ -243,7 +243,7 @@ func (h Handler) setOwnerLevel(c fiber.Ctx, state *core.AppState, repo *config.R
 	if err := state.GetDB().SetCargoMemberLevel(repo.Name, details.Package.NormalizedName, actor, username, request.Level); err != nil {
 		return cargoError(c, err)
 	}
-	logCargoAudit(c, state, "CARGO_TEAM_LEVEL", fmt.Sprintf("Repository: %s, crate: %s, member: %s, level: L%d", repo.Name, details.Package.Name, strings.ToLower(username), request.Level))
+	logCargoAudit(c, state, audit.ActionCargoTeamLevel, fmt.Sprintf("Repository: %s, crate: %s, member: %s, level: L%d", repo.Name, details.Package.Name, strings.ToLower(username), request.Level))
 	return c.JSON(OperationResponse{OK: true})
 }
 
@@ -271,7 +271,7 @@ func (h Handler) removeOwner(c fiber.Ctx, state *core.AppState, repo *config.Rep
 	if err := state.GetDB().RemoveCargoMember(repo.Name, details.Package.NormalizedName, actor, username); err != nil {
 		return cargoError(c, err)
 	}
-	logCargoAudit(c, state, "CARGO_TEAM_REMOVE", fmt.Sprintf("Repository: %s, crate: %s, member: %s", repo.Name, details.Package.Name, strings.ToLower(username)))
+	logCargoAudit(c, state, audit.ActionCargoTeamRemove, fmt.Sprintf("Repository: %s, crate: %s, member: %s", repo.Name, details.Package.Name, strings.ToLower(username)))
 	return c.JSON(OperationResponse{OK: true})
 }
 
@@ -310,7 +310,11 @@ func (h Handler) respondInvitation(c fiber.Ctx, state *core.AppState, repo *conf
 	if err := db.RespondCargoInvitation(invitationID, user.Username, repo.Name, decision == "accept", time.Now().UnixMilli()); err != nil {
 		return cargoError(c, err)
 	}
-	logCargoAudit(c, state, "CARGO_INVITE_"+strings.ToUpper(decision), "Repository: "+repo.Name+", invitation: "+invitationID)
+	action := audit.ActionCargoInviteReject
+	if decision == "accept" {
+		action = audit.ActionCargoInviteAccept
+	}
+	logCargoAudit(c, state, action, "Repository: "+repo.Name+", invitation: "+invitationID)
 	return c.JSON(OperationResponse{OK: true})
 }
 

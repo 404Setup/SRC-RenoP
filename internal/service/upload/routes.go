@@ -404,9 +404,9 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 
 	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", sess.RepoName, rel, fileSize)
-	action := "UPLOAD"
+	action := audit.ActionUpload
 	if result.Pending {
-		action = "UPLOAD_QUEUED_GPG"
+		action = audit.ActionUploadQueuedGPG
 	}
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   username,

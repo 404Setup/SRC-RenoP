@@ -439,7 +439,7 @@ func PostFidoRegisterFinish(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
-		Action:     "FIDO_UPDATE",
+		Action:     audit.ActionFIDOUpdate,
 		Details:    "Added FIDO device (" + device.Name + ")",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
@@ -493,7 +493,7 @@ func DeleteProfileFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
-		Action:     "FIDO_UPDATE",
+		Action:     audit.ActionFIDOUpdate,
 		Details:    "Deleted FIDO device (" + deviceID + ")",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
@@ -530,7 +530,7 @@ func DeleteUserFidoDevice(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   strings.ToLower(username),
 		Operator:   op,
-		Action:     "FIDO_UPDATE",
+		Action:     audit.ActionFIDOUpdate,
 		Details:    "Deleted FIDO device (" + deviceID + ") by admin",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,

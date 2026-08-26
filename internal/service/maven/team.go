@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 
 	"renop/internal/core"
+	"renop/internal/service/audit"
 )
 
 type memberRequest struct {
@@ -62,7 +63,7 @@ func inviteMembers(c fiber.Ctx, state *core.AppState) error {
 		if err := state.GetDB().ForceAddMavenMembers(details.Domain.Domain, user.Username, request.Users, request.Level); err != nil {
 			return apiError(c, err)
 		}
-		logAudit(c, state, "MAVEN_TEAM_ADD", fmt.Sprintf("Domain: %s, members: %d, level: L%d",
+		logAudit(c, state, audit.ActionMavenTeamAdd, fmt.Sprintf("Domain: %s, members: %d, level: L%d",
 			details.Domain.Domain, len(request.Users), request.Level))
 		return c.JSON(fiber.Map{"ok": true, "added": len(request.Users)})
 	}
@@ -108,7 +109,7 @@ func inviteMembers(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().CreateMavenInvitations(invitations, messages); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_INVITE", fmt.Sprintf("Domain: %s, recipients: %d, level: L%d",
+	logAudit(c, state, audit.ActionMavenTeamInvite, fmt.Sprintf("Domain: %s, recipients: %d, level: L%d",
 		details.Domain.Domain, len(invitations), request.Level))
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"ok": true, "invited": len(invitations)})
 }
@@ -150,7 +151,7 @@ func setMemberLevel(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().SetMavenMemberLevel(details.Domain.Domain, actor, target, request.Level); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_LEVEL", fmt.Sprintf("Domain: %s, member: %s, level: L%d",
+	logAudit(c, state, audit.ActionMavenTeamLevel, fmt.Sprintf("Domain: %s, member: %s, level: L%d",
 		details.Domain.Domain, target, request.Level))
 	return c.JSON(fiber.Map{"ok": true})
 }
@@ -175,7 +176,7 @@ func removeMember(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().RemoveMavenMember(details.Domain.Domain, actor, target); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_REMOVE", fmt.Sprintf("Domain: %s, member: %s",
+	logAudit(c, state, audit.ActionMavenTeamRemove, fmt.Sprintf("Domain: %s, member: %s",
 		details.Domain.Domain, target))
 	return c.SendStatus(fiber.StatusNoContent)
 }
@@ -196,6 +197,6 @@ func respondInvitation(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().RespondMavenInvitation(id, user.Username, decision == "accept", time.Now().UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_TEAM_INVITATION", fmt.Sprintf("Invitation: %s, decision: %s", id, decision))
+	logAudit(c, state, audit.ActionMavenTeamInvitation, fmt.Sprintf("Invitation: %s, decision: %s", id, decision))
 	return c.JSON(fiber.Map{"ok": true})
 }

@@ -251,7 +251,7 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 		audit.Log(state, &core.AuditLogEntry{
 			Username:   user.Username,
 			Operator:   user.Username,
-			Action:     "LOGIN",
+			Action:     audit.ActionLogin,
 			Details:    "User logged in successfully",
 			AuthMethod: "Password",
 			SessionID:  publicID,
@@ -324,7 +324,7 @@ func PostAuthLogout(c fiber.Ctx, state *core.AppState) error {
 		audit.Log(state, &core.AuditLogEntry{
 			Username:   user.Username,
 			Operator:   op,
-			Action:     "LOGOUT",
+			Action:     audit.ActionLogout,
 			Details:    "User logged out",
 			AuthMethod: authMethod,
 			SessionID:  sessionID,

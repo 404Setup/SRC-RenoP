@@ -236,7 +236,7 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().CreateMavenDomain(record, user.Username); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_DOMAIN_CREATE", fmt.Sprintf("Domain: %s", domain))
+	logAudit(c, state, audit.ActionMavenDomainCreate, fmt.Sprintf("Domain: %s", domain))
 	return c.Status(fiber.StatusCreated).JSON(record)
 }
 
@@ -323,7 +323,7 @@ func verifyDomain(c fiber.Ctx, state *core.AppState) error {
 	if err := ReconcileGlobalDomainCatalog(state, details.Domain.Domain, user.Username); err != nil {
 		log.Printf("failed to reconcile Maven catalog for %s: %v", details.Domain.Domain, err)
 	}
-	logAudit(c, state, "MAVEN_DOMAIN_VERIFY", fmt.Sprintf("Domain: %s", details.Domain.Domain))
+	logAudit(c, state, audit.ActionMavenDomainVerify, fmt.Sprintf("Domain: %s", details.Domain.Domain))
 	return c.JSON(details.Domain)
 }
 
@@ -348,7 +348,7 @@ func forceVerifyDomain(c fiber.Ctx, state *core.AppState) error {
 	if err := ReconcileGlobalDomainCatalog(state, details.Domain.Domain, user.Username); err != nil {
 		log.Printf("failed to reconcile force-verified Maven catalog for %s: %v", details.Domain.Domain, err)
 	}
-	logAudit(c, state, "MAVEN_DOMAIN_FORCE_VERIFY",
+	logAudit(c, state, audit.ActionMavenDomainForceVerify,
 		fmt.Sprintf("Domain: %s", details.Domain.Domain))
 	return c.JSON(details.Domain)
 }
@@ -362,7 +362,7 @@ func deleteDomain(c fiber.Ctx, state *core.AppState) error {
 		details.Administrator, time.Now().UnixMilli()); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_DOMAIN_DELETE", fmt.Sprintf("Domain: %s", details.Domain.Domain))
+	logAudit(c, state, audit.ActionMavenDomainDelete, fmt.Sprintf("Domain: %s", details.Domain.Domain))
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -456,7 +456,7 @@ func updateArtifact(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().UpdateMavenArtifactDescription(repo.Name, groupID, artifactID, request.Description); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_ARTIFACT_UPDATE", fmt.Sprintf("Repository: %s, artifact: %s:%s", repo.Name, groupID, artifactID))
+	logAudit(c, state, audit.ActionMavenArtifactUpdate, fmt.Sprintf("Repository: %s, artifact: %s:%s", repo.Name, groupID, artifactID))
 	return c.JSON(fiber.Map{"ok": true})
 }
 
@@ -484,6 +484,6 @@ func deleteVersion(c fiber.Ctx, state *core.AppState) error {
 	if err := state.GetDB().DeleteMavenVersionMetadata(repo.Name, groupID, artifactID, version); err != nil {
 		return apiError(c, err)
 	}
-	logAudit(c, state, "MAVEN_VERSION_DELETE", fmt.Sprintf("Repository: %s, artifact: %s:%s, version: %s", repo.Name, groupID, artifactID, version))
+	logAudit(c, state, audit.ActionMavenVersionDelete, fmt.Sprintf("Repository: %s, artifact: %s:%s, version: %s", repo.Name, groupID, artifactID, version))
 	return c.SendStatus(fiber.StatusNoContent)
 }

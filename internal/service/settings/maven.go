@@ -182,7 +182,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user,
 		Operator:   op,
-		Action:     "SETTINGS_UPDATE",
+		Action:     audit.ActionSettingsUpdate,
 		Details:    "Updated repository settings for (" + repoName + ")",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,

@@ -302,7 +302,7 @@ func logProfileUpdate(c fiber.Ctx, state *core.AppState, before, after *core.Use
 		details = "Account username changed from " + before.Username + " to " + after.Username
 	}
 	audit.Log(state, &core.AuditLogEntry{
-		Username: after.Username, Operator: operator, Action: "PROFILE_UPDATE", Details: details,
+		Username: after.Username, Operator: operator, Action: audit.ActionProfileUpdate, Details: details,
 		AuthMethod: authMethod, SessionID: sessionID, IP: ip,
 	})
 }

@@ -140,7 +140,7 @@ func DeleteUserAuditLogs(c fiber.Ctx, state *core.AppState) error {
 	Log(state, &core.AuditLogEntry{
 		Username:   targetUsername,
 		Operator:   op,
-		Action:     "LOG_CLEAR",
+		Action:     ActionLogClear,
 		Details:    "User activity logs cleared by admin",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,

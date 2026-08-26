@@ -232,9 +232,9 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		relPath = localFilePath
 	}
 	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", repo.Name, filepath.ToSlash(relPath), fileSize)
-	action := "UPLOAD"
+	action := audit.ActionUpload
 	if result.Pending {
-		action = "UPLOAD_QUEUED_GPG"
+		action = audit.ActionUploadQueuedGPG
 	}
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   username,

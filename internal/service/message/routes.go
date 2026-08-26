@@ -300,7 +300,7 @@ func sendNotification(c fiber.Ctx, state *core.AppState) error {
 	}
 	user, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
-		Username: user, Operator: operator, Action: "MESSAGE_SEND",
+		Username: user, Operator: operator, Action: audit.ActionMessageSend,
 		Details:    "Sent a notification to " + strconv.Itoa(len(messages)) + " user(s)",
 		AuthMethod: authMethod, SessionID: sessionID, IP: ip,
 	})

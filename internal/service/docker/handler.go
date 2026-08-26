@@ -448,7 +448,7 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to record manifest", nil)
 	}
 
-	logDockerAudit(c, state, "DOCKER_MANIFEST_PUT", fmt.Sprintf("Repository: %s, image: %s, tag: %s, digest: %s", repoName, imageName, tag, parsed.Digest))
+	logDockerAudit(c, state, audit.ActionDockerManifestPut, fmt.Sprintf("Repository: %s, image: %s, tag: %s, digest: %s", repoName, imageName, tag, parsed.Digest))
 
 	c.Set(DockerDigestHeader, parsed.Digest)
 	c.Set("Location", fmt.Sprintf("/v2/%s/manifests/%s", name, parsed.Digest))
@@ -493,7 +493,7 @@ func (h *Handler) HandleDeleteManifest(c fiber.Ctx, state *core.AppState) error 
 		_ = h.Store.DeleteManifest(state, repoName, imageName, reference)
 	}
 
-	logDockerAudit(c, state, "DOCKER_MANIFEST_DELETE", fmt.Sprintf("Repository: %s, image: %s, reference: %s", repoName, imageName, reference))
+	logDockerAudit(c, state, audit.ActionDockerManifestDelete, fmt.Sprintf("Repository: %s, image: %s, reference: %s", repoName, imageName, reference))
 
 	return c.SendStatus(fiber.StatusAccepted)
 }
@@ -622,7 +622,7 @@ func (h *Handler) HandleDeleteBlob(c fiber.Ctx, state *core.AppState) error {
 	}
 	_ = h.Store.DeleteBlob(state, repoName, digest)
 
-	logDockerAudit(c, state, "DOCKER_BLOB_DELETE", fmt.Sprintf("Repository: %s, digest: %s", repoName, digest))
+	logDockerAudit(c, state, audit.ActionDockerBlobDelete, fmt.Sprintf("Repository: %s, digest: %s", repoName, digest))
 
 	return c.SendStatus(fiber.StatusAccepted)
 }
@@ -670,7 +670,7 @@ func (h *Handler) HandlePostUpload(c fiber.Ctx, state *core.AppState) error {
 			if err := db.RecordDockerImageBlob(repoName, imageName, mountDigest); err != nil {
 				return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to link mounted blob", nil)
 			}
-			logDockerAudit(c, state, "DOCKER_BLOB_MOUNT", fmt.Sprintf("Repository: %s, image: %s, digest: %s, from: %s", repoName, imageName, mountDigest, fromRepoName))
+			logDockerAudit(c, state, audit.ActionDockerBlobMount, fmt.Sprintf("Repository: %s, image: %s, digest: %s, from: %s", repoName, imageName, mountDigest, fromRepoName))
 			c.Set(DockerDigestHeader, mountDigest)
 			c.Set("Location", fmt.Sprintf("/v2/%s/blobs/%s", name, mountDigest))
 			return c.SendStatus(fiber.StatusCreated)
@@ -709,7 +709,7 @@ func (h *Handler) HandlePostUpload(c fiber.Ctx, state *core.AppState) error {
 		if err := db.RecordDockerImageBlob(repoName, imageName, singleDigest); err != nil {
 			return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to link blob", nil)
 		}
-		logDockerAudit(c, state, "DOCKER_BLOB_UPLOAD", fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, singleDigest, committedSize))
+		logDockerAudit(c, state, audit.ActionDockerBlobUpload, fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, singleDigest, committedSize))
 		c.Set(DockerDigestHeader, singleDigest)
 		c.Set("Location", fmt.Sprintf("/v2/%s/blobs/%s", name, singleDigest))
 		return c.SendStatus(fiber.StatusCreated)
@@ -824,7 +824,7 @@ func (h *Handler) HandlePutUpload(c fiber.Ctx, state *core.AppState) error {
 		return RespondError(c, fiber.StatusInternalServerError, ErrCodeUnsupported, "failed to link blob", nil)
 	}
 
-	logDockerAudit(c, state, "DOCKER_BLOB_UPLOAD", fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, digest, committedSize))
+	logDockerAudit(c, state, audit.ActionDockerBlobUpload, fmt.Sprintf("Repository: %s, image: %s, digest: %s, size: %d", repoName, imageName, digest, committedSize))
 
 	c.Set(DockerDigestHeader, digest)
 	c.Set("Location", fmt.Sprintf("/v2/%s/blobs/%s", name, digest))

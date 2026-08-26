@@ -73,7 +73,7 @@ func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.Token
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
-		Action:     "PASSWORD_UPDATE",
+		Action:     audit.ActionPasswordUpdate,
 		Details:    "Account password updated",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
@@ -108,7 +108,7 @@ func GenerateUploadToken(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
-		Action:     "TOKEN_GENERATE",
+		Action:     audit.ActionTokenGenerate,
 		Details:    "New upload token generated",
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
@@ -149,7 +149,7 @@ func DeleteSession(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
-		Action:     "SESSION_REVOKE",
+		Action:     audit.ActionSessionRevoke,
 		Details:    "Revoked browser session (" + sessionID + ")",
 		AuthMethod: authMethod,
 		SessionID:  sID,
@@ -175,7 +175,7 @@ func RevokeOtherSessions(c fiber.Ctx, state *core.AppState) error {
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   user.Username,
 		Operator:   op,
-		Action:     "SESSION_REVOKE",
+		Action:     audit.ActionSessionRevoke,
 		Details:    "Revoked all other browser sessions",
 		AuthMethod: authMethod,
 		SessionID:  sID,

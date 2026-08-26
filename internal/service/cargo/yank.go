@@ -13,6 +13,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/audit"
 	"renop/internal/utils"
 )
 
@@ -95,9 +96,9 @@ func (h Handler) setYanked(c fiber.Ctx, state *core.AppState, repo *config.Repos
 		return cargoError(c, err)
 	}
 	succeeded = true
-	action := "CARGO_UNYANK"
+	action := audit.ActionCargoUnyank
 	if yanked {
-		action = "CARGO_YANK"
+		action = audit.ActionCargoYank
 	}
 	logCargoAudit(c, state, action, "Repository: "+repo.Name+", crate: "+details.Package.Name+", version: "+version)
 	c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")

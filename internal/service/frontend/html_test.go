@@ -25,6 +25,7 @@ import (
 
 	"renop/internal/config"
 	"renop/internal/core"
+	"renop/internal/service/audit"
 )
 
 func TestBundledAssetsEmbedded(t *testing.T) {
@@ -630,23 +631,10 @@ func TestDockerI18nCatalogsCoverUIAndAuditMessages(t *testing.T) {
 		}
 	}
 
-	actionPattern := regexp.MustCompile(`"(DOCKER_[A-Z_]+)"`)
 	usedActions := make(map[string]struct{})
-	for _, sourcePath := range []string{
-		filepath.Join("..", "..", "api", "docker.go"),
-		filepath.Join("..", "docker", "handler.go"),
-	} {
-		source, readErr := os.ReadFile(sourcePath)
-		if readErr != nil {
-			t.Fatal(readErr)
-		}
-		for _, match := range actionPattern.FindAllStringSubmatch(string(source), -1) {
-			if match[1] == "DOCKER_INVITE_" {
-				usedActions["DOCKER_INVITE_ACCEPT"] = struct{}{}
-				usedActions["DOCKER_INVITE_REJECT"] = struct{}{}
-				continue
-			}
-			usedActions[match[1]] = struct{}{}
+	for _, action := range audit.KnownActions() {
+		if strings.HasPrefix(action, "DOCKER_") {
+			usedActions[action] = struct{}{}
 		}
 	}
 	for action := range usedActions {

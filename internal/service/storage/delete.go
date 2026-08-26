@@ -237,7 +237,7 @@ func HandleDelete(c fiber.Ctx, state *core.AppState, path string, localFilePath 
 	audit.Log(state, &core.AuditLogEntry{
 		Username:   username,
 		Operator:   op,
-		Action:     "DELETE",
+		Action:     audit.ActionDelete,
 		Details:    details,
 		AuthMethod: authMethod,
 		SessionID:  sessionID,
