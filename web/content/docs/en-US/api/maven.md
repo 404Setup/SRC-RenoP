@@ -37,6 +37,8 @@ The member API accepts between one and twenty usernames in one request. Non-admi
 
 Use `GET /api/maven/repositories/:repo/domains` to list domains containing artifacts in one repository, and `GET /api/maven/repositories/:repo/packages` to page or search its catalog. `GET /api/maven/repositories/:repo/package?group=...&artifact=...` returns artifact details and versions. L2 members can update descriptions and delete complete versions through the corresponding JSON endpoints.
 
+The detail response summarizes indexed primary files, sizes, modification times, available checksums, and detached-signature coverage. It returns at most 64 primary files per version. When the latest indexed POM is no larger than 2 MiB, RenoP also streams and parses its project, organization, license, developer, source-control, issue-tracker, parent, and direct-dependency metadata. Direct dependencies are limited to 128 entries; companion checksum and signature files are not counted as primary files.
+
 Legacy Maven repositories are indexed into the domain catalog during upgrade. Imported domains are verified but receive no automatic team members; an administrator must explicitly assign access before new publication. Configured Maven mirrors continue to resolve missing artifacts.
 
 ## Layouts and file repositories

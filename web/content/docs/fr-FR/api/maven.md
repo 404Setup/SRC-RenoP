@@ -46,6 +46,12 @@ transfert conserve exactement un propriétaire L4, et le propriétaire doit tran
 `GET /api/maven/repositories/:repo/package?group=...&artifact=...` renvoie l’artefact et ses versions. Les membres L2
 peuvent modifier la description et supprimer une version complète via les routes JSON associées.
 
+La réponse détaillée résume les fichiers principaux indexés, leurs tailles, dates de modification, sommes de contrôle
+et signatures détachées. Elle renvoie au plus 64 fichiers principaux par version. Si le dernier POM indexé ne dépasse
+pas 2 Mio, RenoP le lit en flux et expose aussi le projet, l’organisation, les licences, les développeurs, le contrôle
+de source, le suivi des problèmes, le parent et les dépendances directes. Les dépendances directes sont limitées à 128
+entrées ; les fichiers compagnons de somme de contrôle et de signature ne sont pas comptés comme fichiers principaux.
+
 Les anciens dépôts sont indexés lors de la mise à niveau. Les domaines importés sont vérifiés mais n’obtiennent aucun
 membre automatiquement. Les miroirs Maven configurés continuent de résoudre les artefacts absents.
 

@@ -317,6 +317,92 @@ html.dark .maven-status-badge.is-pending {
     font-size: 0.98rem;
 }
 
+.maven-section-summary,
+.maven-section-note {
+    margin: -0.35rem 0 0.85rem;
+    color: var(--muted-text);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.maven-section-note {
+    margin: 0.7rem 0 0;
+}
+
+.maven-metadata-list {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+}
+
+.maven-metadata-list a,
+.repository-fact-value > a {
+    color: var(--link-color);
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+.maven-metadata-list a:hover,
+.repository-fact-value > a:hover {
+    text-decoration: underline;
+}
+
+.maven-dependency-list,
+.maven-version-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.maven-dependency-row,
+.maven-version-file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--text-color) 2%, transparent);
+}
+
+.maven-dependency-coordinate,
+.maven-version-file-name {
+    overflow: hidden;
+    min-width: 0;
+    color: var(--text-color);
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.maven-dependency-meta,
+.maven-version-file-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    color: var(--muted-text);
+    font-size: 0.7rem;
+}
+
+.maven-dependency-badge,
+.maven-file-classifier {
+    padding: 0.18rem 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--link-hover-color) 9%, transparent);
+    color: var(--link-hover-color);
+    font-size: 0.68rem;
+}
+
+.maven-dependency-badge.is-optional {
+    background: color-mix(in srgb, #f59e0b 12%, transparent);
+    color: #b45309;
+}
+
 .maven-domain-list,
 .maven-artifact-list,
 .maven-team-list,
@@ -602,8 +688,63 @@ button.maven-artifact-card:focus-visible {
 }
 
 .maven-version-meta {
+    min-width: 0;
+    flex-wrap: wrap;
     color: var(--muted-text);
     font-size: 0.73rem;
+}
+
+.maven-version-entry {
+    min-width: 0;
+}
+
+.maven-version-files {
+    margin-top: 0.35rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--border-color) 74%, transparent);
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--card-bg) 96%, transparent);
+}
+
+.maven-version-files > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted-text);
+    cursor: pointer;
+    font-size: 0.74rem;
+    font-weight: 650;
+    list-style: none;
+}
+
+.maven-version-files > summary::-webkit-details-marker {
+    display: none;
+}
+
+.maven-version-files > summary svg,
+.maven-version-file-name svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    flex-shrink: 0;
+    color: #ea580c;
+}
+
+.maven-version-files[open] > summary {
+    margin-bottom: 0.55rem;
+}
+
+.maven-version-file-name {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 0.45rem;
+}
+
+.maven-version-file-name code {
+    overflow: hidden;
+    min-width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @keyframes mavenViewIn {
@@ -667,6 +808,18 @@ button.maven-artifact-card:focus-visible {
         width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
+    }
+
+    .maven-dependency-row,
+    .maven-version-file-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .maven-dependency-meta,
+    .maven-version-file-meta {
+        width: 100%;
+        justify-content: flex-start;
     }
 }
 

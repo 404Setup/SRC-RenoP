@@ -110,21 +110,97 @@ type MavenArtifact struct {
 
 // MavenVersion is one published version in the Maven catalog.
 type MavenVersion struct {
-	Repository string `json:"-"`
-	GroupID    string `json:"-"`
-	ArtifactID string `json:"-"`
-	Version    string `json:"version"`
-	Publisher  string `json:"publisher,omitempty"`
-	Size       int64  `json:"size"`
-	Mirrored   bool   `json:"mirrored"`
-	CreatedAt  int64  `json:"created_at"`
+	Repository      string              `json:"-"`
+	GroupID         string              `json:"-"`
+	ArtifactID      string              `json:"-"`
+	Version         string              `json:"version"`
+	Publisher       string              `json:"publisher,omitempty"`
+	Size            int64               `json:"size"`
+	Mirrored        bool                `json:"mirrored"`
+	CreatedAt       int64               `json:"created_at"`
+	FileCount       int                 `json:"file_count,omitempty"`
+	TotalFileSize   int64               `json:"total_file_size,omitempty"`
+	SignedFileCount int                 `json:"signed_file_count,omitempty"`
+	LastModified    int64               `json:"last_modified,omitempty"`
+	Files           []*MavenVersionFile `json:"files,omitempty"`
+	FilesTruncated  bool                `json:"files_truncated,omitempty"`
+}
+
+// MavenVersionFile describes one primary file and its companion integrity metadata.
+type MavenVersionFile struct {
+	Name       string   `json:"name"`
+	Extension  string   `json:"extension,omitempty"`
+	Classifier string   `json:"classifier,omitempty"`
+	Size       int64    `json:"size"`
+	ModifiedAt int64    `json:"modified_at,omitempty"`
+	Signed     bool     `json:"signed"`
+	Checksums  []string `json:"checksums,omitempty"`
+}
+
+// MavenProjectCoordinate identifies a related Maven project coordinate.
+type MavenProjectCoordinate struct {
+	GroupID    string `json:"group_id,omitempty"`
+	ArtifactID string `json:"artifact_id,omitempty"`
+	Version    string `json:"version,omitempty"`
+}
+
+// MavenProjectLicense is one license declared by a published POM.
+type MavenProjectLicense struct {
+	Name string `json:"name,omitempty"`
+	URL  string `json:"url,omitempty"`
+}
+
+// MavenProjectDeveloper is one bounded public developer record declared by a POM.
+type MavenProjectDeveloper struct {
+	ID              string   `json:"id,omitempty"`
+	Name            string   `json:"name,omitempty"`
+	URL             string   `json:"url,omitempty"`
+	Organization    string   `json:"organization,omitempty"`
+	OrganizationURL string   `json:"organization_url,omitempty"`
+	Roles           []string `json:"roles,omitempty"`
+}
+
+// MavenProjectDependency is one direct dependency declared by a POM.
+type MavenProjectDependency struct {
+	GroupID    string `json:"group_id,omitempty"`
+	ArtifactID string `json:"artifact_id,omitempty"`
+	Version    string `json:"version,omitempty"`
+	Scope      string `json:"scope,omitempty"`
+	Type       string `json:"type,omitempty"`
+	Classifier string `json:"classifier,omitempty"`
+	Optional   bool   `json:"optional,omitempty"`
+}
+
+// MavenProjectMetadata is a bounded projection of the latest published POM.
+type MavenProjectMetadata struct {
+	ModelVersion           string                    `json:"model_version,omitempty"`
+	Name                   string                    `json:"name,omitempty"`
+	Description            string                    `json:"description,omitempty"`
+	Packaging              string                    `json:"packaging,omitempty"`
+	URL                    string                    `json:"url,omitempty"`
+	InceptionYear          string                    `json:"inception_year,omitempty"`
+	Parent                 *MavenProjectCoordinate   `json:"parent,omitempty"`
+	OrganizationName       string                    `json:"organization_name,omitempty"`
+	OrganizationURL        string                    `json:"organization_url,omitempty"`
+	SCMURL                 string                    `json:"scm_url,omitempty"`
+	IssueManagementSystem  string                    `json:"issue_management_system,omitempty"`
+	IssueManagementURL     string                    `json:"issue_management_url,omitempty"`
+	Licenses               []*MavenProjectLicense    `json:"licenses,omitempty"`
+	Developers             []*MavenProjectDeveloper  `json:"developers,omitempty"`
+	Dependencies           []*MavenProjectDependency `json:"dependencies,omitempty"`
+	DependenciesTruncated  bool                      `json:"dependencies_truncated,omitempty"`
+	ManagedDependencyCount int                       `json:"managed_dependency_count,omitempty"`
 }
 
 // MavenArtifactDetails combines an artifact with all indexed versions.
 type MavenArtifactDetails struct {
-	Artifact      *MavenArtifact  `json:"artifact"`
-	Versions      []*MavenVersion `json:"versions"`
-	Administrator bool            `json:"administrator"`
+	Artifact        *MavenArtifact        `json:"artifact"`
+	Versions        []*MavenVersion       `json:"versions"`
+	Project         *MavenProjectMetadata `json:"project,omitempty"`
+	FileCount       int                   `json:"file_count,omitempty"`
+	TotalFileSize   int64                 `json:"total_file_size,omitempty"`
+	SignedFileCount int                   `json:"signed_file_count,omitempty"`
+	Administrator   bool                  `json:"administrator"`
 }
 
 // MavenInvitation is stored until its matching message action is completed.

@@ -324,7 +324,9 @@ function artifactInformationSection(details, repository) {
         {label: t('maven.artifactId'), value: artifact.artifact_id, code: true},
         {label: t('maven.latestVersion'), value: artifact.latest_version || t('common.unknown'), code: Boolean(artifact.latest_version)},
         {label: t('maven.versionCountLabel'), value: Number(artifact.version_count) || 0},
-        {label: t('maven.totalSize'), value: formatBytes(Number(artifact.total_size) || 0)},
+        {label: t('maven.fileCount'), value: Number(details.file_count) || 0},
+        {label: t('maven.totalSize'), value: formatBytes(Number(details.total_file_size) || Number(artifact.total_size) || 0)},
+        {label: t('maven.signedFileCount'), value: Number(details.signed_file_count) || 0},
         {label: t('maven.createdAt'), value: formatDate(artifact.created_at)},
         {label: t('maven.lastUpdated'), value: formatDate(artifact.updated_at)},
         {
@@ -333,6 +335,164 @@ function artifactInformationSection(details, repository) {
         },
         {label: t('maven.accessLevel'), value: access}
     ]);
+}
+
+/**
+ * Build a safe external link from published POM metadata.
+ * @param {string} value - Absolute project URL.
+ * @param {string} [label=value] - Visible label.
+ * @returns {HTMLElement} Safe anchor or inert text when the URL is invalid.
+ */
+function mavenExternalLink(value, label = value) {
+    const raw = String(value || '').trim();
+    const text = String(label || raw).trim();
+    try {
+        const parsed = new URL(raw);
+        if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || parsed.username || parsed.password) {
+            throw new TypeError('Unsupported project URL');
+        }
+        return el('a', {
+            href: parsed.href,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            title: raw
+        }, text || raw);
+    } catch {
+        return el('span', {}, text || raw);
+    }
+}
+
+/**
+ * Join trusted text or element values into a compact metadata row.
+ * @param {Array<Node|string>} values - Values to join.
+ * @returns {HTMLElement|null} Joined value wrapper.
+ */
+function mavenMetadataList(values) {
+    const filtered = values.filter(Boolean);
+    if (filtered.length === 0) return null;
+    const wrapper = el('span', {class: 'maven-metadata-list'});
+    filtered.forEach((value, index) => {
+        if (index > 0) wrapper.appendChild(document.createTextNode(' · '));
+        wrapper.appendChild(value?.nodeType ? value : document.createTextNode(String(value)));
+    });
+    return wrapper;
+}
+
+/**
+ * Build rich project facts from the latest indexed POM.
+ * @param {object} details - Maven artifact detail payload.
+ * @returns {HTMLElement|null} Project metadata section.
+ */
+function mavenProjectInformationSection(details) {
+    const project = details?.project;
+    if (!project) return null;
+    const parent = project.parent
+        ? [project.parent.group_id, project.parent.artifact_id, project.parent.version].filter(Boolean).join(':')
+        : '';
+    const licenses = mavenMetadataList((project.licenses || []).map(license =>
+        license.url
+            ? mavenExternalLink(license.url, license.name || license.url)
+            : String(license.name || '')
+    ));
+    const developers = mavenMetadataList((project.developers || []).map(developer => {
+        const name = developer.name || developer.id || developer.organization || '';
+        return developer.url ? mavenExternalLink(developer.url, name || developer.url) : name;
+    }));
+    const organization = project.organization_url
+        ? mavenExternalLink(project.organization_url, project.organization_name || project.organization_url)
+        : project.organization_name;
+    const issueTracker = project.issue_management_url
+        ? mavenExternalLink(project.issue_management_url,
+            project.issue_management_system || project.issue_management_url)
+        : project.issue_management_system;
+    return createRepositoryFactsSection(t('maven.projectInformation'), [
+        {label: t('maven.projectName'), value: project.name},
+        {label: t('maven.packaging'), value: project.packaging, code: true},
+        {label: t('maven.modelVersion'), value: project.model_version, code: true},
+        {label: t('maven.parentProject'), value: parent, code: true},
+        {label: t('maven.projectUrl'), value: project.url ? mavenExternalLink(project.url) : null},
+        {label: t('maven.organization'), value: organization},
+        {label: t('maven.inceptionYear'), value: project.inception_year},
+        {label: t('maven.licenses'), value: licenses, wide: true},
+        {label: t('maven.scm'), value: project.scm_url ? mavenExternalLink(project.scm_url) : null, wide: true},
+        {label: t('maven.issueTracker'), value: issueTracker, wide: true},
+        {label: t('maven.developers'), value: developers, wide: true}
+    ]);
+}
+
+/**
+ * Build direct dependency rows from the latest indexed POM.
+ * @param {object|null|undefined} project - Project metadata payload.
+ * @returns {HTMLElement|null} Dependency section.
+ */
+function mavenDependencySection(project) {
+    if (!project) return null;
+    const dependencies = Array.isArray(project.dependencies) ? project.dependencies : [];
+    const managedCount = Number(project.managed_dependency_count) || 0;
+    if (dependencies.length === 0 && managedCount === 0) return null;
+    const list = el('div', {class: 'maven-dependency-list'});
+    dependencies.forEach(dependency => {
+        const coordinate = [dependency.group_id, dependency.artifact_id].filter(Boolean).join(':');
+        const metadata = [
+            dependency.version ? el('code', {}, dependency.version) : null,
+            dependency.scope ? el('span', {class: 'maven-dependency-badge'}, dependency.scope) : null,
+            dependency.type && dependency.type !== 'jar'
+                ? el('span', {class: 'maven-dependency-badge'}, dependency.type)
+                : null,
+            dependency.classifier ? el('span', {class: 'maven-dependency-badge'}, dependency.classifier) : null,
+            dependency.optional ? el('span', {class: 'maven-dependency-badge is-optional'}, t('maven.optionalDependency')) : null
+        ].filter(Boolean);
+        list.appendChild(el('div', {class: 'maven-dependency-row'},
+            el('code', {class: 'maven-dependency-coordinate', title: coordinate}, coordinate),
+            el('div', {class: 'maven-dependency-meta'}, ...metadata)
+        ));
+    });
+    return el('section', {class: 'maven-section'},
+        el('h3', {}, t('maven.dependenciesTitle')),
+        el('p', {class: 'maven-section-summary'}, t('maven.dependenciesSummary', {
+            count: dependencies.length,
+            managed: managedCount
+        })),
+        list,
+        project.dependencies_truncated
+            ? el('p', {class: 'maven-section-note'}, t('maven.dependenciesTruncated'))
+            : null
+    );
+}
+
+/**
+ * Build an expandable primary-file list for one Maven version.
+ * @param {object} version - Version metadata payload.
+ * @returns {HTMLElement|null} File disclosure.
+ */
+function mavenVersionFiles(version) {
+    const files = Array.isArray(version.files) ? version.files : [];
+    if (files.length === 0) return null;
+    const list = el('div', {class: 'maven-version-file-list'});
+    files.forEach(file => {
+        const integrity = [
+            file.signed ? t('maven.fileSigned') : '',
+            ...(Array.isArray(file.checksums) ? file.checksums : [])
+        ].filter(Boolean).join(' · ');
+        list.appendChild(el('div', {class: 'maven-version-file-row'},
+            el('div', {class: 'maven-version-file-name'},
+                createIcon(file.extension === 'pom' ? 'fileCode' : 'filePackage'),
+                el('code', {title: file.name}, file.name)
+            ),
+            el('div', {class: 'maven-version-file-meta'},
+                file.classifier ? el('span', {class: 'maven-file-classifier'}, file.classifier) : null,
+                integrity ? el('span', {title: t('maven.fileIntegrity')}, integrity) : null,
+                el('span', {}, formatBytes(Number(file.size) || 0)),
+                file.modified_at ? el('span', {}, formatDate(file.modified_at)) : null
+            )
+        ));
+    });
+    return el('details', {class: 'maven-version-files'},
+        el('summary', {}, createIcon('folder'),
+            el('span', {}, t('maven.versionFiles', {count: Number(version.file_count) || files.length}))),
+        list,
+        version.files_truncated ? el('p', {class: 'maven-section-note'}, t('maven.filesTruncated')) : null
+    );
 }
 
 /**
@@ -968,6 +1128,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         if (!response.ok) throw await localizedResponseError(response, 'maven.artifactLoadFailed');
         const details = await response.json();
         const artifact = details.artifact;
+        const project = details.project || null;
         const versions = Array.isArray(details.versions) ? details.versions : [];
         const canManageVersions = details.administrator || Number(artifact.permission_level) >= 2;
         const coordinate = `${artifact.group_id}:${artifact.artifact_id}:${artifact.latest_version || '<version>'}`;
@@ -980,7 +1141,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                     type: 'button', class: 'pill-btn pill-btn--soft', onclick: () => openDescriptionEditor(container, repository, artifact, sequence)
                 }, createIcon('edit'), el('span', {}, t('maven.editDescription'))) : null
             ),
-            el('p', {}, artifact.description || t('maven.noDescription')),
+            el('p', {}, artifact.description || project?.description || t('maven.noDescription')),
             el('div', {class: 'maven-coordinate-box'},
                 el('code', {}, coordinate),
                 el('button', {
@@ -991,6 +1152,13 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             el('div', {class: 'maven-stats'},
                 el('span', {}, artifact.domain),
                 el('span', {}, t('maven.versionCount', {count: versions.length})),
+                Number(details.file_count) > 0
+                    ? el('span', {}, t('maven.versionFiles', {count: Number(details.file_count)}))
+                    : null,
+                Number(details.signed_file_count) > 0
+                    ? el('span', {}, t('maven.signedFiles', {count: Number(details.signed_file_count)}))
+                    : null,
+                project?.packaging ? el('code', {}, project.packaging) : null,
                 artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
                 artifact.publisher ? el('span', {}, t('maven.publishedBy'), createUserIdentity(artifact.publisher)) : null
             )
@@ -1011,17 +1179,30 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
                     }
                 }, createIcon('delete')));
             }
-            versionList.appendChild(el('div', {class: 'maven-version-row'},
+            const row = el('div', {class: 'maven-version-row'},
                 el('div', {class: 'maven-version-main'}, el('code', {}, version.version),
                     el('span', {}, formatDate(version.created_at))),
                 el('div', {class: 'maven-version-meta'},
                     version.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
                     version.publisher ? createUserIdentity(version.publisher) : null,
-                    el('span', {}, formatBytes(Number(version.size) || 0)), actions)
-            ));
+                    Number(version.file_count) > 0
+                        ? el('span', {}, t('maven.versionFiles', {count: Number(version.file_count)}))
+                        : null,
+                    Number(version.signed_file_count) > 0
+                        ? el('span', {}, t('maven.signedFiles', {count: Number(version.signed_file_count)}))
+                        : null,
+                    el('span', {}, formatBytes(Number(version.total_file_size) || Number(version.size) || 0)),
+                    version.last_modified ? el('span', {}, formatDate(version.last_modified)) : null,
+                    actions)
+            );
+            versionList.appendChild(el('div', {class: 'maven-version-entry'}, row, mavenVersionFiles(version)));
         });
         if (versions.length === 0) versionList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noVersions')));
-        await replaceRepositoryView(container, [hero, artifactInformationSection(details, repository),
+        await replaceRepositoryView(container, [
+            hero,
+            artifactInformationSection(details, repository),
+            mavenProjectInformationSection(details),
+            mavenDependencySection(project),
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.versionsTitle')), versionList)
         ], {duration: 280, enterDuration: 420});
     } catch (error) {

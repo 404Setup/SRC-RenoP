@@ -524,6 +524,9 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return apiError(c, err)
 	}
+	if err := enrichMavenArtifactDetails(state, repo.Name, details); err != nil {
+		log.Printf("failed to enrich Maven artifact %s:%s in %s: %v", groupID, artifactID, repo.Name, err)
+	}
 	user := auth.GetUser(c)
 	if user != nil && !strings.EqualFold(user.Username, "guest") {
 		if domain, authErr := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionRead, true); authErr == nil {

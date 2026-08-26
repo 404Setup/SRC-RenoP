@@ -74,6 +74,7 @@ func mavenRequest(t *testing.T, app *fiber.App, method, path, body string) *http
 
 func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	state, currentUser := newMavenRouteState(t)
+	const projectPOM = `<project><modelVersion>4.0.0</modelVersion><name>Demo Project</name><packaging>jar</packaging><url>https://example.com/demo</url><licenses><license><name>Apache-2.0</name></license></licenses></project>`
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
 		c.Locals("user", currentUser)
@@ -88,7 +89,7 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 	assert.False(t, created.Verified)
 
-	response = mavenRequest(t, app, http.MethodPut, "/releases/com/example/demo/1.0/demo-1.0.pom", "pom")
+	response = mavenRequest(t, app, http.MethodPut, "/releases/com/example/demo/1.0/demo-1.0.pom", projectPOM)
 	require.Equal(t, http.StatusConflict, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 	response = mavenRequest(t, app, http.MethodPost,
@@ -147,7 +148,7 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	response = mavenRequest(t, app, http.MethodPut, "/releases/com/example/readme.txt", "not a Maven artifact")
 	require.Equal(t, http.StatusForbidden, response.StatusCode)
 	require.NoError(t, response.Body.Close())
-	response = mavenRequest(t, app, http.MethodPut, "/releases/com/example/demo/1.0/demo-1.0.pom", "pom")
+	response = mavenRequest(t, app, http.MethodPut, "/releases/com/example/demo/1.0/demo-1.0.pom", projectPOM)
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	require.NoError(t, response.Body.Close())
 	response = mavenRequest(t, app, http.MethodGet,
@@ -163,6 +164,17 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	require.Len(t, releaseCatalog.Artifacts, 1)
 	assert.Equal(t, "com.example:demo", releaseCatalog.Artifacts[0].GroupID+":"+releaseCatalog.Artifacts[0].ArtifactID)
 	assert.Positive(t, releaseCatalog.Artifacts[0].TotalSize)
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/repositories/releases/package?group=com.example&artifact=demo", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var artifactDetails core.MavenArtifactDetails
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&artifactDetails))
+	require.NoError(t, response.Body.Close())
+	require.NotNil(t, artifactDetails.Project)
+	assert.Equal(t, "Demo Project", artifactDetails.Project.Name)
+	assert.Equal(t, "jar", artifactDetails.Project.Packaging)
+	assert.Equal(t, 1, artifactDetails.FileCount)
+	assert.Positive(t, artifactDetails.TotalFileSize)
 	response = mavenRequest(t, app, http.MethodGet, "/api/maven/repositories/releases/domains", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var releaseDomains struct {

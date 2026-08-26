@@ -51,7 +51,9 @@
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
   Maven publication paths in both layouts. Administrators can migrate Maven repositories to the unstructured files
   engine and back without moving stored objects; returning to Maven streams the existing Disk/S3 index into a rebuilt
-  catalog and restores the prior Maven layout and publication policy.
+  catalog and restores the prior Maven layout and publication policy. Artifact detail responses summarize bounded
+  primary-file, checksum, and signature metadata from the in-memory index and stream-parse the latest POM up to 2 MiB;
+  project collections are capped before they reach the frontend.
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based
   Bearer authentication, explicitly reserved images, L0-L4 image teams, per-image private visibility, image-scoped
   blob references, chunked uploads, authorized cross-repository mounting, upstream mirror proxying, and catalog
