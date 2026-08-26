@@ -34,6 +34,44 @@ let mavenLoadSequence = 0;
 let activeNavigate = null;
 let domainCenterBody = null;
 let domainCenterSequence = 0;
+let domainCenterOffset = 0;
+const domainCenterPageSize = 12;
+const domainCenterFilters = new Set();
+const domainCenterRouteRoot = '/account/maven-domains';
+
+/**
+ * Parse the account Maven-domain route.
+ * @param {string} [pathname=window.location.pathname]
+ * @returns {{domain: string}|null}
+ */
+export function mavenDomainRouteFromPath(pathname = window.location.pathname) {
+    const normalized = String(pathname || '/').replace(/\/+$/, '') || '/';
+    if (normalized === domainCenterRouteRoot) return {domain: ''};
+    if (!normalized.startsWith(`${domainCenterRouteRoot}/`)) return null;
+    const segment = normalized.slice(domainCenterRouteRoot.length + 1);
+    if (!segment || segment.includes('/')) return null;
+    try {
+        const domain = decodeURIComponent(segment).trim().toLowerCase();
+        return domain ? {domain} : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Change the Maven-domain subpage route and let the app shell render it.
+ * @param {string} [domain='']
+ * @returns {void}
+ */
+function navigateMavenDomainCenter(domain = '') {
+    const path = domain
+        ? `${domainCenterRouteRoot}/${encodeURIComponent(String(domain).trim().toLowerCase())}`
+        : domainCenterRouteRoot;
+    if (window.location.pathname !== path || window.location.search || window.location.hash) {
+        window.history.pushState(null, '', path);
+    }
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}
 
 /**
  * Return the persistent Maven repository view container.
@@ -223,7 +261,8 @@ function verificationMethodLabel(verificationType) {
         dns: 'maven.verificationDns',
         github: 'maven.verificationGithub',
         gitlab: 'maven.verificationGitlab',
-        legacy: 'maven.verificationLegacy'
+        legacy: 'maven.verificationLegacy',
+        mirror: 'maven.verificationMirror'
     };
     return t(labels[String(verificationType || '').toLowerCase()] || 'common.unknown');
 }
@@ -358,6 +397,15 @@ async function renderCatalog(container, repository, sequence) {
  * @returns {HTMLElement}
  */
 function verificationPanel(domain) {
+    if (domain.verification_type === 'mirror') {
+        return el('div', {class: 'maven-verification-panel'},
+            el('p', {}, t('maven.mirrorDomainHint')),
+            el('div', {class: 'maven-verification-target'},
+                el('span', {}, t('maven.domainLabel')),
+                el('code', {}, domain.domain)
+            )
+        );
+    }
     const instructionKey = domain.verification_type === 'dns'
         ? 'maven.verifyDnsInstruction'
         : (domain.verification_type === 'github' ? 'maven.verifyGithubInstruction' : 'maven.verifyGitlabInstruction');
@@ -477,6 +525,83 @@ function teamPanel(details, refresh) {
 }
 
 /**
+ * Build the API URL for the active permission and source filters.
+ * @returns {string}
+ */
+function managedDomainListURL() {
+    if (cachedIsManager) domainCenterFilters.delete('level-0');
+    else {
+        domainCenterFilters.delete('state-unverified');
+        domainCenterFilters.delete('state-mirror');
+    }
+    const params = new URLSearchParams({
+        view: 'managed', limit: String(domainCenterPageSize), offset: String(domainCenterOffset)
+    });
+    const levels = [...domainCenterFilters]
+        .filter(value => value.startsWith('level-'))
+        .map(value => value.slice('level-'.length));
+    const states = [...domainCenterFilters]
+        .filter(value => value.startsWith('state-'))
+        .map(value => value.slice('state-'.length));
+    if (levels.length > 0) params.set('levels', levels.join(','));
+    if (states.length > 0) params.set('states', states.join(','));
+    return `/api/maven/domains?${params}`;
+}
+
+/**
+ * Build one toggle button for the multi-select domain filter.
+ * @param {string} filter
+ * @param {string} label
+ * @param {HTMLElement} container
+ * @returns {HTMLButtonElement}
+ */
+function domainFilterButton(filter, label, container) {
+    const selected = domainCenterFilters.has(filter);
+    return el('button', {
+        type: 'button', class: `maven-domain-filter${selected ? ' is-active' : ''}`,
+        'aria-pressed': String(selected),
+        onclick: () => {
+            if (selected) domainCenterFilters.delete(filter);
+            else domainCenterFilters.add(filter);
+            domainCenterOffset = 0;
+            void renderDomainCenterList(container);
+        }
+    }, label);
+}
+
+/**
+ * Build bounded previous/next controls for the domain list.
+ * @param {HTMLElement} container
+ * @param {number} total
+ * @returns {HTMLElement|null}
+ */
+function domainCenterPagination(container, total) {
+    if (total <= domainCenterPageSize) return null;
+    const pageCount = Math.max(1, Math.ceil(total / domainCenterPageSize));
+    const page = Math.floor(domainCenterOffset / domainCenterPageSize) + 1;
+    const previous = el('button', {
+        type: 'button', class: 'maven-pagination-btn', disabled: domainCenterOffset === 0,
+        onclick: () => {
+            domainCenterOffset = Math.max(0, domainCenterOffset - domainCenterPageSize);
+            void renderDomainCenterList(container);
+        }
+    }, createIcon('chevronLeft'), el('span', {}, t('common.prev')));
+    const next = el('button', {
+        type: 'button', class: 'maven-pagination-btn',
+        disabled: domainCenterOffset + domainCenterPageSize >= total,
+        onclick: () => {
+            domainCenterOffset += domainCenterPageSize;
+            void renderDomainCenterList(container);
+        }
+    }, el('span', {}, t('common.next')), createIcon('chevronRight'));
+    return el('nav', {class: 'maven-domain-pagination', 'aria-label': t('maven.paginationLabel')},
+        previous,
+        el('span', {class: 'maven-pagination-info'}, t('maven.pagination', {page, pages: pageCount, total})),
+        next
+    );
+}
+
+/**
  * Render the global Maven domain-management list.
  * @param {HTMLElement} container
  * @returns {Promise<void>}
@@ -486,15 +611,27 @@ async function renderDomainCenterList(container) {
     container.setAttribute('aria-busy', 'true');
     container.replaceChildren(createSkeleton('list', 3));
     try {
-        const response = await apiRequest('/api/maven/domains');
+        const response = await apiRequest(managedDomainListURL());
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
         if (!response.ok) throw new Error(await response.text() || t('maven.loadFailed'));
         const payload = await response.json();
-        const domains = (Array.isArray(payload.domains) ? payload.domains : [])
-            .filter(domain => domain?.member || cachedIsManager);
+        const domains = Array.isArray(payload.domains) ? payload.domains : [];
+        const total = Number(payload.total);
+        if (!Number.isInteger(total) || total < 0) throw new Error(t('maven.loadFailed'));
+        const administrator = Boolean(payload.administrator);
+        if (administrator) domainCenterFilters.delete('level-0');
+        else {
+            domainCenterFilters.delete('state-unverified');
+            domainCenterFilters.delete('state-mirror');
+        }
+        if (total > 0 && domainCenterOffset >= total) {
+            domainCenterOffset = Math.floor((total - 1) / domainCenterPageSize) * domainCenterPageSize;
+            await renderDomainCenterList(container);
+            return;
+        }
         const createButton = el('button', {
             type: 'button', class: 'pill-btn pill-btn--primary',
-            onclick: () => openCreateDomainDialog(created => renderManagedDomain(container, created.domain))
+            onclick: () => openCreateDomainDialog(created => navigateMavenDomainCenter(created.domain))
         }, createIcon('plus'), el('span', {}, t('maven.createDomain')));
         const header = el('div', {class: 'maven-domain-center-toolbar'},
             el('div', {},
@@ -503,15 +640,29 @@ async function renderDomainCenterList(container) {
             ),
             createButton
         );
+        const filters = el('div', {class: 'maven-domain-filter-bar'},
+            el('span', {class: 'maven-domain-filter-label'}, t('maven.filterLabel'))
+        );
+        const permissionLevels = administrator ? [1, 2, 3, 4] : [0, 1, 2, 3, 4];
+        permissionLevels.forEach(level => filters.appendChild(
+            domainFilterButton(`level-${level}`, permissionLabel(level), container)
+        ));
+        if (administrator) {
+            filters.append(
+                domainFilterButton('state-unverified', t('maven.filterUnverified'), container),
+                domainFilterButton('state-mirror', t('maven.filterMirrored'), container)
+            );
+        }
         const list = el('div', {class: 'maven-domain-list'});
         if (domains.length === 0) {
-            list.appendChild(el('div', {class: 'maven-empty'}, createIcon('network'), el('span', {}, t('maven.noManagedDomains'))));
+            list.appendChild(el('div', {class: 'maven-empty'}, createIcon('network'),
+                el('span', {}, t(domainCenterFilters.size > 0 ? 'maven.noFilteredDomains' : 'maven.noManagedDomains'))));
         } else {
             domains.forEach(domain => list.appendChild(domainCard('', domain, selected => {
-                void renderManagedDomain(container, selected.domain);
+                navigateMavenDomainCenter(selected.domain);
             })));
         }
-        container.replaceChildren(header, list);
+        container.replaceChildren(...[header, filters, list, domainCenterPagination(container, total)].filter(Boolean));
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
         container.replaceChildren(el('div', {class: 'maven-error'}, createIcon('alertCircle'),
@@ -555,7 +706,7 @@ async function renderManagedDomain(container, domainName) {
                 }
             }, createIcon('check'), el('span', {}, t('maven.verifyNow'))));
         }
-        if (!domain.verified && cachedIsManager && domain.verification_code) {
+        if (!domain.verified && cachedIsManager) {
             actions.appendChild(el('button', {
                 type: 'button', class: 'pill-btn pill-btn--soft', onclick: async event => {
                     if (!(await showConfirm(t('maven.forceVerifyConfirm', {domain: domain.domain})))) return;
@@ -576,12 +727,12 @@ async function renderManagedDomain(container, domainName) {
                     if (!(await showConfirm(t('maven.deleteDomainConfirm', {domain: domain.domain})))) return;
                     const deleteResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}`, {method: 'DELETE'});
                     if (!deleteResponse.ok) showAlert(await deleteResponse.text() || t('maven.deleteDomainFailed'), 'error');
-                    else await renderDomainCenterList(container);
+                    else navigateMavenDomainCenter();
                 }
             }, createIcon('delete'), el('span', {}, t('maven.deleteDomain'))));
         }
         const back = el('button', {
-            type: 'button', class: 'maven-back-btn', onclick: () => { void renderDomainCenterList(container); }
+            type: 'button', class: 'maven-back-btn', onclick: () => navigateMavenDomainCenter()
         }, createIcon('chevronLeft'), el('span', {}, t('maven.backToDomains')));
         const hero = el('section', {class: 'maven-hero'}, back,
             el('div', {class: 'maven-hero-heading'},
@@ -602,7 +753,7 @@ async function renderManagedDomain(container, domainName) {
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
         container.replaceChildren(
-            el('button', {type: 'button', class: 'maven-back-btn', onclick: () => { void renderDomainCenterList(container); }},
+            el('button', {type: 'button', class: 'maven-back-btn', onclick: () => navigateMavenDomainCenter()},
                 createIcon('chevronLeft'), el('span', {}, t('maven.backToDomains'))),
             el('div', {class: 'maven-error'}, error.message || t('maven.domainLoadFailed'))
         );
@@ -612,23 +763,38 @@ async function renderManagedDomain(container, domainName) {
 }
 
 /**
+ * Render the current account Maven-domain subpage.
+ * @returns {Promise<void>}
+ */
+export async function loadMavenDomainCenterPage() {
+    if (!cachedIsLoggedIn) return;
+    const container = document.getElementById('maven-domain-page-content');
+    const homeButton = document.getElementById('maven-domain-home');
+    if (!container) return;
+    domainCenterBody = container;
+    if (homeButton && homeButton.dataset.bound !== 'true') {
+        homeButton.dataset.bound = 'true';
+        homeButton.addEventListener('click', () => {
+            if (window.location.pathname !== '/' || window.location.search || window.location.hash) {
+                window.history.pushState(null, '', '/');
+            }
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        });
+    }
+    const route = mavenDomainRouteFromPath();
+    if (!route) return;
+    if (route.domain) await renderManagedDomain(container, route.domain);
+    else await renderDomainCenterList(container);
+}
+
+/**
  * Open global Maven domain configuration from the account menu.
  * @returns {void}
  */
 export function openMavenDomainCenter() {
     if (!cachedIsLoggedIn) return;
-    const body = el('div', {class: 'maven-domain-center'});
-    domainCenterBody = body;
-    void RenopDialog.show({
-        id: 'maven-domain-center-dialog', className: 'maven-domain-center-dialog', maxWidth: '960px',
-        icon: 'network', title: t('maven.domainCenterTitle'), subtitle: t('maven.domainCenterSubtitle'),
-        body, bodyClass: 'modal-body maven-domain-center-body',
-        onClose: () => {
-            domainCenterSequence++;
-            if (domainCenterBody === body) domainCenterBody = null;
-        }
-    });
-    void renderDomainCenterList(body);
+    domainCenterOffset = 0;
+    navigateMavenDomainCenter();
 }
 
 /**

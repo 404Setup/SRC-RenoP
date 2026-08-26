@@ -25,6 +25,8 @@ const (
 	MavenVerificationDNS    = "dns"
 	MavenVerificationGitHub = "github"
 	MavenVerificationGitLab = "gitlab"
+	MavenVerificationLegacy = "legacy"
+	MavenVerificationMirror = "mirror"
 )
 
 var (
@@ -60,6 +62,18 @@ type MavenDomain struct {
 	MemberCount      int    `json:"member_count"`
 	Verified         bool   `json:"verified"`
 	Member           bool   `json:"member,omitempty"`
+}
+
+// MavenDomainListOptions controls the account domain-management listing.
+type MavenDomainListOptions struct {
+	Username          string
+	PermissionLevels  []int
+	Limit             int
+	Offset            int
+	Administrator     bool
+	Filtered          bool
+	IncludeUnverified bool
+	IncludeMirrored   bool
 }
 
 // MavenMember is one domain-team membership.

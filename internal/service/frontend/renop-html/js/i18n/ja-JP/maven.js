@@ -49,5 +49,9 @@ export default {
     "maven.repositoryCount": "リポジトリ数", "maven.repositoryLabel": "リポジトリ", "maven.teamMembers": "チームメンバー",
     "maven.totalSize": "バージョンの合計サイズ", "maven.verificationDns": "DNS TXT レコード", "maven.verificationGithub": "GitHub プロフィール",
     "maven.verificationGitlab": "GitLab プロフィール", "maven.verificationLegacy": "旧リポジトリのインポート", "maven.verificationMethod": "検証方法",
-    "maven.verificationTarget": "検証対象", "maven.verifiedAtLabel": "検証日時", "maven.versionCountLabel": "バージョン数"
+    "maven.verificationTarget": "検証対象", "maven.verifiedAtLabel": "検証日時", "maven.versionCountLabel": "バージョン数",
+    "maven.verificationMirror": "アップストリームミラーから自動検出", "maven.mirrorDomainHint": "このドメインはアップストリームミラーから自動登録されました。管理者は検証を強制でき、所有者は同じドメインを追加して通常の所有権検証を開始できます。",
+    "maven.filterLabel": "絞り込み", "maven.filterUnverified": "未検証", "maven.filterMirrored": "アップストリーム由来",
+    "maven.noFilteredDomains": "選択した条件に一致する Maven ドメインはありません。", "maven.paginationLabel": "ドメインのページ",
+    "maven.pagination": "{pages} ページ中 {page} ページ · 全 {total} ドメイン"
 };

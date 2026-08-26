@@ -13,6 +13,7 @@ package database_test
 import (
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,10 +30,57 @@ func newMavenDB(t *testing.T) *database.DB {
 	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "maven.db")})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
-	for _, username := range []string{"alice", "bob"} {
+	for _, username := range []string{"alice", "bob", "admin"} {
 		require.NoError(t, db.SaveToken(&core.AccessToken{Name: username, CreatedAt: time.Now().Format(time.RFC3339)}))
 	}
 	return db
+}
+
+func TestManagedMavenDomainsFilterPaginationAndMirrorClaim(t *testing.T) {
+	db := newMavenDB(t)
+	now := time.Now().UnixMilli()
+	for _, name := range []string{"com.alpha", "net.alpha"} {
+		record := &core.MavenDomain{
+			Domain: name, VerificationType: core.MavenVerificationDNS,
+			VerificationHost: strings.TrimPrefix(name, strings.Split(name, ".")[0]+"."),
+			VerificationCode: "renop-verification=" + name, CreatedAt: now,
+		}
+		require.NoError(t, db.CreateMavenDomain(record, "alice"))
+	}
+	require.NoError(t, db.MarkMavenDomainVerified("com.alpha", "renop-verification=com.alpha", now))
+	require.NoError(t, db.EnsureMirroredMavenDomain("org.mirror", now))
+	require.NoError(t, db.EnsureMirroredMavenDomain("org.mirror", now))
+
+	page, total, err := db.ListManagedMavenDomains(core.MavenDomainListOptions{
+		Username: "alice", PermissionLevels: []int{core.MavenPermissionOwner},
+		Limit: 1, Filtered: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, total)
+	require.Len(t, page, 1)
+	assert.Equal(t, "com.alpha", page[0].Domain)
+
+	page, total, err = db.ListManagedMavenDomains(core.MavenDomainListOptions{
+		Username: "admin", Administrator: true, IncludeMirrored: true, Filtered: true, Limit: 20,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+	require.Len(t, page, 1)
+	assert.Equal(t, core.MavenVerificationMirror, page[0].VerificationType)
+	assert.False(t, page[0].Verified)
+	assert.False(t, page[0].Member)
+
+	claim := &core.MavenDomain{
+		Domain: "org.mirror", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "mirror.org", VerificationCode: "renop-verification=claim", CreatedAt: now + 1,
+	}
+	require.NoError(t, db.CreateMavenDomain(claim, "bob"))
+	details, err := db.GetMavenDomainDetails("org.mirror", "bob")
+	require.NoError(t, err)
+	assert.True(t, details.Domain.Member)
+	assert.Equal(t, core.MavenPermissionOwner, details.Domain.PermissionLevel)
+	assert.Equal(t, core.MavenVerificationDNS, details.Domain.VerificationType)
+	assert.Equal(t, "renop-verification=claim", details.Domain.VerificationCode)
 }
 
 func TestMavenDomainOwnershipAndCatalog(t *testing.T) {

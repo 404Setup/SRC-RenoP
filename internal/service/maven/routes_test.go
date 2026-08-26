@@ -250,6 +250,68 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	assert.False(t, independent.Verified)
 }
 
+func TestManagedMavenDomainListFiltersAndPaginates(t *testing.T) {
+	state, currentUser := newMavenRouteState(t)
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", currentUser)
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state)
+	for _, name := range []string{"com.alpha", "net.alpha"} {
+		response := mavenRequest(t, app, http.MethodPost, "/api/maven/domains", `{"domain":"`+name+`"}`)
+		require.Equal(t, http.StatusCreated, response.StatusCode)
+		require.NoError(t, response.Body.Close())
+	}
+	require.NoError(t, state.GetDB().EnsureMirroredMavenDomain("org.mirror", time.Now().UnixMilli()))
+
+	response := mavenRequest(t, app, http.MethodGet,
+		"/api/maven/domains?view=managed&levels=4&limit=1&offset=1", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var ownerPage struct {
+		Domains       []*core.MavenDomain `json:"domains"`
+		Total         int                 `json:"total"`
+		Limit         int                 `json:"limit"`
+		Offset        int                 `json:"offset"`
+		Administrator bool                `json:"administrator"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&ownerPage))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, 2, ownerPage.Total)
+	assert.Equal(t, 1, ownerPage.Limit)
+	assert.Equal(t, 1, ownerPage.Offset)
+	assert.False(t, ownerPage.Administrator)
+	require.Len(t, ownerPage.Domains, 1)
+	assert.Equal(t, "net.alpha", ownerPage.Domains[0].Domain)
+
+	currentUser = &config.User{Username: "admin", Roles: []string{"manager"}}
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/domains?view=managed&states=mirror&limit=20&offset=0", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var mirrorPage struct {
+		Domains       []*core.MavenDomain `json:"domains"`
+		Total         int                 `json:"total"`
+		Administrator bool                `json:"administrator"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&mirrorPage))
+	require.NoError(t, response.Body.Close())
+	assert.True(t, mirrorPage.Administrator)
+	assert.Equal(t, 1, mirrorPage.Total)
+	require.Len(t, mirrorPage.Domains, 1)
+	assert.Equal(t, core.MavenVerificationMirror, mirrorPage.Domains[0].VerificationType)
+	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains/org.mirror/verify/force", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	mirrorDetails, err := state.GetDB().GetMavenDomainDetails("org.mirror", "admin")
+	require.NoError(t, err)
+	assert.True(t, mirrorDetails.Domain.Verified)
+
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/domains?view=managed&levels=0&limit=20&offset=0", "")
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+}
+
 func TestFileRepositoryAllowsReplacementWithoutMavenHelpers(t *testing.T) {
 	state, _ := newMavenRouteState(t)
 	currentUser := &config.User{Username: "admin", Roles: []string{"manager"}}
@@ -329,6 +391,14 @@ func TestModernMavenAndFileRepositoriesResolveMirrors(t *testing.T) {
 	assert.True(t, mirroredArtifact.Artifact.Mirrored)
 	require.Len(t, mirroredArtifact.Versions, 1)
 	assert.True(t, mirroredArtifact.Versions[0].Mirrored)
+	mirroredDomains, mirroredTotal, err := state.GetDB().ListManagedMavenDomains(core.MavenDomainListOptions{
+		Username: "admin", Administrator: true, IncludeMirrored: true, Filtered: true, Limit: 20,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, mirroredTotal)
+	require.Len(t, mirroredDomains, 1)
+	assert.Equal(t, "com.example", mirroredDomains[0].Domain)
+	assert.False(t, mirroredDomains[0].Verified)
 	response = mavenRequest(t, app, http.MethodGet, "/files/downloads/app.zip", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	body, err = io.ReadAll(response.Body)

@@ -31,6 +31,116 @@
     min-height: 220px;
 }
 
+.maven-domain-page {
+    width: min(1080px, 100%);
+    margin: 0 auto;
+    padding: 1rem 0 2rem;
+}
+
+.maven-domain-page-header {
+    margin-bottom: 1.25rem;
+    padding: 1.35rem 1.45rem;
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    background:
+        radial-gradient(circle at 96% 0%, color-mix(in srgb, #f97316 12%, transparent), transparent 34%),
+        color-mix(in srgb, var(--card-bg) 97%, transparent);
+}
+
+.maven-domain-page-header .maven-back-btn {
+    margin-bottom: 0.8rem;
+}
+
+.maven-domain-page-header h2,
+.maven-domain-page-header p {
+    margin: 0;
+}
+
+.maven-domain-page-header h2 {
+    margin-top: 0.25rem;
+    color: var(--text-color);
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    letter-spacing: -0.03em;
+}
+
+.maven-domain-page-header p {
+    max-width: 46rem;
+    margin-top: 0.45rem;
+    color: var(--muted-text);
+    line-height: 1.55;
+}
+
+.maven-domain-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.8rem;
+    background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+}
+
+.maven-domain-filter-label {
+    margin-right: 0.2rem;
+    color: var(--muted-text);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.maven-domain-filter,
+.maven-pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--card-bg);
+    color: var(--muted-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+}
+
+.maven-domain-filter:hover,
+.maven-domain-filter:focus-visible,
+.maven-pagination-btn:hover:not(:disabled),
+.maven-pagination-btn:focus-visible:not(:disabled) {
+    border-color: color-mix(in srgb, #f97316 50%, var(--border-color));
+    color: #ea580c;
+}
+
+.maven-domain-filter.is-active {
+    border-color: color-mix(in srgb, #f97316 60%, var(--border-color));
+    background: color-mix(in srgb, #f97316 12%, var(--card-bg));
+    color: #c2410c;
+}
+
+.maven-domain-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.maven-pagination-btn:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.maven-pagination-btn svg {
+    width: 0.85rem;
+    height: 0.85rem;
+}
+
+.maven-pagination-info {
+    color: var(--muted-text);
+    font-size: 0.78rem;
+}
+
 .maven-domain-center-toolbar {
     display: flex;
     align-items: center;
@@ -472,6 +582,14 @@ button.maven-artifact-card:focus-visible {
 }
 
 @media (max-width: 720px) {
+    .maven-domain-page {
+        padding-top: 0.35rem;
+    }
+
+    .maven-domain-page-header {
+        padding: 1rem;
+    }
+
     .maven-domain-center-toolbar {
         align-items: stretch;
         flex-direction: column;
@@ -479,6 +597,18 @@ button.maven-artifact-card:focus-visible {
 
     .maven-domain-center-toolbar .pill-btn {
         align-self: flex-start;
+    }
+
+    .maven-domain-filter-bar {
+        align-items: stretch;
+    }
+
+    .maven-domain-filter-label {
+        width: 100%;
+    }
+
+    .maven-domain-pagination {
+        flex-wrap: wrap;
     }
 
     .maven-hero-heading,

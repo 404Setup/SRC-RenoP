@@ -36,6 +36,38 @@ func sanitizeMavenUsername(value string) string {
 	return SanitizeInputString(strings.ToLower(strings.TrimSpace(value)), 255)
 }
 
+// EnsureMirroredMavenDomain records an unverified namespace discovered through an upstream mirror.
+func (db *DB) EnsureMirroredMavenDomain(domain string, createdAt int64) error {
+	if db == nil || db.SQLDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	domain = sanitizeMavenDomain(domain)
+	if domain == "" || createdAt <= 0 {
+		return errors.New("mirrored Maven domain is invalid")
+	}
+	var existing int
+	err := db.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`,
+		globalMavenRepository, domain).Scan(&existing)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect mirrored Maven domain: %w", err)
+	}
+	_, err = db.Exec(`INSERT INTO maven_domains
+		(repository, domain, verification_type, verification_host, verification_code, verified, created_at, verified_at, last_check_at)
+		VALUES (?, ?, ?, ?, '', 0, ?, 0, 0)`, globalMavenRepository, domain,
+		core.MavenVerificationMirror, domain, createdAt)
+	if err != nil {
+		if lookupErr := db.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`,
+			globalMavenRepository, domain).Scan(&existing); lookupErr == nil {
+			return nil
+		}
+		return fmt.Errorf("create mirrored Maven domain: %w", err)
+	}
+	return nil
+}
+
 // EnsureImportedMavenDomain records a verified namespace discovered in a legacy repository.
 // Imported namespaces intentionally have no team until an administrator assigns one.
 func (db *DB) EnsureImportedMavenDomain(domain *core.MavenDomain) error {
@@ -150,10 +182,15 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 		return fmt.Errorf("begin Maven domain creation: %w", err)
 	}
 	defer tx.Rollback()
-	var existing int
-	if err := tx.QueryRow(`SELECT 1 FROM maven_domains WHERE repository = ? AND domain = ?`,
-		domain.Repository, domain.Domain).Scan(&existing); err == nil {
-		return core.ErrMavenDomainExists
+	var existingType string
+	var existingVerified int
+	mirroredReservation := false
+	if err := tx.QueryRow(`SELECT verification_type, verified FROM maven_domains WHERE repository = ? AND domain = ?`,
+		domain.Repository, domain.Domain).Scan(&existingType, &existingVerified); err == nil {
+		mirroredReservation = existingType == core.MavenVerificationMirror && existingVerified == 0
+		if !mirroredReservation {
+			return core.ErrMavenDomainExists
+		}
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("inspect Maven domain: %w", err)
 	}
@@ -169,7 +206,23 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	if domain.Verified {
 		verified = 1
 	}
-	if _, err := tx.Exec(`INSERT INTO maven_domains
+	if mirroredReservation {
+		result, err := tx.Exec(`UPDATE maven_domains SET verification_type = ?, verification_host = ?,
+			verification_code = ?, verified = ?, created_at = ?, verified_at = ?, last_check_at = 0
+			WHERE repository = ? AND domain = ? AND verification_type = ? AND verified = 0`,
+			domain.VerificationType, domain.VerificationHost, domain.VerificationCode, verified,
+			domain.CreatedAt, domain.VerifiedAt, domain.Repository, domain.Domain, core.MavenVerificationMirror)
+		if err != nil {
+			return fmt.Errorf("claim mirrored Maven domain: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("count claimed mirrored Maven domains: %w", err)
+		}
+		if changed != 1 {
+			return core.ErrMavenDomainExists
+		}
+	} else if _, err := tx.Exec(`INSERT INTO maven_domains
 		(repository, domain, verification_type, verification_host, verification_code, verified, created_at, verified_at, last_check_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`, domain.Repository, domain.Domain,
 		domain.VerificationType, domain.VerificationHost, domain.VerificationCode, verified,
@@ -237,6 +290,93 @@ func (db *DB) ListMavenDomains(username string, includeAll bool) ([]*core.MavenD
 		return nil, fmt.Errorf("iterate Maven domains: %w", err)
 	}
 	return domains, nil
+}
+
+// ListManagedMavenDomains returns one filtered page for the account domain-management view.
+func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*core.MavenDomain, int, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, 0, core.ErrDatabaseUnavailable
+	}
+	options.Username = sanitizeMavenUsername(options.Username)
+	if options.Limit <= 0 {
+		options.Limit = 20
+	} else if options.Limit > 100 {
+		options.Limit = 100
+	}
+	if options.Offset < 0 {
+		options.Offset = 0
+	}
+	userID := ""
+	if options.Username != "" && options.Username != "guest" {
+		resolved, err := db.userIDForUsername(options.Username)
+		if err != nil {
+			return nil, 0, err
+		}
+		userID = resolved
+	}
+	where := []string{"d.repository = ?"}
+	args := []any{userID, globalMavenRepository}
+	if !options.Administrator {
+		where = append(where, "m.user_id IS NOT NULL")
+	}
+	if options.Filtered {
+		filters := make([]string, 0, len(options.PermissionLevels)+2)
+		for _, level := range options.PermissionLevels {
+			if level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
+				continue
+			}
+			filters = append(filters, "m.permission_level = ?")
+			args = append(args, level)
+		}
+		if options.IncludeUnverified {
+			filters = append(filters, "d.verified = 0")
+		}
+		if options.IncludeMirrored {
+			filters = append(filters, "d.verification_type = ?")
+			args = append(args, core.MavenVerificationMirror)
+		}
+		if len(filters) == 0 {
+			return []*core.MavenDomain{}, 0, nil
+		}
+		where = append(where, "("+strings.Join(filters, " OR ")+")")
+	}
+	from := ` FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
+		AND m.domain = d.domain AND m.user_id = ? WHERE ` + strings.Join(where, " AND ")
+	var total int
+	if err := db.QueryRow(`SELECT COUNT(*)`+from, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count managed Maven domains: %w", err)
+	}
+	query := `SELECT d.repository, d.domain, d.verification_type, d.verification_host,
+		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
+		COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
+		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain),
+		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
+		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)` +
+		from + ` ORDER BY d.domain LIMIT ? OFFSET ?`
+	pageArgs := append(append([]any(nil), args...), options.Limit, options.Offset)
+	rows, err := db.Query(query, pageArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list managed Maven domains: %w", err)
+	}
+	defer rows.Close()
+	domains := make([]*core.MavenDomain, 0, min(total, options.Limit))
+	for rows.Next() {
+		domain := &core.MavenDomain{}
+		var verified, member int
+		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
+			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
+			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member,
+			&domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
+			return nil, 0, fmt.Errorf("scan managed Maven domain: %w", err)
+		}
+		domain.Verified = verified != 0
+		domain.Member = member != 0
+		domains = append(domains, domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate managed Maven domains: %w", err)
+	}
+	return domains, total, nil
 }
 
 // ListMavenRepositoryDomains lists verified global namespaces that contain artifacts in one repository.

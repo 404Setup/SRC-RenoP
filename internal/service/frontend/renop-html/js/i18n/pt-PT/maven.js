@@ -49,5 +49,9 @@ export default {
     "maven.repositoryCount": "Repositórios", "maven.repositoryLabel": "Repositório", "maven.teamMembers": "Membros da equipa",
     "maven.totalSize": "Tamanho total das versões", "maven.verificationDns": "Registo TXT de DNS", "maven.verificationGithub": "Perfil do GitHub",
     "maven.verificationGitlab": "Perfil do GitLab", "maven.verificationLegacy": "Importação de repositório antigo", "maven.verificationMethod": "Método de verificação",
-    "maven.verificationTarget": "Destino da verificação", "maven.verifiedAtLabel": "Verificado em", "maven.versionCountLabel": "Versões"
+    "maven.verificationTarget": "Destino da verificação", "maven.verifiedAtLabel": "Verificado em", "maven.versionCountLabel": "Versões",
+    "maven.verificationMirror": "Deteção automática do espelho a montante", "maven.mirrorDomainHint": "Este domínio foi registado automaticamente a partir de um espelho a montante. Os administradores podem forçar a verificação, ou um proprietário pode adicionar o mesmo domínio para iniciar a verificação normal de propriedade.",
+    "maven.filterLabel": "Filtrar", "maven.filterUnverified": "Não verificado", "maven.filterMirrored": "Da origem",
+    "maven.noFilteredDomains": "Nenhum domínio Maven corresponde aos filtros selecionados.", "maven.paginationLabel": "Páginas de domínios",
+    "maven.pagination": "Página {page} de {pages} · {total} domínios"
 };

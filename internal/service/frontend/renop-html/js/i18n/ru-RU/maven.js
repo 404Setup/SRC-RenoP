@@ -49,5 +49,9 @@ export default {
     "maven.repositoryCount": "Репозитории", "maven.repositoryLabel": "Репозиторий", "maven.teamMembers": "Участники команды",
     "maven.totalSize": "Общий размер версий", "maven.verificationDns": "DNS-запись TXT", "maven.verificationGithub": "Профиль GitHub",
     "maven.verificationGitlab": "Профиль GitLab", "maven.verificationLegacy": "Импорт старого репозитория", "maven.verificationMethod": "Способ проверки",
-    "maven.verificationTarget": "Цель проверки", "maven.verifiedAtLabel": "Подтверждён", "maven.versionCountLabel": "Версии"
+    "maven.verificationTarget": "Цель проверки", "maven.verifiedAtLabel": "Подтверждён", "maven.versionCountLabel": "Версии",
+    "maven.verificationMirror": "Автоматически обнаружен в вышестоящем зеркале", "maven.mirrorDomainHint": "Этот домен был автоматически зарегистрирован из вышестоящего зеркала. Администратор может принудительно подтвердить его, а владелец — добавить тот же домен и начать стандартную проверку владения.",
+    "maven.filterLabel": "Фильтр", "maven.filterUnverified": "Не подтверждён", "maven.filterMirrored": "Из вышестоящего источника",
+    "maven.noFilteredDomains": "Нет доменов Maven, соответствующих выбранным фильтрам.", "maven.paginationLabel": "Страницы доменов",
+    "maven.pagination": "Страница {page} из {pages} · доменов: {total}"
 };

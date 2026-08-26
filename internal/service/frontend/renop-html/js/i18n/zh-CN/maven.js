@@ -116,5 +116,13 @@ export default {
     "maven.verificationMethod": "验证方式",
     "maven.verificationTarget": "验证目标",
     "maven.verifiedAtLabel": "验证时间",
-    "maven.versionCountLabel": "版本数量"
+    "maven.versionCountLabel": "版本数量",
+    "maven.verificationMirror": "上游镜像自动发现",
+    "maven.mirrorDomainHint": "此域由上游镜像自动登记。系统管理员可强制通过验证，域所有者也可添加同一域并开始标准所有权验证。",
+    "maven.filterLabel": "筛选",
+    "maven.filterUnverified": "未验证",
+    "maven.filterMirrored": "来自上游",
+    "maven.noFilteredDomains": "没有符合所选筛选条件的 Maven 域。",
+    "maven.paginationLabel": "域分页",
+    "maven.pagination": "第 {page}/{pages} 页，共 {total} 个域"
 };

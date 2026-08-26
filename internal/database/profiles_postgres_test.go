@@ -205,6 +205,22 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 	require.Equal(t, 1, searchedTotal)
 	require.Len(t, searchedDomains, 1)
 	require.Equal(t, "com.example", searchedDomains[0].Domain)
+	managedDomains, managedTotal, err := db.ListManagedMavenDomains(core.MavenDomainListOptions{
+		Username: "maven_bob", PermissionLevels: []int{core.MavenPermissionOwner},
+		Filtered: true, Limit: 1,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, managedTotal)
+	require.Len(t, managedDomains, 1)
+	require.Equal(t, "com.example", managedDomains[0].Domain)
+	require.NoError(t, db.EnsureMirroredMavenDomain("org.postgres", publishedAt))
+	mirroredDomains, mirroredTotal, err := db.ListManagedMavenDomains(core.MavenDomainListOptions{
+		Username: "maven_bob", Administrator: true, IncludeMirrored: true, Filtered: true, Limit: 20,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, mirroredTotal)
+	require.Len(t, mirroredDomains, 1)
+	require.Equal(t, core.MavenVerificationMirror, mirroredDomains[0].VerificationType)
 	require.NoError(t, db.RemoveMavenMember("com.example", "maven_bob", "maven_alice"))
 	requireTeamRemovalMessage(t, db, "maven_alice", "maven", "", "com.example", "maven_bob")
 	require.NoError(t, db.DeleteMavenRepository("releases"))

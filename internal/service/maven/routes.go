@@ -164,6 +164,84 @@ func redactMavenDomainForViewer(domain *core.MavenDomain, administrator, globalA
 	}
 }
 
+func managedDomainListOptions(c fiber.Ctx, user *config.User) (core.MavenDomainListOptions, error) {
+	limit, err := strconv.Atoi(c.Query("limit", "20"))
+	if err != nil || limit < 1 || limit > 100 {
+		return core.MavenDomainListOptions{}, fiber.ErrBadRequest
+	}
+	offset, err := strconv.Atoi(c.Query("offset", "0"))
+	if err != nil || offset < 0 {
+		return core.MavenDomainListOptions{}, fiber.ErrBadRequest
+	}
+	administrator := user.IsManager()
+	options := core.MavenDomainListOptions{
+		Username: user.Username, Administrator: administrator, Limit: limit, Offset: offset,
+	}
+	levelsValue := strings.TrimSpace(c.Query("levels"))
+	statesValue := strings.TrimSpace(c.Query("states"))
+	options.Filtered = levelsValue != "" || statesValue != ""
+	seenLevels := make(map[int]struct{}, 5)
+	if levelsValue != "" {
+		for _, value := range strings.Split(levelsValue, ",") {
+			level, parseErr := strconv.Atoi(strings.TrimSpace(value))
+			if parseErr != nil || level < core.MavenPermissionRead || level > core.MavenPermissionOwner ||
+				(administrator && level == core.MavenPermissionRead) {
+				return core.MavenDomainListOptions{}, fiber.ErrBadRequest
+			}
+			if _, exists := seenLevels[level]; exists {
+				continue
+			}
+			seenLevels[level] = struct{}{}
+			options.PermissionLevels = append(options.PermissionLevels, level)
+		}
+	}
+	if statesValue != "" {
+		if !administrator {
+			return core.MavenDomainListOptions{}, core.ErrMavenPermissionDenied
+		}
+		seenStates := make(map[string]struct{}, 2)
+		for _, value := range strings.Split(statesValue, ",") {
+			state := strings.ToLower(strings.TrimSpace(value))
+			if _, exists := seenStates[state]; exists {
+				continue
+			}
+			seenStates[state] = struct{}{}
+			switch state {
+			case "unverified":
+				options.IncludeUnverified = true
+			case "mirror":
+				options.IncludeMirrored = true
+			default:
+				return core.MavenDomainListOptions{}, fiber.ErrBadRequest
+			}
+		}
+	}
+	return options, nil
+}
+
+func listManagedDomains(c fiber.Ctx, state *core.AppState) error {
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	options, err := managedDomainListOptions(c, user)
+	if err != nil {
+		return apiError(c, err)
+	}
+	domains, total, err := state.GetDB().ListManagedMavenDomains(options)
+	if err != nil {
+		return apiError(c, err)
+	}
+	for _, domain := range domains {
+		redactMavenDomainForViewer(domain, options.Administrator, true)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{
+		"domains": domains, "total": total, "limit": options.Limit, "offset": options.Offset,
+		"administrator": options.Administrator,
+	})
+}
+
 func listDomains(c fiber.Ctx, state *core.AppState) error {
 	user := auth.GetUser(c)
 	username := ""
@@ -192,6 +270,13 @@ func listDomains(c fiber.Ctx, state *core.AppState) error {
 		}
 		c.Set(fiber.HeaderCacheControl, "no-store")
 		return c.JSON(fiber.Map{"repository": repo.Name, "domains": domains})
+	}
+	view := strings.TrimSpace(c.Query("view"))
+	if view == "managed" {
+		return listManagedDomains(c, state)
+	}
+	if view != "" {
+		return apiError(c, fiber.ErrBadRequest)
 	}
 	domains, err := state.GetDB().ListMavenDomains(username, administrator)
 	if err != nil {

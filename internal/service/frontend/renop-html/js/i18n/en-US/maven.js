@@ -116,5 +116,13 @@ export default {
     "maven.verificationMethod": "Verification method",
     "maven.verificationTarget": "Verification target",
     "maven.verifiedAtLabel": "Verified at",
-    "maven.versionCountLabel": "Versions"
+    "maven.versionCountLabel": "Versions",
+    "maven.verificationMirror": "Upstream mirror discovery",
+    "maven.mirrorDomainHint": "This domain was registered automatically from an upstream mirror. Administrators can force verification, or an owner can add the same domain to start standard ownership verification.",
+    "maven.filterLabel": "Filter",
+    "maven.filterUnverified": "Unverified",
+    "maven.filterMirrored": "From upstream",
+    "maven.noFilteredDomains": "No Maven domains match the selected filters.",
+    "maven.paginationLabel": "Domain pages",
+    "maven.pagination": "Page {page} of {pages} · {total} domains"
 };

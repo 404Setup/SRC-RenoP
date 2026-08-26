@@ -24,7 +24,7 @@ import {fetchTokens} from './users.js';
 import {populateRoles} from './users/modal.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
-import {openMavenDomainCenter} from './browser/maven.js';
+import {loadMavenDomainCenterPage, mavenDomainRouteFromPath, openMavenDomainCenter} from './browser/maven.js';
 import {initMessageCenter, openMessageCenter, openNotificationComposer} from './messages.js';
 import './cargo-messages.js';
 import './docker-messages.js';
@@ -39,7 +39,9 @@ window.addEventListener('languageChanged', async () => {
 
     const currentTab = profileRouteFromPath(window.location.pathname)
         ? 'profile'
-        : (localStorage.getItem('selectedTab') || 'overview');
+        : (mavenDomainRouteFromPath(window.location.pathname)
+            ? 'maven-domains'
+            : (localStorage.getItem('selectedTab') || 'overview'));
     await switchTab(currentTab);
 
     if (currentTab === 'dashboard') {
@@ -225,10 +227,12 @@ function updateProfileMenuSelection(tabId) {
     const route = profileRouteFromPath(window.location.pathname);
     profileMenu.querySelectorAll('.nav-profile-menu-item').forEach(item => {
         const action = item.dataset.profileAction;
+        const accountAction = item.dataset.accountAction;
         const menuTab = item.dataset.profileTab;
         const active = (menuTab === tabId && (menuTab !== 'overview' || window.location.pathname === '/'))
             || (tabId === 'profile' && action === 'view' && route?.section !== 'edit')
-            || (tabId === 'profile' && action === 'edit' && route?.section === 'edit');
+            || (tabId === 'profile' && action === 'edit' && route?.section === 'edit')
+            || (tabId === 'maven-domains' && accountAction === 'maven-domains');
         item.classList.toggle('is-active', active);
         if (active) item.setAttribute('aria-current', 'page');
         else item.removeAttribute('aria-current');
@@ -253,8 +257,15 @@ async function navigateHome() {
  */
 export async function switchTab(tabId) {
     if (isManagerTab(tabId) && !cachedIsManager) tabId = 'overview';
+    if (tabId === 'maven-domains' && !cachedIsLoggedIn) {
+        if (mavenDomainRouteFromPath(window.location.pathname)) window.history.replaceState(null, '', '/');
+        tabId = 'overview';
+    }
     if (tabId === 'overview' && profileRouteFromPath(window.location.pathname)) {
         tabId = 'profile';
+    }
+    if (tabId === 'overview' && mavenDomainRouteFromPath(window.location.pathname)) {
+        tabId = 'maven-domains';
     }
     let activeTabElement = null;
     tabs.forEach(tab => {
@@ -284,7 +295,7 @@ export async function switchTab(tabId) {
         }
     });
 
-    if (tabId !== 'profile') localStorage.setItem('selectedTab', tabId);
+    if (tabId !== 'profile' && tabId !== 'maven-domains') localStorage.setItem('selectedTab', tabId);
 
     if (tabId === 'dashboard') {
         startDashboardRefresh();
@@ -308,6 +319,9 @@ export async function switchTab(tabId) {
     if (tabId === 'profile') {
         await setupProfile(profileRouteFromPath(window.location.pathname));
     }
+    if (tabId === 'maven-domains') {
+        await loadMavenDomainCenterPage();
+    }
     if (tabId === 'overview') {
         loadDirectory(window.location.pathname);
     }
@@ -320,7 +334,7 @@ tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
         e.preventDefault();
         if (tab.classList.contains('active')) return;
-        if (profileRouteFromPath(window.location.pathname)) {
+        if (profileRouteFromPath(window.location.pathname) || mavenDomainRouteFromPath(window.location.pathname)) {
             window.history.pushState(null, '', '/');
         }
         switchTab(tab.dataset.tab);
@@ -330,6 +344,10 @@ tabs.forEach(tab => {
 window.addEventListener('popstate', () => {
     if (profileRouteFromPath(window.location.pathname)) {
         void switchTab('profile');
+        return;
+    }
+    if (mavenDomainRouteFromPath(window.location.pathname)) {
+        void switchTab('maven-domains');
         return;
     }
     void switchTab('overview');
@@ -433,12 +451,17 @@ async function initializeApplication() {
         }
 
         const profileRoute = profileRouteFromPath(window.location.pathname);
-        let savedTab = profileRoute ? 'profile' : (localStorage.getItem('selectedTab') || 'overview');
-        if (!profileRoute && savedTab === 'profile') {
+        const mavenDomainRoute = mavenDomainRouteFromPath(window.location.pathname);
+        let savedTab = profileRoute
+            ? 'profile'
+            : (mavenDomainRoute ? 'maven-domains' : (localStorage.getItem('selectedTab') || 'overview'));
+        if (!profileRoute && !mavenDomainRoute && (savedTab === 'profile' || savedTab === 'maven-domains')) {
             localStorage.setItem('selectedTab', 'overview');
             savedTab = 'overview';
         }
-        if (!profileRoute && (!cachedIsLoggedIn || (isManagerTab(savedTab) && !cachedIsManager))) {
+        if ((!profileRoute && !mavenDomainRoute && !cachedIsLoggedIn) ||
+            (mavenDomainRoute && !cachedIsLoggedIn) || (isManagerTab(savedTab) && !cachedIsManager)) {
+            if (mavenDomainRoute && !cachedIsLoggedIn) window.history.replaceState(null, '', '/');
             savedTab = 'overview';
         }
         await switchTab(savedTab);

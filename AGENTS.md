@@ -20,7 +20,8 @@
   (`/cargodoc/...`).
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
-  automatic migration of repository-scoped legacy domains. Maven and Cargo mirror downloads are cataloged through
+  automatic migration of repository-scoped legacy domains. Upstream mirror discovery persists unverified global
+  domains so administrators can filter, inspect, and explicitly approve them. Maven and Cargo mirror downloads are cataloged through
   the format-aware proxy completion hook in `internal/service/storage/mirror.go` without buffering artifact bodies.
   Maven repositories support modern domain-catalog and classic file-tree layouts while enforcing the same verified
   Maven publication paths in both layouts. Administrators can migrate Maven repositories to the unstructured files
@@ -57,6 +58,8 @@
   package-membership routes plus shared nickname-first identity components. Maven repositories use a domain catalog
   by default and can switch to the classic file-tree presentation. Repository catalogs list only domains containing
   artifacts in that repository, while global Maven domain and team configuration lives in the signed-in account menu.
+  The account menu opens the routed `/account/maven-domains` subpage, whose server-backed multi-select permission/source
+  filters and pagination keep large domain registries bounded.
   The signed-in account menu owns profile navigation, messages, logout, Maven domains, administrator pages, and the
   standalone administrator notification composer; the settings UI groups the server, outbound-proxy, and storage APIs
   under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.

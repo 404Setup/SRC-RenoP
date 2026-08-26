@@ -295,12 +295,20 @@ func TestMavenDomainsUseGlobalAccountCenter(t *testing.T) {
 	}
 	mavenText := string(mavenSource)
 	for _, required := range []string{
-		"export function openMavenDomainCenter", "'/api/maven/domains'",
+		"export function openMavenDomainCenter", "export async function loadMavenDomainCenterPage",
+		"export function mavenDomainRouteFromPath", "view: 'managed'", "domainCenterPagination",
 		"/api/maven/repositories/${encodeURIComponent(repository)}/domains", "maven.inviteRequired",
 	} {
 		if !strings.Contains(mavenText, required) {
 			t.Fatalf("global Maven domain UI is missing %q", required)
 		}
+	}
+	if !strings.Contains(string(indexSource), `id="tab-content-maven-domains"`) ||
+		!strings.Contains(string(indexSource), `id="maven-domain-home"`) {
+		t.Fatal("Maven domain settings are missing the routed page or home navigation")
+	}
+	if strings.Contains(mavenText, "maven-domain-center-dialog") {
+		t.Fatal("Maven domain settings still open in a dialog")
 	}
 	if strings.Contains(mavenText, "/api/maven/repositories/${encodeURIComponent(repository)}/domains`, {") {
 		t.Fatal("Maven domain UI still mutates repository-scoped domains")

@@ -115,6 +115,7 @@ type StateDB interface {
 	DeleteUserMessages(username string) (int64, error)
 	CreateMavenDomain(domain *MavenDomain, owner string) error
 	ListMavenDomains(username string, includeAll bool) ([]*MavenDomain, error)
+	ListManagedMavenDomains(options MavenDomainListOptions) ([]*MavenDomain, int, error)
 	ListMavenRepositoryDomains(repository, username string) ([]*MavenDomain, error)
 	SearchMavenRepositoryDomains(repository, query string, limit int) ([]*MavenDomain, int, error)
 	GetMavenDomainDetails(domain, username string) (*MavenDomainDetails, error)
@@ -130,6 +131,7 @@ type StateDB interface {
 	DeleteMavenVersionMetadata(repository, groupID, artifactID, version string) error
 	DeleteMavenRepository(repository string) error
 	EnsureImportedMavenDomain(domain *MavenDomain) error
+	EnsureMirroredMavenDomain(domain string, createdAt int64) error
 	IsMavenRepositoryUpgraded(repository string) (bool, error)
 	MarkMavenRepositoryUpgraded(repository string, completedAt int64) error
 	CreateMavenInvitations(invitations []*MavenInvitation, messages []*UserMessage) error

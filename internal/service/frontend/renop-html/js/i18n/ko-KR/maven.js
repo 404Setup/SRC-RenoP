@@ -49,5 +49,9 @@ export default {
     "maven.repositoryCount": "저장소 수", "maven.repositoryLabel": "저장소", "maven.teamMembers": "팀 구성원",
     "maven.totalSize": "버전 전체 크기", "maven.verificationDns": "DNS TXT 레코드", "maven.verificationGithub": "GitHub 프로필",
     "maven.verificationGitlab": "GitLab 프로필", "maven.verificationLegacy": "이전 저장소 가져오기", "maven.verificationMethod": "검증 방법",
-    "maven.verificationTarget": "검증 대상", "maven.verifiedAtLabel": "검증 시각", "maven.versionCountLabel": "버전 수"
+    "maven.verificationTarget": "검증 대상", "maven.verifiedAtLabel": "검증 시각", "maven.versionCountLabel": "버전 수",
+    "maven.verificationMirror": "업스트림 미러 자동 검색", "maven.mirrorDomainHint": "이 도메인은 업스트림 미러에서 자동 등록되었습니다. 관리자는 검증을 강제로 승인할 수 있으며, 소유자는 같은 도메인을 추가해 표준 소유권 검증을 시작할 수 있습니다.",
+    "maven.filterLabel": "필터", "maven.filterUnverified": "미검증", "maven.filterMirrored": "업스트림에서 가져옴",
+    "maven.noFilteredDomains": "선택한 필터와 일치하는 Maven 도메인이 없습니다.", "maven.paginationLabel": "도메인 페이지",
+    "maven.pagination": "{pages}페이지 중 {page}페이지 · 도메인 {total}개"
 };

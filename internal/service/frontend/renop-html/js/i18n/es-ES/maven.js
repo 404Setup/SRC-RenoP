@@ -49,5 +49,9 @@ export default {
     "maven.repositoryCount": "Repositorios", "maven.repositoryLabel": "Repositorio", "maven.teamMembers": "Miembros del equipo",
     "maven.totalSize": "Tamaño total de versiones", "maven.verificationDns": "Registro TXT de DNS", "maven.verificationGithub": "Perfil de GitHub",
     "maven.verificationGitlab": "Perfil de GitLab", "maven.verificationLegacy": "Importación de repositorio antiguo", "maven.verificationMethod": "Método de verificación",
-    "maven.verificationTarget": "Objetivo de verificación", "maven.verifiedAtLabel": "Verificado el", "maven.versionCountLabel": "Versiones"
+    "maven.verificationTarget": "Objetivo de verificación", "maven.verifiedAtLabel": "Verificado el", "maven.versionCountLabel": "Versiones",
+    "maven.verificationMirror": "Detección automática del mirror de origen", "maven.mirrorDomainHint": "Este dominio se registró automáticamente desde un mirror de origen. Los administradores pueden forzar la verificación, o un propietario puede añadir el mismo dominio para iniciar la verificación normal de propiedad.",
+    "maven.filterLabel": "Filtrar", "maven.filterUnverified": "Sin verificar", "maven.filterMirrored": "Desde el origen",
+    "maven.noFilteredDomains": "Ningún dominio Maven coincide con los filtros seleccionados.", "maven.paginationLabel": "Páginas de dominios",
+    "maven.pagination": "Página {page} de {pages} · {total} dominios"
 };

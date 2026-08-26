@@ -95,6 +95,10 @@ func RecordMirroredPath(state *core.AppState, repository, path string, size, mod
 		if !inferred {
 			return nil
 		}
+		timestamp := normalizeCatalogTimestamp(modTime)
+		if err := state.GetDB().EnsureMirroredMavenDomain(domainName, timestamp); err != nil {
+			return err
+		}
 	}
 	timestamp := normalizeCatalogTimestamp(modTime)
 	return state.GetDB().RecordMavenMirrorPublication(&core.MavenArtifact{

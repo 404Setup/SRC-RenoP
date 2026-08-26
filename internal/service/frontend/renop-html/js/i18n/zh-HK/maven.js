@@ -49,5 +49,9 @@ export default {
     "maven.repositoryCount": "儲存庫數量", "maven.repositoryLabel": "儲存庫", "maven.teamMembers": "團隊成員",
     "maven.totalSize": "版本總大小", "maven.verificationDns": "DNS TXT 記錄", "maven.verificationGithub": "GitHub 個人資料",
     "maven.verificationGitlab": "GitLab 個人資料", "maven.verificationLegacy": "舊版儲存庫匯入", "maven.verificationMethod": "驗證方式",
-    "maven.verificationTarget": "驗證目標", "maven.verifiedAtLabel": "驗證時間", "maven.versionCountLabel": "版本數量"
+    "maven.verificationTarget": "驗證目標", "maven.verifiedAtLabel": "驗證時間", "maven.versionCountLabel": "版本數量",
+    "maven.verificationMirror": "上游鏡像自動探索", "maven.mirrorDomainHint": "此網域由上游鏡像自動登記。系統管理員可強制通過驗證，網域擁有者亦可加入相同網域並開始標準擁有權驗證。",
+    "maven.filterLabel": "篩選", "maven.filterUnverified": "未驗證", "maven.filterMirrored": "來自上游",
+    "maven.noFilteredDomains": "沒有符合所選篩選條件的 Maven 網域。", "maven.paginationLabel": "網域分頁",
+    "maven.pagination": "第 {page}/{pages} 頁，共 {total} 個網域"
 };

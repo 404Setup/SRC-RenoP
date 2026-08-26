@@ -25,10 +25,7 @@ import (
 	"renop/internal/service/index"
 )
 
-const (
-	legacyMavenVerificationType = "legacy"
-	maxImportedMavenDomains     = 4096
-)
+const maxImportedMavenDomains = 4096
 
 var legacyUpgradeMutex sync.Mutex
 
@@ -73,7 +70,7 @@ func importLegacyMavenPath(state *core.AppState, repository, path string, info i
 			return errors.New("Maven catalog import domain limit exceeded")
 		}
 		domain := &core.MavenDomain{
-			Repository: repository, Domain: domainName, VerificationType: legacyMavenVerificationType,
+			Repository: repository, Domain: domainName, VerificationType: core.MavenVerificationLegacy,
 			VerificationHost: domainName, VerificationCode: "renop-legacy-import",
 			Verified: true, CreatedAt: importedAt, VerifiedAt: importedAt,
 		}
