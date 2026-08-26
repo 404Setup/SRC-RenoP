@@ -56,8 +56,9 @@ repositories:
 ### Visibility Levels
 
 - **PUBLIC**: Publicly readable. Anonymous users can download artifacts and view listings without authentication.
-- **HIDDEN**: Restricted listing. Users with direct artifact URLs can download files, but the repository is hidden from
-  unauthenticated public listings.
+- **HIDDEN**: Unlisted but directly readable. User-facing repository catalogs and profile memberships omit the
+  repository for every viewer; users who know an exact artifact URL can still download it. Administrators continue to
+  see and configure the repository in repository management.
 - **PRIVATE**: Private repository. Downloading, listing, and uploading all require valid credentials with appropriate
   permissions.
 

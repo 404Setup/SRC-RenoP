@@ -42,6 +42,9 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	cfg.Maven.Repositories["private-cargo"] = &config.Repository{
 		Name: "private-cargo", Format: config.RepositoryFormatCargo, Visibility: "PRIVATE",
 	}
+	cfg.Maven.Repositories["hidden-cargo"] = &config.Repository{
+		Name: "hidden-cargo", Format: config.RepositoryFormatCargo, Visibility: "HIDDEN",
+	}
 	state.Inner.Config.Store(cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "profile-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
@@ -85,6 +88,13 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 		Description: "Private profile crate", CreatedAt: membershipCreatedAt, UpdatedAt: membershipCreatedAt,
 	}, &core.CargoVersion{
 		Repository: "private-cargo", Package: "private-crate", Version: "1.0.0",
+		Publisher: "bobby", CreatedAt: membershipCreatedAt,
+	}, "bobby"))
+	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
+		Repository: "hidden-cargo", Name: "hidden-crate", NormalizedName: "hidden-crate",
+		Description: "Unlisted profile crate", CreatedAt: membershipCreatedAt, UpdatedAt: membershipCreatedAt,
+	}, &core.CargoVersion{
+		Repository: "hidden-cargo", Package: "hidden-crate", Version: "1.0.0",
 		Publisher: "bobby", CreatedAt: membershipCreatedAt,
 	}, "bobby"))
 	_, err = db.CreateDockerImage("profile-docker", "profile/image", "bobby", false, membershipCreatedAt)

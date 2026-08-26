@@ -240,6 +240,9 @@ func GetDetailsAllRepos(c fiber.Ctx, state *core.AppState) error {
 
 	var repos []FileDetails
 	for repoName, repo := range cfg.Maven.Repositories {
+		if repo == nil || strings.EqualFold(repo.Visibility, "HIDDEN") {
+			continue
+		}
 		canRead, err := canReadConfiguredRepository(state, user, repo, "", true)
 		if err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")

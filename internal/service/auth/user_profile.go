@@ -109,9 +109,10 @@ func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *c
 		return nil, err
 	}
 	viewer := GetUser(c)
-	if format == config.RepositoryFormatMaven || (viewer != nil && strings.EqualFold(viewer.Username, profile.Username)) {
+	if format == config.RepositoryFormatMaven {
 		return memberships, nil
 	}
+	ownProfile := viewer != nil && strings.EqualFold(viewer.Username, profile.Username)
 	cfg := state.Inner.Config.Load()
 	if cfg == nil {
 		return nil, errors.New("repository configuration is unavailable")
@@ -120,6 +121,13 @@ func visibleUserPackageMemberships(c fiber.Ctx, state *core.AppState, profile *c
 	for _, membership := range memberships {
 		repository := cfg.Maven.Repositories[membership.Repository]
 		if repository == nil || repository.NormalizedFormat() != format {
+			continue
+		}
+		if strings.EqualFold(repository.Visibility, "HIDDEN") {
+			continue
+		}
+		if ownProfile {
+			visible = append(visible, membership)
 			continue
 		}
 		if format == config.RepositoryFormatDocker {

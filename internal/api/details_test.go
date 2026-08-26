@@ -11,16 +11,84 @@
 package api
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/gofiber/fiber/v3"
+	"google.golang.org/protobuf/proto"
 
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
+	"renop/pkg/pb"
 )
+
+func TestHiddenRepositoryIsNotDiscoverableButDirectFileRemainsReadable(t *testing.T) {
+	storagePath := t.TempDir()
+	hiddenFile := filepath.Join(storagePath, "hidden", "known", "artifact.txt")
+	publicFile := filepath.Join(storagePath, "public", "artifact.txt")
+	state := core.NewAppState()
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"hidden": {Name: "hidden", Format: config.RepositoryFormatFiles, Visibility: "HIDDEN"},
+		"public": {Name: "public", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
+	}
+	state.Inner.Config.Store(cfg)
+	state.Inner.FileIndex = index.NewFileIndexCustom(true)
+	for _, file := range []string{hiddenFile, publicFile} {
+		state.Inner.FileIndex.EnsureParentDirs(file)
+		state.Inner.FileIndex.InsertFile(file, index.FileInfo{Size: 8, ModTime: 1})
+	}
+
+	app := fiber.New()
+	app.Get("/api/repositories/details", func(c fiber.Ctx) error { return GetDetailsAllRepos(c, state) })
+	app.Get("/api/repositories/details/:repo_name/*", func(c fiber.Ctx) error { return GetDetails(c, state) })
+
+	response, err := app.Test(httptest.NewRequest(http.MethodGet, "/api/repositories/details", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var listing pb.FileDetails
+	if err := proto.Unmarshal(body, &listing); err != nil {
+		t.Fatal(err)
+	}
+	if len(listing.Files) != 1 || listing.Files[0].Name != "public" {
+		t.Fatalf("hidden repository leaked through discovery: %+v", listing.Files)
+	}
+
+	direct, err := app.Test(httptest.NewRequest(http.MethodGet,
+		"/api/repositories/details/hidden/known/artifact.txt", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer direct.Body.Close()
+	if direct.StatusCode != fiber.StatusOK {
+		t.Fatalf("known hidden repository path status = %d, want 200", direct.StatusCode)
+	}
+	directBody, err := io.ReadAll(direct.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var detail pb.FileDetails
+	if err := proto.Unmarshal(directBody, &detail); err != nil {
+		t.Fatal(err)
+	}
+	if detail.Name != "artifact.txt" || detail.Type != string(FileDetailsTypeFile) {
+		t.Fatalf("unexpected hidden file details: name=%q type=%q", detail.Name, detail.Type)
+	}
+}
 
 func TestCreateFileDetailsDoesNotExposeBlockedPhysicalFile(t *testing.T) {
 	artifactPath := filepath.Join(t.TempDir(), "releases", "org", "example", "demo.jar")
