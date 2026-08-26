@@ -36,6 +36,8 @@ import {
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
 
+const cargoRepositoryIcon = getRepositoryFormat('cargo').icon;
+
 const CARGO_CATALOG_PAGE_SIZE = 50;
 const CARGO_VERSION_PAGE_SIZE = 5;
 let cargoLoadSequence = 0;
@@ -214,7 +216,8 @@ function buildCargoPackageRow(packageRecord) {
 function buildCargoOverviewHero() {
     return el('header', {class: 'cargo-page-hero'},
         el('span', {class: 'cargo-page-kicker'}, 'Cargo'),
-        el('h2', {}, t('cargo.registryTitle')),
+        el('h2', {class: 'cargo-repository-title'},
+            createIcon(cargoRepositoryIcon), el('span', {}, t('cargo.registryTitle'))),
         el('p', {}, t('cargo.registrySubtitle')),
         el('p', {class: 'cargo-page-search-hint'}, t('cargo.searchHint'))
     );
@@ -1561,7 +1564,7 @@ export function showCargoDocUploadDialog(packageName, version) {
         fileCard.innerHTML = '';
 
         const card = createFileCard(file.name, formatBytes(file.size), {
-            icon: 'box',
+            icon: cargoRepositoryIcon,
             onRemove: () => updateFileDisplay(null)
         });
         fileCard.appendChild(card);

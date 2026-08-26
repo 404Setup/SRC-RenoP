@@ -17,6 +17,7 @@ import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {dockerResponseError} from '../docker-errors.js';
 import {t} from '../i18n.js';
+import {getRepositoryFormat} from '../repository-formats.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
@@ -30,6 +31,7 @@ import {
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
 
+const dockerRepositoryIcon = getRepositoryFormat('docker').icon;
 let dockerViewContainer = null;
 let activeRepository = '';
 let activeNavigate = null;
@@ -164,7 +166,7 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
         RenopDialog.show({
             title: t('docker.manifestDetails'),
             subtitle: `${imageName}:${tag || 'latest'}`,
-            icon: 'box',
+            icon: dockerRepositoryIcon,
             maxWidth: '640px',
             body: bodyWrap,
             footer: [
@@ -299,7 +301,7 @@ async function renderCatalogView(container, repoName, seq) {
                 el('span', {class: 'docker-page-kicker'}, t('docker.kickerRegistry')),
                 el('div', {class: 'docker-hero-header'},
                     el('h2', {class: 'docker-hero-title'},
-                        createIcon('box', {class: 'icon-svg'}),
+                        createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
                         repoName
                     ),
                     createImageButton(repoName)
@@ -316,7 +318,7 @@ async function renderCatalogView(container, repoName, seq) {
             el('span', {class: 'docker-page-kicker'}, t('docker.kickerRegistry')),
             el('div', {class: 'docker-hero-header'},
                 el('h2', {class: 'docker-hero-title'},
-                    createIcon('box', {class: 'icon-svg'}),
+                    createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
                     el('span', {}, repoName)
                 ),
                 createImageButton(repoName)
@@ -324,7 +326,7 @@ async function renderCatalogView(container, repoName, seq) {
             el('p', {class: 'text-muted'}, t('docker.imagesSubtitle')),
             el('div', {class: 'docker-hero-meta-row'},
                 el('div', {class: 'docker-meta-chip'},
-                    createIcon('box', {class: 'icon-svg'}),
+                    createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
                     el('span', {}, t('docker.totalImages', {count: images.length}))
                 ),
                 el('div', {class: 'docker-meta-chip'},
@@ -356,7 +358,7 @@ async function renderCatalogView(container, repoName, seq) {
             },
                 el('div', {},
                     el('div', {class: 'docker-image-name'},
-                        createIcon('box', {class: 'icon-svg'}),
+                        createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
                         el('span', {}, img.image_name),
                         img.private ? el('span', {class: 'docker-private-badge'},
                             createIcon('ssl', {class: 'icon-svg'}), t('docker.private')) : null,
@@ -420,7 +422,7 @@ function openCreateImageDialog(repoName) {
         )
     );
     RenopDialog.show({
-        id: 'docker-image-create-dialog', maxWidth: '560px', icon: 'box',
+        id: 'docker-image-create-dialog', maxWidth: '560px', icon: dockerRepositoryIcon,
         title: t('docker.createImage'), subtitle: t('docker.createImageSubtitle'),
         body: el('div', {class: 'docker-create-image-form'},
             el('label', {class: 'docker-create-image-field'},
@@ -690,7 +692,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
 
         metaRow.appendChild(
             el('div', {class: 'docker-meta-chip'},
-                createIcon('box', {class: 'icon-svg'}),
+                createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
                 el('span', {}, t('docker.totalTags', {count: tags.length}))
             )
         );
@@ -743,7 +745,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             topNav,
             el('div', {class: 'docker-hero-header'},
                 el('h2', {class: 'docker-hero-title'},
-                    createIcon('box', {class: 'icon-svg'}),
+                    createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
                     el('span', {}, imageName)
                 ),
                 deleteImgBtn

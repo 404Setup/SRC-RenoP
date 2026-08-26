@@ -14,12 +14,15 @@ import {fetchProto} from '../api.js';
 import {createIcon} from '../components.js';
 import {t} from '../i18n.js';
 import {RepositorySearchResponse} from '../proto/index.js';
+import {getRepositoryFormat} from '../repository-formats.js';
 
 const SEARCH_DELAY_MS = 180;
 const SEARCH_CLOSE_MS = 150;
+const dockerRepositoryIcon = getRepositoryFormat('docker').icon;
 let initialized = false;
 let activeRepository = '';
 let activeFormat = 'maven';
+let activeRepositoryIcon = getRepositoryFormat(activeFormat).icon;
 let activeNavigate = null;
 let searchTimer = 0;
 let searchVersion = 0;
@@ -181,7 +184,10 @@ function buildSearchResult(result) {
         'data-search-path': String(result?.path || ''),
         'data-search-type': type
     });
-    const iconName = type === 'DIRECTORY' ? 'folder' : (type === 'PACKAGE' || type === 'IMAGE') ? 'box' : 'file';
+    let iconName = 'file';
+    if (type === 'DIRECTORY') iconName = 'folder';
+    else if (type === 'IMAGE') iconName = dockerRepositoryIcon;
+    else if (type === 'PACKAGE') iconName = activeRepositoryIcon;
     const icon = createIcon(iconName);
     icon.classList.add('repository-search-result-icon');
     const copy = el('span', {class: 'repository-search-result-copy'},
@@ -390,6 +396,7 @@ export function updateRepositorySearch(repository, format, navigate) {
     const changed = repository !== activeRepository || format !== activeFormat;
     activeRepository = repository;
     activeFormat = format || 'maven';
+    activeRepositoryIcon = getRepositoryFormat(activeFormat).icon;
     activeNavigate = navigate;
     form.hidden = !activeRepository;
     input.placeholder = getSearchPlaceholder(activeFormat);

@@ -46,21 +46,6 @@ let globalProxyConfig = {selected: '', proxies: []};
 const saveSeqByRepo = new Map();
 
 /**
- * Return the icon assigned to a repository protocol.
- * @param {object} format - Canonical repository format descriptor.
- * @returns {string} Icon name.
- */
-function repositoryFormatIcon(format) {
-    return ({
-        maven: 'fileJava',
-        cargo: 'fileCargo',
-        docker: 'box',
-        files: 'folder',
-        npm: 'fileNpm'
-    })[format.protocol] || 'filePackage';
-}
-
-/**
  * Build the color-only repository visibility indicator with an accessible label.
  * @param {string} visibility - Repository visibility.
  * @returns {HTMLSpanElement} Visibility indicator.
@@ -178,7 +163,7 @@ function buildRepoSection(container, data, repoKey, repo) {
     },
     el('span', {
         class: 'cfg-repository-format-icon', role: 'img', title: formatLabel, 'aria-label': formatLabel
-    }, createIcon(repositoryFormatIcon(format))),
+    }, createIcon(format.icon || 'repositoryFiles')),
     visibilityIndicator);
 
     const meta = el('div', {class: 'cfg-section-meta'});

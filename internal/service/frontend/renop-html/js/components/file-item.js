@@ -559,10 +559,10 @@ export class RenopFileItem extends HTMLElement {
 
         if (isRootRepo) {
             category = 'repo';
-            iconName = 'box';
             const repositoryFormat = this.getAttribute('repository-format');
+            const format = getRepositoryFormat(repositoryFormat);
+            iconName = format.icon || 'repositoryFiles';
             if (repositoryFormat) {
-                const format = getRepositoryFormat(repositoryFormat);
                 typeI18nKey = format.labelKey;
                 typeLabel = t(format.labelKey);
             } else {

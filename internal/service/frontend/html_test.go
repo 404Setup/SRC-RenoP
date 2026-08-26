@@ -366,11 +366,23 @@ func TestRepositoryListUsesTypeIconsAndVisibilityDots(t *testing.T) {
 	}
 	text := string(source)
 	for _, required := range []string{
-		"maven: 'fileJava'", "cargo: 'fileCargo'", "docker: 'box'", "files: 'folder'",
+		"createIcon(format.icon || 'repositoryFiles')",
 		"cfg-repository-visibility is-", "cfg-repository-delete-btn", "'aria-label': t('repos.deleteRepoTitle'",
 	} {
 		if !strings.Contains(text, required) {
 			t.Fatalf("repository list visual metadata is missing %q", required)
+		}
+	}
+	formatSource, err := os.ReadFile(filepath.Join("renop-html", "js", "repository-formats.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"icon: 'repositoryMaven'", "icon: 'repositoryCargo'",
+		"icon: 'repositoryDocker'", "icon: 'repositoryFiles'",
+	} {
+		if !strings.Contains(string(formatSource), required) {
+			t.Fatalf("repository format catalog is missing %q", required)
 		}
 	}
 	for _, obsolete := range []string{"cfg-format-badge", "makeVisibilityBadge", "createIcon('delete'), el('span'"} {

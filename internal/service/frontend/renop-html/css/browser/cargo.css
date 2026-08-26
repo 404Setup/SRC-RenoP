@@ -141,6 +141,19 @@
     letter-spacing: -0.025em;
 }
 
+.cargo-repository-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.cargo-repository-title renop-icon,
+.cargo-repository-title svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    color: #b45309;
+}
+
 .cargo-page-hero > p {
     max-width: 42rem;
     margin: 0.45rem 0 0;

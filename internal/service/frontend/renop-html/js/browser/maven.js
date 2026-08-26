@@ -15,6 +15,7 @@ import {cachedIsLoggedIn, cachedIsManager} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {t} from '../i18n.js';
+import {getRepositoryFormat} from '../repository-formats.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {
@@ -27,6 +28,7 @@ import {
     replaceRepositoryView
 } from './repository-view.js';
 
+const mavenRepositoryIcon = getRepositoryFormat('maven').icon;
 let mavenContainer = null;
 let mavenLoadSequence = 0;
 let activeNavigate = null;
@@ -315,7 +317,7 @@ async function renderCatalog(container, repository, sequence) {
         const hero = el('section', {class: 'maven-hero'},
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.kicker')),
-                    el('h2', {}, createIcon('fileJava'), el('span', {}, repository)))
+                    el('h2', {}, createIcon(mavenRepositoryIcon), el('span', {}, repository)))
             ),
             el('p', {}, t('maven.subtitle')),
             el('div', {class: 'maven-stats'},

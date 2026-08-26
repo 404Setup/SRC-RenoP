@@ -30,6 +30,7 @@ import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
 import {writeClipboardText} from './clipboard.js';
 import {formatTimestamp} from './time.js';
+import {getRepositoryFormat} from './repository-formats.js';
 import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
 import {
 	getUserProfile,
@@ -694,7 +695,7 @@ async function renderProfileMemberships(profile, format, sequence) {
         el('section', {class: 'profile-memberships-card'},
             el('header', {class: 'profile-memberships-header'},
                 el('span', {class: `profile-memberships-icon is-${format}`, 'aria-hidden': 'true'},
-                    createIcon(format === 'cargo' ? 'fileCargo' : (format === 'docker' ? 'fileDocker' : 'filePom'))),
+                    createIcon(getRepositoryFormat(format).icon || 'repositoryFiles')),
                 el('div', {},
                     el('h2', {}, t(titleKey, {name: displayName})),
                     el('p', {}, `@${profile.username}`)

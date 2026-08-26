@@ -13,6 +13,7 @@ const FORMAT_CATALOG = Object.freeze({
         id: 'maven',
         protocol: 'maven',
         layout: 'modern',
+        icon: 'repositoryMaven',
         labelKey: 'repos.formatMaven',
         descriptionKey: 'repos.formatMavenDesc',
         supportsBrowserUpload: false,
@@ -25,6 +26,7 @@ const FORMAT_CATALOG = Object.freeze({
         id: 'maven-classic',
         protocol: 'maven',
         layout: 'classic',
+        icon: 'repositoryMaven',
         offered: false,
         labelKey: 'repos.formatMaven',
         descriptionKey: 'repos.formatMavenDesc',
@@ -37,6 +39,7 @@ const FORMAT_CATALOG = Object.freeze({
     files: Object.freeze({
         id: 'files',
         protocol: 'files',
+        icon: 'repositoryFiles',
         labelKey: 'repos.formatFiles',
         descriptionKey: 'repos.formatFilesDesc',
         supportsBrowserUpload: true,
@@ -49,6 +52,7 @@ const FORMAT_CATALOG = Object.freeze({
     cargo: Object.freeze({
         id: 'cargo',
         protocol: 'cargo',
+        icon: 'repositoryCargo',
         labelKey: 'repos.formatCargo',
         descriptionKey: 'repos.formatCargoDesc',
         supportsBrowserUpload: false,
@@ -60,6 +64,7 @@ const FORMAT_CATALOG = Object.freeze({
     docker: Object.freeze({
         id: 'docker',
         protocol: 'docker',
+        icon: 'repositoryDocker',
         labelKey: 'repos.formatDocker',
         descriptionKey: 'repos.formatDockerDesc',
         supportsBrowserUpload: false,
