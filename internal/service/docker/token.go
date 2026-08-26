@@ -131,9 +131,7 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
-	canPullWithCredential := auth.CurrentCredentialHasScope(c, core.APITokenScopeRepositoryRead)
-	canPushWithCredential := auth.CurrentCredentialHasScope(c, core.APITokenScopeRepositoryPublish)
-	canDeleteWithCredential := auth.CurrentCredentialHasScope(c, core.APITokenScopeRepositoryDelete)
+	var directCredential *auth.VerifiedCredential
 	if user == nil || user.Username == "guest" {
 		authHeader := c.Get(fiber.HeaderAuthorization)
 		if after, ok := strings.CutPrefix(authHeader, "Basic "); ok {
@@ -149,9 +147,7 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 								Username: u,
 								Roles:    tokenObj.Permissions,
 							}
-							canPullWithCredential = credential.HasScope(core.APITokenScopeRepositoryRead)
-							canPushWithCredential = credential.HasScope(core.APITokenScopeRepositoryPublish)
-							canDeleteWithCredential = credential.HasScope(core.APITokenScopeRepositoryDelete)
+							directCredential = credential
 						}
 					}
 				}
@@ -168,9 +164,7 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 							Username: u,
 							Roles:    tokenObj.Permissions,
 						}
-						canPullWithCredential = credential.HasScope(core.APITokenScopeRepositoryRead)
-						canPushWithCredential = credential.HasScope(core.APITokenScopeRepositoryPublish)
-						canDeleteWithCredential = credential.HasScope(core.APITokenScopeRepositoryDelete)
+						directCredential = credential
 					}
 				}
 			}
@@ -194,6 +188,12 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	var accessList []AccessEntry
+	credentialAllows := func(scope, target string) bool {
+		if directCredential != nil {
+			return directCredential.HasScopeTarget(scope, target)
+		}
+		return auth.CurrentCredentialHasScopeTarget(c, scope, target)
+	}
 	for _, scope := range rawScopes {
 		scopeParts := strings.SplitN(scope, ":", 3)
 		if len(scopeParts) == 3 && scopeParts[0] == "repository" {
@@ -202,6 +202,9 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 
 			repoName, _ := ParseRepositoryAndImage(repoFullName)
 			repo := cfg.Maven.Repositories[repoName]
+			canPullWithCredential := credentialAllows(core.APITokenScopeRepositoryRead, repoName)
+			canPushWithCredential := credentialAllows(core.APITokenScopeRepositoryPublish, repoName)
+			canDeleteWithCredential := credentialAllows(core.APITokenScopeRepositoryDelete, repoName)
 
 			var grantedActions []string
 			appendGranted := func(action string) {

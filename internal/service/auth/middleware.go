@@ -53,6 +53,7 @@ type authResult struct {
 	Scheme    string
 	TokenID   string
 	Scopes    []string
+	Targets   map[string][]string
 	ExpiresAt *int64
 }
 
@@ -185,6 +186,7 @@ func authResultFromCredential(credential *VerifiedCredential, scheme string) *au
 	return &authResult{
 		User: buildSynthUser(credential.Account), Kind: credential.Kind, Scheme: scheme,
 		TokenID: credential.TokenID, Scopes: append([]string(nil), credential.Scopes...),
+		Targets:   core.CloneAPITokenTargets(credential.Targets),
 		ExpiresAt: credential.ExpiresAt,
 	}
 }
@@ -319,14 +321,30 @@ func isSessionOnlyAPIPath(path string) bool {
 type apiTokenRequirement struct {
 	Scope        string
 	Alternatives []string
+	Target       string
+	DeferTarget  bool
 }
 
-func (requirement apiTokenRequirement) allows(scopes []string) bool {
-	if requirement.Scope == "" || slices.Contains(scopes, requirement.Scope) {
+func (requirement apiTokenRequirement) allows(scopes []string, targets map[string][]string) bool {
+	if requirement.Scope == "" {
+		return true
+	}
+	if requirement.DeferTarget {
+		if slices.Contains(scopes, requirement.Scope) {
+			return true
+		}
+		for _, alternative := range requirement.Alternatives {
+			if slices.Contains(scopes, alternative) {
+				return true
+			}
+		}
+		return false
+	}
+	if apiTokenAuthorizationAllows(scopes, targets, requirement.Scope, requirement.Target) {
 		return true
 	}
 	for _, alternative := range requirement.Alternatives {
-		if slices.Contains(scopes, alternative) {
+		if apiTokenAuthorizationAllows(scopes, targets, alternative, requirement.Target) {
 			return true
 		}
 	}
@@ -337,24 +355,111 @@ func requireAPITokenScope(scope string, alternatives ...string) apiTokenRequirem
 	return apiTokenRequirement{Scope: scope, Alternatives: alternatives}
 }
 
-func packageManagementRequirement(path, method string) apiTokenRequirement {
+func requireAPITokenTarget(scope, target string, alternatives ...string) apiTokenRequirement {
+	return apiTokenRequirement{Scope: scope, Alternatives: alternatives, Target: target}
+}
+
+func requireAPITokenDeferredTarget(scope string, alternatives ...string) apiTokenRequirement {
+	return apiTokenRequirement{Scope: scope, Alternatives: alternatives, DeferTarget: true}
+}
+
+func repositoryTargetFromPath(path string) string {
+	path = strings.TrimPrefix(path, "/")
+	repository, _, _ := strings.Cut(path, "/")
+	return repository
+}
+
+func cargoPackageTarget(path string) string {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) >= 5 && parts[1] == "api" && parts[2] == "v1" && parts[3] == "crates" {
+		return parts[0] + "/" + parts[4]
+	}
+	return ""
+}
+
+func dockerAPIRepository(path string) string {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) >= 4 && parts[0] == "api" && parts[1] == "docker" && parts[2] == "repositories" {
+		return parts[3]
+	}
+	return ""
+}
+
+func dockerAPIPackageTarget(c fiber.Ctx) string {
+	repository := dockerAPIRepository(c.Path())
+	if repository == "" {
+		return ""
+	}
+	image := strings.Trim(c.Query("image"), "/")
+	if image == "" {
+		parts := strings.Split(strings.Trim(c.Path(), "/"), "/")
+		if len(parts) >= 6 && (parts[4] == "images" || parts[4] == "manifests" || parts[4] == "tags") {
+			image = strings.Join(parts[5:], "/")
+		}
+	}
+	if image == "" {
+		return ""
+	}
+	return repository + "/" + image
+}
+
+func packageManagementRequirement(c fiber.Ctx) apiTokenRequirement {
+	path, method := c.Path(), c.Method()
+	repository := dockerAPIRepository(path)
+	packageTarget := dockerAPIPackageTarget(c)
 	if strings.Contains(path, "/owners") || strings.Contains(path, "/users/search") ||
 		strings.Contains(path, "/invitations/") {
-		return requireAPITokenScope(APITokenScopeTeamManage, APITokenScopePackageManage)
+		teamTarget := ""
+		if packageTarget != "" {
+			teamTarget = "package/" + packageTarget
+		}
+		return requireAPITokenTarget(APITokenScopeTeamManage, teamTarget, APITokenScopePackageManage)
 	}
 	switch method {
 	case fiber.MethodGet, fiber.MethodHead:
-		return requireAPITokenScope(APITokenScopeRepositoryRead)
+		return requireAPITokenTarget(APITokenScopeRepositoryRead, repository)
 	case fiber.MethodDelete:
-		return requireAPITokenScope(APITokenScopeRepositoryDelete)
+		return requireAPITokenTarget(APITokenScopeRepositoryDelete, repository)
 	case fiber.MethodPost:
-		return requireAPITokenScope(APITokenScopePackageCreate, APITokenScopePackageManage)
+		return requireAPITokenTarget(APITokenScopePackageCreate, repository, APITokenScopePackageManage)
 	default:
-		return requireAPITokenScope(APITokenScopePackageMetadata, APITokenScopePackageManage)
+		return requireAPITokenTarget(APITokenScopePackageMetadata, packageTarget, APITokenScopePackageManage)
 	}
 }
 
-func mavenAPITokenRequirement(path, method string) apiTokenRequirement {
+func mavenPackageTarget(c fiber.Ctx) string {
+	parts := strings.Split(strings.Trim(c.Path(), "/"), "/")
+	if len(parts) < 5 || parts[0] != "api" || parts[1] != "maven" || parts[2] != "repositories" {
+		return ""
+	}
+	groupID := strings.Trim(c.Query("group"), "/")
+	artifactID := strings.Trim(c.Query("artifact"), "/")
+	if groupID == "" || artifactID == "" {
+		return ""
+	}
+	return parts[3] + "/" + groupID + "/" + artifactID
+}
+
+func mavenAPIRepository(path string) string {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) >= 4 && parts[0] == "api" && parts[1] == "maven" && parts[2] == "repositories" {
+		return parts[3]
+	}
+	return ""
+}
+
+func mavenDomainTarget(path string) string {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	for index, part := range parts {
+		if part == "domains" && index+1 < len(parts) {
+			return strings.ToLower(parts[index+1])
+		}
+	}
+	return ""
+}
+
+func mavenAPITokenRequirement(c fiber.Ctx) apiTokenRequirement {
+	path, method := c.Path(), c.Method()
 	if strings.HasPrefix(path, "/api/maven/details") ||
 		strings.HasPrefix(path, "/api/maven/repo-details") ||
 		strings.HasPrefix(path, "/api/maven/signatures") ||
@@ -364,29 +469,36 @@ func mavenAPITokenRequirement(path, method string) apiTokenRequirement {
 		return requireAPITokenScope(APITokenScopeRepositoryRead)
 	}
 	if strings.Contains(path, "/invitations/") || strings.Contains(path, "/members") {
-		return requireAPITokenScope(APITokenScopeTeamManage, APITokenScopeDomainManage)
+		domain := mavenDomainTarget(path)
+		teamTarget := ""
+		if domain != "" {
+			teamTarget = "domain/" + domain
+		}
+		return requireAPITokenTarget(APITokenScopeTeamManage, teamTarget, APITokenScopeDomainManage)
 	}
 	if domainIndex := strings.Index(path, "/domains"); domainIndex >= 0 {
 		domainTail := strings.Trim(path[domainIndex+len("/domains"):], "/")
+		domain := mavenDomainTarget(path)
 		switch {
 		case strings.Contains(domainTail, "/verify"):
-			return requireAPITokenScope(APITokenScopeDomainVerify, APITokenScopeDomainManage)
+			return requireAPITokenTarget(APITokenScopeDomainVerify, domain, APITokenScopeDomainManage)
 		case method == fiber.MethodDelete:
-			return requireAPITokenScope(APITokenScopeDomainDelete, APITokenScopeDomainManage)
+			return requireAPITokenTarget(APITokenScopeDomainDelete, domain, APITokenScopeDomainManage)
 		case method == fiber.MethodPost && domainTail == "":
-			return requireAPITokenScope(APITokenScopeDomainCreate, APITokenScopeDomainManage)
+			return requireAPITokenDeferredTarget(APITokenScopeDomainCreate, APITokenScopeDomainManage)
 		default:
-			return requireAPITokenScope(APITokenScopeDomainRead, APITokenScopeDomainManage)
+			return requireAPITokenTarget(APITokenScopeDomainRead, domain, APITokenScopeDomainManage)
 		}
 	}
 	if strings.HasPrefix(path, "/api/maven/repositories/") {
+		repository := mavenAPIRepository(path)
 		switch {
 		case method == fiber.MethodGet || method == fiber.MethodHead:
-			return requireAPITokenScope(APITokenScopeRepositoryRead)
+			return requireAPITokenTarget(APITokenScopeRepositoryRead, repository)
 		case method == fiber.MethodDelete:
-			return requireAPITokenScope(APITokenScopeRepositoryDelete)
+			return requireAPITokenTarget(APITokenScopeRepositoryDelete, repository)
 		case strings.HasSuffix(path, "/package"):
-			return requireAPITokenScope(APITokenScopePackageMetadata, APITokenScopePackageManage)
+			return requireAPITokenTarget(APITokenScopePackageMetadata, mavenPackageTarget(c), APITokenScopePackageManage)
 		}
 	}
 	return requireAPITokenScope(APITokenScopeDomainRead, APITokenScopeDomainManage)
@@ -397,20 +509,26 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 	method := c.Method()
 	if isRepositoryRequest(c, state) {
 		lowerPath := strings.ToLower(c.Path())
+		repository := repositoryTargetFromPath(c.Path())
+		packageTarget := cargoPackageTarget(c.Path())
 		if strings.Contains(lowerPath, "/api/v1/invitations/") || strings.Contains(lowerPath, "/owners") {
-			return requireAPITokenScope(APITokenScopeTeamManage, APITokenScopePackageManage)
+			teamTarget := ""
+			if packageTarget != "" {
+				teamTarget = "package/" + packageTarget
+			}
+			return requireAPITokenTarget(APITokenScopeTeamManage, teamTarget, APITokenScopePackageManage)
 		}
 		if strings.HasSuffix(lowerPath, "/archive") || strings.HasSuffix(lowerPath, "/yank") ||
 			strings.HasSuffix(lowerPath, "/unyank") {
-			return requireAPITokenScope(APITokenScopePackageLifecycle, APITokenScopePackageManage)
+			return requireAPITokenTarget(APITokenScopePackageLifecycle, packageTarget, APITokenScopePackageManage)
 		}
 		switch method {
 		case fiber.MethodGet, fiber.MethodHead:
-			return requireAPITokenScope(APITokenScopeRepositoryRead)
+			return requireAPITokenTarget(APITokenScopeRepositoryRead, repository)
 		case fiber.MethodDelete:
-			return requireAPITokenScope(APITokenScopeRepositoryDelete)
+			return requireAPITokenTarget(APITokenScopeRepositoryDelete, repository)
 		default:
-			return requireAPITokenScope(APITokenScopeRepositoryPublish)
+			return requireAPITokenTarget(APITokenScopeRepositoryPublish, repository)
 		}
 	}
 	switch {
@@ -439,11 +557,11 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 	case strings.HasPrefix(path, "/api/statistics"):
 		return requireAPITokenScope(APITokenScopeStatisticsRead)
 	case strings.HasPrefix(path, "/api/maven"):
-		return mavenAPITokenRequirement(path, method)
+		return mavenAPITokenRequirement(c)
 	case strings.HasPrefix(path, "/api/cargo") || strings.HasPrefix(path, "/api/docker"):
-		return packageManagementRequirement(path, method)
+		return packageManagementRequirement(c)
 	case strings.HasPrefix(path, "/api/upload/chunked"):
-		return requireAPITokenScope(APITokenScopeRepositoryPublish)
+		return requireAPITokenDeferredTarget(APITokenScopeRepositoryPublish)
 	case path == "/api/auth/me":
 		return requireAPITokenScope(APITokenScopeAccountRead)
 	case path == "/api/auth/profile" && (method == fiber.MethodGet || method == fiber.MethodHead):
@@ -490,7 +608,7 @@ func authorizeCredential(c fiber.Ctx, state *core.AppState, result *authResult) 
 		return false, c.Status(fiber.StatusForbidden).SendString("Basic credentials are limited to package protocols")
 	}
 	required := requiredAPITokenScope(c, state)
-	if !required.allows(result.Scopes) {
+	if !required.allows(result.Scopes, result.Targets) {
 		return false, sendInsufficientScope(c, required.Scope)
 	}
 	return true, nil
@@ -552,6 +670,7 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 						authenticated = &authResult{
 							User: val.User, Kind: val.CredentialKind, Scheme: val.AuthScheme,
 							TokenID: val.APITokenID, Scopes: append([]string(nil), val.Scopes...),
+							Targets: core.CloneAPITokenTargets(val.Targets),
 						}
 					} else {
 						state.DeleteAuthCache(authCacheKey)
@@ -588,6 +707,7 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 							User: authenticated.User, CredentialKind: authenticated.Kind,
 							AuthScheme: authenticated.Scheme, APITokenID: authenticated.TokenID,
 							Scopes:    append([]string(nil), authenticated.Scopes...),
+							Targets:   core.CloneAPITokenTargets(authenticated.Targets),
 							ExpiredAt: authCacheExpiry(c, time.Now().UnixMilli()),
 						})
 					}

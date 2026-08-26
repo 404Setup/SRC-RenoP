@@ -342,6 +342,8 @@ components:
           uniqueItems: true
           items:
             $ref: "#/components/schemas/APITokenScope"
+        targets:
+          $ref: "#/components/schemas/APITokenTargets"
         created_at:
           type: integer
           format: int64
@@ -373,6 +375,30 @@ components:
           description: Scopes currently assignable by this account. Administrator scopes are omitted for non-administrators.
           items:
             $ref: "#/components/schemas/APITokenScope"
+        target_kinds:
+          type: object
+          description: Target kind accepted by each target-restrictable scope.
+          additionalProperties:
+            type: string
+            enum: [repository, package, team, domain]
+        target_limit:
+          type: integer
+          example: 128
+
+    APITokenTargets:
+      type: object
+      description: |
+        Optional exact-target restrictions keyed by a selected scope. Omitted scopes remain valid for every target
+        authorized to the owning account. Repository values are repository names; package values use
+        `repository/package`; team values use `package/repository/package` or `domain/domain-name`; domain values are
+        canonical domain names. At most 128 target values are accepted across the object.
+      additionalProperties:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: string
+          maxLength: 512
 
     CreateAPITokenRequest:
       type: object
@@ -389,6 +415,8 @@ components:
           uniqueItems: true
           items:
             $ref: "#/components/schemas/APITokenScope"
+        targets:
+          $ref: "#/components/schemas/APITokenTargets"
         expires_at:
           type: integer
           format: int64

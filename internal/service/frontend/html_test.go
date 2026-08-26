@@ -730,6 +730,7 @@ func TestFineGrainedAPITokenProfileUI(t *testing.T) {
 		"writeClipboardText", "profile.apiTokenSecretWarning", "data-api-token-scope",
 		"data-i18n-placeholder", "languageChanged", "makeCustomSelect", "profile-api-token-create-modal",
 		"profile-api-token-scope-groups", "profile.apiTokenScopeGroup.${group.key}",
+		"target_kinds", "target_limit", "data-api-token-target-for", "profile.apiTokenTargetsHint",
 	} {
 		if !strings.Contains(sourceText, required) {
 			t.Fatalf("fine-grained API token controller is missing %q", required)

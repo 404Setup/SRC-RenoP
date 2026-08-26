@@ -23,6 +23,10 @@ const (
 	MaxAPITokenNameLength = 80
 	// MaxAPITokenScopes bounds authorization work and persisted JSON size.
 	MaxAPITokenScopes = 24
+	// MaxAPITokenTargets bounds the total target restrictions attached to one credential.
+	MaxAPITokenTargets = 128
+	// MaxAPITokenTargetLength bounds one canonical repository, package, team, or domain target.
+	MaxAPITokenTargetLength = 512
 	// APITokenSecretBytes gives machine credentials 256 bits of entropy.
 	APITokenSecretBytes = 32
 	// LegacyAPITokenNamePrefix reserves metadata labels created by plaintext-token migration.
@@ -68,17 +72,30 @@ var (
 
 // APIToken is non-secret metadata for one fine-grained durable credential.
 type APIToken struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Scopes    []string `json:"scopes"`
-	CreatedAt int64    `json:"created_at"`
-	ExpiresAt *int64   `json:"expires_at,omitempty"`
+	ID        string              `json:"id"`
+	Name      string              `json:"name"`
+	Scopes    []string            `json:"scopes"`
+	Targets   map[string][]string `json:"targets,omitempty"`
+	CreatedAt int64               `json:"created_at"`
+	ExpiresAt *int64              `json:"expires_at,omitempty"`
 }
 
 // APITokenCredential combines token metadata with its owning account during authentication.
 type APITokenCredential struct {
 	Token   *APIToken
 	Account *AccessToken
+}
+
+// CloneAPITokenTargets copies an immutable API-token target policy for request-local use.
+func CloneAPITokenTargets(targets map[string][]string) map[string][]string {
+	if len(targets) == 0 {
+		return nil
+	}
+	cloned := make(map[string][]string, len(targets))
+	for scope, values := range targets {
+		cloned[scope] = append([]string(nil), values...)
+	}
+	return cloned
 }
 
 // GenerateAPITokenSecret returns a prefixed 256-bit Base64URL credential.

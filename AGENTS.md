@@ -34,7 +34,9 @@
   may be disabled only while a GitHub identity or Passkey remains available. API tokens use one-time 256-bit secrets,
   optional expiration, current-account-permission intersection, and immediate revocation. Capabilities separately
   gate repository reads/publication/deletion, package creation/metadata/lifecycle, team administration, and Maven-domain
-  reading/creation/verification/deletion; legacy broad package/domain scopes remain authentication-only compatibility.
+  reading/creation/verification/deletion. Each target-aware scope can additionally carry bounded exact repository,
+  package, team, or domain restrictions in the backward-compatible authorization JSON; legacy broad package/domain
+  scopes remain authentication-only compatibility.
   Token secrets are owner-managed from a browser session; administrators cannot mint credentials for another user.
   Browser session secrets are cookie-only, while Basic/password credentials are restricted to package protocols.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,

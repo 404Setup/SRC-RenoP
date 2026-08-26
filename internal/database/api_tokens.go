@@ -56,10 +56,61 @@ func normalizeStoredAPIToken(token *core.APIToken) error {
 			return errors.New("API token scope is invalid")
 		}
 	}
+	selectedScopes := make(map[string]struct{}, len(token.Scopes))
+	for _, scope := range token.Scopes {
+		selectedScopes[scope] = struct{}{}
+	}
+	targetCount := 0
+	for scope, targets := range token.Targets {
+		if _, ok := selectedScopes[scope]; !ok || len(targets) == 0 {
+			return errors.New("API token targets are invalid")
+		}
+		for index := range targets {
+			targets[index] = strings.TrimSpace(targets[index])
+			if targets[index] == "" || len(targets[index]) > core.MaxAPITokenTargetLength {
+				return errors.New("API token target is invalid")
+			}
+		}
+		slices.Sort(targets)
+		targets = slices.Compact(targets)
+		targetCount += len(targets)
+		token.Targets[scope] = targets
+	}
+	if targetCount > core.MaxAPITokenTargets {
+		return errors.New("API token target limit exceeded")
+	}
 	if token.ExpiresAt != nil && *token.ExpiresAt <= token.CreatedAt {
 		return errors.New("API token expiration is invalid")
 	}
 	return nil
+}
+
+type storedAPITokenAuthorization struct {
+	Scopes  []string            `json:"scopes"`
+	Targets map[string][]string `json:"targets,omitempty"`
+}
+
+func decodeStoredAPITokenAuthorization(value string, token *core.APIToken) error {
+	if token == nil {
+		return errors.New("API token metadata is unavailable")
+	}
+	if strings.HasPrefix(strings.TrimSpace(value), "[") {
+		return json.Unmarshal([]byte(value), &token.Scopes)
+	}
+	var authorization storedAPITokenAuthorization
+	if err := json.Unmarshal([]byte(value), &authorization); err != nil {
+		return err
+	}
+	token.Scopes = authorization.Scopes
+	token.Targets = authorization.Targets
+	return nil
+}
+
+func encodeStoredAPITokenAuthorization(token *core.APIToken) ([]byte, error) {
+	if len(token.Targets) == 0 {
+		return json.Marshal(token.Scopes)
+	}
+	return json.Marshal(storedAPITokenAuthorization{Scopes: token.Scopes, Targets: token.Targets})
 }
 
 func scanAPIToken(scanner interface{ Scan(...any) error }) (*core.APIToken, error) {
@@ -69,7 +120,7 @@ func scanAPIToken(scanner interface{ Scan(...any) error }) (*core.APIToken, erro
 	if err := scanner.Scan(&token.ID, &token.Name, &scopesJSON, &token.CreatedAt, &expiresAt); err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal([]byte(scopesJSON), &token.Scopes); err != nil {
+	if err := decodeStoredAPITokenAuthorization(scopesJSON, token); err != nil {
 		return nil, fmt.Errorf("decode API token scopes: %w", err)
 	}
 	if expiresAt.Valid {
@@ -116,7 +167,7 @@ func (db *DB) CreateAPIToken(username string, token *core.APIToken, secretHash s
 	if err != nil {
 		return err
 	}
-	scopesJSON, err := json.Marshal(token.Scopes)
+	scopesJSON, err := encodeStoredAPITokenAuthorization(token)
 	if err != nil {
 		return fmt.Errorf("encode API token scopes: %w", err)
 	}
@@ -216,7 +267,7 @@ func (db *DB) GetAPITokenByHash(secretHash, username string) (*core.APITokenCred
 		}
 		return nil, fmt.Errorf("resolve API token credential: %w", err)
 	}
-	if err := json.Unmarshal([]byte(scopesJSON), &token.Scopes); err != nil {
+	if err := decodeStoredAPITokenAuthorization(scopesJSON, token); err != nil {
 		return nil, fmt.Errorf("decode API token credential scopes: %w", err)
 	}
 	if tokenExpiresAt.Valid {

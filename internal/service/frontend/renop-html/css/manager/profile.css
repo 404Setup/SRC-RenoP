@@ -598,6 +598,13 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+    align-items: start;
+}
+
+.profile-api-token-scope-entry {
+    display: grid;
+    min-width: 0;
+    gap: 0.4rem;
 }
 
 .profile-api-token-scope-option {
@@ -636,6 +643,58 @@
 .profile-api-token-scope-copy code {
     color: var(--text-muted);
     font-size: 0.68rem;
+}
+
+.profile-api-token-target-editor {
+    display: grid;
+    min-width: 0;
+    gap: 0.3rem;
+    padding: 0 0.3rem 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 650;
+}
+
+.profile-api-token-target-editor[hidden] {
+    display: none;
+}
+
+.profile-api-token-targets {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    font: 0.72rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.profile-api-token-target-policy {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border-left: 2px solid color-mix(in srgb, var(--link-hover-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 4%, transparent);
+}
+
+.profile-api-token-target-policy-row {
+    display: grid;
+    grid-template-columns: minmax(7rem, auto) minmax(0, 1fr);
+    gap: 0.5rem;
+    min-width: 0;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+.profile-api-token-target-policy-row code {
+    min-width: 0;
+    color: var(--text-color);
+    overflow-wrap: anywhere;
 }
 
 .profile-api-token-secret-name {

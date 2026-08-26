@@ -50,6 +50,7 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"files": {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
+		"other": {Name: "other", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
 	}
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)
@@ -79,13 +80,16 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	app.Use(AuthMiddleware(state))
 	SetupAuthRoutes(app.Group("/api"), state, operations)
 	app.Get("/files/artifact", func(c fiber.Ctx) error { return c.SendString(GetUser(c).Username) })
+	app.Get("/other/artifact", func(c fiber.Ctx) error { return c.SendString(GetUser(c).Username) })
 	app.Post("/files/artifact", func(c fiber.Ctx) error { return c.SendString(GetUser(c).Username) })
 	app.Get("/automation", func(c fiber.Ctx) error { return c.SendString(GetUser(c).Username) })
 
 	response := apiTokenJSONRequest(t, app, http.MethodGet, "/api/auth/profile/api-tokens/scopes", sessionToken, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var scopeResult struct {
-		Scopes []string `json:"scopes"`
+		Scopes      []string          `json:"scopes"`
+		TargetKinds map[string]string `json:"target_kinds"`
+		TargetLimit int               `json:"target_limit"`
 	}
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&scopeResult))
 	require.NoError(t, response.Body.Close())
@@ -95,11 +99,14 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopePackageManage)
 	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopeDomainManage)
 	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopeAdminSettings)
+	assert.Equal(t, "repository", scopeResult.TargetKinds[core.APITokenScopeRepositoryRead])
+	assert.Equal(t, "team", scopeResult.TargetKinds[core.APITokenScopeTeamManage])
+	assert.Equal(t, core.MaxAPITokenTargets, scopeResult.TargetLimit)
 
 	expiresAt := time.Now().Add(24 * time.Hour).UnixMilli()
 	response = apiTokenJSONRequest(t, app, http.MethodPost, "/api/auth/profile/api-tokens", sessionToken, map[string]any{
 		"name": "Read automation", "scopes": []string{core.APITokenScopeRepositoryRead},
-		"expires_at": expiresAt,
+		"targets": map[string][]string{core.APITokenScopeRepositoryRead: {"files"}}, "expires_at": expiresAt,
 	})
 	require.Equal(t, http.StatusCreated, response.StatusCode)
 	assert.Equal(t, "no-store", response.Header.Get(fiber.HeaderCacheControl))
@@ -112,6 +119,7 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	assert.True(t, len(created.Secret) == len("rnp_pat_")+43)
 	assert.True(t, bytes.HasPrefix([]byte(created.Secret), []byte("rnp_pat_")))
 	assert.Equal(t, []string{core.APITokenScopeRepositoryRead}, created.Token.Scopes)
+	assert.Equal(t, []string{"files"}, created.Token.Targets[core.APITokenScopeRepositoryRead])
 	request := httptest.NewRequest(http.MethodGet, "/api/auth/profile/api-tokens", nil)
 	request.Header.Set(fiber.HeaderAuthorization, "Bearer "+created.Secret)
 	response, err = app.Test(request)
@@ -123,7 +131,14 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	request.Header.Set(fiber.HeaderAuthorization, "Bearer "+created.Secret)
 	response, err = app.Test(request)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	request = httptest.NewRequest(http.MethodGet, "/other/artifact", nil)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer "+created.Secret)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, response.StatusCode)
+	assert.Equal(t, core.APITokenScopeRepositoryRead, response.Header.Get("X-Renop-Required-Scope"))
 	require.NoError(t, response.Body.Close())
 	request = httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
 	request.Header.Set(fiber.HeaderAuthorization, "Bearer "+created.Secret)
@@ -337,11 +352,18 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		})
 	}
 	assert.True(t, requireAPITokenScope(core.APITokenScopeTeamManage,
-		core.APITokenScopePackageManage).allows([]string{core.APITokenScopePackageManage}))
+		core.APITokenScopePackageManage).allows([]string{core.APITokenScopePackageManage}, nil))
 	assert.True(t, requireAPITokenScope(core.APITokenScopeDomainVerify,
-		core.APITokenScopeDomainManage).allows([]string{core.APITokenScopeDomainManage}))
+		core.APITokenScopeDomainManage).allows([]string{core.APITokenScopeDomainManage}, nil))
 	assert.False(t, requireAPITokenScope(core.APITokenScopeTeamManage,
-		core.APITokenScopePackageManage).allows([]string{core.APITokenScopePackageMetadata}))
+		core.APITokenScopePackageManage).allows([]string{core.APITokenScopePackageMetadata}, nil))
 	assert.False(t, requireAPITokenScope(core.APITokenScopeDomainVerify,
-		core.APITokenScopeDomainManage).allows([]string{core.APITokenScopeDomainRead}))
+		core.APITokenScopeDomainManage).allows([]string{core.APITokenScopeDomainRead}, nil))
+	restricted := map[string][]string{core.APITokenScopeRepositoryPublish: {"releases"}}
+	assert.True(t, requireAPITokenTarget(core.APITokenScopeRepositoryPublish, "releases").
+		allows([]string{core.APITokenScopeRepositoryPublish}, restricted))
+	assert.False(t, requireAPITokenTarget(core.APITokenScopeRepositoryPublish, "snapshots").
+		allows([]string{core.APITokenScopeRepositoryPublish}, restricted))
+	assert.True(t, requireAPITokenTarget(core.APITokenScopeRepositoryPublish, "snapshots").
+		allows([]string{core.APITokenScopeRepositoryPublish}, nil))
 }

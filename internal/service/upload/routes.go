@@ -152,6 +152,10 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		if !exists {
 			return jsonErr(c, fiber.StatusNotFound, "Repository not found")
 		}
+		if !auth.CurrentCredentialHasScopeTarget(c, core.APITokenScopeRepositoryPublish, repoName) {
+			c.Set("X-Renop-Required-Scope", core.APITokenScopeRepositoryPublish)
+			return jsonErr(c, fiber.StatusForbidden, "API token target is not permitted")
+		}
 		repository = repo
 		rel := ""
 		if len(parts) > 1 {

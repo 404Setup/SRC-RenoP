@@ -123,13 +123,17 @@ async function fetchAPITokens() {
 
 /**
  * Load the scope catalog already reduced to the current account's permissions.
- * @returns {Promise<string[]>}
+ * @returns {Promise<{scopes: string[], targetKinds: Record<string, string>, targetLimit: number}>}
  */
 async function fetchAllowedScopes() {
     const response = await apiRequest('/api/auth/profile/api-tokens/scopes', {cache: 'no-store'});
     if (!response.ok) throw new Error('API token scope request failed');
     const result = await response.json();
-    return Array.isArray(result.scopes) ? result.scopes : [];
+    return {
+        scopes: Array.isArray(result.scopes) ? result.scopes : [],
+        targetKinds: result.target_kinds && typeof result.target_kinds === 'object' ? result.target_kinds : {},
+        targetLimit: Number(result.target_limit) || 128,
+    };
 }
 
 /**
@@ -203,26 +207,46 @@ function showAPITokenSecret(secret, token) {
 /**
  * Create a scope checkbox using the server-approved scope catalog.
  * @param {string} scope - Stable scope identifier.
- * @returns {HTMLLabelElement}
+ * @param {string} targetKind - Optional canonical target kind.
+ * @returns {HTMLDivElement}
  */
-function createScopeOption(scope) {
+function createScopeOption(scope, targetKind = '') {
     const input = el('input', {type: 'checkbox', value: scope, name: 'api-token-scope'});
     if (scope === 'repository:read' || scope === 'repository:publish') input.checked = true;
-    return el('label', {class: 'profile-api-token-scope-option'},
-        input,
+    const option = el('label', {class: 'profile-api-token-scope-option'}, input,
         el('span', {class: 'profile-api-token-scope-copy'},
-            el('strong', {'data-api-token-scope': scope}, scopeLabel(scope)),
-            el('code', {}, scope)
-        )
+            el('strong', {'data-api-token-scope': scope}, scopeLabel(scope)), el('code', {}, scope))
     );
+    const entry = el('div', {class: 'profile-api-token-scope-entry'}, option);
+    if (!targetKind) return entry;
+    const targets = el('textarea', {
+        class: 'profile-api-token-targets', rows: '2', maxlength: '4096',
+        'data-api-token-target-for': scope,
+        placeholder: t(`profile.apiTokenTargetPlaceholder.${targetKind}`),
+        'data-i18n-placeholder': `profile.apiTokenTargetPlaceholder.${targetKind}`,
+    });
+    const targetEditor = el('label', {class: 'profile-api-token-target-editor'},
+        el('span', {'data-i18n': 'profile.apiTokenTargetLimit'}, t('profile.apiTokenTargetLimit')),
+        targets,
+        el('small', {
+            class: 'profile-security-hint', 'data-i18n': 'profile.apiTokenTargetsHint'
+        }, t('profile.apiTokenTargetsHint'))
+    );
+    targetEditor.hidden = !input.checked;
+    input.addEventListener('change', () => {
+        targetEditor.hidden = !input.checked;
+    });
+    entry.appendChild(targetEditor);
+    return entry;
 }
 
 /**
  * Group server-approved scopes by target capability without reordering within each group.
  * @param {string[]} allowedScopes - Scopes filtered by current account permissions.
+ * @param {Record<string, string>} targetKinds - Scope-to-target-kind mapping from the server.
  * @returns {HTMLDivElement}
  */
-function createScopeGroups(allowedScopes) {
+function createScopeGroups(allowedScopes, targetKinds) {
     const allowed = new Set(allowedScopes);
     const groups = scopeGroups.map(group => {
         const scopes = group.scopes.filter(scope => allowed.has(scope));
@@ -232,7 +256,8 @@ function createScopeGroups(allowedScopes) {
                 class: 'profile-api-token-scope-group-title',
                 'data-i18n': `profile.apiTokenScopeGroup.${group.key}`
             }, t(`profile.apiTokenScopeGroup.${group.key}`)),
-            el('div', {class: 'profile-api-token-scope-grid'}, ...scopes.map(createScopeOption))
+            el('div', {class: 'profile-api-token-scope-grid'},
+                ...scopes.map(scope => createScopeOption(scope, targetKinds[scope])))
         );
     }).filter(Boolean);
     return el('div', {class: 'profile-api-token-scope-groups'}, ...groups);
@@ -240,11 +265,11 @@ function createScopeGroups(allowedScopes) {
 
 /**
  * Open the token creation form and return through onCreated after persistence.
- * @param {string[]} allowedScopes - Scopes filtered by account permissions.
+ * @param {{scopes: string[], targetKinds: Record<string, string>, targetLimit: number}} catalog - Server-approved scope catalog.
  * @param {() => Promise<void>} onCreated - Manager-list refresh callback.
  * @returns {void}
  */
-function openCreateAPITokenDialog(allowedScopes, onCreated) {
+function openCreateAPITokenDialog(catalog, onCreated) {
     if (document.getElementById('profile-api-token-create-dialog')) return;
     const nameInput = el('input', {
         class: 'profile-input', type: 'text', maxlength: '80', autocomplete: 'off',
@@ -256,7 +281,7 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
         expirationValue = value;
     });
     expiration.classList.add('profile-api-token-expiration');
-    const scopeGrid = createScopeGroups(allowedScopes);
+    const scopeGrid = createScopeGroups(catalog.scopes, catalog.targetKinds);
     const error = el('p', {class: 'password-recovery-error', role: 'alert'});
     const body = el('div', {class: 'profile-api-token-create-form'},
         el('label', {}, el('span', {'data-i18n': 'profile.apiTokenName'}, t('profile.apiTokenName')), nameInput),
@@ -294,6 +319,22 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
                     setInlineError(error, 'profile.apiTokenScopeRequired');
                     return;
                 }
+                const targets = {};
+                let targetCount = 0;
+                scopes.forEach(scope => {
+                    const editor = scopeGrid.querySelector(`[data-api-token-target-for="${CSS.escape(scope)}"]`);
+                    if (!editor) return;
+                    const values = [...new Set(editor.value.split(/[\n,]+/u).map(value => value.trim()).filter(Boolean))];
+                    if (values.length > 0) {
+                        targets[scope] = values;
+                        targetCount += values.length;
+                    }
+                });
+                if (targetCount > catalog.targetLimit) {
+                    error.removeAttribute('data-i18n');
+                    error.textContent = t('profile.apiTokenTargetLimitReached', {limit: catalog.targetLimit});
+                    return;
+                }
                 const submit = dialog.querySelector('#profile-api-token-create-submit');
                 await runButtonAction(submit, async () => {
                     const days = Number(expirationValue) || 0;
@@ -301,7 +342,7 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            name: nameInput.value.trim(), scopes,
+                            name: nameInput.value.trim(), scopes, targets,
                             expires_at: days > 0 ? Date.now() + days * 86400000 : null,
                         }),
                     });
@@ -372,6 +413,15 @@ function renderAPITokenList(list, tokens, reload) {
                     class: 'profile-api-token-scope-badge', title: scope, 'data-api-token-scope': scope
                 }, scopeLabel(scope)))
         );
+        const targetPolicy = token.targets && typeof token.targets === 'object'
+            ? Object.entries(token.targets).filter(([, targets]) => Array.isArray(targets) && targets.length > 0)
+            : [];
+        const targetList = targetPolicy.length > 0
+            ? el('div', {class: 'profile-api-token-target-policy'}, ...targetPolicy.map(([scope, targets]) =>
+                el('div', {class: 'profile-api-token-target-policy-row'},
+                    el('strong', {'data-api-token-scope': scope}, scopeLabel(scope)),
+                    el('code', {}, targets.join(', ')))))
+            : null;
         const revoke = el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
         }, t('profile.apiTokenRevoke'));
@@ -406,6 +456,7 @@ function renderAPITokenList(list, tokens, reload) {
                 revoke
             ),
             scopeList,
+            ...(targetList ? [targetList] : []),
             el('p', {class: `profile-api-token-expiry${expired ? ' is-expired' : ''}`}, expiryText)
         ));
     });
@@ -431,7 +482,7 @@ function openAPITokenManager() {
         el('div', {class: 'profile-api-token-manager-toolbar'}, count, create),
         list
     );
-    let allowedScopes = [];
+    let scopeCatalog = {scopes: [], targetKinds: {}, targetLimit: 128};
     let tokenLimit = 50;
     let scopesLoaded = false;
     const managerState = {
@@ -443,7 +494,7 @@ function openAPITokenManager() {
      */
     const updateCreateAvailability = () => {
         create.disabled = managerState.loadFailed || !managerState.loaded || !scopesLoaded ||
-            managerState.tokens.length >= managerState.limit || allowedScopes.length === 0;
+            managerState.tokens.length >= managerState.limit || scopeCatalog.scopes.length === 0;
     };
     /**
      * Reload non-secret token metadata and update the open manager.
@@ -466,7 +517,7 @@ function openAPITokenManager() {
     };
     managerState.reload = reload;
     activeAPITokenManager = managerState;
-    create.addEventListener('click', () => openCreateAPITokenDialog(allowedScopes, reload));
+    create.addEventListener('click', () => openCreateAPITokenDialog(scopeCatalog, reload));
     void RenopDialog.show({
         id: 'profile-api-token-manager-dialog',
         maxWidth: '780px',
@@ -481,8 +532,8 @@ function openAPITokenManager() {
     }).finally(() => {
         if (activeAPITokenManager === managerState) activeAPITokenManager = null;
     });
-    void fetchAllowedScopes().then(scopes => {
-        allowedScopes = scopes;
+    void fetchAllowedScopes().then(catalog => {
+        scopeCatalog = catalog;
         scopesLoaded = true;
         updateCreateAvailability();
     }).catch(error => {

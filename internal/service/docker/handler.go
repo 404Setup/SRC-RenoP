@@ -128,7 +128,7 @@ func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, re
 		_ = RespondError(c, fiber.StatusForbidden, ErrCodeDenied, "access denied", nil)
 		return nil, errors.New("denied")
 	}
-	if !auth.CurrentCredentialHasScope(c, requiredCredentialScope) {
+	if !auth.CurrentCredentialHasScopeTarget(c, requiredCredentialScope, repo.Name) {
 		_ = RespondError(c, fiber.StatusForbidden, ErrCodeDenied, "API token scope is insufficient", nil)
 		return nil, errors.New("insufficient API token scope")
 	}

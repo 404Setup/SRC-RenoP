@@ -24,6 +24,8 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 
 返回结果会按照当前账号权限过滤，普通账号不会获得任何 `admin:*` 范围。
 
+响应同时返回各权限支持的目标类型以及单个 Token 最多 128 个目标的限制。
+
 ### 创建 Token
 
 `POST /api/auth/profile/api-tokens`
@@ -32,12 +34,21 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 {
   "name": "CI 发布",
   "scopes": ["repository:read", "repository:publish"],
+  "targets": {
+    "repository:publish": ["releases"]
+  },
   "expires_at": 1798761600000
 }
 ```
 
 `expires_at` 是可选的 Unix 毫秒时间戳，必须处于创建后 5 分钟至 5 年之间；省略或传入 `null` 表示不设置
 凭据级有效期。每个账号最多可拥有 50 个 API Token。
+
+`targets` 为可选配置，可分别限定每项权限的精确目标。没有出现在 `targets` 中的权限可以访问所属账号当前
+有权操作的全部目标。存储库目标直接使用存储库名称；包目标使用 `存储库/包`，Maven 包可使用类似
+`maven-releases/com.example/library` 的“存储库/Group ID/Artifact ID”；团队目标使用
+`package/存储库/包` 或 `domain/example.com`；域目标使用规范化域名。一个 Token 最多可配置 128 个目标。
+目标限制始终与账号的存储库权限及包/域团队当前 L0-L4 权限取交集，不会产生权限提升。
 
 成功时返回 `201 Created` 和 `Cache-Control: no-store`。响应中的 `secret` 是唯一一次可见的明文；列表接口
 只返回 `id`、名称、权限范围、创建时间和过期时间。

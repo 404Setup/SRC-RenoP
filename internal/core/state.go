@@ -33,6 +33,7 @@ type AuthCacheEntry struct {
 	AuthScheme     string
 	APITokenID     string
 	Scopes         []string
+	Targets        map[string][]string
 	ExpiredAt      int64
 }
 

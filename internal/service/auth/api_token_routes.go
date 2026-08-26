@@ -25,9 +25,10 @@ import (
 const maxAPITokenLifetime = 5 * 365 * 24 * time.Hour
 
 type createAPITokenRequest struct {
-	Name      string   `json:"name"`
-	Scopes    []string `json:"scopes"`
-	ExpiresAt *int64   `json:"expires_at"`
+	Name      string              `json:"name"`
+	Scopes    []string            `json:"scopes"`
+	Targets   map[string][]string `json:"targets"`
+	ExpiresAt *int64              `json:"expires_at"`
 }
 
 func setupAPITokenRoutes(auth fiber.Router, state *core.AppState) {
@@ -64,7 +65,7 @@ func normalizeAPITokenExpiry(expiresAt *int64, now int64) (*int64, error) {
 }
 
 func createAPITokenForAccount(state *core.AppState, account *core.AccessToken, name string,
-	scopes []string, expiresAt *int64, now int64) (*core.APIToken, string, error) {
+	scopes []string, targets map[string][]string, expiresAt *int64, now int64) (*core.APIToken, string, error) {
 	if state == nil || state.GetDB() == nil || account == nil {
 		return nil, "", core.ErrDatabaseUnavailable
 	}
@@ -73,6 +74,10 @@ func createAPITokenForAccount(state *core.AppState, account *core.AccessToken, n
 		return nil, "", errAPITokenNameInvalid
 	}
 	normalizedScopes, err := normalizeAPITokenScopes(account, scopes)
+	if err != nil {
+		return nil, "", err
+	}
+	normalizedTargets, err := normalizeAPITokenTargets(account, normalizedScopes, targets)
 	if err != nil {
 		return nil, "", err
 	}
@@ -85,7 +90,8 @@ func createAPITokenForAccount(state *core.AppState, account *core.AccessToken, n
 		return nil, "", err
 	}
 	token := &core.APIToken{
-		ID: uuid.NewString(), Name: name, Scopes: normalizedScopes, CreatedAt: now, ExpiresAt: expiresAt,
+		ID: uuid.NewString(), Name: name, Scopes: normalizedScopes, Targets: normalizedTargets,
+		CreatedAt: now, ExpiresAt: expiresAt,
 	}
 	if err := state.GetDB().CreateAPIToken(account.Name, token, apiTokenSecretHash(secret)); err != nil {
 		return nil, "", err
@@ -117,7 +123,10 @@ func listProfileAPITokenScopes(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Account not found")
 	}
 	setPrivateResponseHeaders(c)
-	return c.JSON(fiber.Map{"scopes": allowedAPITokenScopes(account)})
+	return c.JSON(fiber.Map{
+		"scopes": allowedAPITokenScopes(account), "target_kinds": allowedAPITokenTargetKinds(account),
+		"target_limit": core.MaxAPITokenTargets,
+	})
 }
 
 func createProfileAPIToken(c fiber.Ctx, state *core.AppState) error {
@@ -134,7 +143,7 @@ func createProfileAPIToken(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusNotFound).SendString("Account not found")
 	}
 	token, secret, err := createAPITokenForAccount(state, account, request.Name,
-		request.Scopes, request.ExpiresAt, time.Now().UnixMilli())
+		request.Scopes, request.Targets, request.ExpiresAt, time.Now().UnixMilli())
 	switch {
 	case errors.Is(err, core.ErrAPITokenNameExists):
 		c.Set("X-Renop-Error-Code", "API_TOKEN_NAME_CONFLICT")

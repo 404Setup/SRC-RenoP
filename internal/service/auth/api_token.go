@@ -13,11 +13,13 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gofiber/fiber/v3"
 	"golang.org/x/crypto/bcrypt"
 
 	"renop/internal/core"
+	"renop/internal/utils"
 )
 
 const (
@@ -53,6 +55,7 @@ const (
 	credentialKindLocal    = "auth_credential_kind"
 	authSchemeLocal        = "auth_scheme"
 	apiTokenScopesLocal    = "auth_api_token_scopes"
+	apiTokenTargetsLocal   = "auth_api_token_targets"
 	apiTokenIDLocal        = "auth_api_token_id"
 )
 
@@ -66,20 +69,21 @@ var (
 type apiTokenScopeDefinition struct {
 	Scope       string
 	ManagerOnly bool
+	TargetKind  string
 }
 
 var apiTokenScopeDefinitions = []apiTokenScopeDefinition{
-	{Scope: APITokenScopeRepositoryRead},
-	{Scope: APITokenScopeRepositoryPublish},
-	{Scope: APITokenScopeRepositoryDelete},
-	{Scope: APITokenScopePackageCreate},
-	{Scope: APITokenScopePackageMetadata},
-	{Scope: APITokenScopePackageLifecycle},
-	{Scope: APITokenScopeTeamManage},
-	{Scope: APITokenScopeDomainRead},
-	{Scope: APITokenScopeDomainCreate},
-	{Scope: APITokenScopeDomainVerify},
-	{Scope: APITokenScopeDomainDelete},
+	{Scope: APITokenScopeRepositoryRead, TargetKind: "repository"},
+	{Scope: APITokenScopeRepositoryPublish, TargetKind: "repository"},
+	{Scope: APITokenScopeRepositoryDelete, TargetKind: "repository"},
+	{Scope: APITokenScopePackageCreate, TargetKind: "repository"},
+	{Scope: APITokenScopePackageMetadata, TargetKind: "package"},
+	{Scope: APITokenScopePackageLifecycle, TargetKind: "package"},
+	{Scope: APITokenScopeTeamManage, TargetKind: "team"},
+	{Scope: APITokenScopeDomainRead, TargetKind: "domain"},
+	{Scope: APITokenScopeDomainCreate, TargetKind: "domain"},
+	{Scope: APITokenScopeDomainVerify, TargetKind: "domain"},
+	{Scope: APITokenScopeDomainDelete, TargetKind: "domain"},
 	{Scope: APITokenScopeMessagesRead},
 	{Scope: APITokenScopeAccountRead},
 	{Scope: APITokenScopeAccountWrite},
@@ -99,12 +103,19 @@ type VerifiedCredential struct {
 	Kind      string
 	TokenID   string
 	Scopes    []string
+	Targets   map[string][]string
 	ExpiresAt *int64
 }
 
 // HasScope reports whether a credential is unrestricted by API scopes or includes scope.
 func (credential *VerifiedCredential) HasScope(scope string) bool {
 	return credential != nil && (credential.Kind != credentialKindAPIToken || slices.Contains(credential.Scopes, scope))
+}
+
+// HasScopeTarget reports whether a credential carries scope and permits the exact canonical target.
+func (credential *VerifiedCredential) HasScopeTarget(scope, target string) bool {
+	return credential != nil && (credential.Kind != credentialKindAPIToken ||
+		apiTokenAuthorizationAllows(credential.Scopes, credential.Targets, scope, target))
 }
 
 func apiTokenSecretHash(secret string) string {
@@ -124,6 +135,17 @@ func allowedAPITokenScopes(account *core.AccessToken) []string {
 		}
 	}
 	return scopes
+}
+
+func allowedAPITokenTargetKinds(account *core.AccessToken) map[string]string {
+	manager := account != nil && isManagerPermissions(account.Permissions)
+	targetKinds := make(map[string]string)
+	for _, definition := range apiTokenScopeDefinitions {
+		if definition.TargetKind != "" && (!definition.ManagerOnly || manager) {
+			targetKinds[definition.Scope] = definition.TargetKind
+		}
+	}
+	return targetKinds
 }
 
 func normalizeAPITokenScopes(account *core.AccessToken, requested []string) ([]string, error) {
@@ -149,6 +171,125 @@ func normalizeAPITokenScopes(account *core.AccessToken, requested []string) ([]s
 		return nil, errAPITokenScopesInvalid
 	}
 	return normalized, nil
+}
+
+func normalizeRepositoryTarget(value string) (string, bool) {
+	value = strings.TrimSpace(value)
+	return value, utils.IsValidRepositoryName(value) && len(value) <= 64
+}
+
+func normalizeDomainTarget(value string) (string, bool) {
+	value = strings.ToLower(strings.TrimSuffix(strings.TrimSpace(value), "."))
+	if value == "" || len(value) > 253 || strings.ContainsAny(value, "/\\") {
+		return "", false
+	}
+	for _, character := range value {
+		if unicode.IsControl(character) || unicode.IsSpace(character) {
+			return "", false
+		}
+	}
+	return value, true
+}
+
+func normalizePackageTarget(value string) (string, bool) {
+	value = strings.Trim(strings.TrimSpace(value), "/")
+	repository, name, ok := strings.Cut(value, "/")
+	if !ok || name == "" || strings.Contains(name, "\\") || strings.Contains(name, "//") {
+		return "", false
+	}
+	if _, valid := normalizeRepositoryTarget(repository); !valid {
+		return "", false
+	}
+	for _, part := range strings.Split(name, "/") {
+		if part == "" || part == "." || part == ".." {
+			return "", false
+		}
+		for _, character := range part {
+			if unicode.IsControl(character) {
+				return "", false
+			}
+		}
+	}
+	return repository + "/" + name, len(value) <= core.MaxAPITokenTargetLength
+}
+
+func normalizeTeamTarget(value string) (string, bool) {
+	value = strings.Trim(strings.TrimSpace(value), "/")
+	switch {
+	case strings.HasPrefix(value, "domain/"):
+		domain, ok := normalizeDomainTarget(strings.TrimPrefix(value, "domain/"))
+		return "domain/" + domain, ok
+	case strings.HasPrefix(value, "package/"):
+		pkg, ok := normalizePackageTarget(strings.TrimPrefix(value, "package/"))
+		return "package/" + pkg, ok
+	default:
+		return "", false
+	}
+}
+
+func normalizeAPITokenTarget(kind, value string) (string, bool) {
+	switch kind {
+	case "repository":
+		return normalizeRepositoryTarget(value)
+	case "domain":
+		return normalizeDomainTarget(value)
+	case "package":
+		return normalizePackageTarget(value)
+	case "team":
+		return normalizeTeamTarget(value)
+	default:
+		return "", false
+	}
+}
+
+func normalizeAPITokenTargets(account *core.AccessToken, scopes []string,
+	requested map[string][]string) (map[string][]string, error) {
+	if len(requested) == 0 {
+		return nil, nil
+	}
+	selected := make(map[string]struct{}, len(scopes))
+	for _, scope := range scopes {
+		selected[scope] = struct{}{}
+	}
+	targetKinds := allowedAPITokenTargetKinds(account)
+	normalized := make(map[string][]string, len(requested))
+	total := 0
+	for scope, values := range requested {
+		if _, ok := selected[scope]; !ok || len(values) == 0 {
+			return nil, errAPITokenScopesInvalid
+		}
+		kind, ok := targetKinds[scope]
+		if !ok {
+			return nil, errAPITokenScopesInvalid
+		}
+		targets := make([]string, 0, len(values))
+		for _, value := range values {
+			target, valid := normalizeAPITokenTarget(kind, value)
+			if !valid {
+				return nil, errAPITokenScopesInvalid
+			}
+			targets = append(targets, target)
+		}
+		slices.Sort(targets)
+		targets = slices.Compact(targets)
+		total += len(targets)
+		normalized[scope] = targets
+	}
+	if total == 0 || total > core.MaxAPITokenTargets {
+		return nil, errAPITokenScopesInvalid
+	}
+	return normalized, nil
+}
+
+func apiTokenAuthorizationAllows(scopes []string, targets map[string][]string, scope, target string) bool {
+	if !slices.Contains(scopes, scope) {
+		return false
+	}
+	restricted, ok := targets[scope]
+	if !ok {
+		return true
+	}
+	return target != "" && slices.Contains(restricted, target)
 }
 
 func effectiveCredentialExpiry(account, apiToken *int64) *int64 {
@@ -180,7 +321,8 @@ func VerifyAccountCredential(state *core.AppState, account *core.AccessToken, se
 		}
 		return &VerifiedCredential{
 			Account: credential.Account, Kind: credentialKindAPIToken, TokenID: credential.Token.ID,
-			Scopes: append([]string(nil), credential.Token.Scopes...), ExpiresAt: expiresAt,
+			Scopes:  append([]string(nil), credential.Token.Scopes...),
+			Targets: core.CloneAPITokenTargets(credential.Token.Targets), ExpiresAt: expiresAt,
 		}, nil
 	}
 	for _, legacySecret := range account.Tokens {
@@ -226,7 +368,8 @@ func VerifyBearerCredential(state *core.AppState, secret string) (*VerifiedCrede
 		}
 		return &VerifiedCredential{
 			Account: credential.Account, Kind: credentialKindAPIToken, TokenID: credential.Token.ID,
-			Scopes: append([]string(nil), credential.Token.Scopes...), ExpiresAt: expiresAt,
+			Scopes:  append([]string(nil), credential.Token.Scopes...),
+			Targets: core.CloneAPITokenTargets(credential.Token.Targets), ExpiresAt: expiresAt,
 		}, nil
 	}
 	legacyAccount := state.GetTokenBySecret(secret)
@@ -244,6 +387,7 @@ func setCredentialLocals(c fiber.Ctx, result *authResult) {
 	c.Locals(authSchemeLocal, result.Scheme)
 	c.Locals(apiTokenIDLocal, result.TokenID)
 	c.Locals(apiTokenScopesLocal, append([]string(nil), result.Scopes...))
+	c.Locals(apiTokenTargetsLocal, core.CloneAPITokenTargets(result.Targets))
 }
 
 // CurrentCredentialKind returns session, password, or api_token for the authenticated request.
@@ -273,4 +417,14 @@ func CurrentCredentialHasAnyScope(c fiber.Ctx, scopes ...string) bool {
 		}
 	}
 	return false
+}
+
+// CurrentCredentialHasScopeTarget reports whether a request is unrestricted or permits one canonical target.
+func CurrentCredentialHasScopeTarget(c fiber.Ctx, scope, target string) bool {
+	if CurrentCredentialKind(c) != credentialKindAPIToken {
+		return true
+	}
+	scopes, _ := c.Locals(apiTokenScopesLocal).([]string)
+	targets, _ := c.Locals(apiTokenTargetsLocal).(map[string][]string)
+	return apiTokenAuthorizationAllows(scopes, targets, scope, target)
 }

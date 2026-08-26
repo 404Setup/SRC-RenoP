@@ -305,6 +305,11 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 	}
+	if !auth.CurrentCredentialHasScopeTarget(c, core.APITokenScopeDomainCreate, domain) &&
+		!auth.CurrentCredentialHasScope(c, core.APITokenScopeDomainManage) {
+		c.Set("X-Renop-Required-Scope", core.APITokenScopeDomainCreate)
+		return c.Status(fiber.StatusForbidden).SendString("API token target is not permitted")
+	}
 	verificationType, verificationHost, err := VerificationTarget(domain)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())

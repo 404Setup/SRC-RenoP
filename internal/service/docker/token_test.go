@@ -186,6 +186,26 @@ func TestDockerTokenActionsRespectAPITokenScopes(t *testing.T) {
 	require.Len(t, claims.Access, 1)
 	require.Equal(t, []string{"pull"}, claims.Access[0].Actions)
 
+	restrictedSecret, err := core.GenerateAPITokenSecret()
+	require.NoError(t, err)
+	require.NoError(t, state.GetDB().CreateAPIToken("admin", &core.APIToken{
+		ID: uuid.NewString(), Name: "Other repository only", Scopes: []string{core.APITokenScopeRepositoryRead},
+		Targets:   map[string][]string{core.APITokenScopeRepositoryRead: {"other"}},
+		CreatedAt: time.Now().UnixMilli(),
+	}, core.HashAPITokenSecret(restrictedSecret)))
+	restrictedRequest := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/scoped-app:pull", nil)
+	restrictedRequest.SetBasicAuth("admin", restrictedSecret)
+	restrictedResponse, err := app.Test(restrictedRequest)
+	require.NoError(t, err)
+	var restrictedToken TokenResponse
+	require.NoError(t, json.NewDecoder(restrictedResponse.Body).Decode(&restrictedToken))
+	require.NoError(t, restrictedResponse.Body.Close())
+	restrictedClaims, err := ValidateDockerToken(state.GetDockerSecret(), restrictedToken.Token)
+	require.NoError(t, err)
+	require.Len(t, restrictedClaims.Access, 1)
+	require.Empty(t, restrictedClaims.Access[0].Actions)
+
 	for _, test := range []struct {
 		name    string
 		scope   string

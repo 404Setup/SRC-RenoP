@@ -62,7 +62,7 @@ func TestAPITokenLifecycleAndLegacyMigration(t *testing.T) {
 	expiresAt := now + int64((24*time.Hour)/time.Millisecond)
 	created := &core.APIToken{
 		ID: uuid.NewString(), Name: "Automation", Scopes: []string{"repository:read", "repository:publish"},
-		CreatedAt: now, ExpiresAt: &expiresAt,
+		Targets: map[string][]string{"repository:publish": {"files"}}, CreatedAt: now, ExpiresAt: &expiresAt,
 	}
 	const secret = "rnp_0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
 	require.NoError(t, db.CreateAPIToken("alice", created, apiTokenDigest(secret)))
@@ -80,6 +80,7 @@ func TestAPITokenLifecycleAndLegacyMigration(t *testing.T) {
 	require.NotNil(t, credential)
 	assert.Equal(t, created.ID, credential.Token.ID)
 	assert.Equal(t, expiresAt, *credential.Token.ExpiresAt)
+	assert.Equal(t, []string{"files"}, credential.Token.Targets[core.APITokenScopeRepositoryPublish])
 	wrongOwner, err := db.GetAPITokenByHash(apiTokenDigest(secret), "bobby")
 	require.NoError(t, err)
 	assert.Nil(t, wrongOwner)
@@ -90,11 +91,13 @@ func TestAPITokenLifecycleAndLegacyMigration(t *testing.T) {
 	counts, err := db.CountAPITokensByUsername()
 	require.NoError(t, err)
 	assert.Equal(t, 2, counts["alice"])
-	var storedHash, legacyJSON string
-	require.NoError(t, db.QueryRow(`SELECT secret_hash FROM user_api_tokens WHERE id = ?`, created.ID).Scan(&storedHash))
+	var storedHash, storedAuthorization, legacyJSON string
+	require.NoError(t, db.QueryRow(`SELECT secret_hash, scopes_json FROM user_api_tokens WHERE id = ?`, created.ID).
+		Scan(&storedHash, &storedAuthorization))
 	require.NoError(t, db.QueryRow(`SELECT tokens_json FROM tokens WHERE name = ?`, "alice").Scan(&legacyJSON))
 	assert.Equal(t, apiTokenDigest(secret), storedHash)
 	assert.NotContains(t, storedHash, secret)
+	assert.Contains(t, storedAuthorization, `"targets"`)
 	assert.Equal(t, "[]", legacyJSON)
 
 	require.NoError(t, db.DeleteAPIToken("alice", created.ID))

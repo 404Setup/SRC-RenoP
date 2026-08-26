@@ -103,8 +103,8 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	}
 	packageName := metadata.Name
 	if packageRecord == nil {
-		if !auth.CurrentCredentialHasAnyScope(c, core.APITokenScopePackageCreate,
-			core.APITokenScopePackageManage) {
+		if !auth.CurrentCredentialHasScopeTarget(c, core.APITokenScopePackageCreate, repo.Name) &&
+			!auth.CurrentCredentialHasScope(c, core.APITokenScopePackageManage) {
 			return cargoError(c, core.ErrCargoPermissionDenied)
 		}
 		if !user.CheckUpdatePermission(repo.Name) {

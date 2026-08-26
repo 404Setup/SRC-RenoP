@@ -102,7 +102,7 @@ func GenerateUploadToken(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 	name := "Publishing token " + time.Now().UTC().Format("20060102-150405") + "-" + uuid.NewString()[:8]
 	_, newToken, err := createAPITokenForAccount(state, account, name, []string{
 		APITokenScopeRepositoryRead, APITokenScopeRepositoryPublish,
-	}, nil, time.Now().UnixMilli())
+	}, nil, nil, time.Now().UnixMilli())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
