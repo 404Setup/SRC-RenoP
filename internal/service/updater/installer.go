@@ -37,6 +37,7 @@ import (
 	"time"
 
 	"github.com/klauspost/compress/zip"
+	brrr "github.com/molecule-man/go-brrr"
 
 	"renop/internal/utils"
 )
@@ -124,6 +125,7 @@ func archiveMatchesPlatform(name, goos, goarch string) bool {
 	return false
 }
 
+// ExtractExecutableFromZip locates and validates the current-platform executable in a legacy ZIP package.
 func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
 	fi, err := zipTempFile.Stat()
 	if err != nil {
@@ -193,6 +195,103 @@ func ExtractExecutableFromZip(zipTempFile *os.File) (string, error) {
 	}
 
 	return "", fmt.Errorf("target executable not found in update package for %s/%s", goos, goarch)
+}
+
+// ExtractExecutableFromBrotli decompresses a raw Brotli executable with a strict output bound.
+func ExtractExecutableFromBrotli(packageFile *os.File) (string, error) {
+	if packageFile == nil {
+		return "", errors.New("Brotli update package is missing")
+	}
+	info, err := packageFile.Stat()
+	if err != nil {
+		return "", err
+	}
+	if info.Size() <= 0 || info.Size() > maxUpdatePackageSize {
+		return "", fmt.Errorf("update package exceeds %d bytes", maxUpdatePackageSize)
+	}
+	if _, err := packageFile.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
+	reader := brrr.NewReader(packageFile)
+	targetFile, err := os.CreateTemp("", "renop-new-*")
+	if err != nil {
+		_ = reader.Close()
+		return "", err
+	}
+	targetPath := targetFile.Name()
+	removeTarget := true
+	defer func() {
+		_ = reader.Close()
+		_ = targetFile.Close()
+		if removeTarget {
+			_ = os.Remove(targetPath)
+		}
+	}()
+	buffer := make([]byte, 128*1024)
+	written, copyErr := io.CopyBuffer(targetFile, io.LimitReader(reader, maxUpdateExecutableSize+1), buffer)
+	if copyErr != nil {
+		return "", fmt.Errorf("decompress Brotli update package: %w", copyErr)
+	}
+	if err := reader.Close(); err != nil {
+		return "", fmt.Errorf("finalize Brotli update package: %w", err)
+	}
+	if written > maxUpdateExecutableSize {
+		return "", fmt.Errorf("update executable exceeds %d bytes", maxUpdateExecutableSize)
+	}
+	if err := targetFile.Sync(); err != nil {
+		return "", err
+	}
+	if err := targetFile.Close(); err != nil {
+		return "", err
+	}
+	removeTarget = false
+	return finalizeExtractedBinary(targetPath)
+}
+
+// IsSupportedUpdatePackageName reports whether a package name selects ZIP or raw Brotli decoding.
+func IsSupportedUpdatePackageName(name string) bool {
+	extension := strings.ToLower(filepath.Ext(strings.TrimSpace(name)))
+	return extension == ".zip" || extension == ".br"
+}
+
+// EstimateUploadedPackageDiskSpace returns a conservative temporary-space budget for an offline package.
+func EstimateUploadedPackageDiskSpace(name string, compressedSize int64) int64 {
+	const fallback = int64(100 << 20)
+	if compressedSize <= 0 {
+		return fallback
+	}
+	factor := int64(3)
+	if strings.EqualFold(filepath.Ext(strings.TrimSpace(name)), ".br") {
+		factor = 6
+	}
+	const maxInt64 = int64(^uint64(0) >> 1)
+	if compressedSize > maxInt64/factor {
+		return maxInt64
+	}
+	estimate := compressedSize * factor
+	if estimate < fallback {
+		return fallback
+	}
+	return estimate
+}
+
+func extractExecutableFromPackage(packageFile *os.File, packageName string) (string, error) {
+	if packageFile == nil {
+		return "", errors.New("update package is missing")
+	}
+	extension := strings.ToLower(filepath.Ext(strings.TrimSpace(packageName)))
+	if extension == ".br" {
+		return ExtractExecutableFromBrotli(packageFile)
+	}
+	if extension == ".zip" {
+		return ExtractExecutableFromZip(packageFile)
+	}
+	var signature [4]byte
+	if _, err := packageFile.ReadAt(signature[:], 0); err == nil &&
+		signature[0] == 'P' && signature[1] == 'K' {
+		return ExtractExecutableFromZip(packageFile)
+	}
+	return ExtractExecutableFromBrotli(packageFile)
 }
 
 func extractExecutableFromNestedZip(inner *zip.File, exeName string) (string, error) {
@@ -429,14 +528,23 @@ func machoCPUForGOARCH(goarch string) (cpu macho.Cpu, ok bool) {
 	}
 }
 
+// SaveAndExtractUploadedZip preserves the legacy ZIP-specific entry point.
 func SaveAndExtractUploadedZip(fileHeader *multipart.FileHeader) (string, error) {
+	return SaveAndExtractUploadedPackage(fileHeader)
+}
+
+// SaveAndExtractUploadedPackage streams an uploaded ZIP or Brotli package to bounded temporary storage.
+func SaveAndExtractUploadedPackage(fileHeader *multipart.FileHeader) (string, error) {
+	if fileHeader == nil || !IsSupportedUpdatePackageName(fileHeader.Filename) {
+		return "", errors.New("uploaded file must be a .br or .zip package")
+	}
 	src, err := fileHeader.Open()
 	if err != nil {
 		return "", fmt.Errorf("failed to open uploaded file: %w", err)
 	}
 	defer src.Close()
 
-	tempZip, err := os.CreateTemp("", "renop-upload-*.zip")
+	tempZip, err := os.CreateTemp("", "renop-upload-*"+strings.ToLower(filepath.Ext(fileHeader.Filename)))
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -447,23 +555,33 @@ func SaveAndExtractUploadedZip(fileHeader *multipart.FileHeader) (string, error)
 	}()
 
 	bufWriter := bufio.NewWriterSize(tempZip, 128*1024)
-	if _, err := io.Copy(bufWriter, src); err != nil {
-		return "", fmt.Errorf("failed to save uploaded file: %w", err)
+	written, copyErr := io.Copy(bufWriter, io.LimitReader(src, maxUpdatePackageSize+1))
+	if written > maxUpdatePackageSize {
+		return "", fmt.Errorf("update package exceeds %d bytes", maxUpdatePackageSize)
+	}
+	if copyErr != nil {
+		return "", fmt.Errorf("failed to save uploaded file: %w", copyErr)
 	}
 	if err := bufWriter.Flush(); err != nil {
 		return "", err
 	}
 
-	return ExtractExecutableFromZip(tempZip)
+	return extractExecutableFromPackage(tempZip, fileHeader.Filename)
 }
 
+// ExtractExecutableFromZipPath preserves the legacy ZIP-path entry point.
 func ExtractExecutableFromZipPath(zipPath string) (string, error) {
-	f, err := os.Open(zipPath)
+	return ExtractExecutableFromPackagePath(zipPath, filepath.Base(zipPath))
+}
+
+// ExtractExecutableFromPackagePath opens and decodes a ZIP or raw Brotli update package.
+func ExtractExecutableFromPackagePath(packagePath, packageName string) (string, error) {
+	f, err := os.Open(packagePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open uploaded file: %w", err)
 	}
 	defer f.Close()
-	return ExtractExecutableFromZip(f)
+	return extractExecutableFromPackage(f, packageName)
 }
 
 func TryBeginInstall() bool {
@@ -551,7 +669,7 @@ func DownloadAndExtract(ctx context.Context, downloadURL, expectedSHA256 string)
 	client := downloadHTTPClient()
 	defer utils.ScheduleNetworkWorkingSetTrim()
 
-	zipTempFile, err := os.CreateTemp("", "renop-download-*.zip")
+	zipTempFile, err := os.CreateTemp("", "renop-download-*")
 	if err != nil {
 		return "", err
 	}
@@ -598,7 +716,7 @@ func DownloadAndExtract(ctx context.Context, downloadURL, expectedSHA256 string)
 		return "", errors.New("update package SHA-256 mismatch")
 	}
 
-	return ExtractExecutableFromZip(zipTempFile)
+	return extractExecutableFromPackage(zipTempFile, parsedURL.Path)
 }
 
 func moveOrCopyFile(src, dst string) error {

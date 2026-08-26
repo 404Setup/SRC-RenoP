@@ -81,7 +81,7 @@ export default Object.freeze({
     "error.taskFailed": "Ошибка отправки задачи",
     "error.noUpdateReady": "Нет готовых к установке обновлений",
     "error.noUpdatePackageUploaded": "Файл пакета обновления не загружен",
-    "error.mustBeZipPackage": "Загруженный файл должен быть пакетом .zip",
+    "error.mustBeZipPackage": "Загружаемый файл должен быть пакетом обновления .br или .zip",
     "error.incompatibleBinary": "Исполняемый файл из пакета обновления не соответствует текущей операционной системе или архитектуре CPU",
     "error.targetExeNotFound": "Целевой исполняемый файл не найден в пакете обновления",
     "error.webauthnInitFailed": "Сбой инициализации WebAuthn",

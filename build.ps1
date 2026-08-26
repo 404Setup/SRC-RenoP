@@ -7,7 +7,7 @@
     Go platform. The positional forms `./build.ps1 s` and `./build.ps1 c` are
     supported as well as -s and -c. Add the nb suffix (for example
     `./build.ps1 c nb`) to write binaries directly to the invocation directory
-    without creating ZIP packages.
+    without creating raw Brotli packages.
 
 .PARAMETER Version
     Version embedded into the binary with -ldflags. If omitted, the full
@@ -212,6 +212,43 @@ function Build-FrontendAssets {
     }
 }
 
+function Install-BrotliPackTool {
+    Write-Host 'Installing RenoP Brotli packaging CLI...'
+    $toolGoos = $env:GOOS
+    $toolGoarch = $env:GOARCH
+    $toolGoamd64 = $env:GOAMD64
+    try {
+        $env:GOOS = (& go env GOHOSTOS).Trim()
+        $env:GOARCH = (& go env GOHOSTARCH).Trim()
+        Remove-Item Env:GOAMD64 -ErrorAction SilentlyContinue
+        & go install ./cmd/renop-brotli
+        if ($LASTEXITCODE -ne 0) {
+            throw "go install ./cmd/renop-brotli failed with exit code $LASTEXITCODE."
+        }
+    } finally {
+        if ($null -ne $toolGoos) { $env:GOOS = $toolGoos } else { Remove-Item Env:GOOS -ErrorAction SilentlyContinue }
+        if ($null -ne $toolGoarch) { $env:GOARCH = $toolGoarch } else { Remove-Item Env:GOARCH -ErrorAction SilentlyContinue }
+        if ($null -ne $toolGoamd64) { $env:GOAMD64 = $toolGoamd64 } else { Remove-Item Env:GOAMD64 -ErrorAction SilentlyContinue }
+    }
+    $goBin = (& go env GOBIN).Trim()
+    if ([string]::IsNullOrWhiteSpace($goBin)) {
+        $goPath = (& go env GOPATH).Trim()
+        if ([string]::IsNullOrWhiteSpace($goPath)) {
+            throw 'Could not resolve the Go binary installation directory.'
+        }
+        $goBin = Join-Path (($goPath -split [IO.Path]::PathSeparator)[0]) 'bin'
+    }
+    $toolName = if ($IsWindows) { 'renop-brotli.exe' } else { 'renop-brotli' }
+    $toolPath = Join-Path $goBin $toolName
+    if (-not (Test-Path -LiteralPath $toolPath -PathType Leaf)) {
+        throw "Installed Brotli packaging CLI not found at $toolPath"
+    }
+    if (($env:PATH -split [IO.Path]::PathSeparator) -notcontains $goBin) {
+        $env:PATH = $goBin + [IO.Path]::PathSeparator + $env:PATH
+    }
+    return $toolPath
+}
+
 try {
     Invoke-ProtobufGenerate
     Build-FrontendAssets
@@ -219,6 +256,12 @@ try {
     $env:CGO_ENABLED = '0'
 
     $manifestTargets = [System.Collections.Generic.List[object]]::new()
+    $brotliPackTool = if ($noBundle) { $null } else { Install-BrotliPackTool }
+    if (-not $noBundle) {
+        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE') -Destination $dist
+        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'README.md') -Destination $dist
+        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'THIRD_PARTY_NOTICES.md') -Destination $dist
+    }
     foreach ($target in $targets) {
         $goos = $target.GOOS
         $goarch = $target.GOARCH
@@ -237,7 +280,7 @@ try {
             $stage = Join-Path $dist ".stage-$goos-$goarch"
             $binaryName = "renop$binaryExtension"
             $binaryPath = Join-Path $stage $binaryName
-            $archivePath = Join-Path $dist "$name.zip"
+            $archivePath = Join-Path $dist "$name.br"
             New-Item -ItemType Directory -Path $stage -Force | Out-Null
         }
 
@@ -273,18 +316,22 @@ try {
             continue
         }
 
-        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE') -Destination $stage
-        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'README.md') -Destination $stage
-        Copy-Item -LiteralPath (Join-Path $repositoryRoot 'THIRD_PARTY_NOTICES.md') -Destination $stage
-        Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archivePath -CompressionLevel Optimal -Force
+        & $brotliPackTool -input $binaryPath -output $archivePath -quality 11
+        if ($LASTEXITCODE -ne 0) {
+            throw "renop-brotli failed for $goos/$goarch with exit code $LASTEXITCODE."
+        }
         $hash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
         $size = (Get-Item -LiteralPath $archivePath).Length
+        $uncompressedSize = (Get-Item -LiteralPath $binaryPath).Length
         $manifestTargets.Add([ordered]@{
             os = $goos
             arch = $goarch
             file = Split-Path -Leaf $archivePath
             sha256 = $hash
             size = $size
+            uncompressed_size = $uncompressedSize
+            format = 'brotli'
+            executable = $binaryName
         })
         Remove-Item -LiteralPath $stage -Recurse -Force
     }

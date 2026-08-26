@@ -261,7 +261,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 
 		contentLength := c.Request().Header.ContentLength()
 		if contentLength > 0 {
-			reqSpace := uint64(contentLength) * 3
+			reqSpace := uint64(EstimateUploadedPackageDiskSpace("package.br", int64(contentLength)))
 			if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(reqSpace) {
 				updateStateFields(func(s *UpdateState) {
 					s.Status = "error"
@@ -279,10 +279,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			}
 		}
 
-		reqSpace := file.Size * 3
-		if reqSpace <= 0 {
-			reqSpace = 100 * 1024 * 1024
-		}
+		reqSpace := EstimateUploadedPackageDiskSpace(file.Filename, file.Size)
 		if CanAllocateDiskSpace != nil && !CanAllocateDiskSpace(uint64(reqSpace)) {
 			updateStateFields(func(s *UpdateState) {
 				s.Status = "error"
@@ -296,8 +293,8 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 		}
 		defer isInstalling.Store(false)
 
-		if !strings.HasSuffix(strings.ToLower(file.Filename), ".zip") {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Uploaded file must be a .zip package"})
+		if !IsSupportedUpdatePackageName(file.Filename) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Uploaded file must be a .br or .zip package"})
 		}
 
 		updateStateFields(func(s *UpdateState) {
@@ -305,7 +302,7 @@ func SetupUpdaterRoutes(router fiber.Router, state *core.AppState) {
 			s.Progress = 50
 		})
 
-		targetPath, err := SaveAndExtractUploadedZip(file)
+		targetPath, err := SaveAndExtractUploadedPackage(file)
 		if err != nil {
 			updateStateFields(func(s *UpdateState) {
 				s.Status = "error"

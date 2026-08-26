@@ -118,13 +118,17 @@ type ChannelInfo struct {
 	Releases []ChannelInfoRelease `json:"releases"`
 }
 
+// ChannelInfoTarget describes one downloadable operating-system and architecture package.
 type ChannelInfoTarget struct {
-	OS          string `json:"os"`
-	Arch        string `json:"arch"`
-	File        string `json:"file"`
-	SHA256      string `json:"sha256"`
-	Size        int64  `json:"size"`
-	DownloadURL string `json:"download_url,omitempty"`
+	OS               string `json:"os"`
+	Arch             string `json:"arch"`
+	File             string `json:"file"`
+	SHA256           string `json:"sha256"`
+	Size             int64  `json:"size"`
+	UncompressedSize int64  `json:"uncompressed_size,omitempty"`
+	Format           string `json:"format,omitempty"`
+	Executable       string `json:"executable,omitempty"`
+	DownloadURL      string `json:"download_url,omitempty"`
 }
 
 type GithubReleaseResponse struct {

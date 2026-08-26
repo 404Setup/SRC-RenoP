@@ -81,7 +81,7 @@ export default Object.freeze({
     "error.taskFailed": "Falha no envio da tarefa",
     "error.noUpdateReady": "Sem atualização pronta para instalar",
     "error.noUpdatePackageUploaded": "Nenhum ficheiro de pacote de atualização carregado",
-    "error.mustBeZipPackage": "O ficheiro carregado deve ser um pacote .zip",
+    "error.mustBeZipPackage": "O ficheiro carregado deve ser um pacote de atualização .br ou .zip",
     "error.incompatibleBinary": "O executável do pacote de atualização não coincide com o sistema operativo ou arquitetura atual",
     "error.targetExeNotFound": "Executável de destino não encontrado no pacote de atualização",
     "error.webauthnInitFailed": "Falha ao inicializar o WebAuthn",

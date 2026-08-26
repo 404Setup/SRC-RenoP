@@ -253,6 +253,33 @@ html.dark .release-badge--preview {
     color: var(--success-color);
 }
 
+.brotli-download-modal {
+    width: min(520px, calc(100vw - 2rem));
+}
+
+.brotli-download-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 1rem 1.45rem 1.2rem;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+    .brotli-download-actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+        padding: 0.9rem 1.1rem 1.1rem;
+    }
+
+    .brotli-download-actions .pill-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 .download-pagination-wrapper {
     margin-top: 1.5rem;
 }

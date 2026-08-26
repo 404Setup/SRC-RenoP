@@ -81,7 +81,7 @@ export default Object.freeze({
     "error.taskFailed": "Échec de la soumission de la tâche",
     "error.noUpdateReady": "Aucune mise à jour prête à être installée",
     "error.noUpdatePackageUploaded": "Aucun fichier de package de mise à jour envoyé",
-    "error.mustBeZipPackage": "Le fichier envoyé doit être un package .zip",
+    "error.mustBeZipPackage": "Le fichier envoyé doit être un paquet de mise à jour .br ou .zip",
     "error.incompatibleBinary": "L'exécutable du package de mise à jour ne correspond pas au système d'exploitation ou à l'architecture actuelle",
     "error.targetExeNotFound": "Exécutable cible introuvable dans le package de mise à jour",
     "error.webauthnInitFailed": "Échec de l'initialisation de WebAuthn",

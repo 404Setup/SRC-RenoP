@@ -10,7 +10,7 @@
 
 import {getCurrentLang, t} from '../i18n.js';
 import {clear, el, registerTabContainer, updateTabIndicator} from '@renop/ui';
-import {bindModalChrome} from '@renop/ui/modal';
+import {bindModalChrome, closeModalWithAnim, openModalWithAnim} from '@renop/ui/modal';
 import {
     detectPlatform,
     fetchPreviewReleases,
@@ -25,6 +25,7 @@ import {
     X64_VERSIONS,
 } from '../lib/official.js';
 import {makeCustomSelect} from '@renop/ui/custom-select';
+import {convertBrotliUpdateToZip, isBrotliUpdateTarget} from '../lib/update-package.js';
 
 const STORAGE_OS = 'renop_web_os';
 const STORAGE_ARCH = 'renop_web_arch';
@@ -273,6 +274,63 @@ function setStatus(id, message, kind) {
 }
 
 /**
+ * Ask whether a raw Brotli package should be downloaded directly or converted to legacy ZIP.
+ * @param {string} filename
+ * @returns {Promise<'brotli'|'zip'|null>}
+ */
+function chooseBrotliDownloadFormat(filename) {
+    return new Promise(resolve => {
+        const backdrop = el('div', {class: 'modal-backdrop'});
+        const close = el('button', {type: 'button', class: 'close-btn', 'aria-label': t('modal.close')}, '×');
+        const modal = el('div', {class: 'modal', style: {display: 'none'}},
+            backdrop,
+            el('div', {class: 'modal-content brotli-download-modal'},
+                close,
+                el('div', {class: 'modal-header'},
+                    el('h3', {class: 'modal-title'}, t('download.brotliChoiceTitle')),
+                    el('p', {class: 'modal-subtitle'}, t('download.brotliChoiceBody', {file: filename})),
+                ),
+                el('div', {class: 'modal-footer brotli-download-actions'},
+                    el('button', {type: 'button', class: 'pill-btn', 'data-choice': 'brotli'}, t('download.keepBrotli')),
+                    el('button', {type: 'button', class: 'pill-btn pill-btn--primary', 'data-choice': 'zip'}, t('download.convertZip')),
+                ),
+            ),
+        );
+        document.body.appendChild(modal);
+        let settled = false;
+        const settle = choice => {
+            if (settled) return;
+            settled = true;
+            document.removeEventListener('keydown', handleEscape);
+            closeModalWithAnim(modal, () => modal.remove());
+            resolve(choice);
+        };
+        const handleEscape = event => {
+            if (event.key === 'Escape') settle(null);
+        };
+        close.addEventListener('click', () => settle(null));
+        backdrop.addEventListener('click', () => settle(null));
+        modal.querySelectorAll('[data-choice]').forEach(button => {
+            button.addEventListener('click', () => settle(button.dataset.choice));
+        });
+        document.addEventListener('keydown', handleEscape);
+        openModalWithAnim(modal);
+    });
+}
+
+/**
+ * Trigger a browser download and release its object URL after navigation has started.
+ * @param {Blob} blob
+ * @param {string} filename
+ * @returns {void}
+ */
+function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    triggerBrowserDownload(url, filename);
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
  * Render the download page: stable/preview channels from the official update host.
  * @param {{ root: HTMLElement }} ctx
  * @returns {Promise<() => void>}
@@ -450,7 +508,7 @@ export async function renderDownload({root}) {
      * @param {string} statusId
      * @returns {void}
      */
-    function downloadPackage(channelKey, release, statusId) {
+    async function downloadPackage(channelKey, release, statusId) {
         if (!ensurePlatform()) return;
         const version = release.version || release.tag || '';
         const target = findTargetForPlatform(release.targets, os, getEffectiveArch());
@@ -459,8 +517,38 @@ export async function renderDownload({root}) {
             return;
         }
         const url = packageDownloadUrl(channelKey, version, target.file, target.downloadUrl);
-        triggerBrowserDownload(url, target.file);
-        setStatus(statusId, t('download.ready'), 'ok');
+        if (!isBrotliUpdateTarget(target)) {
+            triggerBrowserDownload(url, target.file);
+            setStatus(statusId, t('download.ready'), 'ok');
+            return;
+        }
+        const choice = await chooseBrotliDownloadFormat(target.file);
+        if (!choice) return;
+        if (choice === 'brotli') {
+            triggerBrowserDownload(url, target.file);
+            setStatus(statusId, t('download.ready'), 'ok');
+            return;
+        }
+        try {
+            const converted = await convertBrotliUpdateToZip({
+                url,
+                size: target.size,
+                uncompressedSize: target.uncompressedSize,
+                sha256: target.sha256,
+                executableName: target.executable || (os === 'windows' ? 'renop.exe' : 'renop'),
+                filename: target.file,
+            }, (phase, progress) => {
+                const key = phase === 'download' ? 'download.brotliDownloading' : 'download.brotliConverting';
+                setStatus(statusId, t(key, {progress: Number(progress) || 0}));
+            });
+            triggerBlobDownload(converted.blob, converted.filename);
+            setStatus(statusId, t('download.ready'), 'ok');
+        } catch (error) {
+            const key = error?.message === 'integrity_failed'
+                ? 'download.brotliIntegrityFailed'
+                : 'download.brotliConvertFailed';
+            setStatus(statusId, t(key), 'error');
+        }
     }
 
     function animateAndRenderPage() {

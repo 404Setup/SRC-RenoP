@@ -9,7 +9,7 @@ description: バイナリのダウンロード、マイクロアーキテクチ�
 
 ## 1. ビルド済みバイナリのダウンロード
 
-Web 管理画面の [ダウンロードページ](/download) または公式配布チャンネルから取得できます：
+Web の [ダウンロードページ](/download) または公式配布チャンネルから純 Brotli パッケージを取得できます：
 
 - **安定版 (Stable)**: 本番環境推奨
   `https://mvnc.pkg.one/update/renop/stable/`
@@ -30,17 +30,18 @@ RenoP は x86-64 CPU 向けに最適化されたビルドを提供していま�
 
 ## 3. 検証と実行
 
-各リリースには `SHA256SUMS` ファイルが付属しています：
+各ターゲットの SHA-256 はチャンネルの `info.json` に記録されています。`.br` を展開する前に確認してください：
 
 ```bash
 # Linux
 sha256sum -c SHA256SUMS --ignore-missing
 
 # Windows (PowerShell)
-Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.zip
+Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.br
 ```
 
-解凍後、実行ファイルを実行します：
+純 Brotli ストリームを `renop` または `renop.exe` に展開して実行します。ダウンロードページでは、
+新しい `.br` をブラウザー内だけで従来の ZIP 形式へ変換することもできます。
 
 - **Linux / macOS**: `./renop`
 - **Windows**: `.\renop.exe`
@@ -68,5 +69,5 @@ Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.zip
 pnpm install --frozen-lockfile
 pnpm run build:frontend
 pwsh ./build.ps1 c nb    # 現在のプラットフォーム向け単一バイナリを出力
-pwsh ./build.ps1 c       # 現在のプラットフォーム向け zip パッケージ作成
+pwsh ./build.ps1 c       # 現在のプラットフォーム向け純 Brotli パッケージ作成
 ```

@@ -81,7 +81,7 @@ export default Object.freeze({
     "error.taskFailed": "Übermittlung der Aufgabe fehlgeschlagen",
     "error.noUpdateReady": "Kein bereitstehendes Update vorhanden",
     "error.noUpdatePackageUploaded": "Keine Update-Paketdatei hochgeladen",
-    "error.mustBeZipPackage": "Die hochgeladene Datei muss ein .zip-Paket sein",
+    "error.mustBeZipPackage": "Die hochgeladene Datei muss ein .br- oder .zip-Updatepaket sein",
     "error.incompatibleBinary": "Die Ausführungsdatei im Update-Paket passt nicht zum aktuellen Betriebssystem oder zur CPU-Architektur",
     "error.targetExeNotFound": "Ziel-Ausführungsdatei im Update-Paket nicht gefunden",
     "error.webauthnInitFailed": "WebAuthn-Initialisierung fehlgeschlagen",

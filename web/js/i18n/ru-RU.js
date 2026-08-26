@@ -118,4 +118,12 @@ export default {
     "contributors.source": "Данные с github.com/{repo}",
     "contributors.note": "Сортировка по числу вкладов. Боты исключены.",
     "contributors.viewOnGithub": "Смотреть на GitHub",
+    "download.brotliChoiceTitle": "Выберите формат пакета обновления",
+    "download.brotliChoiceBody": "Файл {file} использует новый чистый формат Brotli. Скачайте его напрямую или преобразуйте в браузере в прежний пакет ZIP.",
+    "download.keepBrotli": "Скачать Brotli",
+    "download.convertZip": "Преобразовать в ZIP",
+    "download.brotliDownloading": "Загрузка пакета… {progress}%",
+    "download.brotliConverting": "Преобразование в ZIP… {progress}%",
+    "download.brotliIntegrityFailed": "Не удалось проверить целостность пакета.",
+    "download.brotliConvertFailed": "Не удалось преобразовать пакет Brotli в этом браузере.",
 };

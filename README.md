@@ -464,10 +464,10 @@ and Node.js 18+.
 **Build commands:**
 
 ```powershell
-# Full matrix release build (all OS/arch combinations, produces .zip archives)
+# Full matrix release build (all OS/arch combinations, produces raw .br packages)
 pwsh ./build.ps1
 
-# Packaged release build for the current OS/arch only
+# Brotli-packaged release build for the current OS/arch only
 pwsh ./build.ps1 c
 
 # Local development build (unzipped binary, no frontend rebuild)

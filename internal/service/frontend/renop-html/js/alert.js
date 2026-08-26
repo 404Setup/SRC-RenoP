@@ -237,6 +237,16 @@ export function showUpdateModal(updateData = {}) {
 window.showUpdateModal = showUpdateModal;
 
 /**
+ * Check whether a selected offline update uses the supported ZIP or raw Brotli format.
+ * @param {File|null|undefined} file
+ * @returns {boolean}
+ */
+function isSupportedOfflineUpdate(file) {
+    const name = String(file?.name || '').toLowerCase();
+    return name.endsWith('.zip') || name.endsWith('.br');
+}
+
+/**
  * Displays an offline update modal allowing the user to select/drag a .zip package and upload & install it.
  * @returns {Promise<boolean>}
  */
@@ -268,7 +278,7 @@ export function showOfflineUpdateModal() {
         const dropzone = createDropzone({
             title: t('updater.dropzoneTitle'),
             hint: t('updater.dropzoneHint'),
-            accept: '.zip',
+            accept: '.br,.zip',
             onSelect: (file) => updateFileDisplay(file)
         });
 
@@ -296,7 +306,7 @@ export function showOfflineUpdateModal() {
          * Also updates spaceWarning element.
          */
         const checkDiskSpace = async (file) => {
-            const requiredSpace = file.size * 3;
+            const requiredSpace = file.size * (file.name.toLowerCase().endsWith('.br') ? 6 : 3);
             try {
                 const {response: resp, data} = await fetchProto('/api/status/instance', InstanceStatus);
                 if (!resp.ok || !data) {
@@ -343,13 +353,13 @@ export function showOfflineUpdateModal() {
                 return;
             }
 
-            if (!file.name.toLowerCase().endsWith('.zip')) {
+            if (!isSupportedOfflineUpdate(file)) {
                 showAlert(t('updater.invalidZip'), 'error');
                 return;
             }
 
             selectedFile = file;
-            const requiredSpace = file.size * 3;
+            const requiredSpace = file.size * (file.name.toLowerCase().endsWith('.br') ? 6 : 3);
             dropzone.style.display = 'none';
             fileCard.style.display = 'flex';
             fileCard.innerHTML = '';
@@ -383,7 +393,7 @@ export function showOfflineUpdateModal() {
                     return;
                 }
 
-                if (!selectedFile.name.toLowerCase().endsWith('.zip')) {
+                if (!isSupportedOfflineUpdate(selectedFile)) {
                     showAlert(t('updater.invalidZip'), 'error');
                     return;
                 }

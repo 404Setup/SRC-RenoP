@@ -611,6 +611,17 @@ func TestHasUpdateRequiresPlatformPackage(t *testing.T) {
 	}
 }
 
+func TestEstimateTargetDiskSpaceUsesRawBrotliSize(t *testing.T) {
+	target := &ChannelInfoTarget{Size: 20 << 20, UncompressedSize: 80 << 20}
+	if got, want := estimateTargetDiskSpace(target), int64(180<<20); got != want {
+		t.Fatalf("estimateTargetDiskSpace() = %d, want %d", got, want)
+	}
+	legacy := &ChannelInfoTarget{Size: 20 << 20}
+	if got, want := estimateTargetDiskSpace(legacy), int64(60<<20); got != want {
+		t.Fatalf("legacy estimateTargetDiskSpace() = %d, want %d", got, want)
+	}
+}
+
 func TestDecideHasUpdateSemver(t *testing.T) {
 	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "x.zip", Size: 1}
 

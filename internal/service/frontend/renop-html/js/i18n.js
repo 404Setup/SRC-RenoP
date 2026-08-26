@@ -414,6 +414,7 @@ const ERROR_KEY_MAP = {
     'Too Many Requests': 'error.tooManyRequests',
     'Unauthorized': 'error.unauthorized',
     'Uploaded file must be a .zip package': 'error.mustBeZipPackage',
+    'Uploaded file must be a .br or .zip package': 'error.mustBeZipPackage',
     'URL must be http or https': 'error.urlMustBeHttpOrHttps',
     'URL must not contain credentials': 'error.urlNoCredentials',
     'URL points to an internal or private IP': 'error.urlInternalIp',

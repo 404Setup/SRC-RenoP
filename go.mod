@@ -18,6 +18,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.4.0
 	github.com/llxisdsh/pb v1.5.25
 	github.com/minio/minio-go/v7 v7.3.0
+	github.com/molecule-man/go-brrr v1.0.1
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.12.1
 	github.com/valyala/fasthttp v1.73.0

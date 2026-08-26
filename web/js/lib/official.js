@@ -141,6 +141,9 @@ function parseTarget(t) {
         file: String(t.file || ''),
         sha256: String(t.sha256 || ''),
         size: Number(t.size) || 0,
+        uncompressedSize: Number(t.uncompressed_size || t.uncompressedSize) || 0,
+        format: String(t.format || ''),
+        executable: String(t.executable || ''),
         downloadUrl: String(t.download_url || t.downloadUrl || ''),
     };
 }
@@ -167,7 +170,7 @@ function parseReleaseItem(r, channelDefault) {
  *   development: boolean,
  *   publishedAt: string,
  *   changelog: string,
- *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, downloadUrl: string }>,
+ *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, format: string, executable: string, downloadUrl: string }>,
  *   releases: Array<{ version: string, commit: string, channel: string, development: boolean, publishedAt: string, changelog: string, targets: Array }>
  * }>}
  */
@@ -194,7 +197,7 @@ export async function fetchChannelInfo(channel) {
 }
 
 /**
- * @param {Array<{ os?: string, arch?: string, file?: string, downloadUrl?: string }>|null|undefined} targets
+ * @param {Array<{ os?: string, arch?: string, file?: string, downloadUrl?: string, format?: string, executable?: string }>|null|undefined} targets
  * @param {string} os
  * @param {string} arch
  * @returns {{ os?: string, arch?: string, file?: string, sha256?: string, size?: number, downloadUrl?: string }|null}
@@ -277,7 +280,7 @@ export function isWebOnlyCommit(subject) {
  *   body: string,
  *   publishedAt: string,
  *   commitSha: string,
- *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, downloadUrl: string }>
+ *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, uncompressedSize: number, format: string, executable: string, downloadUrl: string }>
  * }>>}
  */
 export async function fetchStableReleases() {
@@ -326,7 +329,7 @@ export async function fetchStableRelease() {
  *   publishedAt: string,
  *   commitSha: string,
  *   version: string,
- *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, downloadUrl: string }>,
+ *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, uncompressedSize: number, format: string, executable: string, downloadUrl: string }>,
  *   isLatest: boolean
  * }>>}
  */

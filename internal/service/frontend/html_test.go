@@ -406,6 +406,11 @@ func TestSystemUpdatePromptsUseMessageCenter(t *testing.T) {
 	if !strings.Contains(string(offlineSource), "export function showOfflineUpdateModal") {
 		t.Fatal("offline update dialog was changed or removed")
 	}
+	for _, required := range []string{"accept: '.br,.zip'", "isSupportedOfflineUpdate(file)"} {
+		if !strings.Contains(string(offlineSource), required) {
+			t.Fatalf("offline update dialog is missing Brotli/ZIP compatibility marker %q", required)
+		}
+	}
 }
 
 func TestTeamRemovalMessagesHideOperator(t *testing.T) {

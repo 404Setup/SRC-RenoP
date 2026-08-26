@@ -8,11 +8,12 @@ const outDir = join(root, 'dist');
 export default defineConfig({
   input: {
     main: join(root, 'js', 'main.js'),
+    'update-package-worker': join(root, 'js', 'workers', 'update-package-worker.js'),
   },
   output: {
     dir: outDir,
     format: 'esm',
-    codeSplitting: false,
+    codeSplitting: true,
     entryFileNames: 'js/[name].js',
     assetFileNames: 'assets/[name]-[hash][extname]',
     minify: true,

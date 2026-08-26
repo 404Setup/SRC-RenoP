@@ -9,7 +9,7 @@ description: 下载二进制、微架构选型与源码编译
 
 ## 1. 下载预编译二进制
 
-你可以从 Web 界面中的 [下载页面](/download) 或以下地址获取预编译压缩包：
+你可以从 Web 界面中的 [下载页面](/download) 或以下地址获取纯 Brotli 预编译更新包：
 
 - **稳定版 (Stable)**：`https://mvnc.pkg.one/update/renop/stable/`
 - **开发版 (Nightly)**：`https://mvnc.pkg.one/update/renop/nightly/`
@@ -28,17 +28,18 @@ RenoP 针对 64 位 x86 架构提供了不同指令集等级的构建版本：
 
 ## 3. 校验与运行
 
-每个 Release 均附带 `SHA256SUMS` 文件。建议在解压前校验文件完整性：
+通道 `info.json` 会为每个平台包提供 SHA-256。建议在解压 `.br` 前校验文件完整性：
 
 ```bash
 # Linux
 sha256sum -c SHA256SUMS --ignore-missing
 
 # Windows (PowerShell)
-Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.zip
+Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.br
 ```
 
-解压后直接运行可执行文件：
+将纯 Brotli 流解压为 `renop` 或 `renop.exe` 后直接运行。下载页面也可以完全在浏览器中将新版 `.br`
+转换为旧版 ZIP 布局。
 
 - **Linux / macOS**：`./renop`
 - **Windows**：`.\renop.exe`
@@ -82,7 +83,7 @@ pnpm run build:frontend
 
 # 3. 编译二进制
 pwsh ./build.ps1 c nb    # 仅编译当前平台，直接输出二进制（不压缩打包）
-pwsh ./build.ps1 c       # 仅编译当前平台并生成 zip 压缩包
+pwsh ./build.ps1 c       # 仅编译当前平台并生成纯 Brotli 更新包
 pwsh ./build.ps1 s       # 编译主流平台 (Linux/Windows amd64/amd64v3/arm64)
 pwsh ./build.ps1         # 完整全平台矩阵交叉编译
 ```

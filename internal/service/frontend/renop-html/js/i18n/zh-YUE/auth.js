@@ -81,7 +81,7 @@ export default Object.freeze({
     "error.taskFailed": "任務提交失敗",
     "error.noUpdateReady": "沒有準備就緒嘅更新檔案",
     "error.noUpdatePackageUploaded": "未有上傳更新包檔案",
-    "error.mustBeZipPackage": "上傳嘅檔案必須係 .zip 格式壓縮包",
+    "error.mustBeZipPackage": "上傳嘅檔案必須係 .br 或 .zip 更新套件",
     "error.incompatibleBinary": "更新包入面嘅可執行檔同目前作業系統或CPU架構唔匹配",
     "error.targetExeNotFound": "更新包入面搵唔到目標可執行檔",
     "error.webauthnInitFailed": "WebAuthn 初始化失敗",

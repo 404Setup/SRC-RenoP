@@ -118,4 +118,12 @@ export default {
     "contributors.source": "Data from github.com/{repo}",
     "contributors.note": "Sorted by contribution count. Bots are omitted.",
     "contributors.viewOnGithub": "View contributors on GitHub",
+    "download.brotliChoiceTitle": "Choose update package format",
+    "download.brotliChoiceBody": "{file} uses the new raw Brotli format. Download it directly, or convert it in this browser to a legacy ZIP package.",
+    "download.keepBrotli": "Download Brotli",
+    "download.convertZip": "Convert to ZIP",
+    "download.brotliDownloading": "Downloading package… {progress}%",
+    "download.brotliConverting": "Converting to ZIP… {progress}%",
+    "download.brotliIntegrityFailed": "Package integrity verification failed.",
+    "download.brotliConvertFailed": "Could not convert the Brotli package in this browser.",
 };

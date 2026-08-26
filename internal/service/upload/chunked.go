@@ -16,6 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	syncv2 "sync/v2"
@@ -247,7 +248,11 @@ func (m *Manager) CreateSession(
 		tempPath = localFilePath + ".chunk." + id
 		file, err = os.Create(tempPath)
 	case PurposeUpdater:
-		file, err = os.CreateTemp("", "renop-chunk-upload-*.zip")
+		extension := strings.ToLower(filepath.Ext(filename))
+		if extension != ".br" && extension != ".zip" {
+			extension = ".pkg"
+		}
+		file, err = os.CreateTemp("", "renop-chunk-upload-*"+extension)
 		if err == nil {
 			tempPath = file.Name()
 		}

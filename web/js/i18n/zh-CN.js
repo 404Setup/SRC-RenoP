@@ -118,4 +118,12 @@ export default {
     "contributors.source": "数据来源 github.com/{repo}",
     "contributors.note": "按贡献次数排序，已过滤机器人账号。",
     "contributors.viewOnGithub": "在 GitHub 上查看贡献者",
+    "download.brotliChoiceTitle": "选择更新包格式",
+    "download.brotliChoiceBody": "{file} 使用新的纯 Brotli 格式。可以直接下载，也可以在当前浏览器中转换为旧版 ZIP 安装包。",
+    "download.keepBrotli": "下载 Brotli",
+    "download.convertZip": "转换为 ZIP",
+    "download.brotliDownloading": "正在下载更新包… {progress}%",
+    "download.brotliConverting": "正在转换为 ZIP… {progress}%",
+    "download.brotliIntegrityFailed": "更新包完整性验证失败。",
+    "download.brotliConvertFailed": "当前浏览器无法转换此 Brotli 更新包。",
 };

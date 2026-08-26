@@ -248,6 +248,11 @@ writeFileSync(join(cssDir, 'style.css'), code);
 copyFileSync(join(root, 'index.html'), join(outDir, 'index.html'));
 copyDir(join(root, 'svg'), join(outDir, 'svg'));
 copyDir(join(root, 'assets'), join(outDir, 'assets'));
+const releaseAssets = join(outDir, 'assets', 'release');
+ensureDir(releaseAssets);
+for (const filename of ['LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md']) {
+    copyFileSync(join(repoRoot, filename), join(releaseAssets, filename));
+}
 
 copyFileSync(join(root, 'index.html'), join(outDir, '404.html'));
 

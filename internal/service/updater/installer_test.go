@@ -14,6 +14,7 @@ import (
 	"context"
 	"debug/elf"
 	"encoding/binary"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/klauspost/compress/zip"
+	brrr "github.com/molecule-man/go-brrr"
 )
 
 type downloadValidationTestCase struct {
@@ -280,6 +282,104 @@ func TestExtractExecutableFromZip_FlatPackage(t *testing.T) {
 	}
 	if len(got) != len(body) {
 		t.Fatalf("extracted size %d, want %d", len(got), len(body))
+	}
+}
+
+func TestExtractExecutableFromBrotliRawPackage(t *testing.T) {
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Skip(err)
+	}
+	executablePath, err = filepath.EvalSymlinks(executablePath)
+	if err != nil {
+		t.Skip(err)
+	}
+	input, err := os.Open(executablePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputInfo, err := input.Stat()
+	if err != nil {
+		_ = input.Close()
+		t.Fatal(err)
+	}
+	compressed, err := os.CreateTemp(t.TempDir(), "renop-*.br")
+	if err != nil {
+		_ = input.Close()
+		t.Fatal(err)
+	}
+	writer, err := brrr.NewWriter(compressed, brrr.BestSpeed)
+	if err != nil {
+		_ = input.Close()
+		_ = compressed.Close()
+		t.Fatal(err)
+	}
+	_, copyErr := io.Copy(writer, input)
+	inputCloseErr := input.Close()
+	writerCloseErr := writer.Close()
+	if copyErr != nil || inputCloseErr != nil || writerCloseErr != nil {
+		_ = compressed.Close()
+		t.Fatalf("compress fixture: copy=%v input-close=%v writer-close=%v", copyErr, inputCloseErr, writerCloseErr)
+	}
+	if _, err := compressed.Seek(0, io.SeekStart); err != nil {
+		_ = compressed.Close()
+		t.Fatal(err)
+	}
+	extractedPath, err := ExtractExecutableFromBrotli(compressed)
+	closeErr := compressed.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(extractedPath) })
+	if closeErr != nil {
+		t.Fatal(closeErr)
+	}
+	extractedInfo, err := os.Stat(extractedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if extractedInfo.Size() != inputInfo.Size() {
+		t.Fatalf("Brotli executable size = %d, want %d", extractedInfo.Size(), inputInfo.Size())
+	}
+}
+
+func TestSupportedUpdatePackageNames(t *testing.T) {
+	for _, name := range []string{"renop-linux-amd64.br", "legacy.zip", "UPDATE.BR"} {
+		if !IsSupportedUpdatePackageName(name) {
+			t.Fatalf("expected %q to be supported", name)
+		}
+	}
+	for _, name := range []string{"renop", "renop.tar.br.tmp", "update.exe"} {
+		if IsSupportedUpdatePackageName(name) {
+			t.Fatalf("expected %q to be rejected", name)
+		}
+	}
+}
+
+func TestEstimateUploadedPackageDiskSpace(t *testing.T) {
+	if got, want := EstimateUploadedPackageDiskSpace("update.br", 20<<20), int64(120<<20); got != want {
+		t.Fatalf("Brotli estimate = %d, want %d", got, want)
+	}
+	if got, want := EstimateUploadedPackageDiskSpace("legacy.zip", 50<<20), int64(150<<20); got != want {
+		t.Fatalf("ZIP estimate = %d, want %d", got, want)
+	}
+	if got, want := EstimateUploadedPackageDiskSpace("small.br", 1), int64(100<<20); got != want {
+		t.Fatalf("minimum estimate = %d, want %d", got, want)
+	}
+}
+
+func TestExternalBrotliReleasePackage(t *testing.T) {
+	packagePath := os.Getenv("RENOP_TEST_BROTLI_PACKAGE")
+	if packagePath == "" {
+		t.Skip("RENOP_TEST_BROTLI_PACKAGE is not set")
+	}
+	extractedPath, err := ExtractExecutableFromPackagePath(packagePath, filepath.Base(packagePath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(extractedPath) })
+	if err := ValidateExecutableBinary(extractedPath); err != nil {
+		t.Fatal(err)
 	}
 }
 

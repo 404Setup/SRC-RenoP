@@ -12,6 +12,8 @@
 **Node.js/pnpm** frontend.
 
 - **`server.go`**: Application entry point and server lifecycle.
+- **`cmd/renop-brotli/`**: Streaming Go CLI installed automatically by `build.ps1` to encode each release executable
+  as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, and durable username-change throttling.
@@ -50,6 +52,9 @@
   status snapshots, cache/session cleanup, index persistence, pull-count flushing, upload cleanup, and update checks.
   Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain
   dedicated and serial where ordering matters.
+- **`internal/service/updater/`**: Authenticated update checking and installation with SHA-256 verification, bounded
+  streaming decode of new raw `.br` executable packages, compatibility decode for legacy `.zip` packages, and
+  deduplicated administrator status notifications.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (modern Maven domain/artifact catalog,
   classic Maven/files index, and Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`, `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
@@ -86,6 +91,9 @@
   failures expose stable `X-Renop-Error-Code` values that `js/docker-errors.js` maps to the Docker locale catalogs;
   browser and message-center views never display raw backend error text. The official website Markdown renderer derives
   heading labels and anchors from visible inline-token text so emphasis delimiters are not repeated in the docs TOC.
+  The website download page recognizes raw Brotli update targets and uses the separately bundled
+  `js/update-package-worker.js` with `brotli-compress/js` and `fflate` to perform SHA-256-verified, adaptively parallel
+  downloads and optional in-browser conversion to the legacy ZIP layout with at most four workers.
 
 ---
 
@@ -97,14 +105,16 @@
 - **Frontend**: Node.js 18+ with **pnpm**
 - **Shell**: PowerShell 7 (`pwsh`)
 - **Protobuf**: `protoc` with `protoc-gen-go`
+- **Release packaging**: `build.ps1` automatically installs `cmd/renop-brotli` into the active Go binary directory;
+  packaged builds emit raw `.br` executable streams while `nb` builds remain unpackaged binaries.
 
 ### Build & Test Workflows
 
 | Task                                    | Command                                                                          |
 |-----------------------------------------|----------------------------------------------------------------------------------|
 | **Local Dev Build** (unzipped binary)   | `pwsh ./build.ps1 c nb`                                                          |
-| **Packaged Release Build** (current OS) | `pwsh ./build.ps1 c`                                                             |
-| **Full Matrix Release Build**           | `pwsh ./build.ps1`                                                               |
+| **Packaged Release Build** (current OS, raw Brotli) | `pwsh ./build.ps1 c`                                                    |
+| **Full Matrix Release Build** (raw Brotli)          | `pwsh ./build.ps1`                                                      |
 | **Website & Docs Build**               | `pnpm run build:web`                                                             |
 | **Website Markdown Tests**             | `pnpm run test:web`                                                              |
 | **Frontend Build & Embed**              | `pnpm install --frozen-lockfile && pnpm run build:frontend && go generate ./...` |

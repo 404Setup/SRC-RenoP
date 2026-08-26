@@ -81,7 +81,7 @@ export default Object.freeze({
     "error.taskFailed": "작업 제출에 실패했습니다",
     "error.noUpdateReady": "설치할 수 있는 준비된 업데이트가 없습니다",
     "error.noUpdatePackageUploaded": "업로드된 업데이트 패키지 파일이 없습니다",
-    "error.mustBeZipPackage": "업로드된 파일은 .zip 패키지여야 합니다",
+    "error.mustBeZipPackage": "업로드된 파일은 .br 또는 .zip 업데이트 패키지여야 합니다",
     "error.incompatibleBinary": "업데이트 패키지의 실행 파일이 현재 운영 체제 또는 CPU 아키텍처와 일치하지 않습니다",
     "error.targetExeNotFound": "업데이트 패키지에서 대상 실행 파일을 찾을 수 없습니다",
     "error.webauthnInitFailed": "WebAuthn 초기화 실패",

@@ -614,6 +614,23 @@ func findTarget(info *ChannelInfo, goos, goarch string) *ChannelInfoTarget {
 	return nil
 }
 
+func estimateTargetDiskSpace(target *ChannelInfoTarget) int64 {
+	if target == nil || target.Size <= 0 {
+		return 0
+	}
+	const maxInt64 = int64(^uint64(0) >> 1)
+	if target.UncompressedSize > 0 {
+		if target.UncompressedSize > (maxInt64-target.Size)/2 {
+			return maxInt64
+		}
+		return target.Size + target.UncompressedSize*2
+	}
+	if target.Size > maxInt64/3 {
+		return maxInt64
+	}
+	return target.Size * 3
+}
+
 func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error) {
 	checkCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
@@ -707,7 +724,7 @@ func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error
 		DownloadURL:        strings.Clone(downloadURL),
 		Channel:            string(ChannelRelease),
 		Size:               size,
-		EstimatedDiskSpace: size * 3,
+		EstimatedDiskSpace: estimateTargetDiskSpace(target),
 		ReleaseDate:        strings.Clone(relDate),
 		ReleaseNotes:       strings.Clone(relNotes),
 		CommitSha:          strings.Clone(commitSha),
@@ -807,7 +824,7 @@ func checkNightly(ctx context.Context, client *http.Client) (*CheckResult, error
 		DownloadURL:        strings.Clone(downloadURL),
 		Channel:            string(ChannelNightly),
 		Size:               size,
-		EstimatedDiskSpace: size * 3,
+		EstimatedDiskSpace: estimateTargetDiskSpace(target),
 		ReleaseDate:        strings.Clone(commitDate),
 		ReleaseNotes:       strings.Clone(releaseNotes),
 		CommitSha:          strings.Clone(commitSha),

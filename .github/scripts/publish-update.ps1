@@ -13,7 +13,7 @@
     nightly or stable
 
 .PARAMETER DistDir
-    Directory containing platform zips and optional manifest.json
+    Directory containing raw Brotli platform packages and optional manifest.json
 
 .PARAMETER Version
     Channel version directory name (short commit for nightly, release tag for stable)
@@ -139,9 +139,9 @@ function Get-RemoteInfoJson {
 
 
 
-$zipFiles = @(Get-ChildItem -LiteralPath $DistDir -Filter '*.zip' -File | Sort-Object Name)
-if ($zipFiles.Count -eq 0) {
-    throw "No .zip packages found in $DistDir"
+$packageFiles = @(Get-ChildItem -LiteralPath $DistDir -Filter '*.br' -File | Sort-Object Name)
+if ($packageFiles.Count -eq 0) {
+    throw "No .br packages found in $DistDir"
 }
 
 $manifestPath = Join-Path $DistDir 'manifest.json'
@@ -164,8 +164,8 @@ if ([string]::IsNullOrWhiteSpace($Commit)) {
 }
 
 $targets = [System.Collections.Generic.List[object]]::new()
-foreach ($zip in $zipFiles) {
-    $name = $zip.Name
+foreach ($packageFile in $packageFiles) {
+    $name = $packageFile.Name
     $os = ''
     $arch = ''
     $fromManifest = $manifestTargets | Where-Object { $_.file -eq $name } | Select-Object -First 1
@@ -174,20 +174,26 @@ foreach ($zip in $zipFiles) {
         $arch = [string]$fromManifest.arch
         $sha = [string]$fromManifest.sha256
         $size = [int64]$fromManifest.size
+        $uncompressedSize = [int64]$fromManifest.uncompressed_size
+        $format = if ($fromManifest.format) { [string]$fromManifest.format } else { 'brotli' }
+        $executable = if ($fromManifest.executable) { [string]$fromManifest.executable } else { if ($os -eq 'windows') { 'renop.exe' } else { 'renop' } }
     } else {
-        if ($name -match 'renop-.+?-([a-z0-9]+)-([a-z0-9]+)\.zip$') {
+        if ($name -match 'renop-.+?-([a-z0-9]+)-([a-z0-9]+)\.br$') {
             $os = $Matches[1]
             $arch = $Matches[2]
         }
-        $sha = (Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-        $size = [int64]$zip.Length
+        $sha = (Get-FileHash -LiteralPath $packageFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $size = [int64]$packageFile.Length
+        $uncompressedSize = 0
+        $format = 'brotli'
+        $executable = if ($os -eq 'windows') { 'renop.exe' } else { 'renop' }
     }
     if ([string]::IsNullOrWhiteSpace($os) -or [string]::IsNullOrWhiteSpace($arch)) {
         throw "Cannot derive os/arch for package $name"
     }
     if ([string]::IsNullOrWhiteSpace($sha) -or $size -le 0) {
-        $sha = (Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-        $size = [int64]$zip.Length
+        $sha = (Get-FileHash -LiteralPath $packageFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $size = [int64]$packageFile.Length
     }
     $targets.Add([ordered]@{
         os           = $os
@@ -195,8 +201,11 @@ foreach ($zip in $zipFiles) {
         file         = $name
         sha256       = $sha
         size         = $size
+        uncompressed_size = $uncompressedSize
+        format       = $format
+        executable   = $executable
         download_url = "$BaseUrl/$channelRoot/$Version/$name"
-        path         = $zip.FullName
+        path         = $packageFile.FullName
     })
 }
 
@@ -212,6 +221,9 @@ $currentReleaseTargets = @(
             file         = $t.file
             sha256       = $t.sha256
             size         = $t.size
+            uncompressed_size = $t.uncompressed_size
+            format       = $t.format
+            executable   = $t.executable
             download_url = $t.download_url
         }
     }
@@ -248,6 +260,9 @@ function Extract-ReleasesFromInfo {
                     file         = [string]$ot.file
                     sha256       = [string]$ot.sha256
                     size         = [int64]$ot.size
+                    uncompressed_size = [int64]$ot.uncompressed_size
+                    format       = [string]$ot.format
+                    executable   = [string]$ot.executable
                     download_url = [string]$ot.download_url
                 }
             }
@@ -317,6 +332,9 @@ if ($Channel -eq 'nightly') {
                     file         = $file
                     sha256       = [string]$t.sha256
                     size         = [int64]$t.size
+                    uncompressed_size = [int64]$t.uncompressed_size
+                    format       = [string]$t.format
+                    executable   = [string]$t.executable
                     download_url = $dl
                 })
             }
@@ -442,7 +460,7 @@ $targets | ForEach-Object -Parallel {
     try {
         $client = $using:httpClient
         $content = [System.Net.Http.StreamContent]::new($fs, 131072)
-        $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('application/zip')
+        $content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('application/x-brotli')
 
         $req = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Put, $dest)
         $req.Content = $content
@@ -460,6 +478,25 @@ $targets | ForEach-Object -Parallel {
         $fs.Dispose()
     }
 } -ThrottleLimit 8
+
+foreach ($legalName in @('LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md')) {
+    $legalPath = Join-Path $DistDir $legalName
+    if (-not (Test-Path -LiteralPath $legalPath -PathType Leaf)) {
+        throw "Required release document not found: $legalPath"
+    }
+    $legalUrl = "$BaseUrl/$channelRoot/$legalName"
+    Write-Host "PUT $legalName -> $legalUrl"
+    $legalBytes = [System.IO.File]::ReadAllBytes($legalPath)
+    $legalContent = [System.Net.Http.ByteArrayContent]::new($legalBytes)
+    $legalContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse('text/plain; charset=utf-8')
+    $legalRequest = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Put, $legalUrl)
+    $legalRequest.Content = $legalContent
+    $legalResponse = $httpClient.SendAsync($legalRequest).GetAwaiter().GetResult()
+    $legalCode = [int]$legalResponse.StatusCode
+    if ($legalCode -ne 200 -and $legalCode -ne 201 -and $legalCode -ne 204) {
+        throw "PUT $legalUrl returned unexpected status $legalCode ($($legalResponse.ReasonPhrase))"
+    }
+}
 
 $info = [ordered]@{
     releases = $updatedReleases

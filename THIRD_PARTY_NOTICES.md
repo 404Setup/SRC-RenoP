@@ -6,7 +6,7 @@ RenoP itself is licensed under the [Mozilla Public License 2.0](LICENSE). Third-
 licenses. This file is intended to satisfy attribution and notice obligations when RenoP is distributed in source or
 binary form.
 
-Versions below reflect the dependency set used to produce this notice (reviewed 2026-08-23). For an authoritative
+Versions below reflect the dependency set used to produce this notice (reviewed 2026-08-26). For an authoritative
 build-time inventory, see `go.mod` / `go.sum`, `pnpm-lock.yaml`, and the workspace `package.json` files under
 `internal/service/frontend/renop-html/`, `web/`, and `packages/`.
 
@@ -76,6 +76,7 @@ installation.
 | `github.com/minio/crc64nvme`          | v1.1.1                             | Apache-2.0                                 | Copyright (c) 2025 Minio Inc.                                                                                  |
 | `github.com/minio/md5-simd`           | v1.1.2                             | Apache-2.0                                 | Copyright (c) 2020 MinIO Inc.                                                                                  |
 | `github.com/minio/minio-go/v7`        | v7.3.0                             | Apache-2.0                                 | See [Apache NOTICE excerpts](#apache-notice-excerpts)                                                          |
+| `github.com/molecule-man/go-brrr`     | v1.0.1                             | MIT                                        | Copyright (c) 2026 Andrii Berezhynskyi                                                                       |
 | `github.com/ncruces/go-strftime`      | v1.0.0                             | MIT                                        | Copyright (c) 2022 Nuno Cruces                                                                                 |
 | `github.com/philhofer/fwd`            | v1.2.0                             | MIT                                        | Copyright (c) 2014-2015 Philip Hofer                                                                           |
 | `github.com/remyoudompheng/bigfft`    | v0.0.0-20230129092748-24d4a6f8daec | BSD-2-Clause                               | Copyright (c) 2012 Rémi Oudompheng                                                                             |
@@ -138,6 +139,8 @@ marketing site and documentation, not the server binary.
 | `long`                                                   | 5.3.2   | Apache-2.0   | Transitive protobufjs runtime dependency     |
 | `protobufjs-cli`                                         | 2.6.2   | BSD-3-Clause | Frontend protobuf codegen (dev)              |
 | `marked`                                                 | 18.0.10 | MIT          | Markdown rendering (frontend docs & website) |
+| `brotli-compress`                                        | 2.2.2   | Apache-2.0 AND MIT | Pure-JavaScript Brotli decompression in the website conversion worker; decoder copyright 2017 Google Inc. |
+| `fflate`                                                 | 0.8.3   | MIT          | Browser-side legacy ZIP generation; copyright (c) 2026 Arjun Barrett |
 
 ---
 
@@ -517,7 +520,7 @@ When adding, removing, or upgrading dependencies:
 2. Refresh the inventory tables (module path, version, SPDX, copyright).
 3. If an Apache-2.0 package ships a `NOTICE` file, copy any new notice text
    into [Apache NOTICE excerpts](#apache-notice-excerpts).
-4. Ship this file with source releases and binary archives (see `build.ps1`).
+4. Ship this file alongside raw Brotli binaries and include it in browser-generated legacy ZIP packages (see `build.ps1`).
 
 This document is provided for compliance and attribution. It does not grant any license to RenoP
 beyond [LICENSE](LICENSE), and it does not modify the terms of any third-party license.

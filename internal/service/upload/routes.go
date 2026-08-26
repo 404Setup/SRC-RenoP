@@ -194,13 +194,10 @@ func handleInit(c fiber.Ctx, state *core.AppState, mgr *Manager) error {
 		if !user.IsManager() {
 			return jsonErr(c, fiber.StatusForbidden, "Forbidden")
 		}
-		if !strings.HasSuffix(strings.ToLower(filename), ".zip") {
-			return jsonErr(c, fiber.StatusBadRequest, "Uploaded file must be a .zip package")
+		if !updater.IsSupportedUpdatePackageName(filename) {
+			return jsonErr(c, fiber.StatusBadRequest, "Uploaded file must be a .br or .zip package")
 		}
-		reqSpace := req.GetSize() * 3
-		if reqSpace <= 0 {
-			reqSpace = 100 * 1024 * 1024
-		}
+		reqSpace := updater.EstimateUploadedPackageDiskSpace(filename, req.GetSize())
 		if updater.CanAllocateDiskSpace != nil && !updater.CanAllocateDiskSpace(uint64(reqSpace)) {
 			return jsonErr(c, fiber.StatusInsufficientStorage, "Insufficient disk space to upload update package")
 		}
@@ -441,10 +438,7 @@ func completeUpdater(c fiber.Ctx, sess *Session) error {
 		return jsonErr(c, fiber.StatusForbidden, "Forbidden")
 	}
 
-	reqSpace := sess.TotalSize * 3
-	if reqSpace <= 0 {
-		reqSpace = 100 * 1024 * 1024
-	}
+	reqSpace := updater.EstimateUploadedPackageDiskSpace(sess.Filename, sess.TotalSize)
 	if updater.CanAllocateDiskSpace != nil && !updater.CanAllocateDiskSpace(uint64(reqSpace)) {
 		sess.Abort()
 		return jsonErr(c, fiber.StatusInsufficientStorage, "Insufficient disk space to upload update package")
@@ -458,11 +452,11 @@ func completeUpdater(c fiber.Ctx, sess *Session) error {
 
 	updater.SetDownloadingProgress(50)
 
-	zipPath := sess.TempPath
+	packagePath := sess.TempPath
 	sess.TempPath = ""
 
-	targetPath, err := updater.ExtractExecutableFromZipPath(zipPath)
-	_ = os.Remove(zipPath)
+	targetPath, err := updater.ExtractExecutableFromPackagePath(packagePath, sess.Filename)
+	_ = os.Remove(packagePath)
 	sess.MarkCompleted()
 
 	if err != nil {

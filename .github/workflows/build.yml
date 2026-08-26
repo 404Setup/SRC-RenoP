@@ -182,4 +182,8 @@ jobs:
           target_commitish: ${{ needs.metadata.outputs.commit }}
           generate_release_notes: false
           body_path: ${{ steps.changelog.outputs.path }}
-          files: dist/*.zip
+          files: |
+            dist/*.br
+            dist/LICENSE
+            dist/README.md
+            dist/THIRD_PARTY_NOTICES.md

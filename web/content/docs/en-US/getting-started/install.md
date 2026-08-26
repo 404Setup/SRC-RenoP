@@ -9,7 +9,7 @@ description: Downloading binaries, microarchitecture selection, and building fro
 
 ## 1. Download Prebuilt Binaries
 
-You can download prebuilt archive packages directly from the web [Download Center](/download) or from official
+You can download prebuilt raw Brotli packages directly from the web [Download Center](/download) or from official
 distribution channels:
 
 - **Stable Channel**: Recommended for production environments.
@@ -31,17 +31,18 @@ RenoP offers tiered x86-64 builds targeting specific CPU instruction sets:
 
 ## 3. Verification & Execution
 
-Every release includes a `SHA256SUMS` file. Verify the archive integrity before extraction:
+Every target in the channel `info.json` includes a SHA-256 digest. Verify the downloaded `.br` package before decompression:
 
 ```bash
 # Linux
 sha256sum -c SHA256SUMS --ignore-missing
 
 # Windows (PowerShell)
-Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.zip
+Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.br
 ```
 
-Extract the archive and run the executable directly:
+Decompress the raw Brotli stream into `renop` or `renop.exe`, then run it directly. The Download Center can also
+convert a new `.br` package to the legacy ZIP layout entirely in the browser.
 
 - **Linux / macOS**: `./renop`
 - **Windows**: `.\renop.exe`
@@ -85,7 +86,7 @@ pnpm run build:frontend
 
 # 3. Compile binary
 pwsh ./build.ps1 c nb    # Current OS only, unzipped binary output
-pwsh ./build.ps1 c       # Current OS packaged into zip release
+pwsh ./build.ps1 c       # Current OS packaged as a raw Brotli stream
 pwsh ./build.ps1 s       # Mainstream platforms (Linux/Windows amd64/amd64v3/arm64)
 pwsh ./build.ps1         # Full cross-compilation matrix
 ```
