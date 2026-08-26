@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 404Setup. Mozilla Public License 2.0. */
 export default {
+    "search.domain": "Veröffentlichungsdomäne",
     "maven.permissionL0": "Lesen", "maven.permissionL1": "Veröffentlichen", "maven.permissionL2": "Versionen verwalten", "maven.permissionL3": "Team verwalten", "maven.permissionL4": "Eigentümer",
     "maven.copyFailed": "Kopieren in die Zwischenablage fehlgeschlagen", "maven.domainPlaceholder": "com.example",
     "maven.domainCreateHint": "Geben Sie einen umgekehrten Domain-Namensraum ein. DNS-Domains verwenden einen TXT-Eintrag an der registrierten Stammdomain; io.github und io.gitlab verwenden das Kontoprofil.",

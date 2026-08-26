@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 404Setup. Mozilla Public License 2.0. */
 export default {
+    "search.domain": "公開ドメイン",
     "maven.permissionL0": "読み取り", "maven.permissionL1": "公開", "maven.permissionL2": "バージョン管理", "maven.permissionL3": "チーム管理", "maven.permissionL4": "所有者",
     "maven.copyFailed": "クリップボードにコピーできませんでした", "maven.domainPlaceholder": "com.example",
     "maven.domainCreateHint": "逆ドメイン形式の名前空間を入力してください。DNS ドメインは登録ルートの TXT レコード、io.github と io.gitlab はアカウントプロフィールで検証します。",

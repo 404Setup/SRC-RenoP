@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 404Setup. Mozilla Public License 2.0. */
 export default {
+    "search.domain": "Домен публикации",
     "maven.permissionL0": "Чтение", "maven.permissionL1": "Публикация", "maven.permissionL2": "Управление версиями", "maven.permissionL3": "Управление командой", "maven.permissionL4": "Владелец",
     "maven.copyFailed": "Не удалось скопировать в буфер обмена", "maven.domainPlaceholder": "com.example",
     "maven.domainCreateHint": "Введите пространство имен в формате обратного домена. Для DNS используется TXT-запись в корневом зарегистрированном домене; для io.github и io.gitlab — профиль учетной записи.",

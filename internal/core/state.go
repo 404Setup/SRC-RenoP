@@ -116,6 +116,7 @@ type StateDB interface {
 	CreateMavenDomain(domain *MavenDomain, owner string) error
 	ListMavenDomains(username string, includeAll bool) ([]*MavenDomain, error)
 	ListMavenRepositoryDomains(repository, username string) ([]*MavenDomain, error)
+	SearchMavenRepositoryDomains(repository, query string, limit int) ([]*MavenDomain, int, error)
 	GetMavenDomainDetails(domain, username string) (*MavenDomainDetails, error)
 	ReserveMavenVerificationAttempt(domain, actor string, administrator bool, checkedAt, minimumPrevious int64) error
 	MarkMavenDomainVerified(domain, code string, verifiedAt int64) error

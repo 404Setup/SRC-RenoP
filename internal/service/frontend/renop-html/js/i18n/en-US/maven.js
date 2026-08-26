@@ -5,6 +5,7 @@
  */
 
 export default {
+    "search.domain": "Publishing domain",
     "maven.permissionL0": "Read",
     "maven.permissionL1": "Publish",
     "maven.permissionL2": "Manage versions",

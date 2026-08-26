@@ -165,6 +165,7 @@ function renderSearchStatus(message, isError = false) {
 function searchResultTypeLabel(type) {
     const normalized = String(type || '').toUpperCase();
     if (normalized === 'DIRECTORY') return t('search.directory');
+    if (normalized === 'DOMAIN') return t('search.domain');
     if (normalized === 'PACKAGE') return t('search.package');
     if (normalized === 'IMAGE') return t('search.image');
     return t('search.file');
@@ -186,6 +187,7 @@ function buildSearchResult(result) {
     });
     let iconName = 'file';
     if (type === 'DIRECTORY') iconName = 'folder';
+    else if (type === 'DOMAIN') iconName = 'network';
     else if (type === 'IMAGE') iconName = dockerRepositoryIcon;
     else if (type === 'PACKAGE') iconName = activeRepositoryIcon;
     const icon = createIcon(iconName);

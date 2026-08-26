@@ -663,6 +663,33 @@ func TestSharedShellRoutingAvatarCodeAndSearchAnimations(t *testing.T) {
 	}
 }
 
+func TestMavenSearchUsesCatalogDomainResults(t *testing.T) {
+	backendSource, err := os.ReadFile(filepath.Join("..", "..", "api", "search.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"repo.UsesModernMavenLayout()", "searchModernMavenRepository", "searchFileTreeRepository",
+		`Path: "domains/" + domain.Domain`, `Type: "DOMAIN"`,
+		`Path: "packages/" + artifact.GroupID + "/" + artifact.ArtifactID`,
+	} {
+		if !strings.Contains(string(backendSource), required) {
+			t.Fatalf("format-aware Maven search is missing %q", required)
+		}
+	}
+	frontendSource, err := os.ReadFile(filepath.Join("renop-html", "js", "browser", "search.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"normalized === 'DOMAIN'", "t('search.domain')", "type === 'DOMAIN'", "iconName = 'network'",
+	} {
+		if !strings.Contains(string(frontendSource), required) {
+			t.Fatalf("Maven domain search presentation is missing %q", required)
+		}
+	}
+}
+
 func TestFrontendUsesSharedClipboardAndTimeUtilities(t *testing.T) {
 	jsRoot := filepath.Join("renop-html", "js")
 	clipboardPath := filepath.Join(jsRoot, "clipboard.js")

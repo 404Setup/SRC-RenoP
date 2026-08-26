@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 404Setup. Mozilla Public License 2.0. */
 export default {
+    "search.domain": "게시 도메인",
     "maven.permissionL0": "읽기", "maven.permissionL1": "게시", "maven.permissionL2": "버전 관리", "maven.permissionL3": "팀 관리", "maven.permissionL4": "소유자",
     "maven.copyFailed": "클립보드에 복사하지 못했습니다", "maven.domainPlaceholder": "com.example",
     "maven.domainCreateHint": "역방향 도메인 네임스페이스를 입력하세요. DNS 도메인은 등록 루트의 TXT 레코드로, io.github 및 io.gitlab은 계정 프로필로 확인합니다.",

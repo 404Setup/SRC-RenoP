@@ -294,6 +294,46 @@ func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.M
 	return domains, nil
 }
 
+// SearchMavenRepositoryDomains returns a bounded domain page containing artifacts in one repository.
+func (db *DB) SearchMavenRepositoryDomains(repository, query string, limit int) ([]*core.MavenDomain, int, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, 0, core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	query = SanitizeInputString(strings.ToLower(strings.TrimSpace(query)), 128)
+	if repository == "" || query == "" || limit < 1 || limit > 100 {
+		return nil, 0, errors.New("Maven repository domain search is invalid")
+	}
+	pattern := "%" + query + "%"
+	var total int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM maven_domains d WHERE d.repository = ? AND d.verified = 1
+		AND LOWER(d.domain) LIKE ? AND EXISTS (
+			SELECT 1 FROM maven_artifacts a WHERE a.repository = ? AND a.domain = d.domain
+		)`, globalMavenRepository, pattern, repository).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count Maven repository domain search: %w", err)
+	}
+	rows, err := db.Query(`SELECT d.domain, d.verified_at, COUNT(a.artifact_id)
+		FROM maven_domains d JOIN maven_artifacts a ON a.domain = d.domain AND a.repository = ?
+		WHERE d.repository = ? AND d.verified = 1 AND LOWER(d.domain) LIKE ?
+		GROUP BY d.domain, d.verified_at ORDER BY d.domain LIMIT ?`, repository, globalMavenRepository, pattern, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("search Maven repository domains: %w", err)
+	}
+	defer rows.Close()
+	domains := make([]*core.MavenDomain, 0, min(limit, total))
+	for rows.Next() {
+		domain := &core.MavenDomain{Repository: globalMavenRepository, Verified: true}
+		if err := rows.Scan(&domain.Domain, &domain.VerifiedAt, &domain.ArtifactCount); err != nil {
+			return nil, 0, fmt.Errorf("scan Maven repository domain search: %w", err)
+		}
+		domains = append(domains, domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate Maven repository domain search: %w", err)
+	}
+	return domains, total, nil
+}
+
 // GetMavenDomainDetails returns one domain and its current team.
 func (db *DB) GetMavenDomainDetails(domain, username string) (*core.MavenDomainDetails, error) {
 	if db == nil || db.SQLDB == nil {

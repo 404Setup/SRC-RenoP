@@ -5,6 +5,7 @@
  */
 
 export default {
+    "search.domain": "发布域",
     "maven.permissionL0": "读取",
     "maven.permissionL1": "发布",
     "maven.permissionL2": "管理版本",

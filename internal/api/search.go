@@ -37,8 +37,8 @@ const (
 )
 
 // SearchRepository provides one bounded, format-aware search endpoint for the
-// repository browser. Cargo and Docker search package metadata; Maven and file
-// repositories search the index without touching the filesystem on every request.
+// repository browser. Cargo, Docker, and modern Maven search package metadata;
+// classic Maven and files repositories search the in-memory file index.
 func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	query := strings.TrimSpace(c.Query("q"))
 	if query == "" || len(query) > 128 || strings.ContainsAny(query, "\x00\r\n") {
@@ -75,8 +75,10 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 		response, err = searchCargoRepository(state, repo, query, limit)
 	} else if repo.NormalizedFormat() == config.RepositoryFormatDocker {
 		response, err = searchDockerRepository(state, repo, user, query, limit)
+	} else if repo.UsesModernMavenLayout() {
+		response, err = searchModernMavenRepository(state, repo, query, limit)
 	} else {
-		response = searchMavenRepository(state, cfg.StoragePath, repo, user, query, limit)
+		response = searchFileTreeRepository(state, cfg.StoragePath, repo, user, query, limit)
 	}
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Repository search failed")
@@ -139,7 +141,65 @@ func searchCargoRepository(state *core.AppState, repo *config.Repository, query 
 	}, nil
 }
 
-func searchMavenRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) *pb.RepositorySearchResponse {
+func searchModernMavenRepository(state *core.AppState, repo *config.Repository, query string, limit int) (*pb.RepositorySearchResponse, error) {
+	db := state.GetDB()
+	if db == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	domains, domainTotal, err := db.SearchMavenRepositoryDomains(repo.Name, query, min(limit+1, 100))
+	if err != nil {
+		return nil, err
+	}
+	artifacts, artifactTotal, err := db.ListMavenArtifacts(repo.Name, "", query, min(limit+1, 100), 0)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*pb.RepositorySearchResult, 0, min(len(domains)+len(artifacts), limit*2))
+	for _, domain := range domains {
+		if domain == nil {
+			continue
+		}
+		results = append(results, &pb.RepositorySearchResult{
+			Name: domain.Domain, Path: "domains/" + domain.Domain, Type: "DOMAIN", ModifiedAt: domain.VerifiedAt,
+		})
+	}
+	for _, artifact := range artifacts {
+		if artifact == nil {
+			continue
+		}
+		description := artifact.Description
+		if description == "" {
+			description = artifact.GroupID
+		}
+		results = append(results, &pb.RepositorySearchResult{
+			Name: artifact.ArtifactID,
+			Path: "packages/" + artifact.GroupID + "/" + artifact.ArtifactID,
+			Type: "PACKAGE", Description: description, LatestVersion: artifact.LatestVersion,
+			ModifiedAt: artifact.UpdatedAt,
+		})
+	}
+	needle := strings.ToLower(query)
+	sort.SliceStable(results, func(i, j int) bool {
+		leftRank := repositorySearchRank(results[i].Name, needle)
+		rightRank := repositorySearchRank(results[j].Name, needle)
+		if leftRank != rightRank {
+			return leftRank < rightRank
+		}
+		if results[i].Type != results[j].Type {
+			return results[i].Type == "DOMAIN"
+		}
+		return strings.ToLower(results[i].Path) < strings.ToLower(results[j].Path)
+	})
+	if len(results) > limit {
+		results = results[:limit]
+	}
+	total := domainTotal + artifactTotal
+	return &pb.RepositorySearchResponse{
+		Format: repo.ConfiguredFormat(), Results: results, Total: int32(total), HasMore: total > len(results),
+	}, nil
+}
+
+func searchFileTreeRepository(state *core.AppState, storagePath string, repo *config.Repository, user *config.User, query string, limit int) *pb.RepositorySearchResponse {
 	root := filepath.ToSlash(filepath.Clean(filepath.Join(storagePath, repo.Name)))
 	rootPrefix := root + "/"
 	needle := strings.ToLower(query)

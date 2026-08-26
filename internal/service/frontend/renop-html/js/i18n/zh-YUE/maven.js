@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 404Setup. Mozilla Public License 2.0. */
 export default {
+    "search.domain": "發佈域",
     "maven.permissionL0": "讀取", "maven.permissionL1": "發佈", "maven.permissionL2": "管理版本", "maven.permissionL3": "管理團隊", "maven.permissionL4": "擁有者",
     "maven.copyFailed": "複製唔到去剪貼簿", "maven.domainPlaceholder": "com.example",
     "maven.domainCreateHint": "請輸入反向域名命名空間。一般域名要喺註冊根域加 TXT 記錄；io.github 同 io.gitlab 命名空間會用帳戶資料驗證。",

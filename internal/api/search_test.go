@@ -20,9 +20,9 @@ import (
 	"renop/internal/service/index"
 )
 
-func TestSearchMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T) {
+func TestSearchClassicMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T) {
 	storagePath := t.TempDir()
-	repo := &config.Repository{Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"}
+	repo := &config.Repository{Name: "releases", Format: config.RepositoryFormatMavenClassic, Visibility: "PUBLIC"}
 	state := core.NewAppState()
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
 	root := filepath.Join(storagePath, repo.Name)
@@ -33,8 +33,8 @@ func TestSearchMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T) {
 	state.Inner.FileIndex.InsertFile(blocked, index.FileInfo{Size: 45, ModTime: 1})
 	state.Inner.FileIndex.BlockFile(blocked)
 
-	response := searchMavenRepository(state, storagePath, repo, &config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
-	if response.Format != config.RepositoryFormatMaven || response.Total != 3 {
+	response := searchFileTreeRepository(state, storagePath, repo, &config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
+	if response.Format != config.RepositoryFormatMavenClassic || response.Total != 3 {
 		t.Fatalf("unexpected Maven search metadata: %+v", response)
 	}
 	for _, result := range response.Results {
@@ -50,6 +50,52 @@ func TestSearchMavenRepositoryUsesIndexAndOmitsBlockedFiles(t *testing.T) {
 	}
 	if !foundArtifact {
 		t.Fatalf("Maven artifact missing from search results: %+v", response.Results)
+	}
+}
+
+func TestSearchModernMavenRepositoryReturnsDomainAndArtifactRoutes(t *testing.T) {
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "maven-search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := core.NewAppState()
+	state.Inner.DB = db
+	if err := db.EnsureImportedMavenDomain(&core.MavenDomain{
+		Domain: "com.example", VerificationType: "legacy", VerificationHost: "com.example",
+		VerificationCode: "search-import", Verified: true, CreatedAt: 10, VerifiedAt: 11,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.RecordMavenPublication(&core.MavenArtifact{
+		Repository: "releases", Domain: "com.example", GroupID: "com.example.tools",
+		ArtifactID: "demo", Description: "Demo artifact", LatestVersion: "1.2.3", CreatedAt: 12, UpdatedAt: 13,
+	}, &core.MavenVersion{
+		Repository: "releases", GroupID: "com.example.tools", ArtifactID: "demo",
+		Version: "1.2.3", Size: 123, CreatedAt: 12,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	response, err := searchModernMavenRepository(state,
+		&config.Repository{Name: "releases", Format: config.RepositoryFormatMaven}, "example", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Format != config.RepositoryFormatMaven || response.Total != 2 || len(response.Results) != 2 {
+		t.Fatalf("unexpected modern Maven search response: %+v", response)
+	}
+	paths := make(map[string]string, len(response.Results))
+	for _, result := range response.Results {
+		paths[result.Path] = result.Type
+	}
+	if paths["domains/com.example"] != "DOMAIN" {
+		t.Fatalf("modern Maven domain route missing: %+v", response.Results)
+	}
+	if paths["packages/com.example.tools/demo"] != "PACKAGE" {
+		t.Fatalf("modern Maven artifact route missing: %+v", response.Results)
 	}
 }
 

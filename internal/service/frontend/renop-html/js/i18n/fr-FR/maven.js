@@ -1,5 +1,6 @@
 /* Copyright (c) 2026 404Setup. Mozilla Public License 2.0. */
 export default {
+    "search.domain": "Domaine de publication",
     "maven.permissionL0": "Lecture", "maven.permissionL1": "Publication", "maven.permissionL2": "Gérer les versions", "maven.permissionL3": "Gérer l’équipe", "maven.permissionL4": "Propriétaire",
     "maven.copyFailed": "Impossible de copier dans le presse-papiers", "maven.domainPlaceholder": "com.example",
     "maven.domainCreateHint": "Saisissez un espace de noms en domaine inversé. Les domaines DNS utilisent un enregistrement TXT à la racine enregistrée ; io.github et io.gitlab utilisent le profil du compte.",
