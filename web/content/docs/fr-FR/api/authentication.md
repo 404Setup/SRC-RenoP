@@ -11,7 +11,7 @@ Le navigateur utilise le cookie HttpOnly `renop_session`. Son secret n’est jam
 sessions et il est refusé dans les en-têtes et URL. Les paramètres de sécurité privés exigent une session navigateur,
 jamais un mot de passe ou un API Token.
 
-## 1. Connexion par mot de passe ou e-mail
+## Connexion par mot de passe ou e-mail
 
 - **Chemin** : `POST /api/auth/login`
 - **Authentification** : aucune.
@@ -31,7 +31,7 @@ jamais un mot de passe ou un API Token.
 La réussite définit `renop_session` avec `HttpOnly`, `SameSite=Lax` et `Secure` sous HTTPS. Le protobuf `SessionDetails`
 contient les droits et routes du compte, mais laisse `session_token` vide.
 
-## 2. Connexion Passkey et GitHub
+## Connexion Passkey et GitHub
 
 - **Début Passkey** : `POST /api/auth/fido/login/begin`
 - **Fin Passkey** : `POST /api/auth/fido/login/finish`
@@ -42,7 +42,7 @@ contient les droits et routes du compte, mais laisse `session_token` vide.
 GitHub n’apparaît qu’après configuration OAuth. RenoP demande la lecture du compte et des organisations, conserve les
 identifiants immuables et l’instantané des principals, mais jamais le jeton d’accès OAuth.
 
-## 3. Compte courant et profils publics
+## Compte courant et profils publics
 
 - **Session courante** : `GET /api/auth/me`
 - **Profil privé** : `GET /api/auth/profile`
@@ -55,7 +55,7 @@ identifiants immuables et l’instantané des principals, mais jamais le jeton d
 Les routes visibles utilisent le nom du compte ; l’identifiant immuable reste interne. Les dépôts `HIDDEN` sont omis,
 et les appartenances privées ne sont visibles que par un lecteur autorisé.
 
-## 4. Sécurité du compte
+## Sécurité du compte
 
 Ces routes exigent la session navigateur courante et renvoient `Cache-Control: no-store`.
 
@@ -81,7 +81,7 @@ Ces routes exigent la session navigateur courante et renvoient `Cache-Control: n
 }
 ```
 
-## 5. Gestion des méthodes de connexion
+## Gestion des méthodes de connexion
 
 - **Lister les Passkeys** : `GET /api/auth/profile/fido`
 - **Enregistrer** : `POST /api/auth/profile/fido/register/begin` puis
@@ -92,7 +92,7 @@ Ces routes exigent la session navigateur courante et renvoient `Cache-Control: n
 
 La dernière méthode de connexion fonctionnelle ne peut être supprimée ni désactivée.
 
-## 6. Sessions navigateur
+## Sessions navigateur
 
 - **Lister** : `GET /api/auth/profile/sessions`
 - **Révoquer une session** : `DELETE /api/auth/profile/sessions/:session_id`

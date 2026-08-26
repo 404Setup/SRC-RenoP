@@ -10,7 +10,7 @@ description: 使用 Nginx 与 Caddy 进行 TLS 终止、流式传输与可信客
 生产环境通常将 RenoP 部署在 Nginx、Caddy 或负载均衡器后方，以提供 TLS、路由与网络防护。代理必须能够
 流式转发大型上传与 Blob，不应将完整正文缓冲到内存或磁盘。
 
-## 1. Nginx
+## Nginx
 
 ```nginx
 server {
@@ -51,7 +51,7 @@ server {
 必须保留 Docker 使用的 `Location`、`Range`、`Content-Range` 与 `Docker-Upload-UUID` 请求头。发布大型制品时，
 代理的正文上限不可低于 RenoP 限制。
 
-## 2. Caddy
+## Caddy
 
 ```caddy
 renop.example.com {
@@ -63,7 +63,7 @@ renop.example.com {
 
 Caddy 自动管理 TLS；`flush_interval -1` 可避免延迟流式响应。
 
-## 3. RenoP 信任配置
+## RenoP 信任配置
 
 只配置公开主机名及由自己控制的代理 CIDR：
 

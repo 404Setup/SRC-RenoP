@@ -9,7 +9,7 @@ description: Cargo Sparse Index、crate 发布、下载与 yank
 
 RenoP 实现 Cargo Registry 与 Sparse Index 规范。
 
-## 1. Sparse Index 配置 (`config.json`)
+## Sparse Index 配置 (`config.json`)
 
 - **路径**：`GET /{repo}/config.json` 或 `GET /{repo}/index/config.json`
 - **用途**：Cargo 首次连接时读取此文件，以发现存储库接口。
@@ -26,14 +26,14 @@ RenoP 实现 Cargo Registry 与 Sparse Index 规范。
 
 ---
 
-## 2. Sparse Index 元数据
+## Sparse Index 元数据
 
 - **路径**：`GET /{repo}/index/{prefix}/{crate_name}`
 - **用途**：按照 Cargo 标准 crate 名称分片规则返回逐行 JSON 元数据。
 
 ---
 
-## 3. 发布 crate
+## 发布 crate
 
 - **路径**：`PUT /{repo}/api/v1/crates/new`
 - **认证**：需要在 `Authorization: <token>` 中提供 Token。
@@ -43,14 +43,14 @@ RenoP 实现 Cargo Registry 与 Sparse Index 规范。
 
 ---
 
-## 4. 下载 crate
+## 下载 crate
 
 - **路径**：`GET /{repo}/api/v1/crates/{crate_name}/{version}/download`
 - **响应**：`application/x-tar` 类型的 `.crate` 归档。
 
 ---
 
-## 5. Yank 与 unyank
+## Yank 与 unyank
 
 - **Yank**：`DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank**：`PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`

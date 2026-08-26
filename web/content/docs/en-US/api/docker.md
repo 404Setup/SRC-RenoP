@@ -21,7 +21,7 @@ Browser-management endpoints keep a human-readable plain-text error body and als
 stable programmatic handling. The RenoP frontend maps this code through its active locale instead of displaying raw
 server text. OCI Distribution endpoints continue to use the specification-defined structured `errors` response.
 
-## 1. Version Check
+## Version Check
 
 - **Path**: `GET /v2/` or `HEAD /v2/`
 - **Response**:
@@ -31,7 +31,7 @@ server text. OCI Distribution endpoints continue to use the specification-define
 
 ---
 
-## 2. Bearer Token Auth
+## Bearer Token Auth
 
 - **Path**: `GET /v2/token` or `GET /v2/auth`
 - **Description**: Exchanges Basic Auth credentials for a temporary Docker Bearer token. An API token must include
@@ -40,7 +40,7 @@ server text. OCI Distribution endpoints continue to use the specification-define
 
 ---
 
-## 3. Catalog & Tags
+## Catalog & Tags
 
 ### List Repositories
 
@@ -54,7 +54,7 @@ server text. OCI Distribution endpoints continue to use the specification-define
 
 ---
 
-## 4. Manifest Operations
+## Manifest Operations
 
 - **Fetch Manifest**: `GET /v2/:name/manifests/:reference`
 - **Upload Manifest**: `PUT /v2/:name/manifests/:reference` (pre-created image and L1 or higher required)
@@ -62,7 +62,7 @@ server text. OCI Distribution endpoints continue to use the specification-define
 
 ---
 
-## 5. Blob Layer Operations
+## Blob Layer Operations
 
 - **Check Blob**: `HEAD /v2/:name/blobs/:digest`
 - **Download Blob**: `GET /v2/:name/blobs/:digest`

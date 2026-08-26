@@ -10,7 +10,7 @@ description: Nginx и Caddy с TLS, streaming и доверенным IP кли�
 В production размещайте RenoP за Nginx, Caddy или load balancer для TLS, маршрутизации и сетевой защиты. Прокси должен
 потоково передавать большие uploads и blobs без полного буфера в памяти или на диске.
 
-## 1. Nginx
+## Nginx
 
 ```nginx
 server {
@@ -51,7 +51,7 @@ server {
 Сохраняйте Docker-заголовки `Location`, `Range`, `Content-Range` и `Docker-Upload-UUID`. Для крупных артефактов не
 задавайте на прокси body limit ниже ограничения RenoP.
 
-## 2. Caddy
+## Caddy
 
 ```caddy
 renop.example.com {
@@ -63,7 +63,7 @@ renop.example.com {
 
 Caddy автоматически управляет TLS. `flush_interval -1` не задерживает streaming responses.
 
-## 3. Настройка доверия RenoP
+## Настройка доверия RenoP
 
 Укажите публичные host и только CIDR прокси, которыми вы управляете:
 

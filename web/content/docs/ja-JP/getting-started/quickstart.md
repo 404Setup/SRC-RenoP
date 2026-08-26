@@ -2,14 +2,14 @@
 title: クイックスタート
 order: 3
 category: はじめに
-description: 初回起動手順、管理者パスワードの設定およびデフォルトリポジトリ
+description: 初回起動、管理者、health check、repository 作成
 ---
 
 # クイックスタート
 
-## 1. 初回起動と管理者パスワード
+## サーバー起動
 
-初回起動時、RenoP は自動的に管理者アカウント `admin` を作成します。起動前に環境変数でパスワードを指定することを推奨します：
+初回起動時、RenoP は DB に `admin` super administrator を作成します。パスワードを明示してください。
 
 ```bash
 # Linux / macOS
@@ -20,35 +20,48 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 .\renop.exe
 ```
 
-環境変数を設定しなかった場合、起動時にランダムなパスワードがコンソールに表示されます。
+未設定ならランダムパスワードを生成し stdout に一度だけ表示します。直ちに保存して
+`http://localhost:3000` を開きます。既定 bind は `0.0.0.0:3000` です。本番は TLS または trusted proxy を
+使用してください。
 
-ブラウザで `http://localhost:3000` にアクセスして管理画面にログインします。
+## 既定と新規リポジトリ
 
-## 2. デフォルトリポジトリ
+初期 `repositories.yaml` には互換用 Maven repository が 3 件あります。
 
-| エンドポイント                    | 公開設定  | 用途                                           |
-|:----------------------------------|:----------|:-----------------------------------------------|
-| `http://localhost:3000/releases`  | `PUBLIC`  | Maven リリース版リポジトリ（上書き禁止）       |
-| `http://localhost:3000/snapshots` | `PUBLIC`  | Maven スナップショットリポジトリ（上書き許可） |
-| `http://localhost:3000/private`   | `PRIVATE` | Maven プライベートリポジトリ（認証必須）       |
+| Path | Visibility | Policy |
+|:-----|:-----------|:-------|
+| `/releases` | `PUBLIC` | Maven、redeployment 無効 |
+| `/snapshots` | `PUBLIC` | Maven、redeployment 有効 |
+| `/private` | `PRIVATE` | Maven、認証必須 |
 
-- Cargo インデックス: `http://localhost:3000/index/`
-- Docker レジストリ: `http://localhost:3000/v2/`
+Cargo、Docker、`files` は管理画面から明示的に作成します。Docker image と Cargo name も明示 resource で、
+上流名検査成功後だけ作成または初回公開できます。Maven 公開には account menu の検証済み domain が必要です。
 
-## 3. ヘルスチェック
+## health 確認
 
 ```bash
 curl -s http://localhost:3000/api/status/health
-# 出力: "UP"
+# Output: "UP"
 ```
 
-## 4. 主な環境変数
+protobuf runtime metric は `/api/status/instance` です。health は process が応答することだけを示すため、本番
+traffic 前に実際の認証操作で DB と storage も検証してください。
 
-| 変数名                         | デフォルト値        | 説明                                   |
-|:-------------------------------|:--------------------|:---------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | メイン設定ファイルパス                 |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | リポジトリおよびミラー設定ファイルパス |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | 初期ユーザーとトークンファイル         |
-| `RENOP_INDEX`                  | `index.json`        | 検索インデックスキャッシュ             |
-| `RENOP_SESSIONS`               | `sessions.bin`      | セッションデータファイル               |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | *(自動生成)*        | 初期管理者パスワード                   |
+## 主要な環境変数
+
+| 変数 | 既定 | 用途 |
+|:-----|:-----|:-----|
+| `RENOP_CONFIG` | `config.yaml` | main config path |
+| `RENOP_REPOSITORIES` | `repositories.yaml` | repository config path |
+| `RENOP_INDEX` | `index.json` | file-index snapshot path |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | 1 回生成 | `admin` がない場合の初期 password |
+
+account、session、team、API Token、audit、message は DB data であり YAML path 変数はありません。
+
+## 次の手順
+
+- [設定概要](../configuration/overview.md) — TLS、DB、proxy、preview、updater
+- [リポジトリとミラー](../configuration/repositories.md) — engine、visibility、upstream、migration、S3
+- [Maven / Gradle](../guides/maven-client.md) — domain 検証と JVM client
+- [Cargo Registry](../guides/cargo-registry.md) — repository 作成と crate 公開
+- [Docker Registry](../guides/docker-registry.md) — push 前の image 作成と client 設定

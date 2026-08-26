@@ -1,55 +1,73 @@
 ---
-title: Docker 与 OCI 镜像库
+title: Docker 与 OCI 存储库
 order: 3
-category: 客户端指南
-description: 使用 Docker 与 Podman 登录、推送与拉取 OCI 镜像
+category: 指南
+description: 创建镜像并使用 Docker、Podman、containerd 或 nerdctl 连接 RenoP
 ---
 
-# Docker 与 OCI 镜像库配置
+# Docker 与 OCI 存储库指南
 
-RenoP 实现了 OCI Distribution Spec v2 与 Docker Registry v2 规范，可直接作为私有容器镜像仓库使用，支持 Docker
-CLI、Podman、containerd 与 nerdctl 等客户端。
+先创建格式为 `docker` 的存储库，再在推送前创建每个目标镜像。示例使用存储库 `containers` 与镜像
+`team/service`，完整 Registry 名称为 `containers/team/service`。
 
-## 1. 登录镜像仓库
-
-在终端中使用 `docker login` 或 `podman login` 进行认证：
+## 登录与传输
 
 ```bash
 docker login localhost:3000
-# 提示输入 Username: admin
-# 提示输入 Password: 填入登录密码或个人访问令牌 (PAT)
+# Username: admin
+# Password: <your_password_or_API_token>
 ```
 
-> **注意**：如果 RenoP 未启用 HTTPS（即直接运行在 HTTP 协议上），需要在 Docker 客户端的 `/etc/docker/daemon.json` 中配置
-> `insecure-registries`：
-> ```json
-> {
->   "insecure-registries": ["localhost:3000", "your-renop-domain:3000"]
-> }
-> ```
+建议使用专用 API Token：拉取使用 `repository:read`，推送使用 `repository:publish`，远程删除使用
+`repository:delete`，通过管理 API 创建镜像使用 `package:create`，管理协作者使用 `team:manage`。短期 Docker
+Token 只包含权限/目标限制与镜像当前 L0-L4 策略共同允许的动作。
 
-## 2. 构建、打标签与推送镜像
+生产环境应使用 HTTPS。仅本地 HTTP 测试时配置：
+
+```json
+{
+  "insecure-registries": ["localhost:3000"]
+}
+```
+
+修改 `daemon.json` 后需重启 Docker daemon。Podman 与 containerd 具有对应的 Registry 信任设置。
+
+## 创建、标记与推送
+
+打开 `containers`，创建 `team/service` 并选择公开或私有。私有镜像不会隐式授予 L0，应从团队面板添加只读
+用户或协作者。名称路径段必须使用小写。
+
+本地或适用的已启用上游中存在同名镜像时，创建会被拒绝；上游检查无法确定时也不会占用名称。镜像发现得到的
+上游镜像保持只读。
 
 ```bash
-# 1. 标记本地镜像
-docker tag my-app:latest localhost:3000/my-org/my-app:1.0.0
+# Tag local image
+docker tag service:latest localhost:3000/containers/team/service:1.0.0
 
-# 2. 推送镜像到 RenoP
-docker push localhost:3000/my-org/my-app:1.0.0
+# Push image to RenoP
+docker push localhost:3000/containers/team/service:1.0.0
 ```
 
-## 3. 拉取与运行镜像
+镜像创建前，RenoP 不会授予推送动作，也不会开始 Blob 上传或接受 Manifest。管理请求失败后可直接重试，无需
+重新登录或重开浏览器窗口。
+
+## 拉取与运行
 
 ```bash
-# 从 RenoP 拉取镜像
-docker pull localhost:3000/my-org/my-app:1.0.0
+# Pull image
+docker pull localhost:3000/containers/team/service:1.0.0
 
-# 运行镜像容器
-docker run -d -p 8080:8080 localhost:3000/my-org/my-app:1.0.0
+# Run container
+docker run -d -p 8080:8080 localhost:3000/containers/team/service:1.0.0
 ```
 
-## 4. OCI 特性支持
+公开镜像可匿名读取。私有镜像要求 L0-L4 成员或管理员。Blob 权限按镜像隔离，知道其他镜像的 Digest 不会获得
+访问权限。
 
-- **多架构清单 (Multi-Arch Manifest List)**：支持推送和拉取跨不同 CPU 架构（如 `linux/amd64`, `linux/arm64`）的同一镜像标签。
-- **分块上传 (Chunked Uploads)**：对于体积较大的 Layer Blob，客户端会自动分块上传，中断后可支持断点重试。
-- **跨仓库挂载 (Cross-Repo Blob Mount)**：当推送同一组织下包含相同基础镜像层的镜像时，RenoP 会自动重用已有 Blob，无需重复上传。
+## OCI 行为
+
+- **多架构**：Manifest List 与 OCI Index 可引用 amd64、arm64 等平台；
+- **分块上传**：支持可恢复 POST/PATCH/PUT 与有界临时存储；
+- **跨仓库挂载**：要求源镜像读取权限与已预创建目标镜像写入权限；
+- **删除**：同时要求 Token 能力与镜像/存储库授权；
+- **镜像**：流式获取并记录上游来源，禁止向镜像制品推送。

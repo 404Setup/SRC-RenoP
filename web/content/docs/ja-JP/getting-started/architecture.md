@@ -2,51 +2,51 @@
 title: システムアーキテクチャ
 order: 4
 category: はじめに
-description: 内部モジュール設計、ストリーミング I/O、データ整合性モデル
+description: モジュール、認可、streaming storage、非同期処理
 ---
 
 # システムアーキテクチャ
 
-RenoP の内部モジュール構造およびリクエスト処理パイプラインの概要です。
+RenoP は transport、package protocol、認可、永続化、background maintenance の境界を持つ単一 Go process
+です。埋め込み frontend も外部 client と同じ上限付き API を呼びます。
 
-## 1. モジュール構成
+## モジュール境界
 
-```
-+-------------------------------------------------------------------+
-|                     組み込み Web 管理 UI                          |
-|             (SPA、多言語 i18n、ダーク/ライトテーマ対応)           |
-+-------------------------------------------------------------------+
-                                  │
-                                  ▼
-+-------------------------------------------------------------------+
-|                      HTTP ルーティング & ミドルウェア             |
-|        - 異常検知とスライディングウィンドウレート制限             |
-|        - 統合認証 (Cookie セッション / Bearer / Basic)            |
-|        - シリアライゼーション (JSON / Protobuf バイナリ)          |
-+-------------------------------------------------------------------+
-                                  │
-                                  ▼
-+-------------------------------------------------------------------+
-|                        サービスドメイン層                         |
-|  - Maven サービス (標準構造、Javadoc プレビュー、GPG 検証)        |
-|  - Cargo サービス (スパースインデックス、Crate 公開、Cargodoc)    |
-|  - Docker サービス (OCI v2 仕様、チャンク Blob アップロード)      |
-|  - 管理・通知サービス (ユーザー、トークン、設定、メッセージ)      |
-+-------------------------------------------------------------------+
-                                  │
-                 ┌────────────────┴────────────────┐
-                 ▼                                 ▼
-+---------------------------------+  +-------------------------------+
-|         データベース抽象層      |  |         ストレージ抽象層      |
-| - SQLite (組み込み標準)         |  | - ローカルファイルシステム    |
-| - MySQL 8.0+                    |  | - S3 互換オブジェクトストレージ
-| - PostgreSQL (pgx/v5)           |  | - GPG 隔離キュー              |
-+---------------------------------+  +-------------------------------+
+```text
+Browser and package clients
+        |
+HTTP routing, rate limits, authentication, API-token policy
+        |
+Maven | Cargo | Docker | Files | Management services
+        |
+Repository gate and publication workflows
+        |
+Disk or S3 storage          SQL database
+        |                       |
+File index and mirrors      Identity, teams, audit, messages
 ```
 
-## 2. リクエスト処理と I/O
+- `internal/api` と middleware は一般 HTTP contract、search、anomaly、credential boundary を所有します。
+- format service は Maven domain/catalog、Cargo Sparse Index、Docker Distribution v2、doc viewer を所有します。
+- database layer は SQLite、MySQL、PostgreSQL の dialect-aware transaction を提供します。
+- Disk/S3 は巨大 body を stream し、file index は上限付き metadata traversal を提供します。
 
-- **ストリーミングデータ転送**: 大容量アーティファクトの送受信時、データをメモリに全量展開せず接続とストレージ間で直接ストリーミングします。
-- **データベース整合性**: SQLite、MySQL、PostgreSQL を統一インターフェースで扱い、PostgreSQL のパラメータ自動リバインドをサポートします。
-- **アトミック書き込みと GPG 隔離**: 一時ファイル (`.tmp`) への書き込みと検証を経てアトミックにリネームします。GPG
-  必須設定のリポジトリでは `.renop.tmp.gpg` で署名検証完了まで隔離されます。
+## リクエストと作業 pipeline
+
+### Streaming と consistency
+
+upload/download は client と Disk/S3 間を stream します。hash、Brotli/ZIP extraction、mirror cache、GPG は
+bounded reader と一時 file を使います。striped repository gate が storage/engine 変更と upload、delete、
+mirror commit、publication の race を防ぎます。
+
+### 認証と認可
+
+browser session は cookie-only、Basic は標準 package protocol 専用です。Bearer API Token の scope と対象制限は
+毎回、現在の repository permission と L0-L4 membership と交差します。不変 user ID が username 変更後も
+所有権を保ちます。
+
+### 非同期処理
+
+process-wide non-reentrant scheduler が snapshot、cleanup、index、download counter、update check を統合します。
+順序が必要な audit、GPG、Token mutation、file watch は専用 serial worker を維持します。durable result は
+message center、一時 progress は UI state または Toast に送ります。

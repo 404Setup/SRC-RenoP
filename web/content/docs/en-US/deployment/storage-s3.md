@@ -10,7 +10,7 @@ description: Local filesystem and per-repository S3-compatible object backends
 RenoP supports local Disk and S3-compatible object services. Each repository selects its backend; the repository gate
 serializes backend changes with active operations.
 
-## 1. Local filesystem
+## Local filesystem
 
 The root is `storage_path` in `config.yaml`, defaulting to `storage`.
 
@@ -30,7 +30,7 @@ Physical names are implementation details. Use protocol APIs instead of modifyin
 
 ---
 
-## 2. S3-compatible object storage
+## S3-compatible object storage
 
 S3 is suitable for managed object storage. Multi-node operation also requires an external database and coordination
 consistent with RenoP's guarantees; S3 alone does not turn one process into a cluster.
@@ -65,7 +65,7 @@ manager; never commit access keys to Git.
 
 ### Download modes
 
-1. **Proxy streaming (`redirect_downloads: false`)**: RenoP authorizes and streams S3 data to the client. The bucket can
+- **Proxy streaming (`redirect_downloads: false`)**: RenoP authorizes and streams S3 data to the client. The bucket can
    remain private and its URL is not exposed.
-2. **Direct redirect (`redirect_downloads: true`)**: RenoP authorizes and returns `302 Found` to a short-lived presigned
+- **Direct redirect (`redirect_downloads: true`)**: RenoP authorizes and returns `302 Found` to a short-lived presigned
    URL, reducing RenoP bandwidth.

@@ -11,7 +11,7 @@ RenoP 支持使用内嵌 SQLite、外部 MySQL 或 PostgreSQL 作为元数据与
 
 相关配置位于 `config.yaml` 中的 `database` 节点。
 
-## 1. SQLite（默认配置）
+## SQLite（默认配置）
 
 默认情况下，RenoP 使用内置的 SQLite 驱动，无需安装任何独立数据库服务：
 
@@ -27,14 +27,14 @@ database:
 - `dsn` 可以是相对路径（如 `renop.db`，存放在程序当前工作目录下）或绝对路径。
 - 程序首次启动时会自动创建表结构并开启 WAL 模式以提升并发性能。
 
-## 2. MySQL 8.0+
+## MySQL 8.0+
 
 在多实例或团队统一管理环境下，可配置外部 MySQL 数据库：
 
 ```yaml
 database:
   driver: "mysql"
-  dsn: "renop_user:your_password@tcp(127.0.0.1:3306)/renop_db?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "renop_user:password@tcp(127.0.0.1:3306)/renop_db?charset=utf8mb4&parseTime=True&loc=Local"
   max_open_conns: 50
   max_idle_conns: 10
   conn_max_lifetime_sec: 600
@@ -46,14 +46,14 @@ database:
 - 数据库字符集建议设置为 `utf8mb4`，排序规则设置为 `utf8mb4_unicode_ci` 或 `utf8mb4_0900_ai_ci`。
 - RenoP 在连接成功后会自动检查并执行 Schema 迁移。
 
-## 3. PostgreSQL
+## PostgreSQL
 
 RenoP 支持 PostgreSQL（基于 `jackc/pgx/v5` 驱动）：
 
 ```yaml
 database:
   driver: "postgres"
-  dsn: "postgres://renop_user:your_password@127.0.0.1:5432/renop_db?sslmode=disable"
+  dsn: "postgres://renop_user:password@127.0.0.1:5432/renop_db?sslmode=disable"
   max_open_conns: 50
   max_idle_conns: 10
   conn_max_lifetime_sec: 600
@@ -66,7 +66,7 @@ PostgreSQL 支持标准 URI 格式或 Key-Value 格式连接串：
 - **URI 格式**：`postgres://username:password@host:port/dbname?sslmode=disable`
 - **Key-Value 格式**：`host=127.0.0.1 port=5432 user=renop_user password=your_password dbname=renop_db sslmode=disable`
 
-## 4. 连接池参数说明
+## 连接池参数说明
 
 | 参数名                  | 默认值 | 作用说明                                                                 |
 |:------------------------|:-------|:-------------------------------------------------------------------------|

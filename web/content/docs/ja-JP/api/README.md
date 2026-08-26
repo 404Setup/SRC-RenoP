@@ -31,11 +31,11 @@ RenoP は、管理自動化、クライアント統合、監視向けの HTTP AP
 
 ## 認証方式
 
-1. **ブラウザ Cookie**: `renop_session=<session_id>`。HttpOnly セッション秘密値はヘッダーや URL では
+- **ブラウザ Cookie**: `renop_session=<session_id>`。HttpOnly セッション秘密値はヘッダーや URL では
    受け付けません。
-2. **Bearer API Token**: `Authorization: Bearer <token>`。Token の能力は常にアカウントの現在の権限と
+- **Bearer API Token**: `Authorization: Bearer <token>`。Token の能力は常にアカウントの現在の権限と
    組み合わせて評価されます。
-3. **パッケージプロトコル用 Basic Auth**: `Authorization: Basic <base64(user:password_or_token)>`。
+- **パッケージプロトコル用 Basic Auth**: `Authorization: Basic <base64(user:password_or_token)>`。
 
 Basic Auth で管理 API を呼び出すことはできません。URL クエリの資格情報と `Authorization: Session` は
 拒否されます。

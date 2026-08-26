@@ -9,7 +9,7 @@ description: Index clairsemé, publication, téléchargement et retrait de crate
 
 RenoP implémente les spécifications Cargo Registry et Sparse Index.
 
-## 1. Configuration de l’index (`config.json`)
+## Configuration de l’index (`config.json`)
 
 - **Chemin** : `GET /{repo}/config.json` ou `GET /{repo}/index/config.json`
 - **Usage** : Cargo lit ce document lors de la première connexion afin de découvrir les routes du registre.
@@ -26,14 +26,14 @@ RenoP implémente les spécifications Cargo Registry et Sparse Index.
 
 ---
 
-## 2. Métadonnées Sparse Index
+## Métadonnées Sparse Index
 
 - **Chemin** : `GET /{repo}/index/{prefix}/{crate_name}`
 - **Usage** : renvoie du JSON délimité par lignes selon le partitionnement officiel des noms de crates.
 
 ---
 
-## 3. Publier une crate
+## Publier une crate
 
 - **Chemin** : `PUT /{repo}/api/v1/crates/new`
 - **Authentification** : Token dans `Authorization: <token>`.
@@ -43,14 +43,14 @@ RenoP implémente les spécifications Cargo Registry et Sparse Index.
 
 ---
 
-## 4. Télécharger une crate
+## Télécharger une crate
 
 - **Chemin** : `GET /{repo}/api/v1/crates/{crate_name}/{version}/download`
 - **Réponse** : archive `.crate` avec `application/x-tar`.
 
 ---
 
-## 5. Yank et unyank
+## Yank et unyank
 
 - **Yank** : `DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank** : `PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`

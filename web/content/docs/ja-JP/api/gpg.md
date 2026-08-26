@@ -7,7 +7,7 @@ description: OpenPGP 公開鍵の管理と署名検証状態
 
 # GPG 暗号 API
 
-## 1. アカウントの GPG 鍵一覧
+## アカウントの GPG 鍵一覧
 
 - **パス**: `GET /api/auth/profile/gpg`
 - **認証**: 必須です。
@@ -29,7 +29,7 @@ description: OpenPGP 公開鍵の管理と署名検証状態
 
 ---
 
-## 2. 公開鍵の登録
+## 公開鍵の登録
 
 - **パス**: `POST /api/auth/profile/gpg`
 - **認証**: 必須です。
@@ -43,7 +43,7 @@ description: OpenPGP 公開鍵の管理と署名検証状態
 
 ---
 
-## 3. 隔離中の公開一覧
+## 隔離中の公開一覧
 
 - **パス**: `GET /api/auth/profile/gpg/releases`
 - **用途**: 分離署名、鍵検証、最終公開を待って `.renop.tmp.gpg` に隔離されている成果物を返します。

@@ -10,7 +10,7 @@ description: Direct repository operations and bounded resumable uploads
 Direct storage routes apply to Maven and `files` repositories. Cargo and Docker use their native protocol APIs. Every
 mutation is checked against API-token scope, repository permission, repository format, and Maven-domain policy.
 
-## 1. Direct repository operations
+## Direct repository operations
 
 The canonical path is `/{repo}/{path...}`. Reads support HTTP validators and byte ranges. `HIDDEN` repositories are
 unlisted but exact paths remain readable; `PRIVATE` repositories require authorization.
@@ -32,7 +32,7 @@ unlisted but exact paths remain readable; `PRIVATE` repositories require authori
 - **Request**: `DELETE /{repo}/{path}`
 - **Auth**: API token with `repository:delete` or another allowed credential, plus current delete permission.
 
-## 2. Chunked resumable uploads
+## Chunked resumable uploads
 
 Chunked uploads use protobuf metadata and raw binary parts. The server owns the final destination, bounds part size and
 session count, and deletes abandoned temporary files.

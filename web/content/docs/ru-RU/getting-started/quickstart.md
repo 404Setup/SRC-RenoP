@@ -2,35 +2,65 @@
 title: Быстрый старт
 order: 3
 category: Начало работы
-description: Первый запуск, пароль администратора и стандартные репозитории
+description: Первый запуск, администратор, health check и создание репозиториев
 ---
 
 # Быстрый старт
 
-## 1. Первый запуск
+## Запуск сервера
 
-Рекомендуется задать пароль администратора перед запуском:
+При первом запуске RenoP создаёт super-administrator `admin` в базе. Задайте пароль явно:
 
 ```bash
+# Linux / macOS
 RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password' ./renop
+
+# Windows (PowerShell)
+$env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
+.\renop.exe
 ```
 
-Откройте в браузере: `http://localhost:3000`
+Без переменной RenoP генерирует случайный пароль и один раз печатает его в stdout. Сохраните его и откройте
+`http://localhost:3000`. По умолчанию bind — `0.0.0.0:3000`; в production используйте TLS или trusted reverse proxy.
 
-## 2. Стандартные репозитории
+## Репозитории по умолчанию и новые
 
-| URL                               | Доступ    | Назначение                                   |
-|:----------------------------------|:----------|:---------------------------------------------|
-| `http://localhost:3000/releases`  | `PUBLIC`  | Релизы Maven (перезапись запрещена)          |
-| `http://localhost:3000/snapshots` | `PUBLIC`  | Снапшоты Maven (перезапись разрешена)        |
-| `http://localhost:3000/private`   | `PRIVATE` | Приватный репозиторий Maven (требуется вход) |
+Начальный `repositories.yaml` содержит три совместимых Maven-репозитория:
 
-- Индекс Cargo: `http://localhost:3000/index/`
-- Реестр Docker: `http://localhost:3000/v2/`
+| Путь | Видимость | Политика |
+|:-----|:----------|:---------|
+| `/releases` | `PUBLIC` | Maven, redeployment запрещён |
+| `/snapshots` | `PUBLIC` | Maven, redeployment разрешён |
+| `/private` | `PRIVATE` | Maven, требуется вход |
 
-## 3. Проверка работоспособности
+Cargo, Docker и `files` создаются явно в управлении. Docker images и Cargo names также явные ресурсы и создаются или
+публикуются впервые только после upstream name check. Maven требует проверенный domain из меню аккаунта.
+
+## Проверка здоровья
 
 ```bash
 curl -s http://localhost:3000/api/status/health
-# Ответ: "UP"
+# Output: "UP"
 ```
+
+Метрики protobuf доступны в `/api/status/instance`. Health показывает только ответ process; до production traffic
+проверьте базу и storage реальной аутентифицированной операцией.
+
+## Важные переменные
+
+| Переменная | По умолчанию | Назначение |
+|:-----------|:-------------|:-----------|
+| `RENOP_CONFIG` | `config.yaml` | Путь основной конфигурации |
+| `RENOP_REPOSITORIES` | `repositories.yaml` | Путь настройки репозиториев |
+| `RENOP_INDEX` | `index.json` | Путь snapshot файлового индекса |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | Генерируется один раз | Начальный пароль, если `admin` отсутствует |
+
+Аккаунты, sessions, teams, API Token, audit и messages находятся в базе и не имеют YAML path variables.
+
+## Следующие шаги
+
+- [Обзор конфигурации](../configuration/overview.md) — TLS, база, proxy, previews и updater
+- [Репозитории и зеркала](../configuration/repositories.md) — Engines, visibility, upstream, migration и S3
+- [Maven и Gradle](../guides/maven-client.md) — Проверка domain и JVM clients
+- [Cargo Registry](../guides/cargo-registry.md) — Создание репозитория и публикация crates
+- [Docker Registry](../guides/docker-registry.md) — Создание image до push и настройка клиента

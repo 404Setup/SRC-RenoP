@@ -9,7 +9,7 @@ description: Cargo Sparse Index endpoints, crate publishing, downloading, and ya
 
 RenoP implements the Cargo Registry and Sparse Index specifications.
 
-## 1. Sparse Index Configuration (`config.json`)
+## Sparse Index Configuration (`config.json`)
 
 - **Path**: `GET /{repo}/config.json` or `GET /{repo}/index/config.json`
 - **Description**: Read by Cargo on initial registry connection to discover endpoints.
@@ -26,14 +26,14 @@ RenoP implements the Cargo Registry and Sparse Index specifications.
 
 ---
 
-## 2. Sparse Index Metadata
+## Sparse Index Metadata
 
 - **Path**: `GET /{repo}/index/{prefix}/{crate_name}`
 - **Description**: Returns line-delimited JSON crate metadata following standard Cargo index sharding rules.
 
 ---
 
-## 3. Publish Crate
+## Publish Crate
 
 - **Path**: `PUT /{repo}/api/v1/crates/new`
 - **Auth**: Token required (`Authorization: <token>`)
@@ -43,14 +43,14 @@ RenoP implements the Cargo Registry and Sparse Index specifications.
 
 ---
 
-## 4. Download Crate
+## Download Crate
 
 - **Path**: `GET /{repo}/api/v1/crates/{crate_name}/{version}/download`
 - **Response**: `.crate` binary archive (`application/x-tar`).
 
 ---
 
-## 5. Yank & Unyank
+## Yank & Unyank
 
 - **Yank**: `DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank**: `PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`

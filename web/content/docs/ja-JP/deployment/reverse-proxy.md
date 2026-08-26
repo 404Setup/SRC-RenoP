@@ -10,7 +10,7 @@ description: Nginx と Caddy の TLS 終端、streaming、信頼済み client IP
 本番環境では TLS、routing、network protection のため RenoP を Nginx、Caddy、load balancer の背後に置きます。
 大きな upload や blob をメモリまたは disk に全量保持せず stream できる設定にしてください。
 
-## 1. Nginx
+## Nginx
 
 ```nginx
 server {
@@ -51,7 +51,7 @@ server {
 Docker の `Location`、`Range`、`Content-Range`、`Docker-Upload-UUID` header を保持します。大きな成果物を
 公開する場合、proxy 側の body limit を RenoP より小さくしないでください。
 
-## 2. Caddy
+## Caddy
 
 ```caddy
 renop.example.com {
@@ -63,7 +63,7 @@ renop.example.com {
 
 Caddy は TLS を自動管理します。`flush_interval -1` は streaming response の遅延を防ぎます。
 
-## 3. RenoP の信頼設定
+## RenoP の信頼設定
 
 公開 host と、自分で管理する proxy CIDR だけを設定します。
 

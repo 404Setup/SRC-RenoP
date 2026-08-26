@@ -7,7 +7,7 @@ description: User OpenPGP public key management and signature validation endpoin
 
 # GPG Cryptography API
 
-## 1. List User GPG Keys
+## List User GPG Keys
 
 - **Path**: `GET /api/auth/profile/gpg`
 - **Auth**: Required
@@ -29,7 +29,7 @@ description: User OpenPGP public key management and signature validation endpoin
 
 ---
 
-## 2. Register GPG Public Key
+## Register GPG Public Key
 
 - **Path**: `POST /api/auth/profile/gpg`
 - **Auth**: Required
@@ -43,7 +43,7 @@ description: User OpenPGP public key management and signature validation endpoin
 
 ---
 
-## 3. List Quarantined Artifacts
+## List Quarantined Artifacts
 
 - **Path**: `GET /api/auth/profile/gpg/releases`
 - **Description**: Lists uploaded artifacts currently held in the `.renop.tmp.gpg` quarantine queue awaiting signature

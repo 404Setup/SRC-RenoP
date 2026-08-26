@@ -10,7 +10,7 @@ description: Notifications, compteurs, actions de workflow et annonces administr
 Toutes les routes exigent une authentification. Les réponses utilisent protobuf par défaut et ne sont jamais mises en
 cache. Un API Token requiert `messages:read`; la composition exige aussi `admin:notifications` et le rôle administrateur.
 
-## 1. Lister ou effacer les messages
+## Lister ou effacer les messages
 
 - **Lister** : `GET /api/messages?limit=30&cursor=...`
 - **Effacer les messages résolus** : `DELETE /api/messages`
@@ -38,12 +38,12 @@ cache. Un API Token requiert `messages:read`; la composition exige aussi `admin:
 }
 ```
 
-## 2. Lire le nombre de messages non lus
+## Lire le nombre de messages non lus
 
 - **Chemin** : `GET /api/messages/unread-count`
 - **Réponse décodée** : `{"unread_count":3}`
 
-## 3. Marquer ou supprimer
+## Marquer ou supprimer
 
 ### Un message
 
@@ -56,7 +56,7 @@ cache. Un API Token requiert `messages:read`; la composition exige aussi `admin:
 - **Tout marquer comme lu** : `POST /api/messages/read-all`
 - La réponse indique le nombre de lignes modifiées.
 
-## 4. Envoyer une annonce administrateur
+## Envoyer une annonce administrateur
 
 - **Chercher les destinataires** : `GET /api/messages/admin/users?q=alice` renvoie au plus huit noms.
 - **Envoyer** : `POST /api/messages/admin`

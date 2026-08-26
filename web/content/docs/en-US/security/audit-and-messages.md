@@ -2,38 +2,41 @@
 title: Audit Logs & Message Center
 order: 3
 category: Security
-description: Security audit trails and user notification dispatch
+description: Durable behavior records, workflow notifications, and privacy boundaries
 ---
 
 # Audit Logs & Message Center
 
-RenoP records security-relevant events and provides a durable in-app message center for workflow notifications.
+Audit logs and user messages have different purposes. Audit records answer who performed a security-relevant action;
+messages present a localized result or workflow to the affected user. Both are durable database data.
 
-## 1. Security Audit Logs
+## Audit logs
 
-Sensitive administrative actions and authentication events are logged to the database:
+Audit writes use stable action identifiers from one backend registry. Frontend validation requires every registered
+action to have a translation in every supported locale.
 
-### Tracked Event Types
+### Recorded events
 
-- Successful and failed login attempts
-- Password changes and credential resets
-- User creation, role modifications, and deletions
-- Access token creation and revocations
-- Repository configuration changes
-- System updates and configuration reloads
+- login success/failure, password changes, recovery, and login-method changes;
+- API Token creation/revocation and session revocation;
+- user, role, repository, storage, proxy, and update administration;
+- Maven domain verification/team changes and Cargo/Docker package-team lifecycle;
+- uploads, deletes, GPG quarantine/publication, and other package mutations.
 
-Audit logs can be filtered by timestamp and action via the Web UI or API.
+Entries include subject, operator where applicable, authentication method, session public ID, client IP, time, and a
+bounded detail string. Retention and maximum rows are configured globally. Only authorized users can view or clear logs.
 
----
+## Message center
 
-## 2. User Message Center
+Messages support pagination, unread counts, per-message/all-read operations, deletion, and pending workflow actions.
 
-The message center dispatches notifications to users inside the Web console.
+### Message categories and privacy
 
-### Notification Categories
+- **Announcements**: Administrator messages to selected or all accounts.
+- **Workflow**: Team invitations, GPG outcomes, and other actions requiring a decision.
+- **Collaboration**: Package/domain membership changes and neutral removal notices.
+- **System results**: Update availability and durable failures; transient download/restart progress remains a toast.
 
-1. **System Announcements**: Broadcast messages from administrators.
-2. **Workflow Events**: Build completion notices, GPG signature verification results.
-3. **Collaboration**: Repository invitations and permission grant notifications.
-
-Users receive an unread message badge in the top navigation bar and can mark individual or all messages as read.
+A team-removal message identifies the repository and package or Maven domain but deliberately omits the operator.
+Update and workflow messages use dedupe keys so repeated checks do not flood the inbox. The unread count appears both in
+the account menu and next to the navigation avatar.

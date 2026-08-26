@@ -10,7 +10,7 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 浏览器认证使用 HttpOnly `renop_session` Cookie。个人资料与会话列表不会返回会话密钥，请求头和 URL 也不
 接受该密钥。私有安全设置接口仅接受浏览器会话，不接受密码或 API Token。
 
-## 1. 使用密码或邮箱登录
+## 使用密码或邮箱登录
 
 - **路径**：`POST /api/auth/login`
 - **认证**：无需认证。
@@ -30,7 +30,7 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 成功后设置带有 `HttpOnly`、`SameSite=Lax` 的 `renop_session`；检测到 HTTPS 时同时设置 `Secure`。protobuf
 `SessionDetails` 包含账号权限与路由，但 `session_token` 始终为空。
 
-## 2. Passkey 与 GitHub 登录
+## Passkey 与 GitHub 登录
 
 - **Passkey 开始**：`POST /api/auth/fido/login/begin`
 - **Passkey 完成**：`POST /api/auth/fido/login/finish`
@@ -41,7 +41,7 @@ description: 浏览器会话、个人资料、登录方式、恢复代码与会�
 只有管理员完成 OAuth 配置后才显示 GitHub 登录。RenoP 请求读取用户与组织，保存不可变 Provider ID 和当前
 Principal 快照，但不会持久化 OAuth Access Token。
 
-## 3. 当前账号与公开个人资料
+## 当前账号与公开个人资料
 
 - **当前会话**：`GET /api/auth/me`
 - **私有个人资料**：`GET /api/auth/profile`
@@ -54,7 +54,7 @@ Principal 快照，但不会持久化 OAuth Access Token。
 可见路由使用用户名，不可变用户 ID 保持内部使用。`HIDDEN` 存储库成员关系不会返回；私有成员关系只对有权
 查看者显示。
 
-## 4. 账号安全
+## 账号安全
 
 账号安全接口要求当前浏览器会话，并返回 `Cache-Control: no-store`。
 
@@ -80,7 +80,7 @@ Principal 快照，但不会持久化 OAuth Access Token。
 }
 ```
 
-## 5. 登录方式管理
+## 登录方式管理
 
 - **查询 Passkey**：`GET /api/auth/profile/fido`
 - **注册 Passkey**：先调用 `POST /api/auth/profile/fido/register/begin`，再调用
@@ -91,7 +91,7 @@ Principal 快照，但不会持久化 OAuth Access Token。
 
 最后一种可用登录方式不可删除或禁用。
 
-## 6. 浏览器会话
+## 浏览器会话
 
 - **查询**：`GET /api/auth/profile/sessions`
 - **撤销单个会话**：`DELETE /api/auth/profile/sessions/:session_id`

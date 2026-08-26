@@ -10,7 +10,7 @@ description: Account notifications, unread counts, workflow actions, and adminis
 Message routes require authentication. Responses use protobuf by default and are never cached. An API token needs
 `messages:read`; administrator composition additionally needs `admin:notifications` and the account's manager role.
 
-## 1. List or clear messages
+## List or clear messages
 
 - **List**: `GET /api/messages?limit=30&cursor=...`
 - **Clear resolved messages**: `DELETE /api/messages`
@@ -38,12 +38,12 @@ Message routes require authentication. Responses use protobuf by default and are
 }
 ```
 
-## 2. Read the unread count
+## Read the unread count
 
 - **Path**: `GET /api/messages/unread-count`
 - **Decoded response**: `{"unread_count":3}`
 
-## 3. Mark or delete messages
+## Mark or delete messages
 
 ### One message
 
@@ -56,7 +56,7 @@ Message routes require authentication. Responses use protobuf by default and are
 - **Mark all read**: `POST /api/messages/read-all`
 - The response includes the number of rows updated.
 
-## 4. Send an administrator announcement
+## Send an administrator announcement
 
 - **Find recipients**: `GET /api/messages/admin/users?q=alice` returns at most eight names.
 - **Send**: `POST /api/messages/admin`

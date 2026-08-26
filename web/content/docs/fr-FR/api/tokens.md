@@ -13,8 +13,8 @@ récupéré ensuite.
 
 Chaque requête doit satisfaire deux contrôles indépendants :
 
-1. le Token contient la capacité exigée par la route ;
-2. le compte propriétaire possède encore le droit d’effectuer l’opération sur la cible.
+- le Token contient la capacité exigée par la route ;
+- le compte propriétaire possède encore le droit d’effectuer l’opération sur la cible.
 
 Une modification de rôle, de dépôt ou d’équipe prend donc effet sans recréer les Token.
 

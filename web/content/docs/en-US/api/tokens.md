@@ -12,8 +12,8 @@ API tokens are durable machine credentials owned by one account. RenoP stores on
 
 Every request must pass two independent checks:
 
-1. The token must include the capability required by the endpoint.
-2. The owning account must still be allowed to perform that operation on the target resource.
+- The token must include the capability required by the endpoint.
+- The owning account must still be allowed to perform that operation on the target resource.
 
 Changing an account's role or package-team membership therefore takes effect without recreating its tokens.
 

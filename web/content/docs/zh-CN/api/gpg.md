@@ -7,7 +7,7 @@ description: OpenPGP 公钥管理与签名验证状态
 
 # GPG 加密 API
 
-## 1. 查询账号 GPG 公钥
+## 查询账号 GPG 公钥
 
 - **路径**：`GET /api/auth/profile/gpg`
 - **认证**：必须登录。
@@ -29,7 +29,7 @@ description: OpenPGP 公钥管理与签名验证状态
 
 ---
 
-## 2. 注册 GPG 公钥
+## 注册 GPG 公钥
 
 - **路径**：`POST /api/auth/profile/gpg`
 - **认证**：必须登录。
@@ -43,7 +43,7 @@ description: OpenPGP 公钥管理与签名验证状态
 
 ---
 
-## 3. 查询隔离中的发布
+## 查询隔离中的发布
 
 - **路径**：`GET /api/auth/profile/gpg/releases`
 - **用途**：列出 `.renop.tmp.gpg` 中等待分离签名、公钥验证或最终发布的制品。

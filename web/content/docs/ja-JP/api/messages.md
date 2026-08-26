@@ -10,7 +10,7 @@ description: アカウント通知、未読数、ワークフロー操作、管�
 すべてのルートで認証が必要です。レスポンスは既定で protobuf を使用し、キャッシュされません。API Token は
 `messages:read` が必要で、管理者送信には `admin:notifications` と管理者ロールも必要です。
 
-## 1. メッセージの一覧と消去
+## メッセージの一覧と消去
 
 - **一覧**: `GET /api/messages?limit=30&cursor=...`
 - **解決済みメッセージの消去**: `DELETE /api/messages`
@@ -38,12 +38,12 @@ description: アカウント通知、未読数、ワークフロー操作、管�
 }
 ```
 
-## 2. 未読数の取得
+## 未読数の取得
 
 - **パス**: `GET /api/messages/unread-count`
 - **デコード後のレスポンス**: `{"unread_count":3}`
 
-## 3. 既読化と削除
+## 既読化と削除
 
 ### 1 件
 
@@ -56,7 +56,7 @@ description: アカウント通知、未読数、ワークフロー操作、管�
 - **すべて既読化**: `POST /api/messages/read-all`
 - レスポンスには更新件数が含まれます。
 
-## 4. 管理者アナウンスの送信
+## 管理者アナウンスの送信
 
 - **宛先検索**: `GET /api/messages/admin/users?q=alice` は最大 8 件を返します。
 - **送信**: `POST /api/messages/admin`

@@ -31,11 +31,11 @@ se trouve dans `proto/api/v1/api.proto`.
 
 ## Transports d’authentification
 
-1. **Cookie navigateur** : `renop_session=<session_id>`. Ce secret HttpOnly n’est accepté ni dans les en-têtes ni dans
+- **Cookie navigateur** : `renop_session=<session_id>`. Ce secret HttpOnly n’est accepté ni dans les en-têtes ni dans
    les URL.
-2. **Jeton API Bearer** : `Authorization: Bearer <token>`. Les capacités du jeton sont toujours croisées avec les
+- **Jeton API Bearer** : `Authorization: Bearer <token>`. Les capacités du jeton sont toujours croisées avec les
    autorisations actuelles du compte.
-3. **Basic Auth pour les protocoles de paquets** : `Authorization: Basic <base64(user:password_or_token)>`.
+- **Basic Auth pour les protocoles de paquets** : `Authorization: Basic <base64(user:password_or_token)>`.
 
 Basic Auth ne peut pas appeler les API de gestion. Les identifiants dans les paramètres d’URL et
 `Authorization: Session` sont refusés.

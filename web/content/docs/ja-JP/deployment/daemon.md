@@ -9,7 +9,7 @@ description: --install と --uninstall による RenoP のネイティブサー�
 
 RenoP は外部 wrapper を使わず、自動起動する OS ネイティブサービスとして登録できます。
 
-## 1. コマンド
+## コマンド
 
 ```bash
 # Register and start as a system service
@@ -25,7 +25,7 @@ RenoP は外部 wrapper を使わず、自動起動する OS ネイティブサ�
 `--install` はバイナリの絶対パスを記録し、そのディレクトリを作業ディレクトリにします。`/opt/renop` や
 `C:\Program Files\RenoP` など、最終配置先から実行してください。
 
-## 2. 対応プラットフォーム
+## 対応プラットフォーム
 
 | OS | Service manager | 動作 |
 |:---|:----------------|:-----|
@@ -38,7 +38,7 @@ RenoP は外部 wrapper を使わず、自動起動する OS ネイティブサ�
 install/uninstall には管理権限が必要です。登録済みパスを維持するため、バイナリの移動や置換は正規の更新手順で
 実施してください。
 
-## 3. 日常操作
+## 日常操作
 
 ### Linux (systemd)
 

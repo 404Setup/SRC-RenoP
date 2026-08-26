@@ -10,7 +10,7 @@ description: SQLite、MySQL、PostgreSQL の接続と connection pool
 RenoP はアカウント、RBAC、API Token、セッション、監査、チーム、メッセージをデータベースに永続化します。
 `config.yaml` の `database` を設定してください。マイグレーションは起動時に自動適用されます。
 
-## 1. SQLite（既定）
+## SQLite（既定）
 
 SQLite は組み込みで、外部サービスを必要としません。
 
@@ -26,7 +26,7 @@ database:
 - `dsn` は相対または絶対ファイルパスです。
 - RenoP が schema を初期化し、並行アクセス用に WAL を有効化します。
 
-## 2. MySQL 8.0+
+## MySQL 8.0+
 
 外部管理データベースには MySQL を利用できます。
 
@@ -45,7 +45,7 @@ database:
 - `utf8mb4` と `utf8mb4_unicode_ci` または `utf8mb4_0900_ai_ci` を使用します。
 - RenoP schema の table 作成と変更権限が必要です。
 
-## 3. PostgreSQL
+## PostgreSQL
 
 PostgreSQL は `jackc/pgx/v5` driver を使用します。
 
@@ -65,7 +65,7 @@ database:
 
 本番環境では `sslmode=disable` ではなく、データベース提供元の方針に従って TLS を有効化してください。
 
-## 4. connection pool
+## connection pool
 
 | パラメーター            | 既定  | 説明                                      |
 |:------------------------|:------|:------------------------------------------|

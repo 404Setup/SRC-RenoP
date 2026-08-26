@@ -2,35 +2,35 @@
 title: インストールとビルド
 order: 2
 category: はじめに
-description: バイナリのダウンロード、マイクロアーキテクチャの選択、ソースコードからのビルド
+description: Brotli package、CPU tier、検証、source build
 ---
 
 # インストールとビルド
 
-## 1. ビルド済みバイナリのダウンロード
+## ビルド済みバイナリ
 
-Web の [ダウンロードページ](/download) または公式配布チャンネルから純 Brotli パッケージを取得できます：
+[ダウンロードセンター](/download)または公式 channel から raw Brotli package を取得します。
 
-- **安定版 (Stable)**: 本番環境推奨
-  `https://mvnc.pkg.one/update/renop/stable/`
-- **開発版 (Nightly)**: 最新機能を含む日次ビルド
-  `https://mvnc.pkg.one/update/renop/nightly/`
+- **Stable**: production 推奨 — `https://mvnc.pkg.one/update/renop/stable/`
+- **Nightly**: 最新変更を含む daily build — `https://mvnc.pkg.one/update/renop/nightly/`
 
-## 2. x86-64 マイクロアーキテクチャの選択
+新形式は RFC 7932 の `.br` stream です。ダウンロードセンターは browser 内で legacy ZIP に変換できます。
 
-RenoP は x86-64 CPU 向けに最適化されたビルドを提供しています：
+## x86-64 tier
 
-| レベル                 | 命令セット対応                      | 推奨シナリオ                                                    |
-|:-----------------------|:------------------------------------|:----------------------------------------------------------------|
-| **x86-64-v1**          | 基本 64bit x86 命令                 | すべての 64bit x86 CPU に対応。古いハードウェアや仮想マシン向け |
-| **x86-64-v2**          | SSE3, SSSE3, SSE4.1, SSE4.2, POPCNT | 2008年以降の主要な Intel / AMD プロセッサ                       |
-| **x86-64-v3** *(推奨)* | AVX, AVX2, BMI1, BMI2, FMA3         | Intel Haswell (2013+)、AMD Zen 2 (2019+) 以降。**本番環境推奨** |
-| **x86-64-v4**          | AVX-512 基本および拡張              | AVX-512 対応サーバー (Intel Skylake-X/Ice Lake, AMD Zen 4)      |
-| **ARM64**              | NEON, Crypto                        | Apple Silicon、AWS Graviton、64bit ARM Linux サーバー           |
+| Tier | Instruction | 推奨用途 |
+|:-----|:------------|:---------|
+| **x86-64-v1** | baseline x86-64 | 旧 server と generic VM |
+| **x86-64-v2** | SSE3, SSSE3, SSE4.1/4.2, POPCNT | 2008 年以降の一般 Intel/AMD |
+| **x86-64-v3** *(推奨)* | AVX, AVX2, BMI1/2, FMA3 | Intel Haswell、AMD Zen 2 以降 |
+| **x86-64-v4** | AVX-512 foundation | AVX-512 を確認済みの high-performance server |
+| **ARM64** | NEON, Crypto | Apple Silicon、Graviton、ARM64 Linux |
 
-## 3. 検証と実行
+CPU が実際に対応する tier を選びます。v3/v4 binary は古い CPU へ動的に fall back しません。
 
-各ターゲットの SHA-256 はチャンネルの `info.json` に記録されています。`.br` を展開する前に確認してください：
+## 検証と実行
+
+channel の `info.json` は各 target の SHA-256 を含みます。展開前に `.br` を検証します。
 
 ```bash
 # Linux
@@ -40,34 +40,52 @@ sha256sum -c SHA256SUMS --ignore-missing
 Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.br
 ```
 
-純 Brotli ストリームを `renop` または `renop.exe` に展開して実行します。ダウンロードページでは、
-新しい `.br` をブラウザー内だけで従来の ZIP 形式へ変換することもできます。
+raw stream を `renop` または `renop.exe` へ展開し、必要なら executable permission を付けて実行します。
 
 - **Linux / macOS**: `./renop`
 - **Windows**: `.\renop.exe`
 
-デフォルトで `0.0.0.0:3000` でリッスンします。初期起動時は [クイックスタート](./quickstart.md) を参照して管理者パスワードを設定してください。
+既定は `0.0.0.0:3000` です。初期 password は[クイックスタート](./quickstart.md)を参照してください。
 
-## 4. システムサービスへの登録
+## システムサービス登録
 
 ```bash
-# システムサービスとして登録（自動起動設定）
+# Install and register as an auto-starting system service
 ./renop --install
 
-# サービスを停止して削除
+# Stop and remove the system service
 ./renop --uninstall
 ```
 
-## 5. ソースからのビルド
+Windows SCM、systemd、OpenRC、LaunchDaemons、rc.d に対応します。
+[サービス管理](../deployment/daemon.md)を参照してください。
 
-- **Go コンパイラ**: [404Setup/go](https://github.com/404Setup/go/releases) 専用フォークが必要です。
-- **フロントエンドツール**: Node.js 18+ および pnpm。
-- **シェル環境**: PowerShell 7 (`pwsh`)。
+## source build
+
+必要な toolchain:
+
+- **Go**: [404Setup/go](https://github.com/404Setup/go/releases) fork、Go 1.28+
+- **Frontend**: Node.js 18+ と pnpm
+- **Script**: PowerShell 7 (`pwsh`)
+- **Protobuf**: `protoc` と `protoc-gen-go`
+
+### ビルドコマンド
 
 ```powershell
-# ビルドコマンド
+# 1. Point GOROOT to 404Setup/go
+$env:GOROOT = "D:\tools\go"
+$env:PATH = "$env:GOROOT\bin;$env:PATH"
+
+# 2. Install dependencies and compile frontend
 pnpm install --frozen-lockfile
 pnpm run build:frontend
-pwsh ./build.ps1 c nb    # 現在のプラットフォーム向け単一バイナリを出力
-pwsh ./build.ps1 c       # 現在のプラットフォーム向け純 Brotli パッケージ作成
+
+# 3. Compile binary
+pwsh ./build.ps1 c nb    # Current OS only, unzipped binary output
+pwsh ./build.ps1 c       # Current OS packaged as a raw Brotli stream
+pwsh ./build.ps1 s       # Mainstream platforms (Linux/Windows amd64/amd64v3/arm64)
+pwsh ./build.ps1         # Full cross-compilation matrix
 ```
+
+script は Brotli encoder CLI を自動 install します。compile は最大 4 task で、target 完了ごとに compression を
+開始し、独立した最大 8 worker で並列処理します。

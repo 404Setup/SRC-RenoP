@@ -2,55 +2,56 @@
 title: Tokens & GPG Signatures
 order: 2
 category: Security
-description: Fine-grained API tokens and OpenPGP signature verification
+description: Fine-grained machine credentials, recovery material, and OpenPGP publication verification
 ---
 
 # Tokens & GPG Signatures
 
-RenoP provides token-based authentication for automation pipelines and OpenPGP signature verification for artifact
-integrity.
+RenoP separates browser sessions, API Token, password authentication, recovery material, and artifact signing keys.
+They have different storage, transport, and revocation rules.
 
-## 1. Fine-grained API tokens
+## API Token and recovery material
 
-Create and revoke API tokens from the account profile. Each token has a private name, one or more capability scopes,
-and an optional expiration. The 256-bit secret is displayed once; only its SHA-256 digest is persisted.
+API Token use 256 random bits and an `rnp_pat_` prefix. The secret is shown once; only its SHA-256 lookup digest is
+stored. Each Token has a private label, one or more capability scopes, optional exact repository/package/team/domain
+targets, and an optional expiration. Accounts may own at most 50 Token and each Token at most 128 targets.
 
-Use the minimum scopes and shortest practical lifetime for each workstation or automation pipeline. A token authorizes
-an operation only while both conditions remain true:
+Use the least privilege and shortest practical lifetime. Authorization requires both the Token policy and its account's
+current system, repository, domain, or package-team permission. Revocation clears authentication caches immediately.
+Legacy plaintext upload tokens migrate to hashed compatibility credentials.
 
-1. The token carries the required capability scope.
-2. Its owning account still has the necessary system, repository, domain, or package-team permission.
+Browser session secrets are cookie-only. Basic credentials are package-protocol-only. API automation sends
+`Authorization: Bearer <token>`. Credentials in query strings are ignored or rejected.
 
-Administrator scopes are offered only to administrator accounts and do not preserve access after that role is removed.
-Revocation invalidates cached authentication immediately. Legacy plaintext upload tokens are migrated automatically to
-hashed `repository:read` and `repository:publish` credentials.
-
-Browser session secrets are accepted only through the HttpOnly `renop_session` cookie. Basic credentials are limited
-to standard package protocols. API automation should send a fine-grained token as `Authorization: Bearer <token>`;
-credentials in URL query parameters are not accepted.
+Recovery codes are separate from API Token. A generated set contains twelve one-time high-entropy codes; RenoP stores
+Argon2id verifiers. Four distinct unused codes reset the password atomically, consume those codes, revoke sessions, and
+re-enable password login. Store codes offline and replace the set after use or suspected disclosure.
 
 ---
 
-## 2. GPG Detached Signatures & Verification
+## Detached OpenPGP verification
 
-To verify that Maven artifacts have not been tampered with, RenoP supports detached OpenPGP (`.asc`) signature
-verification.
+Maven repositories can require a valid detached `.asc` signature before an artifact becomes visible. Users register
+public keys in their account; private keys never enter RenoP.
 
-### Enforcing GPG Signatures
-
-Set `require_gpg_signature: true` in `repositories.yaml`:
+### Enable verification
 
 ```yaml
 repositories:
   releases:
     name: releases
+    format: maven
     require_gpg_signature: true
 ```
 
-### Verification Flow
+### Publication flow
 
-1. An artifact (e.g. `mylib-1.0.0.jar`) is uploaded.
-2. If the `.asc` signature is missing, RenoP holds the artifact in the quarantine queue (`.renop.tmp.gpg`).
-3. When the matching `mylib-1.0.0.jar.asc` is uploaded, RenoP retrieves the corresponding public key from registered
-   keyservers or the user's profile and validates the cryptographic signature.
-4. Upon successful verification, the artifact and signature are released to the public repository.
+1. RenoP streams the artifact into `.renop.tmp.gpg` and creates a bounded pending release.
+2. The matching `.asc` may arrive before or after the artifact within the publication deadline.
+3. RenoP resolves an unambiguous registered fingerprint, verifies the signature and uploader authorization, and rechecks
+   repository/domain policy under the repository gate.
+4. A successful artifact/signature pair is committed atomically and its verified metadata is stored for the UI.
+5. Invalid, missing, expired, deleted, or unauthorized releases fail with a stable reason in audit/profile history.
+
+Key-server URLs must use HTTPS and are configured globally under `server.gpg.key_servers`. Outbound requests follow the
+selected proxy policy, use bounded clients, and never upload a private key.

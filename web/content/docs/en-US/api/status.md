@@ -10,12 +10,12 @@ description: Public health, runtime metrics, snapshots, and protected diagnostic
 Status responses use protobuf where noted. Health and runtime status are public; memory diagnostics require a manager
 and `server.debug_mode` enabled when the process starts.
 
-## 1. Health and frontend hash
+## Health and frontend hash
 
 - **Health**: `GET /api/status/health` returns `"UP"` while the process is serving.
 - **Frontend hash**: `GET /api/status/hash` returns the embedded asset hash used for reload detection.
 
-## 2. Current instance status
+## Current instance status
 
 - **Path**: `GET /api/status/instance`
 - **Format**: protobuf `InstanceStatus`.
@@ -40,7 +40,7 @@ and `server.debug_mode` enabled when the process starts.
 }
 ```
 
-## 3. Historical snapshots and diagnostics
+## Historical snapshots and diagnostics
 
 - **Snapshots**: `GET /api/status/snapshots` returns protobuf `StatusSnapshotList`. Samples contain timestamp, memory,
   goroutine, open-file, and VSS values.

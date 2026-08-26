@@ -12,7 +12,7 @@ sessions, audit logs, and message center notifications.
 
 Configure database options under the `database` section in `config.yaml`.
 
-## 1. SQLite (Default)
+## SQLite (Default)
 
 RenoP uses an embedded SQLite database out of the box with zero external configuration:
 
@@ -28,7 +28,7 @@ database:
 - `dsn` can be a relative or absolute path to the database file.
 - Automatically initializes schema tables and enables WAL mode for high concurrency.
 
-## 2. MySQL 8.0+
+## MySQL 8.0+
 
 For multi-instance deployments or enterprise environments:
 
@@ -47,7 +47,7 @@ database:
 - Database charset should be `utf8mb4` with collation `utf8mb4_unicode_ci` or `utf8mb4_0900_ai_ci`.
 - Schema migrations run automatically upon initial connection.
 
-## 3. PostgreSQL
+## PostgreSQL
 
 RenoP supports PostgreSQL via the `jackc/pgx/v5` driver:
 
@@ -67,7 +67,7 @@ PostgreSQL supports URI format or Key-Value format:
 - **URI**: `postgres://username:password@host:port/dbname?sslmode=disable`
 - **Key-Value**: `host=127.0.0.1 port=5432 user=renop_user password=password dbname=renop_db sslmode=disable`
 
-## 4. Connection Pool Parameters
+## Connection Pool Parameters
 
 | Parameter               | Default | Description                                                     |
 |:------------------------|:--------|:----------------------------------------------------------------|

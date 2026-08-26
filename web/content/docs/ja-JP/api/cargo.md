@@ -9,7 +9,7 @@ description: Sparse Index、crate の公開、ダウンロード、yank
 
 RenoP は Cargo Registry と Sparse Index の仕様を実装します。
 
-## 1. Sparse Index 設定 (`config.json`)
+## Sparse Index 設定 (`config.json`)
 
 - **パス**: `GET /{repo}/config.json` または `GET /{repo}/index/config.json`
 - **用途**: Cargo が初回接続時に読み、レジストリの API を検出します。
@@ -26,14 +26,14 @@ RenoP は Cargo Registry と Sparse Index の仕様を実装します。
 
 ---
 
-## 2. Sparse Index メタデータ
+## Sparse Index メタデータ
 
 - **パス**: `GET /{repo}/index/{prefix}/{crate_name}`
 - **用途**: Cargo 標準の crate 名シャーディングに従った行区切り JSON を返します。
 
 ---
 
-## 3. crate の公開
+## crate の公開
 
 - **パス**: `PUT /{repo}/api/v1/crates/new`
 - **認証**: `Authorization: <token>` の Token が必要です。
@@ -43,14 +43,14 @@ RenoP は Cargo Registry と Sparse Index の仕様を実装します。
 
 ---
 
-## 4. crate のダウンロード
+## crate のダウンロード
 
 - **パス**: `GET /{repo}/api/v1/crates/{crate_name}/{version}/download`
 - **レスポンス**: `application/x-tar` の `.crate` アーカイブです。
 
 ---
 
-## 5. yank と unyank
+## yank と unyank
 
 - **Yank**: `DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank**: `PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`

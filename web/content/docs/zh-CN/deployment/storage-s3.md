@@ -10,7 +10,7 @@ description: 本地文件系统与存储库独立的 S3 兼容对象存储
 RenoP 支持本地 Disk 与 S3 兼容对象服务。每个存储库独立选择后端；切换后端时，存储库门控会与活跃操作进行
 串行化。
 
-## 1. 本地文件系统
+## 本地文件系统
 
 根目录由 `config.yaml` 的 `storage_path` 配置，默认值为 `storage`。
 
@@ -30,7 +30,7 @@ RenoP 支持本地 Disk 与 S3 兼容对象服务。每个存储库独立选择�
 
 ---
 
-## 2. S3 兼容对象存储
+## S3 兼容对象存储
 
 S3 适合托管对象存储。多节点运行还需要外部数据库，以及符合 RenoP 保证范围的协调机制；仅使用 S3 不会
 将单个进程变成集群。
@@ -65,7 +65,7 @@ repositories:
 
 ### 下载方式
 
-1. **代理流式传输 (`redirect_downloads: false`)**：RenoP 完成授权后从 S3 流式返回数据。Bucket 可保持私有，
+- **代理流式传输 (`redirect_downloads: false`)**：RenoP 完成授权后从 S3 流式返回数据。Bucket 可保持私有，
    不会暴露 S3 URL。
-2. **直接跳转 (`redirect_downloads: true`)**：RenoP 完成授权后返回指向短时预签名 URL 的 `302 Found`，降低
+- **直接跳转 (`redirect_downloads: true`)**：RenoP 完成授权后返回指向短时预签名 URL 的 `302 Found`，降低
    RenoP 带宽占用。

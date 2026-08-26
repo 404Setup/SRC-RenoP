@@ -1,42 +1,46 @@
 ---
-title: 简介
+title: 项目介绍
 order: 1
 category: 快速开始
-description: RenoP 概述、支持协议与功能特性
+description: RenoP 是一套集成式自托管包发布平台
 ---
 
-# RenoP 简介
+# RenoP 项目介绍
 
-RenoP 是一个自托管的多协议软件包与制品仓库服务器。它使用 Go 语言开发，内嵌单页 Web 管理界面，旨在提供轻量、低依赖、易于部署的私有化制品托管服务。
+RenoP 是一套集成式、自托管的包发布与分发服务。其产品模型更接近私有化 Central，而不是仅提供 Maven 文件
+树的软件：单个 Go 进程内置管理界面、身份、团队、验证工作流、包目录、镜像、存储、审计与更新。
 
-## 支持的协议与生态
+## 支持的协议
 
-- **Maven / Gradle**：支持 Release、Snapshot、Private 仓库，遵循标准 Maven 目录布局，支持 Javadoc 在线预览与 GPG 签名校验。
-- **Cargo (Rust)**：支持 Cargo 稀疏索引（Sparse Index）协议、Crate 发布、下载、检索与撤回，支持 crates.io 镜像代理以及 Cargodoc
-  文档在线查看。
-- **Docker / OCI 镜像**：实现 OCI Distribution Spec v2 与 Docker Registry v2 规范，支持多架构镜像清单、分块 Blob 上传与上游镜像代理。
+- **Maven / Gradle**：全局已验证发布域、现代域目录、经典布局兼容、Maven 2 客户端路径、镜像、Javadoc 与
+  OpenPGP 分离签名校验。
+- **Cargo**：Sparse Index、显式包所有权、发布、搜索、yank/unyank、镜像与 Cargodoc。
+- **Docker / OCI**：Distribution v2、镜像预创建、私有镜像团队、分块 Blob、跨仓库挂载、多架构 Manifest 与镜像。
+- **Files**：支持覆盖与镜像的非结构化文件存储，不生成 Maven 元数据，也不执行签名工作流。
 
-## 存储与数据库支持
+## 存储与数据库
 
-- **存储后端**：支持本地文件系统存储，或连接 AWS S3、MinIO、Cloudflare R2、阿里云 OSS 等 S3 兼容对象存储。
-- **数据库**：内置 SQLite；同时支持外部 MySQL 8.0+ 与 PostgreSQL 数据库。
+- **存储**：流式本地 Disk，或存储库独立的 S3 兼容对象存储。
+- **数据库**：默认使用内嵌 SQLite，也支持外部 MySQL 与 PostgreSQL。
+- **一致性**：存储库门控协调上传、删除、镜像提交、GPG 发布及引擎/存储变更，不会将大型对象完整读入内存。
 
-## 核心特性
+## 核心能力
 
-| 特性               | 说明                                                                                              |
-|:-------------------|:--------------------------------------------------------------------------------------------------|
-| **单二进制部署**   | 无需额外安装运行环境，内置 Web 界面，开箱即用                                                     |
-| **上游镜像代理**   | 代理上游 Maven、Cargo 与 Docker 仓库，支持本地缓存、负缓存与按规则过滤                            |
-| **细粒度权限控制** | 支持基于角色的访问控制（RBAC）、仓库级权限（读/写/管理）与个人访问令牌（PAT）                     |
-| **系统服务守护**   | 内置 `--install` 与 `--uninstall` 命令，支持 Windows 服务、systemd、OpenRC、LaunchDaemons 与 rc.d |
-| **安全与防御**     | 支持 Detached GPG 签名验证、API 请求限流与异常 IP 拦截                                            |
+| 能力 | 说明 |
+|:-----|:-----|
+| **单一服务** | 内嵌前端与协议 API，无需独立应用运行时 |
+| **全局身份** | 使用用户名公开个人资料，内部使用不可变用户 ID |
+| **细粒度权限** | 存储库权限、L0-L4 包/域团队、可限定目标和有效期的 API Token |
+| **验证发布** | Maven 域所有权、上游名称冲突检查与可选 OpenPGP 隔离队列 |
+| **运维能力** | 原生系统服务、计划任务、持久审计/消息与原地更新 |
+| **安全防护** | 有界流式处理、速率限制、异常封禁、可信代理与沙箱文档预览 |
 
-## 快速导航
+## 文档导航
 
-- [安装指南](./install.md) — 预编译包下载、微架构选择与编译方法
-- [快速开始](./quickstart.md) — 启动服务、初始化管理员密码与默认仓库
-- [系统架构](./architecture.md) — 内部模块与核心设计说明
-- [配置说明](../configuration/overview.md) — 配置文件与环境变量
-- [Maven 客户端](../guides/maven-client.md) — Maven 与 Gradle 接入配置
-- [Cargo 注册源](../guides/cargo-registry.md) — Rust / Cargo 接入配置
-- [Docker 镜像库](../guides/docker-registry.md) — Docker 与 Podman 接入配置
+- [安装](./install.md) — 发布包、平台选择与源码构建
+- [快速开始](./quickstart.md) — 首次启动、管理员与存储库创建
+- [系统架构](./architecture.md) — 模块、授权、存储与异步任务
+- [配置概览](../configuration/overview.md) — 已校验设置与环境变量
+- [Maven 与 Gradle](../guides/maven-client.md) — 已验证域与 JVM 客户端
+- [Cargo](../guides/cargo-registry.md) — Sparse Registry 与 crate 生命周期
+- [Docker 与 OCI](../guides/docker-registry.md) — 镜像预创建、登录、推送与拉取

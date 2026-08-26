@@ -10,7 +10,7 @@ description: Registering RenoP as a native system service using --install and --
 RenoP includes native operating system service management commands, allowing it to be registered as an auto-starting
 background service without third-party wrappers.
 
-## 1. Commands
+## Commands
 
 ```bash
 # Register and start as a system service
@@ -26,7 +26,7 @@ background service without third-party wrappers.
 Running `--install` records the absolute path to the binary and sets its directory as the working directory. Execute
 this command inside your permanent deployment directory (e.g. `/opt/renop` or `C:\Program Files\RenoP`).
 
-## 2. Platform Support
+## Platform Support
 
 | Operating System          | Service Manager       | Details                                                                                 |
 |:--------------------------|:----------------------|:----------------------------------------------------------------------------------------|
@@ -36,7 +36,7 @@ this command inside your permanent deployment directory (e.g. `/opt/renop` or `C
 | **macOS**                 | launchd               | Creates and loads `/Library/LaunchDaemons/one.pkg.renop.plist`                          |
 | **BSD (FreeBSD/OpenBSD)** | rc.d                  | Generates rc.d service scripts                                                          |
 
-## 3. Service Operations
+## Service Operations
 
 ### Linux (systemd)
 

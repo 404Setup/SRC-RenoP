@@ -7,7 +7,7 @@ description: Downloading binaries, microarchitecture selection, and building fro
 
 # Installation & Build
 
-## 1. Download Prebuilt Binaries
+## Download Prebuilt Binaries
 
 You can download prebuilt raw Brotli packages directly from the web [Download Center](/download) or from official
 distribution channels:
@@ -17,7 +17,7 @@ distribution channels:
 - **Nightly Channel**: Daily builds containing the latest features and fixes.
   `https://mvnc.pkg.one/update/renop/nightly/`
 
-## 2. x86-64 Microarchitecture Tiers
+## x86-64 Microarchitecture Tiers
 
 RenoP offers tiered x86-64 builds targeting specific CPU instruction sets:
 
@@ -29,7 +29,7 @@ RenoP offers tiered x86-64 builds targeting specific CPU instruction sets:
 | **x86-64-v4**                 | AVX-512 foundation and extensions   | High-performance servers with AVX-512 support (Intel Skylake-X/Ice Lake, AMD Zen 4)      |
 | **ARM64**                     | NEON, Crypto                        | Apple Silicon (M series), AWS Graviton, and 64-bit ARM Linux servers                     |
 
-## 3. Verification & Execution
+## Verification & Execution
 
 Every target in the channel `info.json` includes a SHA-256 digest. Verify the downloaded `.br` package before decompression:
 
@@ -49,7 +49,7 @@ convert a new `.br` package to the legacy ZIP layout entirely in the browser.
 
 The service listens on `0.0.0.0:3000` by default. See [Quickstart](./quickstart.md) for initial admin password setup.
 
-## 4. Registering as a System Service
+## Registering as a System Service
 
 RenoP includes cross-platform service management capabilities:
 
@@ -64,7 +64,7 @@ RenoP includes cross-platform service management capabilities:
 Supported service managers include Windows SCM, Linux systemd/OpenRC, macOS LaunchDaemons, and BSD rc.d.
 See [System Service Management](../deployment/daemon.md) for details.
 
-## 5. Building from Source
+## Building from Source
 
 To compile RenoP from source, ensure you have the following prerequisites:
 

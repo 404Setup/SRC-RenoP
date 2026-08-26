@@ -20,7 +20,7 @@ API が暗黙にイメージを作ることはありません。非公開イメ�
 管理 API は可読本文と `X-Renop-Error-Code` を返し、UI は生の本文ではなくコードを翻訳します。OCI API は
 仕様で定められた `errors` 構造を使用します。
 
-## 1. バージョン確認
+## バージョン確認
 
 - **パス**: `GET /v2/` または `HEAD /v2/`
 - **レスポンス**:
@@ -30,7 +30,7 @@ API が暗黙にイメージを作ることはありません。非公開イメ�
 
 ---
 
-## 2. Bearer Token 認証
+## Bearer Token 認証
 
 - **パス**: `GET /v2/token` または `GET /v2/auth`
 - **用途**: Basic Auth を短期 Docker Token に交換します。API Token は pull に `repository:read`、push に
@@ -39,7 +39,7 @@ API が暗黙にイメージを作ることはありません。非公開イメ�
 
 ---
 
-## 3. カタログとタグ
+## カタログとタグ
 
 ### イメージ一覧
 
@@ -53,7 +53,7 @@ API が暗黙にイメージを作ることはありません。非公開イメ�
 
 ---
 
-## 4. manifest 操作
+## manifest 操作
 
 - **取得**: `GET /v2/:name/manifests/:reference`
 - **公開**: `PUT /v2/:name/manifests/:reference`（作成済みイメージと L1 以上が必要）
@@ -61,7 +61,7 @@ API が暗黙にイメージを作ることはありません。非公開イメ�
 
 ---
 
-## 5. blob 操作
+## blob 操作
 
 - **確認**: `HEAD /v2/:name/blobs/:digest`
 - **ダウンロード**: `GET /v2/:name/blobs/:digest`

@@ -10,12 +10,12 @@ description: 公開ヘルス、実行時メトリクス、スナップショッ�
 明記されたレスポンスは protobuf です。ヘルスと現在状態は公開されます。メモリ診断には管理者権限と、
 プロセス開始時から有効な `server.debug_mode` が必要です。
 
-## 1. ヘルスとフロントエンドハッシュ
+## ヘルスとフロントエンドハッシュ
 
 - **ヘルス**: `GET /api/status/health` はプロセスが応答中なら `"UP"` を返します。
 - **ハッシュ**: `GET /api/status/hash` は再読込検出に使う埋め込みアセットハッシュを返します。
 
-## 2. 現在のインスタンス状態
+## 現在のインスタンス状態
 
 - **パス**: `GET /api/status/instance`
 - **形式**: protobuf `InstanceStatus`。
@@ -39,7 +39,7 @@ description: 公開ヘルス、実行時メトリクス、スナップショッ�
 }
 ```
 
-## 3. 履歴スナップショットと診断
+## 履歴スナップショットと診断
 
 - **スナップショット**: `GET /api/status/snapshots` は時刻、メモリ、goroutine、open file、VSS を含む
   `StatusSnapshotList` を返します。

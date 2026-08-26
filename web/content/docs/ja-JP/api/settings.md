@@ -10,12 +10,12 @@ description: ドメイン別サービス設定、リポジトリ管理、イン�
 設定ルートには管理者、または操作に応じて `admin:settings` や `admin:repositories` を持つ API Token が
 必要です。`proto/api/v1/api.proto` で定義されたレスポンスは protobuf を使用します。
 
-## 1. 設定ドメインの取得
+## 設定ドメインの取得
 
 - **パス**: `GET /api/settings/domains`
 - **レスポンス**: `server`、`proxy`、`storage`、`updater`、`index` など、サーバーが対応する安定名です。
 
-## 2. ドメインの読み取りと更新
+## ドメインの読み取りと更新
 
 - **読み取り**: `GET /api/settings/domain/:name`
 - **更新**: `PUT /api/settings/domain/:name`
@@ -24,7 +24,7 @@ description: ドメイン別サービス設定、リポジトリ管理、イン�
 - **GitHub OAuth**: `GET /api/settings/github-oauth` はマスク済み状態を返し、
   `PUT /api/settings/github-oauth` は Client ID と書き込み専用 Secret を更新します。
 
-## 3. リポジトリ設定
+## リポジトリ設定
 
 通常は `/api/settings/repositories` を使用します。Maven プレフィックス付きルートは互換性のため残ります。
 
@@ -40,7 +40,7 @@ description: ドメイン別サービス設定、リポジトリ管理、イン�
 - **Maven/files 移行**: `POST /api/settings/repositories/:name/migrate/:target`。`:target` は `maven` または
   `files` です。保存済みオブジェクトは移動せず、Maven に戻す際にカタログを再構築します。
 
-## 4. 検索インデックスの再構築
+## 検索インデックスの再構築
 
 - **パス**: `POST /api/settings/index/rebuild`
 - **動作**: 統合可能なバックグラウンド再構築を投入し、同じ処理を並行起動しません。

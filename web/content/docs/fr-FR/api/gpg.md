@@ -7,7 +7,7 @@ description: Gestion des clés publiques OpenPGP et suivi des validations de sig
 
 # API de cryptographie GPG
 
-## 1. Lister les clés GPG du compte
+## Lister les clés GPG du compte
 
 - **Chemin** : `GET /api/auth/profile/gpg`
 - **Authentification** : requise.
@@ -29,7 +29,7 @@ description: Gestion des clés publiques OpenPGP et suivi des validations de sig
 
 ---
 
-## 2. Enregistrer une clé publique
+## Enregistrer une clé publique
 
 - **Chemin** : `POST /api/auth/profile/gpg`
 - **Authentification** : requise.
@@ -43,7 +43,7 @@ description: Gestion des clés publiques OpenPGP et suivi des validations de sig
 
 ---
 
-## 3. Lister les publications en quarantaine
+## Lister les publications en quarantaine
 
 - **Chemin** : `GET /api/auth/profile/gpg/releases`
 - **Usage** : liste les artefacts conservés dans `.renop.tmp.gpg` en attente de leur signature détachée, de la validation

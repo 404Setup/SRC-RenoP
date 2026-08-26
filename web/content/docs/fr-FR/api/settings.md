@@ -10,12 +10,12 @@ description: Paramètres de service par domaine, dépôts et reconstruction d’
 Les routes exigent un compte administrateur ou un API Token avec `admin:settings` ou `admin:repositories`, selon
 l’opération. Les réponses utilisent protobuf lorsque `proto/api/v1/api.proto` le prévoit.
 
-## 1. Découvrir les domaines de paramètres
+## Découvrir les domaines de paramètres
 
 - **Chemin** : `GET /api/settings/domains`
 - **Réponse** : noms stables pris en charge, notamment `server`, `proxy`, `storage`, `updater` et `index`.
 
-## 2. Lire et modifier un domaine
+## Lire et modifier un domaine
 
 - **Lire** : `GET /api/settings/domain/:name`
 - **Modifier** : `PUT /api/settings/domain/:name`
@@ -24,7 +24,7 @@ l’opération. Les réponses utilisent protobuf lorsque `proto/api/v1/api.proto
 - **GitHub OAuth** : `GET /api/settings/github-oauth` renvoie un état masqué et `PUT /api/settings/github-oauth` modifie
   l’identifiant client et le secret en écriture seule.
 
-## 3. Paramètres des dépôts
+## Paramètres des dépôts
 
 Préférez `/api/settings/repositories`. Les alias préfixés par Maven restent disponibles pour compatibilité.
 
@@ -40,7 +40,7 @@ Préférez `/api/settings/repositories`. Les alias préfixés par Maven restent 
 - **Migrer Maven/files** : `POST /api/settings/repositories/:name/migrate/:target`, avec `maven` ou `files`. Les objets
   ne sont pas déplacés ; le catalogue Maven est reconstruit lors du retour vers Maven.
 
-## 4. Reconstruire l’index de recherche
+## Reconstruire l’index de recherche
 
 - **Chemin** : `POST /api/settings/index/rebuild`
 - **Comportement** : soumet une reconstruction fusionnée en arrière-plan, sans lancer deux tâches concurrentes.

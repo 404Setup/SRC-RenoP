@@ -2,17 +2,14 @@
 title: Quickstart
 order: 3
 category: Getting Started
-description: Initial startup, administrator password setup, and default repository endpoints
+description: First startup, administrator bootstrap, health checks, and repository creation
 ---
 
 # Quickstart
 
-## 1. Initial Boot
+## Start the server
 
-Upon initial startup, RenoP automatically initializes the default security context and creates the super-administrator
-account `admin`.
-
-Set the administrator password beforehand via an environment variable:
+On the first startup, RenoP creates the `admin` super-administrator in the database. Set its password explicitly:
 
 ```bash
 # Linux / macOS
@@ -23,50 +20,49 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 .\renop.exe
 ```
 
-If this environment variable is not set, RenoP will generate a random secure password and print it to stdout during
-startup.
+Without the variable, RenoP generates a random password and prints it once to stdout. Store it immediately, then open
+`http://localhost:3000`. The service binds `0.0.0.0:3000` by default; use TLS or a trusted reverse proxy in production.
 
-Once started, navigate to `http://localhost:3000` in your web browser.
+## Default and new repositories
 
-## 2. Default Repository Endpoints
+The initial `repositories.yaml` contains three backward-compatible Maven repositories:
 
-RenoP initializes the following default repositories:
+| Path | Visibility | Policy |
+|:-----|:-----------|:-------|
+| `/releases` | `PUBLIC` | Maven, redeployment disabled |
+| `/snapshots` | `PUBLIC` | Maven, redeployment enabled |
+| `/private` | `PRIVATE` | Maven, authentication required |
 
-| Endpoint URL                      | Visibility | Purpose                                                     |
-|:----------------------------------|:-----------|:------------------------------------------------------------|
-| `http://localhost:3000/releases`  | `PUBLIC`   | Maven release repository (redeployment disabled by default) |
-| `http://localhost:3000/snapshots` | `PUBLIC`   | Maven snapshot repository (redeployment enabled)            |
-| `http://localhost:3000/private`   | `PRIVATE`  | Maven private repository (authentication required)          |
+Create Cargo, Docker, or `files` repositories explicitly from repository management. Docker images and Cargo package
+names are also explicit resources: create or first-publish them only after upstream name checks succeed. Maven
+publication additionally requires a verified domain from the account menu.
 
-Cargo and Docker endpoints are also ready out of the box:
-
-- Cargo Index: `http://localhost:3000/index/` (or repository-specific paths)
-- Docker Registry: `http://localhost:3000/v2/`
-
-## 3. Health Probes
-
-Verify that the service is running using the health probe endpoint:
+## Verify health
 
 ```bash
 curl -s http://localhost:3000/api/status/health
 # Output: "UP"
 ```
 
-## 4. Key Environment Variables
+Use `/api/status/instance` for protobuf runtime metrics. A successful health probe confirms only that the process is
+serving; verify the database and configured storage with a real authenticated operation before accepting production
+traffic.
 
-| Variable                       | Default Value       | Description                                            |
-|:-------------------------------|:--------------------|:-------------------------------------------------------|
-| `RENOP_CONFIG`                 | `config.yaml`       | Primary server configuration file                      |
-| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repository and mirror configurations                   |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | Initial users and static tokens (migrated to database) |
-| `RENOP_INDEX`                  | `index.json`        | Search index cache file                                |
-| `RENOP_SESSIONS`               | `sessions.bin`      | Binary session storage file                            |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | *(Generated)*       | Initial administrator password                         |
+## Important environment variables
 
-## 5. Next Steps
+| Variable | Default | Purpose |
+|:---------|:--------|:--------|
+| `RENOP_CONFIG` | `config.yaml` | Main configuration path |
+| `RENOP_REPOSITORIES` | `repositories.yaml` | Repository configuration path |
+| `RENOP_INDEX` | `index.json` | Persisted file-index snapshot path |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | Generated once | Initial `admin` password when the account does not exist |
 
-- [Configuration Overview](../configuration/overview.md) — Server settings, TLS, databases, and storage
-- [Repositories & Mirrors](../configuration/repositories.md) — Custom repositories, caching rules, and S3 backends
-- [Maven & Gradle Guide](../guides/maven-client.md) — Client integration for Java/Kotlin builds
-- [Cargo Registry Guide](../guides/cargo-registry.md) — Rust / Cargo registry configuration
-- [Docker Registry Guide](../guides/docker-registry.md) — Docker and Podman image management
+Accounts, sessions, teams, API tokens, audit logs, and messages are database data and have no YAML path variables.
+
+## Next steps
+
+- [Configuration Overview](../configuration/overview.md) — TLS, database, proxy, previews, and updater
+- [Repositories & Mirrors](../configuration/repositories.md) — Engines, visibility, upstreams, migration, and S3
+- [Maven & Gradle](../guides/maven-client.md) — Verify a publishing domain and configure JVM clients
+- [Cargo Registry](../guides/cargo-registry.md) — Create a Cargo repository and publish crates
+- [Docker Registry](../guides/docker-registry.md) — Create images before push and configure Docker or Podman

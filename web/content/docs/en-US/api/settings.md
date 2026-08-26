@@ -10,13 +10,13 @@ description: Domain-based service settings, repository management, and index reb
 All settings routes require a manager account or an API token with `admin:settings` or `admin:repositories`, according
 to the operation. Responses use protobuf where defined in `proto/api/v1/api.proto`.
 
-## 1. Discover setting domains
+## Discover setting domains
 
 - **Path**: `GET /api/settings/domains`
 - **Response**: Stable domain names currently supported by the server, including `server`, `proxy`, `storage`,
   `updater`, and `index`.
 
-## 2. Read and update one domain
+## Read and update one domain
 
 - **Read**: `GET /api/settings/domain/:name`
 - **Update**: `PUT /api/settings/domain/:name`
@@ -25,7 +25,7 @@ to the operation. Responses use protobuf where defined in `proto/api/v1/api.prot
 - **GitHub OAuth**: `GET /api/settings/github-oauth` reads redacted state and `PUT /api/settings/github-oauth` updates the
   client ID and write-only secret.
 
-## 3. Repository settings
+## Repository settings
 
 The generic `/api/settings/repositories` routes are preferred. Maven-prefixed aliases remain for compatibility.
 
@@ -41,7 +41,7 @@ The generic `/api/settings/repositories` routes are preferred. Maven-prefixed al
 - **Migrate Maven/files**: `POST /api/settings/repositories/:name/migrate/:target`, where `:target` is `maven` or
   `files`. Stored objects remain in place while the Maven catalog is rebuilt when returning to Maven.
 
-## 4. Rebuild the search index
+## Rebuild the search index
 
 - **Path**: `POST /api/settings/index/rebuild`
 - **Behavior**: Submits a coalesced background rebuild. A concurrent rebuild is not started twice.

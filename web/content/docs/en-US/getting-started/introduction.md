@@ -2,46 +2,48 @@
 title: Introduction
 order: 1
 category: Getting Started
-description: Overview of RenoP multi-protocol package repository server
+description: RenoP as an integrated self-hosted package publication platform
 ---
 
 # Introduction to RenoP
 
-RenoP is a self-hosted multi-protocol package and artifact repository server. Written in Go with an embedded single-page
-Web management interface, RenoP provides a lightweight, dependency-free, and easy-to-operate solution for private
-artifact hosting.
+RenoP is an integrated, self-hosted package publication and distribution server. Its model is closer to a private
+Central-style service than to a Maven-only repository: one Go process embeds the management UI, identity, teams,
+verification workflows, package catalogs, mirrors, storage, audit, and updates.
 
-## Supported Protocols & Ecosystems
+## Supported protocols
 
-- **Maven / Gradle**: Supports Release, Snapshot, and Private repositories following standard Maven repository layouts,
-  complete with Javadoc preview and GPG signature verification.
-- **Cargo (Rust)**: Supports the modern Cargo Sparse Index protocol (`sparse+http(s)://`), crate publishing,
-  downloading, search, yanking, crates.io mirror proxying, and Cargodoc online documentation viewing.
-- **Docker / OCI Registry**: Complies with OCI Distribution Spec v2 and Docker Registry v2, supporting
-  multi-architecture manifest lists, chunked blob uploads, and upstream registry mirrors.
+- **Maven / Gradle**: Verified global publishing domains, modern domain catalogs, classic layout compatibility, Maven 2
+  client paths, mirrors, Javadoc, and detached OpenPGP verification.
+- **Cargo**: Sparse Index, explicit package ownership, publication, search, yank/unyank, mirrors, and Cargodoc.
+- **Docker / OCI**: Distribution v2, explicit image reservation, private image teams, chunked blobs, cross-repository
+  mounts, multi-architecture manifests, and upstream mirrors.
+- **Files**: Unstructured replaceable file storage with mirrors and no generated Maven metadata or signature workflow.
 
-## Storage & Database Backends
+## Storage and databases
 
-- **Storage**: Local filesystem storage or S3-compatible object storage (AWS S3, MinIO, Cloudflare R2, Aliyun OSS,
-  Tencent COS).
-- **Database**: Embedded SQLite by default, with native support for external MySQL 8.0+ and PostgreSQL.
+- **Storage**: Streaming local Disk or repository-specific S3-compatible object storage.
+- **Database**: Embedded SQLite by default, with external MySQL and PostgreSQL support.
+- **Consistency**: Repository gates coordinate uploads, deletes, mirror commits, GPG publication, and engine/storage
+  changes without reading large objects fully into memory.
 
-## Core Features
+## Core capabilities
 
-| Feature                  | Description                                                                                                    |
-|:-------------------------|:---------------------------------------------------------------------------------------------------------------|
-| **Single Binary**        | Zero runtime dependencies; includes the embedded Web UI for instant startup                                    |
-| **Upstream Mirroring**   | Transparent proxying for Maven, Cargo, and Docker with positive/negative caching and coordinate rules          |
-| **Granular RBAC**        | Role-based access control, repository-level permissions (read/write/admin), and Personal Access Tokens         |
-| **Daemon Lifecycle**     | Built-in `--install` and `--uninstall` commands for Windows Services, systemd, OpenRC, LaunchDaemons, and rc.d |
-| **Security & Hardening** | Detached OpenPGP signature verification, sliding-window rate limiting, and anomaly IP bans                     |
+| Capability | Description |
+|:-----------|:------------|
+| **Single service** | Embedded frontend and protocol APIs with no separate application runtime |
+| **Global identity** | Username-based public profiles backed by immutable internal user IDs |
+| **Granular access** | Repository permissions, L0-L4 package/domain teams, scoped and expiring API tokens |
+| **Verified publishing** | Maven domain ownership, upstream name-conflict checks, and optional OpenPGP quarantine |
+| **Operations** | Native service installation, scheduled maintenance, durable audit/messages, and in-place updates |
+| **Defense** | Bounded streaming, rate limits, anomaly bans, trusted-proxy validation, and sandboxed documentation viewers |
 
-## Documentation Navigation
+## Documentation map
 
-- [Installation Guide](./install.md) — Prebuilt binaries, microarchitecture tiers, and source compilation
-- [Quickstart](./quickstart.md) — Bootstrapping, admin credentials, and default endpoints
-- [System Architecture](./architecture.md) — Internal modules and request lifecycle
-- [Configuration Overview](../configuration/overview.md) — Configuration files and environment variables
-- [Maven & Gradle Guide](../guides/maven-client.md) — Client integration for Maven and Gradle
-- [Cargo Registry Guide](../guides/cargo-registry.md) — Rust / Cargo registry configuration
-- [Docker Registry Guide](../guides/docker-registry.md) — Docker and Podman integration
+- [Installation](./install.md) — Release packages, platform selection, and source builds
+- [Quickstart](./quickstart.md) — First startup, administrator bootstrap, and repository creation
+- [Architecture](./architecture.md) — Modules, authorization, storage, and asynchronous work
+- [Configuration](../configuration/overview.md) — Validated settings and environment overrides
+- [Maven & Gradle](../guides/maven-client.md) — Verified domains and JVM client setup
+- [Cargo](../guides/cargo-registry.md) — Sparse registry and crate lifecycle
+- [Docker & OCI](../guides/docker-registry.md) — Image reservation, authentication, push, and pull

@@ -10,7 +10,7 @@ description: リポジトリ単位のローカルファイルと S3 互換 objec
 RenoP はローカル disk と S3 互換 object service に対応します。各リポジトリが backend を選択し、変更時は
 repository gate が進行中操作と直列化します。
 
-## 1. ローカルファイルシステム
+## ローカルファイルシステム
 
 ルートは `config.yaml` の `storage_path` で、既定は `storage` です。
 
@@ -30,7 +30,7 @@ repository gate が進行中操作と直列化します。
 
 ---
 
-## 2. S3 互換 object storage
+## S3 互換 object storage
 
 S3 は managed object storage に適します。multi-node には外部 DB と RenoP の保証に沿った coordination も
 必要で、S3 だけで単一 process が cluster になるわけではありません。
@@ -65,7 +65,7 @@ manager を使い、Git リポジトリへ鍵を commit しないでください
 
 ### ダウンロード方式
 
-1. **Proxy streaming (`redirect_downloads: false`)**: RenoP が認可後に S3 から client へ stream します。
+- **Proxy streaming (`redirect_downloads: false`)**: RenoP が認可後に S3 から client へ stream します。
    bucket を非公開に保ち、S3 URL を隠せます。
-2. **Direct redirect (`redirect_downloads: true`)**: 認可後に短期 presigned URL への `302 Found` を返し、
+- **Direct redirect (`redirect_downloads: true`)**: 認可後に短期 presigned URL への `302 Found` を返し、
    RenoP の帯域使用を減らします。

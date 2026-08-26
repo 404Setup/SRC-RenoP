@@ -2,110 +2,82 @@
 title: Maven & Gradle
 order: 1
 category: Guides
-description: Configuring Maven, Gradle, and sbt for dependency resolution and publishing
+description: Verifying a publishing domain and configuring Maven and Gradle clients
 ---
 
 # Maven & Gradle Client Configuration
 
-This guide demonstrates how to configure Maven, Gradle, and other JVM build tools to resolve dependencies from and
-deploy artifacts to RenoP.
+Create a Maven repository, then create and verify the artifact's reverse-domain namespace from the account menu. The
+domain and its L0-L4 team are global across Maven repositories. Reads use repository visibility; publication requires
+both repository write permission and the domain's publication level.
 
-## 1. Maven Configuration
+For automation, prefer an expiring API token with `repository:read` and/or `repository:publish`. Use the account name as
+the Basic username and the token as its password.
 
-### Dependency Resolution (`pom.xml`)
+## Maven
 
-Add `<repositories>` to your `pom.xml`:
+### Dependency resolution (`pom.xml`)
 
 ```xml
 <repositories>
     <repository>
         <id>renop-releases</id>
         <name>RenoP Releases</name>
-        <url>http://localhost:3000/releases</url>
-        <releases>
-            <enabled>true</enabled>
-        </releases>
-        <snapshots>
-            <enabled>false</enabled>
-        </snapshots>
-    </repository>
-    <repository>
-        <id>renop-snapshots</id>
-        <name>RenoP Snapshots</name>
-        <url>http://localhost:3000/snapshots</url>
-        <releases>
-            <enabled>false</enabled>
-        </releases>
-        <snapshots>
-            <enabled>true</enabled>
-        </snapshots>
+        <url>https://packages.example.com/releases</url>
+        <releases><enabled>true</enabled></releases>
+        <snapshots><enabled>false</enabled></snapshots>
     </repository>
 </repositories>
 ```
 
-### Deployment Target (`pom.xml`)
+Use a second repository entry for snapshots when required. `HIDDEN` repositories resolve by exact URL but do not appear
+in discovery; `PRIVATE` repositories require credentials for reads.
 
-Configure `<distributionManagement>` for `mvn deploy`:
+### Deployment target (`pom.xml`)
 
 ```xml
 <distributionManagement>
     <repository>
         <id>renop-releases</id>
         <name>RenoP Releases</name>
-        <url>http://localhost:3000/releases</url>
+        <url>https://packages.example.com/releases</url>
     </repository>
-    <snapshotRepository>
-        <id>renop-snapshots</id>
-        <name>RenoP Snapshots</name>
-        <url>http://localhost:3000/snapshots</url>
-    </snapshotRepository>
 </distributionManagement>
 ```
 
-### Server Credentials (`~/.m2/settings.xml`)
+The `groupId` must fall under a verified domain controlled by the publisher. Classic and modern Maven layouts use the
+same client URL and publication rules.
 
-Store server credentials in your local `settings.xml`. The `<id>` must match the repository IDs defined in your
-`pom.xml`:
+### Credentials (`~/.m2/settings.xml`)
 
 ```xml
 <settings>
     <servers>
         <server>
             <id>renop-releases</id>
-            <username>admin</username>
-            <password>your_password_or_token</password>
-        </server>
-        <server>
-            <id>renop-snapshots</id>
-            <username>admin</username>
-            <password>your_password_or_token</password>
+            <username>alice</username>
+            <password>rnp_pat_REDACTED</password>
         </server>
     </servers>
 </settings>
 ```
 
+The `<id>` must exactly match `pom.xml`. Keep credentials outside the project and secret-manager inject them in CI.
+
 ---
 
-## 2. Gradle Configuration
+## Gradle
 
-### Kotlin DSL (`build.gradle.kts` / `settings.gradle.kts`)
+### Dependency resolution (`build.gradle.kts`)
 
 ```kotlin
 repositories {
     maven {
         name = "renopReleases"
-        url = uri("http://localhost:3000/releases")
+        url = uri("https://packages.example.com/releases")
         credentials {
-            username = "admin"
-            password = "your_password_or_token"
-        }
-    }
-    maven {
-        name = "renopSnapshots"
-        url = uri("http://localhost:3000/snapshots")
-        credentials {
-            username = "admin"
-            password = "your_password_or_token"
+            username = providers.gradleProperty("renopUser").get()
+            password = providers.gradleProperty("renopToken").get()
         }
     }
 }
@@ -122,12 +94,10 @@ publishing {
     repositories {
         maven {
             name = "renop"
-            val releasesRepoUrl = uri("http://localhost:3000/releases")
-            val snapshotsRepoUrl = uri("http://localhost:3000/snapshots")
-            url = if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
+            url = uri("https://packages.example.com/releases")
             credentials {
-                username = "admin"
-                password = "your_password_or_token"
+                username = providers.gradleProperty("renopUser").get()
+                password = providers.gradleProperty("renopToken").get()
             }
         }
     }
@@ -139,12 +109,14 @@ publishing {
 }
 ```
 
----
+Store `renopUser` and `renopToken` in user Gradle properties or CI secrets, not in source control.
 
-## 3. Javadoc Online Viewer
+## Javadoc viewer
 
-When an uploaded artifact contains a Javadoc JAR (e.g. `mylib-1.0.0-javadoc.jar`), RenoP automatically extracts the
-archive and serves an interactive HTML preview:
+When a version contains a valid `*-javadoc.jar` and preview is enabled, RenoP extracts it with path and size limits into
+the sandboxed viewer.
 
-Access URL:
-`http://localhost:3000/javadoc/{repo}/{group}/{artifact}/{version}/index.html`
+Access URL: `https://packages.example.com/javadoc/{repo}/{group}/{artifact}/{version}/index.html`
+
+Javadoc availability does not change artifact authorization. Signed status shown in the UI comes from the backend GPG
+record, not from the archive filename.

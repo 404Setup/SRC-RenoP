@@ -10,12 +10,12 @@ description: Santé publique, métriques, instantanés et diagnostics protégés
 Les réponses utilisent protobuf lorsque cela est indiqué. La santé et l’état courant sont publics ; les diagnostics
 mémoire exigent un administrateur et `server.debug_mode` actif au démarrage du processus.
 
-## 1. Santé et hash de l’interface
+## Santé et hash de l’interface
 
 - **Santé** : `GET /api/status/health` renvoie `"UP"` tant que le processus répond.
 - **Hash** : `GET /api/status/hash` renvoie le hash des ressources intégrées utilisé pour détecter un rechargement.
 
-## 2. État courant de l’instance
+## État courant de l’instance
 
 - **Chemin** : `GET /api/status/instance`
 - **Format** : protobuf `InstanceStatus`.
@@ -39,7 +39,7 @@ mémoire exigent un administrateur et `server.debug_mode` actif au démarrage du
 }
 ```
 
-## 3. Instantanés et diagnostics
+## Instantanés et diagnostics
 
 - **Instantanés** : `GET /api/status/snapshots` renvoie `StatusSnapshotList` avec temps, mémoire, goroutines, fichiers
   ouverts et VSS.

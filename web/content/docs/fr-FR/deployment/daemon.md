@@ -9,7 +9,7 @@ description: Enregistrer RenoP comme service natif avec --install et --uninstall
 
 RenoP sait s’enregistrer comme service démarré automatiquement, sans wrapper tiers.
 
-## 1. Commandes
+## Commandes
 
 ```bash
 # Register and start as a system service
@@ -25,7 +25,7 @@ RenoP sait s’enregistrer comme service démarré automatiquement, sans wrapper
 `--install` enregistre le chemin absolu du binaire et utilise son dossier comme répertoire de travail. Exécutez la
 commande depuis le répertoire définitif, par exemple `/opt/renop` ou `C:\Program Files\RenoP`.
 
-## 2. Plateformes
+## Plateformes
 
 | Système | Gestionnaire | Comportement |
 |:--------|:-------------|:-------------|
@@ -38,7 +38,7 @@ commande depuis le répertoire définitif, par exemple `/opt/renop` ou `C:\Progr
 L’installation et la suppression exigent les privilèges système. Déplacez ou remplacez le binaire uniquement selon la
 procédure de mise à jour, afin de conserver le chemin enregistré.
 
-## 3. Opérations courantes
+## Opérations courantes
 
 ### Linux (systemd)
 

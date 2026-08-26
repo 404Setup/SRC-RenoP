@@ -137,6 +137,9 @@
   The website download page recognizes raw Brotli update targets and uses the separately bundled
   `js/update-package-worker.js` with `brotli-compress/js` and `fflate` to perform SHA-256-verified, adaptively parallel
   downloads and optional in-browser conversion to the legacy ZIP layout with at most four workers.
+  Website documentation uses `en-US` as the canonical contract. `web/test/docs-parity.test.mjs` requires every supported
+  documentation locale to preserve the same file set, heading outline, fenced examples, HTTP endpoints, local links,
+  and a minimum non-abbreviated content size before `pnpm run test:web` can pass.
 
 ---
 

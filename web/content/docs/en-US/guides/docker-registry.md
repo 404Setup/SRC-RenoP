@@ -2,17 +2,15 @@
 title: Docker & OCI Registry
 order: 3
 category: Guides
-description: Using Docker, Podman, and containerd to push and pull OCI images
+description: Creating images and using Docker, Podman, containerd, or nerdctl with RenoP
 ---
 
 # Docker & OCI Registry Guide
 
-RenoP implements the OCI Distribution Spec v2 and Docker Registry v2, serving as a private container image registry
-compatible with Docker CLI, Podman, containerd, and nerdctl.
+Create a repository with format `docker`, then create each target image in its repository before push. The examples use
+repository `containers` and image `team/service`, producing registry name `containers/team/service`.
 
-## 1. Registry Login
-
-Log in using `docker login` or `podman login`:
+## Login and transport
 
 ```bash
 docker login localhost:3000
@@ -20,53 +18,56 @@ docker login localhost:3000
 # Password: <your_password_or_API_token>
 ```
 
-Use `repository:read` for pulls, `repository:publish` for pushes, `repository:delete` for remote manifest/blob deletion,
-and `package:manage` for image-team operations. The short-lived Docker Bearer token receives only actions allowed by
-both these API-token scopes and the image team.
+Use a dedicated API Token: `repository:read` for pull, `repository:publish` for push, `repository:delete` for remote
+deletion, `package:create` for image reservation through the management API, and `team:manage` for collaborators. The
+short-lived Docker token receives only actions allowed by both scopes/targets and the image's current L0-L4 policy.
 
-> **Note**: When running over plain HTTP (without TLS), add the host to your Docker `daemon.json`:
-> ```json
-> {
->   "insecure-registries": ["localhost:3000"]
-> }
-> ```
+Production registries should use HTTPS. For local HTTP testing only, configure Docker explicitly:
 
-## 2. Create, Tag, and Push Images
-
-Open the Docker repository in RenoP and create the target image first. Choose public or private visibility during
-creation. A private image grants no implicit public access; add L0 readers or higher-level collaborators from its team
-panel. Image names use lowercase path components such as `team/service`.
-The name must be unique within the repository. When upstream mirrors are enabled, RenoP also checks every applicable
-mirror and rejects names that already exist upstream. Creation is temporarily unavailable if that check cannot produce
-an authoritative result.
-
-```bash
-# 1. Create my-app in the my-org repository through the RenoP UI
-
-# 2. Tag local image
-docker tag my-app:latest localhost:3000/my-org/my-app:1.0.0
-
-# 3. Push image to RenoP
-docker push localhost:3000/my-org/my-app:1.0.0
+```json
+{
+  "insecure-registries": ["localhost:3000"]
+}
 ```
 
-RenoP rejects token push scope, blob upload initiation, and manifest publication when the target image has not been
-created. Existing upstream mirror pulls remain available and use a separate mirror-cache import path. Mirror-discovered
-images remain pull-only; their names cannot be reused for a local push image.
+Restart the Docker daemon after changing `daemon.json`. Podman and containerd have equivalent registry trust settings.
 
-## 3. Pull & Run Images
+## Create, tag, and push
+
+Open repository `containers`, create image `team/service`, and choose public or private visibility. Private images grant
+no implicit L0 access; add readers or collaborators from the image team. Names use lowercase path components.
+
+Creation returns a conflict when the name exists locally or on an applicable enabled upstream. If the upstream check is
+inconclusive, RenoP does not reserve the name. Mirror-discovered images remain pull-only.
+
+```bash
+# Tag local image
+docker tag service:latest localhost:3000/containers/team/service:1.0.0
+
+# Push image to RenoP
+docker push localhost:3000/containers/team/service:1.0.0
+```
+
+RenoP rejects token push grants, blob upload initiation, and manifest publication until the image has been created.
+Chunk retries remain valid after a failed management request; recreating the login or browser dialog is not required.
+
+## Pull and run
 
 ```bash
 # Pull image
-docker pull localhost:3000/my-org/my-app:1.0.0
+docker pull localhost:3000/containers/team/service:1.0.0
 
 # Run container
-docker run -d -p 8080:8080 localhost:3000/my-org/my-app:1.0.0
+docker run -d -p 8080:8080 localhost:3000/containers/team/service:1.0.0
 ```
 
-## 4. Supported OCI Capabilities
+Public images are readable anonymously. Private images require an explicit L0-L4 member or administrator. Blob access
+is image-scoped: possessing a digest from another image does not grant access.
 
-- **Multi-Architecture Manifests**: Push and pull multi-arch manifest lists across `linux/amd64`, `linux/arm64`, etc.
-- **Chunked Blob Uploads**: Large layer blobs are streamed in chunks with resume support.
-- **Cross-Repository Blob Mounting**: Common base layers are reused automatically across repositories without
-  re-uploading.
+## OCI behavior
+
+- **Multi-architecture**: Manifest lists and OCI indexes can reference amd64, arm64, and other platforms.
+- **Chunked uploads**: Large blobs support resumable POST/PATCH/PUT flows and bounded temporary storage.
+- **Cross-repository mounts**: Mounts require read access to the source and write access to a pre-created destination.
+- **Deletion**: Tag, manifest, and image deletion require both Token capability and image/repository authorization.
+- **Mirrors**: Upstream responses are streamed and cataloged with origin metadata; mirrored images cannot be pushed.

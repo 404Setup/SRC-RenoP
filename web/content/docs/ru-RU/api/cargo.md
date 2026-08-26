@@ -9,7 +9,7 @@ description: Sparse Index, публикация, скачивание и yank п
 
 RenoP реализует спецификации Cargo Registry и Sparse Index.
 
-## 1. Настройка Sparse Index (`config.json`)
+## Настройка Sparse Index (`config.json`)
 
 - **Путь**: `GET /{repo}/config.json` или `GET /{repo}/index/config.json`
 - **Назначение**: Cargo читает документ при первом подключении и узнаёт маршруты реестра.
@@ -26,14 +26,14 @@ RenoP реализует спецификации Cargo Registry и Sparse Index
 
 ---
 
-## 2. Метаданные Sparse Index
+## Метаданные Sparse Index
 
 - **Путь**: `GET /{repo}/index/{prefix}/{crate_name}`
 - **Назначение**: возвращает построчный JSON по стандартным правилам сегментации имён Cargo.
 
 ---
 
-## 3. Публикация crate
+## Публикация crate
 
 - **Путь**: `PUT /{repo}/api/v1/crates/new`
 - **Аутентификация**: Token в `Authorization: <token>`.
@@ -43,14 +43,14 @@ RenoP реализует спецификации Cargo Registry и Sparse Index
 
 ---
 
-## 4. Скачивание crate
+## Скачивание crate
 
 - **Путь**: `GET /{repo}/api/v1/crates/{crate_name}/{version}/download`
 - **Ответ**: архив `.crate` с типом `application/x-tar`.
 
 ---
 
-## 5. Yank и unyank
+## Yank и unyank
 
 - **Yank**: `DELETE /{repo}/api/v1/crates/{crate_name}/{version}/yank`
 - **Unyank**: `PUT /{repo}/api/v1/crates/{crate_name}/{version}/unyank`

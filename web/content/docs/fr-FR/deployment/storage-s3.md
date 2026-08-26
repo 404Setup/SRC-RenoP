@@ -10,7 +10,7 @@ description: Stockage local et objets compatibles S3 par dépôt
 RenoP prend en charge le disque local et les services objet compatibles S3. Chaque dépôt choisit son backend ; les
 changements sont sérialisés avec les opérations actives par le verrou du dépôt.
 
-## 1. Système de fichiers local
+## Système de fichiers local
 
 La racine est `storage_path` dans `config.yaml`, avec `storage` par défaut.
 
@@ -30,7 +30,7 @@ Les noms physiques restent des détails internes. Utilisez les API de protocole 
 
 ---
 
-## 2. Stockage compatible S3
+## Stockage compatible S3
 
 S3 convient au stockage objet géré. Un déploiement multi-nœud exige aussi une base externe et une coordination conforme
 aux garanties de RenoP ; S3 seul ne transforme pas un processus unique en cluster.
@@ -65,7 +65,7 @@ Utilisez TLS et un gestionnaire de secrets ; ne publiez jamais les clés dans le
 
 ### Modes de téléchargement
 
-1. **Streaming proxy (`redirect_downloads: false`)** : RenoP autorise puis diffuse S3 au client. Le bucket peut rester
+- **Streaming proxy (`redirect_downloads: false`)** : RenoP autorise puis diffuse S3 au client. Le bucket peut rester
    privé et l’adresse S3 n’est pas exposée.
-2. **Redirection (`redirect_downloads: true`)** : RenoP autorise puis renvoie `302 Found` vers une URL présignée de courte
+- **Redirection (`redirect_downloads: true`)** : RenoP autorise puis renvoie `302 Found` vers une URL présignée de courte
    durée, ce qui réduit la bande passante du serveur.

@@ -9,23 +9,23 @@ description: 使用 --install 与 --uninstall 注册系统守护进程与开机�
 
 RenoP 二进制内置了对主流操作系统的服务管理能力，可以通过命令行直接将其注册为后台常驻的系统服务，无需编写额外的配置文件。
 
-## 1. 常用命令
+## 常用命令
 
 ```bash
-# 注册为系统服务并配置开机自启
+# Register and start as a system service
 ./renop --install
 
-# 停止并卸载系统服务
+# Stop and remove the system service
 ./renop --uninstall
 
-# 查看命令行帮助
+# View CLI help
 ./renop --help
 ```
 
 执行 `--install` 时，程序会将可执行文件的当前绝对路径以及所在目录作为服务的工作目录进行登记。因此，建议在固定的安装目录（如
 `/opt/renop` 或 `C:\Program Files\RenoP`）下执行该命令。
 
-## 2. 各操作系统平台支持
+## 各操作系统平台支持
 
 | 操作系统                  | 服务管理器            | 安装与管理机制                                                                                 |
 |:--------------------------|:----------------------|:-----------------------------------------------------------------------------------------------|
@@ -35,19 +35,19 @@ RenoP 二进制内置了对主流操作系统的服务管理能力，可以通�
 | **macOS**                 | launchd               | 生成 `/Library/LaunchDaemons/one.pkg.renop.plist` 并加载运行                                   |
 | **BSD (FreeBSD/OpenBSD)** | rc.d                  | 生成 `/etc/rc.d/renop` 或 `/usr/local/etc/rc.d/renop` 服务脚本                                 |
 
-## 3. 日常服务运维
+## 日常服务运维
 
 ### Linux (systemd)
 
 ```bash
-systemctl status renop    # 查看服务状态
-systemctl restart renop   # 重启服务
-journalctl -u renop -f    # 查看实时日志
+systemctl status renop    # Check service status
+systemctl restart renop   # Restart service
+journalctl -u renop -f    # Tail real-time logs
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-Get-Service RenoP         # 查看服务状态
-Restart-Service RenoP     # 重启服务
+Get-Service RenoP         # Check service status
+Restart-Service RenoP     # Restart service
 ```

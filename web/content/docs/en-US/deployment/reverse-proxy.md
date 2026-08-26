@@ -10,7 +10,7 @@ description: Configuring Nginx and Caddy reverse proxies with TLS termination an
 In production deployments, RenoP is commonly placed behind Nginx, Caddy, or a cloud load balancer for TLS termination,
 traffic routing, and DDoS protection.
 
-## 1. Nginx Configuration
+## Nginx Configuration
 
 For streaming large artifacts and Docker image layers, adjust buffer settings and body limits:
 
@@ -50,7 +50,7 @@ server {
 }
 ```
 
-## 2. Caddy Configuration
+## Caddy Configuration
 
 ```caddy
 renop.example.com {
@@ -60,7 +60,7 @@ renop.example.com {
 }
 ```
 
-## 3. RenoP Trust Configuration
+## RenoP Trust Configuration
 
 To preserve real client IPs for rate limiting and audit logs, configure trusted proxies in `config.yaml`:
 

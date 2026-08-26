@@ -10,7 +10,7 @@ description: Opérations directes et téléversements repris et bornés
 Les routes directes concernent Maven et `files`. Cargo et Docker utilisent leurs protocoles natifs. Chaque mutation
 vérifie la capacité du Token, les droits du dépôt, son format et, pour Maven, la politique du domaine.
 
-## 1. Opérations directes
+## Opérations directes
 
 Le chemin canonique est `/{repo}/{path...}`. Les lectures prennent en charge validateurs HTTP et plages d’octets. Un
 dépôt `HIDDEN` est absent des listes mais reste lisible par chemin exact ; un dépôt `PRIVATE` exige une autorisation.
@@ -32,7 +32,7 @@ dépôt `HIDDEN` est absent des listes mais reste lisible par chemin exact ; un 
 - **Requête** : `DELETE /{repo}/{path}`
 - **Authentification** : API Token avec `repository:delete` ou autre identifiant autorisé, plus le droit de suppression.
 
-## 2. Téléversements découpés et repris
+## Téléversements découpés et repris
 
 Les métadonnées sont en protobuf et les parties sont binaires. Le serveur contrôle la destination finale, borne taille
 et sessions, puis supprime les fichiers temporaires abandonnés.

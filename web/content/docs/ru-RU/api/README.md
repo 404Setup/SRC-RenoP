@@ -31,10 +31,10 @@ Buffers с типом `application/x-protobuf`.
 
 ## Способы аутентификации
 
-1. **Cookie браузера**: `renop_session=<session_id>`. Секрет HttpOnly не принимается в заголовках или URL.
-2. **Bearer API Token**: `Authorization: Bearer <token>`. Возможности Token всегда пересекаются с текущими правами
+- **Cookie браузера**: `renop_session=<session_id>`. Секрет HttpOnly не принимается в заголовках или URL.
+- **Bearer API Token**: `Authorization: Bearer <token>`. Возможности Token всегда пересекаются с текущими правами
    аккаунта.
-3. **Basic Auth для пакетных протоколов**: `Authorization: Basic <base64(user:password_or_token)>`.
+- **Basic Auth для пакетных протоколов**: `Authorization: Basic <base64(user:password_or_token)>`.
 
 Basic Auth не позволяет обращаться к API управления. Учётные данные в URL и `Authorization: Session` отклоняются.
 

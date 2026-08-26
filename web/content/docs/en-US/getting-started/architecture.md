@@ -2,70 +2,52 @@
 title: System Architecture
 order: 4
 category: Getting Started
-description: Internal modular architecture, streaming I/O, and data flow
+description: Modular services, authorization, streaming storage, and asynchronous work
 ---
 
 # System Architecture
 
-This document describes the internal modular architecture and request processing pipeline of RenoP.
+RenoP is one Go process with explicit boundaries between transport, package protocols, authorization, persistence, and
+background maintenance. The embedded frontend calls the same bounded APIs available to external clients.
 
-## 1. Modular Subsystems
+## Module boundaries
 
-RenoP is structured into five cohesive subsystems:
-
-```
-+-------------------------------------------------------------------+
-|                     Embedded Web Management UI                    |
-|          (Single-page app, multi-locale i18n, dark/light theme)   |
-+-------------------------------------------------------------------+
-                                  │
-                                  ▼
-+-------------------------------------------------------------------+
-|                      HTTP Routing & Middleware                    |
-|        - Anomaly detection & sliding-window rate limiting         |
-|        - Unified authentication (Cookie session / Bearer / Basic) |
-|        - Dual serialization (JSON / Protobuf binary support)      |
-+-------------------------------------------------------------------+
-                                  │
-                                  ▼
-+-------------------------------------------------------------------+
-|                       Service Domain Layer                        |
-|  - Maven service (standard layouts, Javadoc extraction, GPG check)|
-|  - Cargo service (sparse index, crate publish/download, Cargodoc) |
-|  - Docker service (OCI v2 spec, chunked uploads, blob mounting)   |
-|  - Management services (users, tokens, settings, message center)  |
-+-------------------------------------------------------------------+
-                                  │
-                 ┌────────────────┴────────────────┐
-                 ▼                                 ▼
-+---------------------------------+  +-------------------------------+
-|     Database Abstraction Layer  |  |   Storage Abstraction Layer   |
-| - SQLite (embedded default)     |  | - Local filesystem            |
-| - MySQL 8.0+                    |  | - S3-compatible (MinIO, R2)   |
-| - PostgreSQL (via pgx/v5)       |  | - GPG quarantine queue        |
-+---------------------------------+  +-------------------------------+
+```text
+Browser and package clients
+        |
+HTTP routing, rate limits, authentication, API-token policy
+        |
+Maven | Cargo | Docker | Files | Management services
+        |
+Repository gate and publication workflows
+        |
+Disk or S3 storage          SQL database
+        |                       |
+File index and mirrors      Identity, teams, audit, messages
 ```
 
-## 2. Request Processing & I/O Pipeline
+- `internal/api` and middleware own general HTTP contracts, search, anomaly detection, and credential boundaries.
+- Format services own Maven domains/catalogs, Cargo Sparse Index, Docker Distribution v2, and documentation viewers.
+- The database layer supplies dialect-aware transactions for SQLite, MySQL, and PostgreSQL.
+- Disk/S3 storage streams large bodies and the file index provides bounded metadata traversal.
 
-### Streaming Data Transfer
+## Request and work pipelines
 
-For large artifact uploads and downloads (fat JARs, crate archives, Docker image layer blobs):
+### Streaming and consistency
 
-- Data streams directly between the client connection and the storage engine (disk or S3) without loading entire files
-  into memory.
-- Low-level byte buffers are pooled to minimize heap allocations and garbage collection overhead.
+Uploads and downloads stream between the client and Disk/S3. Hashing, Brotli/ZIP extraction, mirror caching, and GPG
+publication use bounded readers and temporary files. A striped repository gate prevents storage or engine changes from
+racing uploads, deletes, mirror commits, or final publication.
 
-### Unified Database Layer
+### Authentication and authorization
 
-RenoP supports SQLite, MySQL, and PostgreSQL:
+Browser sessions are cookie-only. Basic credentials are limited to standard package protocols. Bearer API Token scopes
+and exact target restrictions are intersected with the account's current repository permission and L0-L4 package/domain
+membership on every request. Immutable user IDs preserve ownership across username changes.
 
-- User credentials, access tokens, audit logs, and message center items are persisted in the configured database.
-- Uses parameterized queries with automated placeholder rebinding for PostgreSQL.
+### Asynchronous work
 
-### Storage Consistency & Quarantine Queues
-
-- **Local Disk Writes**: Files are written to `.tmp` temporary files with checksum verification, then atomically moved
-  to their destination path upon completion.
-- **GPG Quarantine**: Repositories requiring GPG verification hold unsigned artifacts in `.renop.tmp.gpg` until the
-  detached signature (`.asc`) is validated.
+One process-wide non-reentrant scheduler coalesces status snapshots, cleanup, index persistence, download-count flushes,
+and update checks. Ordering-sensitive queues such as audit persistence, GPG publication, token mutations, and file
+watching remain dedicated serial workers. Durable workflow results go to the message center; transient progress uses UI
+state or toasts.

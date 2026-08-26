@@ -10,7 +10,7 @@ description: 账号通知、未读数量、工作流操作与管理员公告
 所有接口均要求认证。响应默认使用 protobuf，且不会缓存。API Token 需要 `messages:read`；管理员发送公告还
 要求 `admin:notifications`，并且所属账号当前具有管理员权限。
 
-## 1. 查询或清理消息
+## 查询或清理消息
 
 - **查询**：`GET /api/messages?limit=30&cursor=...`
 - **清理已完成消息**：`DELETE /api/messages`
@@ -38,12 +38,12 @@ description: 账号通知、未读数量、工作流操作与管理员公告
 }
 ```
 
-## 2. 查询未读数量
+## 查询未读数量
 
 - **路径**：`GET /api/messages/unread-count`
 - **解码后的响应**：`{"unread_count":3}`
 
-## 3. 标记已读或删除消息
+## 标记已读或删除消息
 
 ### 单条消息
 
@@ -56,7 +56,7 @@ description: 账号通知、未读数量、工作流操作与管理员公告
 - **全部标记已读**：`POST /api/messages/read-all`
 - 响应包含实际更新数量。
 
-## 4. 发送管理员公告
+## 发送管理员公告
 
 - **搜索接收者**：`GET /api/messages/admin/users?q=alice`，最多返回 8 个用户名。
 - **发送**：`POST /api/messages/admin`

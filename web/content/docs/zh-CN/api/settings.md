@@ -10,12 +10,12 @@ description: 按域管理服务设置、存储库与索引重建
 设置接口要求管理员账号，或根据操作提供带有 `admin:settings`、`admin:repositories` 的 API Token。
 `proto/api/v1/api.proto` 中定义的响应使用 protobuf。
 
-## 1. 查询设置域
+## 查询设置域
 
 - **路径**：`GET /api/settings/domains`
 - **响应**：服务端当前支持的稳定域名，包括 `server`、`proxy`、`storage`、`updater` 与 `index`。
 
-## 2. 读取与更新设置域
+## 读取与更新设置域
 
 - **读取**：`GET /api/settings/domain/:name`
 - **更新**：`PUT /api/settings/domain/:name`
@@ -24,7 +24,7 @@ description: 按域管理服务设置、存储库与索引重建
 - **GitHub OAuth**：`GET /api/settings/github-oauth` 返回脱敏状态；`PUT /api/settings/github-oauth` 更新
   Client ID 与只写 Secret。
 
-## 3. 存储库设置
+## 存储库设置
 
 优先使用 `/api/settings/repositories`。带 Maven 前缀的旧接口继续用于兼容。
 
@@ -40,7 +40,7 @@ description: 按域管理服务设置、存储库与索引重建
 - **Maven/files 迁移**：`POST /api/settings/repositories/:name/migrate/:target`，`:target` 为 `maven` 或
   `files`。存储对象保持原位，切回 Maven 时重建目录。
 
-## 4. 重建搜索索引
+## 重建搜索索引
 
 - **路径**：`POST /api/settings/index/rebuild`
 - **行为**：提交可合并的后台重建任务，不会并发启动重复任务。

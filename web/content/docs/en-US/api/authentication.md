@@ -11,7 +11,7 @@ Browser authentication uses the HttpOnly `renop_session` cookie. Session secrets
 session-list APIs and are rejected in request headers and URLs. Private security endpoints accept only a browser
 session, never a password or API token.
 
-## 1. Password or email login
+## Password or email login
 
 - **Path**: `POST /api/auth/login`
 - **Auth**: None.
@@ -31,7 +31,7 @@ session, never a password or API token.
 Success sets `renop_session` with `HttpOnly`, `SameSite=Lax`, and `Secure` when HTTPS is detected. The protobuf
 `SessionDetails` body contains account permissions and routes but leaves `session_token` empty.
 
-## 2. Passkey and GitHub login
+## Passkey and GitHub login
 
 - **Passkey begin**: `POST /api/auth/fido/login/begin`
 - **Passkey finish**: `POST /api/auth/fido/login/finish`
@@ -42,7 +42,7 @@ Success sets `renop_session` with `HttpOnly`, `SameSite=Lax`, and `Secure` when 
 GitHub login appears only after an administrator configures OAuth. RenoP requests user and organization read access,
 stores immutable provider IDs and current principal snapshots, and never persists the OAuth access token.
 
-## 3. Current account and public profiles
+## Current account and public profiles
 
 - **Current session**: `GET /api/auth/me`
 - **Private profile**: `GET /api/auth/profile`
@@ -55,7 +55,7 @@ stores immutable provider IDs and current principal snapshots, and never persist
 Visible profile routes use usernames. Immutable user IDs remain internal. `HIDDEN` repository memberships are omitted;
 private memberships are returned only to an authorized viewer.
 
-## 4. Account security
+## Account security
 
 Account-security routes require the current browser session and return `Cache-Control: no-store`.
 
@@ -81,7 +81,7 @@ Account-security routes require the current browser session and return `Cache-Co
 }
 ```
 
-## 5. Login-method management
+## Login-method management
 
 - **List Passkeys**: `GET /api/auth/profile/fido`
 - **Register Passkey**: `POST /api/auth/profile/fido/register/begin` then
@@ -92,7 +92,7 @@ Account-security routes require the current browser session and return `Cache-Co
 
 The last working login method cannot be removed or disabled.
 
-## 6. Browser sessions
+## Browser sessions
 
 - **List**: `GET /api/auth/profile/sessions`
 - **Revoke one**: `DELETE /api/auth/profile/sessions/:session_id`

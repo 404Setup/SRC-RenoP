@@ -1,46 +1,48 @@
 ---
-title: 概要
+title: はじめに
 order: 1
 category: はじめに
-description: RenoP の概要、サポートプロトコルおよび基本機能
+description: 統合型セルフホスト package publication platform としての RenoP
 ---
 
-# RenoP の概要
+# RenoP について
 
-RenoP は、セルフホスト型のマルチプロトコル・パッケージおよびアーティファクトリポジトリサーバーです。Go 言語で開発され、Web
-管理 UI が組み込まれており、軽量で外部依存のないプライベートリポジトリ環境を提供します。
+RenoP は統合型のセルフホスト package publication/distribution server です。Maven 専用 repository ではなく
+private Central に近いモデルで、1 つの Go process に管理 UI、identity、team、verification、catalog、mirror、
+storage、audit、update を統合します。
 
-## サポートプロトコルとエコシステム
+## 対応プロトコル
 
-- **Maven / Gradle**: Release、Snapshot、Private リポジトリに対応。標準的な Maven ディレクトリ構造に準拠し、Javadoc
-  のオンライン閲覧および GPG 署名検証をサポートします。
-- **Cargo (Rust)**: Cargo スパースインデックス (Sparse Index) プロトコル、Crate の公開・ダウンロード・検索・yank、crates.io
-  のプロキシミラー、Cargodoc オンラインドキュメント閲覧に対応しています。
-- **Docker / OCI レジストリ**: OCI Distribution Spec v2 および Docker Registry v2 仕様に準拠し、マルチアーキテクチャマニフェスト、チャンク
-  Blob アップロード、上流レジストリミラーに対応します。
+- **Maven / Gradle**: 検証済み global domain、modern catalog、classic layout 互換、Maven 2 path、mirror、
+  Javadoc、OpenPGP 分離署名。
+- **Cargo**: Sparse Index、明示的所有権、publication、search、yank/unyank、mirror、Cargodoc。
+- **Docker / OCI**: Distribution v2、image 予約、private team、chunked blob、cross-repository mount、multi-arch、mirror。
+- **Files**: mirror と上書きを備え、Maven metadata や署名 workflow を生成しない非構造化 storage。
 
-## ストレージおよびデータベース
+## ストレージとデータベース
 
-- **ストレージバックエンド**: ローカルファイルシステムまたは S3 互換オブジェクトストレージ (AWS S3, MinIO, Cloudflare
-  R2, 各種クラウド OSS) をサポート。
-- **データベース**: 組み込み SQLite を標準搭載し、外部 MySQL 8.0+ および PostgreSQL にも対応しています。
+- **Storage**: streaming local Disk または repository 固有 S3-compatible object storage。
+- **Database**: 既定の組み込み SQLite、外部 MySQL、PostgreSQL。
+- **Consistency**: repository gate が upload、delete、mirror commit、GPG、engine/storage 変更を調整し、巨大 object
+  全体を memory に読みません。
 
 ## 主な機能
 
-| 機能                       | 説明                                                                                                             |
-|:---------------------------|:-----------------------------------------------------------------------------------------------------------------|
-| **単一バイナリ**           | 外部依存なしで即座に起動可能。Web UI もバイナリに内包されています                                                |
-| **上流ミラーリング**       | Maven, Cargo, Docker の透過的プロキシとローカルキャッシュ（TTL および除外ルール設定可能）                        |
-| **きめ細かなアクセス制御** | ロールベースアクセス制御 (RBAC)、リポジトリ単位の権限、パーソナルアクセストークン (PAT)                          |
-| **システムサービス管理**   | 内置の `--install` および `--uninstall` コマンドで Windows サービス、systemd、OpenRC、LaunchDaemons、rc.d に対応 |
-| **セキュリティ**           | Detached OpenPGP 署名検証、スライディングウィンドウによるレート制限、異常 IP の自動ブロック                      |
+| 機能 | 説明 |
+|:-----|:-----|
+| **単一サービス** | 別 application runtime なしで frontend と protocol API を内蔵 |
+| **Global identity** | username 公開 profile と不変 internal user ID |
+| **細粒度アクセス** | repository permission、L0-L4 team、対象/期限付き API Token |
+| **検証済み公開** | Maven domain 所有権、上流名競合、任意 OpenPGP quarantine |
+| **運用** | native service、scheduled task、durable audit/message、in-place update |
+| **防御** | bounded streaming、rate limit、ban、trusted proxy、sandboxed viewer |
 
-## ナビゲーション
+## ドキュメント案内
 
-- [インストールガイド](./install.md) — バイナリダウンロードとビルド手順
-- [クイックスタート](./quickstart.md) — 初期起動、管理者パスワードとデフォルトエンドポイント
-- [システムアーキテクチャ](./architecture.md) — 内部設計と処理フロー
-- [設定概要](../configuration/overview.md) — 構成ファイルと環境変数
-- [Maven & Gradle](../guides/maven-client.md) — クライアント設定
-- [Cargo レジストリ](../guides/cargo-registry.md) — Rust / Cargo 設定
-- [Docker レジストリ](../guides/docker-registry.md) — Docker / Podman 設定
+- [インストール](./install.md) — release package、platform、source build
+- [クイックスタート](./quickstart.md) — 初回起動、管理者、repository 作成
+- [アーキテクチャ](./architecture.md) — module、認可、storage、task
+- [設定](../configuration/overview.md) — 検証済み設定と環境変数
+- [Maven / Gradle](../guides/maven-client.md) — 検証 domain と JVM client
+- [Cargo](../guides/cargo-registry.md) — Sparse registry と crate lifecycle
+- [Docker / OCI](../guides/docker-registry.md) — image 予約、login、push、pull

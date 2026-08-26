@@ -19,7 +19,7 @@ RenoP 实现 OCI Distribution Spec v2 与 Docker Registry v2 规范。
 管理 API 返回可读正文与 `X-Renop-Error-Code`，前端根据稳定错误码本地化，不显示原始服务端文本。OCI
 Distribution 接口继续使用规范要求的 `errors` 结构。
 
-## 1. 版本检查
+## 版本检查
 
 - **路径**：`GET /v2/` 或 `HEAD /v2/`
 - **响应**：
@@ -29,7 +29,7 @@ Distribution 接口继续使用规范要求的 `errors` 结构。
 
 ---
 
-## 2. Bearer Token 认证
+## Bearer Token 认证
 
 - **路径**：`GET /v2/token` 或 `GET /v2/auth`
 - **用途**：将 Basic Auth 凭据换取短期 Docker Token。API Token 拉取需要 `repository:read`，推送需要
@@ -37,7 +37,7 @@ Distribution 接口继续使用规范要求的 `errors` 结构。
 
 ---
 
-## 3. 目录与标签
+## 目录与标签
 
 ### 镜像列表
 
@@ -51,7 +51,7 @@ Distribution 接口继续使用规范要求的 `errors` 结构。
 
 ---
 
-## 4. Manifest 操作
+## Manifest 操作
 
 - **获取**：`GET /v2/:name/manifests/:reference`
 - **发布**：`PUT /v2/:name/manifests/:reference`（要求镜像已创建且权限不低于 L1）
@@ -59,7 +59,7 @@ Distribution 接口继续使用规范要求的 `errors` 结构。
 
 ---
 
-## 5. Blob 操作
+## Blob 操作
 
 - **检查**：`HEAD /v2/:name/blobs/:digest`
 - **下载**：`GET /v2/:name/blobs/:digest`

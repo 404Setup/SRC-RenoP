@@ -11,7 +11,7 @@ description: ブラウザセッション、プロフィール、ログイン方�
 返さず、ヘッダーや URL でも受理しません。非公開のセキュリティ API はブラウザセッション専用で、
 パスワードや API Token では呼び出せません。
 
-## 1. パスワードまたはメールでログイン
+## パスワードまたはメールでログイン
 
 - **パス**: `POST /api/auth/login`
 - **認証**: なし。
@@ -31,7 +31,7 @@ description: ブラウザセッション、プロフィール、ログイン方�
 成功時は `HttpOnly`、`SameSite=Lax`、HTTPS では `Secure` の `renop_session` を設定します。protobuf
 `SessionDetails` は権限とルートを返しますが、`session_token` は空です。
 
-## 2. Passkey と GitHub ログイン
+## Passkey と GitHub ログイン
 
 - **Passkey 開始**: `POST /api/auth/fido/login/begin`
 - **Passkey 完了**: `POST /api/auth/fido/login/finish`
@@ -42,7 +42,7 @@ description: ブラウザセッション、プロフィール、ログイン方�
 GitHub は管理者が OAuth を設定した場合だけ表示されます。ユーザーと Organization の読み取りを要求し、
 不変 Provider ID と Principal のスナップショットを保存しますが、OAuth Access Token は保存しません。
 
-## 3. 現在のアカウントと公開プロフィール
+## 現在のアカウントと公開プロフィール
 
 - **現在のセッション**: `GET /api/auth/me`
 - **非公開プロフィール**: `GET /api/auth/profile`
@@ -55,7 +55,7 @@ GitHub は管理者が OAuth を設定した場合だけ表示されます。ユ
 公開ルートはユーザー名を使用し、不変 ID は内部に保ちます。`HIDDEN` の所属は除外し、非公開所属は許可された
 閲覧者だけに返します。
 
-## 4. アカウントセキュリティ
+## アカウントセキュリティ
 
 これらのルートは現在のブラウザセッションを要求し、`Cache-Control: no-store` を返します。
 
@@ -81,7 +81,7 @@ GitHub は管理者が OAuth を設定した場合だけ表示されます。ユ
 }
 ```
 
-## 5. ログイン方式の管理
+## ログイン方式の管理
 
 - **Passkey 一覧**: `GET /api/auth/profile/fido`
 - **Passkey 登録**: `POST /api/auth/profile/fido/register/begin` の後に
@@ -92,7 +92,7 @@ GitHub は管理者が OAuth を設定した場合だけ表示されます。ユ
 
 最後の有効なログイン方式は削除または無効化できません。
 
-## 6. ブラウザセッション
+## ブラウザセッション
 
 - **一覧**: `GET /api/auth/profile/sessions`
 - **1 件を失効**: `DELETE /api/auth/profile/sessions/:session_id`

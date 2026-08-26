@@ -10,7 +10,7 @@ description: Nginx et Caddy avec terminaison TLS, streaming et IP cliente fiable
 En production, placez RenoP derrière Nginx, Caddy ou un load balancer pour TLS, routage et protection réseau. Le proxy
 doit diffuser les gros uploads et blobs sans les charger intégralement en mémoire ou sur disque.
 
-## 1. Nginx
+## Nginx
 
 ```nginx
 server {
@@ -51,7 +51,7 @@ server {
 Conservez les en-têtes Docker `Location`, `Range`, `Content-Range` et `Docker-Upload-UUID`. N’ajoutez pas de limite de
 corps plus faible que les limites RenoP si les clients publient de gros artefacts.
 
-## 2. Caddy
+## Caddy
 
 ```caddy
 renop.example.com {
@@ -63,7 +63,7 @@ renop.example.com {
 
 Caddy gère automatiquement TLS. `flush_interval -1` évite de retenir les réponses diffusées.
 
-## 3. Confiance RenoP
+## Confiance RenoP
 
 Renseignez les hôtes publics et uniquement les CIDR de proxys que vous contrôlez :
 

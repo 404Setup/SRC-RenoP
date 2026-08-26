@@ -30,9 +30,9 @@ RenoP 提供用于管理自动化、客户端集成与健康监控的完整 HTTP
 
 ## 认证方式
 
-1. **浏览器 Cookie**：`renop_session=<session_id>`。HttpOnly 会话密钥不接受通过请求头或 URL 传递。
-2. **Bearer API Token**：`Authorization: Bearer <token>`。Token 能力始终与账号当前权限取交集。
-3. **包协议 Basic Auth**：`Authorization: Basic <base64(user:password_or_token)>`。
+- **浏览器 Cookie**：`renop_session=<session_id>`。HttpOnly 会话密钥不接受通过请求头或 URL 传递。
+- **Bearer API Token**：`Authorization: Bearer <token>`。Token 能力始终与账号当前权限取交集。
+- **包协议 Basic Auth**：`Authorization: Basic <base64(user:password_or_token)>`。
 
 Basic Auth 不可调用管理 API。URL 查询参数凭据与 `Authorization: Session` 均会被拒绝。
 

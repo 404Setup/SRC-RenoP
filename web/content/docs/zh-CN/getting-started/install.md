@@ -7,14 +7,14 @@ description: 下载二进制、微架构选型与源码编译
 
 # 安装与构建
 
-## 1. 下载预编译二进制
+## 下载预编译二进制
 
 你可以从 Web 界面中的 [下载页面](/download) 或以下地址获取纯 Brotli 预编译更新包：
 
 - **稳定版 (Stable)**：`https://mvnc.pkg.one/update/renop/stable/`
 - **开发版 (Nightly)**：`https://mvnc.pkg.one/update/renop/nightly/`
 
-## 2. x86-64 微架构等级说明
+## x86-64 微架构等级说明
 
 RenoP 针对 64 位 x86 架构提供了不同指令集等级的构建版本：
 
@@ -26,7 +26,7 @@ RenoP 针对 64 位 x86 架构提供了不同指令集等级的构建版本：
 | **x86-64-v4**         | AVX-512 基础与扩展指令集            | 适用于支持 AVX-512 的服务器级 CPU（如 Intel Skylake-X/Ice Lake, AMD Zen 4 等）   |
 | **ARM64**             | NEON, Crypto                        | 适用于 Apple Silicon、AWS Graviton 及各类 ARM64 Linux 服务器                     |
 
-## 3. 校验与运行
+## 校验与运行
 
 通道 `info.json` 会为每个平台包提供 SHA-256。建议在解压 `.br` 前校验文件完整性：
 
@@ -46,22 +46,22 @@ Get-FileHash -Algorithm SHA256 .\renop-windows-amd64v3.br
 
 服务默认监听 `0.0.0.0:3000`。首次启动建议先设置管理员密码，参见 [快速开始](./quickstart.md)。
 
-## 4. 注册为系统服务
+## 注册为系统服务
 
 RenoP 内置了跨平台的系统服务安装与卸载功能：
 
 ```bash
-# 安装并注册为开机自启系统服务
+# Install and register as an auto-starting system service
 ./renop --install
 
-# 停止并移除系统服务
+# Stop and remove the system service
 ./renop --uninstall
 ```
 
 支持 Windows 服务（SCM）、Linux systemd / OpenRC、macOS LaunchDaemons 及 BSD
 rc.d。详细说明请参考 [系统服务管理](../deployment/daemon.md)。
 
-## 5. 从源码构建
+## 从源码构建
 
 如需从源码编译 RenoP，需要准备以下环境：
 
@@ -73,17 +73,17 @@ rc.d。详细说明请参考 [系统服务管理](../deployment/daemon.md)。
 ### 构建步骤
 
 ```powershell
-# 1. 确保 GOROOT 指向 404Setup/go 目录
+# 1. Point GOROOT to 404Setup/go
 $env:GOROOT = "D:\tools\go"
 $env:PATH = "$env:GOROOT\bin;$env:PATH"
 
-# 2. 安装依赖并构建前端
+# 2. Install dependencies and compile frontend
 pnpm install --frozen-lockfile
 pnpm run build:frontend
 
-# 3. 编译二进制
-pwsh ./build.ps1 c nb    # 仅编译当前平台，直接输出二进制（不压缩打包）
-pwsh ./build.ps1 c       # 仅编译当前平台并生成纯 Brotli 更新包
-pwsh ./build.ps1 s       # 编译主流平台 (Linux/Windows amd64/amd64v3/arm64)
-pwsh ./build.ps1         # 完整全平台矩阵交叉编译
+# 3. Compile binary
+pwsh ./build.ps1 c nb    # Current OS only, unzipped binary output
+pwsh ./build.ps1 c       # Current OS packaged as a raw Brotli stream
+pwsh ./build.ps1 s       # Mainstream platforms (Linux/Windows amd64/amd64v3/arm64)
+pwsh ./build.ps1         # Full cross-compilation matrix
 ```

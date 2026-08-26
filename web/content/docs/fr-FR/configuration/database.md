@@ -10,7 +10,7 @@ description: Connexions SQLite, MySQL et PostgreSQL et paramètres du pool
 RenoP persiste comptes, RBAC, API Token, sessions, audit, équipes et messages dans une base de données. Configurez le
 bloc `database` de `config.yaml`. Les migrations sont appliquées automatiquement au démarrage.
 
-## 1. SQLite (par défaut)
+## SQLite (par défaut)
 
 SQLite est intégré et ne demande aucun service externe :
 
@@ -26,7 +26,7 @@ database:
 - `dsn` accepte un chemin relatif ou absolu.
 - RenoP initialise le schéma et active WAL pour les accès concurrents.
 
-## 2. MySQL 8.0+
+## MySQL 8.0+
 
 Utilisez MySQL pour une base externe gérée :
 
@@ -45,7 +45,7 @@ database:
 - Utilisez `utf8mb4` avec `utf8mb4_unicode_ci` ou `utf8mb4_0900_ai_ci`.
 - Le compte doit pouvoir créer et modifier les tables du schéma RenoP.
 
-## 3. PostgreSQL
+## PostgreSQL
 
 PostgreSQL utilise le pilote `jackc/pgx/v5` :
 
@@ -65,7 +65,7 @@ database:
 
 En production, activez TLS selon la politique de votre fournisseur au lieu de `sslmode=disable`.
 
-## 4. Paramètres du pool
+## Paramètres du pool
 
 | Paramètre               | Défaut | Description                                      |
 |:------------------------|:-------|:-------------------------------------------------|

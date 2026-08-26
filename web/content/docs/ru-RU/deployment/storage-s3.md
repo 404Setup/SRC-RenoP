@@ -10,7 +10,7 @@ description: Локальные файлы и S3-совместимые object b
 RenoP поддерживает локальный диск и S3-совместимые object services. Каждый репозиторий выбирает backend, а repository
 gate сериализует изменения с активными операциями.
 
-## 1. Локальная файловая система
+## Локальная файловая система
 
 Корень задаётся `storage_path` в `config.yaml`, по умолчанию `storage`.
 
@@ -30,7 +30,7 @@ gate сериализует изменения с активными опера�
 
 ---
 
-## 2. S3-совместимое object storage
+## S3-совместимое object storage
 
 S3 подходит для managed object storage. Multi-node также требует внешнюю базу и coordination в рамках гарантий RenoP;
 сам S3 не превращает один процесс в cluster.
@@ -65,7 +65,7 @@ secret manager, не добавляйте ключи в Git.
 
 ### Режимы скачивания
 
-1. **Proxy streaming (`redirect_downloads: false`)**: RenoP авторизует и передаёт данные из S3 клиенту. Bucket остаётся
+- **Proxy streaming (`redirect_downloads: false`)**: RenoP авторизует и передаёт данные из S3 клиенту. Bucket остаётся
    закрытым, S3 URL не раскрывается.
-2. **Direct redirect (`redirect_downloads: true`)**: после авторизации RenoP отвечает `302 Found` на краткосрочный
+- **Direct redirect (`redirect_downloads: true`)**: после авторизации RenoP отвечает `302 Found` на краткосрочный
    presigned URL, уменьшая свою нагрузку на сеть.

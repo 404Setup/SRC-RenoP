@@ -2,35 +2,48 @@
 title: Введение
 order: 1
 category: Начало работы
-description: Обзор возможностей и архитектуры сервера репозиториев RenoP
+description: RenoP как интегрированная self-hosted платформа публикации пакетов
 ---
 
 # Введение в RenoP
 
-RenoP — это высокопроизводительный автономный сервер репозиториев пакетов и артефактов с поддержкой нескольких
-протоколов. Разработанный на Go со встроенным веб-интерфейсом управления, RenoP обеспечивает простоту эксплуатации и
-отсутствие внешних зависимостей.
+RenoP — интегрированный self-hosted сервер публикации и распространения пакетов. Его модель ближе к частному сервису
+класса Central, чем к Maven-only repository: один Go process включает UI, identity, команды, проверки, каталоги,
+зеркала, storage, аудит и обновления.
 
-## Поддерживаемые экосистемы
+## Поддерживаемые протоколы
 
-- **Maven / Gradle**: Репозитории Release, Snapshot и Private со стандартной структурой каталогов Maven, поддержкой
-  просмотра Javadoc и проверки подписей GPG.
-- **Cargo (Rust)**: Протокол разреженного индекса (Sparse Index), публикация, загрузка, поиск, отзыв пакетов (yank),
-  зеркалирование crates.io и встроенный просмотр документации Cargodoc.
-- **Docker / OCI Registry**: Полная совместимость со спецификациями OCI Distribution Spec v2 и Docker Registry v2,
-  поддержка многоплатформенных манифестов и блочной загрузки.
+- **Maven / Gradle**: проверенные глобальные домены, современный каталог, classic layout, Maven 2 paths, зеркала,
+  Javadoc и отделённая OpenPGP-проверка.
+- **Cargo**: Sparse Index, явное владение, публикация, поиск, yank/unyank, зеркала и Cargodoc.
+- **Docker / OCI**: Distribution v2, резервирование образов, private teams, chunked blobs, cross-repository mounts,
+  multi-architecture manifests и зеркала.
+- **Files**: неструктурированное заменяемое хранилище с зеркалами, без Maven metadata и signature workflow.
 
-## Хранилище и базы данных
+## Хранилище и базы
 
-- **Хранилище**: Локальная файловая система или S3-совместимое объектное хранилище (AWS S3, MinIO, Cloudflare R2 и др.).
-- **Базы данных**: Встроенная SQLite, а также поддержка внешних MySQL 8.0+ и PostgreSQL.
+- **Storage**: потоковый local Disk или S3-compatible backend для репозитория.
+- **Database**: встроенный SQLite по умолчанию, внешние MySQL и PostgreSQL.
+- **Consistency**: repository gates координируют uploads, удаления, mirror commits, GPG и смену engine/storage без полного
+  чтения крупных объектов в память.
 
 ## Основные возможности
 
-| Возможность            | Описание                                                                                      |
-|:-----------------------|:----------------------------------------------------------------------------------------------|
-| **Один бинарный файл** | Запуск без внешних зависимостей; веб-интерфейс встроен в исполняемый файл                     |
-| **Зеркалирование**     | Прозрачное проксирование Maven, Cargo и Docker с настраиваемым кэшированием                   |
-| **Контроль доступа**   | Ролевая модель (RBAC), права на уровне репозиториев и персональные токены доступа (PAT)       |
-| **Управление службой** | Команды `--install` и `--uninstall` для Windows Service, systemd, OpenRC, LaunchDaemons, rc.d |
-| **Безопасность**       | Проверка отсоединенных подписей OpenPGP, ограничение частоты запросов и защита от перебора    |
+| Возможность | Описание |
+|:------------|:---------|
+| **Один сервис** | Встроенные frontend и protocol API без отдельного runtime |
+| **Глобальная identity** | Публичные профили по имени и неизменяемые внутренние user ID |
+| **Точные права** | Права репозитория, команды L0-L4, целевые и истекающие API Token |
+| **Проверенная публикация** | Домены Maven, upstream name conflicts и необязательный OpenPGP quarantine |
+| **Эксплуатация** | Нативная служба, scheduled tasks, durable audit/messages и in-place updates |
+| **Защита** | Bounded streaming, rate limit, bans, trusted proxy и sandboxed viewers |
+
+## Навигация по документации
+
+- [Установка](./install.md) — Пакеты, платформы и source build
+- [Быстрый старт](./quickstart.md) — Первый запуск, администратор и создание репозиториев
+- [Архитектура](./architecture.md) — Модули, авторизация, storage и задачи
+- [Конфигурация](../configuration/overview.md) — Проверяемые настройки и переменные
+- [Maven и Gradle](../guides/maven-client.md) — Проверенные домены и JVM clients
+- [Cargo](../guides/cargo-registry.md) — Sparse registry и lifecycle crate
+- [Docker и OCI](../guides/docker-registry.md) — Резервирование, login, push и pull

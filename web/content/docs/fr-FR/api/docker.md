@@ -20,7 +20,7 @@ vérification amont indéterminée renvoie `503 Service Unavailable` et ne rése
 Les routes de gestion conservent un corps lisible et ajoutent `X-Renop-Error-Code`. L’interface traduit ce code au lieu
 d’afficher le texte brut. Les routes OCI gardent la structure `errors` imposée par la spécification.
 
-## 1. Vérification de version
+## Vérification de version
 
 - **Chemin** : `GET /v2/` ou `HEAD /v2/`
 - **Réponse** :
@@ -30,7 +30,7 @@ d’afficher le texte brut. Les routes OCI gardent la structure `errors` imposé
 
 ---
 
-## 2. Jeton Bearer
+## Jeton Bearer
 
 - **Chemin** : `GET /v2/token` ou `GET /v2/auth`
 - **Usage** : échange Basic Auth contre un jeton Docker temporaire. Un API Token exige `repository:read` pour pull,
@@ -39,7 +39,7 @@ d’afficher le texte brut. Les routes OCI gardent la structure `errors` imposé
 
 ---
 
-## 3. Catalogue et tags
+## Catalogue et tags
 
 ### Lister les images
 
@@ -53,7 +53,7 @@ d’afficher le texte brut. Les routes OCI gardent la structure `errors` imposé
 
 ---
 
-## 4. Manifestes
+## Manifestes
 
 - **Lire** : `GET /v2/:name/manifests/:reference`
 - **Publier** : `PUT /v2/:name/manifests/:reference` (image créée et niveau L1 minimum)
@@ -61,7 +61,7 @@ d’afficher le texte brut. Les routes OCI gardent la structure `errors` imposé
 
 ---
 
-## 5. Blobs
+## Blobs
 
 - **Vérifier** : `HEAD /v2/:name/blobs/:digest`
 - **Télécharger** : `GET /v2/:name/blobs/:digest`
