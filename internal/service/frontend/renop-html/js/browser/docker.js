@@ -27,7 +27,8 @@ import {
     ensureRepositoryView,
     formatRepositoryTimestamp,
     hideRepositoryView,
-    replaceRepositoryView
+    replaceRepositoryView,
+    setRepositoryViewBusy
 } from './repository-view.js';
 import {RepositoryUserSuggestions} from './user-suggestions.js';
 
@@ -280,7 +281,7 @@ export async function renderDockerRepository(path, repoDetails, navigateToPath) 
  */
 async function renderCatalogView(container, repoName, seq) {
     dockerUserSuggestions.detach();
-    container.classList.add('is-updating');
+    setRepositoryViewBusy(container, true);
     try {
         const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`);
         if (seq !== dockerLoadSequence) return;
@@ -310,7 +311,7 @@ async function renderCatalogView(container, repoName, seq) {
                 el('p', {class: 'docker-create-first-hint'}, t('docker.createFirstHint'))
             );
 
-            await replaceRepositoryView(container, hero, {duration: 280, enterDuration: 400});
+            await replaceRepositoryView(container, hero, {duration: 280, enterDuration: 440});
             return;
         }
 
@@ -382,7 +383,7 @@ async function renderCatalogView(container, repoName, seq) {
             grid
         );
 
-        await replaceRepositoryView(container, [hero, imagesSection], {duration: 280, enterDuration: 400});
+        await replaceRepositoryView(container, [hero, imagesSection], {duration: 280, enterDuration: 440});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
         console.error('Failed to load Docker image catalog', err);
@@ -582,7 +583,7 @@ async function removeDockerTeamMember({container, repoName, imageName, sequence,
 async function renderImageDetailsView(container, repoName, imageName, seq) {
     const animateTeam = container.querySelector('.docker-team-list') !== null;
     dockerUserSuggestions.detach();
-    container.classList.add('is-updating');
+    setRepositoryViewBusy(container, true);
     try {
         const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`);
         if (seq !== dockerLoadSequence) return;
@@ -1060,7 +1061,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             sections.push(teamSection);
         }
 
-        await replaceRepositoryView(container, sections, {duration: 280, enterDuration: 400});
+        await replaceRepositoryView(container, sections, {duration: 280, enterDuration: 440});
     } catch (err) {
         if (seq !== dockerLoadSequence) return;
         console.error('Failed to load Docker image details', err);

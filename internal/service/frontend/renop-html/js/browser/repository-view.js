@@ -98,19 +98,24 @@ export async function replaceRepositoryView(container, content, {
 } = {}) {
     if (!container) return;
     const nodes = Array.isArray(content) ? content.filter(Boolean) : (content ? [content] : []);
-    const mutate = typeof content === 'function'
+    const replaceContent = typeof content === 'function'
         ? content
         : () => container.replaceChildren(...nodes);
     clearEntranceTimer(container);
+    container.classList.remove('is-entering');
+    const mutate = () => {
+        if (enter) {
+            container.classList.add('is-entering');
+            const timer = setTimeout(() => {
+                entranceTimers.delete(container);
+                if (container.isConnected) container.classList.remove('is-entering');
+            }, enterDuration);
+            entranceTimers.set(container, timer);
+        }
+        replaceContent();
+    };
     await morphElementHeight(container, mutate, {duration});
     setRepositoryViewBusy(container, false);
-    if (!enter) return;
-    container.classList.add('is-entering');
-    const timer = setTimeout(() => {
-        entranceTimers.delete(container);
-        if (container.isConnected) container.classList.remove('is-entering');
-    }, enterDuration);
-    entranceTimers.set(container, timer);
 }
 
 /**

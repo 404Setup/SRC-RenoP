@@ -120,7 +120,9 @@
   repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads fragments in
   parallel and reports all missing/extra keys and placeholder drift against the English catalog during
   `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
-  route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`;
+  route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`.
+  Entrance state is prepared before replacement nodes can paint, while Maven-domain filtering preserves its toolbar
+  and filter shell and morphs only the bounded results/pagination region;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
   `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository

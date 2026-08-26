@@ -1315,7 +1315,7 @@ async function loadCargoOverview(sequence) {
     try {
         await loadCargoCatalog(sequence);
         if (sequence !== cargoLoadSequence) return;
-        await replaceRepositoryView(activeView, renderCargoOverview, {duration: 300, enterDuration: 350});
+        await replaceRepositoryView(activeView, renderCargoOverview, {duration: 300, enterDuration: 440});
     } catch (error) {
         if (sequence !== cargoLoadSequence) return;
         console.error('Failed to load Cargo packages', error);
@@ -1348,7 +1348,7 @@ async function loadCargoPackage(packageName, sequence) {
         if (sequence !== cargoLoadSequence) return;
         activePackageDetails = details;
         activeAdministrator = details?.administrator === true;
-        await replaceRepositoryView(activeView, renderCargoPackagePage, {duration: 300, enterDuration: 350});
+        await replaceRepositoryView(activeView, renderCargoPackagePage, {duration: 300, enterDuration: 440});
     } catch (error) {
         if (sequence !== cargoLoadSequence) return;
         console.error('Failed to load Cargo package', error);

@@ -26,7 +26,8 @@ import {
     ensureRepositoryView,
     formatRepositoryTimestamp,
     hideRepositoryView,
-    replaceRepositoryView
+    replaceRepositoryView,
+    setRepositoryViewBusy
 } from './repository-view.js';
 
 const mavenRepositoryIcon = getRepositoryFormat('maven').icon;
@@ -342,7 +343,7 @@ function artifactInformationSection(details, repository) {
  * @returns {Promise<void>}
  */
 async function renderCatalog(container, repository, sequence) {
-    container.classList.add('is-updating');
+    setRepositoryViewBusy(container, true);
     try {
         const [domainResponse, artifactResponse] = await Promise.all([
             apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/domains`),
@@ -384,7 +385,7 @@ async function renderCatalog(container, repository, sequence) {
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.domainsTitle')), domainList),
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.artifactsTitle')), artifactList)
         ];
-        await replaceRepositoryView(container, content, {duration: 280, enterDuration: 380});
+        await replaceRepositoryView(container, content, {duration: 280, enterDuration: 420});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
         await replaceRepositoryView(container,
@@ -564,9 +565,12 @@ function domainFilterButton(filter, label, container) {
     return el('button', {
         type: 'button', class: `maven-domain-filter${selected ? ' is-active' : ''}`,
         'aria-pressed': String(selected),
-        onclick: () => {
-            if (selected) domainCenterFilters.delete(filter);
+        onclick: event => {
+            const active = domainCenterFilters.has(filter);
+            if (active) domainCenterFilters.delete(filter);
             else domainCenterFilters.add(filter);
+            event.currentTarget.classList.toggle('is-active', !active);
+            event.currentTarget.setAttribute('aria-pressed', String(!active));
             domainCenterOffset = 0;
             void renderDomainCenterList(container);
         }
@@ -606,14 +610,71 @@ function domainCenterPagination(container, total) {
 }
 
 /**
+ * Build the stable toolbar and filter controls for the Maven-domain list.
+ * @param {HTMLElement} container - Routed domain center container.
+ * @param {boolean} administrator - Whether administrator-only filters are available.
+ * @param {HTMLElement} results - Persistent result and pagination host.
+ * @returns {HTMLElement[]} Stable list-shell nodes.
+ */
+function domainCenterListShell(container, administrator, results) {
+    const createButton = el('button', {
+        type: 'button', class: 'pill-btn pill-btn--primary',
+        onclick: () => openCreateDomainDialog(created => navigateMavenDomainCenter(created.domain))
+    }, createIcon('plus'), el('span', {}, t('maven.createDomain')));
+    const header = el('div', {class: 'maven-domain-center-toolbar'},
+        el('div', {},
+            el('h3', {}, t('maven.domainSettings')),
+            el('p', {}, t('maven.domainCenterHint'))
+        ),
+        createButton
+    );
+    const filters = el('div', {class: 'maven-domain-filter-bar'},
+        el('span', {class: 'maven-domain-filter-label'}, t('maven.filterLabel'))
+    );
+    const permissionLevels = administrator ? [1, 2, 3, 4] : [0, 1, 2, 3, 4];
+    permissionLevels.forEach(level => filters.appendChild(
+        domainFilterButton(`level-${level}`, permissionLabel(level), container)
+    ));
+    if (administrator) {
+        filters.append(
+            domainFilterButton('state-unverified', t('maven.filterUnverified'), container),
+            domainFilterButton('state-mirror', t('maven.filterMirrored'), container)
+        );
+    }
+    return [header, filters, results];
+}
+
+/**
+ * Build the replaceable domain cards and pagination controls.
+ * @param {HTMLElement} container - Routed domain center container.
+ * @param {object[]} domains - Current bounded domain page.
+ * @param {number} total - Filtered domain count.
+ * @returns {HTMLElement[]} Result host children.
+ */
+function domainCenterResultNodes(container, domains, total) {
+    const list = el('div', {class: 'maven-domain-list'});
+    if (domains.length === 0) {
+        list.appendChild(el('div', {class: 'maven-empty'}, createIcon('network'),
+            el('span', {}, t(domainCenterFilters.size > 0 ? 'maven.noFilteredDomains' : 'maven.noManagedDomains'))));
+    } else {
+        domains.forEach(domain => list.appendChild(domainCard('', domain, selected => {
+            navigateMavenDomainCenter(selected.domain);
+        })));
+    }
+    return [list, domainCenterPagination(container, total)].filter(Boolean);
+}
+
+/**
  * Render the global Maven domain-management list.
  * @param {HTMLElement} container
  * @returns {Promise<void>}
  */
 async function renderDomainCenterList(container) {
     const sequence = ++domainCenterSequence;
-    container.setAttribute('aria-busy', 'true');
-    container.replaceChildren(createSkeleton('list', 3));
+    const existingResults = container.querySelector(':scope > .maven-domain-results');
+    const busyTarget = existingResults || container;
+    if (!container.firstElementChild) container.replaceChildren(createSkeleton('list', 3));
+    setRepositoryViewBusy(busyTarget, true);
     try {
         const response = await apiRequest(managedDomainListURL());
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
@@ -623,6 +684,7 @@ async function renderDomainCenterList(container) {
         const total = Number(payload.total);
         if (!Number.isInteger(total) || total < 0) throw new Error(t('maven.loadFailed'));
         const administrator = Boolean(payload.administrator);
+        const activeLanguage = window.i18n?.currentLanguage?.() || '';
         if (administrator) domainCenterFilters.delete('level-0');
         else {
             domainCenterFilters.delete('state-unverified');
@@ -633,46 +695,32 @@ async function renderDomainCenterList(container) {
             await renderDomainCenterList(container);
             return;
         }
-        const createButton = el('button', {
-            type: 'button', class: 'pill-btn pill-btn--primary',
-            onclick: () => openCreateDomainDialog(created => navigateMavenDomainCenter(created.domain))
-        }, createIcon('plus'), el('span', {}, t('maven.createDomain')));
-        const header = el('div', {class: 'maven-domain-center-toolbar'},
-            el('div', {},
-                el('h3', {}, t('maven.domainSettings')),
-                el('p', {}, t('maven.domainCenterHint'))
-            ),
-            createButton
-        );
-        const filters = el('div', {class: 'maven-domain-filter-bar'},
-            el('span', {class: 'maven-domain-filter-label'}, t('maven.filterLabel'))
-        );
-        const permissionLevels = administrator ? [1, 2, 3, 4] : [0, 1, 2, 3, 4];
-        permissionLevels.forEach(level => filters.appendChild(
-            domainFilterButton(`level-${level}`, permissionLabel(level), container)
-        ));
-        if (administrator) {
-            filters.append(
-                domainFilterButton('state-unverified', t('maven.filterUnverified'), container),
-                domainFilterButton('state-mirror', t('maven.filterMirrored'), container)
-            );
-        }
-        const list = el('div', {class: 'maven-domain-list'});
-        if (domains.length === 0) {
-            list.appendChild(el('div', {class: 'maven-empty'}, createIcon('network'),
-                el('span', {}, t(domainCenterFilters.size > 0 ? 'maven.noFilteredDomains' : 'maven.noManagedDomains'))));
+        const preserveShell = existingResults?.dataset.administrator === String(administrator) &&
+            existingResults.dataset.language === activeLanguage;
+        if (preserveShell) {
+            await replaceRepositoryView(existingResults, domainCenterResultNodes(container, domains, total), {
+                duration: 260,
+                enterDuration: 380
+            });
         } else {
-            domains.forEach(domain => list.appendChild(domainCard('', domain, selected => {
-                navigateMavenDomainCenter(selected.domain);
-            })));
+            const results = el('div', {
+                class: 'maven-domain-results',
+                'data-administrator': String(administrator),
+                'data-language': activeLanguage
+            }, ...domainCenterResultNodes(container, domains, total));
+            await replaceRepositoryView(container, domainCenterListShell(container, administrator, results), {
+                duration: 300,
+                enterDuration: 420
+            });
         }
-        container.replaceChildren(...[header, filters, list, domainCenterPagination(container, total)].filter(Boolean));
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
-        container.replaceChildren(el('div', {class: 'maven-error'}, createIcon('alertCircle'),
-            el('span', {}, caughtErrorMessage(error, 'maven.loadFailed'))));
+        await replaceRepositoryView(existingResults || container,
+            el('div', {class: 'maven-error'}, createIcon('alertCircle'),
+                el('span', {}, caughtErrorMessage(error, 'maven.loadFailed'))),
+            {duration: 240, enterDuration: 340});
     } finally {
-        if (sequence === domainCenterSequence) container.removeAttribute('aria-busy');
+        if (sequence === domainCenterSequence) setRepositoryViewBusy(busyTarget, false);
     }
 }
 
@@ -684,8 +732,8 @@ async function renderDomainCenterList(container) {
  */
 async function renderManagedDomain(container, domainName) {
     const sequence = ++domainCenterSequence;
-    container.setAttribute('aria-busy', 'true');
-    container.replaceChildren(createSkeleton('form', 2));
+    if (!container.firstElementChild) container.replaceChildren(createSkeleton('form', 2));
+    setRepositoryViewBusy(container, true);
     const refresh = () => renderManagedDomain(container, domainName);
     try {
         const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(domainName)}`);
@@ -757,16 +805,19 @@ async function renderManagedDomain(container, domainName) {
             !domain.verified ? verificationPanel(domain) : null
         );
         const team = teamPanel(details, refresh);
-        container.replaceChildren(...[hero, domainInformationSection(details), team].filter(Boolean));
+        await replaceRepositoryView(container, [hero, domainInformationSection(details), team], {
+            duration: 300,
+            enterDuration: 420
+        });
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
-        container.replaceChildren(
+        await replaceRepositoryView(container, [
             el('button', {type: 'button', class: 'maven-back-btn', onclick: () => navigateMavenDomainCenter()},
                 createIcon('chevronLeft'), el('span', {}, t('maven.backToDomains'))),
             el('div', {class: 'maven-error'}, caughtErrorMessage(error, 'maven.domainLoadFailed'))
-        );
+        ], {duration: 240, enterDuration: 380});
     } finally {
-        if (sequence === domainCenterSequence) container.removeAttribute('aria-busy');
+        if (sequence === domainCenterSequence) setRepositoryViewBusy(container, false);
     }
 }
 
@@ -814,7 +865,7 @@ export function openMavenDomainCenter() {
  * @returns {Promise<void>}
  */
 async function renderDomain(container, repository, domainName, sequence) {
-    container.classList.add('is-updating');
+    setRepositoryViewBusy(container, true);
     try {
         const [domainResponse, artifactsResponse] = await Promise.all([
             apiRequest(`/api/maven/domains/${encodeURIComponent(domainName)}`),
@@ -847,7 +898,7 @@ async function renderDomain(container, repository, domainName, sequence) {
             domainInformationSection(details, {repository, repositoryArtifactCount: artifactData.total}),
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.artifactsTitle')), artifactList)
         ];
-        await replaceRepositoryView(container, sections, {duration: 280, enter: false});
+        await replaceRepositoryView(container, sections, {duration: 280, enterDuration: 420});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
         await replaceRepositoryView(container, [
@@ -909,7 +960,7 @@ function openDescriptionEditor(container, repository, artifact, sequence) {
  * @returns {Promise<void>}
  */
 async function renderArtifact(container, repository, groupID, artifactID, sequence) {
-    container.classList.add('is-updating');
+    setRepositoryViewBusy(container, true);
     try {
         const query = new URLSearchParams({group: groupID, artifact: artifactID});
         const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`);
@@ -972,7 +1023,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         if (versions.length === 0) versionList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noVersions')));
         await replaceRepositoryView(container, [hero, artifactInformationSection(details, repository),
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.versionsTitle')), versionList)
-        ], {duration: 280, enter: false});
+        ], {duration: 280, enterDuration: 420});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;
         await replaceRepositoryView(container, [

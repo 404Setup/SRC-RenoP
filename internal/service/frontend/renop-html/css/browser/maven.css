@@ -13,7 +13,6 @@
     flex-direction: column;
     gap: 1rem;
     min-width: 0;
-    animation: mavenViewIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .maven-domain-center-dialog {
@@ -29,6 +28,35 @@
     display: grid;
     gap: 18px;
     min-height: 220px;
+}
+
+.maven-domain-results {
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+}
+
+.maven-repository-view > *,
+.maven-domain-center > *,
+.maven-domain-results > * {
+    transition: opacity 0.16s ease;
+}
+
+.maven-repository-view.is-entering > *,
+.maven-domain-center.is-entering > *,
+.maven-domain-results.is-entering > * {
+    animation: mavenViewIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.maven-repository-view.is-entering > *:nth-child(2),
+.maven-domain-center.is-entering > *:nth-child(2),
+.maven-domain-results.is-entering > *:nth-child(2) {
+    animation-delay: 35ms;
+}
+
+.maven-repository-view.is-entering > *:nth-child(3),
+.maven-domain-center.is-entering > *:nth-child(3) {
+    animation-delay: 70ms;
 }
 
 .maven-domain-page {
@@ -162,7 +190,9 @@
     display: none !important;
 }
 
-.maven-repository-view.is-updating {
+.maven-repository-view.is-updating,
+.maven-domain-center.is-updating > *,
+.maven-domain-results.is-updating > * {
     opacity: 0.72;
 }
 
@@ -641,7 +671,9 @@ button.maven-artifact-card:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .maven-repository-view {
+    .maven-repository-view.is-entering > *,
+    .maven-domain-center.is-entering > *,
+    .maven-domain-results.is-entering > * {
         animation: none;
     }
 }
