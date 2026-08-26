@@ -90,6 +90,10 @@ func TestFineGrainedAPITokenRoutesAndAuthorizationBoundaries(t *testing.T) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&scopeResult))
 	require.NoError(t, response.Body.Close())
 	assert.Contains(t, scopeResult.Scopes, core.APITokenScopeRepositoryRead)
+	assert.Contains(t, scopeResult.Scopes, core.APITokenScopeTeamManage)
+	assert.Contains(t, scopeResult.Scopes, core.APITokenScopeDomainVerify)
+	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopePackageManage)
+	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopeDomainManage)
 	assert.NotContains(t, scopeResult.Scopes, core.APITokenScopeAdminSettings)
 
 	expiresAt := time.Now().Add(24 * time.Hour).UnixMilli()
@@ -285,7 +289,7 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 	state.Inner.Config.Store(cfg)
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
-		return c.SendString(requiredAPITokenScope(c, state))
+		return c.SendString(requiredAPITokenScope(c, state).Scope)
 	})
 
 	tests := []struct {
@@ -296,27 +300,30 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		{http.MethodGet, "/api/auth/me", core.APITokenScopeAccountRead},
 		{http.MethodGet, "/api/auth/users/alice/audit-logs", core.APITokenScopeAdminAudit},
 		{http.MethodGet, "/api/docker/repositories/releases/images", core.APITokenScopeRepositoryRead},
-		{http.MethodPost, "/api/docker/repositories/releases/images", core.APITokenScopePackageManage},
+		{http.MethodPost, "/api/docker/repositories/releases/images", core.APITokenScopePackageCreate},
 		{http.MethodDelete, "/api/docker/repositories/releases/images/demo", core.APITokenScopeRepositoryDelete},
-		{http.MethodGet, "/api/docker/repositories/releases/owners", core.APITokenScopePackageManage},
-		{http.MethodDelete, "/api/docker/repositories/releases/owners/alice", core.APITokenScopePackageManage},
+		{http.MethodGet, "/api/docker/repositories/releases/owners", core.APITokenScopeTeamManage},
+		{http.MethodDelete, "/api/docker/repositories/releases/owners/alice", core.APITokenScopeTeamManage},
 		{http.MethodGet, "/api/maven/details/releases/demo.jar", core.APITokenScopeRepositoryRead},
 		{http.MethodGet, "/api/maven/signatures/releases/demo.jar", core.APITokenScopeRepositoryRead},
 		{http.MethodGet, "/api/maven/repositories/releases/packages", core.APITokenScopeRepositoryRead},
-		{http.MethodPut, "/api/maven/repositories/releases/package", core.APITokenScopePackageManage},
+		{http.MethodPut, "/api/maven/repositories/releases/package", core.APITokenScopePackageMetadata},
 		{http.MethodDelete, "/api/maven/repositories/releases/versions", core.APITokenScopeRepositoryDelete},
-		{http.MethodGet, "/api/maven/repositories/releases/domains/example.com", core.APITokenScopeDomainManage},
-		{http.MethodPost, "/api/maven/domains", core.APITokenScopeDomainManage},
+		{http.MethodGet, "/api/maven/repositories/releases/domains/example.com", core.APITokenScopeDomainRead},
+		{http.MethodPost, "/api/maven/domains", core.APITokenScopeDomainCreate},
+		{http.MethodPost, "/api/maven/domains/example.com/verify", core.APITokenScopeDomainVerify},
+		{http.MethodDelete, "/api/maven/domains/example.com", core.APITokenScopeDomainDelete},
+		{http.MethodPut, "/api/maven/domains/example.com/members/alice", core.APITokenScopeTeamManage},
 		{http.MethodGet, "/api/statistics/users/alice", core.APITokenScopeStatisticsRead},
 		{http.MethodGet, "/api/statistics/system/repositories", core.APITokenScopeAdminStatistics},
 		{http.MethodPut, "/api/settings/service", core.APITokenScopeAdminSettings},
 		{http.MethodPut, "/api/settings/repositories/releases", core.APITokenScopeAdminRepositories},
 		{http.MethodPost, "/api/settings/index/rebuild", core.APITokenScopeAdminRepositories},
 		{http.MethodPut, "/cargo/api/v1/crates/new", core.APITokenScopeRepositoryPublish},
-		{http.MethodGet, "/cargo/api/v1/crates/demo/owners", core.APITokenScopePackageManage},
-		{http.MethodDelete, "/cargo/api/v1/crates/demo/owners/alice", core.APITokenScopePackageManage},
-		{http.MethodDelete, "/cargo/api/v1/crates/demo/1.0.0/yank", core.APITokenScopeRepositoryDelete},
-		{http.MethodPut, "/cargo/api/v1/crates/demo/1.0.0/unyank", core.APITokenScopePackageManage},
+		{http.MethodGet, "/cargo/api/v1/crates/demo/owners", core.APITokenScopeTeamManage},
+		{http.MethodDelete, "/cargo/api/v1/crates/demo/owners/alice", core.APITokenScopeTeamManage},
+		{http.MethodDelete, "/cargo/api/v1/crates/demo/1.0.0/yank", core.APITokenScopePackageLifecycle},
+		{http.MethodPut, "/cargo/api/v1/crates/demo/1.0.0/unyank", core.APITokenScopePackageLifecycle},
 	}
 
 	for _, test := range tests {
@@ -329,4 +336,12 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 			assert.Equal(t, test.scope, string(body))
 		})
 	}
+	assert.True(t, requireAPITokenScope(core.APITokenScopeTeamManage,
+		core.APITokenScopePackageManage).allows([]string{core.APITokenScopePackageManage}))
+	assert.True(t, requireAPITokenScope(core.APITokenScopeDomainVerify,
+		core.APITokenScopeDomainManage).allows([]string{core.APITokenScopeDomainManage}))
+	assert.False(t, requireAPITokenScope(core.APITokenScopeTeamManage,
+		core.APITokenScopePackageManage).allows([]string{core.APITokenScopePackageMetadata}))
+	assert.False(t, requireAPITokenScope(core.APITokenScopeDomainVerify,
+		core.APITokenScopeDomainManage).allows([]string{core.APITokenScopeDomainRead}))
 }

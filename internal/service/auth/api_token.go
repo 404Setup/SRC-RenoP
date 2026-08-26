@@ -24,6 +24,14 @@ const (
 	APITokenScopeRepositoryRead     = core.APITokenScopeRepositoryRead
 	APITokenScopeRepositoryPublish  = core.APITokenScopeRepositoryPublish
 	APITokenScopeRepositoryDelete   = core.APITokenScopeRepositoryDelete
+	APITokenScopePackageCreate      = core.APITokenScopePackageCreate
+	APITokenScopePackageMetadata    = core.APITokenScopePackageMetadata
+	APITokenScopePackageLifecycle   = core.APITokenScopePackageLifecycle
+	APITokenScopeTeamManage         = core.APITokenScopeTeamManage
+	APITokenScopeDomainRead         = core.APITokenScopeDomainRead
+	APITokenScopeDomainCreate       = core.APITokenScopeDomainCreate
+	APITokenScopeDomainVerify       = core.APITokenScopeDomainVerify
+	APITokenScopeDomainDelete       = core.APITokenScopeDomainDelete
 	APITokenScopePackageManage      = core.APITokenScopePackageManage
 	APITokenScopeDomainManage       = core.APITokenScopeDomainManage
 	APITokenScopeMessagesRead       = core.APITokenScopeMessagesRead
@@ -64,8 +72,14 @@ var apiTokenScopeDefinitions = []apiTokenScopeDefinition{
 	{Scope: APITokenScopeRepositoryRead},
 	{Scope: APITokenScopeRepositoryPublish},
 	{Scope: APITokenScopeRepositoryDelete},
-	{Scope: APITokenScopePackageManage},
-	{Scope: APITokenScopeDomainManage},
+	{Scope: APITokenScopePackageCreate},
+	{Scope: APITokenScopePackageMetadata},
+	{Scope: APITokenScopePackageLifecycle},
+	{Scope: APITokenScopeTeamManage},
+	{Scope: APITokenScopeDomainRead},
+	{Scope: APITokenScopeDomainCreate},
+	{Scope: APITokenScopeDomainVerify},
+	{Scope: APITokenScopeDomainDelete},
 	{Scope: APITokenScopeMessagesRead},
 	{Scope: APITokenScopeAccountRead},
 	{Scope: APITokenScopeAccountWrite},
@@ -245,4 +259,18 @@ func CurrentCredentialHasScope(c fiber.Ctx, scope string) bool {
 	}
 	scopes, _ := c.Locals(apiTokenScopesLocal).([]string)
 	return slices.Contains(scopes, scope)
+}
+
+// CurrentCredentialHasAnyScope reports whether a request is unrestricted or carries at least one supplied scope.
+func CurrentCredentialHasAnyScope(c fiber.Ctx, scopes ...string) bool {
+	if CurrentCredentialKind(c) != credentialKindAPIToken {
+		return true
+	}
+	granted, _ := c.Locals(apiTokenScopesLocal).([]string)
+	for _, scope := range scopes {
+		if slices.Contains(granted, scope) {
+			return true
+		}
+	}
+	return false
 }

@@ -29,10 +29,20 @@ const (
 	LegacyAPITokenNamePrefix = "Migrated upload token "
 
 	// API token scopes define the individual capabilities assignable to durable credentials.
-	APITokenScopeRepositoryRead     = "repository:read"
-	APITokenScopeRepositoryPublish  = "repository:publish"
-	APITokenScopeRepositoryDelete   = "repository:delete"
-	APITokenScopePackageManage      = "package:manage"
+	APITokenScopeRepositoryRead    = "repository:read"
+	APITokenScopeRepositoryPublish = "repository:publish"
+	APITokenScopeRepositoryDelete  = "repository:delete"
+	APITokenScopePackageCreate     = "package:create"
+	APITokenScopePackageMetadata   = "package:metadata"
+	APITokenScopePackageLifecycle  = "package:lifecycle"
+	APITokenScopeTeamManage        = "team:manage"
+	APITokenScopeDomainRead        = "domain:read"
+	APITokenScopeDomainCreate      = "domain:create"
+	APITokenScopeDomainVerify      = "domain:verify"
+	APITokenScopeDomainDelete      = "domain:delete"
+	// APITokenScopePackageManage is accepted only for credentials created before capability splitting.
+	APITokenScopePackageManage = "package:manage"
+	// APITokenScopeDomainManage is accepted only for credentials created before capability splitting.
 	APITokenScopeDomainManage       = "domain:manage"
 	APITokenScopeMessagesRead       = "messages:read"
 	APITokenScopeAccountRead        = "account:read"

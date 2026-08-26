@@ -59,8 +59,14 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 | `repository:read` | 读取仓库目录、元数据、文件、镜像和版本 |
 | `repository:publish` | 通过 Maven、Cargo、Docker、纯文件或分块上传协议发布 |
 | `repository:delete` | 删除仓库文件、包版本、标签或镜像 |
-| `package:manage` | 管理包元数据、可见性、生命周期状态与包团队 |
-| `domain:manage` | 创建、验证和管理全局 Maven 发布域 |
+| `package:create` | 在仓库授权通过后创建新的 Cargo 包或 Docker 镜像 |
+| `package:metadata` | 更新包描述及其他包元数据 |
+| `package:lifecycle` | 归档、恢复、撤回或重新开放包与版本 |
+| `team:manage` | 查看并管理 Cargo、Docker 及 Maven 发布域团队与邀请 |
+| `domain:read` | 读取私有 Maven 发布域配置 |
+| `domain:create` | 创建 Maven 发布域 |
+| `domain:verify` | 请求或强制执行 Maven 发布域所有权验证 |
+| `domain:delete` | 删除 Maven 发布域 |
 | `messages:read` | 读取、标记和删除账号通知 |
 | `account:read` | 读取私有账号数据及个人行为日志 |
 | `account:write` | 通过 API 更新账号公开资料 |
@@ -73,7 +79,8 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 | `admin:updates` | 检查、上传、安装系统更新及重启服务 |
 | `admin:statistics` | 查询系统级下载统计 |
 
-只有系统管理员可以创建 `admin:*` Token；所属账号失去管理员身份后，这些范围也会立即停止授权。
+只有系统管理员可以创建 `admin:*` Token；所属账号失去管理员身份后，这些范围也会立即停止授权。已有
+`package:manage` 与 `domain:manage` Token 保持兼容，但新 Token 不再允许选择这两个宽泛范围。
 
 ## 使用 Token
 

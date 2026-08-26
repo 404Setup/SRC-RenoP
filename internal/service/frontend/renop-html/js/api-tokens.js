@@ -20,6 +20,14 @@ const scopeKeys = Object.freeze({
     'repository:read': 'repositoryRead',
     'repository:publish': 'repositoryPublish',
     'repository:delete': 'repositoryDelete',
+    'package:create': 'packageCreate',
+    'package:metadata': 'packageMetadata',
+    'package:lifecycle': 'packageLifecycle',
+    'team:manage': 'teamManage',
+    'domain:read': 'domainRead',
+    'domain:create': 'domainCreate',
+    'domain:verify': 'domainVerify',
+    'domain:delete': 'domainDelete',
     'package:manage': 'packageManage',
     'domain:manage': 'domainManage',
     'messages:read': 'messagesRead',
@@ -34,6 +42,17 @@ const scopeKeys = Object.freeze({
     'admin:updates': 'adminUpdates',
     'admin:statistics': 'adminStatistics',
 });
+
+const scopeGroups = Object.freeze([
+    {key: 'repository', scopes: ['repository:read', 'repository:publish', 'repository:delete']},
+    {key: 'package', scopes: ['package:create', 'package:metadata', 'package:lifecycle', 'team:manage']},
+    {key: 'domain', scopes: ['domain:read', 'domain:create', 'domain:verify', 'domain:delete']},
+    {key: 'account', scopes: ['messages:read', 'account:read', 'account:write', 'statistics:read']},
+    {key: 'administration', scopes: [
+        'admin:users', 'admin:repositories', 'admin:settings', 'admin:audit',
+        'admin:notifications', 'admin:updates', 'admin:statistics'
+    ]},
+]);
 
 let apiTokenLoadSequence = 0;
 let cachedTokenCount = null;
@@ -199,6 +218,27 @@ function createScopeOption(scope) {
 }
 
 /**
+ * Group server-approved scopes by target capability without reordering within each group.
+ * @param {string[]} allowedScopes - Scopes filtered by current account permissions.
+ * @returns {HTMLDivElement}
+ */
+function createScopeGroups(allowedScopes) {
+    const allowed = new Set(allowedScopes);
+    const groups = scopeGroups.map(group => {
+        const scopes = group.scopes.filter(scope => allowed.has(scope));
+        if (scopes.length === 0) return null;
+        return el('section', {class: 'profile-api-token-scope-group'},
+            el('h4', {
+                class: 'profile-api-token-scope-group-title',
+                'data-i18n': `profile.apiTokenScopeGroup.${group.key}`
+            }, t(`profile.apiTokenScopeGroup.${group.key}`)),
+            el('div', {class: 'profile-api-token-scope-grid'}, ...scopes.map(createScopeOption))
+        );
+    }).filter(Boolean);
+    return el('div', {class: 'profile-api-token-scope-groups'}, ...groups);
+}
+
+/**
  * Open the token creation form and return through onCreated after persistence.
  * @param {string[]} allowedScopes - Scopes filtered by account permissions.
  * @param {() => Promise<void>} onCreated - Manager-list refresh callback.
@@ -216,9 +256,7 @@ function openCreateAPITokenDialog(allowedScopes, onCreated) {
         expirationValue = value;
     });
     expiration.classList.add('profile-api-token-expiration');
-    const scopeGrid = el('div', {class: 'profile-api-token-scope-grid'},
-        ...allowedScopes.map(createScopeOption)
-    );
+    const scopeGrid = createScopeGroups(allowedScopes);
     const error = el('p', {class: 'password-recovery-error', role: 'alert'});
     const body = el('div', {class: 'profile-api-token-create-form'},
         el('label', {}, el('span', {'data-i18n': 'profile.apiTokenName'}, t('profile.apiTokenName')), nameInput),

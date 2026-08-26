@@ -27,10 +27,12 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/service/auth"
 )
 
 type memoryStore struct {
@@ -265,6 +267,79 @@ func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
 	status, _ = publish()
 	if status != fiber.StatusConflict {
 		t.Fatalf("duplicate publish status = %d, want %d", status, fiber.StatusConflict)
+	}
+}
+
+func TestNewCargoPackageRequiresCreateScope(t *testing.T) {
+	storagePath := t.TempDir()
+	store := newMemoryStore()
+	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
+	state := core.NewAppState()
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{"cargo": repo}
+	state.Inner.Config.Store(cfg)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-api-token.db"), MaxOpenConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+	if err := db.SaveToken(&core.AccessToken{
+		Name: "publisher", Permissions: []string{"canupdate:cargo"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	createCredential := func(name string, scopes []string) string {
+		secret, generateErr := core.GenerateAPITokenSecret()
+		if generateErr != nil {
+			t.Fatal(generateErr)
+		}
+		if createErr := db.CreateAPIToken("publisher", &core.APIToken{
+			ID: uuid.NewString(), Name: name, Scopes: scopes, CreatedAt: time.Now().UnixMilli(),
+		}, core.HashAPITokenSecret(secret)); createErr != nil {
+			t.Fatal(createErr)
+		}
+		return secret
+	}
+	publishOnly := createCredential("Publish existing crates", []string{core.APITokenScopeRepositoryPublish})
+	publishAndCreate := createCredential("Create crates", []string{
+		core.APITokenScopeRepositoryPublish, core.APITokenScopePackageCreate,
+	})
+
+	handler := Handler{Store: store}
+	app := fiber.New()
+	app.Use(auth.AuthMiddleware(state))
+	app.All("/:repo_name/*", func(c fiber.Ctx) error {
+		handled, handlerErr := handler.Handle(c, state, repo, storagePath, c.Params("*"))
+		if handled {
+			return handlerErr
+		}
+		return c.SendStatus(fiber.StatusNotFound)
+	})
+	crate := makeCrateArchive(t, map[string]string{
+		"scoped-1.0.0/Cargo.toml": "[package]\nname = \"scoped\"\nversion = \"1.0.0\"\n",
+	})
+	body := makePublishBody(t, PublishMetadata{
+		Name: "scoped", Version: "1.0.0", Deps: []PublishDependency{}, Features: map[string][]string{},
+	}, crate)
+	request := func(secret string) int {
+		req := httptest.NewRequest(http.MethodPut, "/cargo/api/v1/crates/new", bytes.NewReader(body))
+		req.Header.Set(fiber.HeaderAuthorization, "Bearer "+secret)
+		resp, requestErr := app.Test(req)
+		if requestErr != nil {
+			t.Fatal(requestErr)
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode
+	}
+	if status := request(publishOnly); status != fiber.StatusForbidden {
+		t.Fatalf("publish-only token created a package: status = %d", status)
+	}
+	if status := request(publishAndCreate); status != fiber.StatusOK {
+		t.Fatalf("publish/create token status = %d, want 200", status)
 	}
 }
 

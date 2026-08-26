@@ -726,9 +726,10 @@ func TestFineGrainedAPITokenProfileUI(t *testing.T) {
 	}
 	sourceText := string(source)
 	for _, required := range []string{
-		"/api/auth/profile/api-tokens", "expires_at", "repository:publish", "runButtonAction",
+		"/api/auth/profile/api-tokens", "expires_at", "repository:publish", "team:manage", "domain:verify", "runButtonAction",
 		"writeClipboardText", "profile.apiTokenSecretWarning", "data-api-token-scope",
 		"data-i18n-placeholder", "languageChanged", "makeCustomSelect", "profile-api-token-create-modal",
+		"profile-api-token-scope-groups", "profile.apiTokenScopeGroup.${group.key}",
 	} {
 		if !strings.Contains(sourceText, required) {
 			t.Fatalf("fine-grained API token controller is missing %q", required)

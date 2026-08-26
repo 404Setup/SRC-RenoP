@@ -316,118 +316,154 @@ func isSessionOnlyAPIPath(path string) bool {
 	return false
 }
 
-func packageManagementScope(path, method string) string {
+type apiTokenRequirement struct {
+	Scope        string
+	Alternatives []string
+}
+
+func (requirement apiTokenRequirement) allows(scopes []string) bool {
+	if requirement.Scope == "" || slices.Contains(scopes, requirement.Scope) {
+		return true
+	}
+	for _, alternative := range requirement.Alternatives {
+		if slices.Contains(scopes, alternative) {
+			return true
+		}
+	}
+	return false
+}
+
+func requireAPITokenScope(scope string, alternatives ...string) apiTokenRequirement {
+	return apiTokenRequirement{Scope: scope, Alternatives: alternatives}
+}
+
+func packageManagementRequirement(path, method string) apiTokenRequirement {
 	if strings.Contains(path, "/owners") || strings.Contains(path, "/users/search") ||
 		strings.Contains(path, "/invitations/") {
-		return APITokenScopePackageManage
+		return requireAPITokenScope(APITokenScopeTeamManage, APITokenScopePackageManage)
 	}
 	switch method {
 	case fiber.MethodGet, fiber.MethodHead:
-		return APITokenScopeRepositoryRead
+		return requireAPITokenScope(APITokenScopeRepositoryRead)
 	case fiber.MethodDelete:
-		return APITokenScopeRepositoryDelete
+		return requireAPITokenScope(APITokenScopeRepositoryDelete)
+	case fiber.MethodPost:
+		return requireAPITokenScope(APITokenScopePackageCreate, APITokenScopePackageManage)
 	default:
-		return APITokenScopePackageManage
+		return requireAPITokenScope(APITokenScopePackageMetadata, APITokenScopePackageManage)
 	}
 }
 
-func mavenAPITokenScope(path, method string) string {
+func mavenAPITokenRequirement(path, method string) apiTokenRequirement {
 	if strings.HasPrefix(path, "/api/maven/details") ||
 		strings.HasPrefix(path, "/api/maven/repo-details") ||
 		strings.HasPrefix(path, "/api/maven/signatures") ||
 		strings.HasPrefix(path, "/api/maven/versions") ||
 		strings.HasPrefix(path, "/api/maven/latest/") ||
 		strings.HasPrefix(path, "/api/maven/generate/pom/") {
-		return APITokenScopeRepositoryRead
+		return requireAPITokenScope(APITokenScopeRepositoryRead)
+	}
+	if strings.Contains(path, "/invitations/") || strings.Contains(path, "/members") {
+		return requireAPITokenScope(APITokenScopeTeamManage, APITokenScopeDomainManage)
+	}
+	if domainIndex := strings.Index(path, "/domains"); domainIndex >= 0 {
+		domainTail := strings.Trim(path[domainIndex+len("/domains"):], "/")
+		switch {
+		case strings.Contains(domainTail, "/verify"):
+			return requireAPITokenScope(APITokenScopeDomainVerify, APITokenScopeDomainManage)
+		case method == fiber.MethodDelete:
+			return requireAPITokenScope(APITokenScopeDomainDelete, APITokenScopeDomainManage)
+		case method == fiber.MethodPost && domainTail == "":
+			return requireAPITokenScope(APITokenScopeDomainCreate, APITokenScopeDomainManage)
+		default:
+			return requireAPITokenScope(APITokenScopeDomainRead, APITokenScopeDomainManage)
+		}
 	}
 	if strings.HasPrefix(path, "/api/maven/repositories/") {
-		if strings.Contains(path, "/domains") || strings.Contains(path, "/invitations/") {
-			return APITokenScopeDomainManage
-		}
 		switch {
 		case method == fiber.MethodGet || method == fiber.MethodHead:
-			return APITokenScopeRepositoryRead
+			return requireAPITokenScope(APITokenScopeRepositoryRead)
 		case method == fiber.MethodDelete:
-			return APITokenScopeRepositoryDelete
+			return requireAPITokenScope(APITokenScopeRepositoryDelete)
 		case strings.HasSuffix(path, "/package"):
-			return APITokenScopePackageManage
+			return requireAPITokenScope(APITokenScopePackageMetadata, APITokenScopePackageManage)
 		}
 	}
-	return APITokenScopeDomainManage
+	return requireAPITokenScope(APITokenScopeDomainRead, APITokenScopeDomainManage)
 }
 
-func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) string {
+func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequirement {
 	path := c.Path()
 	method := c.Method()
 	if isRepositoryRequest(c, state) {
 		lowerPath := strings.ToLower(c.Path())
-		if strings.Contains(lowerPath, "/api/v1/crates/") {
-			if strings.Contains(lowerPath, "/owners") ||
-				(method != fiber.MethodDelete && (strings.HasSuffix(lowerPath, "/archive") ||
-					strings.HasSuffix(lowerPath, "/yank") || strings.HasSuffix(lowerPath, "/unyank"))) {
-				return APITokenScopePackageManage
-			}
+		if strings.Contains(lowerPath, "/api/v1/invitations/") || strings.Contains(lowerPath, "/owners") {
+			return requireAPITokenScope(APITokenScopeTeamManage, APITokenScopePackageManage)
+		}
+		if strings.HasSuffix(lowerPath, "/archive") || strings.HasSuffix(lowerPath, "/yank") ||
+			strings.HasSuffix(lowerPath, "/unyank") {
+			return requireAPITokenScope(APITokenScopePackageLifecycle, APITokenScopePackageManage)
 		}
 		switch method {
 		case fiber.MethodGet, fiber.MethodHead:
-			return APITokenScopeRepositoryRead
+			return requireAPITokenScope(APITokenScopeRepositoryRead)
 		case fiber.MethodDelete:
-			return APITokenScopeRepositoryDelete
+			return requireAPITokenScope(APITokenScopeRepositoryDelete)
 		default:
-			return APITokenScopeRepositoryPublish
+			return requireAPITokenScope(APITokenScopeRepositoryPublish)
 		}
 	}
 	switch {
 	case strings.HasPrefix(path, "/v2"):
-		return ""
+		return apiTokenRequirement{}
 	case strings.HasPrefix(path, "/api/settings/repositories") ||
 		strings.HasPrefix(path, "/api/settings/maven/repositories") ||
 		strings.HasPrefix(path, "/api/settings/index/"):
-		return APITokenScopeAdminRepositories
+		return requireAPITokenScope(APITokenScopeAdminRepositories)
 	case strings.HasPrefix(path, "/api/settings") || strings.HasPrefix(path, "/api/debug"):
-		return APITokenScopeAdminSettings
+		return requireAPITokenScope(APITokenScopeAdminSettings)
 	case strings.HasPrefix(path, "/api/auth/users/") && strings.Contains(path, "/audit-logs"):
-		return APITokenScopeAdminAudit
+		return requireAPITokenScope(APITokenScopeAdminAudit)
 	case strings.HasPrefix(path, "/api/tokens") || strings.HasPrefix(path, "/api/auth/users/"):
-		return APITokenScopeAdminUsers
+		return requireAPITokenScope(APITokenScopeAdminUsers)
 	case strings.HasPrefix(path, "/api/updater"):
-		return APITokenScopeAdminUpdates
+		return requireAPITokenScope(APITokenScopeAdminUpdates)
 	case path == "/api/status/instance" || path == "/api/status/snapshots":
-		return APITokenScopeAdminAudit
+		return requireAPITokenScope(APITokenScopeAdminAudit)
 	case strings.HasPrefix(path, "/api/messages/admin"):
-		return APITokenScopeAdminNotifications
+		return requireAPITokenScope(APITokenScopeAdminNotifications)
 	case strings.HasPrefix(path, "/api/messages"):
-		return APITokenScopeMessagesRead
+		return requireAPITokenScope(APITokenScopeMessagesRead)
 	case strings.HasPrefix(path, "/api/statistics/admin") || strings.HasPrefix(path, "/api/statistics/system"):
-		return APITokenScopeAdminStatistics
+		return requireAPITokenScope(APITokenScopeAdminStatistics)
 	case strings.HasPrefix(path, "/api/statistics"):
-		return APITokenScopeStatisticsRead
+		return requireAPITokenScope(APITokenScopeStatisticsRead)
 	case strings.HasPrefix(path, "/api/maven"):
-		return mavenAPITokenScope(path, method)
+		return mavenAPITokenRequirement(path, method)
 	case strings.HasPrefix(path, "/api/cargo") || strings.HasPrefix(path, "/api/docker"):
-		return packageManagementScope(path, method)
+		return packageManagementRequirement(path, method)
 	case strings.HasPrefix(path, "/api/upload/chunked"):
-		return APITokenScopeRepositoryPublish
+		return requireAPITokenScope(APITokenScopeRepositoryPublish)
 	case path == "/api/auth/me":
-		return APITokenScopeAccountRead
+		return requireAPITokenScope(APITokenScopeAccountRead)
 	case path == "/api/auth/profile" && (method == fiber.MethodGet || method == fiber.MethodHead):
-		return APITokenScopeAccountRead
+		return requireAPITokenScope(APITokenScopeAccountRead)
 	case path == "/api/auth/profile":
-		return APITokenScopeAccountWrite
+		return requireAPITokenScope(APITokenScopeAccountWrite)
 	case strings.HasPrefix(path, "/api/auth/profile/audit-logs"):
 		if method == fiber.MethodGet || method == fiber.MethodHead {
-			return APITokenScopeAccountRead
+			return requireAPITokenScope(APITokenScopeAccountRead)
 		}
-		return APITokenScopeAccountWrite
+		return requireAPITokenScope(APITokenScopeAccountWrite)
 	case strings.HasPrefix(path, "/api/repositories"):
 		if method == fiber.MethodGet || method == fiber.MethodHead {
-			return APITokenScopeRepositoryRead
+			return requireAPITokenScope(APITokenScopeRepositoryRead)
 		}
-		return APITokenScopeAdminRepositories
+		return requireAPITokenScope(APITokenScopeAdminRepositories)
 	case method == fiber.MethodGet || method == fiber.MethodHead:
-		return APITokenScopeRepositoryRead
+		return requireAPITokenScope(APITokenScopeRepositoryRead)
 	default:
-		return APITokenScopeRepositoryPublish
+		return requireAPITokenScope(APITokenScopeRepositoryPublish)
 	}
 }
 
@@ -454,8 +490,8 @@ func authorizeCredential(c fiber.Ctx, state *core.AppState, result *authResult) 
 		return false, c.Status(fiber.StatusForbidden).SendString("Basic credentials are limited to package protocols")
 	}
 	required := requiredAPITokenScope(c, state)
-	if required != "" && !slices.Contains(result.Scopes, required) {
-		return false, sendInsufficientScope(c, required)
+	if !required.allows(result.Scopes) {
+		return false, sendInsufficientScope(c, required.Scope)
 	}
 	return true, nil
 }

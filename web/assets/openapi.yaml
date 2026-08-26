@@ -300,6 +300,14 @@ components:
         - repository:read
         - repository:publish
         - repository:delete
+        - package:create
+        - package:metadata
+        - package:lifecycle
+        - team:manage
+        - domain:read
+        - domain:create
+        - domain:verify
+        - domain:delete
         - package:manage
         - domain:manage
         - messages:read
@@ -316,7 +324,9 @@ components:
 
     APIToken:
       type: object
-      description: Non-secret metadata for one durable fine-grained credential.
+      description: |
+        Non-secret metadata for one durable fine-grained credential. `package:manage` and `domain:manage` may appear
+        only on credentials created before capability splitting and cannot be assigned to new tokens.
       required: [id, name, scopes, created_at]
       properties:
         id:

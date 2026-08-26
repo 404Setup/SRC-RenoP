@@ -83,8 +83,14 @@ Successful revocation returns `204 No Content` and invalidates cached authentica
 | `repository:read` | Read repository catalogs, metadata, files, images, and versions |
 | `repository:publish` | Publish through Maven, Cargo, Docker, files, or chunked-upload protocols |
 | `repository:delete` | Delete repository files, package versions, tags, or images |
-| `package:manage` | Manage package metadata, visibility, lifecycle state, and package teams |
-| `domain:manage` | Create, verify, and administer global Maven publishing domains |
+| `package:create` | Reserve new Cargo packages or Docker images after repository authorization |
+| `package:metadata` | Update package descriptions and other package metadata |
+| `package:lifecycle` | Archive, restore, yank, or unyank packages and versions |
+| `team:manage` | View and administer Cargo, Docker, and Maven-domain teams and invitations |
+| `domain:read` | Read private Maven publishing-domain configuration |
+| `domain:create` | Create Maven publishing domains |
+| `domain:verify` | Request or force Maven-domain ownership verification |
+| `domain:delete` | Delete Maven publishing domains |
 | `messages:read` | Read, mark, and remove the account's message-center entries |
 | `account:read` | Read private account data and personal audit history |
 | `account:write` | Update the account's public profile through the API |
@@ -98,7 +104,8 @@ Successful revocation returns `204 No Content` and invalidates cached authentica
 | `admin:statistics` | Query system-wide download statistics |
 
 The `admin:*` scopes can be created only by an administrator and stop authorizing administrator operations as soon as
-the owning account loses that role.
+the owning account loses that role. Existing `package:manage` and `domain:manage` credentials remain compatible, but
+these broad scopes are not assignable to new tokens.
 
 ## Use a token
 
