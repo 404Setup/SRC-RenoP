@@ -29,9 +29,9 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargodocs"
-	"renop/internal/service/docker"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/statistics"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/service/tasks"
@@ -41,30 +41,30 @@ import (
 )
 
 const (
-	statusSnapshotInterval   = 20 * time.Second
-	indexSaveInterval        = 10 * time.Second
-	sessionCleanupInterval   = time.Minute
-	securityCleanupInterval  = time.Minute
-	fidoCleanupInterval      = 5 * time.Minute
-	ipLimiterCleanupInterval = 5 * time.Minute
-	databaseCacheInterval    = 2 * time.Minute
-	auditCleanupInterval     = 10 * time.Minute
-	dockerPullFlushInterval  = 2 * time.Second
-	gpgQueuePollInterval     = time.Second
-	uploadCleanupInterval    = time.Minute
+	statusSnapshotInterval          = 20 * time.Second
+	indexSaveInterval               = 10 * time.Second
+	sessionCleanupInterval          = time.Minute
+	securityCleanupInterval         = time.Minute
+	fidoCleanupInterval             = 5 * time.Minute
+	ipLimiterCleanupInterval        = 5 * time.Minute
+	databaseCacheInterval           = 2 * time.Minute
+	auditCleanupInterval            = 10 * time.Minute
+	downloadStatisticsFlushInterval = 2 * time.Second
+	gpgQueuePollInterval            = time.Second
+	uploadCleanupInterval           = time.Minute
 )
 
 // ServiceRuntime owns the shared periodic scheduler and shutdown finalizers.
 type ServiceRuntime struct {
-	scheduler   *tasks.Scheduler
-	state       *core.AppState
-	indexSave   func(context.Context)
-	pullCounter *docker.PullCounter
-	closeOnce   sync.Once
-	closeErr    error
+	scheduler       *tasks.Scheduler
+	state           *core.AppState
+	indexSave       func(context.Context)
+	downloadCounter *statistics.Counter
+	closeOnce       sync.Once
+	closeErr        error
 }
 
-// Close stops periodic work, persists pending index and pull-counter state, and
+// Close stops periodic work, persists pending index and download-statistics state, and
 // releases the file watcher.
 func (runtime *ServiceRuntime) Close() error {
 	if runtime == nil {
@@ -86,8 +86,8 @@ func (runtime *ServiceRuntime) Close() error {
 				}
 			}
 		}
-		if runtime.pullCounter != nil {
-			if err := runtime.pullCounter.Flush(); err != nil {
+		if runtime.downloadCounter != nil {
+			if err := runtime.downloadCounter.Flush(); err != nil {
 				closeErrors = append(closeErrors, err)
 			}
 		}
@@ -212,14 +212,14 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		}
 	}
 	indexSave := tasks.NewIndexSaveTask(state, bootstrapContext.IndexPath)
-	pullCounter := docker.GetPullCounter(state)
+	downloadCounter := statistics.GetCounter(state)
 	uploadCleanup := upload.NewCleanupTask(storagePath)
 	scheduler := tasks.NewScheduler()
 	runtimeServices := &ServiceRuntime{
-		scheduler:   scheduler,
-		state:       state,
-		indexSave:   indexSave,
-		pullCounter: pullCounter,
+		scheduler:       scheduler,
+		state:           state,
+		indexSave:       indexSave,
+		downloadCounter: downloadCounter,
 	}
 	schedule := func(name string, interval, initialDelay time.Duration, run func(context.Context)) error {
 		if err := scheduler.Schedule(name, interval, initialDelay, run); err != nil {
@@ -262,10 +262,10 @@ func StartServices(state *core.AppState, bootstrapContext BootstrapContext) (*Se
 		{"audit-log-cleanup", auditCleanupInterval, auditCleanupInterval, func(context.Context) {
 			audit.CleanExpiredLogs(state)
 		}},
-		{"docker-pull-flush", dockerPullFlushInterval, dockerPullFlushInterval, func(context.Context) {
-			if err := pullCounter.Flush(); err != nil {
+		{"download-statistics-flush", downloadStatisticsFlushInterval, downloadStatisticsFlushInterval, func(context.Context) {
+			if err := downloadCounter.Flush(); err != nil {
 				state.Inner.FailuresCount.Add(1)
-				log.Printf("Failed to flush Docker pull counts: %v", err)
+				log.Printf("Failed to flush download statistics: %v", err)
 			}
 		}},
 		{"gpg-release-poll", gpgQueuePollInterval, gpgQueuePollInterval, func(context.Context) {

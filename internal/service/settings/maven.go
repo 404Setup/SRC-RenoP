@@ -28,6 +28,7 @@ import (
 	mavenservice "renop/internal/service/maven"
 	"renop/internal/service/outboundproxy"
 	"renop/internal/service/repositorygate"
+	"renop/internal/service/statistics"
 	"renop/internal/service/storage"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
@@ -88,6 +89,10 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
 	}
 	repo.Name = repoName
+	if existing != nil && existing.DownloadStatistics != nil {
+		enabled := *existing.DownloadStatistics
+		repo.DownloadStatistics = &enabled
+	}
 	requestedFormat := strings.ToLower(strings.TrimSpace(repo.Format))
 	if existing == nil && requestedFormat == "" {
 		return c.Status(fiber.StatusBadRequest).SendString("Repository format is required when creating a repository")
@@ -216,6 +221,10 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 
 func repositoryWithMigratedEngine(repo *config.Repository, target string) *config.Repository {
 	migrated := repo.DeepCopy()
+	if migrated.DownloadStatistics == nil {
+		enabled := repo.DownloadStatisticsEnabled()
+		migrated.DownloadStatistics = &enabled
+	}
 	if target == config.RepositoryFormatFiles {
 		migrated.MavenRestore = &config.MavenRestoreSettings{
 			Format: repo.ConfiguredFormat(), AllowRedeployment: repo.AllowRedeployment,
@@ -452,7 +461,8 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		if db := state.GetDB(); db != nil {
 			actedAt := time.Now().UnixMilli()
 			if err := errors.Join(db.DeleteMavenRepository(repoName),
-				db.DeleteCargoRepository(repoName, actedAt), db.DeleteDockerRepository(repoName)); err != nil {
+				db.DeleteCargoRepository(repoName, actedAt), db.DeleteDockerRepository(repoName),
+				statistics.GetCounter(state).ResetRepository(repoName)); err != nil {
 				return c.Status(fiber.StatusInternalServerError).SendString("Failed to remove repository package metadata")
 			}
 		}
@@ -468,6 +478,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		case config.RepositoryFormatDocker:
 			metadataErr = db.DeleteDockerRepository(repoName)
 		}
+		metadataErr = errors.Join(metadataErr, statistics.GetCounter(state).ResetRepository(repoName))
 	}
 	storage.RemoveRepositoryStorage(state, storagePath, repoName, s3Cfg)
 	if metadataErr != nil {

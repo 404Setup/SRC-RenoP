@@ -10,7 +10,7 @@
 
 import {t} from './i18n.js';
 import {showAlert} from './alert.js';
-import {fetchProto, getAuthHeaders, putProto, sendProto} from './api.js';
+import {apiRequest, fetchProto, getAuthHeaders, putProto, sendProto} from './api.js';
 import {logout} from './auth.js';
 import {MavenRepositoriesResponse, ProxyConfig, Repository, StatusOk} from './proto/index.js';
 import {el} from '@renop/ui/dom';
@@ -89,9 +89,10 @@ function renderRepositoriesSkeleton() {
 export async function initRepositories() {
     renderRepositoriesSkeleton();
     try {
-        const [repositoriesResult, proxyResult] = await Promise.all([
+        const [repositoriesResult, proxyResult, statisticsResponse] = await Promise.all([
             fetchProto('/api/settings/repositories', MavenRepositoriesResponse),
-            fetchProto('/api/settings/domain/proxy', ProxyConfig)
+            fetchProto('/api/settings/domain/proxy', ProxyConfig),
+            apiRequest('/api/settings/repositories/download-statistics')
         ]);
         const {response, data} = repositoriesResult;
         if (proxyResult.response.ok && proxyResult.data) {
@@ -99,6 +100,16 @@ export async function initRepositories() {
         }
         if (response.ok && data) {
             const repos = data.repositories || {};
+            let statistics = {};
+            if (statisticsResponse.ok) {
+                const payload = await statisticsResponse.json();
+                statistics = payload?.repositories || {};
+            }
+            for (const [name, repository] of Object.entries(repos)) {
+                repository._download_statistics_enabled = typeof statistics[name] === 'boolean'
+                    ? statistics[name]
+                    : getRepositoryFormat(repository.format).protocol !== 'files';
+            }
             currentConfig = {repositories: repos};
             initialReposMap = JSON.parse(JSON.stringify(repos));
             renderRepositories(document.getElementById('repositories-container'), currentConfig);
@@ -153,6 +164,88 @@ function renderRepositories(container, data) {
     } finally {
         container.style.minHeight = '';
     }
+}
+
+/**
+ * Build repository download-statistics enable and reset controls.
+ * @param {string} repository - Repository name.
+ * @param {object} settings - Mutable frontend repository settings.
+ * @returns {HTMLElement[]} Statistics control rows.
+ */
+function buildDownloadStatisticsControls(repository, settings) {
+    let enabled = settings._download_statistics_enabled === true;
+    let updating = false;
+    let toggle = null;
+    const toggleRow = makeToggleRow(
+        t('repos.downloadStatistics'),
+        t('repos.downloadStatisticsDesc'),
+        enabled,
+        checked => {
+            if (updating) {
+                if (toggle) toggle.checked = enabled;
+                return;
+            }
+            updating = true;
+            if (toggle) toggle.setAttribute('disabled', '');
+            void (async () => {
+                try {
+                    const response = await apiRequest(
+                        `/api/settings/repositories/${encodeURIComponent(repository)}/download-statistics`, {
+                            method: 'PUT',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({enabled: checked})
+                        }
+                    );
+                    if (!response.ok) {
+                        showAlert(await responseErrorMessage(response, 'repos.downloadStatisticsUpdateFailed'), 'error');
+                        if (toggle) toggle.checked = enabled;
+                        return;
+                    }
+                    enabled = checked;
+                    settings._download_statistics_enabled = checked;
+                    showAlert(t('repos.downloadStatisticsSaved'), 'success');
+                } catch (error) {
+                    console.error('Failed to update repository download statistics', error);
+                    if (toggle) toggle.checked = enabled;
+                    showAlert(t('repos.downloadStatisticsUpdateFailed'), 'error');
+                } finally {
+                    updating = false;
+                    if (toggle) toggle.removeAttribute('disabled');
+                }
+            })();
+        }
+    );
+    toggle = toggleRow.querySelector('renop-toggle');
+    const resetButton = createButton(t('repos.resetDownloadStatistics'), {
+        class: 'pill-btn pill-btn--soft pill-btn--sm',
+        icon: 'refresh',
+        title: t('repos.resetDownloadStatistics')
+    });
+    resetButton.addEventListener('click', async () => {
+        if (!(await window.showConfirm(t('repos.resetDownloadStatisticsConfirm', {name: repository}), {danger: true}))) {
+            return;
+        }
+        await runButtonAction(resetButton, async () => {
+            try {
+                const response = await apiRequest(
+                    `/api/settings/repositories/${encodeURIComponent(repository)}/download-statistics`,
+                    {method: 'DELETE'}
+                );
+                if (!response.ok) {
+                    showAlert(await responseErrorMessage(response, 'repos.resetDownloadStatisticsFailed'), 'error');
+                    return;
+                }
+                showAlert(t('repos.resetDownloadStatisticsSuccess'), 'success');
+            } catch (error) {
+                console.error('Failed to reset repository download statistics', error);
+                showAlert(t('repos.resetDownloadStatisticsFailed'), 'error');
+            }
+        });
+    });
+    return [
+        toggleRow,
+        makeFieldRow(t('repos.resetDownloadStatistics'), t('repos.resetDownloadStatisticsDesc'), resetButton)
+    ];
 }
 
 /**
@@ -457,6 +550,7 @@ function buildRepoSection(container, data, repoKey, repo) {
             handleGpgRequirementChange
         ));
     }
+    fields.append(...buildDownloadStatisticsControls(repoKey, repo));
     const migrationControl = buildRepositoryMigrationControl(repoKey, format);
     if (migrationControl) fields.appendChild(migrationControl);
 

@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Cargo パッケージへの招待",
     "cargo.inviteBody": "{inviter} が L{level} 権限で {package} に参加するよう招待しました。",
     "cargo.inviteAccepted": "Cargo パッケージへの招待を承認しました",
-    "cargo.inviteRejected": "Cargo パッケージへの招待を辞退しました"
+    "cargo.inviteRejected": "Cargo パッケージへの招待を辞退しました",
+    "repos.downloadStatistics": "ダウンロード統計",
+    "repos.downloadStatisticsDesc": "このリポジトリで成功したパッケージダウンロードを集計します。チェックサム、署名、ドキュメントの関連ファイルは除外します。",
+    "repos.downloadStatisticsSaved": "ダウンロード統計設定を保存しました",
+    "repos.downloadStatisticsUpdateFailed": "ダウンロード統計設定を更新できませんでした",
+    "repos.resetDownloadStatistics": "ダウンロード統計をリセット",
+    "repos.resetDownloadStatisticsDesc": "このリポジトリの保存済みおよび書き込み待ちカウンターをすべて削除します。",
+    "repos.resetDownloadStatisticsConfirm": "{name} の全ダウンロード統計をリセットしますか？この操作は元に戻せません。",
+    "repos.resetDownloadStatisticsSuccess": "ダウンロード統計をリセットしました",
+    "repos.resetDownloadStatisticsFailed": "ダウンロード統計をリセットできませんでした"
 });

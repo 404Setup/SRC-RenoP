@@ -20,6 +20,7 @@ repositories:
     visibility: PUBLIC
     allow_redeployment: false
     require_gpg_signature: true
+    download_statistics: true
     mirrors: []
   crates:
     name: crates
@@ -43,12 +44,13 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN`、`PRIVATE` |
 | `allow_redeployment` | `false` | 対応形式で Maven 再公開または files/Docker 上書き |
 | `require_gpg_signature` | `false` | Maven 公開時の OpenPGP 分離署名検証 |
+| `download_statistics` | エンジン既定 | Maven/Cargo/Docker は有効、`files` は明示的に有効化 |
 | `mirrors` | `[]` | 順序付き上流定義 |
 | `s3` | 省略 | リポジトリ固有 S3 storage |
 
-`maven-classic` は UI だけを変え、Maven 規則を維持します。`files` は非構造化で checksum、POM、署名検証を
-行いません。Maven と `files` の相互移行では object を移動せず、Maven へ戻す際に catalog と保存済み方針を
-復元します。
+`maven-classic` は画面レイアウトだけを変え、Maven の公開規則を維持します。`files` は非構造化で、
+チェックサムや POM の生成、署名検証を行いません。Maven と `files` の相互移行ではオブジェクトを移動せず、
+Maven へ戻す際にカタログと保存済みの方針を復元します。移行前のダウンロード統計設定も維持されます。
 
 ### 可視性
 

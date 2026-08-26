@@ -22,6 +22,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargo"
+	"renop/internal/service/statistics"
 	"renop/internal/utils"
 )
 
@@ -160,7 +161,11 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 
 	switch c.Method() {
 	case fiber.MethodGet:
-		return HandleGet(c, state, repo, cfg.StoragePath)
+		err := HandleGet(c, state, repo, cfg.StoragePath)
+		if err == nil {
+			statistics.RecordRepositoryDownload(c, state, repo, path)
+		}
+		return err
 	case fiber.MethodHead:
 		return HandleHead(c, state, repo, cfg.StoragePath)
 	case fiber.MethodPut, fiber.MethodPost:

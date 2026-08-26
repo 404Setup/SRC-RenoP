@@ -29,6 +29,7 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/auth"
 	"renop/internal/service/index"
+	"renop/internal/service/statistics"
 )
 
 type memoryDockerStore struct {
@@ -407,6 +408,24 @@ func TestDockerRegistryFullLifecycle(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 OK for HEAD manifest, got %d", resp.StatusCode)
+	}
+	if err := statistics.GetCounter(state).Flush(); err != nil {
+		t.Fatalf("flush Docker download statistics: %v", err)
+	}
+	statisticsPage, err := state.GetDB().QueryDownloadStatistics(core.DownloadStatisticsQuery{
+		Repository: "docker-local", GroupBy: "version", Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("query Docker download statistics: %v", err)
+	}
+	if len(statisticsPage.Records) != 1 {
+		t.Fatalf("Docker download statistics records = %#v", statisticsPage.Records)
+	}
+	record := statisticsPage.Records[0]
+	if statisticsPage.Count != 1 || record.Package != "my-app" || record.Version != "v1.0.0" ||
+		record.Bytes != int64(len(manifestBytes)) {
+		t.Fatalf("Docker download statistics: count=%d package=%q version=%q bytes=%d, want bytes=%d",
+			statisticsPage.Count, record.Package, record.Version, record.Bytes, len(manifestBytes))
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/v2/docker-local/my-app/tags/list", nil)

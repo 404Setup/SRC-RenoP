@@ -35,6 +35,7 @@ import (
 	"renop/internal/database"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/statistics"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
@@ -1005,6 +1006,65 @@ func TestStorageDomainRejectsEmptyPath(t *testing.T) {
 	}
 }
 
+func TestRepositoryDownloadStatisticsSettingsAndReset(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
+		"files":    {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
+	}
+	app, state := setupSettingsTestApp(t, cfg)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "statistics-settings.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	state.Inner.DB = db
+
+	request := httptest.NewRequest(http.MethodGet, "/repositories/download-statistics", nil)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var status struct {
+		Repositories map[string]bool `json:"repositories"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&status))
+	require.NoError(t, response.Body.Close())
+	assert.True(t, status.Repositories["releases"])
+	assert.False(t, status.Repositories["files"])
+
+	request = httptest.NewRequest(http.MethodPut, "/repositories/files/download-statistics",
+		strings.NewReader(`{"enabled":true}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	files := state.Inner.Config.Load().Maven.Repositories["files"]
+	require.NotNil(t, files.DownloadStatistics)
+	assert.True(t, files.DownloadStatisticsEnabled())
+
+	statistics.GetCounter(state).Record(core.DownloadStatisticDelta{
+		Repository: "files", Format: config.RepositoryFormatFiles, Package: "release.zip", Bytes: 128,
+	})
+	require.NoError(t, statistics.GetCounter(state).Flush())
+	request = httptest.NewRequest(http.MethodDelete, "/repositories/files/download-statistics", nil)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	var count int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM download_statistics WHERE repository = ?`, "files").Scan(&count))
+	assert.Zero(t, count)
+}
+
+func TestRepositoryEngineMigrationPreservesEffectiveDownloadStatisticsDefault(t *testing.T) {
+	files := &config.Repository{Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"}
+	maven := repositoryWithMigratedEngine(files, config.RepositoryFormatMaven)
+	require.NotNil(t, maven.DownloadStatistics)
+	assert.False(t, maven.DownloadStatisticsEnabled())
+}
+
 func TestPutMavenRepositoryCreatesStorageDir(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := config.DefaultConfig()
@@ -1174,6 +1234,9 @@ func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
 	if filesRepo.NormalizedFormat() != config.RepositoryFormatFiles || !filesRepo.AllowRedeployment || filesRepo.RequireGPGSignature {
 		t.Fatalf("files migration policy mismatch: %#v", filesRepo)
 	}
+	if filesRepo.DownloadStatistics == nil || !filesRepo.DownloadStatisticsEnabled() {
+		t.Fatalf("files migration did not preserve effective download statistics: %#v", filesRepo.DownloadStatistics)
+	}
 	if filesRepo.MavenRestore == nil || filesRepo.MavenRestore.Format != config.RepositoryFormatMavenClassic ||
 		!filesRepo.MavenRestore.AllowRedeployment || !filesRepo.MavenRestore.RequireGPGSignature {
 		t.Fatalf("Maven restore policy was not preserved: %#v", filesRepo.MavenRestore)
@@ -1215,6 +1278,9 @@ func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
 	if mavenRepo.ConfiguredFormat() != config.RepositoryFormatMavenClassic ||
 		!mavenRepo.AllowRedeployment || !mavenRepo.RequireGPGSignature || mavenRepo.MavenRestore != nil {
 		t.Fatalf("Maven policy was not restored: %#v", mavenRepo)
+	}
+	if !mavenRepo.DownloadStatisticsEnabled() {
+		t.Fatal("Maven restoration discarded the repository download-statistics setting")
 	}
 	details, err := db.GetMavenArtifactDetails(repository, "com.example", "demo")
 	if err != nil {

@@ -20,6 +20,7 @@ repositories:
     visibility: PUBLIC
     allow_redeployment: false
     require_gpg_signature: true
+    download_statistics: true
     mirrors: []
   crates:
     name: crates
@@ -43,12 +44,13 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` ou `PRIVATE` |
 | `allow_redeployment` | `false` | Redéploiement Maven ou remplacement files/Docker si pris en charge |
 | `require_gpg_signature` | `false` | Validation OpenPGP détachée obligatoire pour Maven |
+| `download_statistics` | Selon le moteur | Activé pour Maven/Cargo/Docker ; `files` doit être activé explicitement |
 | `mirrors` | `[]` | Miroirs ordonnés |
 | `s3` | absent | Stockage S3 propre au dépôt |
 
 `maven-classic` ne change que l’interface et conserve les règles Maven. `files` est non structuré, sans sommes, POM ni
 signature. Maven peut migrer vers `files` puis revenir sans déplacer les objets ; le retour reconstruit le catalogue et
-restaure la politique Maven.
+restaure la politique Maven. La migration conserve l’état effectif des statistiques de téléchargement.
 
 ### Visibilité
 

@@ -21,6 +21,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/index"
+	"renop/internal/service/statistics"
 )
 
 func newCargoRouteTestApp(t *testing.T, visibility string) *fiber.App {
@@ -120,5 +121,17 @@ func TestCargoMirrorDownloadRecordsPackageProvenance(t *testing.T) {
 	}
 	if details == nil || details.Package == nil || !details.Package.Mirrored || len(details.Versions) != 1 || !details.Versions[0].Mirrored {
 		t.Fatalf("mirrored Cargo provenance was not cataloged: %#v", details)
+	}
+	if err := statistics.GetCounter(state).Flush(); err != nil {
+		t.Fatal(err)
+	}
+	var packageName, version string
+	var count, bytes int64
+	if err := db.QueryRow(`SELECT package_name, version, download_count, download_bytes
+		FROM download_statistics WHERE repository = ?`, "cargo").Scan(&packageName, &version, &count, &bytes); err != nil {
+		t.Fatal(err)
+	}
+	if packageName != "serde" || version != "1.0.0" || count != 1 || bytes != int64(len("mirrored crate")) {
+		t.Fatalf("download statistics = %s %s %d %d", packageName, version, count, bytes)
 	}
 }

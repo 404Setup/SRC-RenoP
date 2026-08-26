@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Cargo 套件邀請",
     "cargo.inviteBody": "{inviter} 邀請你用 L{level} 權限加入套件 {package}。",
     "cargo.inviteAccepted": "已接受 Cargo 套件邀請",
-    "cargo.inviteRejected": "已拒絕 Cargo 套件邀請"
+    "cargo.inviteRejected": "已拒絕 Cargo 套件邀請",
+    "repos.downloadStatistics": "下載統計",
+    "repos.downloadStatisticsDesc": "統計呢個儲存庫成功下載嘅套件；唔計校驗和、簽署同文件伴隨檔案。",
+    "repos.downloadStatisticsSaved": "下載統計設定已儲存",
+    "repos.downloadStatisticsUpdateFailed": "更新唔到下載統計設定",
+    "repos.resetDownloadStatistics": "重設下載統計",
+    "repos.resetDownloadStatisticsDesc": "永久清除呢個儲存庫全部已儲存同待寫入計數。",
+    "repos.resetDownloadStatisticsConfirm": "重設 {name} 嘅全部下載統計？呢個操作無法復原。",
+    "repos.resetDownloadStatisticsSuccess": "下載統計已重設",
+    "repos.resetDownloadStatisticsFailed": "重設唔到下載統計"
 });

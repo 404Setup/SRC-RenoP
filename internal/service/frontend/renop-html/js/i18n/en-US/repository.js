@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Cargo Package Invitation",
     "cargo.inviteBody": "{inviter} invited you to join {package} with L{level} permission.",
     "cargo.inviteAccepted": "Cargo package invitation accepted",
-    "cargo.inviteRejected": "Cargo package invitation declined"
+    "cargo.inviteRejected": "Cargo package invitation declined",
+    "repos.downloadStatistics": "Download statistics",
+    "repos.downloadStatisticsDesc": "Count successful package downloads for this repository. Checksum, signature, and documentation companions are excluded.",
+    "repos.downloadStatisticsSaved": "Download-statistics settings saved",
+    "repos.downloadStatisticsUpdateFailed": "Could not update download-statistics settings",
+    "repos.resetDownloadStatistics": "Reset download statistics",
+    "repos.resetDownloadStatisticsDesc": "Permanently clear every stored and pending counter for this repository.",
+    "repos.resetDownloadStatisticsConfirm": "Reset all download statistics for {name}? This cannot be undone.",
+    "repos.resetDownloadStatisticsSuccess": "Download statistics reset",
+    "repos.resetDownloadStatisticsFailed": "Could not reset download statistics"
 });

@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Convite para pacote Cargo",
     "cargo.inviteBody": "{inviter} convidou-o a juntar-se a {package} com a permissão L{level}.",
     "cargo.inviteAccepted": "Convite para pacote Cargo aceite",
-    "cargo.inviteRejected": "Convite para pacote Cargo recusado"
+    "cargo.inviteRejected": "Convite para pacote Cargo recusado",
+    "repos.downloadStatistics": "Estatísticas de transferências",
+    "repos.downloadStatisticsDesc": "Contar transferências de pacotes concluídas neste repositório. Ficheiros auxiliares de somas, assinaturas e documentação são excluídos.",
+    "repos.downloadStatisticsSaved": "Definições de estatísticas guardadas",
+    "repos.downloadStatisticsUpdateFailed": "Não foi possível atualizar as definições de estatísticas",
+    "repos.resetDownloadStatistics": "Repor estatísticas de transferências",
+    "repos.resetDownloadStatisticsDesc": "Eliminar permanentemente todos os contadores guardados e pendentes deste repositório.",
+    "repos.resetDownloadStatisticsConfirm": "Repor todas as estatísticas de transferências de {name}? Esta ação é irreversível.",
+    "repos.resetDownloadStatisticsSuccess": "Estatísticas de transferências repostas",
+    "repos.resetDownloadStatisticsFailed": "Não foi possível repor as estatísticas de transferências"
 });

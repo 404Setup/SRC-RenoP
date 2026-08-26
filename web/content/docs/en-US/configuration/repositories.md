@@ -21,6 +21,7 @@ repositories:
     visibility: PUBLIC
     allow_redeployment: false
     require_gpg_signature: true
+    download_statistics: true
     mirrors: []
   crates:
     name: crates
@@ -44,12 +45,14 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN`, or `PRIVATE` |
 | `allow_redeployment` | `false` | Maven version redeployment or replacement in files/Docker, when supported |
 | `require_gpg_signature` | `false` | Require detached OpenPGP validation for Maven publication |
+| `download_statistics` | Engine default | Enabled for Maven/Cargo/Docker; unstructured `files` opts in |
 | `mirrors` | `[]` | Ordered upstream definitions |
 | `s3` | omitted | Repository-specific S3-compatible storage |
 
 `maven-classic` changes only the frontend layout and retains Maven publication rules. `files` is unstructured and does
 not generate checksums, POM files, or signature validation. Maven repositories can migrate to `files` and back without
-moving objects; returning to Maven rebuilds the catalog and restores saved Maven policy.
+moving objects; returning to Maven rebuilds the catalog and restores saved Maven policy. Migration preserves the
+repository's effective download-statistics switch.
 
 ### Visibility
 

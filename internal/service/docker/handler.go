@@ -27,6 +27,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/statistics"
 )
 
 // Handler handles all /v2 Docker/OCI registry endpoints.
@@ -332,7 +333,7 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 				if c.Method() == fiber.MethodHead {
 					return c.SendStatus(fiber.StatusOK)
 				}
-				GetPullCounter(state).RecordPull(repoName, imageName)
+				statistics.RecordDockerPull(c, state, repo, imageName, reference, parsed.Size)
 				return c.Status(fiber.StatusOK).Send(upstreamData)
 			}
 			return RespondError(c, fiber.StatusNotFound, ErrCodeManifestUnknown, "manifest not found", map[string]string{"reference": reference})
@@ -390,7 +391,11 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 		return c.SendStatus(fiber.StatusOK)
 	}
 
-	GetPullCounter(state).RecordPull(repoName, imageName)
+	pullSize := int64(len(rawJSON))
+	if manifest != nil && manifest.Size > 0 {
+		pullSize = manifest.Size
+	}
+	statistics.RecordDockerPull(c, state, repo, imageName, reference, pullSize)
 	return c.Status(fiber.StatusOK).Send(rawJSON)
 }
 

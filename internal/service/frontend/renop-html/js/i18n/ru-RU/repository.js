@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Приглашение в пакет Cargo",
     "cargo.inviteBody": "{inviter} приглашает вас присоединиться к {package} с уровнем доступа L{level}.",
     "cargo.inviteAccepted": "Приглашение в пакет Cargo принято",
-    "cargo.inviteRejected": "Приглашение в пакет Cargo отклонено"
+    "cargo.inviteRejected": "Приглашение в пакет Cargo отклонено",
+    "repos.downloadStatistics": "Статистика скачиваний",
+    "repos.downloadStatisticsDesc": "Учитывать успешные скачивания пакетов из этого репозитория. Сопутствующие файлы контрольных сумм, подписей и документации исключаются.",
+    "repos.downloadStatisticsSaved": "Настройки статистики скачиваний сохранены",
+    "repos.downloadStatisticsUpdateFailed": "Не удалось изменить настройки статистики скачиваний",
+    "repos.resetDownloadStatistics": "Сбросить статистику скачиваний",
+    "repos.resetDownloadStatisticsDesc": "Безвозвратно удалить все сохранённые и ожидающие записи счётчиков этого репозитория.",
+    "repos.resetDownloadStatisticsConfirm": "Сбросить всю статистику скачиваний для {name}? Это действие нельзя отменить.",
+    "repos.resetDownloadStatisticsSuccess": "Статистика скачиваний сброшена",
+    "repos.resetDownloadStatisticsFailed": "Не удалось сбросить статистику скачиваний"
 });

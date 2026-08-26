@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Invitación a un paquete Cargo",
     "cargo.inviteBody": "{inviter} le ha invitado a unirse a {package} con permiso L{level}.",
     "cargo.inviteAccepted": "Invitación al paquete Cargo aceptada",
-    "cargo.inviteRejected": "Invitación al paquete Cargo rechazada"
+    "cargo.inviteRejected": "Invitación al paquete Cargo rechazada",
+    "repos.downloadStatistics": "Estadísticas de descarga",
+    "repos.downloadStatisticsDesc": "Cuenta las descargas correctas de paquetes de este repositorio. Se excluyen los archivos auxiliares de sumas, firmas y documentación.",
+    "repos.downloadStatisticsSaved": "Configuración de estadísticas guardada",
+    "repos.downloadStatisticsUpdateFailed": "No se pudo actualizar la configuración de estadísticas",
+    "repos.resetDownloadStatistics": "Restablecer estadísticas de descarga",
+    "repos.resetDownloadStatisticsDesc": "Elimina permanentemente todos los contadores almacenados y pendientes de este repositorio.",
+    "repos.resetDownloadStatisticsConfirm": "¿Restablecer todas las estadísticas de descarga de {name}? Esta acción no se puede deshacer.",
+    "repos.resetDownloadStatisticsSuccess": "Estadísticas de descarga restablecidas",
+    "repos.resetDownloadStatisticsFailed": "No se pudieron restablecer las estadísticas de descarga"
 });

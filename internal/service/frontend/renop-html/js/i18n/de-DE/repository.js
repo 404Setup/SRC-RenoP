@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Einladung zu einem Cargo-Paket",
     "cargo.inviteBody": "{inviter} hat Sie mit Berechtigungsstufe L{level} zu {package} eingeladen.",
     "cargo.inviteAccepted": "Cargo-Paketeinladung angenommen",
-    "cargo.inviteRejected": "Cargo-Paketeinladung abgelehnt"
+    "cargo.inviteRejected": "Cargo-Paketeinladung abgelehnt",
+    "repos.downloadStatistics": "Downloadstatistiken",
+    "repos.downloadStatisticsDesc": "Erfolgreiche Paketdownloads dieses Repositorys zählen. Prüfsummen-, Signatur- und Dokumentationsdateien werden ausgeschlossen.",
+    "repos.downloadStatisticsSaved": "Downloadstatistik-Einstellungen gespeichert",
+    "repos.downloadStatisticsUpdateFailed": "Downloadstatistik-Einstellungen konnten nicht aktualisiert werden",
+    "repos.resetDownloadStatistics": "Downloadstatistiken zurücksetzen",
+    "repos.resetDownloadStatisticsDesc": "Alle gespeicherten und ausstehenden Zähler dieses Repositorys dauerhaft löschen.",
+    "repos.resetDownloadStatisticsConfirm": "Alle Downloadstatistiken für {name} zurücksetzen? Dies kann nicht rückgängig gemacht werden.",
+    "repos.resetDownloadStatisticsSuccess": "Downloadstatistiken zurückgesetzt",
+    "repos.resetDownloadStatisticsFailed": "Downloadstatistiken konnten nicht zurückgesetzt werden"
 });

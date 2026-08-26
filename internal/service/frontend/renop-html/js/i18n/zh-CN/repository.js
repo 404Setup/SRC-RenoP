@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Cargo 软件包邀请",
     "cargo.inviteBody": "{inviter} 邀请你以 L{level} 权限加入软件包 {package}。",
     "cargo.inviteAccepted": "已接受 Cargo 软件包邀请",
-    "cargo.inviteRejected": "已拒绝 Cargo 软件包邀请"
+    "cargo.inviteRejected": "已拒绝 Cargo 软件包邀请",
+    "repos.downloadStatistics": "下载统计",
+    "repos.downloadStatisticsDesc": "统计此存储库中成功的软件包下载；不计入校验和、签名及文档伴随文件。",
+    "repos.downloadStatisticsSaved": "下载统计设置已保存",
+    "repos.downloadStatisticsUpdateFailed": "无法更新下载统计设置",
+    "repos.resetDownloadStatistics": "重置下载统计",
+    "repos.resetDownloadStatisticsDesc": "永久清除此存储库的全部已存储及待写入计数。",
+    "repos.resetDownloadStatisticsConfirm": "重置 {name} 的全部下载统计？此操作无法撤销。",
+    "repos.resetDownloadStatisticsSuccess": "下载统计已重置",
+    "repos.resetDownloadStatisticsFailed": "无法重置下载统计"
 });

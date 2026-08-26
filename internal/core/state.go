@@ -209,6 +209,9 @@ type StateDB interface {
 	GetDockerRepositoryStats(repository string) (totalImages int64, totalTags int64, totalSize int64, err error)
 	IncrementDockerPullCount(repository, imageName string) error
 	BatchIncrementDockerPullCount(repository, imageName string, delta int64) error
+	BatchIncrementDownloadStatistics(events []*DownloadStatisticDelta) error
+	ResetDownloadStatistics(repository string) error
+	QueryDownloadStatistics(query DownloadStatisticsQuery) (*DownloadStatisticsPage, error)
 	HasDockerMembership(repository, username string) (bool, error)
 	GetDockerMemberLevel(repository, imageName, username string) (int, error)
 	ListDockerMembers(repository, imageName string) ([]*DockerMember, error)
@@ -220,31 +223,24 @@ type StateDB interface {
 	ForceAddDockerMembers(repository, imageName, actor string, usernames []string, level int) error
 }
 
-// DockerPullCounter batches Docker pull statistics without coupling core state
-// to the Docker service implementation.
-type DockerPullCounter interface {
-	RecordPull(repository, imageName string)
-	Flush() error
-}
-
 type AppStateInner struct {
-	Config              *atomic2.Value[*config.Config]
-	ConfigWriteLock     sync.Mutex
-	TokensCount         atomic.Uint64
-	TokenWriteLock      sync.Mutex
-	StatusSnapshots     atomic.Pointer[[]StatusSnapshot]
-	ActiveRequests      atomic.Uint64
-	FailuresCount       atomic.Uint64
-	AuthCache           pb.MapOf[string, AuthCacheEntry]
-	AuthCacheEntries    atomic.Uint64
-	AuthCacheWriteLock  sync.Mutex
-	Sessions            pb.MapOf[string, *Session]
-	AuditLogChan        chan *AuditLogEntry
-	DB                  any
-	DockerSecret        []byte
-	DockerPullCounter   DockerPullCounter
-	DockerPullCounterMu sync.Mutex
-	ExternalAuthStates  *TransientAuthStateStore
+	Config                      *atomic2.Value[*config.Config]
+	ConfigWriteLock             sync.Mutex
+	TokensCount                 atomic.Uint64
+	TokenWriteLock              sync.Mutex
+	StatusSnapshots             atomic.Pointer[[]StatusSnapshot]
+	ActiveRequests              atomic.Uint64
+	FailuresCount               atomic.Uint64
+	AuthCache                   pb.MapOf[string, AuthCacheEntry]
+	AuthCacheEntries            atomic.Uint64
+	AuthCacheWriteLock          sync.Mutex
+	Sessions                    pb.MapOf[string, *Session]
+	AuditLogChan                chan *AuditLogEntry
+	DB                          any
+	DockerSecret                []byte
+	DownloadStatisticsCounter   DownloadStatisticsCounter
+	DownloadStatisticsCounterMu sync.Mutex
+	ExternalAuthStates          *TransientAuthStateStore
 
 	FileIndex              *index.FileIndex
 	IndexWatcher           *fsnotify.Watcher

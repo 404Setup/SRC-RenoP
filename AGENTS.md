@@ -77,9 +77,15 @@
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
-  status snapshots, cache/session cleanup, index persistence, pull-count flushing, upload cleanup, and update checks.
+  status snapshots, cache/session cleanup, index persistence, download-statistics flushing, upload cleanup, and update checks.
   Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain
   dedicated and serial where ordering matters.
+- **`internal/service/statistics/`**: Application-scoped bounded download counter shared by Maven, Cargo, Docker, and
+  unstructured files. One scheduler task flushes aggregates keyed by immutable user identity, repository, publishing
+  domain, package/image, and version into `download_statistics`; checksum, signature, metadata, Javadoc, failed, HEAD,
+  and noninitial range requests are excluded. Bearer API-token-only query routes provide bounded hierarchical pages,
+  while repository settings expose enable/disable and atomic pending-plus-persisted reset controls. Docker image pull
+  counts are updated from the same transaction for compatibility.
 - **`internal/service/index/`**: Concurrent Disk/S3 repository index with deterministic children, snapshots, and
   negative-cache state. A normalized path is exclusively a file or a directory; authoritative file insertion removes
   stale directory state and descendants so API traversal cannot expose a file as an empty folder.

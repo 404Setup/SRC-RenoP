@@ -203,12 +203,24 @@ func TestRepositoryFormatVariantsAndLegacyUpgradeDefaults(t *testing.T) {
 		Name: "downloads", Format: RepositoryFormatFiles, Visibility: "PUBLIC",
 		AllowRedeployment: true, RequireGPGSignature: true,
 	}
+	if files.DownloadStatisticsEnabled() {
+		t.Fatal("file repositories must opt in to download statistics")
+	}
+	if !legacy.DownloadStatisticsEnabled() {
+		t.Fatal("structured repositories must count downloads by default")
+	}
+	enabled := true
+	files.DownloadStatistics = &enabled
+	if !files.DownloadStatisticsEnabled() {
+		t.Fatal("file repository download statistics opt-in was ignored")
+	}
 	encoded, err := json.Marshal(files)
 	if err != nil {
 		t.Fatal(err)
 	}
 	text := string(encoded)
-	if !strings.Contains(text, `"allow_redeployment":true`) || strings.Contains(text, "require_gpg_signature") {
+	if !strings.Contains(text, `"allow_redeployment":true`) || !strings.Contains(text, `"download_statistics":true`) ||
+		strings.Contains(text, "require_gpg_signature") {
 		t.Fatalf("file repository serialization has invalid publication policy fields: %s", text)
 	}
 	files.MavenRestore = &MavenRestoreSettings{

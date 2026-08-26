@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Invitation à un paquet Cargo",
     "cargo.inviteBody": "{inviter} vous invite à rejoindre {package} avec le niveau d’autorisation L{level}.",
     "cargo.inviteAccepted": "Invitation au paquet Cargo acceptée",
-    "cargo.inviteRejected": "Invitation au paquet Cargo refusée"
+    "cargo.inviteRejected": "Invitation au paquet Cargo refusée",
+    "repos.downloadStatistics": "Statistiques de téléchargement",
+    "repos.downloadStatisticsDesc": "Compter les téléchargements de paquets réussis pour ce dépôt. Les fichiers compagnons de somme, de signature et de documentation sont exclus.",
+    "repos.downloadStatisticsSaved": "Paramètres des statistiques enregistrés",
+    "repos.downloadStatisticsUpdateFailed": "Impossible de modifier les paramètres des statistiques",
+    "repos.resetDownloadStatistics": "Réinitialiser les statistiques",
+    "repos.resetDownloadStatisticsDesc": "Effacer définitivement tous les compteurs enregistrés et en attente de ce dépôt.",
+    "repos.resetDownloadStatisticsConfirm": "Réinitialiser toutes les statistiques de téléchargement de {name} ? Cette action est irréversible.",
+    "repos.resetDownloadStatisticsSuccess": "Statistiques de téléchargement réinitialisées",
+    "repos.resetDownloadStatisticsFailed": "Impossible de réinitialiser les statistiques de téléchargement"
 });

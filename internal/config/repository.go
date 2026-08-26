@@ -26,6 +26,7 @@ type Repository struct {
 	Mirrors             []Mirror              `json:"mirrors" yaml:"mirrors"`
 	AllowRedeployment   bool                  `json:"allow_redeployment" yaml:"allow_redeployment"`
 	RequireGPGSignature bool                  `json:"require_gpg_signature" yaml:"require_gpg_signature"`
+	DownloadStatistics  *bool                 `json:"download_statistics,omitempty" yaml:"download_statistics,omitempty"`
 	S3                  *S3Config             `json:"s3,omitempty" yaml:"s3,omitempty"`
 	MavenRestore        *MavenRestoreSettings `json:"maven_restore,omitempty" yaml:"maven_restore,omitempty"`
 }
@@ -44,6 +45,7 @@ type repositorySerialization struct {
 	Mirrors             []Mirror              `json:"mirrors" yaml:"mirrors"`
 	AllowRedeployment   *bool                 `json:"allow_redeployment,omitempty" yaml:"allow_redeployment,omitempty"`
 	RequireGPGSignature *bool                 `json:"require_gpg_signature,omitempty" yaml:"require_gpg_signature,omitempty"`
+	DownloadStatistics  *bool                 `json:"download_statistics,omitempty" yaml:"download_statistics,omitempty"`
 	S3                  *S3Config             `json:"s3,omitempty" yaml:"s3,omitempty"`
 	MavenRestore        *MavenRestoreSettings `json:"maven_restore,omitempty" yaml:"maven_restore,omitempty"`
 }
@@ -97,6 +99,7 @@ func (r Repository) serialization() repositorySerialization {
 	serialized := repositorySerialization{
 		Name: r.Name, Format: r.ConfiguredFormat(), Visibility: r.Visibility, S3: r.S3,
 		Mirrors: make([]Mirror, len(r.Mirrors)), MavenRestore: r.MavenRestore.DeepCopy(),
+		DownloadStatistics: cloneRepositoryBool(r.DownloadStatistics),
 	}
 	for i := range r.Mirrors {
 		serialized.Mirrors[i] = r.Mirrors[i].DeepCopy()
@@ -114,6 +117,26 @@ func (r Repository) serialization() repositorySerialization {
 		serialized.Mirrors[i].ArtifactURL = ""
 	}
 	return serialized
+}
+
+// DownloadStatisticsEnabled reports whether successful package downloads are counted.
+// Structured package repositories default to enabled, while unstructured files opt in.
+func (r *Repository) DownloadStatisticsEnabled() bool {
+	if r == nil {
+		return false
+	}
+	if r.DownloadStatistics != nil {
+		return *r.DownloadStatistics
+	}
+	return r.NormalizedFormat() != RepositoryFormatFiles
+}
+
+func cloneRepositoryBool(value *bool) *bool {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
 }
 
 // MarshalJSON emits protocol-specific repository configuration fields.
@@ -344,6 +367,7 @@ func (r *Repository) DeepCopy() *Repository {
 		Visibility:          strings.Clone(r.Visibility),
 		AllowRedeployment:   r.AllowRedeployment,
 		RequireGPGSignature: r.RequireGPGSignature,
+		DownloadStatistics:  cloneRepositoryBool(r.DownloadStatistics),
 		S3:                  r.S3.DeepCopy(),
 		MavenRestore:        r.MavenRestore.DeepCopy(),
 	}

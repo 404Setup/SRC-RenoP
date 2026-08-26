@@ -212,5 +212,14 @@ export default Object.freeze({
     "cargo.inviteTitle": "Cargo 패키지 초대",
     "cargo.inviteBody": "{inviter}님이 L{level} 권한으로 {package}에 참여하도록 초대했습니다.",
     "cargo.inviteAccepted": "Cargo 패키지 초대를 수락했습니다",
-    "cargo.inviteRejected": "Cargo 패키지 초대를 거절했습니다"
+    "cargo.inviteRejected": "Cargo 패키지 초대를 거절했습니다",
+    "repos.downloadStatistics": "다운로드 통계",
+    "repos.downloadStatisticsDesc": "이 저장소에서 성공한 패키지 다운로드를 집계합니다. 체크섬, 서명 및 문서 보조 파일은 제외됩니다.",
+    "repos.downloadStatisticsSaved": "다운로드 통계 설정을 저장했습니다",
+    "repos.downloadStatisticsUpdateFailed": "다운로드 통계 설정을 업데이트하지 못했습니다",
+    "repos.resetDownloadStatistics": "다운로드 통계 초기화",
+    "repos.resetDownloadStatisticsDesc": "이 저장소의 저장된 카운터와 기록 대기 중인 카운터를 모두 영구 삭제합니다.",
+    "repos.resetDownloadStatisticsConfirm": "{name}의 모든 다운로드 통계를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "repos.resetDownloadStatisticsSuccess": "다운로드 통계를 초기화했습니다",
+    "repos.resetDownloadStatisticsFailed": "다운로드 통계를 초기화하지 못했습니다"
 });

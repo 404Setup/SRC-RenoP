@@ -87,6 +87,23 @@ func initAccountSecurityTables(db *sql.DB) error {
 	return nil
 }
 
+func initDownloadStatisticsTables(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS download_statistics (
+		id CHAR(64) PRIMARY KEY,
+		user_id VARCHAR(36) NOT NULL,
+		username VARCHAR(255) NOT NULL,
+		repository VARCHAR(64) NOT NULL,
+		format VARCHAR(32) NOT NULL,
+		namespace VARCHAR(253) NOT NULL,
+		package_name VARCHAR(512) NOT NULL,
+		version VARCHAR(255) NOT NULL,
+		download_count BIGINT NOT NULL DEFAULT 0,
+		download_bytes BIGINT NOT NULL DEFAULT 0,
+		updated_at BIGINT NOT NULL
+	);`)
+	return err
+}
+
 func initMavenTables(db *sql.DB) error {
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS maven_domains (
@@ -204,6 +221,10 @@ var sharedIndexMigrations = []SchemaMigration{
 	{Name: "idx_docker_blobs_repo", Query: "CREATE INDEX IF NOT EXISTS idx_docker_blobs_repo ON docker_blobs(repository, digest);"},
 	{Name: "idx_docker_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_docker_members_user ON docker_members(username, repository);"},
 	{Name: "idx_docker_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_docker_invitations_recipient ON docker_invitations(recipient, created_at);"},
+	{Name: "idx_download_statistics_user", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_user ON download_statistics(user_id, repository);"},
+	{Name: "idx_download_statistics_repository", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_repository ON download_statistics(repository, format);"},
+	{Name: "idx_download_statistics_namespace", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_namespace ON download_statistics(repository, namespace);"},
+	{Name: "idx_download_statistics_package", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_package ON download_statistics(repository, package_name);"},
 }
 
 func applySharedIndexMigrations(db *sql.DB) error {

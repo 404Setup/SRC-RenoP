@@ -20,6 +20,7 @@ repositories:
     visibility: PUBLIC
     allow_redeployment: false
     require_gpg_signature: true
+    download_statistics: true
     mirrors: []
   crates:
     name: crates
@@ -43,12 +44,13 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` или `PRIVATE` |
 | `allow_redeployment` | `false` | Повтор Maven или замена files/Docker, если поддерживается |
 | `require_gpg_signature` | `false` | Проверка отделённой OpenPGP подписи для Maven |
+| `download_statistics` | Зависит от движка | Включено для Maven/Cargo/Docker; для `files` включается явно |
 | `mirrors` | `[]` | Упорядоченные upstream definitions |
 | `s3` | отсутствует | Отдельное S3-хранилище репозитория |
 
-`maven-classic` меняет только UI и сохраняет правила Maven. `files` неструктурирован и не создаёт checksum/POM и не
-проверяет подписи. Миграция Maven ↔ `files` не перемещает object; возврат в Maven перестраивает каталог и восстанавливает
-политику.
+`maven-classic` меняет только компоновку интерфейса и сохраняет правила публикации Maven. `files` неструктурирован,
+не создаёт контрольные суммы и POM и не проверяет подписи. Миграция Maven ↔ `files` не перемещает объекты; возврат в
+Maven перестраивает каталог и восстанавливает сохранённую политику. Настройка статистики скачиваний также сохраняется.
 
 ### Видимость
 

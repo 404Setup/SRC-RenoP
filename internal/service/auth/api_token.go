@@ -396,6 +396,11 @@ func CurrentCredentialKind(c fiber.Ctx) string {
 	return value
 }
 
+// CurrentCredentialIsAPIToken reports whether the request uses a revocable API token.
+func CurrentCredentialIsAPIToken(c fiber.Ctx) bool {
+	return CurrentCredentialKind(c) == credentialKindAPIToken
+}
+
 // CurrentCredentialHasScope reports whether a request is not API-token-authenticated or carries scope.
 func CurrentCredentialHasScope(c fiber.Ctx, scope string) bool {
 	if CurrentCredentialKind(c) != credentialKindAPIToken {

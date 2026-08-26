@@ -13,9 +13,28 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type MySQLDialect struct{}
+
+func initMySQLDownloadStatisticsIndexes(db *sql.DB) error {
+	migrations := [...]SchemaMigration{
+		{Name: "idx_download_statistics_user", Query: "CREATE INDEX idx_download_statistics_user ON download_statistics(user_id, repository);"},
+		{Name: "idx_download_statistics_repository", Query: "CREATE INDEX idx_download_statistics_repository ON download_statistics(repository, format);"},
+		{Name: "idx_download_statistics_namespace", Query: "CREATE INDEX idx_download_statistics_namespace ON download_statistics(repository, namespace);"},
+		{Name: "idx_download_statistics_package", Query: "CREATE INDEX idx_download_statistics_package ON download_statistics(repository, package_name);"},
+	}
+	for _, migration := range migrations {
+		if _, err := db.Exec(migration.Query); err != nil {
+			if strings.Contains(strings.ToLower(err.Error()), "duplicate key name") {
+				continue
+			}
+			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
+		}
+	}
+	return nil
+}
 
 func (d *MySQLDialect) Name() string {
 	return "mysql"
@@ -428,6 +447,12 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if err := initMavenTables(db); err != nil {
+		return err
+	}
+	if err := initDownloadStatisticsTables(db); err != nil {
+		return err
+	}
+	if err := initMySQLDownloadStatisticsIndexes(db); err != nil {
 		return err
 	}
 
