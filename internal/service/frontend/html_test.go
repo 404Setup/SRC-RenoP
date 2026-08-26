@@ -521,6 +521,51 @@ func TestNotificationComposerAndAccountMenuUseCompactStructuredLayout(t *testing
 	}
 }
 
+func TestDynamicLocalizationAndMobileDialogViewportGuards(t *testing.T) {
+	i18nSource, err := os.ReadFile(filepath.Join("renop-html", "js", "i18n.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"new MutationObserver",
+		"record.addedNodes.forEach(queueTranslationRoot)",
+		"attributeFilter: translationBindings.map",
+		"translateSubtree(document)",
+	} {
+		if !strings.Contains(string(i18nSource), required) {
+			t.Fatalf("dynamic localization is missing %q", required)
+		}
+	}
+	modalCSS, err := os.ReadFile(filepath.Join("..", "..", "..", "packages", "renop-ui", "css", "components", "modal.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"height: 100dvh",
+		"env(safe-area-inset-top)",
+		"env(safe-area-inset-bottom)",
+		"max-height: calc(100dvh",
+		"overscroll-behavior: contain",
+	} {
+		if !strings.Contains(string(modalCSS), required) {
+			t.Fatalf("mobile dialog viewport guard is missing %q", required)
+		}
+	}
+	for _, stylesheet := range []string{
+		filepath.Join("renop-html", "css", "components", "message-center.css"),
+		filepath.Join("renop-html", "css", "manager", "settings.css"),
+		filepath.Join("renop-html", "css", "manager", "users.css"),
+	} {
+		source, err := os.ReadFile(stylesheet)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(source), "dvh") {
+			t.Fatalf("long dialog stylesheet %s lacks a dynamic viewport cap", stylesheet)
+		}
+	}
+}
+
 func TestSharedShellRoutingAvatarCodeAndSearchAnimations(t *testing.T) {
 	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
 	if err != nil {

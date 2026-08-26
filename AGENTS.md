@@ -67,7 +67,8 @@
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`. Cargo and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
-  and `js/time.js`. Shared asynchronous actions use the
+  and `js/time.js`. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
+  shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the
   button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed
   requests. Docker management
   failures expose stable `X-Renop-Error-Code` values that `js/docker-errors.js` maps to the Docker locale catalogs;

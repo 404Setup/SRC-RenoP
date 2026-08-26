@@ -25,6 +25,7 @@
     width: min(680px, calc(100vw - 2rem));
     max-width: 680px;
     max-height: min(86vh, 780px);
+    max-height: min(86dvh, 780px);
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -513,6 +514,7 @@
     .message-center-modal-content {
         width: calc(100vw - 1rem);
         max-height: 92vh;
+        max-height: 92dvh;
     }
 
     .message-compose-modal-content {

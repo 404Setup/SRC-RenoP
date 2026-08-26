@@ -560,6 +560,7 @@ html.dark .permission-badge.badge-none {
     flex-direction: column;
     overflow: hidden;
     max-height: min(90vh, 900px);
+    max-height: min(90dvh, 900px);
     padding: 0;
     position: relative;
 }

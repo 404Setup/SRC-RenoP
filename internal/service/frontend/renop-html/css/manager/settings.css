@@ -1637,6 +1637,7 @@ html.dark .skeleton-bone {
     display: flex;
     flex-direction: column;
     max-height: 85vh;
+    max-height: 85dvh;
     overflow: hidden;
     padding: 0 !important;
 }

@@ -97,6 +97,16 @@ const languageDetails = {
 
 let currentLang = DEFAULT_LANG;
 let currentSource = 'default';
+let translationObserver = null;
+let translationFlushScheduled = false;
+const pendingTranslationRoots = new Set();
+const translationBindings = Object.freeze([
+    {attribute: 'data-i18n', target: 'text'},
+    {attribute: 'data-i18n-placeholder', target: 'placeholder'},
+    {attribute: 'data-i18n-title', target: 'title'},
+    {attribute: 'data-i18n-aria-label', target: 'aria-label'},
+]);
+const translationSelector = translationBindings.map(binding => `[${binding.attribute}]`).join(',');
 
 /**
  * Return the list of primary (canonical) language codes shown in the UI.
@@ -181,6 +191,87 @@ export function t(key, params = {}) {
     return translateKey(key, params, {
         current: languages[currentLang] || {},
         fallback: languages[DEFAULT_LANG] || {},
+    });
+}
+
+/**
+ * Apply every declarative translation binding present on one element.
+ * @param {Element} element - Element carrying one or more `data-i18n*` attributes.
+ * @returns {void}
+ */
+function translateBoundElement(element) {
+    for (const binding of translationBindings) {
+        const key = element.getAttribute(binding.attribute);
+        if (!key) continue;
+        const translation = t(key);
+        if (translation === key) continue;
+        if (binding.target === 'text') {
+            if (element.textContent !== translation) element.textContent = translation;
+        } else if (binding.target === 'placeholder') {
+            if (element.getAttribute('placeholder') !== translation) element.setAttribute('placeholder', translation);
+        } else if (binding.target === 'title') {
+            if (element.getAttribute('title') !== translation) element.setAttribute('title', translation);
+        } else if (element.getAttribute('aria-label') !== translation) {
+            element.setAttribute('aria-label', translation);
+        }
+    }
+}
+
+/**
+ * Translate one newly rendered subtree without rescanning unrelated page content.
+ * @param {Document|DocumentFragment|Element} root - Root whose bindings should be refreshed.
+ * @returns {void}
+ */
+function translateSubtree(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    if (root instanceof Element && root.matches(translationSelector)) {
+        translateBoundElement(root);
+    }
+    root.querySelectorAll(translationSelector).forEach(translateBoundElement);
+}
+
+/**
+ * Queue a minimal translation root and coalesce nested asynchronous DOM insertions.
+ * @param {Node} node - Node added to the observed application DOM.
+ * @returns {void}
+ */
+function queueTranslationRoot(node) {
+    if (!(node instanceof Element)) return;
+    for (const root of pendingTranslationRoots) {
+        if (root.contains(node)) return;
+        if (node.contains(root)) pendingTranslationRoots.delete(root);
+    }
+    pendingTranslationRoots.add(node);
+    if (translationFlushScheduled) return;
+    translationFlushScheduled = true;
+    queueMicrotask(() => {
+        translationFlushScheduled = false;
+        const roots = Array.from(pendingTranslationRoots);
+        pendingTranslationRoots.clear();
+        roots.forEach(translateSubtree);
+    });
+}
+
+/**
+ * Observe asynchronous UI rendering so declarative translations never wait for a page refresh.
+ * @returns {void}
+ */
+function startTranslationObserver() {
+    if (translationObserver || !document.body || typeof MutationObserver === 'undefined') return;
+    translationObserver = new MutationObserver(records => {
+        for (const record of records) {
+            if (record.type === 'attributes') {
+                queueTranslationRoot(record.target);
+                continue;
+            }
+            record.addedNodes.forEach(queueTranslationRoot);
+        }
+    });
+    translationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: translationBindings.map(binding => binding.attribute),
     });
 }
 
@@ -397,38 +488,7 @@ export function translateError(errorText) {
  * @returns {void}
  */
 export function updatePageTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        const translation = t(key);
-        if (translation !== key) {
-            el.textContent = translation;
-        }
-    });
-
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        const key = el.getAttribute('data-i18n-placeholder');
-        const translation = t(key);
-        if (translation !== key) {
-            el.placeholder = translation;
-        }
-    });
-
-    document.querySelectorAll('[data-i18n-title]').forEach(el => {
-        const key = el.getAttribute('data-i18n-title');
-        const translation = t(key);
-        if (translation !== key) {
-            el.title = translation;
-        }
-    });
-
-    document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
-        const key = el.getAttribute('data-i18n-aria-label');
-        const translation = t(key);
-        if (translation !== key) {
-            el.setAttribute('aria-label', translation);
-        }
-    });
-
+    translateSubtree(document);
     updateLanguageUI();
 }
 
@@ -548,6 +608,8 @@ export function initI18n() {
                 setLanguage(e.target.value);
             });
         }
+        startTranslationObserver();
+        updatePageTranslations();
     };
 
     if (document.readyState === 'loading') {
@@ -556,7 +618,6 @@ export function initI18n() {
         setupLanguageModal();
     }
 
-    updatePageTranslations();
     console.log(`[i18n] Initialized language '${currentLang}' (source: ${currentSource}). Available: ${getAvailableLanguages().join(', ')}.`);
     return currentLang;
 }

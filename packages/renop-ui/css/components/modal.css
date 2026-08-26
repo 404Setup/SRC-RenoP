@@ -15,9 +15,13 @@
     top: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
+    box-sizing: border-box;
+    padding: 1rem;
+    overflow: hidden;
 }
 
 .modal-backdrop {
@@ -50,10 +54,11 @@
     width: 100%;
     max-width: 500px;
     max-height: 85vh;
+    max-height: min(85vh, calc(100dvh - 2rem));
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    margin: 1rem;
+    margin: 0;
     box-sizing: border-box;
     animation: modalFadeIn 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
 }
@@ -173,8 +178,35 @@ html:not(.light) .modal-header {
 
 .modal-body {
     flex: 0 1 auto;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 1.15rem 1.45rem;
+}
+
+@media (max-width: 600px), (max-height: 640px) {
+    .modal {
+        padding-top: max(0.5rem, env(safe-area-inset-top));
+        padding-right: max(0.5rem, env(safe-area-inset-right));
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+        padding-left: max(0.5rem, env(safe-area-inset-left));
+    }
+
+    .modal-content {
+        width: 100%;
+        max-height: calc(100vh - 1rem);
+        max-height: calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)));
+        border-radius: 14px;
+    }
+
+    .modal-header {
+        padding: 1rem 1.1rem 0.75rem;
+        padding-right: 3.25rem;
+    }
+
+    .modal-body {
+        padding: 1rem 1.1rem;
+    }
 }
 
 @keyframes modalFadeIn {
