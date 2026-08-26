@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/require"
 
@@ -247,6 +248,21 @@ func TestPostgresAccountSecuritySerialization(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, security.PasswordLoginEnabled)
 	require.Equal(t, core.RecoveryCodeCount-core.RecoveryCodesRequired, security.RecoveryCodesRemaining)
+	apiSecret, err := core.GenerateAPITokenSecret()
+	require.NoError(t, err)
+	apiExpiresAt := now + int64((24*time.Hour)/time.Millisecond)
+	apiToken := &core.APIToken{
+		ID: uuid.NewString(), Name: "PostgreSQL automation",
+		Scopes:    []string{core.APITokenScopeRepositoryRead, core.APITokenScopeRepositoryPublish},
+		CreatedAt: now + 10, ExpiresAt: &apiExpiresAt,
+	}
+	require.NoError(t, db.CreateAPIToken("security_pg", apiToken, core.HashAPITokenSecret(apiSecret)))
+	apiCredential, err := db.GetAPITokenByHash(core.HashAPITokenSecret(apiSecret), "security_pg")
+	require.NoError(t, err)
+	require.NotNil(t, apiCredential)
+	require.Equal(t, apiToken.ID, apiCredential.Token.ID)
+	require.Equal(t, "security_pg", apiCredential.Account.Name)
+	require.NoError(t, db.DeleteAPIToken("security_pg", apiToken.ID))
 }
 
 func TestPostgresMessageDedupeInsert(t *testing.T) {

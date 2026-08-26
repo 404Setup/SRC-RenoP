@@ -35,12 +35,14 @@ RenoP 采用基于角色的访问控制（RBAC）与细粒度仓库权限相结�
 RenoP 支持以下多种认证方式：
 
 1. **Cookie 会话**：在 Web 管理控制台登录后，浏览器会自动携带 `renop_session` Cookie。
-2. **HTTP Basic Auth**：标准用户名 + 密码，或用户名 + 个人访问令牌（PAT），常用于 Maven `settings.xml`、Gradle 或 Docker CLI。
-3. **Bearer Token**：在请求头中携带 `Authorization: Bearer <token>`，适用于 CI/CD 自动化流水线。
-4. **URL 查询参数（仅限 GET/HEAD）**：可在临时下载链接中附带 `?token=...`。
+2. **HTTP Basic Auth**：用户名 + 密码或 API Token，仅用于 Maven、Cargo、Docker 等标准包协议。
+3. **Bearer Token**：在请求头中携带 `Authorization: Bearer <token>`，用于受权限范围控制的 API 与发布自动化。
+
+浏览器会话密钥仅可通过 Cookie 使用。RenoP 会拒绝 `Authorization: Session` 与 URL 查询凭据，防止密钥
+经复制链接、Referer 或访问日志泄露。
 
 ## 4. 会话管理与安全策略
 
 - **会话有效期**：登录会话在连续 7 天无活动后自动过期；有活动时会自动滑动续期。
-- **密码哈希**：用户密码采用现代哈希算法加盐存储，不保存明文。
+- **凭据存储**：密码采用加盐单向哈希；API Token 含 256 位随机熵，数据库仅保存其查询摘要。
 - **登录防爆破**：连续认证失败的 IP 会触发阶梯式封禁策略。

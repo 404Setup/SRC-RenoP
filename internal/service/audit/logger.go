@@ -46,6 +46,8 @@ func ExtractAuthDetails(c fiber.Ctx, state *core.AppState) (username string, ope
 
 		authHeader := c.Get(fiber.HeaderAuthorization)
 		cookieVal := c.Cookies("renop_session")
+		credentialKind, _ := c.Locals("auth_credential_kind").(string)
+		apiTokenID, _ := c.Locals("auth_api_token_id").(string)
 
 		if currentSess, ok := c.Locals("current_session_id").(string); ok && currentSess != "" {
 			sessionID = core.SafeAuditSessionID(currentSess)
@@ -57,7 +59,12 @@ func ExtractAuthDetails(c fiber.Ctx, state *core.AppState) (username string, ope
 			}
 			sessionID = core.SafeAuditSessionID(sID)
 			authMethod = fmt.Sprintf("Web (SessionID: %s)", sessionID)
-		} else if strings.HasPrefix(authHeader, "Basic ") {
+		} else if credentialKind == "api_token" {
+			authMethod = "APIToken"
+			if apiTokenID != "" {
+				authMethod += " (ID: " + core.SafeAuditSessionID(apiTokenID) + ")"
+			}
+		} else if credentialKind == "password" || strings.HasPrefix(authHeader, "Basic ") {
 			authMethod = "BasicAuth"
 		} else if strings.HasPrefix(authHeader, "Bearer ") {
 			authMethod = "UploadToken"

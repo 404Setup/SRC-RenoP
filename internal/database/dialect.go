@@ -68,6 +68,16 @@ func initAccountSecurityTables(db *sql.DB) error {
 			used_at BIGINT NOT NULL DEFAULT 0,
 			PRIMARY KEY (user_id, selector_hash)
 		);`,
+		`CREATE TABLE IF NOT EXISTS user_api_tokens (
+			id CHAR(36) PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL,
+			name VARCHAR(80) NOT NULL,
+			secret_hash CHAR(64) NOT NULL UNIQUE,
+			scopes_json TEXT NOT NULL,
+			created_at BIGINT NOT NULL,
+			expires_at BIGINT NULL,
+			UNIQUE (user_id, name)
+		);`,
 	}
 	for _, table := range tables {
 		if _, err := db.Exec(table); err != nil {

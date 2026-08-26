@@ -85,6 +85,16 @@ func logDockerAudit(c fiber.Ctx, state *core.AppState, action, details string) {
 
 func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, repo *config.Repository, repoFullName string, isWrite bool) (*config.User, error) {
 	user := auth.GetUser(c)
+	actionRequired := "pull"
+	requiredCredentialScope := core.APITokenScopeRepositoryRead
+	if isWrite {
+		actionRequired = "push"
+		requiredCredentialScope = core.APITokenScopeRepositoryPublish
+		if c.Method() == fiber.MethodDelete && !strings.Contains(c.Path(), "/blobs/uploads/") {
+			actionRequired = "delete"
+			requiredCredentialScope = core.APITokenScopeRepositoryDelete
+		}
+	}
 
 	authHeader := c.Get(fiber.HeaderAuthorization)
 	if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
@@ -98,10 +108,6 @@ func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, re
 		user = &config.User{Username: claims.Subject}
 		if tokenObj := state.GetTokenByName(claims.Subject); tokenObj != nil {
 			user.Roles = tokenObj.Permissions
-		}
-		actionRequired := "pull"
-		if isWrite {
-			actionRequired = "push"
 		}
 		hasAccess := false
 		for _, entry := range claims.Access {
@@ -122,11 +128,19 @@ func (h *Handler) authenticateAndAuthorize(c fiber.Ctx, state *core.AppState, re
 		_ = RespondError(c, fiber.StatusForbidden, ErrCodeDenied, "access denied", nil)
 		return nil, errors.New("denied")
 	}
+	if !auth.CurrentCredentialHasScope(c, requiredCredentialScope) {
+		_ = RespondError(c, fiber.StatusForbidden, ErrCodeDenied, "API token scope is insufficient", nil)
+		return nil, errors.New("insufficient API token scope")
+	}
 
 	if isWrite {
 		if !CanWriteDocker(state, user, repo, repoFullName) {
 			if user.Username == "guest" {
-				scope := fmt.Sprintf("repository:%s:pull,push", repoFullName)
+				requestedActions := "pull,push"
+				if actionRequired == "delete" {
+					requestedActions = "delete"
+				}
+				scope := fmt.Sprintf("repository:%s:%s", repoFullName, requestedActions)
 				_ = SendAuthChallenge(c, c.Host(), scope)
 				return nil, errors.New("unauthorized")
 			}

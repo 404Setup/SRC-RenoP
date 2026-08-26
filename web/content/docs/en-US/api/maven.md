@@ -47,4 +47,7 @@ The separate `files` repository format is intended for unstructured content. It 
 
 ## Maven client access
 
-Artifact reads and publications use `/{repo}/{maven-path}`. Authenticate Maven or Gradle with an account password or upload token. Repository visibility controls reads, while verified domain membership controls mutation. The complete endpoint and schema list is available in `web/assets/openapi.yaml`.
+Artifact reads and publications use `/{repo}/{maven-path}`. Authenticate Maven or Gradle with an account password or
+an API token carrying `repository:read` and/or `repository:publish`. Repository visibility controls reads, while
+verified domain membership and the owning account's L0-L4 domain level control mutation. The complete endpoint and
+schema list is available in `web/assets/openapi.yaml`.

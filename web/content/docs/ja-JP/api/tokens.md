@@ -2,14 +2,17 @@
 title: トークン & ユーザー API
 order: 3
 category: API リファレンス
-description: トークン管理およびユーザー管理 API
+description: きめ細かな API トークンのライフサイクルとユーザー管理 API
 ---
 
 # トークン & ユーザー API
 
-- `GET /api/tokens` - トークン一覧
-- `POST /api/tokens` - トークン作成
-- `DELETE /api/tokens/:id` - トークン失効
-- `GET /api/auth/users` - ユーザー一覧 (Manager/Admin)
-- `POST /api/auth/users` - ユーザー作成
-- `DELETE /api/auth/users/:username` - ユーザー削除
+秘密値の管理には HttpOnly `renop_session` ブラウザー Cookie が必要です。
+
+- `GET /api/auth/profile/api-tokens/scopes` — 現在のアカウントが割り当て可能な権限範囲。
+- `GET /api/auth/profile/api-tokens` — 秘密値を含まないメタデータと上限 50 件。
+- `POST /api/auth/profile/api-tokens` — 作成。`rnp_pat_...` の秘密値は一度だけ返されます。
+- `DELETE /api/auth/profile/api-tokens/{token_id}` — 即時失効。
+
+自動化では `Authorization: Bearer <token>` を使用します。Basic はパッケージプロトコルに限定されます。
+ユーザー管理 API は `/api/tokens` にあり、`admin:users` 権限が必要です。

@@ -2,7 +2,7 @@
 title: Tokens & GPG Signatures
 order: 2
 category: Security
-description: Personal Access Tokens (PAT), upload tokens, and OpenPGP signature verification
+description: Fine-grained API tokens and OpenPGP signature verification
 ---
 
 # Tokens & GPG Signatures
@@ -10,21 +10,24 @@ description: Personal Access Tokens (PAT), upload tokens, and OpenPGP signature 
 RenoP provides token-based authentication for automation pipelines and OpenPGP signature verification for artifact
 integrity.
 
-## 1. Access Token Types
+## 1. Fine-grained API tokens
 
-Create and manage tokens in the Web console under "Token Management":
+Create and revoke API tokens from the account profile. Each token has a private name, one or more capability scopes,
+and an optional expiration. The 256-bit secret is displayed once; only its SHA-256 digest is persisted.
 
-### Personal Access Tokens (PAT)
+Use the minimum scopes and shortest practical lifetime for each workstation or automation pipeline. A token authorizes
+an operation only while both conditions remain true:
 
-- Bound to an individual user, inheriting the user's active permissions.
-- Ideal for developer workstations (`settings.xml`, `.cargo/credentials.toml`, Docker CLI).
-- Supports expiration dates and immediate revocation.
+1. The token carries the required capability scope.
+2. Its owning account still has the necessary system, repository, domain, or package-team permission.
 
-### Upload Tokens
+Administrator scopes are offered only to administrator accounts and do not preserve access after that role is removed.
+Revocation invalidates cached authentication immediately. Legacy plaintext upload tokens are migrated automatically to
+hashed `repository:read` and `repository:publish` credentials.
 
-- Designed for CI/CD runners (GitHub Actions, GitLab CI, Jenkins).
-- Scoped strictly to specific repositories for artifact deployment, preventing unauthorized reads or administrative API
-  calls.
+Browser session secrets are accepted only through the HttpOnly `renop_session` cookie. Basic credentials are limited
+to standard package protocols. API automation should send a fine-grained token as `Authorization: Bearer <token>`;
+credentials in URL query parameters are not accepted.
 
 ---
 

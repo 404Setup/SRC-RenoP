@@ -119,14 +119,14 @@ docker push localhost:3000/my-image:latest
 
 ## Authentication
 
-RenoP supports four credential types:
+RenoP separates browser sessions from machine credentials:
 
-| Method             | Use case                        | Details                                                                                                  |
-|--------------------|---------------------------------|----------------------------------------------------------------------------------------------------------|
-| **Session cookie** | Browser / web UI                | Set after `POST /api/auth/login`. `renop_session` HttpOnly cookie, 7-day idle timeout.                   |
-| **Session header** | API clients that hold a session | `Authorization: Session <session-id>`                                                                    |
-| **Basic auth**     | Maven clients, CI/CD            | `Authorization: Basic base64(username:password)` or `Authorization: Basic base64(username:upload-token)` |
-| **Bearer token**   | Upload-token-only clients       | `Authorization: Bearer <upload-token>` or `?token=<upload-token>` (GET/HEAD only)                        |
+| Method                | Use case                    | Details                                                                                                     |
+|-----------------------|-----------------------------|-------------------------------------------------------------------------------------------------------------|
+| **Session cookie**    | Browser / web UI            | Set after login as the HttpOnly `renop_session` cookie. Session secrets are not accepted in headers or URLs. |
+| **Bearer API token**  | API and CI/CD automation   | `Authorization: Bearer <rnp_pat_...>` with endpoint scopes capped by the account's current permissions.      |
+| **Basic auth**        | Package clients and CI/CD  | `username:password` or `username:API-token`; accepted only by standard package protocols and upload flows.   |
+| **Docker Bearer JWT** | Docker / OCI registry      | Short-lived token issued by `/v2/token` with pull/push actions limited by API-token and package permissions. |
 
 **FIDO2 / WebAuthn** is also supported as a passwordless login mechanism. Register a hardware key from the web UI
 profile page.
@@ -143,7 +143,10 @@ Every account carries a set of permission strings. Built-in shortcuts:
 | `canview:<repo>`   | Read access to a specific repository  |
 | `canupdate:<repo>` | Write access to a specific repository |
 
-Upload tokens inherit a subset of the account's permissions and may be scoped further by the manager.
+API tokens are named, optionally expiring 256-bit credentials. Their fine-grained scopes are always intersected with
+the owning account's live roles, repository permissions, and package-team membership. Secrets are displayed once,
+stored only as SHA-256 lookup digests, and revoked immediately. Legacy plaintext upload tokens migrate automatically
+to `repository:read` and `repository:publish` scopes.
 
 ---
 
@@ -158,7 +161,7 @@ directory unless they are absolute.
 |--------------------------------|---------------------|-------------------------------------------------------------------------------|
 | `RENOP_CONFIG`                 | `config.yaml`       | Server, frontend, storage, database, updater, proxy, and audit settings       |
 | `RENOP_REPOSITORIES`           | `repositories.yaml` | Repository definitions, mirrors, and per-repository S3 settings               |
-| `RENOP_TOKENS`                 | `tokens.yaml`       | Account definitions and upload tokens                                         |
+| `RENOP_TOKENS`                 | `tokens.yaml`       | Legacy account import source; plaintext upload tokens are migrated to the database |
 | `RENOP_INDEX`                  | `index.json`        | Persisted Maven artifact index (rebuilt on startup or on demand)              |
 | `RENOP_SESSIONS`               | `sessions.bin`      | Persisted browser sessions (legacy `sessions.json` is migrated automatically) |
 | `RENOP_DEFAULT_ADMIN_PASSWORD` | *(generated)*       | Initial password for the `admin` account on first startup                     |
@@ -515,7 +518,7 @@ prefer the HTTP status code over the body for programmatic handling.
 
 | Tag        | Routes                                                                              | Notes                               |
 |------------|-------------------------------------------------------------------------------------|-------------------------------------|
-| `auth`     | `POST /api/auth/login`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/profile/...` | Session management and FIDO2        |
+| `auth`     | `POST /api/auth/login`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/profile/...` | Cookie sessions, API tokens, and FIDO2 |
 | `tokens`   | `GET/PUT/DELETE /api/tokens/{name}`, `/api/tokens/{name}/sessions/...`              | Account CRUD (manager-only)         |
 | `maven`    | `GET /api/maven/details/...`, `/api/maven/versions/...`, `/api/maven/latest/...`    | File metadata and version helpers   |
 | `storage`  | `GET/HEAD/PUT/POST/DELETE /{repo}/{path}`                                           | Raw artifact access (Maven layout)  |

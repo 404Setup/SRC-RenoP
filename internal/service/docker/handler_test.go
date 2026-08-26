@@ -173,10 +173,21 @@ func setupTestDockerApp(t *testing.T) (*fiber.App, *core.AppState, Store) {
 
 	tokenObj := &core.AccessToken{
 		Name:        "admin",
-		Tokens:      []string{"admin-secret-token"},
 		Permissions: []string{"admin"},
 	}
-	_ = db.SaveToken(tokenObj)
+	if err := db.SaveToken(tokenObj); err != nil {
+		t.Fatalf("save administrator: %v", err)
+	}
+	if err := db.CreateAPIToken("admin", &core.APIToken{
+		ID: "00000000-0000-4000-8000-000000000001", Name: "Docker test token",
+		Scopes: []string{
+			core.APITokenScopeRepositoryRead, core.APITokenScopeRepositoryPublish,
+			core.APITokenScopeRepositoryDelete, core.APITokenScopePackageManage,
+		},
+		CreatedAt: time.Now().UnixMilli(),
+	}, core.HashAPITokenSecret("admin-secret-token")); err != nil {
+		t.Fatalf("create administrator API token: %v", err)
+	}
 
 	state := core.NewAppState()
 	state.Inner.FileIndex = index.NewFileIndex()

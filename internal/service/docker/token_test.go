@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
@@ -158,5 +159,69 @@ func TestDockerBasicAuthHonorsPasswordLoginPolicy(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "admin", apiClaims.Subject)
 	require.Len(t, apiClaims.Access, 1)
-	require.ElementsMatch(t, []string{"pull", "push"}, apiClaims.Access[0].Actions)
+	require.ElementsMatch(t, []string{"pull", "push", "delete"}, apiClaims.Access[0].Actions)
+}
+
+func TestDockerTokenActionsRespectAPITokenScopes(t *testing.T) {
+	app, state, _ := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "scoped-app", false)
+	secret, err := core.GenerateAPITokenSecret()
+	require.NoError(t, err)
+	require.NoError(t, state.GetDB().CreateAPIToken("admin", &core.APIToken{
+		ID: uuid.NewString(), Name: "Pull only", Scopes: []string{core.APITokenScopeRepositoryRead},
+		CreatedAt: time.Now().UnixMilli(),
+	}, core.HashAPITokenSecret(secret)))
+
+	request := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/scoped-app:pull,push", nil)
+	request.SetBasicAuth("admin", secret)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	var tokenResponse TokenResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&tokenResponse))
+	require.NoError(t, response.Body.Close())
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	claims, err := ValidateDockerToken(state.GetDockerSecret(), tokenResponse.Token)
+	require.NoError(t, err)
+	require.Len(t, claims.Access, 1)
+	require.Equal(t, []string{"pull"}, claims.Access[0].Actions)
+
+	for _, test := range []struct {
+		name    string
+		scope   string
+		actions []string
+	}{
+		{name: "Publish only", scope: core.APITokenScopeRepositoryPublish, actions: []string{"push"}},
+		{name: "Delete only", scope: core.APITokenScopeRepositoryDelete, actions: []string{"delete"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tokenSecret, generateErr := core.GenerateAPITokenSecret()
+			require.NoError(t, generateErr)
+			require.NoError(t, state.GetDB().CreateAPIToken("admin", &core.APIToken{
+				ID: uuid.NewString(), Name: test.name, Scopes: []string{test.scope},
+				CreatedAt: time.Now().UnixMilli(),
+			}, core.HashAPITokenSecret(tokenSecret)))
+			tokenRequest := httptest.NewRequest(http.MethodGet,
+				"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/scoped-app:pull,push", nil)
+			tokenRequest.SetBasicAuth("admin", tokenSecret)
+			tokenResponseRaw, requestErr := app.Test(tokenRequest)
+			require.NoError(t, requestErr)
+			var issued TokenResponse
+			require.NoError(t, json.NewDecoder(tokenResponseRaw.Body).Decode(&issued))
+			require.NoError(t, tokenResponseRaw.Body.Close())
+			issuedClaims, validateErr := ValidateDockerToken(state.GetDockerSecret(), issued.Token)
+			require.NoError(t, validateErr)
+			require.Len(t, issuedClaims.Access, 1)
+			require.Equal(t, test.actions, issuedClaims.Access[0].Actions)
+			if test.scope == core.APITokenScopeRepositoryPublish {
+				deleteRequest := httptest.NewRequest(http.MethodDelete,
+					"/v2/docker-local/scoped-app/manifests/missing", nil)
+				deleteRequest.SetBasicAuth("admin", tokenSecret)
+				deleteResponse, deleteErr := app.Test(deleteRequest)
+				require.NoError(t, deleteErr)
+				require.NoError(t, deleteResponse.Body.Close())
+				require.Equal(t, http.StatusForbidden, deleteResponse.StatusCode)
+			}
+		})
+	}
 }

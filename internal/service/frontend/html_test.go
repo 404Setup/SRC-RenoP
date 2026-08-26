@@ -702,6 +702,49 @@ func TestDynamicLocalizationAndMobileDialogViewportGuards(t *testing.T) {
 	}
 }
 
+func TestFineGrainedAPITokenProfileUI(t *testing.T) {
+	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexText := string(indexSource)
+	for _, required := range []string{
+		`id="profile-api-token-section"`, `id="profile-api-token-status"`, `id="btn-manage-api-tokens"`,
+	} {
+		if !strings.Contains(indexText, required) {
+			t.Fatalf("fine-grained API token profile UI is missing %q", required)
+		}
+	}
+	if strings.Contains(indexText, `id="btn-generate-upload-token"`) {
+		t.Fatal("profile still exposes the legacy single upload-token control")
+	}
+	source, err := os.ReadFile(filepath.Join("renop-html", "js", "api-tokens.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceText := string(source)
+	for _, required := range []string{
+		"/api/auth/profile/api-tokens", "expires_at", "repository:publish", "runButtonAction",
+		"writeClipboardText", "profile.apiTokenSecretWarning", "data-api-token-scope",
+		"data-i18n-placeholder", "languageChanged",
+	} {
+		if !strings.Contains(sourceText, required) {
+			t.Fatalf("fine-grained API token controller is missing %q", required)
+		}
+	}
+	profileCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "manager", "profile.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		".profile-api-token-scope-grid", ".profile-api-token-secret", "overflow-x: auto",
+	} {
+		if !strings.Contains(string(profileCSS), required) {
+			t.Fatalf("fine-grained API token styling is missing %q", required)
+		}
+	}
+}
+
 func TestSharedShellRoutingAvatarCodeAndSearchAnimations(t *testing.T) {
 	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
 	if err != nil {

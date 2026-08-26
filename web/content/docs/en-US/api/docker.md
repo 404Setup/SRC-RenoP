@@ -34,7 +34,9 @@ server text. OCI Distribution endpoints continue to use the specification-define
 ## 2. Bearer Token Auth
 
 - **Path**: `GET /v2/token` or `GET /v2/auth`
-- **Description**: Exchanges Basic Auth credentials for a temporary Docker Bearer token.
+- **Description**: Exchanges Basic Auth credentials for a temporary Docker Bearer token. An API token must include
+  `repository:read` for pull, `repository:publish` for push, and `repository:delete` for published manifest/blob
+  deletion; image visibility and L0-L4 membership are checked independently before each requested action is granted.
 
 ---
 

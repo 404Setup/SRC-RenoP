@@ -440,6 +440,178 @@
     font-size: 0.82rem;
 }
 
+.profile-api-token-summary {
+    align-items: center !important;
+    gap: 1rem;
+}
+
+.profile-api-token-summary .profile-security-hint {
+    min-width: 0;
+}
+
+.profile-api-token-manager,
+.profile-api-token-create-form,
+.profile-api-token-secret-dialog {
+    display: grid;
+    gap: 1rem;
+}
+
+.profile-api-token-manager-toolbar,
+.profile-api-token-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.profile-api-token-manager-count {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.profile-api-token-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.profile-api-token-card,
+.profile-api-token-empty {
+    min-width: 0;
+    padding: 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+}
+
+.profile-api-token-card.is-expired {
+    opacity: 0.68;
+}
+
+.profile-api-token-card-head strong {
+    color: var(--text-color);
+    overflow-wrap: anywhere;
+}
+
+.profile-api-token-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+}
+
+.profile-api-token-scope-badge {
+    max-width: 100%;
+    padding: 0.26rem 0.48rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--link-hover-color) 11%, transparent);
+    color: var(--link-hover-color);
+    font-size: 0.72rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.profile-api-token-expiry {
+    margin: 0.7rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+
+.profile-api-token-expiry.is-expired {
+    color: #dc2626;
+}
+
+.profile-api-token-create-form > label {
+    display: grid;
+    gap: 0.45rem;
+    color: var(--text-color);
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.profile-api-token-expiration {
+    width: 100%;
+}
+
+.profile-api-token-scopes {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.profile-api-token-scopes legend {
+    margin-bottom: 0.35rem;
+    color: var(--text-color);
+    font-size: 0.84rem;
+    font-weight: 650;
+}
+
+.profile-api-token-scope-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+}
+
+.profile-api-token-scope-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    min-width: 0;
+    padding: 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--text-color) 2%, transparent);
+    cursor: pointer;
+}
+
+.profile-api-token-scope-option:has(input:checked) {
+    border-color: color-mix(in srgb, var(--link-hover-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 8%, transparent);
+}
+
+.profile-api-token-scope-option input {
+    margin-top: 0.12rem;
+    accent-color: var(--link-hover-color);
+}
+
+.profile-api-token-scope-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.2rem;
+}
+
+.profile-api-token-scope-copy strong,
+.profile-api-token-scope-copy code {
+    overflow-wrap: anywhere;
+}
+
+.profile-api-token-scope-copy code {
+    color: var(--text-muted);
+    font-size: 0.68rem;
+}
+
+.profile-api-token-secret-name {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.profile-api-token-secret {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
+    color: var(--text-color);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    user-select: all;
+}
+
 @media (max-width: 600px) {
     .profile-security-inline,
     .profile-security-control {
@@ -458,8 +630,20 @@
     }
 
     .profile-recovery-code-list,
-    .password-recovery-codes {
+    .password-recovery-codes,
+    .profile-api-token-scope-grid {
         grid-template-columns: 1fr;
+    }
+
+    .profile-api-token-manager-toolbar,
+    .profile-api-token-card-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .profile-api-token-manager-toolbar .pill-btn,
+    .profile-api-token-card-head .pill-btn {
+        width: 100%;
     }
 }
 

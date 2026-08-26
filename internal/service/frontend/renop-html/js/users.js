@@ -393,7 +393,7 @@ function createUserRowElement(token) {
         formatPermissionTag,
         onEdit: (t) => openEditModal(t),
         onDelete: (t) => deleteToken(t.name),
-        onReset: (t) => regenerateUserToken(t.name),
+        onReset: (t) => createUserPublishingToken(t.name),
         onSessions: (tok) => openSessionsDialog({mode: 'admin', username: tok.name}),
         onFido: (tok) => openUserFidoDialog(tok.name),
         onAuditLogs: (tok) => openAuditLogsDialog({mode: 'user', username: tok.name}),
@@ -667,11 +667,11 @@ export async function deleteToken(name) {
 }
 
 /**
- * Confirm and regenerate a user's API token, then show the new value.
+ * Confirm and create a user's additional publishing API token, then show it once.
  * @param {string} name
  * @returns {Promise<void>}
  */
-export async function regenerateUserToken(name) {
+export async function createUserPublishingToken(name) {
     if (!(await window.showConfirm(t('users.confirmRegenToken', {name})))) return;
 
     try {
@@ -689,7 +689,7 @@ export async function regenerateUserToken(name) {
             showAlert(errText || t('users.failedRegenToken'), 'error');
         }
     } catch (e) {
-        console.error('Failed to regenerate token', e);
+        console.error('Failed to create publishing token', e);
     }
 }
 

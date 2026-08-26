@@ -11,13 +11,16 @@
 package auth
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
+	"errors"
 	"log"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"golang.org/x/crypto/bcrypt"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -44,9 +47,18 @@ var GuestUser = &config.User{
 
 const authTokenExpiresAtLocal = "auth_token_expires_at"
 
-func setAuthTokenExpiry(c fiber.Ctx, accessToken *core.AccessToken) {
-	if accessToken != nil && accessToken.ExpiresAt != nil {
-		c.Locals(authTokenExpiresAtLocal, *accessToken.ExpiresAt)
+type authResult struct {
+	User      *config.User
+	Kind      string
+	Scheme    string
+	TokenID   string
+	Scopes    []string
+	ExpiresAt *int64
+}
+
+func setAuthTokenExpiry(c fiber.Ctx, expiresAt *int64) {
+	if expiresAt != nil {
+		c.Locals(authTokenExpiresAtLocal, *expiresAt)
 	}
 }
 
@@ -163,18 +175,21 @@ func extractAuthHeader(c fiber.Ctx, state *core.AppState) string {
 			return "Session " + cookieVal
 		}
 	}
-	if c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead {
-		if queryToken := c.Query("token"); queryToken != "" {
-			if state.GetSession(queryToken) != nil {
-				return "Session " + queryToken
-			}
-			return "Bearer " + queryToken
-		}
-	}
 	return ""
 }
 
-func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*config.User, error) {
+func authResultFromCredential(credential *VerifiedCredential, scheme string) *authResult {
+	if credential == nil || credential.Account == nil {
+		return nil
+	}
+	return &authResult{
+		User: buildSynthUser(credential.Account), Kind: credential.Kind, Scheme: scheme,
+		TokenID: credential.TokenID, Scopes: append([]string(nil), credential.Scopes...),
+		ExpiresAt: credential.ExpiresAt,
+	}
+}
+
+func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*authResult, error) {
 	basicAuth := strings.TrimPrefix(authHeader, "Basic ")
 	decoded, err := utils.DecodeB64(basicAuth)
 	if err != nil {
@@ -194,25 +209,19 @@ func handleBasicAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*con
 	if accessToken == nil {
 		return nil, nil
 	}
-
-	isValid := !isAccessTokenExpired(accessToken)
-
-	isVerified := false
-	if isValid {
-		isVerified = verifyTokenSecret(state, accessToken, password)
+	credential, err := VerifyAccountCredential(state, accessToken, password)
+	if errors.Is(err, errCredentialExpired) {
+		return nil, fiber.ErrForbidden
 	}
-
-	if isValid && isVerified {
-		setAuthTokenExpiry(c, accessToken)
-		return synthUserForToken(accessToken, username), nil
-	} else if !isValid {
-		return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
+	if err != nil || credential == nil {
+		return nil, err
 	}
-
-	return nil, nil
+	result := authResultFromCredential(credential, "basic")
+	setAuthTokenExpiry(c, result.ExpiresAt)
+	return result, nil
 }
 
-func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*config.User, error) {
+func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*authResult, error) {
 	sessionID := strings.TrimPrefix(authHeader, "Session ")
 	username := ValidateAndRenewSession(state, sessionID)
 	if username == "" {
@@ -227,14 +236,19 @@ func handleSessionAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*c
 	}
 	if isAccessTokenExpired(accessToken) {
 		_, _ = state.RevokeSession(sessionID)
-		return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
+		return nil, fiber.ErrForbidden
 	}
 
-	return synthUserForToken(accessToken, username), nil
+	return &authResult{
+		User: synthUserForToken(accessToken, username), Kind: credentialKindSession, Scheme: "cookie",
+		ExpiresAt: accessToken.ExpiresAt,
+	}, nil
 }
 
-func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*config.User, error) {
+func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*authResult, error) {
 	bearerAuth := strings.TrimPrefix(authHeader, "Bearer ")
+	var credential *VerifiedCredential
+	var err error
 	idx := strings.IndexByte(bearerAuth, ':')
 	if idx > 0 {
 		username := strings.ToLower(bearerAuth[:idx])
@@ -245,36 +259,211 @@ func handleBearerAuth(state *core.AppState, authHeader string, c fiber.Ctx) (*co
 			return nil, nil
 		}
 
-		if isAccessTokenExpired(accessToken) {
-			return nil, c.Status(fiber.StatusForbidden).SendString("Forbidden")
-		}
-
-		if verifyTokenSecret(state, accessToken, secret) {
-			setAuthTokenExpiry(c, accessToken)
-			return synthUserForToken(accessToken, username), nil
-		}
+		credential, err = VerifyAccountCredential(state, accessToken, secret)
 	} else {
-		matchedUser := state.GetTokenBySecret(bearerAuth)
-		if matchedUser == nil {
-			return nil, nil
-		}
-
-		if isAccessTokenExpired(matchedUser) {
-			return nil, nil
-		}
-
-		setAuthTokenExpiry(c, matchedUser)
-		return buildSynthUser(matchedUser), nil
+		credential, err = VerifyBearerCredential(state, bearerAuth)
 	}
+	if errors.Is(err, errCredentialExpired) {
+		return nil, fiber.ErrForbidden
+	}
+	if err != nil || credential == nil {
+		return nil, err
+	}
+	result := authResultFromCredential(credential, "bearer")
+	setAuthTokenExpiry(c, result.ExpiresAt)
+	return result, nil
+}
 
-	return nil, nil
+func isRepositoryRequest(c fiber.Ctx, state *core.AppState) bool {
+	if state == nil || state.Inner == nil || strings.HasPrefix(c.Path(), "/api/") {
+		return false
+	}
+	path := strings.TrimPrefix(c.Path(), "/")
+	repository, _, _ := strings.Cut(path, "/")
+	if repository == "" {
+		return false
+	}
+	cfg := state.Inner.Config.Load()
+	return cfg != nil && cfg.Maven.Repositories[repository] != nil
+}
+
+func isStandardCredentialRequest(c fiber.Ctx, state *core.AppState) bool {
+	path := c.Path()
+	return isDockerRequest(c) || isRepositoryRequest(c, state) ||
+		strings.HasPrefix(path, "/api/upload/chunked")
+}
+
+func isSessionOnlyAPIPath(path string) bool {
+	for _, prefix := range []string{
+		"/api/auth/logout",
+		"/api/auth/profile/security",
+		"/api/auth/profile/email",
+		"/api/auth/profile/password",
+		"/api/auth/profile/password-login",
+		"/api/auth/profile/recovery-codes",
+		"/api/auth/profile/token",
+		"/api/auth/profile/sessions",
+		"/api/auth/profile/fido",
+		"/api/auth/profile/github",
+		"/api/auth/profile/gpg",
+		"/api/auth/profile/api-tokens",
+		"/api/auth/github/start",
+	} {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func packageManagementScope(path, method string) string {
+	if strings.Contains(path, "/owners") || strings.Contains(path, "/users/search") ||
+		strings.Contains(path, "/invitations/") {
+		return APITokenScopePackageManage
+	}
+	switch method {
+	case fiber.MethodGet, fiber.MethodHead:
+		return APITokenScopeRepositoryRead
+	case fiber.MethodDelete:
+		return APITokenScopeRepositoryDelete
+	default:
+		return APITokenScopePackageManage
+	}
+}
+
+func mavenAPITokenScope(path, method string) string {
+	if strings.HasPrefix(path, "/api/maven/details") ||
+		strings.HasPrefix(path, "/api/maven/repo-details") ||
+		strings.HasPrefix(path, "/api/maven/signatures") ||
+		strings.HasPrefix(path, "/api/maven/versions") ||
+		strings.HasPrefix(path, "/api/maven/latest/") ||
+		strings.HasPrefix(path, "/api/maven/generate/pom/") {
+		return APITokenScopeRepositoryRead
+	}
+	if strings.HasPrefix(path, "/api/maven/repositories/") {
+		if strings.Contains(path, "/domains") || strings.Contains(path, "/invitations/") {
+			return APITokenScopeDomainManage
+		}
+		switch {
+		case method == fiber.MethodGet || method == fiber.MethodHead:
+			return APITokenScopeRepositoryRead
+		case method == fiber.MethodDelete:
+			return APITokenScopeRepositoryDelete
+		case strings.HasSuffix(path, "/package"):
+			return APITokenScopePackageManage
+		}
+	}
+	return APITokenScopeDomainManage
+}
+
+func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) string {
+	path := c.Path()
+	method := c.Method()
+	if isRepositoryRequest(c, state) {
+		lowerPath := strings.ToLower(c.Path())
+		if strings.Contains(lowerPath, "/api/v1/crates/") {
+			if strings.Contains(lowerPath, "/owners") ||
+				(method != fiber.MethodDelete && (strings.HasSuffix(lowerPath, "/archive") ||
+					strings.HasSuffix(lowerPath, "/yank") || strings.HasSuffix(lowerPath, "/unyank"))) {
+				return APITokenScopePackageManage
+			}
+		}
+		switch method {
+		case fiber.MethodGet, fiber.MethodHead:
+			return APITokenScopeRepositoryRead
+		case fiber.MethodDelete:
+			return APITokenScopeRepositoryDelete
+		default:
+			return APITokenScopeRepositoryPublish
+		}
+	}
+	switch {
+	case strings.HasPrefix(path, "/v2"):
+		return ""
+	case strings.HasPrefix(path, "/api/settings/repositories") ||
+		strings.HasPrefix(path, "/api/settings/maven/repositories") ||
+		strings.HasPrefix(path, "/api/settings/index/"):
+		return APITokenScopeAdminRepositories
+	case strings.HasPrefix(path, "/api/settings") || strings.HasPrefix(path, "/api/debug"):
+		return APITokenScopeAdminSettings
+	case strings.HasPrefix(path, "/api/auth/users/") && strings.Contains(path, "/audit-logs"):
+		return APITokenScopeAdminAudit
+	case strings.HasPrefix(path, "/api/tokens") || strings.HasPrefix(path, "/api/auth/users/"):
+		return APITokenScopeAdminUsers
+	case strings.HasPrefix(path, "/api/updater"):
+		return APITokenScopeAdminUpdates
+	case path == "/api/status/instance" || path == "/api/status/snapshots":
+		return APITokenScopeAdminAudit
+	case strings.HasPrefix(path, "/api/messages/admin"):
+		return APITokenScopeAdminNotifications
+	case strings.HasPrefix(path, "/api/messages"):
+		return APITokenScopeMessagesRead
+	case strings.HasPrefix(path, "/api/statistics/admin") || strings.HasPrefix(path, "/api/statistics/system"):
+		return APITokenScopeAdminStatistics
+	case strings.HasPrefix(path, "/api/statistics"):
+		return APITokenScopeStatisticsRead
+	case strings.HasPrefix(path, "/api/maven"):
+		return mavenAPITokenScope(path, method)
+	case strings.HasPrefix(path, "/api/cargo") || strings.HasPrefix(path, "/api/docker"):
+		return packageManagementScope(path, method)
+	case strings.HasPrefix(path, "/api/upload/chunked"):
+		return APITokenScopeRepositoryPublish
+	case path == "/api/auth/me":
+		return APITokenScopeAccountRead
+	case path == "/api/auth/profile" && (method == fiber.MethodGet || method == fiber.MethodHead):
+		return APITokenScopeAccountRead
+	case path == "/api/auth/profile":
+		return APITokenScopeAccountWrite
+	case strings.HasPrefix(path, "/api/auth/profile/audit-logs"):
+		if method == fiber.MethodGet || method == fiber.MethodHead {
+			return APITokenScopeAccountRead
+		}
+		return APITokenScopeAccountWrite
+	case strings.HasPrefix(path, "/api/repositories"):
+		if method == fiber.MethodGet || method == fiber.MethodHead {
+			return APITokenScopeRepositoryRead
+		}
+		return APITokenScopeAdminRepositories
+	case method == fiber.MethodGet || method == fiber.MethodHead:
+		return APITokenScopeRepositoryRead
+	default:
+		return APITokenScopeRepositoryPublish
+	}
+}
+
+func sendInsufficientScope(c fiber.Ctx, scope string) error {
+	c.Set("X-Renop-Required-Scope", scope)
+	c.Set(fiber.HeaderWWWAuthenticate, `Bearer error="insufficient_scope", scope="`+scope+`"`)
+	return c.Status(fiber.StatusForbidden).SendString("API token scope is insufficient")
+}
+
+func authorizeCredential(c fiber.Ctx, state *core.AppState, result *authResult) (bool, error) {
+	if result == nil {
+		return true, nil
+	}
+	if result.Kind == credentialKindPassword && !isStandardCredentialRequest(c, state) {
+		return false, c.Status(fiber.StatusForbidden).SendString("Password credentials are limited to package protocols")
+	}
+	if result.Kind != credentialKindAPIToken {
+		return true, nil
+	}
+	if isSessionOnlyAPIPath(c.Path()) {
+		return false, c.Status(fiber.StatusForbidden).SendString("A browser session is required")
+	}
+	if (result.Scheme == "basic" || result.Scheme == "cargo") && !isStandardCredentialRequest(c, state) {
+		return false, c.Status(fiber.StatusForbidden).SendString("Basic credentials are limited to package protocols")
+	}
+	required := requiredAPITokenScope(c, state)
+	if required != "" && !slices.Contains(result.Scopes, required) {
+		return false, sendInsufficientScope(c, required)
+	}
+	return true, nil
 }
 
 func authorizeRequest(c fiber.Ctx, user *config.User) error {
 	path := c.Path()
 	restricted := strings.HasPrefix(path, "/api/settings") ||
 		strings.HasPrefix(path, "/api/tokens") ||
-		strings.HasPrefix(path, "/api/statistics") ||
 		strings.HasPrefix(path, "/api/debug") ||
 		path == "/api/status/instance" ||
 		path == "/api/status/snapshots"
@@ -287,6 +476,15 @@ func authorizeRequest(c fiber.Ctx, user *config.User) error {
 	return nil
 }
 
+func credentialCacheKey(authHeader string, opaqueCargo bool) string {
+	namespace := "http\x00"
+	if opaqueCargo {
+		namespace = "cargo\x00"
+	}
+	digest := sha256.Sum256([]byte(namespace + authHeader))
+	return "credential:" + hex.EncodeToString(digest[:])
+}
+
 func AuthMiddleware(state *core.AppState) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		if c.Path() == "/api/auth/login" {
@@ -294,8 +492,11 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 			return c.Next()
 		}
 
-		var authenticatedUser *config.User
-
+		explicitAuthHeader := c.Get(fiber.HeaderAuthorization, "")
+		if strings.HasPrefix(explicitAuthHeader, "Session ") {
+			return c.Status(fiber.StatusUnauthorized).SendString("Session credentials must use the browser cookie")
+		}
+		var authenticated *authResult
 		authHeader := strings.Clone(extractAuthHeader(c, state))
 		isSessionAuth := strings.HasPrefix(authHeader, "Session ")
 		isCargoRequest := isCargoRepositoryRequest(c, state)
@@ -303,38 +504,40 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 			!strings.HasPrefix(authHeader, "Basic ") &&
 			!strings.HasPrefix(authHeader, "Session ") &&
 			!strings.HasPrefix(authHeader, "Bearer ")
-		authCacheKey := authHeader
-		if isOpaqueCargoAuth {
-			// A NUL cannot occur in an HTTP header, so this namespace cannot
-			// collide with credentials accepted by non-Cargo routes.
-			authCacheKey = "\x00cargo\x00" + authHeader
+		authCacheKey := ""
+		if authHeader != "" {
+			authCacheKey = credentialCacheKey(authHeader, isOpaqueCargoAuth)
 		}
 
 		if authHeader != "" {
-			var tempUser *config.User
-
 			if !isSessionAuth {
 				if val, ok := state.Inner.AuthCache.Load(authCacheKey); ok {
 					if time.Now().UnixMilli() < val.ExpiredAt {
-						tempUser = val.User
+						authenticated = &authResult{
+							User: val.User, Kind: val.CredentialKind, Scheme: val.AuthScheme,
+							TokenID: val.APITokenID, Scopes: append([]string(nil), val.Scopes...),
+						}
 					} else {
 						state.DeleteAuthCache(authCacheKey)
 					}
 				}
 			}
 
-			if tempUser == nil {
+			if authenticated == nil {
 				var err error
 				if strings.HasPrefix(authHeader, "Basic ") {
-					tempUser, err = handleBasicAuth(state, authHeader, c)
+					authenticated, err = handleBasicAuth(state, authHeader, c)
 				} else if strings.HasPrefix(authHeader, "Session ") {
-					tempUser, err = handleSessionAuth(state, authHeader, c)
+					authenticated, err = handleSessionAuth(state, authHeader, c)
 				} else if strings.HasPrefix(authHeader, "Bearer ") {
-					tempUser, err = handleBearerAuth(state, authHeader, c)
+					authenticated, err = handleBearerAuth(state, authHeader, c)
 				} else if isOpaqueCargoAuth {
 					// Cargo registry credentials are opaque and are sent as the
 					// complete Authorization value without a Bearer prefix.
-					tempUser, err = handleBearerAuth(state, "Bearer "+authHeader, c)
+					authenticated, err = handleBearerAuth(state, "Bearer "+authHeader, c)
+					if authenticated != nil {
+						authenticated.Scheme = "cargo"
+					}
 				} else {
 					return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 				}
@@ -343,20 +546,22 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 					return err
 				}
 
-				if tempUser != nil {
+				if authenticated != nil {
 					if !isSessionAuth {
 						state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
-							User:      tempUser,
+							User: authenticated.User, CredentialKind: authenticated.Kind,
+							AuthScheme: authenticated.Scheme, APITokenID: authenticated.TokenID,
+							Scopes:    append([]string(nil), authenticated.Scopes...),
 							ExpiredAt: authCacheExpiry(c, time.Now().UnixMilli()),
 						})
 					}
 				} else if !isSessionAuth {
 					state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
-						User:      InvalidCredentialsUser,
+						User: InvalidCredentialsUser, CredentialKind: credentialKindInvalid,
 						ExpiredAt: time.Now().Add(30 * time.Second).UnixMilli(),
 					})
 				}
-			} else if tempUser == InvalidCredentialsUser {
+			} else if authenticated.User == InvalidCredentialsUser {
 				if isCargoRequest {
 					return sendInvalidCargoCredentials(c)
 				}
@@ -366,11 +571,10 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 				}
 				return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 			}
-			authenticatedUser = tempUser
 		}
 
 		isLogout := c.Path() == "/api/auth/logout"
-		if authHeader != "" && authenticatedUser == nil && !isLogout {
+		if authHeader != "" && authenticated == nil && !isLogout {
 			if isCargoRequest {
 				return sendInvalidCargoCredentials(c)
 			}
@@ -381,9 +585,17 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
 		}
 
-		user := authenticatedUser
-		if user == nil {
-			user = GuestUser
+		user := GuestUser
+		if authenticated != nil && authenticated.User != nil {
+			user = authenticated.User
+			setCredentialLocals(c, authenticated)
+			allowed, err := authorizeCredential(c, state, authenticated)
+			if err != nil {
+				return err
+			}
+			if !allowed {
+				return nil
+			}
 		}
 
 		if err := authorizeRequest(c, user); err != nil {
@@ -453,20 +665,8 @@ func CurrentSessionToken(c fiber.Ctx) string {
 }
 
 func verifyTokenSecret(state *core.AppState, accessToken *core.AccessToken, secret string) bool {
-	for _, t := range accessToken.Tokens {
-		if secretEqual(t, secret) {
-			return true
-		}
-	}
-	if accessToken.EncryptedSecret != "" {
-		passwordEnabled, err := state.GetDB().PasswordLoginEnabled(accessToken.Name)
-		if err == nil && passwordEnabled {
-			if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
-				return true
-			}
-		}
-	}
-	return false
+	credential, err := VerifyAccountCredential(state, accessToken, secret)
+	return err == nil && credential != nil
 }
 
 func synthUserForToken(accessToken *core.AccessToken, username string) *config.User {

@@ -95,7 +95,7 @@ func TestInitDB_SQLite(t *testing.T) {
 		assert.NoError(t, err)
 		require.NotNil(t, fetched)
 		assert.Equal(t, "admin", fetched.Name)
-		assert.Equal(t, []string{"token1", "token2"}, fetched.Tokens)
+		assert.Empty(t, fetched.Tokens, "API token secrets must not remain in account rows")
 
 		fetchedBySecret, err := db.GetTokenBySecret("token1")
 		assert.NoError(t, err)

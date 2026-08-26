@@ -261,6 +261,10 @@ func TestTokenMutationsPreserveConcurrentCredentialChanges(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, stored)
 	assert.Equal(t, "concurrent-password", stored.EncryptedSecret)
-	assert.Equal(t, []string{"rotated-token"}, stored.Tokens)
+	assert.Empty(t, stored.Tokens)
 	assert.Equal(t, []string{"base", "package-manager"}, stored.Permissions)
+	rotatedOwner, err := db.GetTokenBySecret("rotated-token")
+	require.NoError(t, err)
+	require.NotNil(t, rotatedOwner)
+	assert.Equal(t, "alice", rotatedOwner.Name)
 }

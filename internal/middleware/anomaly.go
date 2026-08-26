@@ -12,7 +12,6 @@
 package middleware
 
 import (
-	"crypto/subtle"
 	"errors"
 	"path"
 	"strings"
@@ -21,10 +20,10 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/llxisdsh/pb"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/time/rate"
 
 	"renop/internal/core"
+	"renop/internal/service/auth"
 	"renop/internal/utils"
 )
 
@@ -119,31 +118,15 @@ func verifyTokenSecret(state *core.AppState, username, secret string) bool {
 	if token == nil {
 		return false
 	}
-	if token.ExpiresAt != nil && time.Now().UnixMilli() > *token.ExpiresAt {
-		return false
-	}
-	for _, t := range token.Tokens {
-		if len(t) == len(secret) {
-			if subtle.ConstantTimeCompare([]byte(t), []byte(secret)) == 1 {
-				return true
-			}
-		} else {
-			_ = subtle.ConstantTimeCompare([]byte(t), []byte(t))
-		}
-	}
-	if token.EncryptedSecret != "" {
-		passwordEnabled, err := state.GetDB().PasswordLoginEnabled(token.Name)
-		if err == nil && passwordEnabled {
-			if err := bcrypt.CompareHashAndPassword([]byte(token.EncryptedSecret), []byte(secret)); err == nil {
-				return true
-			}
-		}
-	}
-	return false
+	credential, err := auth.VerifyAccountCredential(state, token, secret)
+	return err == nil && credential != nil
 }
 
 func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 	authHeader := c.Get(fiber.HeaderAuthorization, "")
+	if strings.HasPrefix(authHeader, "Session ") {
+		return false
+	}
 
 	if authHeader == "" {
 		if cookie := c.Cookies("renop_session"); cookie != "" {
@@ -151,16 +134,8 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 				authHeader = "Session " + cookie
 			}
 		}
-		if authHeader == "" && (c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead) {
-			queryToken := c.Query("token")
-			if queryToken == "" {
-				return false
-			}
-			if state.GetSession(queryToken) != nil {
-				authHeader = "Session " + queryToken
-			} else {
-				authHeader = "Bearer " + queryToken
-			}
+		if authHeader == "" {
+			return false
 		}
 	}
 
@@ -191,14 +166,8 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 		if bearer == "" {
 			return false
 		}
-		token := state.GetTokenBySecret(bearer)
-		if token == nil {
-			return false
-		}
-		if token.ExpiresAt != nil && time.Now().UnixMilli() > *token.ExpiresAt {
-			return false
-		}
-		return true
+		credential, err := auth.VerifyBearerCredential(state, bearer)
+		return err == nil && credential != nil
 
 	case strings.HasPrefix(authHeader, "Basic "):
 		decoded, err := utils.DecodeB64(strings.TrimPrefix(authHeader, "Basic "))

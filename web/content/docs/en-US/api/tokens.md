@@ -1,101 +1,123 @@
 ---
-title: Tokens & Users API
+title: API Tokens & Users
 order: 3
 category: API Reference
-description: Personal Access Tokens (PAT), upload tokens, and user management endpoints
+description: Fine-grained API-token lifecycle, authentication boundaries, and administrator user endpoints
 ---
 
-# Tokens & Users API
+# API Tokens & Users
 
-## 1. List Tokens
+API tokens are durable machine credentials owned by one account. RenoP stores only a SHA-256 lookup digest of each
+256-bit random secret. The plaintext value is returned once when the token is created and cannot be recovered later.
 
-- **Path**: `GET /api/tokens`
-- **Auth**: Required (Regular users see own tokens; Managers/Admins see all)
+Every request must pass two independent checks:
 
-### Response (JSON)
+1. The token must include the capability required by the endpoint.
+2. The owning account must still be allowed to perform that operation on the target resource.
+
+Changing an account's role or package-team membership therefore takes effect without recreating its tokens.
+
+## Manage your API tokens
+
+Token-management endpoints require the `renop_session` HttpOnly browser cookie. API tokens, passwords,
+`Authorization: Session`, and query-string credentials cannot manage token secrets.
+
+### List assignable scopes
+
+`GET /api/auth/profile/api-tokens/scopes`
+
+The response is filtered by the current account. Administrator scopes are never offered to ordinary users.
 
 ```json
 {
-  "tokens": [
-    {
-      "id": "tok_123456",
-      "name": "CI-Deploy-Token",
-      "user": "ci_bot",
-      "token_type": "upload",
-      "scopes": ["canupdate:releases"],
-      "created_at": 1740000000,
-      "expires_at": 1771536000
-    }
-  ]
+  "scopes": ["repository:read", "repository:publish", "package:manage"]
 }
 ```
 
----
+### Create a token
 
-## 2. Create Token
-
-- **Path**: `POST /api/tokens`
-- **Auth**: Required
-
-### Request Body (JSON)
+`POST /api/auth/profile/api-tokens`
 
 ```json
 {
-  "name": "Local-Maven-Token",
-  "token_type": "pat",
-  "scopes": ["canview:releases", "canupdate:snapshots"],
-  "expires_in_days": 90
+  "name": "CI publishing",
+  "scopes": ["repository:read", "repository:publish"],
+  "expires_at": 1798761600000
 }
 ```
 
-### Response
+`expires_at` is an optional Unix-millisecond timestamp between five minutes and five years after creation. A null or
+omitted value creates a token without a credential-level expiration. Accounts may own at most 50 API tokens.
 
-- **Status**: `201 Created`
-- **Body (JSON)**: Returns the raw token string once:
+A successful `201 Created` response is sent with `Cache-Control: no-store`:
 
 ```json
 {
-  "id": "tok_123456",
-  "token": "renop_pat_abcdef1234567890...",
-  "name": "Local-Maven-Token"
+  "token": {
+    "id": "07cdcf2e-0828-4a29-9817-cf771cc9fb0a",
+    "name": "CI publishing",
+    "scopes": ["repository:publish", "repository:read"],
+    "created_at": 1787731200000,
+    "expires_at": 1798761600000
+  },
+  "secret": "rnp_pat_EXAMPLE_REDACTED_COPY_THE_REAL_VALUE_ONCE"
 }
 ```
 
----
+### List token metadata
 
-## 3. Revoke Token
+`GET /api/auth/profile/api-tokens`
 
-- **Path**: `DELETE /api/tokens/:id`
-- **Auth**: Token owner or Admin
+The response contains non-secret metadata and the account limit. It never contains a token secret.
 
-### Response
+### Revoke a token
 
-- **Status**: `204 No Content`
+`DELETE /api/auth/profile/api-tokens/{token_id}`
 
----
+Successful revocation returns `204 No Content` and invalidates cached authentication immediately.
 
-## 4. User Accounts Management (Manager / Admin)
+## Scope reference
 
-### List Users
+| Scope | Capability |
+|:------|:-----------|
+| `repository:read` | Read repository catalogs, metadata, files, images, and versions |
+| `repository:publish` | Publish through Maven, Cargo, Docker, files, or chunked-upload protocols |
+| `repository:delete` | Delete repository files, package versions, tags, or images |
+| `package:manage` | Manage package metadata, visibility, lifecycle state, and package teams |
+| `domain:manage` | Create, verify, and administer global Maven publishing domains |
+| `messages:read` | Read, mark, and remove the account's message-center entries |
+| `account:read` | Read private account data and personal audit history |
+| `account:write` | Update the account's public profile through the API |
+| `statistics:read` | Query download statistics available to the account |
+| `admin:users` | Administer user accounts and their login devices |
+| `admin:repositories` | Administer repositories and rebuild repository indexes |
+| `admin:settings` | Administer system settings and diagnostics |
+| `admin:audit` | Read or clear administrator-visible audit and status data |
+| `admin:notifications` | Compose administrator notifications |
+| `admin:updates` | Check, upload, install, and restart system updates |
+| `admin:statistics` | Query system-wide download statistics |
 
-- **Path**: `GET /api/auth/users`
-- **Auth**: Manager or Admin
+The `admin:*` scopes can be created only by an administrator and stop authorizing administrator operations as soon as
+the owning account loses that role.
 
-### Create User
+## Use a token
 
-- **Path**: `POST /api/auth/users`
-- **Auth**: Manager or Admin
-- **Body**:
-  ```json
-  {
-    "username": "developer1",
-    "password": "InitialPassword123!",
-    "role": "user",
-    "permissions": ["canview:releases", "canupdate:snapshots"]
-  }
-  ```
+Use a bare token as a Bearer credential for scoped API automation:
 
-### Delete User
+```http
+Authorization: Bearer rnp_pat_REDACTED
+```
 
-- **Path**: `DELETE /api/auth/users/:username`
-- **Auth**: Admin
+Standard package clients may use the same token as the Basic password with the owning username. Basic credentials are
+restricted to package protocols and cannot call management APIs.
+
+Cargo sends the configured token as an opaque `Authorization` value; RenoP applies the same scope checks. Docker first
+exchanges Basic credentials at `/v2/token`, and the issued short-lived registry token contains only the pull or push
+actions allowed by both API-token scopes and package permissions.
+
+## Administrator compatibility endpoints
+
+Administrator user CRUD remains under `/api/tokens`. `POST /api/tokens/{name}/token` creates an additional
+non-expiring publishing token for the target account and returns it once; existing API tokens remain valid. The older
+`POST /api/auth/profile/token` endpoint has the same additive behavior for the signed-in account. New integrations
+should use the fine-grained profile endpoints.

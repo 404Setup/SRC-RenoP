@@ -21,7 +21,6 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
-	"golang.org/x/crypto/bcrypt"
 
 	"renop/internal/config"
 	"renop/internal/core"
@@ -132,6 +131,9 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	user := auth.GetUser(c)
+	canPullWithCredential := auth.CurrentCredentialHasScope(c, core.APITokenScopeRepositoryRead)
+	canPushWithCredential := auth.CurrentCredentialHasScope(c, core.APITokenScopeRepositoryPublish)
+	canDeleteWithCredential := auth.CurrentCredentialHasScope(c, core.APITokenScopeRepositoryDelete)
 	if user == nil || user.Username == "guest" {
 		authHeader := c.Get(fiber.HeaderAuthorization)
 		if after, ok := strings.CutPrefix(authHeader, "Basic "); ok {
@@ -142,11 +144,14 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 					u := strings.ToLower(parts[0])
 					p := parts[1]
 					if tokenObj := state.GetTokenByName(u); tokenObj != nil {
-						if verifyTokenSecretDirect(state, tokenObj, p) {
+						if credential := verifyTokenSecretDirect(state, tokenObj, p); credential != nil {
 							user = &config.User{
 								Username: u,
 								Roles:    tokenObj.Permissions,
 							}
+							canPullWithCredential = credential.HasScope(core.APITokenScopeRepositoryRead)
+							canPushWithCredential = credential.HasScope(core.APITokenScopeRepositoryPublish)
+							canDeleteWithCredential = credential.HasScope(core.APITokenScopeRepositoryDelete)
 						}
 					}
 				}
@@ -158,11 +163,14 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 			if password != "" {
 				u := strings.ToLower(account)
 				if tokenObj := state.GetTokenByName(u); tokenObj != nil {
-					if verifyTokenSecretDirect(state, tokenObj, password) {
+					if credential := verifyTokenSecretDirect(state, tokenObj, password); credential != nil {
 						user = &config.User{
 							Username: u,
 							Roles:    tokenObj.Permissions,
 						}
+						canPullWithCredential = credential.HasScope(core.APITokenScopeRepositoryRead)
+						canPushWithCredential = credential.HasScope(core.APITokenScopeRepositoryPublish)
+						canDeleteWithCredential = credential.HasScope(core.APITokenScopeRepositoryDelete)
 					}
 				}
 			}
@@ -196,16 +204,37 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 			repo := cfg.Maven.Repositories[repoName]
 
 			var grantedActions []string
+			appendGranted := func(action string) {
+				if !slices.Contains(grantedActions, action) {
+					grantedActions = append(grantedActions, action)
+				}
+			}
+			writeChecked := false
+			canWriteResource := false
+			checkWrite := func() bool {
+				if !writeChecked {
+					canWriteResource = CanWriteDocker(state, user, repo, repoFullName)
+					writeChecked = true
+				}
+				return canWriteResource
+			}
 			for _, action := range actionsReq {
 				action = strings.TrimSpace(action)
 				switch action {
 				case "pull":
-					if CanReadDocker(state, user, repo, repoFullName) {
-						grantedActions = append(grantedActions, "pull")
+					if canPullWithCredential && CanReadDocker(state, user, repo, repoFullName) {
+						appendGranted("pull")
 					}
 				case "push":
-					if CanWriteDocker(state, user, repo, repoFullName) {
-						grantedActions = append(grantedActions, "push")
+					if canPushWithCredential && checkWrite() {
+						appendGranted("push")
+					}
+					if canDeleteWithCredential && checkWrite() {
+						appendGranted("delete")
+					}
+				case "delete":
+					if canDeleteWithCredential && checkWrite() {
+						appendGranted("delete")
 					}
 				}
 			}
@@ -234,17 +263,10 @@ func HandleTokenAuth(c fiber.Ctx, state *core.AppState) error {
 	})
 }
 
-func verifyTokenSecretDirect(state *core.AppState, accessToken *core.AccessToken, secret string) bool {
-	if slices.Contains(accessToken.Tokens, secret) {
-		return true
+func verifyTokenSecretDirect(state *core.AppState, accessToken *core.AccessToken, secret string) *auth.VerifiedCredential {
+	credential, err := auth.VerifyAccountCredential(state, accessToken, secret)
+	if err != nil {
+		return nil
 	}
-	if accessToken.EncryptedSecret != "" {
-		passwordEnabled, err := state.GetDB().PasswordLoginEnabled(accessToken.Name)
-		if err == nil && passwordEnabled {
-			if err := bcrypt.CompareHashAndPassword([]byte(accessToken.EncryptedSecret), []byte(secret)); err == nil {
-				return true
-			}
-		}
-	}
-	return false
+	return credential
 }

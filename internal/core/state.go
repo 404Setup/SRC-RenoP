@@ -28,8 +28,12 @@ import (
 )
 
 type AuthCacheEntry struct {
-	User      *config.User
-	ExpiredAt int64
+	User           *config.User
+	CredentialKind string
+	AuthScheme     string
+	APITokenID     string
+	Scopes         []string
+	ExpiredAt      int64
 }
 
 var ErrDatabaseUnavailable = errors.New("database unavailable")
@@ -55,6 +59,12 @@ type StateDB interface {
 	GetTokenBySecret(secret string) (*AccessToken, error)
 	GetAllTokens() ([]*AccessToken, error)
 	UpdateToken(name string, updateFn func(*AccessToken)) error
+	ListAPITokens(username string) ([]*APIToken, error)
+	CreateAPIToken(username string, token *APIToken, secretHash string) error
+	DeleteAPIToken(username, tokenID string) error
+	GetAPITokenByHash(secretHash, username string) (*APITokenCredential, error)
+	CountAPITokens(username string) (int, error)
+	CountAPITokensByUsername() (map[string]int, error)
 	SearchTokenNames(prefix string, limit int, now int64) ([]string, error)
 	CountTokens() (uint64, error)
 	SaveToken(token *AccessToken) error

@@ -31,11 +31,11 @@ serialization. Proto definitions are located in `proto/api/v1/api.proto`.
 
 ## Authentication Transports
 
-1. **Cookie**: `renop_session=<session_id>`
-2. **Session Header**: `Authorization: Session <session_id>`
-3. **Bearer Token**: `Authorization: Bearer <token>`
-4. **Basic Auth**: `Authorization: Basic <base64(user:password_or_token)>`
-5. **Query Parameter (GET/HEAD only)**: `?token=<token>`
+1. **Browser cookie**: `renop_session=<session_id>`; the HttpOnly session secret is not accepted in headers or URLs.
+2. **Bearer API token**: `Authorization: Bearer <token>`; endpoint scopes are intersected with account permissions.
+3. **Basic Auth for package protocols**: `Authorization: Basic <base64(user:password_or_token)>`.
+
+Basic credentials cannot call management APIs. Query-string credentials and `Authorization: Session` are rejected.
 
 ## HTTP Status Codes
 

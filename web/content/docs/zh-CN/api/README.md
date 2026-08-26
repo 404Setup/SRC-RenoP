@@ -28,15 +28,15 @@ RenoP 提供了完整的 HTTP API，用于自动化管理、客户端接入与�
 客户端可以通过在请求头中指定 `Accept: application/x-protobuf` 或 `Content-Type: application/x-protobuf` 来使用二进制协议。完整的
 Proto 协议定义文件位于仓库中的 `proto/api/v1/api.proto`。
 
-## 统一认证头
+## 认证方式
 
 请求需认证的 API 时，支持以下方式：
 
-1. **Cookie**：浏览器会话 Cookie `renop_session=<session_id>`
-2. **Session 标头**：`Authorization: Session <session_id>`
-3. **Bearer Token**：`Authorization: Bearer <token>`
-4. **Basic Auth**：`Authorization: Basic <base64(user:password_or_token)>`
-5. **URL 参数（仅限 GET/HEAD）**：`?token=<token>`
+1. **浏览器 Cookie**：HttpOnly `renop_session=<session_id>`；会话密钥不能通过请求头或 URL 使用。
+2. **Bearer API Token**：`Authorization: Bearer <token>`；接口范围与账号实时权限取交集。
+3. **包协议 Basic Auth**：`Authorization: Basic <base64(user:password_or_token)>`。
+
+Basic 凭据不能调用管理 API。查询参数凭据和 `Authorization: Session` 均会被拒绝。
 
 ## 常用状态码说明
 

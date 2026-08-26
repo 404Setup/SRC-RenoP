@@ -56,9 +56,9 @@ servers:
 
 tags:
   - name: auth
-    description: Login, logout, session management, profile settings, and FIDO2/WebAuthn device management.
+    description: Login, cookie-only browser sessions, profile settings, API tokens, and FIDO2/WebAuthn device management.
   - name: tokens
-    description: Account CRUD, session management, and upload-token re-issuance (all require the `manager` permission).
+    description: Account CRUD, session management, and publishing-token issuance (all require the `manager` permission).
   - name: maven
     description: Verified publishing domains, domain teams, artifact catalog, version management, and Maven helpers.
   - name: status
@@ -92,25 +92,18 @@ components:
       in: cookie
       name: renop_session
       description: HttpOnly session cookie issued by `POST /api/auth/login`. Idle timeout is approximately 7 days.
-    sessionHeader:
-      type: apiKey
-      in: header
-      name: Authorization
-      description: |
-        `Session <session-id>` — the same opaque value as the `renop_session` cookie.
-        Use when a cookie jar is unavailable (e.g., server-side API clients).
     basicAuth:
       type: http
       scheme: basic
       description: |
-        `username:password` or `username:upload-token` encoded as HTTP Basic credentials.
-        Suitable for Maven clients and CI/CD pipelines.
+        `username:password` or `username:API-token` encoded as HTTP Basic credentials.
+        Basic credentials are accepted only by standard package protocols, Docker token exchange, and chunked upload.
     bearerAuth:
       type: http
       scheme: bearer
       description: |
-        A bare upload token (looked up by token value) or `name:secret` pair.
-        On GET and HEAD requests the token may alternatively be passed as `?token=<value>`.
+        A prefixed API-token secret. API endpoints intersect the token's scopes with the owning account's current
+        permissions. Query-string credentials and `Authorization: Session` are rejected.
 
   parameters:
     RepoName:
@@ -143,6 +136,14 @@ components:
       schema:
         type: string
       description: Session `public_id` as returned by the session list endpoints. Not the raw cookie secret.
+    APITokenId:
+      name: token_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Non-secret API-token identifier returned by the token metadata endpoints.
     DomainName:
       name: name
       in: path
@@ -286,12 +287,116 @@ components:
           type: array
           items:
             type: string
-          description: Upload tokens (plaintext values, only present immediately after generation).
+          description: Redacted compatibility field. Its length is the account's API-token count; values are empty.
         permissions:
           type: array
           items:
             type: string
           example: ["manager", "canview:*", "canupdate:*"]
+
+    APITokenScope:
+      type: string
+      enum:
+        - repository:read
+        - repository:publish
+        - repository:delete
+        - package:manage
+        - domain:manage
+        - messages:read
+        - account:read
+        - account:write
+        - statistics:read
+        - admin:users
+        - admin:repositories
+        - admin:settings
+        - admin:audit
+        - admin:notifications
+        - admin:updates
+        - admin:statistics
+
+    APIToken:
+      type: object
+      description: Non-secret metadata for one durable fine-grained credential.
+      required: [id, name, scopes, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        scopes:
+          type: array
+          minItems: 1
+          maxItems: 24
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/APITokenScope"
+        created_at:
+          type: integer
+          format: int64
+          description: Creation time as Unix milliseconds.
+        expires_at:
+          type: integer
+          format: int64
+          nullable: true
+          description: Expiration time as Unix milliseconds; omitted or null means no expiration.
+
+    APITokenListResponse:
+      type: object
+      required: [tokens, limit]
+      properties:
+        tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/APIToken"
+        limit:
+          type: integer
+          example: 50
+
+    APITokenScopesResponse:
+      type: object
+      required: [scopes]
+      properties:
+        scopes:
+          type: array
+          description: Scopes currently assignable by this account. Administrator scopes are omitted for non-administrators.
+          items:
+            $ref: "#/components/schemas/APITokenScope"
+
+    CreateAPITokenRequest:
+      type: object
+      required: [name, scopes]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        scopes:
+          type: array
+          minItems: 1
+          maxItems: 24
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/APITokenScope"
+        expires_at:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unix milliseconds, from five minutes through five years after creation; null means no expiration.
+
+    CreateAPITokenResponse:
+      type: object
+      description: The secret is returned only by the successful creation response and is never recoverable later.
+      required: [token, secret]
+      properties:
+        token:
+          $ref: "#/components/schemas/APIToken"
+        secret:
+          type: string
+          minLength: 51
+          maxLength: 51
+          pattern: '^rnp_pat_[A-Za-z0-9_-]{43}$'
 
     AccessTokenPermission:
       type: object
@@ -335,9 +440,7 @@ components:
             $ref: "#/components/schemas/Route"
         session_token:
           type: string
-          description: |
-            Populated only when the request used an `Authorization: Session` header.
-            Empty on cookie-based login.
+          description: Retained for protobuf compatibility and always empty; browser session secrets are cookie-only.
 
     UserProfile:
       type: object
@@ -436,11 +539,13 @@ components:
 
     GenerateTokenResponse:
       type: object
-      description: Newly generated upload token (wire format `application/x-protobuf`).
+      description: Newly generated publishing API token (wire format `application/x-protobuf`).
       properties:
         token:
           type: string
-          format: uuid
+          minLength: 51
+          maxLength: 51
+          pattern: '^rnp_pat_[A-Za-z0-9_-]{43}$'
 
     UploadTokenResponse:
       type: object
@@ -448,7 +553,9 @@ components:
       properties:
         token:
           type: string
-          format: uuid
+          minLength: 51
+          maxLength: 51
+          pattern: '^rnp_pat_[A-Za-z0-9_-]{43}$'
 
     FidoDeviceDto:
       type: object
@@ -1701,7 +1808,6 @@ paths:
       operationId: getAuthMe
       security:
         - sessionCookie: []
-        - sessionHeader: []
       responses:
         "200":
           description: Session details.
@@ -1720,7 +1826,6 @@ paths:
       operationId: postAuthLogout
       security:
         - sessionCookie: []
-        - sessionHeader: []
       responses:
         "204":
           description: Session invalidated.
@@ -1816,7 +1921,6 @@ paths:
       operationId: getOwnUserProfile
       security:
         - sessionCookie: []
-        - sessionHeader: []
       responses:
         "200":
           description: Own profile with rename quota.
@@ -1836,7 +1940,6 @@ paths:
       operationId: putOwnUserProfile
       security:
         - sessionCookie: []
-        - sessionHeader: []
       requestBody:
         required: true
         content:
@@ -1873,7 +1976,6 @@ paths:
       operationId: putAuthProfilePassword
       security:
         - sessionCookie: []
-        - sessionHeader: []
       requestBody:
         required: true
         content:
@@ -1898,21 +2000,111 @@ paths:
   /api/auth/profile/token:
     post:
       tags: [auth]
-      summary: Regenerate own upload token
-      description: Issues a new upload token, invalidating the previous one.
+      summary: Create an additional publishing token (compatibility endpoint)
+      description: Creates a non-expiring API token with `repository:read` and `repository:publish`; existing tokens remain valid.
       operationId: postAuthProfileToken
       security:
         - sessionCookie: []
-        - sessionHeader: []
       responses:
         "200":
-          description: New upload token.
+          description: "New publishing API token. Returned once with Cache-Control: no-store."
           content:
             application/x-protobuf:
               schema:
                 $ref: "#/components/schemas/GenerateTokenResponse"
         "401":
           $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/api-tokens:
+    get:
+      tags: [auth]
+      summary: List own API-token metadata
+      description: Returns bounded non-secret metadata. Plaintext credentials are never returned by list operations.
+      operationId: getAuthProfileApiTokens
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Token metadata and the per-account limit.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APITokenListResponse"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+    post:
+      tags: [auth]
+      summary: Create an API token
+      description: |
+        Creates a named credential with an optional expiration. Requested scopes must be assignable by the account;
+        every request is also capped by the account's current permissions. The secret is shown exactly once.
+      operationId: postAuthProfileApiToken
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAPITokenRequest"
+      responses:
+        "201":
+          description: Token created. Store the one-time secret before discarding this response.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAPITokenResponse"
+        "400":
+          $ref: "#/components/responses/PlainBadRequest"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+        "409":
+          $ref: "#/components/responses/PlainConflict"
+
+  /api/auth/profile/api-tokens/scopes:
+    get:
+      tags: [auth]
+      summary: List scopes assignable by the current account
+      operationId: getAuthProfileApiTokenScopes
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Scope catalog filtered by current account permissions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APITokenScopesResponse"
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+
+  /api/auth/profile/api-tokens/{token_id}:
+    delete:
+      tags: [auth]
+      summary: Revoke an API token
+      description: Revocation takes effect immediately, including for cached authentication results.
+      operationId: deleteAuthProfileApiToken
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/APITokenId"
+      responses:
+        "204":
+          description: Token revoked.
+        "401":
+          $ref: "#/components/responses/PlainUnauthorized"
+        "404":
+          $ref: "#/components/responses/PlainNotFound"
 
   /api/auth/profile/fido:
     get:
@@ -1921,7 +2113,6 @@ paths:
       operationId: getAuthProfileFido
       security:
         - sessionCookie: []
-        - sessionHeader: []
       responses:
         "200":
           description: Registered device list.
@@ -1939,7 +2130,6 @@ paths:
       operationId: deleteAuthProfileFidoDevice
       security:
         - sessionCookie: []
-        - sessionHeader: []
       parameters:
         - name: device_id
           in: path
@@ -1966,7 +2156,6 @@ paths:
       operationId: postAuthProfileFidoRegisterBegin
       security:
         - sessionCookie: []
-        - sessionHeader: []
       responses:
         "200":
           description: Registration challenge started.
@@ -1990,7 +2179,6 @@ paths:
       operationId: postAuthProfileFidoRegisterFinish
       security:
         - sessionCookie: []
-        - sessionHeader: []
       requestBody:
         required: true
         content:
@@ -2098,9 +2286,6 @@ paths:
       operationId: getAuthProfileSessions
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
       responses:
         "200":
           description: Session list.
@@ -2121,9 +2306,6 @@ paths:
       operationId: postAuthProfileSessionsRevokeOthers
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
       responses:
         "200":
           description: Other sessions revoked.
@@ -2142,9 +2324,6 @@ paths:
       operationId: deleteAuthProfileSession
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
-        - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/SessionPublicId"
       responses:
@@ -2166,8 +2345,6 @@ paths:
       operationId: getTokens
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -2186,8 +2363,6 @@ paths:
       operationId: getToken
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TokenName"
@@ -2211,8 +2386,6 @@ paths:
       operationId: putToken
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TokenName"
@@ -2247,8 +2420,6 @@ paths:
       operationId: deleteToken
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TokenName"
@@ -2268,8 +2439,6 @@ paths:
       operationId: getTokenUserSessions
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TokenName"
@@ -2295,8 +2464,6 @@ paths:
       operationId: postTokenUserSessionsRevokeAll
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TokenName"
@@ -2318,8 +2485,6 @@ paths:
       operationId: deleteTokenUserSession
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TokenName"
@@ -2337,18 +2502,17 @@ paths:
   /api/tokens/{name}/token:
     post:
       tags: [tokens]
-      summary: Re-issue upload token for a user (manager)
+      summary: Create an additional publishing token for a user (manager)
+      description: Creates a non-expiring `repository:read` and `repository:publish` token; existing tokens remain valid.
       operationId: postTokenUploadToken
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TokenName"
       responses:
         "200":
-          description: New upload token.
+          description: "New publishing API token. Returned once with Cache-Control: no-store."
           content:
             application/x-protobuf:
               schema:
@@ -2365,8 +2529,6 @@ paths:
       operationId: getAuthUserFidoDevices
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: username
@@ -2391,8 +2553,6 @@ paths:
       operationId: deleteAuthUserFidoDevice
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: username
@@ -2594,8 +2754,6 @@ paths:
       operationId: createMavenDomain
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -2646,8 +2804,6 @@ paths:
       operationId: deleteMavenDomain
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: domain
@@ -2669,8 +2825,6 @@ paths:
       operationId: verifyMavenDomain
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: domain
@@ -2698,7 +2852,6 @@ paths:
       operationId: forceVerifyMavenDomain
       security:
         - sessionCookie: []
-        - sessionHeader: []
       parameters:
         - name: domain
           in: path
@@ -2745,8 +2898,6 @@ paths:
       operationId: inviteMavenDomainMembers
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: domain
@@ -2783,7 +2934,6 @@ paths:
       operationId: updateMavenDomainMember
       security:
         - sessionCookie: []
-        - sessionHeader: []
       parameters:
         - name: domain
           in: path
@@ -2816,7 +2966,6 @@ paths:
       operationId: deleteMavenDomainMember
       security:
         - sessionCookie: []
-        - sessionHeader: []
       parameters:
         - name: domain
           in: path
@@ -2841,7 +2990,6 @@ paths:
       operationId: respondMavenDomainInvitation
       security:
         - sessionCookie: []
-        - sessionHeader: []
       parameters:
         - name: id
           in: path
@@ -2958,7 +3106,6 @@ paths:
       operationId: updateMavenArtifact
       security:
         - sessionCookie: []
-        - sessionHeader: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - name: group
@@ -2993,7 +3140,6 @@ paths:
       operationId: deleteMavenArtifactVersion
       security:
         - sessionCookie: []
-        - sessionHeader: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
         - name: group
@@ -3023,8 +3169,6 @@ paths:
       operationId: getMavenDetailsRoot
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3041,8 +3185,6 @@ paths:
       operationId: getMavenDetailsRepo
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3065,8 +3207,6 @@ paths:
       operationId: getMavenDetailsPath
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3088,8 +3228,6 @@ paths:
       operationId: getMavenRepoDetails
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3115,8 +3253,6 @@ paths:
       operationId: getMavenVersions
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3143,8 +3279,6 @@ paths:
       operationId: getMavenLatestVersion
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3179,8 +3313,6 @@ paths:
       operationId: getMavenLatestDetails
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3213,8 +3345,6 @@ paths:
       operationId: getMavenLatestFile
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3285,8 +3415,6 @@ paths:
       operationId: postMavenGeneratePom
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"
@@ -3352,8 +3480,6 @@ paths:
       operationId: postSettingsIndexRebuild
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -3381,8 +3507,6 @@ paths:
       operationId: getSettingsDomains
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3407,8 +3531,6 @@ paths:
       operationId: getSettingsDomain
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/DomainName"
@@ -3438,8 +3560,6 @@ paths:
       operationId: putSettingsDomain
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/DomainName"
@@ -3476,8 +3596,6 @@ paths:
       operationId: getSettingsMavenRepositories
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3500,8 +3618,6 @@ paths:
       operationId: putSettingsMavenRepository
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: name
@@ -3534,8 +3650,6 @@ paths:
       operationId: deleteSettingsMavenRepository
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: name
@@ -3576,8 +3690,6 @@ paths:
       operationId: postUpdaterCheck
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/Channel"
@@ -3601,8 +3713,6 @@ paths:
       operationId: postUpdaterInstall
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3626,8 +3736,6 @@ paths:
       operationId: postUpdaterUpload
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -3668,8 +3776,6 @@ paths:
       operationId: postUpdaterRestart
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3698,7 +3804,6 @@ paths:
       operationId: postChunkedUploadInit
       security:
         - sessionCookie: []
-        - sessionHeader: []
         - basicAuth: []
         - bearerAuth: []
       requestBody:
@@ -3731,7 +3836,6 @@ paths:
       operationId: putChunkedUploadPart
       security:
         - sessionCookie: []
-        - sessionHeader: []
         - basicAuth: []
         - bearerAuth: []
       parameters:
@@ -3770,7 +3874,6 @@ paths:
       operationId: postChunkedUploadComplete
       security:
         - sessionCookie: []
-        - sessionHeader: []
         - basicAuth: []
         - bearerAuth: []
       parameters:
@@ -3806,7 +3909,6 @@ paths:
       operationId: deleteChunkedUpload
       security:
         - sessionCookie: []
-        - sessionHeader: []
         - basicAuth: []
         - bearerAuth: []
       parameters:
@@ -3831,8 +3933,6 @@ paths:
       operationId: getMessages
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: limit
@@ -3865,8 +3965,6 @@ paths:
       operationId: clearMessages
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3885,8 +3983,6 @@ paths:
       operationId: getMessagesUnreadCount
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3905,8 +4001,6 @@ paths:
       operationId: postMessagesReadAll
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -3925,8 +4019,6 @@ paths:
       operationId: postMessageRead
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -3959,8 +4051,6 @@ paths:
       operationId: deleteMessage
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -3993,8 +4083,6 @@ paths:
       operationId: getMessagesAdminUsers
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: q
@@ -4024,8 +4112,6 @@ paths:
       operationId: postMessagesAdmin
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -4059,8 +4145,6 @@ paths:
       operationId: getSelfAuditLogs
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: page
@@ -4092,8 +4176,6 @@ paths:
       operationId: deleteSelfAuditLogs
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       responses:
         "403":
@@ -4107,8 +4189,6 @@ paths:
       operationId: getUserAuditLogs
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: username
@@ -4145,8 +4225,6 @@ paths:
       operationId: deleteUserAuditLogs
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - name: username
@@ -4294,7 +4372,6 @@ paths:
       operationId: getJavadoc
       security:
         - {}
-        - basicAuth: []
         - bearerAuth: []
         - sessionCookie: []
       parameters:
@@ -4978,8 +5055,6 @@ paths:
       operationId: createDockerImage
       security:
         - sessionCookie: []
-        - sessionHeader: []
-        - basicAuth: []
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/RepoName"

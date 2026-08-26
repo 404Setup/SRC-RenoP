@@ -20,6 +20,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
 	"renop/internal/config"
@@ -29,6 +30,20 @@ import (
 	"renop/internal/service/docker"
 	"renop/internal/service/index"
 )
+
+func saveDockerAPITestAccount(t *testing.T, db core.StateDB, name, secret string,
+	permissions, scopes []string) {
+	t.Helper()
+	if err := db.SaveToken(&core.AccessToken{Name: name, Permissions: permissions}); err != nil {
+		t.Fatalf("save Docker API test account %s: %v", name, err)
+	}
+	if err := db.CreateAPIToken(name, &core.APIToken{
+		ID: uuid.NewString(), Name: "Docker API test token", Scopes: scopes,
+		CreatedAt: time.Now().UnixMilli(),
+	}, core.HashAPITokenSecret(secret)); err != nil {
+		t.Fatalf("create Docker API test token for %s: %v", name, err)
+	}
+}
 
 func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 	t.Helper()
@@ -45,12 +60,10 @@ func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 		_ = db.Close()
 	})
 
-	adminToken := &core.AccessToken{
-		Name:        "admin",
-		Tokens:      []string{"admin-test-token"},
-		Permissions: []string{"admin"},
-	}
-	_ = db.SaveToken(adminToken)
+	saveDockerAPITestAccount(t, db, "admin", "admin-test-token", []string{"admin"}, []string{
+		core.APITokenScopeRepositoryRead, core.APITokenScopeRepositoryPublish,
+		core.APITokenScopeRepositoryDelete, core.APITokenScopePackageManage,
+	})
 
 	state := core.NewAppState()
 	state.Inner.FileIndex = index.NewFileIndex()
@@ -189,7 +202,7 @@ func TestCreateDockerImageRejectsLocalAndUpstreamNameConflicts(t *testing.T) {
 		request := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
 			strings.NewReader(`{"image":"`+image+`"}`))
 		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-		request.SetBasicAuth("admin", "admin-test-token")
+		request.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 		response, err := app.Test(request)
 		require.NoError(t, err)
 		require.NoError(t, response.Body.Close())
@@ -206,16 +219,13 @@ func TestDockerRESTAPIs(t *testing.T) {
 	app, state := setupTestAPIDockerApp(t)
 	db := state.GetDB()
 
-	bobToken := &core.AccessToken{
-		Name:        "bob",
-		Tokens:      []string{"bob-test-token"},
-		Permissions: []string{"read"},
-	}
-	_ = db.SaveToken(bobToken)
+	saveDockerAPITestAccount(t, db, "bob", "bob-test-token", []string{"read"}, []string{
+		core.APITokenScopeRepositoryRead, core.APITokenScopePackageManage,
+	})
 	createReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
 		strings.NewReader(`{"image":"private/empty","private":true}`))
 	createReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	createReq.SetBasicAuth("admin", "admin-test-token")
+	createReq.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 	createResp, err := app.Test(createReq)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, createResp.StatusCode)
@@ -226,7 +236,7 @@ func TestDockerRESTAPIs(t *testing.T) {
 	duplicateReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
 		strings.NewReader(`{"image":"private/empty","private":false}`))
 	duplicateReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	duplicateReq.SetBasicAuth("admin", "admin-test-token")
+	duplicateReq.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 	duplicateResp, err := app.Test(duplicateReq)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusConflict, duplicateResp.StatusCode)
@@ -234,7 +244,7 @@ func TestDockerRESTAPIs(t *testing.T) {
 	unauthorizedCreateReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
 		strings.NewReader(`{"image":"bob/app"}`))
 	unauthorizedCreateReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	unauthorizedCreateReq.SetBasicAuth("bob", "bob-test-token")
+	unauthorizedCreateReq.Header.Set(fiber.HeaderAuthorization, "Bearer bob-test-token")
 	unauthorizedCreateResp, err := app.Test(unauthorizedCreateReq)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusForbidden, unauthorizedCreateResp.StatusCode)
@@ -244,7 +254,7 @@ func TestDockerRESTAPIs(t *testing.T) {
 		"/api/docker/repositories/docker-pub/owners?image=private/empty",
 		strings.NewReader(`{"users":["bob"],"level":0}`))
 	grantReadReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	grantReadReq.SetBasicAuth("admin", "admin-test-token")
+	grantReadReq.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 	grantReadResp, err := app.Test(grantReadReq)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, grantReadResp.StatusCode)
@@ -252,7 +262,7 @@ func TestDockerRESTAPIs(t *testing.T) {
 
 	privateDetailsReq := httptest.NewRequest(http.MethodGet,
 		"/api/docker/repositories/docker-pub/images?image=private/empty", nil)
-	privateDetailsReq.SetBasicAuth("bob", "bob-test-token")
+	privateDetailsReq.Header.Set(fiber.HeaderAuthorization, "Bearer bob-test-token")
 	privateDetailsResp, err := app.Test(privateDetailsReq)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, privateDetailsResp.StatusCode)
@@ -444,7 +454,9 @@ func TestDockerRESTAPIs(t *testing.T) {
 		t.Fatalf("Set bob to L3 failed: %v (status: %d)", err, setLvl3Resp.StatusCode)
 	}
 
-	_ = db.SaveToken(&core.AccessToken{Name: "carol", Tokens: []string{"carol-test-token"}, Identifier: core.AccessTokenIdentifier{Type: core.Persistent}})
+	saveDockerAPITestAccount(t, db, "carol", "carol-test-token", []string{"base"}, []string{
+		core.APITokenScopeRepositoryRead, core.APITokenScopePackageManage,
+	})
 	inviteCarolReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/owners?image=web/backend", strings.NewReader(`{"users":["carol"],"level":1}`))
 	inviteCarolReq.Header.Set("Content-Type", "application/json")
 	inviteCarolReq.Header.Set("Authorization", "Bearer bob-test-token")
@@ -556,7 +568,7 @@ func TestDockerRESTAPIValidationErrors(t *testing.T) {
 	invalidCreate := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
 		strings.NewReader(`{"image":"invalid:tag"}`))
 	invalidCreate.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	invalidCreate.SetBasicAuth("admin", "admin-test-token")
+	invalidCreate.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 	invalidCreateResponse, err := app.Test(invalidCreate)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusBadRequest, invalidCreateResponse.StatusCode)
@@ -565,7 +577,7 @@ func TestDockerRESTAPIValidationErrors(t *testing.T) {
 	largeCreate := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
 		strings.NewReader(`{"image":"`+strings.Repeat("a", 2048)+`"}`))
 	largeCreate.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	largeCreate.SetBasicAuth("admin", "admin-test-token")
+	largeCreate.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 	largeCreateResponse, err := app.Test(largeCreate)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusRequestEntityTooLarge, largeCreateResponse.StatusCode)

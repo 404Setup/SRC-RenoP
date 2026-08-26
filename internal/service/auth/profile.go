@@ -91,18 +91,18 @@ type TokenResponse struct {
 }
 
 func GenerateUploadToken(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
-	userInt := c.Locals("user")
-	if userInt == nil {
-		return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
+	user, err := requireAccountSession(c)
+	if err != nil {
+		return accountSessionError(c, err)
 	}
-	user := userInt.(*config.User)
-
-	newToken := uuid.NewString()
-
-	err := token.UpdateTokenSync(opChan, user.Username, func(accessToken *core.AccessToken) {
-		accessToken.Tokens = []string{newToken}
-	})
-
+	account := state.GetTokenByName(user.Username)
+	if account == nil {
+		return c.Status(fiber.StatusNotFound).SendString("Account not found")
+	}
+	name := "Publishing token " + time.Now().UTC().Format("20060102-150405") + "-" + uuid.NewString()[:8]
+	_, newToken, err := createAPITokenForAccount(state, account, name, []string{
+		APITokenScopeRepositoryRead, APITokenScopeRepositoryPublish,
+	}, nil, time.Now().UnixMilli())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
@@ -118,6 +118,7 @@ func GenerateUploadToken(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 		IP:         ip,
 	})
 
+	setPrivateResponseHeaders(c)
 	return protohttp.Write(c, &pb.GenerateTokenResponse{Token: newToken})
 }
 

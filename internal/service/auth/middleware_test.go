@@ -114,7 +114,7 @@ func TestExtractAuthHeader_WithOtherCookie(t *testing.T) {
 	assert.NoError(t, err)
 	buf = make([]byte, 100)
 	n, _ = resp.Body.Read(buf)
-	assert.Equal(t, "Session valid_session", string(buf[:n]))
+	assert.Equal(t, "", string(buf[:n]))
 
 	app.Post("/test", func(c fiber.Ctx) error {
 		return c.SendString(extractAuthHeader(c, state))
@@ -266,7 +266,7 @@ func TestPostAuthLogoutRevokesCookieEvenWithoutUser(t *testing.T) {
 	assert.False(t, ok, "logout must revoke session even when user no longer exists")
 }
 
-func TestPostAuthLogoutRevokesAuthorizationSessionHeader(t *testing.T) {
+func TestAuthorizationSessionHeaderIsRejected(t *testing.T) {
 	db := newTestAuthDB(t)
 	app := fiber.New()
 	state := core.NewAppState()
@@ -291,10 +291,10 @@ func TestPostAuthLogoutRevokesAuthorizationSessionHeader(t *testing.T) {
 	req.Header.Set("Authorization", "Session "+sessionToken)
 	resp, err := app.Test(req)
 	assert.NoError(t, err)
-	assert.Equal(t, 204, resp.StatusCode)
+	assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode)
 
 	_, ok := state.Inner.Sessions.Load(sessionToken)
-	assert.False(t, ok)
+	assert.True(t, ok)
 }
 
 func TestRevokedSessionCannotAuthenticate(t *testing.T) {
@@ -339,10 +339,9 @@ func TestAuthorizeRequestProtectsAllRestrictedPrefixes(t *testing.T) {
 	guard := func(c fiber.Ctx) error { return authorizeRequest(c, GuestUser) }
 	app.Get("/api/settings/config", guard)
 	app.Get("/api/tokens", guard)
-	app.Get("/api/statistics", guard)
 	app.Get("/api/status/instance", guard)
 
-	for _, path := range []string{"/api/settings/config", "/api/tokens", "/api/statistics", "/api/status/instance"} {
+	for _, path := range []string{"/api/settings/config", "/api/tokens", "/api/status/instance"} {
 		resp, err := app.Test(httptest.NewRequest("GET", path, nil))
 		assert.NoError(t, err)
 		assert.Equal(t, fiber.StatusUnauthorized, resp.StatusCode, path)
@@ -374,7 +373,7 @@ func TestSessionRevocationIsObservedImmediately(t *testing.T) {
 
 	request := func() int {
 		req := httptest.NewRequest("GET", "/protected", nil)
-		req.Header.Set("Authorization", "Session revocable")
+		req.Header.Set("Cookie", "renop_session=revocable")
 		resp, err := app.Test(req)
 		assert.NoError(t, err)
 		defer resp.Body.Close()
@@ -448,7 +447,7 @@ func TestExpiredTokenSessionIsRejected(t *testing.T) {
 
 	request := func() int {
 		req := httptest.NewRequest(http.MethodGet, "/protected", nil)
-		req.Header.Set(fiber.HeaderAuthorization, "Session expiring-session")
+		req.Header.Set("Cookie", "renop_session=expiring-session")
 		resp, err := app.Test(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
@@ -486,7 +485,7 @@ func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
 	token.SetupTokenRoutes(app.Group("/api"), state, opChan)
 
 	selfDelete := httptest.NewRequest(http.MethodDelete, "/api/tokens/AdMiN", nil)
-	selfDelete.Header.Set(fiber.HeaderAuthorization, "Session "+sessionToken)
+	selfDelete.Header.Set("Cookie", "renop_session="+sessionToken)
 	selfResponse, err := app.Test(selfDelete)
 	require.NoError(t, err)
 	require.Equal(t, fiber.StatusForbidden, selfResponse.StatusCode)
@@ -494,7 +493,7 @@ func TestDeleteTokenRejectsAuthenticatedAccount(t *testing.T) {
 	assert.NotNil(t, state.GetTokenByName("admin"))
 
 	otherDelete := httptest.NewRequest(http.MethodDelete, "/api/tokens/other-admin", nil)
-	otherDelete.Header.Set(fiber.HeaderAuthorization, "Session "+sessionToken)
+	otherDelete.Header.Set("Cookie", "renop_session="+sessionToken)
 	otherResponse, err := app.Test(otherDelete)
 	require.NoError(t, err)
 	require.Equal(t, fiber.StatusNoContent, otherResponse.StatusCode)

@@ -17,8 +17,12 @@ Log in using `docker login` or `podman login`:
 ```bash
 docker login localhost:3000
 # Username: admin
-# Password: <your_password_or_PAT>
+# Password: <your_password_or_API_token>
 ```
+
+Use `repository:read` for pulls, `repository:publish` for pushes, `repository:delete` for remote manifest/blob deletion,
+and `package:manage` for image-team operations. The short-lived Docker Bearer token receives only actions allowed by
+both these API-token scopes and the image team.
 
 > **Note**: When running over plain HTTP (without TLS), add the host to your Docker `daemon.json`:
 > ```json

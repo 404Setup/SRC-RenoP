@@ -18,7 +18,6 @@ import {openSessionsDialog} from './sessions.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 import {
 	FidoDeviceList,
-	GenerateTokenResponse,
 	GpgKeyDto,
 	GpgKeyList,
 	GpgKeyReferenceRequest,
@@ -28,11 +27,11 @@ import {
 } from './proto/index.js';
 import {closeModalWithAnim} from './app-ui.js';
 import {openAuditLogsDialog} from './audit.js';
-import {writeClipboardText} from './clipboard.js';
 import {formatTimestamp} from './time.js';
 import {getRepositoryFormat} from './repository-formats.js';
 import {refreshGitHubConnection} from './github-auth.js';
 import {refreshAccountSecurity} from './account-security.js';
+import {refreshAPITokenSummary} from './api-tokens.js';
 import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
 import {
 	getUserProfile,
@@ -1029,6 +1028,7 @@ function showProfileEdit(profile) {
     });
     wireProfileEditActions(profile);
     void refreshAccountSecurity();
+    void refreshAPITokenSummary();
     void refreshGitHubConnection();
     window.scrollTo({top: 0, behavior: 'smooth'});
 }
@@ -1082,7 +1082,7 @@ export async function setupProfile(route = null) {
 }
 
 /**
- * Wire up the profile page: password change, upload token generation, sessions, and FIDO devices.
+ * Wire up the profile page: password changes, API-token summaries, sessions, and FIDO devices.
  * @param {object} profile - Own profile payload.
  * @returns {void}
  */
@@ -1105,7 +1105,6 @@ function wireProfileEditActions(profile) {
     const strengthCtrl = passwordInput ? attachPasswordStrength(passwordInput) : null;
 
     const btnUpdatePassword = document.getElementById('btn-update-password');
-    const btnGenerateToken = document.getElementById('btn-generate-upload-token');
 
     const passwordForm = document.getElementById('profile-password-form');
     if (passwordForm && !passwordForm.dataset.listenerAttached) {
@@ -1152,65 +1151,6 @@ function wireProfileEditActions(profile) {
         });
     }
 
-    if (btnGenerateToken && !btnGenerateToken.dataset.listenerAttached) {
-        btnGenerateToken.dataset.listenerAttached = 'true';
-        btnGenerateToken.addEventListener('click', async () => {
-            if (!(await window.showConfirm(t('profile.confirmGenToken')))) {
-                return;
-            }
-
-            try {
-                const {
-                    response,
-                    data
-                } = await fetchProto('/api/auth/profile/token', GenerateTokenResponse, {method: 'POST'});
-
-                if (response.ok && data) {
-                    const tokenNode = el('div', {class: 'profile-token-reveal', style: {marginTop: '0'}},
-                        el('div', {class: 'profile-token-label'}, t('profile.newTokenLabel')),
-                        el('div', {class: 'profile-token-value-wrapper'},
-                            el('code', {
-                                class: 'profile-token-code',
-                                style: {cursor: 'pointer'},
-                                title: t('prompt.clickToCopy'),
-                                onClick: async () => {
-                                    try {
-                                        await writeClipboardText(data.token);
-                                        showAlert(t('prompt.copied'), 'success');
-                                    } catch (err) {
-                                        console.error('Failed to copy regenerated upload token', err);
-                                    }
-                                }
-                            }, data.token)
-                        ),
-                        el('p', {class: 'profile-token-warning'}, t('profile.tokenWarning'))
-                    );
-
-                    RenopDialog.show({
-                        id: 'profile-token-modal',
-                        maxWidth: '500px',
-                        icon: 'fileKey',
-                        title: t('profile.uploadTokenTitle'),
-                        body: tokenNode,
-                        footer: [
-                            {
-                                text: t('common.ok'),
-                                className: 'action-btn primary-btn',
-                                onClick: (e, d) => d.close(true)
-                            }
-                        ]
-                    });
-
-                    showAlert(t('profile.tokenGeneratedSuccess'), 'success');
-                } else {
-                    const msg = await response.text();
-                    showAlert(t('profile.genTokenFailed') + ': ' + msg, 'error');
-                }
-            } catch (error) {
-                showAlert(t('profile.genTokenError'), 'error');
-            }
-        });
-    }
 
     const btnSessions = document.getElementById('btn-profile-sessions');
     if (btnSessions && !btnSessions.dataset.listenerAttached) {

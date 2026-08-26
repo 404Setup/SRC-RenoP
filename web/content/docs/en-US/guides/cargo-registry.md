@@ -27,7 +27,9 @@ index = "sparse+http://localhost:3000/releases/index/"
 
 ## 2. Authentication Token
 
-To publish crates or access private crates, log in using your RenoP Personal Access Token:
+To publish crates or access private crates, log in using a RenoP API token. Select `repository:read` for private
+downloads, `repository:publish` for publication, and `package:manage` only when Cargo owner or lifecycle operations
+are required:
 
 ```bash
 cargo login --registry renop

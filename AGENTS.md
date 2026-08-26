@@ -24,13 +24,16 @@
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, private normalized login emails, serialized login-method
-  invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, durable GitHub
-  identity/principal snapshots, and durable username-change throttling.
+  invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, and hashed,
+  expiring fine-grained API credentials. Legacy plaintext upload tokens migrate transactionally to scoped hashes;
+  durable GitHub identity/principal snapshots and username-change throttling remain bound to immutable user IDs.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
   uses twelve 160-bit codes, Argon2id verifiers, four-code atomic consumption, and session revocation; password login
-  may be disabled only while a GitHub identity or Passkey remains available.
+  may be disabled only while a GitHub identity or Passkey remains available. API tokens use one-time 256-bit secrets,
+  optional expiration, current-account-permission intersection, endpoint capability scopes, and immediate revocation.
+  Browser session secrets are cookie-only, while Basic/password credentials are restricted to package protocols.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation
   extraction/viewer (`/cargodoc/...`).
@@ -98,6 +101,8 @@
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   Private email, password-login policy, and one-time recovery-code controls are isolated in
   `js/account-security.js`, while the public four-code reset workflow lives in `js/password-recovery.js`.
+  `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, one-time secret display, shared
+  clipboard feedback, immediate revocation, and live language refresh without exposing stored credential material.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
   loads. Modular i18n
   catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,

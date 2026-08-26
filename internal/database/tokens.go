@@ -91,6 +91,21 @@ func tokenByNameTx(tx *Tx, name string) (*core.AccessToken, error) {
 }
 
 func (db *DB) saveTokenInTx(tx *Tx, name string, token *core.AccessToken) error {
+	if len(token.Tokens) > 0 {
+		userID, err := userIDForUsernameTx(tx, name)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`DELETE FROM user_api_tokens
+			WHERE user_id = ? AND name LIKE ?`, userID, core.LegacyAPITokenNamePrefix+"%"); err != nil {
+			return fmt.Errorf("replace migrated API tokens for %s: %w", name, err)
+		}
+		if err := migrateLegacySecretsTx(tx, userID, name, token.Tokens,
+			time.Now().UnixMilli()); err != nil {
+			return err
+		}
+		token.Tokens = []string{}
+	}
 	tokensJSON, err := json.Marshal(token.Tokens)
 	if err != nil {
 		return fmt.Errorf("encode token secrets: %w", err)
@@ -160,6 +175,11 @@ func (db *DB) GetTokenBySecret(secret string) (*core.AccessToken, error) {
 	secret = SanitizeInputString(secret, maxTokenSecretLen)
 	if secret == "" {
 		return nil, nil
+	}
+	if credential, err := db.GetAPITokenByHash(core.HashAPITokenSecret(secret), ""); err != nil {
+		return nil, err
+	} else if credential != nil {
+		return credential.Account, nil
 	}
 
 	if tok, ok := db.tokenSecretCache.Get(secret); ok {
@@ -301,7 +321,12 @@ func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt in
 	}
 	token.Name = name
 	token.Description = SanitizeInputString(token.Description, 2048)
-	tokensJSON, err := json.Marshal(token.Tokens)
+	legacySecrets := append([]string(nil), token.Tokens...)
+	persistedTokens := token.Tokens
+	if len(legacySecrets) > 0 {
+		persistedTokens = []string{}
+	}
+	tokensJSON, err := json.Marshal(persistedTokens)
 	if err != nil {
 		return fmt.Errorf("encode token secrets: %w", err)
 	}
@@ -334,14 +359,21 @@ func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt in
 	if changedAt <= 0 {
 		changedAt = time.Now().UnixMilli()
 	}
+	userID := uuid.NewString()
 	if _, err := tx.Exec(`INSERT INTO user_profiles
 		(user_id, username, nickname, rename_window_started_at, rename_count, updated_at)
-		VALUES (?, ?, ?, 0, 0, ?)`, uuid.NewString(), name, nickname, changedAt); err != nil {
+		VALUES (?, ?, ?, 0, 0, ?)`, userID, name, nickname, changedAt); err != nil {
 		return fmt.Errorf("create profile for token %s: %w", name, err)
+	}
+	if len(legacySecrets) > 0 {
+		if err := migrateLegacySecretsTx(tx, userID, name, legacySecrets, changedAt); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit token creation %s: %w", name, err)
 	}
+	token.Tokens = persistedTokens
 	db.finishTokenUpdate(name, token)
 	return nil
 }
@@ -433,6 +465,9 @@ func (db *DB) DeleteToken(name string) error {
 	}
 	if _, err := tx.Exec(`DELETE FROM user_recovery_codes WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete recovery codes for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM user_api_tokens WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete API tokens for account (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM user_account_security WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete private account security for token (%s): %w", lowerName, err)

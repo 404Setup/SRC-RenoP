@@ -1,28 +1,27 @@
 ---
-title: 访问令牌与 GPG 签名
+title: API Token 与 GPG 签名
 order: 2
 category: 安全与权限
-description: 个人访问令牌 (PAT)、上传令牌与 OpenPGP 签名验证
+description: 细粒度 API Token 与 OpenPGP 签名验证
 ---
 
-# 访问令牌与 GPG 签名
+# API Token 与 GPG 签名
 
-为了支持 CI/CD 流水线自动化与制品完整性校验，RenoP 提供了独立的访问令牌机制与 GPG 签名管理。
+为了支持 CI/CD 自动化与制品完整性校验，RenoP 提供细粒度 API Token 与 GPG 签名管理。
 
-## 1. 访问令牌类型
+## 1. 细粒度 API Token
 
-在 Web 管理控制台的「令牌管理」页面中，可以创建两种类型的令牌：
+用户可在个人资料中创建、查看和撤销 API Token。每个 Token 具有私有名称、一个或多个能力范围以及可选
+有效期。256 位随机密钥只显示一次，数据库仅保存其 SHA-256 查询摘要。
 
-### 个人访问令牌 (PAT)
+请为每台工作站或自动化流水线选择满足用途的最小范围和最短有效期。请求只有在 Token 含有所需范围，且
+所属账号当前仍拥有对应的系统、仓库、发布域或包团队权限时才会通过。管理员范围不会在账号失去管理员
+身份后继续授权，撤销操作也会立即清除认证缓存。
 
-- 与特定用户绑定，继承该用户的权限范围。
-- 适合开发者本地构建工具（如 Maven `settings.xml`、Cargo `credentials.toml` 或 Docker CLI）使用，避免直接暴露登录主密码。
-- 支持设置过期时间，可随时在控制台吊销。
-
-### 上传令牌 (Upload Token)
-
-- 专门用于自动化构建工具与 CI/CD 流水线（如 GitHub Actions、GitLab CI、Jenkins）。
-- 可精确限制仅允许向指定的单个或多个仓库推送制品，禁止执行读取私有仓库或调用管理 API 等其他操作。
+浏览器会话密钥仅可通过 HttpOnly `renop_session` Cookie 使用；Basic 凭据仅可用于标准包协议。API 自动化
+应使用 `Authorization: Bearer <token>`。RenoP 不接受 URL 查询参数中的凭据或
+`Authorization: Session`。旧版明文上传 Token 会自动迁移为仅含 `repository:read` 与
+`repository:publish` 的哈希凭据。
 
 ---
 

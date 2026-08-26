@@ -79,6 +79,10 @@ func FindAllTokens(c fiber.Ctx, state *core.AppState) error {
 
 	rawTokens := state.GetAllTokens()
 	tokens := make([]core.AccessTokenDto, 0, len(rawTokens))
+	apiTokenCounts, err := state.GetDB().CountAPITokensByUsername()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to count API tokens")
+	}
 
 	for _, token := range rawTokens {
 		if token == nil {
@@ -90,7 +94,7 @@ func FindAllTokens(c fiber.Ctx, state *core.AppState) error {
 			CreatedAt:   token.CreatedAt,
 			Description: token.Description,
 			ExpiresAt:   token.ExpiresAt,
-			Tokens:      token.Tokens,
+			Tokens:      make([]string, apiTokenCounts[token.Name]),
 			Permissions: token.Permissions,
 		})
 	}
@@ -106,13 +110,17 @@ func FindToken(c fiber.Ctx, state *core.AppState) error {
 	}
 
 	if token := state.GetTokenByName(name); token != nil {
+		apiTokenCount, err := state.GetDB().CountAPITokens(name)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to count API tokens")
+		}
 		dto := core.AccessTokenDto{
 			Identifier:  token.Identifier,
 			Name:        name,
 			CreatedAt:   token.CreatedAt,
 			Description: token.Description,
 			ExpiresAt:   token.ExpiresAt,
-			Tokens:      token.Tokens,
+			Tokens:      make([]string, apiTokenCount),
 			Permissions: token.Permissions,
 		}
 		return protohttp.Write(c, pb.FromAccessTokenDto(dto))
@@ -435,15 +443,24 @@ func GenerateTokenForUser(c fiber.Ctx, state *core.AppState, opChan chan<- Token
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
-	newToken := uuid.NewString()
-
-	err := UpdateTokenSync(opChan, name, func(accessToken *core.AccessToken) {
-		accessToken.Tokens = []string{strings.Clone(newToken)}
-	})
-
-	if err != nil {
+	account := state.GetTokenByName(name)
+	if account == nil {
 		return c.Status(fiber.StatusNotFound).SendString("Not found")
 	}
+	newToken, err := core.GenerateAPITokenSecret()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to generate API token")
+	}
+	now := time.Now().UnixMilli()
+	tokenID := uuid.NewString()
+	metadata := &core.APIToken{
+		ID: tokenID, Name: "Manager publishing token " + time.Now().UTC().Format("20060102-150405") + "-" + tokenID[:8],
+		Scopes: []string{core.APITokenScopeRepositoryPublish, core.APITokenScopeRepositoryRead}, CreatedAt: now,
+	}
+	if err := state.GetDB().CreateAPIToken(account.Name, metadata, core.HashAPITokenSecret(newToken)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create API token")
+	}
+	state.ClearAuthCache()
 
 	_, op, authMethod, sID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
@@ -456,5 +473,7 @@ func GenerateTokenForUser(c fiber.Ctx, state *core.AppState, opChan chan<- Token
 		IP:         ip,
 	})
 
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	c.Set(fiber.HeaderPragma, "no-cache")
 	return protohttp.Write(c, &pb.GenerateTokenResponse{Token: newToken})
 }

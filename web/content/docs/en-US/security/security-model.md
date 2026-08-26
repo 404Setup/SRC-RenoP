@@ -31,12 +31,15 @@ RenoP combines role-based access control (RBAC) with granular repository-level p
 ## 3. Authentication Transports
 
 1. **Cookie Session**: Managed automatically by the web UI (`renop_session`).
-2. **HTTP Basic Auth**: Username + password or username + PAT.
-3. **Bearer Token**: `Authorization: Bearer <token>` for CI/CD pipelines.
-4. **URL Query Param (GET/HEAD only)**: `?token=<token>`.
+2. **HTTP Basic Auth**: Username + password or username + API token for standard package protocols only.
+3. **Bearer Token**: `Authorization: Bearer <token>` for scope-controlled API and package automation.
+
+Browser session secrets are cookie-only. RenoP rejects `Authorization: Session` and query-string credentials so
+session and API secrets do not leak through copied URLs, referrers, or access logs.
 
 ## 4. Session & Security Policies
 
 - **Session Expiry**: Sessions expire after 7 days of inactivity and slide forward upon active requests.
-- **Password Hashing**: Passwords are encrypted with salted one-way hashes.
+- **Password Hashing**: Passwords use salted one-way hashes; API tokens are generated from 256 random bits and stored
+  only as lookup digests.
 - **Brute Force Protection**: Repeated authentication failures trigger progressive IP bans.
