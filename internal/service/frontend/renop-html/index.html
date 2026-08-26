@@ -823,46 +823,55 @@
     <div class="modal-content message-compose-modal-content">
         <button id="message-compose-close" class="close-btn" type="button" aria-label="Close notification composer" data-i18n-aria-label="modal.close">&times;</button>
         <div class="modal-header message-compose-heading">
-            <h2 class="modal-title" data-i18n="messages.composeTitle">New notification</h2>
-            <p class="modal-subtitle" data-i18n="messages.composeHint">Send a plain-text notification to selected users or everyone.</p>
+            <span class="message-compose-heading-icon" aria-hidden="true">
+                <renop-icon name="send"></renop-icon>
+            </span>
+            <div class="message-compose-heading-copy">
+                <h2 class="modal-title" data-i18n="messages.composeTitle">New notification</h2>
+                <p class="modal-subtitle" data-i18n="messages.composeHint">Send a plain-text notification to selected users or everyone.</p>
+            </div>
         </div>
-        <div id="message-compose-region" class="modal-body message-compose-region">
-            <form id="message-compose-form" class="message-compose-form" action="javascript:void(0);">
-                <div class="message-compose-field message-compose-recipient-field">
-                    <label for="message-compose-recipients" data-i18n="messages.recipients">Recipients</label>
-                    <span class="message-recipient-input-wrap">
-                        <input id="message-compose-recipients" type="text" maxlength="4096" autocomplete="off"
-                               role="combobox" aria-autocomplete="list" aria-expanded="false"
-                               aria-controls="message-recipient-suggestions" placeholder="alice, bob"
-                               data-i18n-placeholder="messages.recipientsPlaceholder">
-                        <span id="message-recipient-suggestions" class="custom-select-dropdown message-recipient-suggestions"
-                              role="listbox"></span>
-                    </span>
+        <form id="message-compose-form" class="message-compose-form" action="javascript:void(0);">
+            <div id="message-compose-region" class="modal-body message-compose-region">
+                <div class="message-compose-audience">
+                    <div class="message-compose-field message-compose-recipient-field">
+                        <label for="message-compose-recipients" data-i18n="messages.recipients">Recipients</label>
+                        <span class="message-recipient-input-wrap">
+                            <input id="message-compose-recipients" type="text" maxlength="4096" autocomplete="off"
+                                   role="combobox" aria-autocomplete="list" aria-expanded="false"
+                                   aria-controls="message-recipient-suggestions" placeholder="alice, bob"
+                                   data-i18n-placeholder="messages.recipientsPlaceholder">
+                            <span id="message-recipient-suggestions" class="custom-select-dropdown message-recipient-suggestions"
+                                  role="listbox"></span>
+                        </span>
+                    </div>
+                    <div class="message-compose-broadcast">
+                        <span id="message-compose-all-label" data-i18n="messages.sendAll">Send to all users</span>
+                        <span id="message-compose-all" class="message-compose-all-switch"></span>
+                    </div>
                 </div>
-                <div class="message-compose-broadcast">
-                    <span id="message-compose-all-label" data-i18n="messages.sendAll">Send to all users</span>
-                    <span id="message-compose-all" class="message-compose-all-switch"></span>
+                <div class="message-compose-meta">
+                    <label class="message-compose-field">
+                        <span data-i18n="messages.subject">Subject</span>
+                        <input id="message-compose-title" type="text" maxlength="240" required>
+                    </label>
+                    <div class="message-compose-field">
+                        <span data-i18n="messages.severity">Severity</span>
+                        <span id="message-compose-severity" class="message-compose-severity"></span>
+                    </div>
                 </div>
-                <div class="message-compose-field">
-                    <span data-i18n="messages.severity">Severity</span>
-                    <span id="message-compose-severity" class="message-compose-severity"></span>
-                </div>
-                <label class="message-compose-field">
-                    <span data-i18n="messages.subject">Subject</span>
-                    <input id="message-compose-title" type="text" maxlength="240" required>
-                </label>
-                <label class="message-compose-field">
+                <label class="message-compose-field message-compose-body-field">
                     <span data-i18n="messages.body">Message</span>
                     <textarea id="message-compose-body" maxlength="8000" rows="4" required></textarea>
                 </label>
-                <div class="message-compose-actions">
-                    <button id="message-compose-cancel" type="button" class="pill-btn pill-btn--soft" data-i18n="common.cancel">Cancel</button>
-                    <button id="message-compose-submit" type="submit" class="pill-btn pill-btn--primary">
-                        <span class="message-compose-submit-label" data-i18n="messages.send">Send</span>
-                    </button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer message-compose-actions">
+                <button id="message-compose-cancel" type="button" class="pill-btn pill-btn--soft" data-i18n="common.cancel">Cancel</button>
+                <button id="message-compose-submit" type="submit" class="pill-btn pill-btn--primary">
+                    <span class="message-compose-submit-label" data-i18n="messages.send">Send</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

@@ -470,6 +470,57 @@ func TestAccountMenuOwnsMessagesLogoutAndNotificationComposer(t *testing.T) {
 	}
 }
 
+func TestNotificationComposerAndAccountMenuUseCompactStructuredLayout(t *testing.T) {
+	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexText := string(indexSource)
+	composeStart := strings.Index(indexText, `id="message-compose-modal"`)
+	loginStart := strings.Index(indexText, `id="login-modal"`)
+	if composeStart < 0 || loginStart <= composeStart {
+		t.Fatal("notification composer markup boundary is missing")
+	}
+	composer := indexText[composeStart:loginStart]
+	for _, required := range []string{
+		`class="message-compose-heading-icon"`,
+		`class="message-compose-audience"`,
+		`class="message-compose-meta"`,
+		`class="modal-footer message-compose-actions"`,
+	} {
+		if !strings.Contains(composer, required) {
+			t.Fatalf("notification composer is missing %q", required)
+		}
+	}
+	composerCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "components", "message-center.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"width: min(620px, calc(100vw - 2rem))",
+		"max-height: min(88dvh, 760px)",
+		".message-compose-audience",
+		".message-compose-meta",
+		"scrollbar-gutter: stable",
+	} {
+		if !strings.Contains(string(composerCSS), required) {
+			t.Fatalf("notification composer styling is missing %q", required)
+		}
+	}
+	navigationCSS, err := os.ReadFile(filepath.Join("renop-html", "css", "layout", "navigation.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"width: min(11.75rem, calc(100vw - 1rem))",
+		".nav-profile-menu-item > span:not(.message-unread-badge)",
+	} {
+		if !strings.Contains(string(navigationCSS), required) {
+			t.Fatalf("compact account menu styling is missing %q", required)
+		}
+	}
+}
+
 func TestSharedShellRoutingAvatarCodeAndSearchAnimations(t *testing.T) {
 	indexSource, err := os.ReadFile(filepath.Join("renop-html", "index.html"))
 	if err != nil {
