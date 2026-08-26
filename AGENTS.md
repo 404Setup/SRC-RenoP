@@ -14,6 +14,9 @@
 - **`server.go`**: Application entry point and server lifecycle.
 - **`cmd/renop-brotli/`**: Streaming Go CLI installed automatically by `build.ps1` to encode each release executable
   as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
+- **`scripts/build-target.ps1`**: Isolated per-target release worker. `build.ps1` runs at most four workers at once;
+  each worker starts Brotli compression immediately after its architecture finishes compiling, while the parent
+  preserves deterministic manifest order and aggregates failures.
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, durable GitHub identity/principal snapshots, and
@@ -115,8 +118,9 @@
 - **Shell**: PowerShell 7 (`pwsh`)
 - **Protobuf**: `protoc` with `protoc-gen-go`
 - **Release packaging**: `build.ps1` automatically installs `cmd/renop-brotli` into the active Go binary directory;
-  packaged builds emit raw `.br` executable streams while `nb` builds remain unpackaged binaries. Formal builds embed
-  the current and previous release commits and publish both values through `manifest.json` and channel `info.json`.
+  packaged builds emit raw `.br` executable streams while `nb` builds remain unpackaged binaries. Target
+  compile/compress pipelines are bounded by `-BuildConcurrency` (default and maximum 4). Formal builds embed the
+  current and previous release commits and publish both values through `manifest.json` and channel `info.json`.
 
 ### Build & Test Workflows
 

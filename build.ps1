@@ -22,6 +22,10 @@
 
 .PARAMETER PreviousCommit
     Full source revision of the preceding formal release.
+
+.PARAMETER BuildConcurrency
+    Maximum number of target compile/compress pipelines running at once.
+    The upper bound is four.
 #>
 [CmdletBinding()]
 param(
@@ -37,7 +41,9 @@ param(
     [string]$Version,
     [string]$Development,
     [string]$Commit,
-    [string]$PreviousCommit
+    [string]$PreviousCommit,
+    [ValidateRange(1, 4)]
+    [int]$BuildConcurrency = 4
 )
 
 $ErrorActionPreference = 'Stop'
@@ -279,20 +285,102 @@ function Install-BrotliPackTool {
     return $toolPath
 }
 
+function ConvertTo-ProcessArgument {
+    param([Parameter(Mandatory = $true)][string]$Value)
+    return '"' + $Value.Replace('"', '\"') + '"'
+}
+
+function Start-TargetBuildWorker {
+    param(
+        [Parameter(Mandatory = $true)]$Job,
+        [Parameter(Mandatory = $true)][string]$WorkerScript
+    )
+    $pwshCommand = Get-Command pwsh -ErrorAction Stop
+    $startParameters = @{
+        FilePath = $pwshCommand.Source
+        ArgumentList = @(
+            '-NoLogo',
+            '-NoProfile',
+            '-NonInteractive',
+            '-File',
+            (ConvertTo-ProcessArgument $WorkerScript),
+            '-SpecPath',
+            (ConvertTo-ProcessArgument $Job.SpecPath)
+        )
+        WorkingDirectory = $repositoryRoot
+        RedirectStandardOutput = $Job.StdoutPath
+        RedirectStandardError = $Job.StderrPath
+        PassThru = $true
+    }
+    if ($IsWindows) {
+        $startParameters.WindowStyle = 'Hidden'
+    }
+    $process = Start-Process @startParameters
+    return [pscustomobject]@{
+        Job = $Job
+        Process = $process
+    }
+}
+
+function Write-TargetBuildLogs {
+    param([Parameter(Mandatory = $true)]$Worker)
+    if (Test-Path -LiteralPath $Worker.Job.StdoutPath -PathType Leaf) {
+        Get-Content -LiteralPath $Worker.Job.StdoutPath | ForEach-Object {
+            if (-not [string]::IsNullOrWhiteSpace($_)) {
+                Write-Host "[$($Worker.Job.Label)] $_"
+            }
+        }
+    }
+    if (Test-Path -LiteralPath $Worker.Job.StderrPath -PathType Leaf) {
+        Get-Content -LiteralPath $Worker.Job.StderrPath | ForEach-Object {
+            if (-not [string]::IsNullOrWhiteSpace($_)) {
+                Write-Warning "[$($Worker.Job.Label)] $_"
+            }
+        }
+    }
+}
+
+function Remove-BuildWorkspace {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+    $resolvedPath = [IO.Path]::GetFullPath($Path).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $expectedPrefix = $tempRoot + [IO.Path]::DirectorySeparatorChar
+    $leaf = Split-Path -Leaf $resolvedPath
+    if (-not $resolvedPath.StartsWith($expectedPrefix, [StringComparison]::OrdinalIgnoreCase) -or
+        -not $leaf.StartsWith('renop-build-', [StringComparison]::Ordinal)) {
+        throw "Refusing to remove unexpected build workspace: $resolvedPath"
+    }
+    Remove-Item -LiteralPath $resolvedPath -Recurse -Force
+}
+
+$buildWorkspace = $null
+$activeWorkers = [System.Collections.Generic.List[object]]::new()
 try {
     Invoke-ProtobufGenerate
     Build-FrontendAssets
 
     $env:CGO_ENABLED = '0'
 
-    $manifestTargets = [System.Collections.Generic.List[object]]::new()
     $brotliPackTool = if ($noBundle) { $null } else { Install-BrotliPackTool }
     if (-not $noBundle) {
         Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE') -Destination $dist
         Copy-Item -LiteralPath (Join-Path $repositoryRoot 'README.md') -Destination $dist
         Copy-Item -LiteralPath (Join-Path $repositoryRoot 'THIRD_PARTY_NOTICES.md') -Destination $dist
     }
-    foreach ($target in $targets) {
+
+    $buildWorkspace = Join-Path ([IO.Path]::GetTempPath()) ("renop-build-$PID-" + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $buildWorkspace -Force | Out-Null
+    $workerScript = Join-Path $repositoryRoot 'scripts/build-target.ps1'
+    if (-not (Test-Path -LiteralPath $workerScript -PathType Leaf)) {
+        throw "Build target worker not found at $workerScript"
+    }
+
+    $jobs = [System.Collections.Generic.List[object]]::new()
+    for ($targetIndex = 0; $targetIndex -lt $targets.Count; $targetIndex++) {
+        $target = $targets[$targetIndex]
         $goos = $target.GOOS
         $goarch = $target.GOARCH
         $binaryExtension = if ($goos -eq 'windows') { '.exe' } else { '' }
@@ -302,16 +390,14 @@ try {
             } else {
                 "renop-$goos-$goarch$binaryExtension"
             }
-            $stage = $null
             $binaryPath = Join-Path $invocationDirectory $binaryName
             $archivePath = $null
         } else {
             $name = "renop-$safeVersion-$goos-$goarch"
-            $stage = Join-Path $dist ".stage-$goos-$goarch"
+            $stage = Join-Path $buildWorkspace "stage-$targetIndex"
             $binaryName = "renop$binaryExtension"
             $binaryPath = Join-Path $stage $binaryName
             $archivePath = Join-Path $dist "$name.br"
-            New-Item -ItemType Directory -Path $stage -Force | Out-Null
         }
 
         $actualGoarch = $goarch
@@ -321,14 +407,6 @@ try {
             $goamd64 = if ($Matches[2]) { $Matches[2] } else { 'v1' }
         }
 
-        $env:GOOS = $goos
-        $env:GOARCH = $actualGoarch
-        if ($goamd64) {
-            $env:GOAMD64 = $goamd64
-        } else {
-            Remove-Item Env:GOAMD64 -ErrorAction SilentlyContinue
-        }
-
         $ldflags = "-s -w -X=renop/internal/version.Version=$displayVersion -X=renop/internal/version.Development=$developmentValue -X=renop/internal/version.Commit=$commitFull -X=renop/internal/version.PreviousCommit=$previousCommitFull"
         if ($goos -eq 'linux') {
             # Apply before runtime initialization so even the first Go heap mapping
@@ -336,37 +414,106 @@ try {
             $ldflags += ' -X=runtime.godebugDefault=disablethp=1'
         }
         $destinationDescription = if ($noBundle) { $binaryPath } else { $archivePath }
-        Write-Host "Building $goos/$goarch -> $destinationDescription"
-        & go build -ldflags $ldflags -o $binaryPath .
-        if ($LASTEXITCODE -ne 0) {
-            throw "go build failed for $goos/$goarch with exit code $LASTEXITCODE."
+        $specPath = Join-Path $buildWorkspace "job-$targetIndex.json"
+        $resultPath = Join-Path $buildWorkspace "result-$targetIndex.json"
+        $jobSpec = [ordered]@{
+            index = $targetIndex
+            repository_root = $repositoryRoot
+            goos = $goos
+            goarch = $goarch
+            actual_goarch = $actualGoarch
+            goamd64 = $goamd64
+            binary_path = $binaryPath
+            binary_name = $binaryName
+            archive_path = $archivePath
+            brotli_tool = $brotliPackTool
+            bundled = (-not $noBundle)
+            ldflags = $ldflags
+            result_path = $resultPath
         }
-
-        if ($noBundle) {
-            continue
-        }
-
-        & $brotliPackTool -input $binaryPath -output $archivePath -quality 11
-        if ($LASTEXITCODE -ne 0) {
-            throw "renop-brotli failed for $goos/$goarch with exit code $LASTEXITCODE."
-        }
-        $hash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-        $size = (Get-Item -LiteralPath $archivePath).Length
-        $uncompressedSize = (Get-Item -LiteralPath $binaryPath).Length
-        $manifestTargets.Add([ordered]@{
-            os = $goos
-            arch = $goarch
-            file = Split-Path -Leaf $archivePath
-            sha256 = $hash
-            size = $size
-            uncompressed_size = $uncompressedSize
-            format = 'brotli'
-            executable = $binaryName
+        $jobSpec | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $specPath -Encoding utf8
+        $jobs.Add([pscustomobject]@{
+            Index = $targetIndex
+            Label = "$goos/$goarch"
+            Destination = $destinationDescription
+            SpecPath = $specPath
+            ResultPath = $resultPath
+            StdoutPath = Join-Path $buildWorkspace "job-$targetIndex.stdout.log"
+            StderrPath = Join-Path $buildWorkspace "job-$targetIndex.stderr.log"
         })
-        Remove-Item -LiteralPath $stage -Recurse -Force
+    }
+
+    $results = @{}
+    $failures = [System.Collections.Generic.List[string]]::new()
+    $nextJob = 0
+    $stopLaunching = $false
+    while ($activeWorkers.Count -gt 0 -or (-not $stopLaunching -and $nextJob -lt $jobs.Count)) {
+        while (-not $stopLaunching -and $activeWorkers.Count -lt $BuildConcurrency -and $nextJob -lt $jobs.Count) {
+            $job = $jobs[$nextJob]
+            Write-Host "Starting $($job.Label) -> $($job.Destination)"
+            $activeWorkers.Add((Start-TargetBuildWorker -Job $job -WorkerScript $workerScript))
+            $nextJob++
+        }
+
+        $completedWorker = $false
+        for ($workerIndex = $activeWorkers.Count - 1; $workerIndex -ge 0; $workerIndex--) {
+            $worker = $activeWorkers[$workerIndex]
+            if (-not $worker.Process.HasExited) {
+                continue
+            }
+            $completedWorker = $true
+            $worker.Process.WaitForExit()
+            Write-TargetBuildLogs -Worker $worker
+            if ($worker.Process.ExitCode -ne 0) {
+                $failures.Add("$($worker.Job.Label) exited with code $($worker.Process.ExitCode)")
+                $stopLaunching = $true
+            } elseif (-not (Test-Path -LiteralPath $worker.Job.ResultPath -PathType Leaf)) {
+                $failures.Add("$($worker.Job.Label) did not produce a result")
+                $stopLaunching = $true
+            } else {
+                try {
+                    $result = Get-Content -LiteralPath $worker.Job.ResultPath -Raw | ConvertFrom-Json
+                    $results[[int]$result.index] = $result
+                    Write-Host "Completed $($worker.Job.Label)"
+                } catch {
+                    $failures.Add("$($worker.Job.Label) produced an invalid result: $($_.Exception.Message)")
+                    $stopLaunching = $true
+                }
+            }
+            $worker.Process.Dispose()
+            $activeWorkers.RemoveAt($workerIndex)
+        }
+        if (-not $completedWorker -and $activeWorkers.Count -gt 0) {
+            Start-Sleep -Milliseconds 100
+        }
+    }
+
+    if ($failures.Count -gt 0) {
+        throw "Target build pipeline failed: $($failures -join '; ')"
+    }
+    if ($results.Count -ne $jobs.Count) {
+        throw "Target build pipeline produced $($results.Count) result(s) for $($jobs.Count) job(s)."
     }
 
     if (-not $noBundle) {
+        $manifestTargets = [System.Collections.Generic.List[object]]::new()
+        for ($targetIndex = 0; $targetIndex -lt $jobs.Count; $targetIndex++) {
+            $result = $results[$targetIndex]
+            $archivePath = Join-Path $dist ([string]$result.file)
+            if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+                throw "Packaged target is missing: $archivePath"
+            }
+            $manifestTargets.Add([ordered]@{
+                os = [string]$result.os
+                arch = [string]$result.arch
+                file = [string]$result.file
+                sha256 = [string]$result.sha256
+                size = [int64]$result.size
+                uncompressed_size = [int64]$result.uncompressed_size
+                format = [string]$result.format
+                executable = [string]$result.executable
+            })
+        }
         $manifest = [ordered]@{
             version = $displayVersion
             commit = $commitFull
@@ -378,6 +525,22 @@ try {
     }
 }
 finally {
+    foreach ($worker in @($activeWorkers)) {
+        try {
+            if (-not $worker.Process.HasExited) {
+                $worker.Process.Kill($true)
+                $worker.Process.WaitForExit()
+            }
+            $worker.Process.Dispose()
+        } catch {
+            Write-Warning "Failed to stop target worker $($worker.Job.Label): $($_.Exception.Message)"
+        }
+    }
+    try {
+        Remove-BuildWorkspace -Path $buildWorkspace
+    } catch {
+        Write-Warning $_
+    }
     if ($hadCgo) { $env:CGO_ENABLED = $originalCgo } else { Remove-Item Env:CGO_ENABLED -ErrorAction SilentlyContinue }
     if ($hadGoos) { $env:GOOS = $originalGoos } else { Remove-Item Env:GOOS -ErrorAction SilentlyContinue }
     if ($hadGoarch) { $env:GOARCH = $originalGoarch } else { Remove-Item Env:GOARCH -ErrorAction SilentlyContinue }

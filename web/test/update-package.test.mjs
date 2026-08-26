@@ -50,11 +50,16 @@ test('pure JS Brotli conversion produces a standard executable ZIP', () => {
 test('release tooling emits raw Brotli packages through the installed Go CLI', () => {
     const repositoryRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
     const build = readFileSync(resolve(repositoryRoot, 'build.ps1'), 'utf8');
+    const targetWorker = readFileSync(resolve(repositoryRoot, 'scripts/build-target.ps1'), 'utf8');
     const publish = readFileSync(resolve(repositoryRoot, '.github/scripts/publish-update.ps1'), 'utf8');
     const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/build.yml'), 'utf8');
     assert.match(build, /go install \.\/cmd\/renop-brotli/);
     assert.match(build, /Join-Path \$dist "\$name\.br"/);
-    assert.match(build, /-quality 11/);
+    assert.match(build, /\[ValidateRange\(1, 4\)\]/);
+    assert.match(build, /\$activeWorkers\.Count -lt \$BuildConcurrency/);
+    assert.match(build, /Start-TargetBuildWorker/);
+    assert.match(targetWorker, /& go build[\s\S]+& \$brotliTool/);
+    assert.match(targetWorker, /-quality 11/);
     assert.match(build, /version\.PreviousCommit=\$previousCommitFull/);
     assert.doesNotMatch(build, /Compress-Archive/);
     assert.match(publish, /-Filter '\*\.br'/);
