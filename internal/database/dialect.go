@@ -27,6 +27,31 @@ func initDockerImageBlobTables(db *sql.DB) error {
 	return err
 }
 
+func initGitHubIdentityTables(db *sql.DB) error {
+	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS github_identities (
+			github_user_id BIGINT PRIMARY KEY,
+			user_id VARCHAR(36) NOT NULL UNIQUE,
+			github_login VARCHAR(39) NOT NULL,
+			authorized_at BIGINT NOT NULL
+		);`,
+		`CREATE TABLE IF NOT EXISTS github_principals (
+			user_id VARCHAR(36) NOT NULL,
+			principal_type VARCHAR(16) NOT NULL,
+			github_principal_id BIGINT NOT NULL,
+			github_login VARCHAR(39) NOT NULL,
+			authorized_at BIGINT NOT NULL,
+			PRIMARY KEY (user_id, principal_type, github_principal_id)
+		);`,
+	}
+	for _, table := range tables {
+		if _, err := db.Exec(table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func initMavenTables(db *sql.DB) error {
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS maven_domains (

@@ -210,4 +210,5 @@ export default Object.freeze({
     "dashboard.updateError": "更新エラー: {error}",
     "dashboard.restarting": "サービスを再起動しています。しばらくしてからページを更新してください...",
     "dashboard.restartFailed": "サービスの再起動に失敗しました: {error}",
+    "sessions.methodGithub": "GitHub",
 });

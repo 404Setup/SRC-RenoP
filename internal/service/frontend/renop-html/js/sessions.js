@@ -42,6 +42,9 @@ function formatLoginMethod(method) {
     if (method === 'fido') {
         return t('sessions.methodFido');
     }
+    if (method === 'github') {
+        return t('sessions.methodGithub');
+    }
     return t('sessions.methodPassword');
 }
 

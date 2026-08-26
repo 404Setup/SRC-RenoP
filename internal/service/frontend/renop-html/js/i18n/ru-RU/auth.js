@@ -117,4 +117,11 @@ export default Object.freeze({
     "error.couldNotResolveHost": "Не удалось распознать хост",
     "error.urlInternalIp": "URL указывает на внутренний или private IP",
     "error.failedAccessBackgroundUrl": "Не удалось получить доступ к фоновому URL",
+    "login.or": "или",
+    "login.githubLogin": "Продолжить с GitHub",
+    "login.githubSuccess": "Вход через GitHub выполнен",
+    "login.githubDenied": "Авторизация GitHub отменена",
+    "login.githubExpired": "Авторизация GitHub истекла. Повторите попытку.",
+    "login.githubScopeMissing": "Требуется доступ на чтение аккаунта и организаций GitHub",
+    "login.githubFailed": "Не удалось войти через GitHub",
 });

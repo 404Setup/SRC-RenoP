@@ -25,6 +25,7 @@ const (
 	OpTokenUpdate
 	OpTokenRename
 	OpUserProfileUpdate
+	OpTokenCreate
 )
 
 type TokenOp struct {
@@ -106,6 +107,27 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			if existing == nil {
 				state.Inner.TokensCount.Add(1)
 			}
+			state.ClearAuthCache()
+			completeTokenOp(op, nil)
+
+		case OpTokenCreate:
+			safeName := strings.Clone(op.Name)
+			clonedToken := cloneAccessToken(op.Token)
+			if clonedToken == nil {
+				completeTokenOp(op, errors.New("token is required"))
+				continue
+			}
+			clonedToken.Name = safeName
+			db := state.GetDB()
+			if db == nil {
+				completeTokenOp(op, core.ErrDatabaseUnavailable)
+				continue
+			}
+			if err := db.CreateToken(clonedToken, op.Nickname, op.ChangedAt); err != nil {
+				completeTokenOp(op, err)
+				continue
+			}
+			state.Inner.TokensCount.Add(1)
 			state.ClearAuthCache()
 			completeTokenOp(op, nil)
 

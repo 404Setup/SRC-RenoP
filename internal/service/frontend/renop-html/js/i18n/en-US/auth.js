@@ -117,4 +117,11 @@ export default Object.freeze({
     "error.couldNotResolveHost": "Could not resolve host",
     "error.urlInternalIp": "URL points to an internal or private IP",
     "error.failedAccessBackgroundUrl": "Failed to access background URL or returned non-success status",
+    "login.or": "or",
+    "login.githubLogin": "Continue with GitHub",
+    "login.githubSuccess": "Signed in with GitHub",
+    "login.githubDenied": "GitHub authorization was cancelled",
+    "login.githubExpired": "The GitHub authorization expired. Please try again.",
+    "login.githubScopeMissing": "GitHub account and organization read access is required",
+    "login.githubFailed": "GitHub sign-in failed",
 });

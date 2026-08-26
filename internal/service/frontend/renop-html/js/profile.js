@@ -31,6 +31,7 @@ import {openAuditLogsDialog} from './audit.js';
 import {writeClipboardText} from './clipboard.js';
 import {formatTimestamp} from './time.js';
 import {getRepositoryFormat} from './repository-formats.js';
+import {refreshGitHubConnection} from './github-auth.js';
 import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
 import {
 	getUserProfile,
@@ -1022,6 +1023,7 @@ function showProfileEdit(profile) {
         wireProfileDisclosure(card);
     });
     wireProfileEditActions(profile);
+    void refreshGitHubConnection();
     window.scrollTo({top: 0, behavior: 'smooth'});
 }
 

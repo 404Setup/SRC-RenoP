@@ -117,4 +117,11 @@ export default Object.freeze({
     "error.couldNotResolveHost": "無法解析目標主機",
     "error.urlInternalIp": "URL 指向內部或者私有 IP 地址",
     "error.failedAccessBackgroundUrl": "無法訪問背景圖 URL 或者返咗非成功狀態碼",
+    "login.or": "或者",
+    "login.githubLogin": "用 GitHub 繼續",
+    "login.githubSuccess": "已經用 GitHub 登入",
+    "login.githubDenied": "已取消 GitHub 授權",
+    "login.githubExpired": "GitHub 授權已過期，請再試。",
+    "login.githubScopeMissing": "需要 GitHub 帳號同組織嘅讀取權限",
+    "login.githubFailed": "GitHub 登入失敗",
 });

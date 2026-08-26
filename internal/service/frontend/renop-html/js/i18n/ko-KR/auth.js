@@ -117,4 +117,11 @@ export default Object.freeze({
     "error.couldNotResolveHost": "호스트를 확인 할 수 없습니다",
     "error.urlInternalIp": "URL이 내부 또는 사설 IP를 가리킵니다",
     "error.failedAccessBackgroundUrl": "배경 이미지 URL 접근 실패",
+    "login.or": "또는",
+    "login.githubLogin": "GitHub로 계속",
+    "login.githubSuccess": "GitHub로 로그인했습니다",
+    "login.githubDenied": "GitHub 인증이 취소되었습니다",
+    "login.githubExpired": "GitHub 인증이 만료되었습니다. 다시 시도하세요.",
+    "login.githubScopeMissing": "GitHub 계정 및 조직 읽기 권한이 필요합니다",
+    "login.githubFailed": "GitHub 로그인에 실패했습니다",
 });

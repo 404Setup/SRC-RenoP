@@ -17,14 +17,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/token"
-	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
 )
@@ -91,6 +89,7 @@ func SetupAuthRoutes(app fiber.Router, state *core.AppState, opChan chan<- token
 	auth.Get("/profile/sessions", func(c fiber.Ctx) error { return ListSessions(c, state) })
 	auth.Post("/profile/sessions/revoke-others", func(c fiber.Ctx) error { return RevokeOtherSessions(c, state) })
 	auth.Delete("/profile/sessions/:session_id", func(c fiber.Ctx) error { return DeleteSession(c, state) })
+	setupGitHubRoutes(auth, state, opChan)
 	SetupFidoRoutes(auth, state, opChan)
 }
 
@@ -205,10 +204,6 @@ func AuthenticateUser(state *core.AppState, body *core.LoginRequest, opChan chan
 }
 
 func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
-	cfgVal := state.Inner.Config.Load()
-	ip := utils.ExtractIP(c, &cfgVal.Server)
-	userAgent := c.Get(fiber.HeaderUserAgent, "Unknown")
-
 	var req pb.LoginRequest
 	if err := protohttp.Read(c, &req); err != nil {
 		if err == fiber.ErrRequestEntityTooLarge {
@@ -230,35 +225,9 @@ func PostAuthLogin(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenO
 	}
 
 	if user != nil {
-		sessionToken := uuid.NewString()
-		publicID := uuid.NewString()
-		now := time.Now().UnixMilli()
-
-		session := &core.Session{
-			PublicID:    publicID,
-			Username:    user.Username,
-			IP:          utils.Intern(ip),
-			UserAgent:   utils.Intern(userAgent),
-			CreatedAt:   now,
-			LoginMethod: "password",
-		}
-		session.LastActive.Store(now)
-
-		if err := state.SaveSession(session, sessionToken); err != nil {
+		if err := issueBrowserSession(c, state, user, "password"); err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to create session")
 		}
-
-		audit.Log(state, &core.AuditLogEntry{
-			Username:   user.Username,
-			Operator:   user.Username,
-			Action:     audit.ActionLogin,
-			Details:    "User logged in successfully",
-			AuthMethod: "Password",
-			SessionID:  publicID,
-			IP:         ip,
-		})
-
-		setSessionCookie(c, sessionToken, int(core.SessionIdleTimeoutMillis/1000))
 		details := CreateSessionDetails(user, "")
 		return protohttp.Write(c, pb.FromSessionDetails(details))
 	}

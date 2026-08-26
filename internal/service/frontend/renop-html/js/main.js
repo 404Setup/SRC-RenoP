@@ -33,6 +33,7 @@ import './team-messages.js';
 import './updater-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';
 import {installBackendAvailabilityMonitor} from './backend-availability.js';
+import {initializeGitHubAuth} from './github-auth.js';
 
 initI18n();
 const backendAvailability = installBackendAvailabilityMonitor();
@@ -432,6 +433,7 @@ async function initializeApplication() {
         updateCopyrightFooter();
 
         await initializeSession();
+        await initializeGitHubAuth();
 
         const mainTabs = document.querySelector('#tabs');
         if (mainTabs) {

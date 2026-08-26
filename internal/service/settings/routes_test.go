@@ -24,7 +24,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
 	"renop/internal/config"
@@ -719,9 +722,65 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 6 || !slices.Contains(got.Domains, "proxy") || slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 6 domains including proxy and excluding gpg, got %v", got.Domains)
+	if len(got.Domains) != 7 || !slices.Contains(got.Domains, "proxy") ||
+		!slices.Contains(got.Domains, "github_oauth") || slices.Contains(got.Domains, "gpg") {
+		t.Fatalf("expected 7 domains including proxy and GitHub OAuth while excluding gpg, got %v", got.Domains)
 	}
+}
+
+func TestGitHubOAuthSettingsKeepSecretWriteOnly(t *testing.T) {
+	cfg := config.DefaultConfig()
+	app, state := setupSettingsTestApp(t, cfg)
+	request := httptest.NewRequest(http.MethodPut, "/github-oauth", strings.NewReader(`{
+		"enabled":true,
+		"client_id":"Iv1.example",
+		"client_secret":"top-secret",
+		"callback_url":"https://repo.example/api/auth/github/callback"
+	}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var saved githubOAuthSettingsResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&saved))
+	require.NoError(t, response.Body.Close())
+	assert.True(t, saved.Enabled)
+	assert.True(t, saved.ClientSecretConfigured)
+	assert.Equal(t, "top-secret", state.Inner.Config.Load().Server.GitHubOAuth.ClientSecret)
+
+	getResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/github-oauth", nil))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, getResponse.StatusCode)
+	body, err := io.ReadAll(getResponse.Body)
+	require.NoError(t, err)
+	require.NoError(t, getResponse.Body.Close())
+	assert.NotContains(t, string(body), "top-secret")
+
+	preserveRequest := httptest.NewRequest(http.MethodPut, "/github-oauth", strings.NewReader(`{
+		"enabled":true,
+		"client_id":"Iv1.changed",
+		"client_secret":"",
+		"callback_url":"https://repo.example/api/auth/github/callback"
+	}`))
+	preserveRequest.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	preserveResponse, err := app.Test(preserveRequest)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, preserveResponse.StatusCode)
+	require.NoError(t, preserveResponse.Body.Close())
+	assert.Equal(t, "top-secret", state.Inner.Config.Load().Server.GitHubOAuth.ClientSecret)
+
+	invalidRequest := httptest.NewRequest(http.MethodPut, "/github-oauth", strings.NewReader(`{
+		"enabled":true,
+		"client_id":"Iv1.changed",
+		"callback_url":"http://repo.example/api/auth/github/callback"
+	}`))
+	invalidRequest.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	invalidResponse, err := app.Test(invalidRequest)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, invalidResponse.StatusCode)
+	require.NoError(t, invalidResponse.Body.Close())
+	assert.Equal(t, "https://repo.example/api/auth/github/callback",
+		state.Inner.Config.Load().Server.GitHubOAuth.CallbackURL)
 }
 
 func TestGetAndUpdateDatabaseSettingsProtobuf(t *testing.T) {

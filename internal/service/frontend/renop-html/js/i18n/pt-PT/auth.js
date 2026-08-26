@@ -117,4 +117,11 @@ export default Object.freeze({
     "error.couldNotResolveHost": "Não foi possível resolver o anfitrião",
     "error.urlInternalIp": "O URL aponta para um IP interno ou privado",
     "error.failedAccessBackgroundUrl": "Falha ao aceder ao URL de fundo",
+    "login.or": "ou",
+    "login.githubLogin": "Continuar com o GitHub",
+    "login.githubSuccess": "Sessão iniciada com o GitHub",
+    "login.githubDenied": "A autorização do GitHub foi cancelada",
+    "login.githubExpired": "A autorização do GitHub expirou. Tente novamente.",
+    "login.githubScopeMissing": "É necessário acesso de leitura à conta e às organizações do GitHub",
+    "login.githubFailed": "Falha ao iniciar sessão com o GitHub",
 });

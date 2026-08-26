@@ -598,6 +598,25 @@
                     </div>
                 </div>
 
+                <div id="profile-github-section" class="profile-settings-section" hidden>
+                    <div class="profile-section-card-header">
+                        <div class="profile-section-icon profile-section-icon--github" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>
+                        </div>
+                        <div class="profile-section-meta">
+                            <h3 class="profile-section-title" data-i18n="profile.githubTitle">GitHub Account</h3>
+                            <p class="profile-section-desc" data-i18n="profile.githubDesc">Connect GitHub to sign in and authorize Maven namespaces owned by your account or organizations.</p>
+                        </div>
+                    </div>
+                    <div class="profile-section-body profile-github-body">
+                        <p id="profile-github-status" class="profile-github-status" data-i18n="profile.githubLoading">Loading GitHub connection…</p>
+                        <div class="profile-github-actions">
+                            <button type="button" id="btn-profile-github-connect" class="pill-btn pill-btn--primary profile-action-btn" hidden data-i18n="profile.githubConnect">Connect GitHub</button>
+                            <button type="button" id="btn-profile-github-disconnect" class="pill-btn pill-btn--soft profile-action-btn" hidden data-i18n="profile.githubDisconnect">Disconnect</button>
+                        </div>
+                    </div>
+                </div>
+
 				<div class="profile-settings-section">
 					<div class="profile-section-card-header">
 						<div class="profile-section-icon profile-section-icon--gpg" aria-hidden="true">
@@ -914,6 +933,13 @@
                     <a href="javascript:void(0);" id="btn-fido-login" class="fido-login-link" style="font-size: 0.82rem; color: var(--accent-color, #3b82f6); text-decoration: underline;" data-i18n="login.fidoLogin">Sign in with FIDO / Passkey</a>
                 </div>
                 <button type="submit" class="submit-btn" style="margin-top: 0.25rem;" data-i18n="login.submitBtn">Login</button>
+                <div id="github-login-wrapper" class="github-login-wrapper" hidden>
+                    <div class="github-login-divider"><span data-i18n="login.or">or</span></div>
+                    <button type="button" id="btn-github-login" class="github-login-btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>
+                        <span data-i18n="login.githubLogin">Continue with GitHub</span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>

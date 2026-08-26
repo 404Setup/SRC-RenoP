@@ -56,6 +56,7 @@ type StateDB interface {
 	SearchTokenNames(prefix string, limit int, now int64) ([]string, error)
 	CountTokens() (uint64, error)
 	SaveToken(token *AccessToken) error
+	CreateToken(token *AccessToken, nickname string, changedAt int64) error
 	DeleteToken(name string) error
 	RenameToken(oldName, newName string, token *AccessToken) error
 	GetUserProfile(username string) (*UserProfile, error)
@@ -81,6 +82,11 @@ type StateDB interface {
 	UpdateFidoDeviceState(credentialID []byte, signCount uint32, backupState bool, backupEligible bool) error
 	DeleteFidoDevice(username, deviceID string) error
 	DeleteFidoDevicesByUsername(username string) error
+	GetGitHubIdentity(username string) (*GitHubIdentity, error)
+	GetGitHubIdentityByProviderID(githubUserID int64) (*GitHubIdentity, error)
+	StoreGitHubIdentity(userID string, githubUserID int64, githubLogin string, principals []GitHubPrincipal, authorizedAt int64) error
+	DeleteGitHubIdentity(username string) error
+	HasRecentGitHubPrincipal(username, login string, authorizedAfter int64) (bool, error)
 	FindGPGPublicKeys(identifier string) ([]*GPGPublicKey, error)
 	GetGPGPublicKey(fingerprint string) (*GPGPublicKey, error)
 	ListUserGPGKeys(username string) ([]*UserGPGKey, error)
@@ -217,6 +223,7 @@ type AppStateInner struct {
 	DockerSecret        []byte
 	DockerPullCounter   DockerPullCounter
 	DockerPullCounterMu sync.Mutex
+	ExternalAuthStates  *TransientAuthStateStore
 
 	FileIndex              *index.FileIndex
 	IndexWatcher           *fsnotify.Watcher
@@ -251,6 +258,7 @@ func NewAppState() *AppState {
 			GPGReleaseWake:       make(chan struct{}, 1),
 			AnomalyFailures:      NewAnomalyFailureStore(),
 			AuditLogChan:         make(chan *AuditLogEntry, 500),
+			ExternalAuthStates:   NewTransientAuthStateStore(),
 		},
 	}
 }

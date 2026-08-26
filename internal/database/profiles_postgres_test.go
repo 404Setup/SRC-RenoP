@@ -77,6 +77,16 @@ func TestPostgresUserProfileIntegration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "PostgreSQL User", profile.Nickname)
 	stableUserID := profile.UserID
+	require.NoError(t, db.StoreGitHubIdentity(stableUserID, 9001, "profile-pg", []core.GitHubPrincipal{
+		{Type: core.GitHubPrincipalUser, GitHubID: 9001, Login: "profile-pg"},
+		{Type: core.GitHubPrincipalOrganization, GitHubID: 9002, Login: "renop-pg"},
+	}, changedAt))
+	linkedGitHub, err := db.GetGitHubIdentity("profile_pg")
+	require.NoError(t, err)
+	require.Equal(t, int64(9001), linkedGitHub.GitHubUserID)
+	githubAuthorized, err := db.HasRecentGitHubPrincipal("profile_pg", "renop-pg", changedAt)
+	require.NoError(t, err)
+	require.True(t, githubAuthorized)
 	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
 		Repository: "cargo", Name: "profile-pg-crate", NormalizedName: "profile-pg-crate",
 		CreatedAt: changedAt, UpdatedAt: changedAt,

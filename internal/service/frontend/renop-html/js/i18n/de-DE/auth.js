@@ -117,4 +117,11 @@ export default Object.freeze({
     "error.couldNotResolveHost": "Host konnte nicht aufgelöst werden",
     "error.urlInternalIp": "URL verweist auf eine interne oder private IP",
     "error.failedAccessBackgroundUrl": "Zugriff auf Hintergrund-URL fehlgeschlagen",
+    "login.or": "oder",
+    "login.githubLogin": "Mit GitHub fortfahren",
+    "login.githubSuccess": "Mit GitHub angemeldet",
+    "login.githubDenied": "Die GitHub-Autorisierung wurde abgebrochen",
+    "login.githubExpired": "Die GitHub-Autorisierung ist abgelaufen. Versuchen Sie es erneut.",
+    "login.githubScopeMissing": "Lesezugriff auf GitHub-Konto und -Organisationen ist erforderlich",
+    "login.githubFailed": "GitHub-Anmeldung fehlgeschlagen",
 });

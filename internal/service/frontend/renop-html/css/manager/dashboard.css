@@ -477,6 +477,50 @@ html.dark .dashboard-section-badge {
 	--section-accent: #c0266d;
 }
 
+.profile-section-icon--github {
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
+}
+
+#profile-github-section[hidden],
+.profile-github-actions > [hidden] {
+    display: none !important;
+}
+
+.profile-section-icon--github svg {
+    width: 20px;
+    height: 20px;
+}
+
+.profile-github-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.profile-github-status {
+    min-width: 0;
+    margin: 0;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+.profile-github-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+    .profile-github-actions,
+    .profile-github-actions .profile-action-btn {
+        width: 100%;
+    }
+}
+
 .sessions-dialog-body {
     display: flex;
     flex-direction: column;

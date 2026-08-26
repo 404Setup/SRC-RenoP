@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/google/uuid"
 
 	"renop/internal/core"
 )
@@ -195,6 +196,66 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	return nil
 }
 
+// CreateToken inserts a new account and immutable profile atomically without replacing an existing username.
+func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt int64) error {
+	if db == nil || db.SQLDB == nil || token == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	name, valid := core.NormalizeUsername(token.Name)
+	if !valid {
+		return errors.New("token name is invalid")
+	}
+	nickname, valid = core.NormalizeNickname(nickname)
+	if !valid {
+		return errors.New("nickname is invalid")
+	}
+	token.Name = name
+	token.Description = SanitizeInputString(token.Description, 2048)
+	tokensJSON, err := json.Marshal(token.Tokens)
+	if err != nil {
+		return fmt.Errorf("encode token secrets: %w", err)
+	}
+	permissionsJSON, err := json.Marshal(token.Permissions)
+	if err != nil {
+		return fmt.Errorf("encode token permissions: %w", err)
+	}
+	var expiresAt sql.NullInt64
+	if token.ExpiresAt != nil {
+		expiresAt = sql.NullInt64{Int64: *token.ExpiresAt, Valid: true}
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin token creation: %w", err)
+	}
+	defer tx.Rollback()
+	var exists int
+	if err := tx.QueryRow(`SELECT 1 FROM tokens WHERE name = ?`, name).Scan(&exists); err == nil {
+		return core.ErrUsernameAlreadyExists
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("inspect token name %s: %w", name, err)
+	}
+	if _, err := tx.Exec(`INSERT INTO tokens
+		(name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		name, string(token.Identifier.Type), token.Identifier.Value, token.EncryptedSecret, token.PasswordHash,
+		string(tokensJSON), token.CreatedAt, token.Description, expiresAt, string(permissionsJSON)); err != nil {
+		return fmt.Errorf("create token %s: %w", name, err)
+	}
+	if changedAt <= 0 {
+		changedAt = time.Now().UnixMilli()
+	}
+	if _, err := tx.Exec(`INSERT INTO user_profiles
+		(user_id, username, nickname, rename_window_started_at, rename_count, updated_at)
+		VALUES (?, ?, ?, 0, 0, ?)`, uuid.NewString(), name, nickname, changedAt); err != nil {
+		return fmt.Errorf("create profile for token %s: %w", name, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit token creation %s: %w", name, err)
+	}
+	db.finishTokenUpdate(name, token)
+	return nil
+}
+
 func (db *DB) DeleteToken(name string) error {
 	if db == nil || db.SQLDB == nil || name == "" {
 		return nil
@@ -270,6 +331,12 @@ func (db *DB) DeleteToken(name string) error {
 	}
 	if _, err := tx.Exec(`DELETE FROM docker_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete Docker memberships for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM github_principals WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete GitHub principals for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`DELETE FROM github_identities WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("failed to delete GitHub identity for token (%s): %w", lowerName, err)
 	}
 
 	if _, err := tx.Exec(`DELETE FROM fido_devices WHERE username = ?`, lowerName); err != nil {

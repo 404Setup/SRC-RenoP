@@ -151,6 +151,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	errRepositoryCreated := errors.New("repository was created concurrently")
 	errRepositoryRemoved := errors.New("repository was removed concurrently")
 	errFormatChanged := errors.New("repository format changed concurrently")
+	state.Inner.ConfigWriteLock.Lock()
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		oldConfig := state.Inner.Config.Load()
 		current := oldConfig.Maven.Repositories[repoName]
@@ -180,6 +181,7 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		config.ClearRepoCacheConfigs()
 		return nil
 	})
+	state.Inner.ConfigWriteLock.Unlock()
 
 	if err != nil {
 		if errors.Is(err, errRepositoryCreated) {
@@ -242,6 +244,8 @@ func replaceRepositoryConfig(state *core.AppState, repository, expectedFormat st
 	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil || replacement == nil {
 		return core.ErrDatabaseUnavailable
 	}
+	state.Inner.ConfigWriteLock.Lock()
+	defer state.Inner.ConfigWriteLock.Unlock()
 	return state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		currentConfig := state.Inner.Config.Load()
 		if currentConfig == nil {
@@ -414,6 +418,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		repositoryFormat string
 		s3Cfg            *config.S3Config
 	)
+	state.Inner.ConfigWriteLock.Lock()
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		oldConfig := state.Inner.Config.Load()
 		repo, ok := oldConfig.Maven.Repositories[repoName]
@@ -438,6 +443,7 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		config.ClearRepoCacheConfigs()
 		return nil
 	})
+	state.Inner.ConfigWriteLock.Unlock()
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")

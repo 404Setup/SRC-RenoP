@@ -590,10 +590,6 @@ func PostFidoLoginBegin(c fiber.Ctx, state *core.AppState) error {
 }
 
 func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
-	cfgVal := state.Inner.Config.Load()
-	ip := utils.ExtractIP(c, &cfgVal.Server)
-	userAgent := c.Get(fiber.HeaderUserAgent, "Unknown")
-
 	var req FidoLoginFinishRequest
 	if err := utils.ReadJSONLimited(c, &req, utils.MaxJSONBodySize); err != nil {
 		if errors.Is(err, fiber.ErrRequestEntityTooLarge) {
@@ -727,25 +723,10 @@ func PostFidoLoginFinish(c fiber.Ctx, state *core.AppState, opChan chan<- token.
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update FIDO device")
 	}
 
-	sessionToken := uuid.NewString()
-	publicID := uuid.NewString()
-	now := time.Now().UnixMilli()
-
-	session := &core.Session{
-		PublicID:    publicID,
-		Username:    authenticatedUser.Username,
-		IP:          utils.Intern(ip),
-		UserAgent:   utils.Intern(userAgent),
-		CreatedAt:   now,
-		LoginMethod: "fido",
-	}
-	session.LastActive.Store(now)
-
-	if err := state.SaveSession(session, sessionToken); err != nil {
+	if err := issueBrowserSession(c, state, authenticatedUser, "fido"); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create session")
 	}
 
-	setSessionCookie(c, sessionToken, int(core.SessionIdleTimeoutMillis/1000))
 	details := CreateSessionDetails(authenticatedUser, "")
 	if strings.Contains(c.Get(fiber.HeaderAccept), protohttp.ContentType) {
 		return protohttp.Write(c, pb.FromSessionDetails(details))

@@ -16,7 +16,11 @@
   as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
 - **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
-  profiles, immutable user identities for package ownership, and durable username-change throttling.
+  profiles, immutable user identities for package ownership, durable GitHub identity/principal snapshots, and
+  durable username-change throttling.
+- **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
+  separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
+  `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation extraction/viewer
   (`/cargodoc/...`).
@@ -70,7 +74,10 @@
   filters and pagination keep large domain registries bounded.
   The signed-in account menu owns profile navigation, messages, logout, Maven domains, administrator pages, and the
   standalone administrator notification composer; the settings UI groups the server, outbound-proxy, and storage APIs
-  under one Service domain. Database ownership uses immutable user IDs, which remain hidden from the visible interface.
+  under one Service domain. Administrators can configure a write-only GitHub OAuth secret there; GitHub login and
+  profile linking request account/organization read access, persist immutable provider IDs without access tokens, and
+  allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
+  Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
   loads. Modular i18n
   catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,

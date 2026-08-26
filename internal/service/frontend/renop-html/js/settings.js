@@ -14,7 +14,7 @@ import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {smoothScrollToTop} from '@renop/ui/scroll';
 import {registerTabContainer, updateTabIndicator} from '@renop/ui/tabs';
-import {fetchProto, postProto, putProto} from './api.js';
+import {apiRequest, fetchProto, postProto, putProto} from './api.js';
 import {buildInput, createSection, makeTagListInput} from './cfg-ui.js';
 import {
     createCallout,
@@ -47,7 +47,7 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'proxy', 'storage']);
+const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'proxy', 'storage']);
 
 let currentDomain = null;
 let currentConfig = null;
@@ -92,7 +92,9 @@ export async function initSettings() {
         const {response, data} = await fetchProto('/api/settings/domains', SettingsDomainsResponse);
         if (response.ok && data) {
             availableDomains = Array.isArray(data.domains) ? data.domains : [];
-            domainsList = availableDomains.filter(domain => domain !== 'proxy' && domain !== 'storage');
+            domainsList = availableDomains.filter(domain =>
+                domain !== 'proxy' && domain !== 'storage' && domain !== 'github_oauth'
+            );
             const targetDomain = (currentDomain && domainsList.includes(currentDomain)) ? currentDomain : (domainsList[0] || null);
             renderDomainTabs(domainsList, targetDomain);
             if (targetDomain) {
@@ -172,6 +174,18 @@ function domainLabel(domain) {
 }
 
 /**
+ * Load the write-only GitHub OAuth settings JSON view.
+ * @returns {Promise<{response: Response, data: object|null}>}
+ */
+async function fetchGitHubOAuthSettings() {
+    const response = await apiRequest('/api/settings/github-oauth');
+    return {
+        response,
+        data: response.ok ? await response.json() : null,
+    };
+}
+
+/**
  * Loads configuration for a settings domain and renders its form with transition animation.
  * Uses a fetch id so stale responses are ignored when the user switches tabs quickly.
  * @param {string} domain - Domain key to load.
@@ -209,7 +223,9 @@ async function loadDomainSettings(domain, direction = 'next') {
             const serviceDomains = SERVICE_DOMAINS.filter(name => availableDomains.includes(name));
             const results = await Promise.all(serviceDomains.map(async name => ({
                 name,
-                result: await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])
+                result: name === 'github_oauth'
+                    ? await fetchGitHubOAuthSettings()
+                    : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])
             })));
             const denied = results.find(({result}) => result.response.status === 401 || result.response.status === 403);
             if (denied) {
@@ -525,9 +541,77 @@ function renderProxySettings(container, data) {
 function renderServiceSettings(container, data) {
     const stack = el('div', {class: 'cfg-service-stack'});
     if (data.server) renderServerSettings(stack, data.server);
+    if (data.github_oauth) renderGitHubOAuthSettings(stack, data.github_oauth);
     if (data.proxy) renderProxySettings(stack, data.proxy);
     if (data.storage) renderStorageSettings(stack, data.storage);
     container.appendChild(stack);
+}
+
+/**
+ * Render administrator-managed GitHub OAuth credentials without reading the stored secret.
+ * @param {HTMLElement} container - Settings form container.
+ * @param {object} data - Write-only GitHub OAuth settings view.
+ * @returns {void}
+ */
+function renderGitHubOAuthSettings(container, data) {
+    const wrap = el('div', {class: 'cfg-layout'});
+    const section = createSection(
+        createIcon('user'),
+        t('settings.githubOAuthTitle'),
+        t('settings.githubOAuthSubtitle'),
+        {defaultCollapsed: true}
+    );
+    const fields = section.querySelector('.cfg-fields');
+    fields.appendChild(createToggleRow(
+        t('settings.githubOAuthEnabled'),
+        t('settings.githubOAuthEnabledHint'),
+        data.enabled === true,
+        checked => {
+            data.enabled = checked;
+            enableSave();
+        }
+    ));
+    const clientID = buildInput('text', data.client_id || '', 'Iv1.…', event => {
+        data.client_id = event.target.value;
+        enableSave();
+    });
+    clientID.autocomplete = 'off';
+    fields.appendChild(createFieldRow(
+        t('settings.githubOAuthClientId'),
+        t('settings.githubOAuthClientIdHint'),
+        clientID
+    ));
+    const clientSecret = buildInput('password', '', t('settings.githubOAuthSecretPlaceholder'), event => {
+        data.client_secret = event.target.value;
+        enableSave();
+    });
+    clientSecret.id = 'settings-github-oauth-secret';
+    clientSecret.autocomplete = 'new-password';
+    fields.appendChild(createFieldRow(
+        t('settings.githubOAuthClientSecret'),
+        data.client_secret_configured
+            ? t('settings.githubOAuthSecretKeepHint')
+            : t('settings.githubOAuthSecretRequiredHint'),
+        clientSecret
+    ));
+    const callback = buildInput('url', data.callback_url || '', 'https://repo.example/api/auth/github/callback', event => {
+        data.callback_url = event.target.value;
+        enableSave();
+    });
+    fields.appendChild(createFieldRow(
+        t('settings.githubOAuthCallback'),
+        t('settings.githubOAuthCallbackHint'),
+        callback
+    ));
+    section.appendChild(createCallout(
+        data.client_secret_configured ? 'success' : 'warning',
+        data.client_secret_configured
+            ? t('settings.githubOAuthConfigured')
+            : t('settings.githubOAuthNotConfigured'),
+        data.client_secret_configured ? 'success' : 'warning'
+    ));
+    wrap.appendChild(section);
+    container.appendChild(wrap);
 }
 
 /**
@@ -1505,14 +1589,35 @@ export async function saveDomainSettings() {
             const serviceDomains = SERVICE_DOMAINS.filter(domain => currentConfig[domain] && initialConfig?.[domain]);
             for (const domain of serviceDomains) {
                 if (JSON.stringify(currentConfig[domain]) === JSON.stringify(initialConfig[domain])) continue;
-                const {response} = await putProto(
-                    `/api/settings/domain/${domain}`,
-                    DOMAIN_MESSAGE_TYPES[domain],
-                    currentConfig[domain]
-                );
+                let response;
+                let savedData = null;
+                if (domain === 'github_oauth') {
+                    response = await apiRequest('/api/settings/github-oauth', {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(currentConfig[domain]),
+                    });
+                    if (response.ok) savedData = await response.json();
+                } else {
+                    ({response} = await putProto(
+                        `/api/settings/domain/${domain}`,
+                        DOMAIN_MESSAGE_TYPES[domain],
+                        currentConfig[domain]
+                    ));
+                }
                 if (!response.ok) {
-                    const errText = await response.text();
-                    throw new Error(errText || t('settings.saveFailed'));
+                    throw new Error(domain === 'github_oauth'
+                        ? t('settings.githubOAuthSaveFailed')
+                        : (await response.text() || t('settings.saveFailed')));
+                }
+                if (domain === 'github_oauth' && savedData) {
+                    currentConfig[domain] = {
+                        ...savedData,
+                        client_secret: '',
+                        clear_client_secret: false,
+                    };
+                    const secretInput = document.getElementById('settings-github-oauth-secret');
+                    if (secretInput) secretInput.value = '';
                 }
                 initialConfig[domain] = JSON.parse(JSON.stringify(currentConfig[domain]));
             }

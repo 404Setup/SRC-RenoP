@@ -210,4 +210,5 @@ export default Object.freeze({
     "dashboard.updateError": "Ошибка обновления: {error}",
     "dashboard.restarting": "Служба перезапускается, пожалуйста, обновите страницу через некоторое время...",
     "dashboard.restartFailed": "Ошибка перезапуска службы: {error}",
+    "sessions.methodGithub": "GitHub",
 });

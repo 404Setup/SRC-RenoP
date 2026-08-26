@@ -404,6 +404,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if err := initDockerImageBlobTables(db); err != nil {
 		return err
 	}
+	if err := initGitHubIdentityTables(db); err != nil {
+		return err
+	}
 	if err := initMavenTables(db); err != nil {
 		return err
 	}

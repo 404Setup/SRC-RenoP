@@ -210,4 +210,5 @@ export default Object.freeze({
     "dashboard.updateError": "更新出错: {error}",
     "dashboard.restarting": "服务正在重启，请稍后刷新页面...",
     "dashboard.restartFailed": "重启服务失败: {error}",
+    "sessions.methodGithub": "GitHub",
 });

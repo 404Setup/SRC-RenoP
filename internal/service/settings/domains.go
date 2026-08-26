@@ -18,13 +18,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/gofiber/fiber/v3"
-	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
 	"renop/internal/config"
@@ -45,7 +43,7 @@ func GetDomains(c fiber.Ctx) error {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 	return protohttp.Write(c, &pb.SettingsDomainsResponse{
-		Domains: []string{"frontend", "server", "proxy", "storage", "updater", "index"},
+		Domains: []string{"frontend", "server", "proxy", "storage", "github_oauth", "updater", "index"},
 	})
 }
 
@@ -196,6 +194,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 	var storagePathChanged bool
 	var newStoragePath string
 
+	state.Inner.ConfigWriteLock.Lock()
 	err := state.Inner.FileIndex.UpdateMetadataCallback(func() error {
 		oldConfig := state.Inner.Config.Load()
 		newConfig := oldConfig.DeepCopy()
@@ -233,20 +232,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 			newConfig.Updater = newConfig.Updater.DeepCopy()
 		}
 
-		yamlData, err := yaml.Marshal(newConfig)
-		if err != nil {
-			return err
-		}
-
-		configPath := os.Getenv("RENOP_CONFIG")
-		if configPath == "" {
-			configPath = "config.yaml"
-		}
-		tmpPath := configPath + ".tmp"
-		if err := utils.WritePrivateFile(tmpPath, yamlData); err != nil {
-			return err
-		}
-		if err := utils.SafeRename(tmpPath, configPath); err != nil {
+		if err := persistConfigSnapshot(newConfig); err != nil {
 			return err
 		}
 
@@ -256,6 +242,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		cargodocs.InitCargodocs(newConfig)
 		return nil
 	})
+	state.Inner.ConfigWriteLock.Unlock()
 
 	if err != nil {
 		if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {

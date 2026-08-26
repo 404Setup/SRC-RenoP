@@ -313,10 +313,22 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return apiError(c, err)
 	}
+	now := time.Now().UnixMilli()
 	record := &core.MavenDomain{
 		Domain: domain, VerificationType: verificationType,
-		VerificationHost: verificationHost, VerificationCode: code, CreatedAt: time.Now().UnixMilli(),
+		VerificationHost: verificationHost, VerificationCode: code, CreatedAt: now,
 		PermissionLevel: core.MavenPermissionOwner, Member: true,
+	}
+	if verificationType == core.MavenVerificationGitHub {
+		authorized, authErr := state.GetDB().HasRecentGitHubPrincipal(user.Username, verificationHost,
+			now-core.GitHubPrincipalFreshnessMillis)
+		if authErr != nil {
+			return apiError(c, authErr)
+		}
+		if authorized {
+			record.Verified = true
+			record.VerifiedAt = now
+		}
 	}
 	if err := state.GetDB().CreateMavenDomain(record, user.Username); err != nil {
 		return apiError(c, err)

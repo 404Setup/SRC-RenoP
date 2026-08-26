@@ -312,6 +312,42 @@ func TestManagedMavenDomainListFiltersAndPaginates(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 }
 
+func TestGitHubOAuthPrincipalAutoVerifiesMavenDomain(t *testing.T) {
+	state, currentUser := newMavenRouteState(t)
+	profile, err := state.GetDB().GetUserProfile("alice")
+	require.NoError(t, err)
+	now := time.Now().UnixMilli()
+	require.NoError(t, state.GetDB().StoreGitHubIdentity(profile.UserID, 101, "alice", []core.GitHubPrincipal{
+		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice", AuthorizedAt: now},
+		{Type: core.GitHubPrincipalOrganization, GitHubID: 202, Login: "example-org", AuthorizedAt: now},
+	}, now))
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", currentUser)
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state)
+	response := mavenRequest(t, app, http.MethodPost, "/api/maven/domains",
+		`{"domain":"io.github.example-org.library"}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	var created core.MavenDomain
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&created))
+	require.NoError(t, response.Body.Close())
+	assert.True(t, created.Verified)
+	assert.GreaterOrEqual(t, created.VerifiedAt, now)
+
+	staleAt := now - core.GitHubPrincipalFreshnessMillis - 1
+	require.NoError(t, state.GetDB().StoreGitHubIdentity(profile.UserID, 101, "alice", []core.GitHubPrincipal{
+		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice", AuthorizedAt: staleAt},
+	}, staleAt))
+	response = mavenRequest(t, app, http.MethodPost, "/api/maven/domains",
+		`{"domain":"io.github.alice.stale"}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&created))
+	require.NoError(t, response.Body.Close())
+	assert.False(t, created.Verified)
+}
+
 func TestFileRepositoryAllowsReplacementWithoutMavenHelpers(t *testing.T) {
 	state, _ := newMavenRouteState(t)
 	currentUser := &config.User{Username: "admin", Roles: []string{"manager"}}

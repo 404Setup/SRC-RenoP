@@ -56,6 +56,65 @@
     background-color: var(--link-hover-color);
 }
 
+.github-login-wrapper {
+    margin-top: 0.9rem;
+}
+
+.github-login-wrapper[hidden] {
+    display: none !important;
+}
+
+.github-login-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.github-login-divider::before,
+.github-login-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: var(--border-color);
+}
+
+.github-login-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    width: 100%;
+    min-height: 42px;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.github-login-btn:hover {
+    border-color: color-mix(in srgb, var(--text-color) 35%, var(--border-color));
+    background: var(--item-hover-bg);
+    transform: translateY(-1px);
+}
+
+.github-login-btn:active {
+    transform: translateY(0);
+}
+
+.github-login-btn svg {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 auto;
+}
+
 .pill-btn.is-pressing {
     transform: scale(0.96);
     filter: brightness(0.9);

@@ -210,4 +210,5 @@ export default Object.freeze({
     "dashboard.updateError": "Erro de atualização: {error}",
     "dashboard.restarting": "O serviço está a reiniciar, recarregue a página em breve...",
     "dashboard.restartFailed": "Erro ao reiniciar o serviço: {error}",
+    "sessions.methodGithub": "GitHub",
 });

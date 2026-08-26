@@ -117,4 +117,11 @@ export default Object.freeze({
     "error.couldNotResolveHost": "ホストを解決できませんでした",
     "error.urlInternalIp": "URL が内部またはプライベート IP を指しています",
     "error.failedAccessBackgroundUrl": "背景画像 URL へのアクセスに失敗しました",
+    "login.or": "または",
+    "login.githubLogin": "GitHub で続行",
+    "login.githubSuccess": "GitHub でログインしました",
+    "login.githubDenied": "GitHub の認可がキャンセルされました",
+    "login.githubExpired": "GitHub の認可が期限切れです。もう一度お試しください。",
+    "login.githubScopeMissing": "GitHub アカウントと組織の読み取り権限が必要です",
+    "login.githubFailed": "GitHub ログインに失敗しました",
 });

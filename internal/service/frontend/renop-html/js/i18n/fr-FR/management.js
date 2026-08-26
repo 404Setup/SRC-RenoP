@@ -210,4 +210,5 @@ export default Object.freeze({
     "dashboard.updateError": "Erreur de mise à jour : {error}",
     "dashboard.restarting": "Le service redémarre, veuillez rafraîchir dans un instant...",
     "dashboard.restartFailed": "Échec du redémarrage du service : {error}",
+    "sessions.methodGithub": "GitHub",
 });
