@@ -2,33 +2,35 @@
 title: 消息中心 API
 order: 7
 category: API 接口
-description: 用户通知消息列表、未读统计与标记已读接口
+description: 账号通知、未读数量、工作流操作与管理员公告
 ---
 
 # 消息中心 API
 
-用于查询和处理当前登录用户的系统通知与工作流消息。
+所有接口均要求认证。响应默认使用 protobuf，且不会缓存。API Token 需要 `messages:read`；管理员发送公告还
+要求 `admin:notifications`，并且所属账号当前具有管理员权限。
 
-## 1. 获取消息列表
+## 1. 查询或清理消息
 
-- **路径**：`GET /api/messages`
-- **认证要求**：需已登录
-- **查询参数**：
-    - `limit`：单页条数（默认 30，最大 100）
-    - `cursor`：分页游标（上一页返回的 `next_cursor`）
+- **查询**：`GET /api/messages?limit=30&cursor=...`
+- **清理已完成消息**：`DELETE /api/messages`
+- `limit` 范围为 1 至 100；`cursor` 使用上一页返回的不透明 `next_cursor`。
+- 工作流操作仍为 `pending` 的消息不会被批量清理。
 
-### 响应示例 (JSON)
+### 解码后的响应示例
 
 ```json
 {
   "messages": [
     {
-      "id": "msg_01",
-      "title": "CI 构建发布成功",
-      "body": "制品 com.example:lib:1.0.0 已成功部署至 releases 仓库。",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "kind": "announcement",
       "severity": "info",
-      "read": false,
-      "created_at": 1740000000
+      "title": "Maintenance",
+      "body": "Maintenance starts at 02:00 UTC.",
+      "action_status": "",
+      "created_at": 1787731200000,
+      "read_at": 0
     }
   ],
   "unread_count": 1,
@@ -36,43 +38,40 @@ description: 用户通知消息列表、未读统计与标记已读接口
 }
 ```
 
----
+## 2. 查询未读数量
 
-## 2. 获取未读消息计数
+- **路径**：`GET /api/messages/unread-count`
+- **解码后的响应**：`{"unread_count":3}`
 
-- **路径**：`GET /api/messages/unread`
-- **认证要求**：需已登录
-- **响应 (JSON)**：`{"unread_count": 3}`
+## 3. 标记已读或删除消息
 
----
+### 单条消息
 
-## 3. 标记消息为已读
+- **标记已读**：`POST /api/messages/:id/read`
+- **删除**：`DELETE /api/messages/:id`
+- 删除其他账号的消息返回 `404`；删除工作流仍未完成的消息返回 `409`。
 
-### 标记单条消息
+### 全部消息
 
-- **路径**：`POST /api/messages/:id/read`
-- **认证要求**：需已登录
-- **响应**：`200 OK`，`{"success": true}`
+- **全部标记已读**：`POST /api/messages/read-all`
+- 响应包含实际更新数量。
 
-### 标记全部消息已读
+## 4. 发送管理员公告
 
-- **路径**：`POST /api/messages/read-all`
-- **认证要求**：需已登录
-- **响应**：`200 OK`，`{"success": true}`
+- **搜索接收者**：`GET /api/messages/admin/users?q=alice`，最多返回 8 个用户名。
+- **发送**：`POST /api/messages/admin`
+- 向全部账号发送时设置 `all: true`；否则提供精确 `recipients`。标题、正文、严重级别和接收者数量均受
+  服务端限制。
 
----
+```json
+{
+  "recipients": ["alice", "bob"],
+  "all": false,
+  "severity": "warning",
+  "title": "Scheduled maintenance",
+  "body": "The service will restart at 02:00 UTC."
+}
+```
 
-## 4. 发送系统通知 (Admin 权限)
-
-- **路径**：`POST /api/messages/broadcast`
-- **认证要求**：Admin 权限
-- **请求体 (JSON)**：
-  ```json
-  {
-    "recipients": [],
-    "all": true,
-    "severity": "warning",
-    "title": "系统维护通知",
-    "body": "服务器将于本周日凌晨进行配置升级维护。"
-  }
-  ```
+工作流邀请与系统结果由对应服务创建。团队移除通知会说明存储库及包，或 Maven 域，但不会披露执行操作的
+成员。

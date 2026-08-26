@@ -2,68 +2,66 @@
 title: API 索引
 order: 1
 category: API 接口
-description: RenoP HTTP RESTful 与 RPC API 规范与端点索引
+description: RenoP HTTP、REST 与 RPC API 概览
 ---
 
-# RenoP API 概览
+# RenoP HTTP API
 
-RenoP 提供了完整的 HTTP API，用于自动化管理、客户端接入与系统监控。服务默认监听在 `http://localhost:3000`。
+RenoP 提供用于管理自动化、客户端集成与健康监控的完整 HTTP API。服务默认监听
+`http://localhost:3000`。
 
-## API 路由前缀划分
+## 路由结构
 
-| 路由前缀                        | 用途说明                                             |
-|:--------------------------------|:-----------------------------------------------------|
-| `/api/*`                        | 管理 API（认证、用户与令牌、设置、监控、消息中心等） |
-| `/{repo}/*`                     | Maven 仓库标准路径（制品拉取、上传与删除）           |
-| `/index/*` 或 `/{repo}/index/*` | Cargo 稀疏索引协议端点                               |
-| `/v2/*`                         | Docker 与 OCI Registry v2 规范端点                   |
-| `/javadoc/*`                    | Javadoc 在线 HTML 预览                               |
-| `/cargodoc/*`                   | Cargodoc 在线 HTML 预览                              |
+| 路由前缀                        | 用途                                                     |
+|:--------------------------------|:---------------------------------------------------------|
+| `/api/*`                        | 认证、账号、设置、状态与消息等管理 API                   |
+| `/{repo}/*`                     | 按仓库引擎执行上传、下载与删除                           |
+| `/index/*` 或 `/{repo}/index/*` | Cargo Sparse Index                                       |
+| `/v2/*`                         | Docker 与 OCI Distribution v2                            |
+| `/javadoc/*`                    | 沙箱化 Javadoc 在线预览                                  |
+| `/cargodoc/*`                   | 沙箱化 Cargodoc 在线预览                                 |
 
-## 数据格式与 Protobuf 支持
+## 传输格式与 Protobuf
 
-大部分管理接口支持标准 JSON 格式。对于高频数据交换接口，RenoP 同时支持 Google Protocol Buffers (`application/x-protobuf`)
-以降低传输开销。
+多数管理 API 使用 JSON。高吞吐接口同时支持 `application/x-protobuf` 格式的 Google Protocol Buffers。
 
-客户端可以通过在请求头中指定 `Accept: application/x-protobuf` 或 `Content-Type: application/x-protobuf` 来使用二进制协议。完整的
-Proto 协议定义文件位于仓库中的 `proto/api/v1/api.proto`。
+根据接口要求设置 `Accept: application/x-protobuf` 或 `Content-Type: application/x-protobuf`。协议定义位于
+`proto/api/v1/api.proto`。
 
 ## 认证方式
 
-请求需认证的 API 时，支持以下方式：
-
-1. **浏览器 Cookie**：HttpOnly `renop_session=<session_id>`；会话密钥不能通过请求头或 URL 使用。
-2. **Bearer API Token**：`Authorization: Bearer <token>`；接口范围与账号实时权限取交集。
+1. **浏览器 Cookie**：`renop_session=<session_id>`。HttpOnly 会话密钥不接受通过请求头或 URL 传递。
+2. **Bearer API Token**：`Authorization: Bearer <token>`。Token 能力始终与账号当前权限取交集。
 3. **包协议 Basic Auth**：`Authorization: Basic <base64(user:password_or_token)>`。
 
-Basic 凭据不能调用管理 API。查询参数凭据和 `Authorization: Session` 均会被拒绝。
+Basic Auth 不可调用管理 API。URL 查询参数凭据与 `Authorization: Session` 均会被拒绝。
 
-## 常用状态码说明
+## 常用 HTTP 状态码
 
-| 状态码                    | 含义       | 说明                                                         |
-|:--------------------------|:-----------|:-------------------------------------------------------------|
-| `200 OK`                  | 成功       | 请求处理成功并返回数据                                       |
-| `201 Created`             | 创建成功   | 资源或上传任务创建成功                                       |
-| `204 No Content`          | 成功无正文 | 操作成功（如删除或标记状态），无额外响应内容                 |
-| `400 Bad Request`         | 参数错误   | 请求体格式错误或必填字段缺失                                 |
-| `401 Unauthorized`        | 未认证     | 未提供有效认证凭证                                           |
-| `403 Forbidden`           | 无权限     | 权限不足，或因连续认证失败触发 IP 临时封禁                   |
-| `404 Not Found`           | 资源不存在 | 请求的制品或接口不存在（访问无权限的私有仓库也可能返回 404） |
-| `409 Conflict`            | 冲突       | 资源已存在或不可覆盖部署                                     |
-| `429 Too Many Requests`   | 触发限流   | 请求频率超过系统设定阈值                                     |
-| `503 Service Unavailable` | 服务过载   | 当前活跃请求数达到上限                                       |
+| 状态码                    | 含义       | 说明                                         |
+|:--------------------------|:-----------|:---------------------------------------------|
+| `200 OK`                  | 成功       | 请求成功并返回响应正文                       |
+| `201 Created`             | 已创建     | 资源或上传任务初始化成功                     |
+| `204 No Content`          | 成功       | 请求成功且无响应正文                         |
+| `400 Bad Request`         | 请求错误   | 参数或请求正文无效                           |
+| `401 Unauthorized`        | 未认证     | 缺少认证信息或凭据无效                       |
+| `403 Forbidden`           | 无权限     | 权限不足或 IP 被临时封禁                     |
+| `404 Not Found`           | 未找到     | 目标资源不存在                               |
+| `409 Conflict`            | 冲突       | 当前状态不允许操作或资源已存在               |
+| `429 Too Many Requests`   | 请求过多   | 超出允许的请求速率                           |
+| `503 Service Unavailable` | 服务不可用 | 服务过载或依赖暂时不可用                     |
 
-## API 详细文档索引
+## API 参考目录
 
-- [认证与会话 API](./authentication.md)
-- [用户与令牌 API](./tokens.md)
-- [Maven 制品与元数据 API](./maven.md)
-- [Cargo 注册源 API](./cargo.md)
-- [Docker / OCI 镜像库 API](./docker.md)
+- [认证 API](./authentication.md)
+- [API Token 与用户](./tokens.md)
+- [Maven API](./maven.md)
+- [Cargo API](./cargo.md)
+- [Docker / OCI API](./docker.md)
 - [消息中心 API](./messages.md)
-- [存储与分块上传 API](./storage.md)
-- [系统设置 API](./settings.md)
-- [健康与状态监控 API](./status.md)
-- [GPG 密钥与签名 API](./gpg.md)
-- [限流与安全防御说明](./rate-limit.md)
-- [在线更新 API](./updater.md)
+- [存储与上传 API](./storage.md)
+- [设置 API](./settings.md)
+- [状态与遥测 API](./status.md)
+- [GPG 加密 API](./gpg.md)
+- [速率限制](./rate-limit.md)
+- [更新 API](./updater.md)

@@ -2,117 +2,100 @@
 title: Authentication API
 order: 2
 category: API Reference
-description: Login, logout, session discovery, and password modification endpoints
+description: Browser sessions, profiles, login methods, recovery codes, and session revocation
 ---
 
 # Authentication API
 
-## 1. Login
+Browser authentication uses the HttpOnly `renop_session` cookie. Session secrets are not returned by profile or
+session-list APIs and are rejected in request headers and URLs. Private security endpoints accept only a browser
+session, never a password or API token.
+
+## 1. Password or email login
 
 - **Path**: `POST /api/auth/login`
-- **Auth**: None
+- **Auth**: None.
+- **Body**: protobuf `LoginRequest`; JSON field names are shown below. `name` accepts a username or private login email.
 
-### Request Body (JSON)
+### Request
 
 ```json
 {
-  "username": "admin",
-  "password": "your_password"
+  "name": "admin",
+  "secret": "your_password"
 }
 ```
 
-### Response
+### Session result
 
-- **Status**: `200 OK`
-- **Header**: `Set-Cookie: renop_session=<session_id>; Path=/; HttpOnly; SameSite=Lax`
-- **Body (JSON)**:
+Success sets `renop_session` with `HttpOnly`, `SameSite=Lax`, and `Secure` when HTTPS is detected. The protobuf
+`SessionDetails` body contains account permissions and routes but leaves `session_token` empty.
 
-```json
-{
-  "success": true,
-  "session_id": "abc123xyz...",
-  "user": {
-    "username": "admin",
-    "role": "admin",
-    "permissions": ["allview", "allupdate"]
-  }
-}
-```
+## 2. Passkey and GitHub login
 
----
+- **Passkey begin**: `POST /api/auth/fido/login/begin`
+- **Passkey finish**: `POST /api/auth/fido/login/finish`
+- **GitHub start**: `GET /api/auth/github/start`
+- **GitHub callback**: `GET /api/auth/github/callback`
+- **GitHub availability**: `GET /api/auth/github/status`
 
-## 2. Logout
+GitHub login appears only after an administrator configures OAuth. RenoP requests user and organization read access,
+stores immutable provider IDs and current principal snapshots, and never persists the OAuth access token.
 
-- **Path**: `POST /api/auth/logout`
-- **Auth**: Required
+## 3. Current account and public profiles
 
-### Response
+- **Current session**: `GET /api/auth/me`
+- **Private profile**: `GET /api/auth/profile`
+- **Update username or nickname**: `PUT /api/auth/profile`
+- **Update password**: `PUT /api/auth/profile/password`
+- **Logout**: `POST /api/auth/logout`
+- **Public profile**: `GET /api/users/:username/profile`
+- **Package memberships**: `GET /api/users/:username/memberships?format=cargo|docker|maven`
 
-- **Status**: `200 OK`
-- **Body**: `{"success": true}`
+Visible profile routes use usernames. Immutable user IDs remain internal. `HIDDEN` repository memberships are omitted;
+private memberships are returned only to an authorized viewer.
 
----
+## 4. Account security
 
-## 3. Current User Profile
+Account-security routes require the current browser session and return `Cache-Control: no-store`.
 
-- **Path**: `GET /api/auth/me`
-- **Auth**: Required
+### Email and password-login policy
 
-### Response (JSON)
+- **Read state**: `GET /api/auth/profile/security`
+- **Set email**: `PUT /api/auth/profile/email`
+- **Enable or disable password login**: `PUT /api/auth/profile/password-login`
+- Password login can be disabled only while Passkey or GitHub remains linked. Enabling it requires a configured password.
 
-```json
-{
-  "username": "admin",
-  "role": "admin",
-  "permissions": ["allview", "allupdate"],
-  "email": "admin@example.com"
-}
-```
+### Recovery codes
 
----
-
-## 4. Change Password
-
-- **Path**: `POST /api/auth/change-password`
-- **Auth**: Required
-
-### Request Body (JSON)
+- **Generate**: `POST /api/auth/profile/recovery-codes`
+- **Reset password**: `POST /api/auth/recovery/password`
+- Generation returns twelve one-time codes once. RenoP stores Argon2id verifiers, not plaintext. Recovery requires four
+  distinct unused codes, consumes them atomically, revokes existing sessions, and re-enables password login.
 
 ```json
 {
-  "old_password": "current_password",
+  "identifier": "admin@example.com",
+  "codes": ["CODE-ONE", "CODE-TWO", "CODE-THREE", "CODE-FOUR"],
   "new_password": "new_secure_password"
 }
 ```
 
-### Response
+## 5. Login-method management
 
-- **Status**: `200 OK`
-- **Body**: `{"success": true}`
+- **List Passkeys**: `GET /api/auth/profile/fido`
+- **Register Passkey**: `POST /api/auth/profile/fido/register/begin` then
+  `POST /api/auth/profile/fido/register/finish`
+- **Delete Passkey**: `DELETE /api/auth/profile/fido/:device_id`
+- **Read linked GitHub identity**: `GET /api/auth/profile/github`
+- **Disconnect GitHub**: `DELETE /api/auth/profile/github`
 
----
+The last working login method cannot be removed or disabled.
 
-## 5. Audit Logs
+## 6. Browser sessions
 
-- **Path**: `GET /api/auth/logs`
-- **Auth**: Manager or Admin
-- **Query Parameters**:
-    - `limit`: Result count (default: 50, max: 200)
-    - `offset`: Pagination offset
+- **List**: `GET /api/auth/profile/sessions`
+- **Revoke one**: `DELETE /api/auth/profile/sessions/:session_id`
+- **Revoke every other session**: `POST /api/auth/profile/sessions/revoke-others`
 
-### Response (JSON)
-
-```json
-{
-  "total": 120,
-  "logs": [
-    {
-      "id": 1,
-      "username": "admin",
-      "action": "LOGIN_SUCCESS",
-      "ip": "192.168.1.100",
-      "timestamp": 1740000000
-    }
-  ]
-}
-```
+Session lists expose a public ID, login method, timestamps, IP, and user agent. They never expose the cookie secret.

@@ -1,18 +1,18 @@
 ---
-title: GPG 密钥与签名 API
+title: GPG 加密 API
 order: 11
 category: API 接口
-description: 个人 GPG 公钥管理与签名校验接口
+description: OpenPGP 公钥管理与签名验证状态
 ---
 
-# GPG 密钥与签名 API
+# GPG 加密 API
 
-## 1. 查询当前用户的 GPG 公钥
+## 1. 查询账号 GPG 公钥
 
 - **路径**：`GET /api/auth/profile/gpg`
-- **认证要求**：需已登录
+- **认证**：必须登录。
 
-### 响应 (JSON)
+### JSON 响应
 
 ```json
 {
@@ -29,21 +29,21 @@ description: 个人 GPG 公钥管理与签名校验接口
 
 ---
 
-## 2. 导入/登记 GPG 公钥
+## 2. 注册 GPG 公钥
 
 - **路径**：`POST /api/auth/profile/gpg`
-- **认证要求**：需已登录
-- **请求体 (JSON)**：
+- **认证**：必须登录。
+- **JSON 正文**：
   ```json
   {
     "public_key_armored": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----"
   }
   ```
-- **响应**：`200 OK`，返回已解析的密钥元数据。
+- **响应**：`200 OK`，并返回解析后的公钥元数据。
 
 ---
 
-## 3. 查询隔离区暂存的待验签发布包
+## 3. 查询隔离中的发布
 
 - **路径**：`GET /api/auth/profile/gpg/releases`
-- **说明**：列出当前用户上传但因缺少对应 `.asc` 签名文件暂留在隔离区中的待发布制品。
+- **用途**：列出 `.renop.tmp.gpg` 中等待分离签名、公钥验证或最终发布的制品。

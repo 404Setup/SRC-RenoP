@@ -2,64 +2,79 @@
 title: Storage & Upload API
 order: 10
 category: API Reference
-description: Standard Maven HTTP operations and chunked artifact uploads
+description: Direct repository operations and bounded resumable uploads
 ---
 
 # Storage & Upload API
 
-## 1. Standard Maven HTTP Operations
+Direct storage routes apply to Maven and `files` repositories. Cargo and Docker use their native protocol APIs. Every
+mutation is checked against API-token scope, repository permission, repository format, and Maven-domain policy.
 
-Clients interact directly with repository paths: `/{repo}/{path...}`
+## 1. Direct repository operations
 
-### Download Artifact
+The canonical path is `/{repo}/{path...}`. Reads support HTTP validators and byte ranges. `HIDDEN` repositories are
+unlisted but exact paths remain readable; `PRIVATE` repositories require authorization.
 
-- **Request**: `GET /{repo}/{path}`
-- **Description**: Supports HTTP Range requests, generating ETag and Last-Modified headers.
+### Download
 
-### Upload Artifact
+- **Request**: `GET /{repo}/{path}` or `HEAD /{repo}/{path}`
+- Missing local files may be resolved through an enabled mirror and streamed into the configured cache policy.
+
+### Upload
 
 - **Request**: `PUT /{repo}/{path}`
-- **Auth**: Requires write permission (`canupdate:{repo}`)
-- **Response**: `201 Created`
+- **Auth**: Password or API token with `repository:publish`, plus current write/domain permission.
+- Maven accepts only valid coordinates and metadata under a verified domain. `files` accepts sanitized arbitrary paths
+  and supports replacement.
 
-### Delete Artifact
+### Delete
 
 - **Request**: `DELETE /{repo}/{path}`
-- **Auth**: Requires admin permission (`canadmin:{repo}`)
-- **Response**: `204 No Content`
+- **Auth**: API token with `repository:delete` or another allowed credential, plus current delete permission.
 
----
+## 2. Chunked resumable uploads
 
-## 2. Chunked Large File Uploads
+Chunked uploads use protobuf metadata and raw binary parts. The server owns the final destination, bounds part size and
+session count, and deletes abandoned temporary files.
 
-For large packages and archives, clients can perform chunked uploads.
+### Initialize
 
-### Initialize Upload
+- **Path**: `POST /api/upload/chunked/`
+- **Content-Type**: `application/x-protobuf` with `ChunkedUploadInitRequest`.
+- `purpose` is `storage` or `updater`. Storage `path` includes the repository name.
 
-- **Path**: `POST /api/upload/chunked`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "repository": "releases",
-    "target_path": "com/example/big-app/1.0.0/big-app-1.0.0.jar",
-    "total_size": 524288000,
-    "chunk_size": 10485760
-  }
-  ```
-- **Response (JSON)**: `{"upload_id": "up_987654321", "chunk_size": 10485760}`
+```json
+{
+  "purpose": "storage",
+  "filename": "app-1.0.0.jar",
+  "size": 524288000,
+  "path": "releases/com/example/app/1.0.0/app-1.0.0.jar",
+  "generate_checksums": true,
+  "chunk_size": 4194304,
+  "gpg_signature_expected": false
+}
+```
 
-### Upload Chunk
+### Upload a part
 
-- **Path**: `PUT /api/upload/chunked/:upload_id?chunk_index=0`
-- **Body**: Binary byte stream for the chunk
+- **Path**: `PUT /api/upload/chunked/{upload_id}/{index}`
+- **Content-Type**: `application/octet-stream`.
+- Parts may run concurrently. Retrying an already accepted index is idempotent; a part with the wrong length is rejected.
 
-### Finalize & Verify
+### Complete or abort
 
-- **Path**: `POST /api/upload/chunked/:upload_id/complete`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "sha256": "abcdef1234567890..."
-  }
-  ```
-- **Response**: `201 Created`
+- **Complete**: `POST /api/upload/chunked/{upload_id}/complete`
+- **Abort**: `DELETE /api/upload/chunked/{upload_id}`
+- Completion is single-winner. It verifies every part, rechecks authorization, and commits through the repository gate.
+
+```json
+{
+  "status": "created",
+  "message": "",
+  "path": "releases/com/example/app/1.0.0/app-1.0.0.jar",
+  "release_id": ""
+}
+```
+
+When Maven requires GPG, completion may return `202 Accepted` with a `release_id` while publication remains quarantined.
+For `purpose=updater`, success returns `ready_to_restart` instead of a repository path.

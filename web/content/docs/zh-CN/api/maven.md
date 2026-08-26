@@ -1,58 +1,61 @@
 ---
-title: Maven 元数据 API
+title: Maven 存储库 API
 order: 4
 category: API 接口
-description: Maven 制品检索、元数据查询、版本发现与徽章生成接口
+description: 已验证发布域、域团队、制品目录与 Maven 客户端访问
 ---
 
-# Maven 元数据 API
+# Maven 存储库 API
 
-## 1. 搜索制品
+RenoP Maven 存储库使用已验证的反向域名命名空间。发布者只需在账号菜单中创建并验证一次域，即可在所有有权
+操作的 Maven 存储库中使用。标准 Maven 2 路径、元数据、分离签名与校验文件保持 Maven 和 Gradle 兼容。
 
-- **路径**：`GET /api/search`
-- **查询参数**：
-    - `q`：检索关键字（匹配 groupId、artifactId 或版本号）
-    - `repo`：指定仓库（可选，默认全部可读仓库）
-    - `limit`：返回数量（默认 20，上限 100）
+## 域验证
 
-### 响应 (JSON)
+通过 `POST /api/maven/domains` 创建域。RenoP 返回高强度随机验证码和固定验证目标：
 
-```json
-{
-  "results": [
-    {
-      "repository": "releases",
-      "group_id": "com.example",
-      "artifact_id": "my-library",
-      "latest_version": "1.2.0",
-      "versions": ["1.0.0", "1.1.0", "1.2.0"],
-      "last_updated": 1740000000
-    }
-  ]
-}
-```
+- DNS 命名空间在注册根域建立 TXT；系统读取全部 TXT 值并仅接受精确匹配；
+- `io.github.<account>` 使用公开 GitHub 用户的 Bio 或公开组织的 Description；
+- `io.gitlab.<account>` 使用公开 GitLab 用户的 Bio 或公开群组的 Description。
 
----
+通过 `POST /api/maven/domains/:domain/verify` 发起外部验证。每个域每 5 秒最多验证一次。系统管理员可使用
+`/verify/force` 强制通过，此操作会写入行为日志。
 
-## 2. 获取制品详细信息
+验证后的域及其团队在整个 RenoP 实例中共享。切换 Maven 存储库时无需重复创建、验证或邀请成员。
 
-- **路径**：`GET /api/maven/details/:repo/:group/:artifact`
-- **说明**：查询指定制品的版本列表、依赖树与打包类型。
+## 域权限
 
----
+Maven 团队归属于全局域，而非某个存储库或单个制品：
 
-## 3. 生成版本状态 SVG 徽章 (Badge)
+- L0：读取公开内容；
+- L1：发布制品；
+- L2：管理版本与描述；
+- L3：邀请和管理成员；
+- L4：拥有并转移域。
 
-- **路径**：`GET /api/maven/badge/:repo/:group/:artifact/version.svg`
-- **响应**：返回标准 SVG 矢量图像（适用于嵌入 README 中展示最新版本号）。
-- **示例**：
-  ```markdown
-  ![Version](http://localhost:3000/api/maven/badge/releases/com.example/my-library/version.svg)
-  ```
+单次邀请请求可包含 1 至 20 个用户名。非管理员添加成员时使用消息中心邀请。所有权转移始终保留唯一 L4
+所有者，所有者必须先转移所有权才能退出。
 
----
+## 制品目录
 
-## 4. 自动生成 POM 片段
+`GET /api/maven/repositories/:repo/domains` 列出在指定存储库中已有制品的域。
+`GET /api/maven/repositories/:repo/packages` 提供分页搜索。
+`GET /api/maven/repositories/:repo/package?group=...&artifact=...` 返回制品及版本。L2 成员可通过对应 JSON
+接口更新描述或删除完整版本。
 
-- **路径**：`GET /api/maven/pom-snippet/:repo/:group/:artifact/:version`
-- **响应 (JSON)**：包含 Maven XML、Gradle Kotlin DSL 与 Groovy DSL 的依赖声明字符串。
+旧版 Maven 存储库会在升级时建立目录索引。迁移得到的域视为已验证，但不会自动添加成员；管理员必须显式
+分配权限。已配置的 Maven 镜像继续解析缺失制品。
+
+## 布局与纯文件存储库
+
+现代 UI 默认使用域目录。管理员可切换到经典文件树，并可随时切回。此设置只改变显示方式：任意路径仍会被
+拒绝，发布仍要求已验证域和有效 Maven 路径。
+
+独立的 `files` 格式用于非结构化内容，支持覆盖、删除、S3 与镜像，但不生成校验文件或 POM，也不执行
+OpenPGP 校验。
+
+## Maven 与 Gradle 客户端访问
+
+读取和发布使用 `/{repo}/{maven-path}`。可使用密码，或带有 `repository:read`、`repository:publish` 的
+API Token。存储库可见性控制读取，已验证域及账号当前 L0-L4 控制修改。完整契约位于
+`web/assets/openapi.yaml`。

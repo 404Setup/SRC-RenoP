@@ -2,44 +2,46 @@
 title: Settings API
 order: 8
 category: API Reference
-description: Server configuration, repository management, and index rebuild endpoints
+description: Domain-based service settings, repository management, and index rebuilds
 ---
 
 # Settings API
 
-## 1. Get Configuration
+All settings routes require a manager account or an API token with `admin:settings` or `admin:repositories`, according
+to the operation. Responses use protobuf where defined in `proto/api/v1/api.proto`.
 
-- **Path**: `GET /api/settings/config`
-- **Auth**: Manager or Admin
+## 1. Discover setting domains
 
----
+- **Path**: `GET /api/settings/domains`
+- **Response**: Stable domain names currently supported by the server, including `server`, `proxy`, `storage`,
+  `updater`, and `index`.
 
-## 2. Update Configuration
+## 2. Read and update one domain
 
-- **Path**: `PUT /api/settings/config`
-- **Auth**: Admin
-- **Description**: Updates server parameters, domain names, proxies, and branding. Host, port, and TLS changes require
-  restarting the process.
+- **Read**: `GET /api/settings/domain/:name`
+- **Update**: `PUT /api/settings/domain/:name`
+- **Behavior**: The request and response schema depends on `:name`. Unknown fields and invalid values are rejected.
+  Host, port, TLS, database, and selected runtime changes may require a service restart.
+- **GitHub OAuth**: `GET /api/settings/github-oauth` reads redacted state and `PUT /api/settings/github-oauth` updates the
+  client ID and write-only secret.
 
----
+## 3. Repository settings
 
-## 3. Repository Settings
+The generic `/api/settings/repositories` routes are preferred. Maven-prefixed aliases remain for compatibility.
 
-### Get All Repositories
+### List repositories
 
-- **Path**: `GET /api/settings/maven/repositories`
-- **Auth**: Manager or Admin
+- **Path**: `GET /api/settings/repositories`
+- **Alias**: `GET /api/settings/maven/repositories`
 
-### Update Repository
+### Create, update, delete, or migrate
 
-- **Path**: `PUT /api/settings/maven/repositories/:name`
-- **Auth**: Manager or Admin
+- **Create or update**: `PUT /api/settings/repositories/:name`
+- **Delete**: `DELETE /api/settings/repositories/:name`
+- **Migrate Maven/files**: `POST /api/settings/repositories/:name/migrate/:target`, where `:target` is `maven` or
+  `files`. Stored objects remain in place while the Maven catalog is rebuilt when returning to Maven.
 
----
-
-## 4. Rebuild Search Index
+## 4. Rebuild the search index
 
 - **Path**: `POST /api/settings/index/rebuild`
-- **Auth**: Admin
-- **Description**: Asynchronously scans storage and rebuilds the `index.json` search cache.
-- **Response**: `202 Accepted`, `{"message": "Index rebuild triggered"}`
+- **Behavior**: Submits a coalesced background rebuild. A concurrent rebuild is not started twice.

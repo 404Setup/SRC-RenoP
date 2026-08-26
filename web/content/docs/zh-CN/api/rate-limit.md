@@ -1,36 +1,33 @@
 ---
-title: 限流与防御机制
+title: 速率限制与防护
 order: 12
 category: API 接口
-description: 速率限制规则、异常探测与 IP 防护策略说明
+description: 请求速率限制、异常检测与 IP 防护策略
 ---
 
-# 限流与防御机制
+# 速率限制与防护
 
-为了防止恶意爬虫、扫描探测以及对认证接口的暴力破解，RenoP 内置了多层速率限制与异常行为防御机制。
+RenoP 组合使用多层速率限制与异常检测，降低暴力破解、拒绝服务和过量自动抓取带来的风险。
 
-## 1. 匿名请求限流
+## 1. 匿名请求限制
 
-对于未提供认证凭据的客户端 IP，系统根据滑动窗口令牌桶算法执行速率限制：
+未认证请求按客户端 IP 使用滑动窗口与令牌桶进行控制：
 
-- **公共制品拉取**：允许高频拉取，设定了合理的单 IP 每秒最大请求上限。
-- **元数据与搜索接口**：频率限制较为严格，超出后返回 `429 Too Many Requests`。
+- 公开制品下载使用较宽松的上限；
+- 搜索与元数据请求使用更严格的上限，超出后返回 `429 Too Many Requests`。
 
-## 2. 连续认证失败与防爆破拦截
+## 2. 连续认证失败与 IP 封禁
 
-- 当同一 IP 连续多次尝试登录失败，或向私有仓库持续发送无效凭据触发 `401 Unauthorized` / `403 Forbidden` 时，系统会自动将该
-  IP 判定为异常来源。
-- 触发封禁后，该 IP 在封禁冷却期内发起的所有请求将被直接拒绝并返回 `403 Forbidden`。
-- 封禁时长随连续违规次数呈阶梯式延长。
+- 登录接口或私有资源连续产生 `401 Unauthorized` 或 `403 Forbidden` 时，会被判定为异常行为；
+- 对应 IP 将被临时封禁并返回 `403 Forbidden`，重复触发会延长封禁时间。
 
-## 3. 并发连接控制 (`max_active_requests`)
+## 3. 并发上限 (`max_active_requests`)
 
-在 `config.yaml` 中配置 `server.max_active_requests`（默认 512）：
+在 `config.yaml` 中配置 `server.max_active_requests`，默认值为 512。
 
-- 当服务器当前并发处理的 HTTP 请求总数达到该上限时，新到达的请求将被快速拒绝并返回 `503 Service Unavailable`
-  ，防止瞬时峰值流量耗尽系统资源。
+- 活跃请求达到上限后，新请求返回 `503 Service Unavailable`。
 
-## 4. 可信代理配置
+## 4. 可信代理
 
-如果 RenoP 前置了 Nginx、Caddy 或 CDN（如 Cloudflare），请务必在 `config.yaml` 中正确配置 `server.trusted_proxies` 与
-`server.cdn_ip_header`，确保限流机制基于客户端真实 IP 进行计算，避免误封反向代理节点的网关 IP。
+部署在反向代理或 CDN 后方时，应在 `config.yaml` 中配置 `server.trusted_proxies` 与
+`server.cdn_ip_header`。RenoP 仅使用来自可信来源且经过校验的真实客户端 IP 执行速率限制。
