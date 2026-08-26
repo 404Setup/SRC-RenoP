@@ -152,6 +152,7 @@ function parseReleaseItem(r, channelDefault) {
     return {
         version: String(r.version || ''),
         commit: String(r.commit || ''),
+        previousCommit: String(r.previous_commit || r.previousCommit || ''),
         channel: String(r.channel || channelDefault),
         development: Boolean(r.development),
         publishedAt: String(r.published_at || r.publishedAt || ''),
@@ -171,7 +172,7 @@ function parseReleaseItem(r, channelDefault) {
  *   publishedAt: string,
  *   changelog: string,
  *   targets: Array<{ os: string, arch: string, file: string, sha256: string, size: number, format: string, executable: string, downloadUrl: string }>,
- *   releases: Array<{ version: string, commit: string, channel: string, development: boolean, publishedAt: string, changelog: string, targets: Array }>
+ *   releases: Array<{ version: string, commit: string, previousCommit: string, channel: string, development: boolean, publishedAt: string, changelog: string, targets: Array }>
  * }>}
  */
 export async function fetchChannelInfo(channel) {

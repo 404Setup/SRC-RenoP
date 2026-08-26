@@ -16,6 +16,12 @@
 .PARAMETER Development
     Whether the binary is a development build. The value is a string so CI
     can pass either true or false explicitly.
+
+.PARAMETER Commit
+    Full source revision embedded in the binary and release manifest.
+
+.PARAMETER PreviousCommit
+    Full source revision of the preceding formal release.
 #>
 [CmdletBinding()]
 param(
@@ -29,7 +35,9 @@ param(
     [switch]$c,
     [switch]$nb,
     [string]$Version,
-    [string]$Development
+    [string]$Development,
+    [string]$Commit,
+    [string]$PreviousCommit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +67,28 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 
 $developmentValue = if ($Development -match '^(?i:true|1|yes)$') { 'true' } else { 'false' }
+$commitFull = $Commit.Trim()
+if ([string]::IsNullOrWhiteSpace($commitFull)) {
+    try { $commitFull = (& git rev-parse HEAD 2>$null).Trim() } catch { $commitFull = '' }
+}
+$previousCommitFull = $PreviousCommit.Trim()
+if ($developmentValue -eq 'false' -and [string]::IsNullOrWhiteSpace($previousCommitFull) -and -not [string]::IsNullOrWhiteSpace($commitFull)) {
+    try {
+        $previousCommitFull = (& git log -1 --format='%H' -i --grep='^\[release\]' "${commitFull}^" 2>$null).Trim()
+    } catch {
+        $previousCommitFull = ''
+    }
+    if ([string]::IsNullOrWhiteSpace($previousCommitFull)) {
+        try {
+            $previousTag = (& git describe --tags --abbrev=0 "${commitFull}^" 2>$null).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($previousTag)) {
+                $previousCommitFull = (& git rev-parse "$previousTag^{commit}" 2>$null).Trim()
+            }
+        } catch {
+            $previousCommitFull = ''
+        }
+    }
+}
 $displayVersion = if ($Version -match '^(?i:[0-9a-f]{40}|[0-9a-f]{64})$') {
     $Version.Substring(0, 7)
 } else {
@@ -299,7 +329,7 @@ try {
             Remove-Item Env:GOAMD64 -ErrorAction SilentlyContinue
         }
 
-        $ldflags = "-s -w -X=renop/internal/version.Version=$displayVersion -X=renop/internal/version.Development=$developmentValue"
+        $ldflags = "-s -w -X=renop/internal/version.Version=$displayVersion -X=renop/internal/version.Development=$developmentValue -X=renop/internal/version.Commit=$commitFull -X=renop/internal/version.PreviousCommit=$previousCommitFull"
         if ($goos -eq 'linux') {
             # Apply before runtime initialization so even the first Go heap mapping
             # avoids transparent huge pages. A process-level GODEBUG still overrides it.
@@ -337,15 +367,10 @@ try {
     }
 
     if (-not $noBundle) {
-        $commitFull = $null
-        try {
-            $commitFull = (& git rev-parse HEAD 2>$null).Trim()
-        } catch {
-            $commitFull = ''
-        }
         $manifest = [ordered]@{
             version = $displayVersion
             commit = $commitFull
+            previous_commit = $previousCommitFull
             development = ($developmentValue -eq 'true')
             targets = $manifestTargets
         }

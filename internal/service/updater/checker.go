@@ -333,7 +333,14 @@ func remoteIsStrictlyNewer(commits []GithubCommitResponse, currentVersion, remot
 }
 
 func collectNightlyReleaseNotes(commits []GithubCommitResponse, currentVersion, latestCommit string, currentExistsOutside bool) (notes string, latestDate string) {
+	return collectNightlyReleaseNotesForBuild(commits, currentVersion, "", latestCommit, currentExistsOutside)
+}
+
+func collectNightlyReleaseNotesForBuild(commits []GithubCommitResponse, currentVersion, currentCommit, latestCommit string, currentExistsOutside bool) (notes string, latestDate string) {
 	curr := normalizeVersionID(currentVersion)
+	if looksLikeCommitID(currentCommit) {
+		curr = normalizeVersionID(currentCommit)
+	}
 	commitSha := strings.TrimSpace(latestCommit)
 
 	start := 0
@@ -365,8 +372,6 @@ func collectNightlyReleaseNotes(commits []GithubCommitResponse, currentVersion, 
 			start = 0
 			latestDate = commitDateAt(commits, start)
 		}
-	case currIdx < 0 && curr != "" && curr != "dev" && startFound:
-		return "", latestDate
 	case !startFound && currIdx >= 0:
 		start = 0
 		end = currIdx
@@ -434,24 +439,89 @@ func versionsMatch(curr, remoteVersion, remoteCommit string) bool {
 	return false
 }
 
-func findReleaseIndex(releases []ChannelInfoRelease, currentVersion string) int {
-	curr := normalizeVersionID(currentVersion)
-	if curr == "" || curr == "dev" {
-		return -1
+func commitIdentitiesMatch(left, right string) bool {
+	left = normalizeVersionID(left)
+	right = normalizeVersionID(right)
+	if len(left) < 7 || len(right) < 7 {
+		return false
 	}
+	return left == right || strings.HasPrefix(left, right) || strings.HasPrefix(right, left)
+}
+
+func releaseMatchesBuild(release ChannelInfoRelease, currentVersion, currentCommit string) bool {
+	return versionsMatch(currentVersion, release.Version, release.Commit) ||
+		(commitIdentitiesMatch(currentCommit, release.Commit) && looksLikeCommitID(currentCommit))
+}
+
+func findReleaseIndexForBuild(releases []ChannelInfoRelease, currentVersion, currentCommit string) int {
 	for i, r := range releases {
-		if versionsMatch(currentVersion, r.Version, r.Commit) {
+		if releaseMatchesBuild(r, currentVersion, currentCommit) {
 			return i
 		}
 	}
 	return -1
 }
 
+func findReleaseIndex(releases []ChannelInfoRelease, currentVersion string) int {
+	return findReleaseIndexForBuild(releases, currentVersion, "")
+}
+
+func releaseRangeBoundary(releases []ChannelInfoRelease, currentVersion, currentCommit string) (int, bool) {
+	if index := findReleaseIndexForBuild(releases, currentVersion, currentCommit); index >= 0 {
+		return index, true
+	}
+	if looksLikeCommitID(currentCommit) {
+		for index, release := range releases {
+			if commitIdentitiesMatch(currentCommit, release.PreviousCommit) {
+				return index + 1, true
+			}
+		}
+	}
+	currentNormalized := normalizeVersionID(currentVersion)
+	if looksLikeSemver(currentNormalized) {
+		for index, release := range releases {
+			releaseVersion := normalizeVersionID(release.Version)
+			if looksLikeSemver(releaseVersion) && utils.CompareVersions(releaseVersion, currentNormalized) <= 0 {
+				return index, true
+			}
+		}
+	}
+	return len(releases), false
+}
+
+func collectAvailableReleaseNotes(releases []ChannelInfoRelease, currentVersion, currentCommit string) string {
+	end, _ := releaseRangeBoundary(releases, currentVersion, currentCommit)
+	end = min(max(end, 0), len(releases))
+	if end == 0 {
+		return ""
+	}
+	var notesBuilder strings.Builder
+	notesBuilder.Grow(min(maxRemoteJSONBody, end*256))
+	for index := end - 1; index >= 0; index-- {
+		release := releases[index]
+		if notesBuilder.Len() > 0 {
+			notesBuilder.WriteString("\n\n")
+		}
+		notesBuilder.WriteString("## ")
+		notesBuilder.WriteString(strings.TrimSpace(release.Version))
+		if notes := strings.TrimSpace(release.Changelog); notes != "" {
+			notesBuilder.WriteByte('\n')
+			notesBuilder.WriteString(notes)
+		}
+	}
+	return clipString(notesBuilder.String(), maxRemoteJSONBody)
+}
+
 func decideHasUpdate(current, remoteVersion, remoteCommit string, target *ChannelInfoTarget, infoReleases []ChannelInfoRelease, commits []GithubCommitResponse, currentExistsOutside bool) bool {
+	return decideHasUpdateForBuild(current, "", remoteVersion, remoteCommit, target, infoReleases, commits, currentExistsOutside)
+}
+
+func decideHasUpdateForBuild(current, currentCommit, remoteVersion, remoteCommit string, target *ChannelInfoTarget, infoReleases []ChannelInfoRelease, commits []GithubCommitResponse, currentExistsOutside bool) bool {
 	if target == nil {
 		return false
 	}
-	if versionsMatch(current, remoteVersion, remoteCommit) {
+	if versionsMatch(current, remoteVersion, remoteCommit) ||
+		(looksLikeCommitID(currentCommit) && commitIdentitiesMatch(currentCommit, remoteCommit)) {
 		return false
 	}
 
@@ -463,12 +533,8 @@ func decideHasUpdate(current, remoteVersion, remoteCommit string, target *Channe
 	}
 
 	if len(infoReleases) > 0 {
-		idx := findReleaseIndex(infoReleases, current)
-		if idx > 0 {
-			return true
-		}
-		if idx == 0 {
-			return false
+		if boundary, found := releaseRangeBoundary(infoReleases, current, currentCommit); found {
+			return boundary > 0
 		}
 	}
 
@@ -477,7 +543,11 @@ func decideHasUpdate(current, remoteVersion, remoteCommit string, target *Channe
 		remoteID = remoteN
 	}
 	if len(commits) > 0 {
-		if newer, ok := remoteIsStrictlyNewer(commits, current, remoteID); ok {
+		graphCurrent := current
+		if looksLikeCommitID(currentCommit) {
+			graphCurrent = currentCommit
+		}
+		if newer, ok := remoteIsStrictlyNewer(commits, graphCurrent, remoteID); ok {
 			return newer
 		}
 		if currentExistsOutside && findCommitIndex(commits, remoteID) >= 0 {
@@ -692,25 +762,40 @@ func checkRelease(ctx context.Context, client *http.Client) (*CheckResult, error
 			}
 		}
 	}
-	const maxNotes = 4 << 10
-	relNotes = clipString(relNotes, maxNotes)
+	latestRel.Changelog = strings.Clone(relNotes)
 
 	var commits []GithubCommitResponse
+	currentCommit := strings.TrimSpace(version.Commit)
+	if !looksLikeCommitID(currentCommit) {
+		currentCommit = ""
+	}
 	currN := normalizeVersionID(version.Version)
 	remoteN := normalizeVersionID(latestRel.Version)
 	needCommitOrder := target != nil &&
-		!versionsMatch(version.Version, latestRel.Version, commitSha) &&
+		!releaseMatchesBuild(*latestRel, version.Version, currentCommit) &&
 		!(looksLikeSemver(currN) && looksLikeSemver(remoteN)) &&
-		findReleaseIndex(info.Releases, version.Version) < 0
+		findReleaseIndexForBuild(info.Releases, version.Version, currentCommit) < 0
 
 	currentExistsOutside := false
 	if needCommitOrder {
 		_, _ = doGitHubJSON(checkCtx, client, githubRepoAPI+"/commits?sha=main&per_page=30", &commits)
 		if len(commits) > 0 {
-			currentExistsOutside = resolveCurrentCommit(checkCtx, client, version.Version, commits)
+			currentIdentity := version.Version
+			if currentCommit != "" {
+				currentIdentity = currentCommit
+			}
+			currentExistsOutside = resolveCurrentCommit(checkCtx, client, currentIdentity, commits)
 		}
 	}
-	hasUpdate := decideHasUpdate(version.Version, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
+	hasUpdate := decideHasUpdateForBuild(version.Version, currentCommit, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
+	if hasUpdate {
+		if combined := collectAvailableReleaseNotes(info.Releases, version.Version, currentCommit); combined != "" {
+			relNotes = combined
+		}
+	} else {
+		relNotes = ""
+	}
+	relNotes = clipString(relNotes, maxRemoteJSONBody)
 
 	latestVersion := latestRel.Version
 	if !strings.HasPrefix(latestVersion, "v") && looksLikeSemver(latestVersion) {
@@ -785,32 +870,43 @@ func checkNightly(ctx context.Context, client *http.Client) (*CheckResult, error
 	}
 
 	commitSha := strings.TrimSpace(latestRel.Commit)
+	currentCommit := strings.TrimSpace(version.Commit)
+	if !looksLikeCommitID(currentCommit) {
+		currentCommit = ""
+	}
 
 	var commits []GithubCommitResponse
-	releaseNotes := latestRel.Changelog
+	releaseNotes := collectAvailableReleaseNotes(info.Releases, version.Version, currentCommit)
 	commitDate := latestRel.PublishedAt
 	currentExistsOutside := false
+	_, releaseBoundaryFound := releaseRangeBoundary(info.Releases, version.Version, currentCommit)
 
 	needCommitOrder := target != nil &&
-		!versionsMatch(version.Version, latestRel.Version, commitSha) &&
-		findReleaseIndex(info.Releases, version.Version) < 0
+		!releaseMatchesBuild(*latestRel, version.Version, currentCommit) &&
+		!releaseBoundaryFound
 
 	if releaseNotes == "" || needCommitOrder {
 		if _, err := doGitHubJSON(checkCtx, client, githubRepoAPI+"/commits?sha=main&per_page=30", &commits); err == nil && len(commits) > 0 {
-			currentExistsOutside = resolveCurrentCommit(checkCtx, client, version.Version, commits)
+			currentIdentity := version.Version
+			if currentCommit != "" {
+				currentIdentity = currentCommit
+			}
+			currentExistsOutside = resolveCurrentCommit(checkCtx, client, currentIdentity, commits)
 			if releaseNotes == "" {
 				var noteDate string
-				releaseNotes, noteDate = collectNightlyReleaseNotes(commits, version.Version, commitSha, currentExistsOutside)
+				releaseNotes, noteDate = collectNightlyReleaseNotesForBuild(commits, version.Version, currentCommit, commitSha, currentExistsOutside)
 				if noteDate != "" {
 					commitDate = noteDate
 				}
 			}
 		}
 	}
-	const maxNotes = 4 << 10
-	releaseNotes = clipString(releaseNotes, maxNotes)
 
-	hasUpdate := decideHasUpdate(version.Version, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
+	hasUpdate := decideHasUpdateForBuild(version.Version, currentCommit, latestRel.Version, commitSha, target, info.Releases, commits, currentExistsOutside)
+	if !hasUpdate {
+		releaseNotes = ""
+	}
+	releaseNotes = clipString(releaseNotes, maxRemoteJSONBody)
 
 	latestVersion := latestRel.Version
 	if !strings.HasPrefix(latestVersion, "nightly-") {

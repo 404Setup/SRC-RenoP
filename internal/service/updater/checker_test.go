@@ -405,16 +405,44 @@ func TestCollectNightlyReleaseNotesPartialWhenCurrentNotInWindow(t *testing.T) {
 		ghCommit("dddddddddddddddddddddddddddddddddddddddd", "feat: still in window", "2026-07-22T10:00:00Z"),
 	}
 	notes, _ := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull, false)
-	if notes != "" {
-		t.Fatalf("expected empty notes without existsOutside, got %q", notes)
+	want := "fix: packaged latest\nfeat: still in window"
+	if notes != want {
+		t.Fatalf("expected oldest retained fallback, got %q", notes)
 	}
 	notes, date := collectNightlyReleaseNotes(commits, "eeeeeee", latestFull, true)
 	if date != "2026-07-26T10:00:00Z" {
 		t.Fatalf("package date: got %q", date)
 	}
-	want := "fix: packaged latest\nfeat: still in window"
 	if notes != want {
 		t.Fatalf("notes=\n%q\nwant\n%q", notes, want)
+	}
+}
+
+func TestCollectAvailableReleaseNotesCoversCurrentToTarget(t *testing.T) {
+	releases := []ChannelInfoRelease{
+		{Version: "v3.0.0", Commit: "3333333333333333333333333333333333333333", Changelog: "third"},
+		{Version: "v2.0.0", Commit: "2222222222222222222222222222222222222222", Changelog: "second"},
+		{Version: "v1.0.0", Commit: "1111111111111111111111111111111111111111", Changelog: "first"},
+	}
+	if got, want := collectAvailableReleaseNotes(releases, "v1.0.0", ""), "## v2.0.0\nsecond\n\n## v3.0.0\nthird"; got != want {
+		t.Fatalf("release notes = %q, want %q", got, want)
+	}
+	if got, want := collectAvailableReleaseNotes(releases, "v0.1.0", ""), "## v1.0.0\nfirst\n\n## v2.0.0\nsecond\n\n## v3.0.0\nthird"; got != want {
+		t.Fatalf("oldest retained release notes = %q, want %q", got, want)
+	}
+}
+
+func TestPreviousReleaseCommitBridgesTrimmedHistory(t *testing.T) {
+	const previous = "1111111111111111111111111111111111111111"
+	releases := []ChannelInfoRelease{
+		{Version: "v2.0.0", Commit: "2222222222222222222222222222222222222222", PreviousCommit: previous, Changelog: "second"},
+	}
+	target := &ChannelInfoTarget{OS: "linux", Arch: "amd64", File: "renop.br", Size: 1}
+	if !decideHasUpdateForBuild("custom-label", previous[:12], releases[0].Version, releases[0].Commit, target, releases, nil, false) {
+		t.Fatal("previous release commit must identify an available update")
+	}
+	if got, want := collectAvailableReleaseNotes(releases, "custom-label", previous[:12]), "## v2.0.0\nsecond"; got != want {
+		t.Fatalf("bridged release notes = %q, want %q", got, want)
 	}
 }
 

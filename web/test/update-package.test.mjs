@@ -55,9 +55,12 @@ test('release tooling emits raw Brotli packages through the installed Go CLI', (
     assert.match(build, /go install \.\/cmd\/renop-brotli/);
     assert.match(build, /Join-Path \$dist "\$name\.br"/);
     assert.match(build, /-quality 11/);
+    assert.match(build, /version\.PreviousCommit=\$previousCommitFull/);
     assert.doesNotMatch(build, /Compress-Archive/);
     assert.match(publish, /-Filter '\*\.br'/);
     assert.match(publish, /application\/x-brotli/);
+    assert.match(publish, /previous_commit/);
     assert.match(workflow, /dist\/\*\.br/);
     assert.match(workflow, /dist\/THIRD_PARTY_NOTICES\.md/);
+    assert.match(workflow, /previous_commit/);
 });

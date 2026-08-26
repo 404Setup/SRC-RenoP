@@ -19,6 +19,7 @@ jobs:
       development: ${{ steps.metadata.outputs.development }}
       tag: ${{ steps.metadata.outputs.tag }}
       commit: ${{ steps.metadata.outputs.commit }}
+      previous_commit: ${{ steps.metadata.outputs.previous_commit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -35,12 +36,22 @@ jobs:
               $message.StartsWith('[web]', [StringComparison]::OrdinalIgnoreCase)
           $release = $false
           $version = ''
+          $previousCommit = ''
           if (-not $skip -and $message.StartsWith('[release]', [StringComparison]::OrdinalIgnoreCase)) {
               $version = $message.Substring('[release]'.Length).Trim()
               if ([string]::IsNullOrWhiteSpace($version)) {
                   throw 'A [release] commit must include a version, for example: [release] v1.2.3'
               }
               $release = $true
+              $previousCommit = [string](git log -1 --format='%H' -i --grep='^\[release\]' HEAD^ 2>$null)
+              $previousCommit = $previousCommit.Trim()
+              if ([string]::IsNullOrWhiteSpace($previousCommit)) {
+                  $previousTag = [string](git describe --tags --abbrev=0 HEAD^ 2>$null)
+                  $previousTag = $previousTag.Trim()
+                  if (-not [string]::IsNullOrWhiteSpace($previousTag)) {
+                      $previousCommit = (git rev-parse "$previousTag^{commit}").Trim()
+                  }
+              }
           } elseif (-not $skip) {
               $version = (git rev-parse --short HEAD).Trim()
           }
@@ -52,6 +63,7 @@ jobs:
           "development=$development" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "commit=$commit" >> $env:GITHUB_OUTPUT
+          "previous_commit=$previousCommit" >> $env:GITHUB_OUTPUT
           Write-Host "Commit: $message"
           Write-Host "Version: $version sha=$commit (development=$development, skip=$skip)"
 
@@ -91,7 +103,9 @@ jobs:
         env:
           RENOP_VERSION: ${{ needs.metadata.outputs.version }}
           RENOP_DEVELOPMENT: ${{ needs.metadata.outputs.development }}
-        run: pwsh -NoProfile -File ./build.ps1 -Version $env:RENOP_VERSION -Development $env:RENOP_DEVELOPMENT
+          RENOP_COMMIT: ${{ needs.metadata.outputs.commit }}
+          RENOP_PREVIOUS_COMMIT: ${{ needs.metadata.outputs.previous_commit }}
+        run: pwsh -NoProfile -File ./build.ps1 -Version $env:RENOP_VERSION -Development $env:RENOP_DEVELOPMENT -Commit $env:RENOP_COMMIT -PreviousCommit $env:RENOP_PREVIOUS_COMMIT
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -132,6 +146,7 @@ jobs:
           IS_RELEASE: ${{ needs.metadata.outputs.release }}
           VERSION: ${{ needs.metadata.outputs.version }}
           COMMIT: ${{ needs.metadata.outputs.commit }}
+          PREVIOUS_COMMIT: ${{ needs.metadata.outputs.previous_commit }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:RENOP_PUBLISH_TOKEN)) {
               throw 'Repository secret RENOP_PUBLISH_TOKEN is not set'
@@ -142,6 +157,7 @@ jobs:
               -DistDir ./dist `
               -Version $env:VERSION `
               -Commit $env:COMMIT `
+              -PreviousCommit $env:PREVIOUS_COMMIT `
               -ChangelogFile "${{ steps.changelog.outputs.path }}"
 
   release:

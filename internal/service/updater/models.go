@@ -104,13 +104,14 @@ type CheckResult struct {
 
 // ChannelInfoRelease represents information about a single release or preview build.
 type ChannelInfoRelease struct {
-	Version     string              `json:"version"`
-	Commit      string              `json:"commit"`
-	Channel     string              `json:"channel,omitempty"`
-	Development bool                `json:"development,omitempty"`
-	PublishedAt string              `json:"published_at"`
-	Changelog   string              `json:"changelog,omitempty"`
-	Targets     []ChannelInfoTarget `json:"targets,omitempty"`
+	Version        string              `json:"version"`
+	Commit         string              `json:"commit"`
+	PreviousCommit string              `json:"previous_commit,omitempty"`
+	Channel        string              `json:"channel,omitempty"`
+	Development    bool                `json:"development,omitempty"`
+	PublishedAt    string              `json:"published_at"`
+	Changelog      string              `json:"changelog,omitempty"`
+	Targets        []ChannelInfoTarget `json:"targets,omitempty"`
 }
 
 // ChannelInfo is the hosted update/renop/{channel}/info.json document.

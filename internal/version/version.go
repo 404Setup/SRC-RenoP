@@ -21,6 +21,12 @@ var Version = "dev"
 // can be replaced by the Go linker's -X flag.
 var Development = "true"
 
+// Commit is the full source revision embedded by the release build.
+var Commit = "dev"
+
+// PreviousCommit is the preceding formal release revision when one exists.
+var PreviousCommit = ""
+
 // IsDevelopment reports whether this binary was built as a development build.
 func IsDevelopment() bool {
 	value, err := strconv.ParseBool(Development)

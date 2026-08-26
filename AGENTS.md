@@ -54,7 +54,9 @@
   dedicated and serial where ordering matters.
 - **`internal/service/updater/`**: Authenticated update checking and installation with SHA-256 verification, bounded
   streaming decode of new raw `.br` executable packages, compatibility decode for legacy `.zip` packages, and
-  deduplicated administrator status notifications.
+  deduplicated administrator status notifications. Update results aggregate every retained release note between the
+  running build and target; embedded full commit IDs and each stable record's `previous_commit` preserve ordering when
+  version labels or older hosted records are unavailable.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (modern Maven domain/artifact catalog,
   classic Maven/files index, and Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`, `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
@@ -106,7 +108,8 @@
 - **Shell**: PowerShell 7 (`pwsh`)
 - **Protobuf**: `protoc` with `protoc-gen-go`
 - **Release packaging**: `build.ps1` automatically installs `cmd/renop-brotli` into the active Go binary directory;
-  packaged builds emit raw `.br` executable streams while `nb` builds remain unpackaged binaries.
+  packaged builds emit raw `.br` executable streams while `nb` builds remain unpackaged binaries. Formal builds embed
+  the current and previous release commits and publish both values through `manifest.json` and channel `info.json`.
 
 ### Build & Test Workflows
 

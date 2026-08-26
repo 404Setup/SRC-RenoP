@@ -21,6 +21,9 @@
 .PARAMETER Commit
     Full git commit SHA embedded in info.json
 
+.PARAMETER PreviousCommit
+    Full git commit SHA of the preceding stable release
+
 .PARAMETER Changelog
     Release notes or commit messages content embedded in info.json
 
@@ -43,6 +46,8 @@ param(
     [string]$Version,
 
     [string]$Commit = '',
+
+    [string]$PreviousCommit = '',
 
     [string]$Changelog = '',
 
@@ -154,6 +159,9 @@ if (Test-Path -LiteralPath $manifestPath) {
     if ([string]::IsNullOrWhiteSpace($Commit) -and $manifest.commit) {
         $Commit = [string]$manifest.commit
     }
+    if ([string]::IsNullOrWhiteSpace($PreviousCommit) -and $manifest.previous_commit) {
+        $PreviousCommit = [string]$manifest.previous_commit
+    }
     if ([string]::IsNullOrWhiteSpace($Version) -and $manifest.version) {
         $Version = [string]$manifest.version
     }
@@ -161,6 +169,17 @@ if (Test-Path -LiteralPath $manifestPath) {
 
 if ([string]::IsNullOrWhiteSpace($Commit)) {
     try { $Commit = (& git rev-parse HEAD 2>$null).Trim() } catch { $Commit = '' }
+}
+if ($Channel -eq 'stable' -and [string]::IsNullOrWhiteSpace($PreviousCommit) -and -not [string]::IsNullOrWhiteSpace($Commit)) {
+    try { $PreviousCommit = (& git log -1 --format='%H' -i --grep='^\[release\]' "${Commit}^" 2>$null).Trim() } catch { $PreviousCommit = '' }
+    if ([string]::IsNullOrWhiteSpace($PreviousCommit)) {
+        try {
+            $previousTag = (& git describe --tags --abbrev=0 "${Commit}^" 2>$null).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($previousTag)) {
+                $PreviousCommit = (& git rev-parse "$previousTag^{commit}" 2>$null).Trim()
+            }
+        } catch { $PreviousCommit = '' }
+    }
 }
 
 $targets = [System.Collections.Generic.List[object]]::new()
@@ -232,6 +251,7 @@ $currentReleaseTargets = @(
 $currentRelease = [ordered]@{
     version      = $Version
     commit       = $Commit
+    previous_commit = if ($Channel -eq 'stable') { $PreviousCommit } else { '' }
     channel      = $Channel
     development  = ($Channel -eq 'nightly')
     published_at = $publishedAt
@@ -270,6 +290,7 @@ function Extract-ReleasesFromInfo {
         $list.Add([ordered]@{
             version      = [string]$infoObj.version
             commit       = [string]$infoObj.commit
+            previous_commit = [string]$infoObj.previous_commit
             channel      = [string]$infoObj.channel
             development  = [bool]$infoObj.development
             published_at = [string]$infoObj.published_at
@@ -306,6 +327,7 @@ if ($Channel -eq 'nightly') {
         $updatedReleases[$i] = [ordered]@{
             version      = [string]$rel.version
             commit       = [string]$rel.commit
+            previous_commit = [string]$rel.previous_commit
             channel      = [string]$rel.channel
             development  = [bool]$rel.development
             published_at = [string]$rel.published_at
@@ -345,6 +367,7 @@ if ($Channel -eq 'nightly') {
             $updatedReleases[$i] = [ordered]@{
                 version      = [string]$rel.version
                 commit       = [string]$rel.commit
+                previous_commit = [string]$rel.previous_commit
                 channel      = [string]$rel.channel
                 development  = [bool]$rel.development
                 published_at = [string]$rel.published_at
