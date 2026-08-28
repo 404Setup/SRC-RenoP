@@ -1850,7 +1850,7 @@ type Repository struct {
 	AllowRedeployment   bool                   `protobuf:"varint,4,opt,name=allow_redeployment,json=allowRedeployment,proto3" json:"allow_redeployment,omitempty"`
 	S3                  *S3Config              `protobuf:"bytes,5,opt,name=s3,proto3" json:"s3,omitempty"`
 	RequireGpgSignature bool                   `protobuf:"varint,6,opt,name=require_gpg_signature,json=requireGpgSignature,proto3" json:"require_gpg_signature,omitempty"`
-	// "maven" (default) or "cargo".
+	// "maven" (default), "maven-classic", "files", "cargo", "docker", or "npm".
 	Format        string `protobuf:"bytes,7,opt,name=format,proto3" json:"format,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

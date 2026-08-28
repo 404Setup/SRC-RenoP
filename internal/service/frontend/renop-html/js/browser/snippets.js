@@ -139,6 +139,22 @@ function buildDockerSnippets(repositoryName) {
 }
 
 /**
+ * Build npm registry configuration, installation, and publication snippets.
+ * @param {string} repositoryName - Repository slug.
+ * @returns {Object.<string, string>} npm snippets keyed by tab ID.
+ */
+function buildNPMSnippets(repositoryName) {
+    const encodedName = encodeURIComponent(repositoryName);
+    const registryURL = `${window.location.origin}/${encodedName}/`;
+    const authPath = `${window.location.host}/${encodedName}/`;
+    return {
+        'npm-config': `npm config set registry ${registryURL}\nnpm config set //${authPath}:_authToken <API_TOKEN>`,
+        'npm-install': `npm install <package> --registry ${registryURL}`,
+        'npm-publish': `npm publish --registry ${registryURL}`
+    };
+}
+
+/**
  * Return the localized tab label for a snippet type.
  * @param {string} type - Catalog snippet tab ID.
  * @returns {string} Localized or product-standard tab label.
@@ -156,6 +172,9 @@ function snippetTabLabel(type) {
         case 'docker-tag': return t('details.dockerTagTab');
         case 'docker-push': return t('details.dockerPushTab');
         case 'docker-login': return t('details.dockerLoginTab');
+        case 'npm-config': return t('details.npmConfigTab');
+        case 'npm-install': return t('details.npmInstallTab');
+        case 'npm-publish': return t('details.npmPublishTab');
         default: return 'Maven';
     }
 }
@@ -343,6 +362,10 @@ export async function updateSnippets(path, detailsPromise) {
         currentSnippets = buildDockerSnippets(pathParts[0]);
         if (title) title.textContent = t('details.dockerTitle');
         if (subtitle) subtitle.textContent = t('details.dockerSubtitle');
+    } else if (format.id === 'npm' && pathParts.length > 0) {
+        currentSnippets = buildNPMSnippets(pathParts[0]);
+        if (title) title.textContent = t('details.npmTitle');
+        if (subtitle) subtitle.textContent = t('details.npmSubtitle');
     } else {
         const snippetState = await buildMavenSnippets(path, pathParts);
 		if (sequence !== snippetUpdateSequence) return;

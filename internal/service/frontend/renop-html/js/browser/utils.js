@@ -61,6 +61,9 @@ export function breadcrumbPathParts(path, format) {
     if (format === 'docker' && parts.length > 1) {
         return [parts[0], parts.slice(1).join('/')];
     }
+    if (format === 'npm' && parts.length > 2 && decodePathSegment(parts[1]) === 'packages') {
+        return [parts[0], parts[1], parts.slice(2).join('/')];
+    }
     return parts;
 }
 

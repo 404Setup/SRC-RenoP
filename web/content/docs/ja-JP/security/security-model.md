@@ -28,10 +28,11 @@ system admin は global です。package team L0-L4 は通常 collaboration の�
 ## Repository / team layer
 
 - 可視性による発見と読み取りの境界は `PUBLIC`、権限に応じて表示する `HIDDEN`、認証が必要な `PRIVATE` です。
-- repository permission は Cargo/Docker package 作成や Maven domain 検証を自動で行いません。
-- Cargo/Docker team は L0 read、L1 publish、L2 lifecycle/metadata、L3 member、L4 owner です。
+- repository permission は npm/Cargo/Docker package 作成や Maven domain 検証を自動で行いません。
+- npm/Cargo/Docker team は L0 read、L1 publish、L2 lifecycle/metadata、L3 member、L4 owner です。
 - Maven team は検証済み global domain に属し、全 Maven repository で有効です。
 - private Docker image は public L0 を暗黙付与せず、blob も読める image に制限します。
+- private npm package は scoped 名が必須で、明示 member または administrator を要求します。
 
 ## Credential transport
 

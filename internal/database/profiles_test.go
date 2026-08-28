@@ -129,6 +129,8 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdeb",
 		MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(`{"schemaVersion":2}`),
 	}, "latest", "alice"))
+	_, err = db.CreateNPMPackage("npm", "@profile/demo", "alice", false, changedAt)
+	require.NoError(t, err)
 
 	profile, err = db.UpdateUserProfile("alice", "alice_one", "Alice Example", alice, changedAt+1,
 		core.AccountTokenChanges{})
@@ -140,6 +142,7 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, richProfile.CargoPackageCount)
 	require.Equal(t, 1, richProfile.DockerImageCount)
+	require.Equal(t, 1, richProfile.NPMPackageCount)
 	cargoMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatCargo)
 	require.NoError(t, err)
 	require.Len(t, cargoMemberships, 1)
@@ -150,6 +153,11 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	require.Len(t, dockerMemberships, 1)
 	require.Equal(t, "profile/demo", dockerMemberships[0].Name)
 	require.Equal(t, core.DockerPermissionOwner, dockerMemberships[0].PermissionLevel)
+	npmMemberships, err := db.ListUserPackageMemberships(stableUserID, config.RepositoryFormatNPM)
+	require.NoError(t, err)
+	require.Len(t, npmMemberships, 1)
+	require.Equal(t, "@profile/demo", npmMemberships[0].Name)
+	require.Equal(t, core.NPMPermissionOwner, npmMemberships[0].PermissionLevel)
 	_, err = db.GetUserProfile("alice")
 	require.ErrorIs(t, err, core.ErrUserProfileNotFound)
 	require.NotNil(t, mustToken(t, db, "alice_one"))
@@ -163,6 +171,10 @@ func TestUserProfileRenameIsDurableAndPreservesReferences(t *testing.T) {
 	dockerLevel, err := db.GetDockerMemberLevel("docker", "profile/demo", "alice_one")
 	require.NoError(t, err)
 	require.Equal(t, core.DockerPermissionOwner, dockerLevel)
+	npmDetails, err := db.GetNPMPackageDetails("npm", "@profile/demo", "alice_one")
+	require.NoError(t, err)
+	require.True(t, npmDetails.Member)
+	require.Equal(t, core.NPMPermissionOwner, npmDetails.Package.PermissionLevel)
 	var auditUsername, auditOperator string
 	require.NoError(t, db.QueryRow(`SELECT username, operator FROM audit_logs WHERE action = ?`, "PROFILE_TEST").Scan(
 		&auditUsername, &auditOperator,

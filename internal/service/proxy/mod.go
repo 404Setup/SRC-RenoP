@@ -84,6 +84,9 @@ func proxyResponseLimit(repo *config.Repository, path string) int64 {
 	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatCargo {
 		return cargo.ResponseLimit(path)
 	}
+	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatNPM {
+		return 64 << 20
+	}
 	name := strings.ToLower(filepath.Base(path))
 	if name == "maven-metadata.xml" || strings.HasPrefix(name, "maven-metadata.xml.") {
 		return maxProxyMetadataSize

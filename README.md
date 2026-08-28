@@ -36,6 +36,7 @@ binary with an embedded web UI and supports multiple registry protocols out of t
 
 - **Maven repository** — Release, snapshot, and private repositories with Maven 2 layout
 - **Cargo (Rust) registry** — Sparse index protocol, crate ownership, yank/unyank, and documentation uploads
+- **npm registry** — Explicit package reservation, immutable versions, private scopes, dist-tags, teams, and mirrors
 - **Docker / OCI registry** — Full OCI Distribution Specification v1.1.0 with Bearer token authentication
 - **Mirror proxying** — Upstream proxy with local caching, negative caching, per-artifact allowlists, and TTL
 - **Multi-backend storage** — Local disk or any S3-compatible object store (per-repository)
@@ -59,6 +60,7 @@ binary with an embedded web UI and supports multiple registry protocols out of t
 |-----------------------|---------------------|-------------------------------------------------------------------------------------|
 | Maven 2               | `/{repo}/`          | Maven repository layout                                                             |
 | Cargo sparse index    | `/{repo}/`          | [RFC 3239](https://rust-lang.github.io/rfcs/3239-cargo-sparse-registry.html)        |
+| npm registry          | `/{repo}/`          | npm-compatible packuments, publication, tarballs, dist-tags, and search           |
 | Docker / OCI Registry | `/v2/`              | [OCI Distribution Spec v1.1.0](https://github.com/opencontainers/distribution-spec) |
 | Javadoc preview       | `/javadoc/{repo}/`  | RenoP extension                                                                     |
 | Cargo-doc preview     | `/cargodoc/{repo}/` | RenoP extension                                                                     |
@@ -113,6 +115,14 @@ credential-provider = "cargo:token"
 docker login localhost:3000
 docker pull localhost:3000/my-image:latest
 docker push localhost:3000/my-image:latest
+```
+
+**npm registry:**
+
+```ini
+registry=http://localhost:3000/javascript/
+//localhost:3000/javascript/:_authToken=${RENOP_NPM_TOKEN}
+always-auth=true
 ```
 
 ---
@@ -272,6 +282,12 @@ repositories:
     s3:
       enabled: false
       # ... (same S3 fields as above)
+
+  javascript:
+    name: javascript
+    format: npm                   # npm-compatible package registry
+    visibility: PUBLIC
+    mirrors: [ ]
 ```
 
 **Reserved repository names** (cannot be used as repository names): `css`, `js`, `svg`, `api`, `javadocs`,
@@ -312,6 +328,19 @@ Cargo-specific operations supported:
 - Per-crate ownership management with invitation-based workflows
 - Cargo-doc tarball upload and sandboxed in-browser viewing at `/cargodoc/{repo}/{crate}/{version}/`
 - Crate search and version listing
+
+### npm Repositories
+
+Create an `npm` repository and reserve each local package from the web interface before publishing. RenoP validates
+the streamed tarball, stores immutable semantic versions, serves full or abbreviated packuments, and supports standard
+dist-tag, deprecation, unpublish, search, and audit requests. Scoped packages may be private; L0-L4 package teams control
+read, publish, lifecycle, team, and ownership operations. Upstream mirrors remain pull-only.
+
+```bash
+npm config set registry http://localhost:3000/javascript/
+npm publish
+npm install @example/library
+```
 
 ### Docker / OCI Registry
 
@@ -559,5 +588,5 @@ RenoP is licensed under the [Mozilla Public License 2.0](LICENSE) and is marked 
 
 Third-party components retain their own licenses. Copyright notices, SPDX identifiers, Apache `NOTICE` excerpts, and
 full license texts are in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) (also shipped in release archives). RenoP
-used [Reposilite](https://github.com/dzikoysk/reposilite) as a design reference only; its code is not redistributed
-here.
+Earlier design exploration referenced [Reposilite](https://github.com/dzikoysk/reposilite). RenoP is an independent,
+integrated Central-style publication platform rather than a Reposilite derivative; Reposilite code is not redistributed.

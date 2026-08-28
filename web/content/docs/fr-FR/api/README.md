@@ -16,6 +16,7 @@ le serveur écoute sur `http://localhost:3000`.
 |:--------------------------------|:----------------------------------------------------------------------|
 | `/api/*`                        | Gestion : authentification, comptes, paramètres, état et messages     |
 | `/{repo}/*`                     | Téléversement, téléchargement et suppression selon le format du dépôt |
+| `/{npm-repo}/*`                 | Packuments npm, tarballs, publication, dist-tags et recherche          |
 | `/index/*` ou `/{repo}/index/*` | Index clairsemé Cargo                                                 |
 | `/v2/*`                         | Distribution Docker et OCI v2                                        |
 | `/javadoc/*`                    | Consultation sécurisée des Javadocs                                   |
@@ -62,6 +63,7 @@ Basic Auth ne peut pas appeler les API de gestion. Les identifiants dans les par
 - [API Maven](./maven.md)
 - [API Cargo](./cargo.md)
 - [API Docker / OCI](./docker.md)
+- [API du registre npm](./npm.md)
 - [API du centre de messages](./messages.md)
 - [API de stockage et téléversement](./storage.md)
 - [API des paramètres](./settings.md)

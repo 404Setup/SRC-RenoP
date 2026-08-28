@@ -132,7 +132,7 @@ export default Object.freeze({
     "search.filesPlaceholder": "Rechercher des fichiers et dossiers",
     "repos.formatCargoDesc": "Index sparse Cargo, publication de crates, miroirs et équipes de paquets.",
     "repos.formatDockerDesc": "Images de conteneurs Docker et OCI, manifestes multi-architectures et mise en cache miroir.",
-    "repos.formatImmutableDesc": "Les moteurs Cargo et Docker sont fixes ; Maven et Fichiers peuvent être migrés ci-dessous.",
+    "repos.formatImmutableDesc": "Les moteurs Cargo, Docker et npm sont fixes ; Maven et Fichiers peuvent être migrés ci-dessous.",
     "repos.formatCreateDesc": "Choisissez le protocole client. Maven et Fichiers pourront être migrés ; les autres moteurs sont fixes.",
     "repos.engineMigration": "Migration du moteur du dépôt",
     "repos.migrationToFiles": "Convertir en stockage de fichiers",

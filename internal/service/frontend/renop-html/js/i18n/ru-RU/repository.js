@@ -132,7 +132,7 @@ export default Object.freeze({
     "search.filesPlaceholder": "Поиск файлов и каталогов",
     "repos.formatCargoDesc": "Sparse-индекс Cargo, публикация crates, зеркала и команды пакетов.",
     "repos.formatDockerDesc": "Образы контейнеров Docker и OCI, мультиархитектурные манифесты и кэширование зеркал.",
-    "repos.formatImmutableDesc": "Движки Cargo и Docker неизменяемы; Maven и Файлы можно перенести ниже.",
+    "repos.formatImmutableDesc": "Движки Cargo, Docker и npm неизменяемы; Maven и Файлы можно перенести ниже.",
     "repos.formatCreateDesc": "Выберите клиентский протокол. Maven и Файлы можно перенести позже; остальные движки неизменяемы.",
     "repos.engineMigration": "Миграция движка репозитория",
     "repos.migrationToFiles": "Преобразовать в файловое хранилище",

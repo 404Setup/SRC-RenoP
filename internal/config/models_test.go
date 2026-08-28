@@ -96,6 +96,34 @@ func TestIsArtifactAllowedForCargoUsesExactNormalizedCrateNames(t *testing.T) {
 	}
 }
 
+func TestIsArtifactAllowedForNPMUsesExactPackagesAndScopeRules(t *testing.T) {
+	allow := &Mirror{AllowArtifacts: []string{"@example/*", "plain-package"}}
+	for _, path := range []string{
+		"%40example%2Flibrary",
+		"@example/library/-/library-1.0.0.tgz",
+		"-/package/@example/library/dist-tags/latest",
+		"plain-package",
+	} {
+		if ok, reason := allow.IsArtifactAllowedFor(RepositoryFormatNPM, path); !ok {
+			t.Fatalf("expected npm path %q to match allow rules: %s", path, reason)
+		}
+	}
+	if ok, _ := allow.IsArtifactAllowedFor(RepositoryFormatNPM, "@example-extra/library"); ok {
+		t.Fatal("npm scope rules must stop at the scope boundary")
+	}
+	if ok, _ := allow.IsArtifactAllowedFor(RepositoryFormatNPM, "plain-package-extra"); ok {
+		t.Fatal("npm package rules must not use prefix matching")
+	}
+	if ok, _ := allow.IsArtifactAllowedFor(RepositoryFormatNPM, "-/ping"); !ok {
+		t.Fatal("npm registry utility endpoints must not be blocked by package rules")
+	}
+
+	deny := &Mirror{DenyArtifacts: []string{"@blocked/*"}}
+	if ok, _ := deny.IsArtifactAllowedFor(RepositoryFormatNPM, "@blocked/library"); ok {
+		t.Fatal("expected npm scope deny rule to block matching package")
+	}
+}
+
 func TestValidateCargoArtifactURLRejectsAuthorityPlaceholders(t *testing.T) {
 	valid := &Mirror{ArtifactURL: "https://static.example.test/crates/{crate}/{crate}-{version}.crate"}
 	if err := valid.ValidateArtifactURL(RepositoryFormatCargo); err != nil {
@@ -176,7 +204,7 @@ func TestRepositoryFormatVariantsAndLegacyUpgradeDefaults(t *testing.T) {
 		t.Fatal("modern Maven repository did not report the domain layout")
 	}
 	for _, format := range []string{RepositoryFormatMaven, RepositoryFormatMavenClassic, RepositoryFormatFiles,
-		RepositoryFormatCargo, RepositoryFormatDocker} {
+		RepositoryFormatCargo, RepositoryFormatDocker, RepositoryFormatNPM} {
 		if !IsSupportedRepositoryFormat(format) {
 			t.Fatalf("supported repository format %q was rejected", format)
 		}

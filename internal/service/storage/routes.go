@@ -22,6 +22,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargo"
+	"renop/internal/service/npm"
 	"renop/internal/service/statistics"
 	"renop/internal/utils"
 )
@@ -64,6 +65,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	isCargo := repo.NormalizedFormat() == config.RepositoryFormatCargo
 	isDocker := repo.NormalizedFormat() == config.RepositoryFormatDocker
 	isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
+	isNPM := repo.NormalizedFormat() == config.RepositoryFormatNPM
 
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {
@@ -87,6 +89,8 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		canRead, err := cargo.CanReadRepository(state, user, repo, sanitized, isRoot)
 		if isMaven && MavenReadAuthorizer != nil {
 			canRead, err = MavenReadAuthorizer(state, user, repo, sanitized, isRoot)
+		} else if isNPM {
+			canRead, err = npm.CanReadRepository(state, user, repo, sanitized, isRoot)
 		}
 		if err != nil {
 			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository metadata is unavailable")
@@ -121,7 +125,7 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 			}
 			return c.Status(fiber.StatusForbidden).SendString("Maven domain permission denied")
 		}
-	} else if !isCargo && !isDocker && !user.CheckUpdatePermission(repoName) {
+	} else if !isCargo && !isDocker && !isNPM && !user.CheckUpdatePermission(repoName) {
 		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
 	}
 
@@ -142,6 +146,15 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		}
 		if !isRead {
 			return c.Status(fiber.StatusMethodNotAllowed).SendString("Cargo repositories must be modified through the Cargo registry API")
+		}
+	}
+
+	if isNPM {
+		if handled, err := npmHandler.Handle(c, state, repo, cfg.StoragePath, path); handled {
+			return err
+		}
+		if !isRead {
+			return c.Status(fiber.StatusMethodNotAllowed).SendString("npm repositories must be modified through npm registry endpoints")
 		}
 	}
 

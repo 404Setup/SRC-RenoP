@@ -7,7 +7,7 @@ description: リポジトリ直接操作と制限付き再開可能アップロ�
 
 # ストレージとアップロード API
 
-直接ストレージルートは Maven と `files` 用です。Cargo と Docker はネイティブプロトコルを使用します。
+直接ストレージルートは Maven と `files` 用です。npm、Cargo、Docker はネイティブプロトコルを使用します。
 変更操作では API Token scope、リポジトリ権限、形式、Maven ドメインポリシーをすべて確認します。
 
 ## リポジトリ直接操作

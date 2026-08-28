@@ -16,6 +16,7 @@ RenoP предоставляет HTTP API для автоматизации ад
 |:--------------------------------|:------------------------------------------------------------------|
 | `/api/*`                        | Управление аутентификацией, аккаунтами, настройками и сообщениями  |
 | `/{repo}/*`                     | Загрузка, скачивание и удаление с учётом формата репозитория       |
+| `/{npm-repo}/*`                 | Packument npm, tarball, публикация, dist-tag и поиск                |
 | `/index/*` или `/{repo}/index/*` | Cargo Sparse Index                                               |
 | `/v2/*`                         | Docker и OCI Distribution v2                                     |
 | `/javadoc/*`                    | Изолированный просмотр Javadoc                                    |
@@ -60,6 +61,7 @@ Basic Auth не позволяет обращаться к API управлен�
 - [API Maven](./maven.md)
 - [API Cargo](./cargo.md)
 - [API Docker / OCI](./docker.md)
+- [API реестра npm](./npm.md)
 - [API центра сообщений](./messages.md)
 - [API хранилища и загрузки](./storage.md)
 - [API настроек](./settings.md)

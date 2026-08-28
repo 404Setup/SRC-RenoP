@@ -11,7 +11,7 @@ RenoP agrège les téléchargements de paquets réussis sans créer une ligne de
 contiennent le nombre de téléchargements, les octets logiques et la dernière date de mise à jour. L’attribution utilise
 l’identité immuable du compte ; un changement de nom ne divise donc pas l’historique.
 
-Les dépôts Maven, Cargo et Docker comptent par défaut. Le moteur non structuré `files` doit être activé. Les requêtes de
+Les dépôts Maven, npm, Cargo et Docker comptent par défaut. Le moteur non structuré `files` doit être activé. Les requêtes de
 sommes de contrôle, signatures détachées, métadonnées Maven et compagnons Javadoc sont exclues. Les requêtes `HEAD`, les
 réponses `304`, les échecs et les segments de plage non initiaux ne sont pas comptés. Docker enregistre un pull lors du
 retour du manifeste, sans compter chaque blob.

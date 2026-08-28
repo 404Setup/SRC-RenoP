@@ -477,6 +477,9 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 	if err := initMavenTables(db); err != nil {
 		return err
 	}
+	if err := initNPMTables(db); err != nil {
+		return err
+	}
 	if err := initDownloadStatisticsTables(db); err != nil {
 		return err
 	}

@@ -16,6 +16,7 @@ RenoP は、管理自動化、クライアント統合、監視向けの HTTP AP
 |:--------------------------------|:------------------------------------------------------------|
 | `/api/*`                        | 認証、アカウント、設定、状態、メッセージなどの管理 API      |
 | `/{repo}/*`                     | リポジトリ形式に応じたアップロード、ダウンロード、削除      |
+| `/{npm-repo}/*`                 | npm packument、tarball、publication、dist-tag、search         |
 | `/index/*` または `/{repo}/index/*` | Cargo Sparse Index                                      |
 | `/v2/*`                         | Docker / OCI Distribution v2                               |
 | `/javadoc/*`                    | サンドボックス化された Javadoc ビューア                     |
@@ -62,6 +63,7 @@ Basic Auth で管理 API を呼び出すことはできません。URL クエリ
 - [Maven API](./maven.md)
 - [Cargo API](./cargo.md)
 - [Docker / OCI API](./docker.md)
+- [npm Registry API](./npm.md)
 - [メッセージセンター API](./messages.md)
 - [ストレージとアップロード API](./storage.md)
 - [設定 API](./settings.md)

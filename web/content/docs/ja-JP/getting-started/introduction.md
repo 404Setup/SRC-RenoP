@@ -16,6 +16,7 @@ storage、audit、update を統合します。
 - **Maven / Gradle**: 検証済み global domain、modern catalog、classic layout 互換、Maven 2 path、mirror、
   Javadoc、OpenPGP 分離署名。
 - **Cargo**: Sparse Index、明示的所有権、publication、search、yank/unyank、mirror、Cargodoc。
+- **npm**: 明示的なパッケージ予約、不変バージョン、scoped private package、dist-tag、team、mirror。
 - **Docker / OCI**: Distribution v2、image 予約、private team、chunked blob、cross-repository mount、multi-arch、mirror。
 - **Files**: mirror と上書きを備え、Maven metadata や署名 workflow を生成しない非構造化 storage。
 
@@ -46,3 +47,4 @@ storage、audit、update を統合します。
 - [Maven / Gradle](../guides/maven-client.md) — 検証 domain と JVM client
 - [Cargo](../guides/cargo-registry.md) — Sparse registry と crate lifecycle
 - [Docker / OCI](../guides/docker-registry.md) — image 予約、login、push、pull
+- [npm Registry](../guides/npm-registry.md) — package 予約、client 設定、publication、team

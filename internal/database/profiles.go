@@ -54,11 +54,12 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 			ON md.repository = mm.repository AND md.domain = mm.domain
 			WHERE mm.user_id = p.user_id AND md.repository = '' AND md.verified = 1),
 		(SELECT COUNT(*) FROM cargo_members cm WHERE cm.user_id = p.user_id),
-		(SELECT COUNT(*) FROM docker_members dm WHERE dm.user_id = p.user_id)
+		(SELECT COUNT(*) FROM docker_members dm WHERE dm.user_id = p.user_id),
+		(SELECT COUNT(*) FROM npm_members nm WHERE nm.user_id = p.user_id)
 		FROM user_profiles p JOIN tokens t ON t.name = p.username WHERE `+whereClause, value).Scan(
 		&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname,
 		&profile.UsernameChangeWindowAt, &profile.UsernameChangeCount,
-		&profile.MavenDomainCount, &profile.CargoPackageCount, &profile.DockerImageCount,
+		&profile.MavenDomainCount, &profile.CargoPackageCount, &profile.DockerImageCount, &profile.NPMPackageCount,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrUserProfileNotFound
@@ -69,7 +70,7 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 	return profile, nil
 }
 
-// ListUserPackageMemberships returns Maven, Cargo, or Docker teams linked to an immutable user ID.
+// ListUserPackageMemberships returns format-specific teams linked to an immutable user ID.
 func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPackageMembership, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
@@ -95,8 +96,13 @@ func (db *DB) ListUserPackageMemberships(userID, format string) ([]*core.UserPac
 			FROM docker_members m JOIN docker_images i ON i.repository = m.repository
 			AND i.image_name = m.image_name WHERE m.user_id = ?
 			ORDER BY i.repository, i.image_name`
+	case "npm":
+		query = `SELECT p.repository, p.package_name, p.description, m.permission_level, p.archived
+			FROM npm_members m JOIN npm_packages p ON p.repository = m.repository
+			AND p.package_name = m.package_name WHERE m.user_id = ?
+			ORDER BY p.repository, p.package_name`
 	default:
-		return nil, errors.New("package membership format must be maven, cargo, or docker")
+		return nil, errors.New("package membership format must be maven, cargo, docker, or npm")
 	}
 	rows, err := db.Query(query, userID)
 	if err != nil {
@@ -380,6 +386,7 @@ func (db *DB) initializeUserIdentities() error {
 		`SELECT DISTINCT username FROM maven_domain_members`,
 		`SELECT DISTINCT username FROM cargo_members`,
 		`SELECT DISTINCT username FROM docker_members`,
+		`SELECT DISTINCT username FROM npm_members`,
 	} {
 		rows, err := db.Query(query)
 		if err != nil {
@@ -420,6 +427,9 @@ func (db *DB) initializeUserIdentities() error {
 		if _, err := db.Exec(`UPDATE docker_members SET user_id = ? WHERE username = ? AND user_id IS NULL`, userID, username); err != nil {
 			return fmt.Errorf("backfill Docker member identity for %s: %w", username, err)
 		}
+		if _, err := db.Exec(`UPDATE npm_members SET user_id = ? WHERE username = ? AND user_id IS NULL`, userID, username); err != nil {
+			return fmt.Errorf("backfill npm member identity for %s: %w", username, err)
+		}
 	}
 	indexQueries := []string{
 		`CREATE UNIQUE INDEX uq_user_profiles_user_id ON user_profiles(user_id)`,
@@ -431,6 +441,7 @@ func (db *DB) initializeUserIdentities() error {
 		`CREATE INDEX idx_maven_invitations_recipient ON maven_domain_invitations(recipient, created_at)`,
 		`CREATE UNIQUE INDEX uq_cargo_members_user_id ON cargo_members(repository, normalized_name, user_id)`,
 		`CREATE UNIQUE INDEX uq_docker_members_user_id ON docker_members(repository, image_name, user_id)`,
+		`CREATE UNIQUE INDEX uq_npm_members_user_id ON npm_members(repository, package_name, user_id)`,
 	}
 	for _, query := range indexQueries {
 		if db.Dialect.Name() != "mysql" {

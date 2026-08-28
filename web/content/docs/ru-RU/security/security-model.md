@@ -28,10 +28,11 @@ System administrator глобален. L0-L4 остаются обычным у�
 ## Уровни репозитория и команды
 
 - Видимость задаёт границы обнаружения и чтения: `PUBLIC`, доступный по правам `HIDDEN` или защищённый `PRIVATE`.
-- Repository permission не создаёт Cargo/Docker package и не проверяет Maven domain автоматически.
-- Cargo/Docker: L0 read, L1 publish, L2 lifecycle/metadata, L3 members, L4 ownership.
+- Repository permission не создаёт npm/Cargo/Docker package и не проверяет Maven domain автоматически.
+- npm/Cargo/Docker: L0 read, L1 publish, L2 lifecycle/metadata, L3 members, L4 ownership.
 - Maven team привязан к проверенному global domain и действует во всех Maven repositories.
 - Private Docker image не выдаёт public L0; blob ограничен image, доступным пользователю.
+- Private npm package обязан иметь scope и требует явного member или administrator.
 
 ## Транспорт credentials
 

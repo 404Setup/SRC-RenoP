@@ -659,27 +659,29 @@ function profileMembershipTarget(membership) {
     const name = String(membership.name || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
     if (membership.format === 'maven') return `/${repository}/domains/${name}`;
     if (membership.format === 'cargo') return `/${repository}/packages/${name}`;
+    if (membership.format === 'npm') return `/${repository}/packages/${name}`;
     return `/${repository}/${name}`;
 }
 
 /**
  * Format a package-team role without hiding its numeric level.
- * @param {'maven'|'cargo'|'docker'} format - Repository format.
+ * @param {'maven'|'cargo'|'docker'|'npm'} format - Repository format.
  * @param {number|string} level - Team permission level.
  * @returns {string} Localized role label.
  */
 function profileMembershipRole(format, level) {
     const numericLevel = Math.max(0, Number(level) || 0);
-    const label = t(`${format}.permissionL${numericLevel}`);
-    if (!label || label === `${format}.permissionL${numericLevel}`) return `L${numericLevel}`;
+    const key = format === 'npm' ? `npm.level${numericLevel}` : `${format}.permissionL${numericLevel}`;
+    const label = t(key);
+    if (!label || label === key) return `L${numericLevel}`;
     const wrapped = new RegExp(`^L${numericLevel}\\s*[（(](.*)[）)]$`).exec(label);
     return `L${numericLevel} · ${wrapped ? wrapped[1] : label}`;
 }
 
 /**
- * Render a username-scoped Maven, Cargo, or Docker membership list.
+ * Render a username-scoped package membership list.
  * @param {object} profile - Public profile payload.
- * @param {'maven'|'cargo'|'docker'} format - Requested membership format.
+ * @param {'maven'|'cargo'|'docker'|'npm'} format - Requested membership format.
  * @param {number} sequence - Profile load generation.
  * @returns {Promise<void>}
  */
@@ -829,6 +831,17 @@ function renderPublicProfile(profile) {
                                 navigateToUserProfile(profile.username, 'docker');
                             }
                         }, el('span', {}, String(profile.docker_image_count || 0)), createIcon('chevron')))
+                    ),
+                    el('div', {class: 'profile-public-meta-item'},
+                        el('dt', {}, t('profile.npmPackages')),
+                        el('dd', {}, el('a', {
+                            class: 'profile-public-meta-link',
+                            href: `/user/${encodeURIComponent(profile.username)}/npm`,
+                            onclick: event => {
+                                event.preventDefault();
+                                navigateToUserProfile(profile.username, 'npm');
+                            }
+                        }, el('span', {}, String(profile.npm_package_count || 0)), createIcon('chevron')))
                     )
                 )
             )
@@ -1037,7 +1050,7 @@ function showProfileEdit(profile) {
 
 /**
  * Load and render a username-based profile route.
- * @param {{username: string, section: ''|'edit'|'maven'|'cargo'|'docker'}|null} [route=null] - Parsed profile route.
+ * @param {{username: string, section: ''|'edit'|'maven'|'cargo'|'docker'|'npm'}|null} [route=null] - Parsed profile route.
  * @returns {Promise<void>}
  */
 export async function setupProfile(route = null) {
@@ -1060,7 +1073,8 @@ export async function setupProfile(route = null) {
     try {
         const profile = await getUserProfile(targetUsername, {refresh: true});
         if (sequence !== profilePageLoadSeq) return;
-        if (targetRoute?.section === 'maven' || targetRoute?.section === 'cargo' || targetRoute?.section === 'docker') {
+        if (targetRoute?.section === 'maven' || targetRoute?.section === 'cargo' ||
+            targetRoute?.section === 'docker' || targetRoute?.section === 'npm') {
             await renderProfileMemberships(profile, targetRoute.section, sequence);
         } else if (targetRoute?.section === 'edit' && profile.own_profile) {
             showProfileEdit(profile);

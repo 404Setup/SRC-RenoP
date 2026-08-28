@@ -61,6 +61,21 @@ const (
 	ActionDockerInviteAccept   = "DOCKER_INVITE_ACCEPT"
 	ActionDockerInviteReject   = "DOCKER_INVITE_REJECT"
 
+	ActionNPMPackageCreate  = "NPM_PACKAGE_CREATE"
+	ActionNPMPublish        = "NPM_PUBLISH"
+	ActionNPMMetadataUpdate = "NPM_METADATA_UPDATE"
+	ActionNPMVersionDelete  = "NPM_VERSION_DELETE"
+	ActionNPMPackageArchive = "NPM_PACKAGE_ARCHIVE"
+	ActionNPMPackageRestore = "NPM_PACKAGE_RESTORE"
+	ActionNPMPackageDelete  = "NPM_PACKAGE_DELETE"
+	ActionNPMDistTag        = "NPM_DIST_TAG"
+	ActionNPMTeamAdd        = "NPM_TEAM_ADD"
+	ActionNPMTeamInvite     = "NPM_TEAM_INVITE"
+	ActionNPMTeamLevel      = "NPM_TEAM_LEVEL"
+	ActionNPMTeamRemove     = "NPM_TEAM_REMOVE"
+	ActionNPMInviteAccept   = "NPM_INVITE_ACCEPT"
+	ActionNPMInviteReject   = "NPM_INVITE_REJECT"
+
 	ActionMavenDomainCreate      = "MAVEN_DOMAIN_CREATE"
 	ActionMavenDomainVerify      = "MAVEN_DOMAIN_VERIFY"
 	ActionMavenDomainForceVerify = "MAVEN_DOMAIN_FORCE_VERIFY"
@@ -124,6 +139,20 @@ func KnownActions() []string {
 		ActionDockerTeamRemove,
 		ActionDockerInviteAccept,
 		ActionDockerInviteReject,
+		ActionNPMPackageCreate,
+		ActionNPMPublish,
+		ActionNPMMetadataUpdate,
+		ActionNPMVersionDelete,
+		ActionNPMPackageArchive,
+		ActionNPMPackageRestore,
+		ActionNPMPackageDelete,
+		ActionNPMDistTag,
+		ActionNPMTeamAdd,
+		ActionNPMTeamInvite,
+		ActionNPMTeamLevel,
+		ActionNPMTeamRemove,
+		ActionNPMInviteAccept,
+		ActionNPMInviteReject,
 		ActionMavenDomainCreate,
 		ActionMavenDomainVerify,
 		ActionMavenDomainForceVerify,

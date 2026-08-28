@@ -50,7 +50,7 @@ GitHub は管理者が OAuth を設定した場合だけ表示されます。ユ
 - **パスワード更新**: `PUT /api/auth/profile/password`
 - **ログアウト**: `POST /api/auth/logout`
 - **公開プロフィール**: `GET /api/users/:username/profile`
-- **パッケージ所属**: `GET /api/users/:username/memberships?format=cargo|docker|maven`
+- **パッケージ所属**: `GET /api/users/:username/memberships?format=cargo|docker|maven|npm`
 
 公開ルートはユーザー名を使用し、不変 ID は内部に保ちます。`HIDDEN` の所属は除外し、非公開所属は許可された
 閲覧者だけに返します。

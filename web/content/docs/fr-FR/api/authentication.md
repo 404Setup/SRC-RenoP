@@ -50,7 +50,7 @@ identifiants immuables et l’instantané des principals, mais jamais le jeton d
 - **Modifier le mot de passe** : `PUT /api/auth/profile/password`
 - **Déconnexion** : `POST /api/auth/logout`
 - **Profil public** : `GET /api/users/:username/profile`
-- **Appartenances** : `GET /api/users/:username/memberships?format=cargo|docker|maven`
+- **Appartenances** : `GET /api/users/:username/memberships?format=cargo|docker|maven|npm`
 
 Les routes visibles utilisent le nom du compte ; l’identifiant immuable reste interne. Les dépôts `HIDDEN` sont omis,
 et les appartenances privées ne sont visibles que par un lecteur autorisé.

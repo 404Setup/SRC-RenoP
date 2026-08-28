@@ -98,12 +98,12 @@ Successful revocation returns `204 No Content` and invalidates cached authentica
 | Scope | Capability |
 |:------|:-----------|
 | `repository:read` | Read repository catalogs, metadata, files, images, and versions |
-| `repository:publish` | Publish through Maven, Cargo, Docker, files, or chunked-upload protocols |
+| `repository:publish` | Publish through Maven, npm, Cargo, Docker, files, or chunked-upload protocols |
 | `repository:delete` | Delete repository files, package versions, tags, or images |
-| `package:create` | Reserve new Cargo packages or Docker images after repository authorization |
+| `package:create` | Reserve new npm/Cargo packages or Docker images after repository authorization |
 | `package:metadata` | Update package descriptions and other package metadata |
 | `package:lifecycle` | Archive, restore, yank, or unyank packages and versions |
-| `team:manage` | View and administer Cargo, Docker, and Maven-domain teams and invitations |
+| `team:manage` | View and administer npm, Cargo, Docker, and Maven-domain teams and invitations |
 | `domain:read` | Read private Maven publishing-domain configuration |
 | `domain:create` | Create Maven publishing domains |
 | `domain:verify` | Request or force Maven-domain ownership verification |
@@ -135,7 +135,8 @@ Authorization: Bearer rnp_pat_REDACTED
 Standard package clients may use the same token as the Basic password with the owning username. Basic credentials are
 restricted to package protocols and cannot call management APIs.
 
-Cargo sends the configured token as an opaque `Authorization` value; RenoP applies the same scope checks. Docker first
+An npm client sends the token through `_authToken` or Basic authentication. Cargo sends it as an opaque
+`Authorization` value; RenoP applies the same scope checks. Docker first
 exchanges Basic credentials at `/v2/token`, and the issued short-lived registry token contains only the pull or push
 actions allowed by both API-token scopes and package permissions.
 

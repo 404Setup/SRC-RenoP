@@ -50,7 +50,7 @@ GitHub отображается только после настройки OAuth
 - **Изменить пароль**: `PUT /api/auth/profile/password`
 - **Выйти**: `POST /api/auth/logout`
 - **Публичный профиль**: `GET /api/users/:username/profile`
-- **Участие в пакетах**: `GET /api/users/:username/memberships?format=cargo|docker|maven`
+- **Участие в пакетах**: `GET /api/users/:username/memberships?format=cargo|docker|maven|npm`
 
 Видимые маршруты используют имя, а неизменяемый ID остаётся внутренним. Участие в `HIDDEN` не возвращается; закрытые
 связи видит только авторизованный пользователь.

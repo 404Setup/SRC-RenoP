@@ -7,7 +7,7 @@ description: Direct repository operations and bounded resumable uploads
 
 # Storage & Upload API
 
-Direct storage routes apply to Maven and `files` repositories. Cargo and Docker use their native protocol APIs. Every
+Direct storage routes apply to Maven and `files` repositories. npm, Cargo, and Docker use their native protocol APIs. Every
 mutation is checked against API-token scope, repository permission, repository format, and Maven-domain policy.
 
 ## Direct repository operations

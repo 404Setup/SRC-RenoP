@@ -791,6 +791,7 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
 	const format = getRepositoryFormat(repo.format);
 	const isCargo = format.id === 'cargo';
 	const isDocker = format.id === 'docker';
+	const isNPM = format.id === 'npm';
     const block = el('div', {
         class: 'mirror-block',
         style: {
@@ -937,6 +938,16 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
         emptyDenyList = 'repos.dockerEmptyDenyList';
         allowHint = 'repos.dockerMirrorAllowListHint';
         denyHint = 'repos.dockerMirrorDenyListHint';
+    } else if (isNPM) {
+        mirrorPlaceholder = 'npmjs';
+        mirrorUrlLabel = 'repos.npmMirrorUrl';
+        mirrorUrlHint = 'repos.npmMirrorUrlHint';
+        mirrorUrlPlaceholder = 'https://registry.npmjs.org/';
+        addRulePlaceholder = 'repos.npmAddRulePlaceholder';
+        emptyAllowList = 'repos.npmEmptyAllowList';
+        emptyDenyList = 'repos.npmEmptyDenyList';
+        allowHint = 'repos.npmMirrorAllowListHint';
+        denyHint = 'repos.npmMirrorDenyListHint';
     }
 
     fields.appendChild(makeFieldRow(t('repos.mirrorName'), t('repos.mirrorNameHint'),

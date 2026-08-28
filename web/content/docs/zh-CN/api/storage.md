@@ -7,7 +7,7 @@ description: 存储库直接操作与有界可恢复分块上传
 
 # 存储与上传 API
 
-直接存储接口用于 Maven 与 `files` 存储库；Cargo 和 Docker 使用各自原生协议。所有修改操作都会同时检查
+直接存储接口用于 Maven 与 `files` 存储库；npm、Cargo 和 Docker 使用各自原生协议。所有修改操作都会同时检查
 API Token 权限、存储库权限、仓库引擎及 Maven 域策略。
 
 ## 存储库直接操作

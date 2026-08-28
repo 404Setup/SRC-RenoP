@@ -94,12 +94,12 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 | Scope | 能力 |
 |:------|:-----|
 | `repository:read` | 读取存储库目录、元数据、文件、镜像与版本 |
-| `repository:publish` | 通过 Maven、Cargo、Docker、files 或分块上传发布 |
+| `repository:publish` | 通过 Maven、npm、Cargo、Docker、files 或分块上传发布 |
 | `repository:delete` | 删除文件、版本、标签或镜像 |
-| `package:create` | 通过存储库授权后创建 Cargo 包或 Docker 镜像 |
+| `package:create` | 通过存储库授权后预留 npm/Cargo 软件包或 Docker 镜像 |
 | `package:metadata` | 更新包描述及其他元数据 |
 | `package:lifecycle` | 归档、恢复、yank 或 unyank 包与版本 |
-| `team:manage` | 查看和管理 Cargo、Docker 与 Maven 域团队及邀请 |
+| `team:manage` | 查看和管理 npm、Cargo、Docker 与 Maven 域团队及邀请 |
 | `domain:read` | 读取 Maven 域私有配置 |
 | `domain:create` | 创建 Maven 域 |
 | `domain:verify` | 验证或强制验证 Maven 域 |
@@ -127,8 +127,8 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 Authorization: Bearer rnp_pat_REDACTED
 ```
 
-标准包客户端可将同一个 Token 作为所属用户名的 Basic 密码。Basic 仅限包协议。Cargo 将 Token 作为完整
-`Authorization` 值发送；Docker 通过 `/v2/token` 换取短期 Token，其中只包含 API Token 权限与镜像权限
+标准包客户端可将同一个 Token 作为所属用户名的 Basic 密码。Basic 仅限包协议。npm 通过 `_authToken` 或
+Basic 发送 Token；Cargo 将 Token 作为完整 `Authorization` 值发送；Docker 通过 `/v2/token` 换取短期 Token，其中只包含 API Token 权限与镜像权限
 共同允许的动作。
 
 ## 兼容接口

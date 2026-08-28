@@ -11,7 +11,7 @@ RenoP はリクエストごとの行を保存せず、成功したパッケー�
 論理バイト数、最終更新時刻が含まれます。ユーザー帰属はアカウントの不変 ID に結び付くため、username を
 変更しても履歴は分割されません。
 
-Maven、Cargo、Docker リポジトリは既定で集計します。非構造化 `files` エンジンは明示的な有効化が必要です。
+Maven、npm、Cargo、Docker リポジトリは既定で集計します。非構造化 `files` エンジンは明示的な有効化が必要です。
 checksum、分離署名、Maven metadata、Javadoc companion は除外します。`HEAD`、`304`、失敗したリクエスト、
 先頭以外の range segment は集計しません。Docker は各 blob ではなく manifest 応答時に 1 pull を記録します。
 

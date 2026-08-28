@@ -34,8 +34,8 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 | `/snapshots` | `PUBLIC` | Maven、redeployment 有効 |
 | `/private` | `PRIVATE` | Maven、認証必須 |
 
-Cargo、Docker、`files` は管理画面から明示的に作成します。Docker image と Cargo name も明示 resource で、
-上流名検査成功後だけ作成または初回公開できます。Maven 公開には account menu の検証済み domain が必要です。
+npm、Cargo、Docker、`files` は管理画面から明示的に作成します。Docker image と npm package は各 repository
+画面で予約後に push できます。Cargo name は上流検査後に作成します。Maven 公開には検証済み domain が必要です。
 
 ## health 確認
 
@@ -65,3 +65,4 @@ account、session、team、API Token、audit、message は DB data であり YAM
 - [Maven / Gradle](../guides/maven-client.md) — domain 検証と JVM client
 - [Cargo Registry](../guides/cargo-registry.md) — repository 作成と crate 公開
 - [Docker Registry](../guides/docker-registry.md) — push 前の image 作成と client 設定
+- [npm Registry](../guides/npm-registry.md) — package 予約と npm 互換 client の設定

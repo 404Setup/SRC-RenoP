@@ -40,17 +40,20 @@ repositories:
 | 項目 | 既定 | 説明 |
 |:-----|:-----|:-----|
 | `name` | 必須 | 不変 slug と URL prefix |
-| `format` | `maven` | `maven`、`maven-classic`、`files`、`cargo`、`docker` |
+| `format` | `maven` | `maven`、`maven-classic`、`files`、`npm`、`cargo`、`docker` |
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN`、`PRIVATE` |
 | `allow_redeployment` | `false` | 対応形式で Maven 再公開または files/Docker 上書き |
 | `require_gpg_signature` | `false` | Maven 公開時の OpenPGP 分離署名検証 |
-| `download_statistics` | エンジン既定 | Maven/Cargo/Docker は有効、`files` は明示的に有効化 |
+| `download_statistics` | エンジン既定 | Maven/npm/Cargo/Docker は有効、`files` は明示的に有効化 |
 | `mirrors` | `[]` | 順序付き上流定義 |
 | `s3` | 省略 | リポジトリ固有 S3 storage |
 
 `maven-classic` は画面レイアウトだけを変え、Maven の公開規則を維持します。`files` は非構造化で、
 チェックサムや POM の生成、署名検証を行いません。Maven と `files` の相互移行ではオブジェクトを移動せず、
 Maven へ戻す際にカタログと保存済みの方針を復元します。移行前のダウンロード統計設定も維持されます。
+
+`npm` repository は publication 前の package 予約、不変 SemVer、dist-tag、scoped private package、L0-L4 team、
+完全名または `@scope/*` 規則の mirror を提供します。
 
 ### 可視性
 

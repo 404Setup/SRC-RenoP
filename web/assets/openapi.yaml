@@ -6,7 +6,7 @@ info:
     url: https://github.com/404Setup/RenoP
   description: |
     Management and registry APIs for RenoP, a self-hosted artifact repository server
-    supporting Maven, unstructured file storage, Cargo (Rust sparse index), and Docker/OCI registries.
+    supporting Maven, unstructured file storage, npm, Cargo (Rust sparse index), and Docker/OCI registries.
 
     Default listen address: `0.0.0.0:3000`.
 
@@ -16,6 +16,7 @@ info:
     - Unstructured file storage: `/{repo}/{path}`
     - Docker/OCI Distribution API: `/v2/...`
     - Cargo sparse registry: `/{repo}/config.json` and `/{repo}/api/v1/...`
+    - npm registry: `/{repo}/{package}` and `/{repo}/-/...`
     - Javadoc preview: `/javadoc/{repo}/{path}`
     - Cargo-doc preview: `/cargodoc/{repo}/{path}`
 
@@ -23,13 +24,15 @@ info:
     Most management endpoints use `application/x-protobuf`. Schemas here describe the
     logical fields (snake_case) for documentation and client stub generation.
     See `proto/api/v1/api.proto` for canonical protobuf definitions.
-    Docker/OCI and Cargo endpoints use JSON.
+    Docker/OCI, npm, and Cargo endpoints use JSON.
 
     **Error bodies:**
     Management errors are plain text (`Unauthorized`, `Forbidden`, `Not found`).
     Docker browser-management errors additionally expose a stable `X-Renop-Error-Code` header for localization.
     Docker Distribution API errors follow `{"errors":[{"code":"...","message":"...","detail":"..."}]}`.
     Cargo errors follow `{"errors":[{"detail":"..."}]}`.
+    npm protocol errors follow `{"error":"...","reason":"..."}`; npm browser-management errors expose
+    a stable `X-Renop-Error-Code` header.
     Always prefer the HTTP status code for programmatic handling.
 
   license:
@@ -43,6 +46,8 @@ x-tagGroups:
     tags: [maven, storage, javadoc]
   - name: Cargo Registry
     tags: [cargo]
+  - name: npm Registry
+    tags: [npm]
   - name: Docker / OCI Registry
     tags: [docker]
   - name: Administration
@@ -81,6 +86,8 @@ tags:
     description: Immutable activity audit log — self-view for all users, manager view and clear for any account.
   - name: cargo
     description: Sparse Cargo (Rust) registry endpoints mounted per-repository at `/{repo}/api/v1/` and `/{repo}/config.json`.
+  - name: npm
+    description: npm-compatible package metadata, immutable version publication, dist-tags, package teams, and upstream mirrors mounted under each npm repository.
   - name: docker
     description: OCI Distribution Specification v1.1.0 and Docker Registry v2, mounted at `/v2/`; browser-management failures use `X-Renop-Error-Code` for localized presentation.
 
@@ -195,7 +202,7 @@ components:
       in: query
       schema:
         type: string
-        enum: [maven, files, cargo, docker]
+        enum: [maven, files, cargo, docker, npm]
     StatisticsNamespace:
       name: namespace
       in: query
@@ -545,7 +552,7 @@ components:
     UserProfile:
       type: object
       description: Public account identity. The username is intentionally exposed only on the profile resource.
-      required: [user_id, username, nickname, created_at, own_profile, username_changes_remaining, maven_domain_count, cargo_package_count, docker_image_count]
+      required: [user_id, username, nickname, created_at, own_profile, username_changes_remaining, maven_domain_count, cargo_package_count, docker_image_count, npm_package_count]
       properties:
         user_id:
           type: string
@@ -582,6 +589,9 @@ components:
         docker_image_count:
           type: integer
           minimum: 0
+        npm_package_count:
+          type: integer
+          minimum: 0
 
     UserPackageMembership:
       type: object
@@ -590,12 +600,12 @@ components:
       properties:
         format:
           type: string
-          enum: [maven, cargo, docker]
+          enum: [maven, cargo, docker, npm]
         repository:
           type: string
         name:
           type: string
-          description: Maven domain, Cargo package name, or Docker image name.
+          description: Maven domain, Cargo/npm package name, or Docker image name.
         description:
           type: string
         permission_level:
@@ -1330,12 +1340,12 @@ components:
           type: array
           items:
             type: string
-          description: Maven group ID prefix allowlist. Empty list permits all.
+          description: Format-aware allowlist. npm accepts exact package names and `@scope/*`; empty permits all.
         deny_artifacts:
           type: array
           items:
             type: string
-          description: Maven group ID prefix denylist.
+          description: Format-aware denylist. Allow and deny lists cannot both be active on one mirror.
         proxy:
           type: string
           description: >
@@ -1376,7 +1386,7 @@ components:
           type: string
         format:
           type: string
-          enum: [maven, maven-classic, files, cargo, docker]
+          enum: [maven, maven-classic, files, cargo, docker, npm]
           description: "`maven-classic` uses the file-tree UI but retains verified Maven publication rules. `files` is unstructured storage."
         visibility:
           type: string
@@ -1714,13 +1724,13 @@ components:
           type: string
         format:
           type: string
-          enum: [maven, files, cargo, docker]
+          enum: [maven, files, cargo, docker, npm]
         namespace:
           type: string
-          description: Verified Maven publishing domain when applicable.
+          description: Verified Maven publishing domain or npm scope when applicable.
         package:
           type: string
-          description: Maven coordinate, Cargo crate, Docker image, or unstructured file path.
+          description: Maven coordinate, npm package, Cargo crate, Docker image, or unstructured file path.
         version:
           type: string
         count:
@@ -1800,6 +1810,162 @@ components:
         updated_at:
           type: integer
           format: int64
+
+    NPMPackage:
+      type: object
+      description: Reserved local package or pull-only package discovered through an npm mirror.
+      required: [repository, name, description, publisher, latest_version, version_count, private, archived, mirrored, publish_enabled, created_at, updated_at]
+      properties:
+        repository:
+          type: string
+        name:
+          type: string
+          maxLength: 214
+          example: "@example/library"
+        description:
+          type: string
+          maxLength: 4000
+        publisher:
+          type: string
+        latest_version:
+          type: string
+        version_count:
+          type: integer
+          minimum: 0
+        private:
+          type: boolean
+          description: Private packages must be scoped and require explicit package membership or administrator access.
+        archived:
+          type: boolean
+        mirrored:
+          type: boolean
+          description: Mirrored packages are pull-only and cannot receive local publications.
+        publish_enabled:
+          type: boolean
+        permission_level:
+          type: integer
+          minimum: 0
+          maximum: 4
+        created_at:
+          type: integer
+          format: int64
+        updated_at:
+          type: integer
+          format: int64
+
+    NPMVersion:
+      type: object
+      required: [version, publisher, shasum, integrity, size, unpublished, mirrored, created_at]
+      properties:
+        version:
+          type: string
+          example: 1.2.3
+        publisher:
+          type: string
+        shasum:
+          type: string
+          description: Lowercase SHA-1 digest retained for npm client compatibility.
+        integrity:
+          type: string
+          description: Subresource Integrity value using SHA-512.
+        size:
+          type: integer
+          format: int64
+          minimum: 0
+        deprecated:
+          type: string
+          maxLength: 4000
+        unpublished:
+          type: boolean
+        mirrored:
+          type: boolean
+        created_at:
+          type: integer
+          format: int64
+
+    NPMMember:
+      type: object
+      required: [user_id, username, level, added_at]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Immutable internal identity; clients should display `username`.
+        username:
+          type: string
+        level:
+          type: integer
+          minimum: 0
+          maximum: 4
+        added_at:
+          type: integer
+          format: int64
+
+    NPMPackageDetails:
+      type: object
+      required: [package, versions, dist_tags, member, administrator]
+      properties:
+        package:
+          $ref: "#/components/schemas/NPMPackage"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/NPMVersion"
+        dist_tags:
+          type: object
+          additionalProperties:
+            type: string
+        members:
+          type: array
+          description: Present for L3/L4 package members and administrators.
+          items:
+            $ref: "#/components/schemas/NPMMember"
+        member:
+          type: boolean
+          description: Whether the current account has an explicit L0-L4 package membership.
+        administrator:
+          type: boolean
+
+    NPMPackagePage:
+      type: object
+      required: [repository, packages, total, limit, offset]
+      properties:
+        repository:
+          type: string
+        packages:
+          type: array
+          items:
+            $ref: "#/components/schemas/NPMPackage"
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+
+    NPMRegistryError:
+      type: object
+      required: [error, reason]
+      properties:
+        error:
+          type: string
+        reason:
+          type: string
+
+    NPMOperationResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+        id:
+          type: string
+        rev:
+          type: string
 
     MavenRepositoriesResponse:
       type: object
@@ -2172,8 +2338,8 @@ paths:
   /api/users/{username}/memberships:
     get:
       tags: [auth]
-      summary: List a user's visible Cargo or Docker package teams
-      description: Private repositories are omitted unless the viewer can access them or owns the profile.
+      summary: List a user's visible package and Maven-domain teams
+      description: Private packages require viewer access. Hidden repositories remain omitted unless the viewer has repository-browser permission.
       operationId: getPublicUserMemberships
       parameters:
         - name: username
@@ -2186,7 +2352,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [cargo, docker]
+            enum: [maven, cargo, docker, npm]
       responses:
         "200":
           description: Visible package memberships and their team roles.
@@ -5465,6 +5631,516 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CargoErrorList"
+
+  # ========== npm package management ==========
+  /api/npm/repositories/{repo_name}/packages:
+    get:
+      tags: [npm]
+      summary: List npm packages or read one package
+      description: Lists the visible bounded catalog. Supplying `package` returns package, version, dist-tag, and authorized team details.
+      operationId: listNPMPackages
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package
+          in: query
+          schema:
+            type: string
+          description: Optional canonical package name. Scoped names may be URL encoded.
+        - name: query
+          in: query
+          schema:
+            type: string
+            maxLength: 128
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000000
+            default: 0
+      responses:
+        "200":
+          description: Package page or selected package details.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/NPMPackagePage"
+                  - $ref: "#/components/schemas/NPMPackageDetails"
+        "400":
+          description: Invalid package name or pagination.
+        "403":
+          description: Repository is not visible to the caller.
+    post:
+      tags: [npm]
+      summary: Reserve an npm package before publication
+      description: Creates an empty package and assigns the caller L4. npm publish cannot create packages implicitly.
+      operationId: createNPMPackage
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 214
+                  example: "@example/library"
+                private:
+                  type: boolean
+                  default: false
+                  description: Private packages must use a scope.
+      responses:
+        "201":
+          description: Package reserved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMPackage"
+        "409":
+          description: Package already exists.
+    put:
+      tags: [npm]
+      summary: Change npm package metadata or state
+      description: Changes exactly one of `description`, `private`, or `archived` per request.
+      operationId: updateNPMPackage
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  maxLength: 4000
+                private:
+                  type: boolean
+                archived:
+                  type: boolean
+      responses:
+        "200":
+          description: Package updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMOperationResponse"
+    delete:
+      tags: [npm]
+      summary: Delete an npm package
+      description: L4-only package deletion tombstones all versions and removes their stored tarballs.
+      operationId: deleteNPMPackage
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Package deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMOperationResponse"
+
+  /api/npm/repositories/{repo_name}/versions:
+    delete:
+      tags: [npm]
+      summary: Unpublish one npm version
+      operationId: deleteNPMVersion
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Version tombstoned and tarball removed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMOperationResponse"
+
+  /api/npm/repositories/{repo_name}/owners:
+    get:
+      tags: [npm]
+      summary: List an npm package team
+      operationId: listNPMOwners
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: L0-L4 package members.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/NPMMember"
+    post:
+      tags: [npm]
+      summary: Invite users to an npm package team
+      operationId: inviteNPMOwners
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [users, level]
+              properties:
+                users:
+                  type: array
+                  minItems: 1
+                  maxItems: 20
+                  items:
+                    type: string
+                level:
+                  type: integer
+                  minimum: 0
+                  maximum: 4
+      responses:
+        "200":
+          description: Invitations created.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/npm/repositories/{repo_name}/owners/{username}:
+    put:
+      tags: [npm]
+      summary: Change an npm package member level
+      operationId: updateNPMOwner
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [level]
+              properties:
+                level:
+                  type: integer
+                  minimum: 0
+                  maximum: 4
+      responses:
+        "200":
+          description: Member updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMOperationResponse"
+    delete:
+      tags: [npm]
+      summary: Remove an npm package member
+      operationId: deleteNPMOwner
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Member removed while preserving the final L4 owner.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMOperationResponse"
+
+  /api/npm/repositories/{repo_name}/users/search:
+    get:
+      tags: [npm]
+      summary: Search users eligible for an npm package invitation
+      operationId: searchNPMUsers
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bounded account suggestions.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/npm/repositories/{repo_name}/invitations/{id}/{decision}:
+    post:
+      tags: [npm]
+      summary: Respond to an npm package-team invitation
+      operationId: respondNPMInvitation
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: decision
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [accept, reject]
+      responses:
+        "200":
+          description: Invitation resolved atomically.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMOperationResponse"
+
+  # ========== npm registry protocol ==========
+  /{repo_name}/-/ping:
+    get:
+      tags: [npm]
+      summary: Check npm registry availability
+      operationId: getNPMPing
+      security:
+        - {}
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      responses:
+        "200":
+          description: Registry is available.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /{repo_name}/-/whoami:
+    get:
+      tags: [npm]
+      summary: Resolve the authenticated npm account
+      operationId: getNPMWhoami
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+      responses:
+        "200":
+          description: Current account.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [username]
+                properties:
+                  username:
+                    type: string
+        "401":
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMRegistryError"
+
+  /{repo_name}/{package_name}/-/{filename}:
+    get:
+      tags: [npm]
+      summary: Download an npm package tarball
+      operationId: getNPMTarball
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package_name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Gzip-compressed npm tar archive.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Tarball is absent or not visible.
+
+  /{repo_name}/-/package/{package_name}/dist-tags:
+    get:
+      tags: [npm]
+      summary: List npm dist-tags
+      operationId: getNPMDistTags
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tag-to-version map.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+
+  /{repo_name}/-/package/{package_name}/dist-tags/{tag}:
+    put:
+      tags: [npm]
+      summary: Set an npm dist-tag
+      operationId: putNPMDistTag
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package_name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        "201":
+          description: Dist-tag updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NPMOperationResponse"
+    delete:
+      tags: [npm]
+      summary: Delete an npm dist-tag
+      operationId: deleteNPMDistTag
+      security:
+        - basicAuth: []
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: package_name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: tag
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Dist-tag deleted.
 
   # ========== Docker image management ==========
   /api/docker/repositories/{repo_name}/images:

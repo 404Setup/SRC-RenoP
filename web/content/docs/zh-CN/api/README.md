@@ -16,6 +16,7 @@ RenoP 提供用于管理自动化、客户端集成与健康监控的完整 HTTP
 |:--------------------------------|:---------------------------------------------------------|
 | `/api/*`                        | 认证、账号、设置、状态与消息等管理 API                   |
 | `/{repo}/*`                     | 按仓库引擎执行上传、下载与删除                           |
+| `/{npm-repo}/*`                 | npm packument、tarball、发布、发布标签与搜索             |
 | `/index/*` 或 `/{repo}/index/*` | Cargo Sparse Index                                       |
 | `/v2/*`                         | Docker 与 OCI Distribution v2                            |
 | `/javadoc/*`                    | 沙箱化 Javadoc 在线预览                                  |
@@ -58,6 +59,7 @@ Basic Auth 不可调用管理 API。URL 查询参数凭据与 `Authorization: Se
 - [Maven API](./maven.md)
 - [Cargo API](./cargo.md)
 - [Docker / OCI API](./docker.md)
+- [npm 存储库 API](./npm.md)
 - [消息中心 API](./messages.md)
 - [存储与上传 API](./storage.md)
 - [设置 API](./settings.md)

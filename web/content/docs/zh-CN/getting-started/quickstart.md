@@ -33,8 +33,8 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 | `/snapshots` | `PUBLIC` | Maven，允许重复发布 |
 | `/private` | `PRIVATE` | Maven，要求认证 |
 
-Cargo、Docker 与 `files` 存储库需要在仓库管理中显式创建。Docker 镜像与 Cargo 名称同样是显式资源，仅在
-上游名称检查成功后才能创建或首次发布。Maven 发布还要求账号菜单中已有验证通过的域。
+npm、Cargo、Docker 与 `files` 存储库需要在仓库管理中显式创建。Docker 镜像与 npm 软件包必须先从对应
+存储库页面预留，客户端才能推送。Cargo 名称仅在上游名称检查成功后创建。Maven 发布还要求账号菜单中已有验证通过的域。
 
 ## 健康检查
 
@@ -64,3 +64,4 @@ protobuf 运行时指标位于 `/api/status/instance`。健康检查只说明进
 - [Maven 与 Gradle](../guides/maven-client.md) — 验证发布域并配置 JVM 客户端
 - [Cargo 存储库](../guides/cargo-registry.md) — 创建 Cargo 存储库并发布 crate
 - [Docker 存储库](../guides/docker-registry.md) — 推送前创建镜像并配置 Docker 或 Podman
+- [npm 存储库](../guides/npm-registry.md) — 预留软件包并配置 npm 兼容客户端

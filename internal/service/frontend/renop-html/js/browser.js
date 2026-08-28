@@ -33,6 +33,7 @@ import {fetchRepoDetails, hideRepoStats, updateRepoStats} from './browser/stats.
 import {hideCargoRepositoryView, renderCargoRepository} from './browser/cargo.js';
 import {hideDockerRepositoryView, renderDockerRepository} from './browser/docker.js';
 import {hideMavenRepositoryView, renderMavenRepository} from './browser/maven.js';
+import {hideNPMRepositoryView, renderNPMRepository} from './browser/npm.js';
 import {localizeRepositorySearch, updateRepositorySearch} from './browser/search.js';
 import {FileDetails, GpgSignatureDetails} from './proto/index.js';
 import {getRepositoryFormat} from './repository-formats.js';
@@ -220,11 +221,11 @@ function setStateVisibility({empty = false, error = false} = {}) {
 
 /**
  * Switch the main browser column between the root file tree and a format-specific repository view.
- * @param {''|'maven'|'cargo'|'docker'} format - Active custom repository format, or empty at the root.
+ * @param {''|'maven'|'cargo'|'docker'|'npm'} format - Active custom repository format, or empty at the root.
  * @returns {void}
  */
 function setRepositoryContentMode(format = '') {
-    const customMode = format === 'maven' || format === 'cargo' || format === 'docker';
+    const customMode = format === 'maven' || format === 'cargo' || format === 'docker' || format === 'npm';
     if (fileListContainer) {
         fileListContainer.hidden = customMode;
         if (customMode) {
@@ -241,6 +242,7 @@ function setRepositoryContentMode(format = '') {
     if (format !== 'maven') hideMavenRepositoryView();
     if (format !== 'cargo') hideCargoRepositoryView();
     if (format !== 'docker') hideDockerRepositoryView();
+    if (format !== 'npm') hideNPMRepositoryView();
 }
 
 /**
@@ -352,14 +354,15 @@ export function renderBreadcrumb(path) {
         currentPath += '/' + parts[i];
         const isLast = i === parts.length - 1;
         const decoded = decodePathSegment(parts[i]);
-        const packagesRoute = currentRepositoryFormat === 'cargo' && i === 1 && decoded === 'packages';
+        const packagesRoute = (currentRepositoryFormat === 'cargo' || currentRepositoryFormat === 'npm') &&
+            i === 1 && decoded === 'packages';
         desired.push({type: 'sep', text: '/'});
         desired.push({
             type: 'link',
             href: currentPath,
-            text: packagesRoute ? t('cargo.packagesTitle') : decoded,
+            text: packagesRoute ? t(currentRepositoryFormat === 'npm' ? 'npm.packages' : 'cargo.packagesTitle') : decoded,
             isCurrent: isLast,
-            i18nKey: packagesRoute ? 'cargo.packagesTitle' : undefined
+            i18nKey: packagesRoute ? (currentRepositoryFormat === 'npm' ? 'npm.packages' : 'cargo.packagesTitle') : undefined
         });
     }
 
@@ -696,7 +699,8 @@ export async function loadDirectory(path) {
     const seq = ++currentLoadSeq;
     const pathParts = path.split('/').filter(p => p.length > 0);
     const repositoryName = pathParts[0] || '';
-    const canReuseFormatDetails = (currentRepositoryFormat === 'maven' || currentRepositoryFormat === 'cargo' || currentRepositoryFormat === 'docker') &&
+    const canReuseFormatDetails = (currentRepositoryFormat === 'maven' || currentRepositoryFormat === 'cargo' ||
+        currentRepositoryFormat === 'docker' || currentRepositoryFormat === 'npm') &&
         repositoryName !== '' && repositoryName === currentRepositoryName && currentRepoDetails !== null;
 
     let direction = 'fade';
@@ -751,7 +755,9 @@ export async function loadDirectory(path) {
 		const isMavenRepository = currentRepositoryFormat === 'maven' && repoDetails && pathParts.length >= 1;
 		const isCargoRepository = currentRepositoryFormat === 'cargo' && pathParts.length >= 1;
 		const isDockerRepository = currentRepositoryFormat === 'docker' && pathParts.length >= 1;
-		setRepositoryContentMode(isMavenRepository ? 'maven' : (isCargoRepository ? 'cargo' : (isDockerRepository ? 'docker' : '')));
+		const isNPMRepository = currentRepositoryFormat === 'npm' && pathParts.length >= 1;
+		setRepositoryContentMode(isMavenRepository ? 'maven' : (isCargoRepository ? 'cargo' :
+			(isDockerRepository ? 'docker' : (isNPMRepository ? 'npm' : ''))));
 		updateRepositorySearch(repoDetails ? pathParts[0] : '', currentRepositoryFormat, navigateToPath);
 		renderBreadcrumb(path);
 
@@ -770,6 +776,12 @@ export async function loadDirectory(path) {
 		if (isDockerRepository) {
 			setStateVisibility({empty: false, error: false});
 			await renderDockerRepository(path, repoDetails, navigateToPath);
+			return;
+		}
+
+		if (isNPMRepository) {
+			setStateVisibility({empty: false, error: false});
+			await renderNPMRepository(path, repoDetails, navigateToPath);
 			return;
 		}
 

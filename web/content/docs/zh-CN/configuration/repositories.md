@@ -40,17 +40,20 @@ repositories:
 | 字段 | 默认值 | 说明 |
 |:-----|:-------|:-----|
 | `name` | 必填 | 不可变仓库 slug 与 URL 前缀 |
-| `format` | `maven` | `maven`、`maven-classic`、`files`、`cargo` 或 `docker` |
+| `format` | `maven` | `maven`、`maven-classic`、`files`、`npm`、`cargo` 或 `docker` |
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN` 或 `PRIVATE` |
 | `allow_redeployment` | `false` | 在支持的引擎中允许 Maven 版本重发或 files/Docker 覆盖 |
 | `require_gpg_signature` | `false` | Maven 发布要求通过 OpenPGP 分离签名校验 |
-| `download_statistics` | 引擎默认值 | Maven/Cargo/Docker 默认启用；`files` 需手动启用 |
+| `download_statistics` | 引擎默认值 | Maven/npm/Cargo/Docker 默认启用；`files` 需手动启用 |
 | `mirrors` | `[]` | 按顺序执行的上游镜像定义 |
 | `s3` | 省略 | 当前仓库独立的 S3 兼容存储 |
 
 `maven-classic` 只改变前端布局，仍执行 Maven 发布规则。`files` 为非结构化存储，不生成校验文件、POM 或
 签名校验。Maven 可迁移到 `files` 并反向迁移，存储对象保持原位；切回 Maven 时重建目录并恢复保存的策略。
 迁移前生效的下载统计开关会保持不变。
+
+`npm` 存储库要求先预留软件包再发布，保存不可变语义化版本与发布标签，支持作用域私有包、L0-L4 团队，
+并可按精确软件包名称或 `@scope/*` 规则使用镜像。
 
 ### 可见性
 

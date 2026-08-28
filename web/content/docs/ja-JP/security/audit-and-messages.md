@@ -20,7 +20,7 @@ translation を要求します。
 - login、password、recovery、login-method change
 - API Token create/revoke と session revoke
 - user、role、repository、storage、proxy、update administration
-- Maven domain verification/team と Cargo/Docker team lifecycle
+- Maven domain verification/team と npm/Cargo/Docker team lifecycle
 - upload、delete、GPG quarantine/publication、package mutation
 
 entry は subject、必要な operator、auth method、session public ID、client IP、time、bounded detail を含みます。

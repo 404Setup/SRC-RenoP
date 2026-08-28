@@ -72,6 +72,18 @@ const FORMAT_CATALOG = Object.freeze({
         supportsGpg: false,
         supportsArtifactTemplate: false,
         snippetTabs: Object.freeze(['docker-pull', 'docker-tag', 'docker-push', 'docker-login'])
+    }),
+    npm: Object.freeze({
+        id: 'npm',
+        protocol: 'npm',
+        icon: 'repositoryNpm',
+        labelKey: 'repos.formatNpm',
+        descriptionKey: 'repos.formatNpmDesc',
+        supportsBrowserUpload: false,
+        supportsRedeployment: false,
+        supportsGpg: false,
+        supportsArtifactTemplate: false,
+        snippetTabs: Object.freeze(['npm-config', 'npm-install', 'npm-publish'])
     })
 });
 

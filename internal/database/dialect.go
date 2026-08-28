@@ -104,6 +104,76 @@ func initDownloadStatisticsTables(db *sql.DB) error {
 	return err
 }
 
+func initNPMTables(db *sql.DB) error {
+	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS npm_packages (
+			repository VARCHAR(64) NOT NULL,
+			package_name VARCHAR(214) NOT NULL,
+			description TEXT NOT NULL,
+			publisher VARCHAR(255) NOT NULL,
+			latest_version VARCHAR(128) NOT NULL,
+			private INT NOT NULL DEFAULT 0,
+			archived INT NOT NULL DEFAULT 0,
+			mirrored INT NOT NULL DEFAULT 0,
+			publish_enabled INT NOT NULL DEFAULT 1,
+			revision BIGINT NOT NULL DEFAULT 1,
+			created_at BIGINT NOT NULL,
+			updated_at BIGINT NOT NULL,
+			PRIMARY KEY (repository, package_name)
+		);`,
+		`CREATE TABLE IF NOT EXISTS npm_versions (
+			repository VARCHAR(64) NOT NULL,
+			package_name VARCHAR(214) NOT NULL,
+			version VARCHAR(128) NOT NULL,
+			manifest_json TEXT NOT NULL,
+			publisher VARCHAR(255) NOT NULL,
+			tarball_path VARCHAR(1024) NOT NULL,
+			shasum CHAR(40) NOT NULL,
+			integrity VARCHAR(255) NOT NULL,
+			size BIGINT NOT NULL DEFAULT 0,
+			deprecated TEXT NOT NULL,
+			unpublished INT NOT NULL DEFAULT 0,
+			mirrored INT NOT NULL DEFAULT 0,
+			created_at BIGINT NOT NULL,
+			PRIMARY KEY (repository, package_name, version)
+		);`,
+		`CREATE TABLE IF NOT EXISTS npm_dist_tags (
+			repository VARCHAR(64) NOT NULL,
+			package_name VARCHAR(214) NOT NULL,
+			tag VARCHAR(128) NOT NULL,
+			version VARCHAR(128) NOT NULL,
+			updated_at BIGINT NOT NULL,
+			PRIMARY KEY (repository, package_name, tag)
+		);`,
+		`CREATE TABLE IF NOT EXISTS npm_members (
+			repository VARCHAR(64) NOT NULL,
+			package_name VARCHAR(214) NOT NULL,
+			username VARCHAR(255) NOT NULL,
+			user_id VARCHAR(36) NULL,
+			permission_level INT NOT NULL,
+			added_at BIGINT NOT NULL,
+			PRIMARY KEY (repository, package_name, username),
+			UNIQUE (repository, package_name, user_id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS npm_invitations (
+			id CHAR(36) PRIMARY KEY,
+			repository VARCHAR(64) NOT NULL,
+			package_name VARCHAR(214) NOT NULL,
+			inviter VARCHAR(255) NOT NULL,
+			recipient VARCHAR(255) NOT NULL,
+			permission_level INT NOT NULL,
+			created_at BIGINT NOT NULL,
+			UNIQUE (repository, package_name, recipient)
+		);`,
+	}
+	for _, table := range tables {
+		if _, err := db.Exec(table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func initMavenTables(db *sql.DB) error {
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS maven_domains (
@@ -221,6 +291,11 @@ var sharedIndexMigrations = []SchemaMigration{
 	{Name: "idx_docker_blobs_repo", Query: "CREATE INDEX IF NOT EXISTS idx_docker_blobs_repo ON docker_blobs(repository, digest);"},
 	{Name: "idx_docker_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_docker_members_user ON docker_members(username, repository);"},
 	{Name: "idx_docker_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_docker_invitations_recipient ON docker_invitations(recipient, created_at);"},
+	{Name: "idx_npm_packages_search", Query: "CREATE INDEX IF NOT EXISTS idx_npm_packages_search ON npm_packages(repository, archived, package_name);"},
+	{Name: "idx_npm_versions_package", Query: "CREATE INDEX IF NOT EXISTS idx_npm_versions_package ON npm_versions(repository, package_name, created_at DESC);"},
+	{Name: "idx_npm_tags_package", Query: "CREATE INDEX IF NOT EXISTS idx_npm_tags_package ON npm_dist_tags(repository, package_name);"},
+	{Name: "idx_npm_members_user", Query: "CREATE INDEX IF NOT EXISTS idx_npm_members_user ON npm_members(username, repository);"},
+	{Name: "idx_npm_invitations_recipient", Query: "CREATE INDEX IF NOT EXISTS idx_npm_invitations_recipient ON npm_invitations(recipient, created_at);"},
 	{Name: "idx_download_statistics_user", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_user ON download_statistics(user_id, repository);"},
 	{Name: "idx_download_statistics_repository", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_repository ON download_statistics(repository, format);"},
 	{Name: "idx_download_statistics_namespace", Query: "CREATE INDEX IF NOT EXISTS idx_download_statistics_namespace ON download_statistics(repository, namespace);"},

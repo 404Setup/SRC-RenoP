@@ -16,6 +16,7 @@ verification workflows, package catalogs, mirrors, storage, audit, and updates.
 - **Maven / Gradle**: Verified global publishing domains, modern domain catalogs, classic layout compatibility, Maven 2
   client paths, mirrors, Javadoc, and detached OpenPGP verification.
 - **Cargo**: Sparse Index, explicit package ownership, publication, search, yank/unyank, mirrors, and Cargodoc.
+- **npm**: Explicit package reservation, immutable versions, scoped private packages, dist-tags, teams, and mirrors.
 - **Docker / OCI**: Distribution v2, explicit image reservation, private image teams, chunked blobs, cross-repository
   mounts, multi-architecture manifests, and upstream mirrors.
 - **Files**: Unstructured replaceable file storage with mirrors and no generated Maven metadata or signature workflow.
@@ -47,3 +48,4 @@ verification workflows, package catalogs, mirrors, storage, audit, and updates.
 - [Maven & Gradle](../guides/maven-client.md) — Verified domains and JVM client setup
 - [Cargo](../guides/cargo-registry.md) — Sparse registry and crate lifecycle
 - [Docker & OCI](../guides/docker-registry.md) — Image reservation, authentication, push, and pull
+- [npm Registry](../guides/npm-registry.md) — Package reservation, client configuration, publication, and teams

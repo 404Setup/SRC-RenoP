@@ -27,6 +27,8 @@
   invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, and hashed,
   expiring fine-grained API credentials. Legacy plaintext upload tokens migrate transactionally to scoped hashes;
   durable GitHub identity/principal snapshots and username-change throttling remain bound to immutable user IDs.
+  npm package reservations, immutable versions, dist-tags, L0-L4 teams, and invitations use the same immutable
+  identities across every supported SQL dialect.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -60,6 +62,10 @@
   management. Client pushes cannot create images implicitly; administrators reserve public or private images through
   the frontend first. Local reservations are unique and cannot claim names exposed by an enabled upstream mirror;
   mirror-discovered images remain permanently pull-only.
+- **`internal/service/npm/`**: npm-compatible per-repository registry with explicitly reserved public or scoped-private
+  packages, immutable semantic versions, validated streaming tarball publication, dist-tags, deprecation/unpublish
+  workflows, L0-L4 package teams, upstream packument/tarball mirrors, and full/abbreviated metadata negotiation.
+  Mirrored packages remain pull-only, while local publication requires the package and its permission to exist first.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
@@ -70,6 +76,8 @@
   Browser navigation classifies indexed artifacts before format and authorization SPA branches, so a known file path
   never receives the SPA shell; Brotli, gzip, Zstandard, and the other supported compressed formats receive explicit
   binary MIME types without HTTP content-encoding labels.
+- **`internal/service/packagestore/`**: Shared streaming package-blob boundary used by protocol modules for bounded
+  staging, validation, atomic Disk/S3 commit, rollback, and deletion without importing storage implementations.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
   administrator notices. Package-team removals create operator-neutral notifications localized by
   `internal/service/frontend/renop-html/js/team-messages.js`; scheduled and interactive system-update results are
@@ -80,7 +88,7 @@
   status snapshots, cache/session cleanup, index persistence, download-statistics flushing, upload cleanup, and update checks.
   Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain
   dedicated and serial where ordering matters.
-- **`internal/service/statistics/`**: Application-scoped bounded download counter shared by Maven, Cargo, Docker, and
+- **`internal/service/statistics/`**: Application-scoped bounded download counter shared by Maven, npm, Cargo, Docker, and
   unstructured files. One scheduler task flushes aggregates keyed by immutable user identity, repository, publishing
   domain, package/image, and version into `download_statistics`; checksum, signature, metadata, Javadoc, failed, HEAD,
   and noninitial range requests are excluded. Bearer API-token-only query routes provide bounded hierarchical pages,
@@ -97,7 +105,7 @@
   running build and target; embedded full commit IDs and each stable record's `previous_commit` preserve ordering when
   version labels or older hosted records are unavailable.
 - **`internal/middleware/` & `internal/api/`**: Format-aware search (modern Maven domain/artifact catalog,
-  classic Maven/files index, and Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
+  classic Maven/files index, and npm/Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`,
   `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
@@ -133,9 +141,11 @@
   and filter shell and morphs only the bounded results/pagination region;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
+  npm repositories use `js/browser/npm.js` for bounded catalog, package, immutable-version, dist-tag, visibility,
+  and L0-L4 team management while protocol failures are localized through stable codes in `js/npm-errors.js`.
   `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository
   name ordering plus engine filtering and bounded pagination, while `js/components/icon.js` maps detailed file types
-  into a bounded set of shared visual families. Cargo and Docker team invitations
+  into a bounded set of shared visual families. npm, Cargo, and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
   and `js/time.js`. Shared select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; native

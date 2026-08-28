@@ -28,10 +28,11 @@ administrateur est auditée et n’ajoute pas silencieusement un membre affiché
 ## Couches dépôt et équipe
 
 - La visibilité définit découverte et lecture de base : `PUBLIC`, découverte de `HIDDEN` selon les droits ou `PRIVATE` autorisé.
-- Un droit de dépôt n’autorise pas la création automatique d’un paquet ni la vérification d’un domaine Maven.
-- Les équipes Cargo/Docker utilisent L0 lecture, L1 publication, L2 cycle/métadonnées, L3 membres, L4 propriété.
+- Un droit de dépôt ne crée pas automatiquement un paquet npm/Cargo/Docker et ne vérifie pas un domaine Maven.
+- Les équipes npm/Cargo/Docker utilisent L0 lecture, L1 publication, L2 cycle/métadonnées, L3 membres, L4 propriété.
 - Une équipe Maven appartient à un domaine global vérifié et vaut dans tous les dépôts Maven.
 - Une image Docker privée n’accorde aucun L0 public implicite ; les blobs restent liés aux images lisibles.
+- Un paquet npm privé doit être scoped et exige un membre explicite ou un administrateur.
 
 ## Transports d’identifiants
 

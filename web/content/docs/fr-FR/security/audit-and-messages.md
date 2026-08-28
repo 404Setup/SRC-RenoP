@@ -20,7 +20,7 @@ traduction de chaque action dans chaque langue.
 - connexions, mots de passe, récupération et méthodes de connexion ;
 - création/révocation d’API Token et révocation de sessions ;
 - administration des utilisateurs, rôles, dépôts, stockage, proxy et mises à jour ;
-- vérification et équipes Maven, cycles d’équipes Cargo/Docker ;
+- vérification et équipes Maven, cycles d’équipes npm/Cargo/Docker ;
 - uploads, suppressions, quarantaine/publication GPG et mutations de paquets.
 
 Une entrée contient sujet, opérateur si nécessaire, méthode, ID public de session, IP, date et détail borné. Rétention et

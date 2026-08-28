@@ -132,7 +132,7 @@ export default Object.freeze({
     "search.filesPlaceholder": "파일 및 디렉터리 검색",
     "repos.formatCargoDesc": "Cargo sparse 인덱스, crate 게시, 미러 및 패키지 팀입니다.",
     "repos.formatDockerDesc": "Docker 및 OCI 컨테이너 이미지, 다중 아키텍처 매니페스트, 미러 캐싱 지원.",
-    "repos.formatImmutableDesc": "Cargo와 Docker 엔진은 고정되며 Maven과 파일 엔진은 아래에서 마이그레이션할 수 있습니다.",
+    "repos.formatImmutableDesc": "Cargo, Docker, npm 엔진은 고정되며 Maven과 파일 엔진은 아래에서 마이그레이션할 수 있습니다.",
     "repos.formatCreateDesc": "클라이언트 프로토콜을 선택하세요. Maven과 파일 엔진은 나중에 마이그레이션할 수 있으며 다른 엔진은 고정됩니다.",
     "repos.engineMigration": "저장소 엔진 마이그레이션",
     "repos.migrationToFiles": "파일 저장소로 변환",

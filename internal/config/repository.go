@@ -56,6 +56,7 @@ const (
 	RepositoryFormatFiles        = "files"
 	RepositoryFormatCargo        = "cargo"
 	RepositoryFormatDocker       = "docker"
+	RepositoryFormatNPM          = "npm"
 )
 
 // NormalizedFormat returns the protocol name while preserving the historical
@@ -105,6 +106,7 @@ func (r Repository) serialization() repositorySerialization {
 		serialized.Mirrors[i] = r.Mirrors[i].DeepCopy()
 	}
 	if r.NormalizedFormat() == RepositoryFormatCargo || r.NormalizedFormat() == RepositoryFormatDocker ||
+		r.NormalizedFormat() == RepositoryFormatNPM ||
 		r.NormalizedFormat() == RepositoryFormatFiles {
 		if r.NormalizedFormat() == RepositoryFormatDocker || r.NormalizedFormat() == RepositoryFormatFiles {
 			serialized.AllowRedeployment = &r.AllowRedeployment
@@ -153,7 +155,7 @@ func (r Repository) MarshalYAML() (any, error) {
 func IsSupportedRepositoryFormat(format string) bool {
 	switch strings.ToLower(strings.TrimSpace(format)) {
 	case "", RepositoryFormatMaven, RepositoryFormatMavenClassic, RepositoryFormatFiles,
-		RepositoryFormatCargo, RepositoryFormatDocker:
+		RepositoryFormatCargo, RepositoryFormatDocker, RepositoryFormatNPM:
 		return true
 	default:
 		return false

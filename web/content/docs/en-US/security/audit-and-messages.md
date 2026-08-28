@@ -20,7 +20,7 @@ action to have a translation in every supported locale.
 - login success/failure, password changes, recovery, and login-method changes;
 - API Token creation/revocation and session revocation;
 - user, role, repository, storage, proxy, and update administration;
-- Maven domain verification/team changes and Cargo/Docker package-team lifecycle;
+- Maven domain verification/team changes and npm/Cargo/Docker package-team lifecycle;
 - uploads, deletes, GPG quarantine/publication, and other package mutations.
 
 Entries include subject, operator where applicable, authentication method, session public ID, client IP, time, and a

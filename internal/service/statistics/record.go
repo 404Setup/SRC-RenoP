@@ -16,6 +16,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/auth"
+	"renop/internal/service/npm"
 	"renop/internal/utils"
 )
 
@@ -135,6 +136,16 @@ func classifyRepositoryDownload(repo *config.Repository, path string) (namespace
 			return "", "", "", false
 		}
 		return "", path, "", true
+	case config.RepositoryFormatNPM:
+		packageName, version, matched := npm.ClassifyTarballPath(path)
+		if !matched {
+			return "", "", "", false
+		}
+		namespace := ""
+		if strings.HasPrefix(packageName, "@") {
+			namespace = strings.SplitN(packageName, "/", 2)[0]
+		}
+		return namespace, packageName, version, true
 	default:
 		return "", "", "", false
 	}

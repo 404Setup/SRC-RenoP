@@ -11,7 +11,7 @@ RenoP aggregates successful package downloads without storing one database row p
 count, logical bytes, and the latest update time. User attribution is bound to the account’s immutable identity, so a
 username change does not split its history.
 
-Maven, Cargo, and Docker repositories count by default. The unstructured `files` engine opts in. Checksum, detached
+Maven, npm, Cargo, and Docker repositories count by default. The unstructured `files` engine opts in. Checksum, detached
 signature, Maven metadata, and Javadoc companion requests are excluded. `HEAD`, `304`, failed requests, and noninitial
 range segments are not counted. Docker records one pull when a manifest is returned rather than counting every blob.
 

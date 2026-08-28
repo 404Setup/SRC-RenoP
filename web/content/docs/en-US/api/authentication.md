@@ -50,7 +50,7 @@ stores immutable provider IDs and current principal snapshots, and never persist
 - **Update password**: `PUT /api/auth/profile/password`
 - **Logout**: `POST /api/auth/logout`
 - **Public profile**: `GET /api/users/:username/profile`
-- **Package memberships**: `GET /api/users/:username/memberships?format=cargo|docker|maven`
+- **Package memberships**: `GET /api/users/:username/memberships?format=cargo|docker|maven|npm`
 
 Visible profile routes use usernames. Immutable user IDs remain internal. `HIDDEN` repository memberships are omitted;
 private memberships are returned only to an authorized viewer.

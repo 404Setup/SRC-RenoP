@@ -27,7 +27,7 @@ function teamRemovalPayload(message) {
     const format = String(payload.format || '').toLowerCase();
     const repository = String(payload.repository || '');
     const packageName = String(payload.package || '');
-    if (!['cargo', 'docker', 'maven'].includes(format)) return null;
+    if (!['cargo', 'docker', 'maven', 'npm'].includes(format)) return null;
     if (!packageName || packageName.length > 255 || /[\0\r\n]/.test(packageName)) return null;
     if (format !== 'maven' && (!repository || repository.length > 64 || /[\0\r\n]/.test(repository))) return null;
     return {format, repository, package: packageName};

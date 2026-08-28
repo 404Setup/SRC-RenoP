@@ -20,7 +20,7 @@ description: Durable записи поведения, workflow notifications и 
 - login, password, recovery и изменения login method;
 - создание/отзыв API Token и отзыв sessions;
 - администрирование user, role, repository, storage, proxy и update;
-- Maven domain verification/team и lifecycle команд Cargo/Docker;
+- Maven domain verification/team и lifecycle команд npm/Cargo/Docker;
 - uploads, deletes, GPG quarantine/publication и package mutations.
 
 Entry содержит subject, operator при необходимости, auth method, public session ID, client IP, time и bounded details.

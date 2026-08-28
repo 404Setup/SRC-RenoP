@@ -377,20 +377,24 @@ func cargoPackageTarget(path string) string {
 	return ""
 }
 
-func dockerAPIRepository(path string) string {
+func packageAPIRepository(path string) string {
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) >= 4 && parts[0] == "api" && parts[1] == "docker" && parts[2] == "repositories" {
+	if len(parts) >= 4 && parts[0] == "api" &&
+		(parts[1] == "docker" || parts[1] == "npm") && parts[2] == "repositories" {
 		return parts[3]
 	}
 	return ""
 }
 
-func dockerAPIPackageTarget(c fiber.Ctx) string {
-	repository := dockerAPIRepository(c.Path())
+func packageAPITarget(c fiber.Ctx) string {
+	repository := packageAPIRepository(c.Path())
 	if repository == "" {
 		return ""
 	}
 	image := strings.Trim(c.Query("image"), "/")
+	if image == "" {
+		image = strings.Trim(c.Query("package"), "/")
+	}
 	if image == "" {
 		parts := strings.Split(strings.Trim(c.Path(), "/"), "/")
 		if len(parts) >= 6 && (parts[4] == "images" || parts[4] == "manifests" || parts[4] == "tags") {
@@ -405,8 +409,8 @@ func dockerAPIPackageTarget(c fiber.Ctx) string {
 
 func packageManagementRequirement(c fiber.Ctx) apiTokenRequirement {
 	path, method := c.Path(), c.Method()
-	repository := dockerAPIRepository(path)
-	packageTarget := dockerAPIPackageTarget(c)
+	repository := packageAPIRepository(path)
+	packageTarget := packageAPITarget(c)
 	if strings.Contains(path, "/owners") || strings.Contains(path, "/users/search") ||
 		strings.Contains(path, "/invitations/") {
 		teamTarget := ""
@@ -414,6 +418,9 @@ func packageManagementRequirement(c fiber.Ctx) apiTokenRequirement {
 			teamTarget = "package/" + packageTarget
 		}
 		return requireAPITokenTarget(APITokenScopeTeamManage, teamTarget, APITokenScopePackageManage)
+	}
+	if strings.Contains(path, "/versions") || method == fiber.MethodDelete && strings.Contains(path, "/packages") {
+		return requireAPITokenTarget(APITokenScopePackageLifecycle, packageTarget, APITokenScopePackageManage)
 	}
 	switch method {
 	case fiber.MethodGet, fiber.MethodHead:
@@ -510,6 +517,19 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 	if isRepositoryRequest(c, state) {
 		lowerPath := strings.ToLower(c.Path())
 		repository := repositoryTargetFromPath(c.Path())
+		cfg := state.Inner.Config.Load()
+		repo := cfg.Maven.Repositories[repository]
+		if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatNPM {
+			switch method {
+			case fiber.MethodGet, fiber.MethodHead:
+				return requireAPITokenTarget(APITokenScopeRepositoryRead, repository)
+			case fiber.MethodPut:
+				return requireAPITokenScope(APITokenScopeRepositoryPublish,
+					APITokenScopePackageLifecycle, APITokenScopePackageManage)
+			case fiber.MethodDelete:
+				return requireAPITokenScope(APITokenScopePackageLifecycle, APITokenScopePackageManage)
+			}
+		}
 		packageTarget := cargoPackageTarget(c.Path())
 		if strings.Contains(lowerPath, "/api/v1/invitations/") || strings.Contains(lowerPath, "/owners") {
 			teamTarget := ""
@@ -558,7 +578,8 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 		return requireAPITokenScope(APITokenScopeStatisticsRead)
 	case strings.HasPrefix(path, "/api/maven"):
 		return mavenAPITokenRequirement(c)
-	case strings.HasPrefix(path, "/api/cargo") || strings.HasPrefix(path, "/api/docker"):
+	case strings.HasPrefix(path, "/api/cargo") || strings.HasPrefix(path, "/api/docker") ||
+		strings.HasPrefix(path, "/api/npm"):
 		return packageManagementRequirement(c)
 	case strings.HasPrefix(path, "/api/upload/chunked"):
 		return requireAPITokenDeferredTarget(APITokenScopeRepositoryPublish)

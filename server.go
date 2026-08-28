@@ -35,6 +35,7 @@ import (
 	"renop/internal/service/javadocs"
 	"renop/internal/service/maven"
 	"renop/internal/service/message"
+	"renop/internal/service/npm"
 	"renop/internal/service/settings"
 	"renop/internal/service/statistics"
 	"renop/internal/service/status"
@@ -150,6 +151,7 @@ func startServer() {
 	message.SetupRoutes(apiGroup, state)
 	statistics.SetupRoutes(apiGroup, state)
 	maven.SetupRoutes(apiGroup, state)
+	npm.SetupRoutes(apiGroup, state, storage.NewPackageStore())
 	upload.SetupChunkedUploadRoutes(apiGroup, state)
 	settings.SetupSettingsRoutes(apiGroup.Group("/settings"), state)
 	updater.SetupUpdaterRoutes(apiGroup, state)

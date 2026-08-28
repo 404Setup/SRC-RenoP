@@ -7,7 +7,7 @@ description: Opérations directes et téléversements repris et bornés
 
 # API de stockage et téléversement
 
-Les routes directes concernent Maven et `files`. Cargo et Docker utilisent leurs protocoles natifs. Chaque mutation
+Les routes directes concernent Maven et `files`. npm, Cargo et Docker utilisent leurs protocoles natifs. Chaque mutation
 vérifie la capacité du Token, les droits du dépôt, son format et, pour Maven, la politique du domaine.
 
 ## Opérations directes

@@ -17,7 +17,7 @@ Browser and package clients
         |
 HTTP routing, rate limits, authentication, API-token policy
         |
-Maven | Cargo | Docker | Files | Management services
+Maven | npm | Cargo | Docker | Files | Management services
         |
 Repository gate and publication workflows
         |
@@ -27,7 +27,7 @@ File index and mirrors      Identity, teams, audit, messages
 ```
 
 - `internal/api` 与中间件负责通用 HTTP 契约、搜索、异常检测和凭据边界；
-- 各引擎服务负责 Maven 域/目录、Cargo Sparse Index、Docker Distribution v2 与文档预览；
+- 各引擎服务负责 Maven 域/目录、npm packument、Cargo Sparse Index、Docker Distribution v2 与文档预览；
 - 数据库层为 SQLite、MySQL 与 PostgreSQL 提供方言感知事务；
 - Disk/S3 流式处理大型正文，文件索引提供有界元数据遍历。
 

@@ -17,7 +17,7 @@ Browser and package clients
         |
 HTTP routing, rate limits, authentication, API-token policy
         |
-Maven | Cargo | Docker | Files | Management services
+Maven | npm | Cargo | Docker | Files | Management services
         |
 Repository gate and publication workflows
         |
@@ -27,7 +27,7 @@ File index and mirrors      Identity, teams, audit, messages
 ```
 
 - `internal/api` et les middlewares possèdent les contrats généraux, la recherche, les anomalies et les identifiants.
-- Les services de format possèdent domaines/catalogues Maven, Sparse Index Cargo, Distribution Docker v2 et aperçus.
+- Les services de format possèdent domaines/catalogues Maven, packuments npm, Sparse Index Cargo, Distribution Docker v2 et aperçus.
 - La base fournit des transactions multi-dialectes pour SQLite, MySQL et PostgreSQL.
 - Disk/S3 diffuse les gros corps et l’index fournit un parcours borné des métadonnées.
 

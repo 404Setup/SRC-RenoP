@@ -132,7 +132,7 @@ export default Object.freeze({
     "search.filesPlaceholder": "ファイルとディレクトリを検索",
     "repos.formatCargoDesc": "Cargo sparse インデックス、crate の公開、ミラー、パッケージチーム。",
     "repos.formatDockerDesc": "Docker / OCI コンテナイメージ、マルチアーキテクチャマニフェスト、ミラーキャッシュ。",
-    "repos.formatImmutableDesc": "Cargo と Docker エンジンは固定です。Maven とファイルは下で移行できます。",
+    "repos.formatImmutableDesc": "Cargo、Docker、npm エンジンは固定です。Maven とファイルは下で移行できます。",
     "repos.formatCreateDesc": "クライアントプロトコルを選択します。Maven とファイルは後から移行できますが、他のエンジンは固定です。",
     "repos.engineMigration": "リポジトリエンジンの移行",
     "repos.migrationToFiles": "ファイルストレージへ変換",

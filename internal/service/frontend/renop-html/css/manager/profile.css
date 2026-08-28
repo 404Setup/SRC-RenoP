@@ -914,6 +914,11 @@
     color: #2563eb;
 }
 
+.profile-memberships-icon.is-npm {
+    background: color-mix(in srgb, #cb3837 13%, transparent);
+    color: #cb3837;
+}
+
 .profile-memberships-icon svg {
     width: 1.2rem;
     height: 1.2rem;

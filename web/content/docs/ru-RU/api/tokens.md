@@ -94,12 +94,12 @@ URL не позволяют управлять секретами.
 | Scope | Возможность |
 |:------|:------------|
 | `repository:read` | Чтение каталогов, метаданных, файлов, образов и версий |
-| `repository:publish` | Публикация через Maven, Cargo, Docker, files или блочную загрузку |
+| `repository:publish` | Публикация через Maven, npm, Cargo, Docker, files или блочную загрузку |
 | `repository:delete` | Удаление файлов, версий, тегов и образов |
-| `package:create` | Резервирование нового Cargo package или Docker image после проверки репозитория |
+| `package:create` | Резервирование npm/Cargo package или Docker image после проверки репозитория |
 | `package:metadata` | Изменение описания и метаданных пакета |
 | `package:lifecycle` | Archive, restore, yank и unyank пакета или версии |
-| `team:manage` | Просмотр и управление командами и приглашениями Cargo, Docker и Maven domain |
+| `team:manage` | Просмотр и управление командами и приглашениями npm, Cargo, Docker и Maven domain |
 | `domain:read` | Чтение закрытой конфигурации Maven domain |
 | `domain:create` | Создание Maven domain |
 | `domain:verify` | Проверка или принудительная проверка Maven domain |
@@ -128,7 +128,7 @@ Authorization: Bearer rnp_pat_REDACTED
 ```
 
 Пакетный клиент может использовать Token как Basic password с именем владельца. Basic ограничен пакетными протоколами.
-Cargo передаёт Token целиком в `Authorization`. Docker обменивает его через `/v2/token`; краткосрочный Token содержит
+npm передаёт Token через `_authToken` или Basic; Cargo — целиком в `Authorization`. Docker обменивает его через `/v2/token`; краткосрочный Token содержит
 только операции, разрешённые одновременно scopes и правами образа.
 
 ## Совместимость

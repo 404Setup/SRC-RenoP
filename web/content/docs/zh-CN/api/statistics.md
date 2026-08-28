@@ -10,7 +10,7 @@ description: 有界下载计数、分层查询、存储库控制及 API Token �
 RenoP 对成功的软件包下载进行聚合，不为每次请求单独保存数据库记录。计数包含下载次数、逻辑字节数与最后
 更新时间。用户归属绑定账号的不可变 ID，因此修改用户名不会拆分历史数据。
 
-Maven、Cargo 与 Docker 存储库默认启用统计；非结构化 `files` 引擎需要手动启用。校验和、分离签名、Maven
+Maven、npm、Cargo 与 Docker 存储库默认启用统计；非结构化 `files` 引擎需要手动启用。校验和、分离签名、Maven
 元数据及 Javadoc 伴随请求不会计入。`HEAD`、`304`、失败请求及非起始分段请求不会计入。Docker 在返回
 Manifest 时记录一次拉取，不按每个 Blob 重复计数。
 

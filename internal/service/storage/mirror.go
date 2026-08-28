@@ -16,6 +16,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/service/cargo"
+	"renop/internal/service/npm"
 	"renop/internal/service/proxy"
 	"renop/internal/utils"
 )
@@ -45,6 +46,8 @@ func recordMirroredArtifact(state *core.AppState, repo *config.Repository, local
 		if MavenMirrorRecorder != nil {
 			err = MavenMirrorRecorder(state, repo.Name, path, size, modTime)
 		}
+	case config.RepositoryFormatNPM:
+		err = npm.RecordMirroredPath(state, repo, path, size)
 	}
 	if err != nil {
 		log.Printf("failed to record mirrored artifact %s/%s: %v", repo.Name, path, err)

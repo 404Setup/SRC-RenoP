@@ -132,7 +132,7 @@ export default Object.freeze({
     "search.filesPlaceholder": "搜索文件和目录",
     "repos.formatCargoDesc": "支持 Cargo sparse 索引、crate 发布、镜像与软件包团队。",
     "repos.formatDockerDesc": "支持 Docker 与 OCI 容器镜像、多架构 Manifest 与镜像拉取缓存。",
-    "repos.formatImmutableDesc": "Cargo 与 Docker 引擎不可更改；Maven 与纯文件引擎可在下方互相迁移。",
+    "repos.formatImmutableDesc": "Cargo、Docker 与 npm 引擎不可更改；Maven 与纯文件引擎可在下方互相迁移。",
     "repos.formatCreateDesc": "选择客户端协议。Maven 与纯文件引擎后续可互相迁移，其他引擎不可更改。",
     "repos.engineMigration": "存储库引擎迁移",
     "repos.migrationToFiles": "转换为纯文件存储",

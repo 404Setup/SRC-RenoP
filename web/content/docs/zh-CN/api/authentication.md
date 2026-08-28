@@ -49,7 +49,7 @@ Principal 快照，但不会持久化 OAuth Access Token。
 - **更新密码**：`PUT /api/auth/profile/password`
 - **登出**：`POST /api/auth/logout`
 - **公开个人资料**：`GET /api/users/:username/profile`
-- **包成员关系**：`GET /api/users/:username/memberships?format=cargo|docker|maven`
+- **包成员关系**：`GET /api/users/:username/memberships?format=cargo|docker|maven|npm`
 
 可见路由使用用户名，不可变用户 ID 保持内部使用。`HIDDEN` 存储库成员关系不会返回；私有成员关系只对有权
 查看者显示。

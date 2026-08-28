@@ -133,6 +133,45 @@ func TestSearchCargoRepositoryReturnsNavigablePublicPackage(t *testing.T) {
 	}
 }
 
+func TestSearchNPMRepositoryFiltersPrivatePackagesAndBuildsPackageRoutes(t *testing.T) {
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "npm-search.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.CreateNPMPackage("npm", "demo-library", "alice", false, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.CreateNPMPackage("npm", "@team/private-demo", "alice", true, 2); err != nil {
+		t.Fatal(err)
+	}
+	state := core.NewAppState()
+	state.Inner.DB = db
+	repo := &config.Repository{Name: "npm", Format: config.RepositoryFormatNPM}
+	guestResponse, err := searchNPMRepository(state, repo,
+		&config.User{Username: "guest", Roles: []string{"base"}}, "demo", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if guestResponse.Total != 1 || len(guestResponse.Results) != 1 ||
+		guestResponse.Results[0].Path != "packages/demo-library" {
+		t.Fatalf("unexpected public npm search response: %+v", guestResponse)
+	}
+	aliceResponse, err := searchNPMRepository(state, repo,
+		&config.User{Username: "alice", Roles: []string{"base"}}, "demo", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aliceResponse.Total != 2 || len(aliceResponse.Results) != 2 {
+		t.Fatalf("npm owner could not search private package: %+v", aliceResponse)
+	}
+}
+
 func TestContainsFold(t *testing.T) {
 	cases := []struct {
 		s      string

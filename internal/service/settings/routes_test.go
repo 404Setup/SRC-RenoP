@@ -1111,7 +1111,7 @@ func TestRepositoryCreationRequiresStableFormatAndSlug(t *testing.T) {
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"existing": {Name: "existing", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
 	}
-	app, _ := setupSettingsTestApp(t, cfg)
+	app, state := setupSettingsTestApp(t, cfg)
 
 	missingFormat := protoPUT(t, app, "/repositories/new-repo", &pb.Repository{
 		Name: "new-repo", Visibility: "PUBLIC", Mirrors: []*pb.Mirror{},
@@ -1153,6 +1153,21 @@ func TestRepositoryCreationRequiresStableFormatAndSlug(t *testing.T) {
 	})
 	if caseCollision.StatusCode != http.StatusConflict {
 		t.Fatalf("expected case-insensitive repository collision rejected with 409, got %d", caseCollision.StatusCode)
+	}
+
+	npmRepository := protoPUT(t, app, "/repositories/npm-registry", &pb.Repository{
+		Name: "npm-registry", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC",
+		AllowRedeployment: true, RequireGpgSignature: true, Mirrors: []*pb.Mirror{},
+	})
+	if npmRepository.StatusCode != http.StatusOK {
+		t.Fatalf("expected npm repository creation accepted, got %d", npmRepository.StatusCode)
+	}
+	created := state.Inner.Config.Load().Maven.Repositories["npm-registry"]
+	if created == nil || created.NormalizedFormat() != config.RepositoryFormatNPM {
+		t.Fatal("npm repository format was not persisted")
+	}
+	if created.AllowRedeployment || created.RequireGPGSignature {
+		t.Fatal("npm repository retained unsupported redeployment or GPG policy")
 	}
 }
 

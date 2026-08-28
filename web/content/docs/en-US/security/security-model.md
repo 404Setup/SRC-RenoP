@@ -29,11 +29,12 @@ package/domain collaboration. Administrator operations are recorded and do not s
 
 - **Repository visibility** controls discovery and the base read boundary: `PUBLIC`, permission-gated discovery for
   `HIDDEN`, or authorized `PRIVATE`.
-- **Repository permissions** grant broad read/write ability but do not create a Cargo/Docker package or verify a Maven
+- **Repository permissions** grant broad read/write ability but do not create an npm/Cargo/Docker package or verify a Maven
   domain automatically.
-- **Cargo/Docker teams** use L0 read, L1 publish, L2 lifecycle/metadata, L3 member management, and L4 ownership.
+- **npm/Cargo/Docker teams** use L0 read, L1 publish, L2 lifecycle/metadata, L3 member management, and L4 ownership.
 - **Maven teams** attach to a verified global domain and apply in every Maven repository.
 - **Private Docker images** have no implicit public L0; blob access is constrained to images the user can read.
+- **Private npm packages** must be scoped and require an explicit package member or administrator.
 
 ## Credential transports
 

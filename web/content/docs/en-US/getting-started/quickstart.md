@@ -33,9 +33,9 @@ The initial `repositories.yaml` contains three backward-compatible Maven reposit
 | `/snapshots` | `PUBLIC` | Maven, redeployment enabled |
 | `/private` | `PRIVATE` | Maven, authentication required |
 
-Create Cargo, Docker, or `files` repositories explicitly from repository management. Docker images and Cargo package
-names are also explicit resources: create or first-publish them only after upstream name checks succeed. Maven
-publication additionally requires a verified domain from the account menu.
+Create npm, Cargo, Docker, or `files` repositories explicitly from repository management. Docker images and npm
+packages must be reserved from their repository page before clients can push. Cargo names are created only after the
+upstream name check succeeds. Maven publication additionally requires a verified domain from the account menu.
 
 ## Verify health
 
@@ -66,3 +66,4 @@ Accounts, sessions, teams, API tokens, audit logs, and messages are database dat
 - [Maven & Gradle](../guides/maven-client.md) — Verify a publishing domain and configure JVM clients
 - [Cargo Registry](../guides/cargo-registry.md) — Create a Cargo repository and publish crates
 - [Docker Registry](../guides/docker-registry.md) — Create images before push and configure Docker or Podman
+- [npm Registry](../guides/npm-registry.md) — Reserve packages and configure npm-compatible clients

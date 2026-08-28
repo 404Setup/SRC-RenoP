@@ -33,8 +33,8 @@ Le premier `repositories.yaml` contient trois dépôts Maven de compatibilité :
 | `/snapshots` | `PUBLIC` | Maven, redéploiement autorisé |
 | `/private` | `PRIVATE` | Maven, authentification requise |
 
-Créez explicitement les dépôts Cargo, Docker ou `files` depuis l’administration. Les images Docker et noms Cargo sont
-des ressources explicites et exigent un contrôle amont. Maven exige aussi un domaine vérifié depuis le menu du compte.
+Créez explicitement les dépôts npm, Cargo, Docker ou `files`. Les images Docker et paquets npm doivent être réservés
+depuis leur dépôt avant le push. Les noms Cargo exigent le contrôle amont. Maven exige aussi un domaine vérifié.
 
 ## Vérifier la santé
 
@@ -64,3 +64,4 @@ Comptes, sessions, équipes, API Token, audit et messages sont en base et n’on
 - [Maven et Gradle](../guides/maven-client.md) — Vérifier un domaine et configurer les clients JVM
 - [Registre Cargo](../guides/cargo-registry.md) — Créer un dépôt et publier des crates
 - [Registre Docker](../guides/docker-registry.md) — Créer les images avant push et configurer le client
+- [Registre npm](../guides/npm-registry.md) — Réserver les paquets et configurer les clients compatibles

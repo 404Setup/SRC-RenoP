@@ -36,6 +36,25 @@ func initMySQLDownloadStatisticsIndexes(db *sql.DB) error {
 	return nil
 }
 
+func initMySQLNPMIndexes(db *sql.DB) error {
+	migrations := [...]SchemaMigration{
+		{Name: "idx_npm_packages_search", Query: "CREATE INDEX idx_npm_packages_search ON npm_packages(repository, archived, package_name);"},
+		{Name: "idx_npm_versions_package", Query: "CREATE INDEX idx_npm_versions_package ON npm_versions(repository, package_name, created_at DESC);"},
+		{Name: "idx_npm_tags_package", Query: "CREATE INDEX idx_npm_tags_package ON npm_dist_tags(repository, package_name);"},
+		{Name: "idx_npm_members_user", Query: "CREATE INDEX idx_npm_members_user ON npm_members(username, repository);"},
+		{Name: "idx_npm_invitations_recipient", Query: "CREATE INDEX idx_npm_invitations_recipient ON npm_invitations(recipient, created_at);"},
+	}
+	for _, migration := range migrations {
+		if _, err := db.Exec(migration.Query); err != nil {
+			if strings.Contains(strings.ToLower(err.Error()), "duplicate key name") {
+				continue
+			}
+			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
+		}
+	}
+	return nil
+}
+
 func (d *MySQLDialect) Name() string {
 	return "mysql"
 }
@@ -447,6 +466,12 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if err := initMavenTables(db); err != nil {
+		return err
+	}
+	if err := initNPMTables(db); err != nil {
+		return err
+	}
+	if err := initMySQLNPMIndexes(db); err != nil {
 		return err
 	}
 	if err := initDownloadStatisticsTables(db); err != nil {

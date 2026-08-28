@@ -37,7 +37,7 @@ const (
 )
 
 // SearchRepository provides one bounded, format-aware search endpoint for the
-// repository browser. Cargo, Docker, and modern Maven search package metadata;
+// repository browser. npm, Cargo, Docker, and modern Maven search package metadata;
 // classic Maven and files repositories search the in-memory file index.
 func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	query := strings.TrimSpace(c.Query("q"))
@@ -75,6 +75,8 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 		response, err = searchCargoRepository(state, repo, query, limit)
 	} else if repo.NormalizedFormat() == config.RepositoryFormatDocker {
 		response, err = searchDockerRepository(state, repo, user, query, limit)
+	} else if repo.NormalizedFormat() == config.RepositoryFormatNPM {
+		response, err = searchNPMRepository(state, repo, user, query, limit)
 	} else if repo.UsesModernMavenLayout() {
 		response, err = searchModernMavenRepository(state, repo, query, limit)
 	} else {
@@ -85,6 +87,36 @@ func SearchRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
 	return protohttp.Write(c, response)
+}
+
+func searchNPMRepository(state *core.AppState, repo *config.Repository, user *config.User,
+	query string, limit int) (*pb.RepositorySearchResponse, error) {
+	db := state.GetDB()
+	if db == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	administrator := user != nil && (user.IsManager() || user.CheckUpdatePermission(repo.Name))
+	username := ""
+	if user != nil {
+		username = user.Username
+	}
+	packages, total, err := db.SearchNPMPackages(repo.Name, query, username, administrator, limit, 0)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*pb.RepositorySearchResult, 0, len(packages))
+	for _, pkg := range packages {
+		if pkg == nil {
+			continue
+		}
+		results = append(results, &pb.RepositorySearchResult{
+			Name: pkg.Name, Path: "packages/" + pkg.Name, Type: "PACKAGE",
+			Description: pkg.Description, LatestVersion: pkg.LatestVersion, ModifiedAt: pkg.UpdatedAt,
+		})
+	}
+	return &pb.RepositorySearchResponse{
+		Format: config.RepositoryFormatNPM, Results: results, Total: int32(total), HasMore: total > len(results),
+	}, nil
 }
 
 func searchDockerRepository(state *core.AppState, repo *config.Repository, user *config.User, query string, limit int) (*pb.RepositorySearchResponse, error) {

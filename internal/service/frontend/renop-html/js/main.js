@@ -29,6 +29,7 @@ import {initMessageCenter, openMessageCenter, openNotificationComposer} from './
 import './cargo-messages.js';
 import './docker-messages.js';
 import './maven-messages.js';
+import './npm-messages.js';
 import './team-messages.js';
 import './updater-messages.js';
 import {navigateToUserProfile, profileRouteFromPath} from './user-profiles.js';

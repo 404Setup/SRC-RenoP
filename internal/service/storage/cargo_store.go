@@ -22,16 +22,17 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/cargo"
 	"renop/internal/service/index"
+	"renop/internal/service/npm"
+	"renop/internal/service/packagestore"
 	"renop/internal/service/proxy"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
 
-// cargoStore adapts the protocol module to the existing atomic storage
-// pipeline. Cargo itself never reaches into local disk or S3 code.
-type cargoStore struct{}
+// packageStore adapts package protocols to the existing atomic storage pipeline.
+type packageStore struct{}
 
-type cargoStagedFile struct {
+type packageStagedFile struct {
 	targetPath string
 	tempPath   string
 	file       *os.File
@@ -39,12 +40,18 @@ type cargoStagedFile struct {
 	committed  bool
 }
 
-var _ cargo.Store = cargoStore{}
-var _ cargo.StagedFile = (*cargoStagedFile)(nil)
+var _ packagestore.Store = packageStore{}
+var _ packagestore.StagedFile = (*packageStagedFile)(nil)
 
-var cargoHandler = cargo.Handler{Store: cargoStore{}, UpstreamIndexExists: proxy.UpstreamArtifactExists}
+var cargoHandler = cargo.Handler{Store: packageStore{}, UpstreamIndexExists: proxy.UpstreamArtifactExists}
+var npmHandler = npm.Handler{Store: packageStore{}}
 
-func (cargoStore) Open(path string) (io.ReadCloser, bool, error) {
+// NewPackageStore returns the shared Disk/S3 package persistence adapter.
+func NewPackageStore() packagestore.Store {
+	return packageStore{}
+}
+
+func (packageStore) Open(path string) (io.ReadCloser, bool, error) {
 	var reader io.ReadCloser
 	var err error
 	if IsS3Enabled(path) {
@@ -61,7 +68,7 @@ func (cargoStore) Open(path string) (io.ReadCloser, bool, error) {
 	return reader, true, nil
 }
 
-func (cargoStore) Exists(path string) (bool, error) {
+func (packageStore) Exists(path string) (bool, error) {
 	if IsS3Enabled(path) {
 		_, err := StatS3(utils.GetS3Key(path))
 		if err == nil {
@@ -82,26 +89,26 @@ func (cargoStore) Exists(path string) (bool, error) {
 	return false, err
 }
 
-func (cargoStore) Stage(path string) (cargo.StagedFile, error) {
+func (packageStore) Stage(path string) (packagestore.StagedFile, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return nil, err
 	}
-	tempPath := path + ".tmp.cargo." + uuid.NewString()
+	tempPath := path + ".tmp.package." + uuid.NewString()
 	file, err := os.OpenFile(tempPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, err
 	}
-	return &cargoStagedFile{targetPath: path, tempPath: tempPath, file: file}, nil
+	return &packageStagedFile{targetPath: path, tempPath: tempPath, file: file}, nil
 }
 
-func (staged *cargoStagedFile) Write(data []byte) (int, error) {
+func (staged *packageStagedFile) Write(data []byte) (int, error) {
 	if staged == nil || staged.file == nil || staged.closed {
 		return 0, fs.ErrClosed
 	}
 	return staged.file.Write(data)
 }
 
-func (staged *cargoStagedFile) Close() error {
+func (staged *packageStagedFile) Close() error {
 	if staged == nil || staged.file == nil || staged.closed {
 		return nil
 	}
@@ -109,7 +116,7 @@ func (staged *cargoStagedFile) Close() error {
 	return staged.file.Close()
 }
 
-func (staged *cargoStagedFile) Open() (io.ReadCloser, error) {
+func (staged *packageStagedFile) Open() (io.ReadCloser, error) {
 	if staged == nil || staged.tempPath == "" || staged.committed {
 		return nil, fs.ErrNotExist
 	}
@@ -119,7 +126,7 @@ func (staged *cargoStagedFile) Open() (io.ReadCloser, error) {
 	return os.Open(staged.tempPath)
 }
 
-func (staged *cargoStagedFile) Size() (int64, error) {
+func (staged *packageStagedFile) Size() (int64, error) {
 	if staged == nil || staged.tempPath == "" {
 		return 0, fs.ErrNotExist
 	}
@@ -133,9 +140,9 @@ func (staged *cargoStagedFile) Size() (int64, error) {
 	return info.Size(), nil
 }
 
-func (staged *cargoStagedFile) Commit(state *core.AppState) error {
+func (staged *packageStagedFile) Commit(state *core.AppState) error {
 	if staged == nil || staged.tempPath == "" || staged.targetPath == "" || staged.committed {
-		return errors.New("cargo staged file is unavailable")
+		return errors.New("package staged file is unavailable")
 	}
 	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil {
 		return errors.New("storage index is unavailable")
@@ -152,7 +159,7 @@ func (staged *cargoStagedFile) Commit(state *core.AppState) error {
 			return err
 		}
 		if removeErr := os.Remove(staged.tempPath); removeErr != nil && !errors.Is(removeErr, fs.ErrNotExist) {
-			log.Printf("Failed to remove committed Cargo staging file %s: %v", staged.tempPath, removeErr)
+			log.Printf("Failed to remove committed package staging file %s: %v", staged.tempPath, removeErr)
 		}
 	} else if err := utils.SafeRename(staged.tempPath, staged.targetPath); err != nil {
 		return err
@@ -165,7 +172,7 @@ func (staged *cargoStagedFile) Commit(state *core.AppState) error {
 	return nil
 }
 
-func (staged *cargoStagedFile) Discard() error {
+func (staged *packageStagedFile) Discard() error {
 	if staged == nil {
 		return nil
 	}
@@ -183,7 +190,7 @@ func (staged *cargoStagedFile) Discard() error {
 	return removeErr
 }
 
-func (cargoStore) Delete(state *core.AppState, path string) error {
+func (packageStore) Delete(state *core.AppState, path string) error {
 	if state == nil || state.Inner == nil || state.Inner.FileIndex == nil {
 		return errors.New("storage index is unavailable")
 	}

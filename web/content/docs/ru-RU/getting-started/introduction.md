@@ -16,6 +16,7 @@ RenoP — интегрированный self-hosted сервер публика
 - **Maven / Gradle**: проверенные глобальные домены, современный каталог, classic layout, Maven 2 paths, зеркала,
   Javadoc и отделённая OpenPGP-проверка.
 - **Cargo**: Sparse Index, явное владение, публикация, поиск, yank/unyank, зеркала и Cargodoc.
+- **npm**: явное резервирование, неизменяемые версии, scoped private packages, dist-tag, команды и зеркала.
 - **Docker / OCI**: Distribution v2, резервирование образов, private teams, chunked blobs, cross-repository mounts,
   multi-architecture manifests и зеркала.
 - **Files**: неструктурированное заменяемое хранилище с зеркалами, без Maven metadata и signature workflow.
@@ -47,3 +48,4 @@ RenoP — интегрированный self-hosted сервер публика
 - [Maven и Gradle](../guides/maven-client.md) — Проверенные домены и JVM clients
 - [Cargo](../guides/cargo-registry.md) — Sparse registry и lifecycle crate
 - [Docker и OCI](../guides/docker-registry.md) — Резервирование, login, push и pull
+- [Реестр npm](../guides/npm-registry.md) — Резервирование, настройка клиента, публикация и команды

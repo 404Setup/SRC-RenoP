@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"renop/internal/config"
 	"renop/internal/core"
 )
 
@@ -58,6 +59,26 @@ func TestDownloadCounterAggregatesAndRetriesFailedFlush(t *testing.T) {
 	assert.Equal(t, "releases", store.events[0].Repository)
 	assert.Equal(t, int64(3), store.events[0].Count)
 	assert.Equal(t, int64(3072), store.events[0].Bytes)
+}
+
+func TestClassifyNPMDownloadCountsOnlyCanonicalVersionTarballs(t *testing.T) {
+	repository := &config.Repository{Name: "npm", Format: config.RepositoryFormatNPM}
+	namespace, packageName, version, ok := classifyRepositoryDownload(
+		repository, "@example/library/-/library-1.2.3.tgz")
+	require.True(t, ok)
+	assert.Equal(t, "@example", namespace)
+	assert.Equal(t, "@example/library", packageName)
+	assert.Equal(t, "1.2.3", version)
+
+	namespace, packageName, version, ok = classifyRepositoryDownload(repository, "demo/-/demo-2.0.0.tgz")
+	require.True(t, ok)
+	assert.Empty(t, namespace)
+	assert.Equal(t, "demo", packageName)
+	assert.Equal(t, "2.0.0", version)
+	for _, path := range []string{"demo", "-/v1/search", "demo/-/demo-latest.tgz"} {
+		_, _, _, ok = classifyRepositoryDownload(repository, path)
+		assert.Falsef(t, ok, "npm metadata path %q must not count as a package download", path)
+	}
 }
 
 func TestDownloadCounterResetDropsPendingRepository(t *testing.T) {

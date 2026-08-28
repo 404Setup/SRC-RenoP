@@ -40,6 +40,7 @@ type UserProfile struct {
 	MavenDomainCount       int    `json:"maven_domain_count"`
 	CargoPackageCount      int    `json:"cargo_package_count"`
 	DockerImageCount       int    `json:"docker_image_count"`
+	NPMPackageCount        int    `json:"npm_package_count"`
 	UsernameChangeCount    int    `json:"-"`
 	UsernameChangeWindowAt int64  `json:"-"`
 }

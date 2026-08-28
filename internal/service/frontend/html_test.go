@@ -64,6 +64,7 @@ func TestOpenAPIDocumentIncludesFrontendRoutes(t *testing.T) {
 		"/api/maven/domains", "/api/maven/repositories/{repo_name}/domains",
 		"/api/maven/repositories/{repo_name}/packages",
 		"/api/docker/repositories/{repo_name}/images",
+		"/api/npm/repositories/{repo_name}/packages",
 	} {
 		if _, exists := document.Paths[path]; !exists {
 			t.Fatalf("OpenAPI document is missing %s", path)
@@ -82,6 +83,7 @@ func TestIndexHtmlUsesBundledAssets(t *testing.T) {
 		`/js/main.js?v={{RENOP.HASH}}`,
 		`id="repository-search"`,
 		`id="cargo-repository-view"`,
+		`id="npm-repository-view"`,
 		`id="profile-trigger"`,
 		`id="profile-menu"`,
 		`data-i18n="nav.backHome"`,

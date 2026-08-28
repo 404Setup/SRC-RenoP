@@ -96,12 +96,12 @@ d’authentification.
 | Scope | Capacité |
 |:------|:---------|
 | `repository:read` | Lire catalogues, métadonnées, fichiers, images et versions |
-| `repository:publish` | Publier via Maven, Cargo, Docker, files ou téléversement découpé |
+| `repository:publish` | Publier via Maven, npm, Cargo, Docker, files ou téléversement découpé |
 | `repository:delete` | Supprimer fichiers, versions, tags ou images |
-| `package:create` | Réserver une nouvelle crate Cargo ou image Docker après contrôle du dépôt |
+| `package:create` | Réserver un paquet npm/Cargo ou une image Docker après contrôle du dépôt |
 | `package:metadata` | Modifier la description et les métadonnées d’un paquet |
 | `package:lifecycle` | Archiver, restaurer, yank ou unyank un paquet ou une version |
-| `team:manage` | Consulter et gérer les équipes et invitations Cargo, Docker et domaines Maven |
+| `team:manage` | Consulter et gérer les équipes et invitations npm, Cargo, Docker et domaines Maven |
 | `domain:read` | Lire la configuration privée des domaines Maven |
 | `domain:create` | Créer un domaine Maven |
 | `domain:verify` | Vérifier ou forcer la vérification d’un domaine Maven |
@@ -131,7 +131,7 @@ Authorization: Bearer rnp_pat_REDACTED
 ```
 
 Les clients de paquets peuvent employer le même Token comme mot de passe Basic avec le nom du compte. Basic Auth reste
-limité aux protocoles de paquets. Cargo envoie le Token comme valeur complète de `Authorization`. Docker l’échange via
+limité aux protocoles de paquets. npm envoie le Token avec `_authToken` ou Basic ; Cargo l’envoie comme valeur complète de `Authorization`. Docker l’échange via
 `/v2/token`; le jeton court ne contient que les actions permises par scopes et droits de l’image.
 
 ## Compatibilité

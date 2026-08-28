@@ -15,7 +15,8 @@ listens on `http://localhost:3000` by default.
 | Route Prefix                    | Purpose                                                              |
 |:--------------------------------|:---------------------------------------------------------------------|
 | `/api/*`                        | Management APIs (authentication, tokens, settings, status, messages) |
-| `/{repo}/*`                     | Standard Maven layout for artifact upload, download, and deletion    |
+| `/{repo}/*`                     | Maven/files storage or format-specific package protocol              |
+| `/{npm-repo}/*`                 | npm packuments, tarballs, publication, dist-tags, and search         |
 | `/index/*` or `/{repo}/index/*` | Cargo Sparse Index endpoints                                         |
 | `/v2/*`                         | Docker & OCI Distribution Spec v2 endpoints                          |
 | `/javadoc/*`                    | Javadoc online HTML viewer                                           |
@@ -59,6 +60,7 @@ Basic credentials cannot call management APIs. Query-string credentials and `Aut
 - [Maven Metadata API](./maven.md)
 - [Cargo Registry API](./cargo.md)
 - [Docker / OCI Registry API](./docker.md)
+- [npm Registry API](./npm.md)
 - [Message Center API](./messages.md)
 - [Storage & Upload API](./storage.md)
 - [Settings API](./settings.md)

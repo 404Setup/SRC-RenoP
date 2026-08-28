@@ -300,6 +300,7 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"cargo": {Name: "cargo", Format: config.RepositoryFormatCargo},
+		"npm":   {Name: "npm", Format: config.RepositoryFormatNPM},
 	}
 	state.Inner.Config.Store(cfg)
 	app := fiber.New()
@@ -319,6 +320,12 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		{http.MethodDelete, "/api/docker/repositories/releases/images/demo", core.APITokenScopeRepositoryDelete},
 		{http.MethodGet, "/api/docker/repositories/releases/owners", core.APITokenScopeTeamManage},
 		{http.MethodDelete, "/api/docker/repositories/releases/owners/alice", core.APITokenScopeTeamManage},
+		{http.MethodGet, "/api/npm/repositories/npm/packages", core.APITokenScopeRepositoryRead},
+		{http.MethodPost, "/api/npm/repositories/npm/packages", core.APITokenScopePackageCreate},
+		{http.MethodPut, "/api/npm/repositories/npm/packages?package=demo", core.APITokenScopePackageMetadata},
+		{http.MethodDelete, "/api/npm/repositories/npm/packages?package=demo", core.APITokenScopePackageLifecycle},
+		{http.MethodDelete, "/api/npm/repositories/npm/versions?package=demo&version=1.0.0", core.APITokenScopePackageLifecycle},
+		{http.MethodGet, "/api/npm/repositories/npm/owners?package=demo", core.APITokenScopeTeamManage},
 		{http.MethodGet, "/api/maven/details/releases/demo.jar", core.APITokenScopeRepositoryRead},
 		{http.MethodGet, "/api/maven/signatures/releases/demo.jar", core.APITokenScopeRepositoryRead},
 		{http.MethodGet, "/api/maven/repositories/releases/packages", core.APITokenScopeRepositoryRead},
@@ -339,6 +346,8 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		{http.MethodDelete, "/cargo/api/v1/crates/demo/owners/alice", core.APITokenScopeTeamManage},
 		{http.MethodDelete, "/cargo/api/v1/crates/demo/1.0.0/yank", core.APITokenScopePackageLifecycle},
 		{http.MethodPut, "/cargo/api/v1/crates/demo/1.0.0/unyank", core.APITokenScopePackageLifecycle},
+		{http.MethodGet, "/npm/demo", core.APITokenScopeRepositoryRead},
+		{http.MethodPut, "/npm/demo", core.APITokenScopeRepositoryPublish},
 	}
 
 	for _, test := range tests {

@@ -17,7 +17,7 @@ Browser and package clients
         |
 HTTP routing, rate limits, authentication, API-token policy
         |
-Maven | Cargo | Docker | Files | Management services
+Maven | npm | Cargo | Docker | Files | Management services
         |
 Repository gate and publication workflows
         |
@@ -27,7 +27,7 @@ File index and mirrors      Identity, teams, audit, messages
 ```
 
 - `internal/api` and middleware own general HTTP contracts, search, anomaly detection, and credential boundaries.
-- Format services own Maven domains/catalogs, Cargo Sparse Index, Docker Distribution v2, and documentation viewers.
+- Format services own Maven domains/catalogs, npm packuments, Cargo Sparse Index, Docker Distribution v2, and viewers.
 - The database layer supplies dialect-aware transactions for SQLite, MySQL, and PostgreSQL.
 - Disk/S3 storage streams large bodies and the file index provides bounded metadata traversal.
 

@@ -195,6 +195,10 @@ func TestKnownArtifactsNeverUseHTMLFallbackAcrossRepositoryFormats(t *testing.T)
 			Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
 			Mirrors: []config.Mirror{},
 		},
+		"npm": {
+			Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC",
+			Mirrors: []config.Mirror{},
+		},
 		"private-files": {
 			Name: "private-files", Format: config.RepositoryFormatFiles, Visibility: "PRIVATE",
 			Mirrors: []config.Mirror{},
@@ -239,7 +243,7 @@ func TestKnownArtifactsNeverUseHTMLFallbackAcrossRepositoryFormats(t *testing.T)
 	app := fiber.New(fiber.Config{UnescapePath: false})
 	SetupRoutes(app, state)
 
-	for _, repository := range []string{"files", "maven", "cargo"} {
+	for _, repository := range []string{"files", "maven", "cargo", "npm"} {
 		request := httptest.NewRequest(http.MethodGet,
 			"http://repo.example/"+repository+"/packages/artifact.bin", nil)
 		request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -273,5 +277,20 @@ func TestKnownArtifactsNeverUseHTMLFallbackAcrossRepositoryFormats(t *testing.T)
 	}
 	if fallbackCalls != 0 {
 		t.Fatalf("known artifact requests invoked the SPA fallback %d time(s)", fallbackCalls)
+	}
+
+	npmRoute := httptest.NewRequest(http.MethodGet, "http://repo.example/npm/packages/demo", nil)
+	npmRoute.Header.Set("Accept", "text/html")
+	npmResponse, err := app.Test(npmRoute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	npmBody, readErr := io.ReadAll(npmResponse.Body)
+	_ = npmResponse.Body.Close()
+	if readErr != nil || npmResponse.StatusCode != http.StatusOK || !strings.Contains(string(npmBody), "<html>") {
+		t.Fatalf("npm browser route response = %d %q: %v", npmResponse.StatusCode, npmBody, readErr)
+	}
+	if fallbackCalls != 1 {
+		t.Fatalf("npm browser route invoked the SPA fallback %d time(s)", fallbackCalls)
 	}
 }

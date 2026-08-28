@@ -28,6 +28,7 @@ import (
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/service/maven"
+	"renop/internal/service/npm"
 	"renop/internal/utils"
 	"renop/internal/utils/protohttp"
 	"renop/pkg/pb"
@@ -229,6 +230,9 @@ func ResolveAndCheckPath(state *core.AppState, user *config.User, repoName strin
 func canReadConfiguredRepository(state *core.AppState, user *config.User, repo *config.Repository, path string, isRoot bool) (bool, error) {
 	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatMaven {
 		return maven.CanReadRepository(state, user, repo, path, isRoot)
+	}
+	if repo != nil && repo.NormalizedFormat() == config.RepositoryFormatNPM {
+		return npm.CanReadRepository(state, user, repo, path, isRoot)
 	}
 	return cargo.CanReadRepository(state, user, repo, path, isRoot)
 }

@@ -185,6 +185,33 @@ type StateDB interface {
 	RemoveCargoMember(repository, normalizedName, actor, username string) error
 	RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error
 	ForceAddCargoMembers(repository, normalizedName, crateName, actor string, usernames []string, level int) error
+	CreateNPMPackage(repository, packageName, owner string, private bool, createdAt int64) (*NPMPackage, error)
+	GetNPMPackage(repository, packageName string) (*NPMPackage, error)
+	GetNPMPackageAccess(repository, packageName, username string) (exists, private, publishEnabled, member bool, level int, err error)
+	GetNPMPackageDetails(repository, packageName, username string) (*NPMPackageDetails, error)
+	ListNPMPackages(repository, username string, administrator bool, limit, offset int) ([]*NPMPackage, int, error)
+	SearchNPMPackages(repository, query, username string, administrator bool, limit, offset int) ([]*NPMPackage, int, error)
+	HasNPMMembership(repository, username string) (bool, error)
+	RecordNPMPublication(pkg *NPMPackage, version *NPMVersion, tags map[string]string, username string) error
+	RecordNPMMirrorPublication(pkg *NPMPackage, versions []*NPMVersion, tags map[string]string) error
+	UpdateNPMTarballSize(repository, tarballPath string, size int64) error
+	SetNPMDistTag(repository, packageName, tag, version, actor string, expectedRevision int64) error
+	DeleteNPMDistTag(repository, packageName, tag, actor string, expectedRevision int64) error
+	SetNPMVersionDeprecated(repository, packageName, version, deprecated, actor string, expectedRevision int64) error
+	UpdateNPMPackument(repository, packageName, actor string, expectedRevision int64, deprecations, tags map[string]string) error
+	UnpublishNPMVersion(repository, packageName, version, actor string, expectedRevision int64) (string, error)
+	UpdateNPMPackageDescription(repository, packageName, description, actor string) error
+	SetNPMPackagePrivate(repository, packageName, actor string, private bool) error
+	SetNPMPackageArchived(repository, packageName, actor string, archived bool) error
+	DeleteNPMPackage(repository, packageName, actor string, expectedRevision int64) ([]string, error)
+	DeleteNPMRepository(repository string) error
+	ListNPMMembers(repository, packageName string) ([]*NPMMember, error)
+	CreateNPMInvitations(invitations []*NPMInvitation, messages []*UserMessage) error
+	RespondNPMInvitation(id, recipient, repository string, accept bool, actedAt int64) error
+	ForceAddNPMMembers(repository, packageName, actor string, usernames []string, level int) error
+	SetNPMMemberLevel(repository, packageName, actor, username string, level int) error
+	RemoveNPMMember(repository, packageName, actor, username string) error
+	RemoveNPMMembers(repository, packageName, actor string, usernames []string) error
 	GetDockerImage(repository, imageName string) (*DockerRepositoryImage, error)
 	CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*DockerRepositoryImage, error)
 	GetDockerImageAccess(repository, imageName, username string) (exists, private, pushEnabled, member bool, level int, err error)

@@ -15,6 +15,7 @@ RenoP 是一套集成式、自托管的包发布与分发服务。其产品模�
 - **Maven / Gradle**：全局已验证发布域、现代域目录、经典布局兼容、Maven 2 客户端路径、镜像、Javadoc 与
   OpenPGP 分离签名校验。
 - **Cargo**：Sparse Index、显式包所有权、发布、搜索、yank/unyank、镜像与 Cargodoc。
+- **npm**：显式预留软件包、不可变版本、作用域私有包、发布标签、团队与镜像。
 - **Docker / OCI**：Distribution v2、镜像预创建、私有镜像团队、分块 Blob、跨仓库挂载、多架构 Manifest 与镜像。
 - **Files**：支持覆盖与镜像的非结构化文件存储，不生成 Maven 元数据，也不执行签名工作流。
 
@@ -44,3 +45,4 @@ RenoP 是一套集成式、自托管的包发布与分发服务。其产品模�
 - [Maven 与 Gradle](../guides/maven-client.md) — 已验证域与 JVM 客户端
 - [Cargo](../guides/cargo-registry.md) — Sparse Registry 与 crate 生命周期
 - [Docker 与 OCI](../guides/docker-registry.md) — 镜像预创建、登录、推送与拉取
+- [npm 存储库](../guides/npm-registry.md) — 软件包预留、客户端配置、发布与团队

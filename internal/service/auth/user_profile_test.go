@@ -39,6 +39,9 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	cfg.Maven.Repositories["profile-docker"] = &config.Repository{
 		Name: "profile-docker", Format: config.RepositoryFormatDocker, Visibility: "PUBLIC",
 	}
+	cfg.Maven.Repositories["profile-npm"] = &config.Repository{
+		Name: "profile-npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC",
+	}
 	cfg.Maven.Repositories["private-cargo"] = &config.Repository{
 		Name: "private-cargo", Format: config.RepositoryFormatCargo, Visibility: "PRIVATE",
 	}
@@ -64,9 +67,10 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	t.Cleanup(func() { close(operations) })
 
 	currentUsername := "alice"
+	currentRoles := []string{"base"}
 	app := fiber.New()
 	app.Use(func(c fiber.Ctx) error {
-		c.Locals("user", &config.User{Username: currentUsername, Roles: []string{"base"}})
+		c.Locals("user", &config.User{Username: currentUsername, Roles: currentRoles})
 		return c.Next()
 	})
 	SetupAuthRoutes(app, state, operations)
@@ -104,6 +108,8 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 		Digest:    "sha256:abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcded",
 		MediaType: "application/vnd.oci.image.manifest.v1+json", RawJSON: []byte(`{"schemaVersion":2}`),
 	}, "latest", "bobby"))
+	_, err = db.CreateNPMPackage("profile-npm", "@profile/library", "bobby", false, membershipCreatedAt)
+	require.NoError(t, err)
 	mavenDomain := &core.MavenDomain{
 		Repository: "profile-maven", Domain: "com.example", VerificationType: core.MavenVerificationDNS,
 		VerificationHost: "example.com", VerificationCode: "renop-verification=profile", CreatedAt: membershipCreatedAt,
@@ -121,6 +127,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, 1, publicProfile.MavenDomainCount)
 	require.Equal(t, 1, publicProfile.CargoPackageCount)
 	require.Equal(t, 1, publicProfile.DockerImageCount)
+	require.Equal(t, 1, publicProfile.NPMPackageCount)
 	require.NoError(t, response.Body.Close())
 	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
@@ -139,6 +146,13 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Len(t, membershipResponse.Memberships, 1)
 	require.Equal(t, "com.example", membershipResponse.Memberships[0].Name)
 	require.Equal(t, core.MavenPermissionOwner, membershipResponse.Memberships[0].PermissionLevel)
+	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=npm", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&membershipResponse))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, membershipResponse.Memberships, 1)
+	require.Equal(t, "@profile/library", membershipResponse.Memberships[0].Name)
+	require.Equal(t, core.NPMPermissionOwner, membershipResponse.Memberships[0].PermissionLevel)
 	currentUsername = "bobby"
 	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
@@ -146,6 +160,14 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 	require.Len(t, membershipResponse.Memberships, 2)
 	currentUsername = "alice"
+	currentRoles = []string{"base", "manager"}
+	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&membershipResponse))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, membershipResponse.Memberships, 3)
+	require.Equal(t, "hidden-crate", membershipResponse.Memberships[0].Name)
+	currentRoles = []string{"base"}
 	response = profileRequest(t, app, http.MethodGet, "/users/profiles?names=alice,bobby,missing", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var batch struct {

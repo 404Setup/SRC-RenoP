@@ -40,17 +40,20 @@ repositories:
 | Поле | По умолчанию | Описание |
 |:-----|:-------------|:---------|
 | `name` | Обязательно | Неизменяемый slug и префикс URL |
-| `format` | `maven` | `maven`, `maven-classic`, `files`, `cargo` или `docker` |
+| `format` | `maven` | `maven`, `maven-classic`, `files`, `npm`, `cargo` или `docker` |
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` или `PRIVATE` |
 | `allow_redeployment` | `false` | Повтор Maven или замена files/Docker, если поддерживается |
 | `require_gpg_signature` | `false` | Проверка отделённой OpenPGP подписи для Maven |
-| `download_statistics` | Зависит от движка | Включено для Maven/Cargo/Docker; для `files` включается явно |
+| `download_statistics` | Зависит от движка | Включено для Maven/npm/Cargo/Docker; для `files` включается явно |
 | `mirrors` | `[]` | Упорядоченные upstream definitions |
 | `s3` | отсутствует | Отдельное S3-хранилище репозитория |
 
 `maven-classic` меняет только компоновку интерфейса и сохраняет правила публикации Maven. `files` неструктурирован,
 не создаёт контрольные суммы и POM и не проверяет подписи. Миграция Maven ↔ `files` не перемещает объекты; возврат в
 Maven перестраивает каталог и восстанавливает сохранённую политику. Настройка статистики скачиваний также сохраняется.
+
+Репозиторий `npm` требует резервирования до публикации, хранит неизменяемые SemVer и dist-tag, поддерживает scoped
+private packages, команды L0-L4 и зеркала по точному имени или правилу `@scope/*`.
 
 ### Видимость
 

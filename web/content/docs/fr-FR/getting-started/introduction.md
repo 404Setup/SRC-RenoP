@@ -16,6 +16,7 @@ catalogues, miroirs, stockage, audit et mises à jour.
 - **Maven / Gradle** : domaines globaux vérifiés, catalogue moderne, présentation classique compatible, chemins Maven 2,
   miroirs, Javadoc et vérification OpenPGP détachée.
 - **Cargo** : Sparse Index, propriété explicite, publication, recherche, yank/unyank, miroirs et Cargodoc.
+- **npm** : réservation explicite, versions immuables, paquets privés scoped, dist-tags, équipes et miroirs.
 - **Docker / OCI** : Distribution v2, réservation d’images, équipes privées, blobs découpés, mounts inter-dépôts,
   manifestes multi-architecture et miroirs.
 - **Files** : stockage non structuré remplaçable avec miroirs, sans métadonnées Maven ni workflow de signature.
@@ -47,3 +48,4 @@ catalogues, miroirs, stockage, audit et mises à jour.
 - [Maven et Gradle](../guides/maven-client.md) — Domaines vérifiés et clients JVM
 - [Cargo](../guides/cargo-registry.md) — Sparse registry et cycle de vie des crates
 - [Docker et OCI](../guides/docker-registry.md) — Réservation, connexion, push et pull
+- [Registre npm](../guides/npm-registry.md) — Réservation, configuration client, publication et équipes

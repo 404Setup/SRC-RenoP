@@ -219,6 +219,33 @@ func (m *Mirror) IsArtifactAllowedFor(format, path string) (bool, string) {
 		return true, ""
 	}
 
+	if strings.EqualFold(strings.TrimSpace(format), RepositoryFormatNPM) {
+		packageName := npmPackageFromPath(clean)
+		if packageName == "" {
+			return true, ""
+		}
+		match := func(pattern string) bool {
+			pattern = strings.ToLower(strings.TrimSpace(pattern))
+			if decoded, err := url.PathUnescape(pattern); err == nil {
+				pattern = decoded
+			}
+			if scope, ok := strings.CutSuffix(pattern, "/*"); ok {
+				return strings.HasPrefix(packageName, strings.TrimSuffix(scope, "/")+"/")
+			}
+			return pattern == packageName
+		}
+		if hasAllow {
+			if slices.ContainsFunc(m.AllowArtifacts, match) {
+				return true, ""
+			}
+			return false, "npm package blocked: Not in mirror allow list (" + clean + ")"
+		}
+		if slices.ContainsFunc(m.DenyArtifacts, match) {
+			return false, "npm package blocked: In mirror deny list (" + clean + ")"
+		}
+		return true, ""
+	}
+
 	if strings.EqualFold(strings.TrimSpace(format), RepositoryFormatFiles) {
 		match := func(pattern string) bool {
 			pattern = strings.Trim(strings.TrimSpace(pattern), "/")
@@ -278,6 +305,30 @@ func (m *Mirror) IsArtifactAllowedFor(format, path string) (bool, string) {
 	}
 
 	return true, ""
+}
+
+func npmPackageFromPath(path string) string {
+	decoded, err := url.PathUnescape(strings.Trim(path, "/"))
+	if err != nil {
+		return ""
+	}
+	if strings.HasPrefix(decoded, "-/package/") {
+		decoded = strings.TrimPrefix(decoded, "-/package/")
+		if before, _, ok := strings.Cut(decoded, "/dist-tags"); ok {
+			decoded = before
+		}
+	}
+	parts := strings.Split(strings.Trim(decoded, "/"), "/")
+	if len(parts) == 0 || parts[0] == "" || strings.HasPrefix(parts[0], "-") {
+		return ""
+	}
+	if strings.HasPrefix(parts[0], "@") {
+		if len(parts) < 2 || parts[1] == "" {
+			return ""
+		}
+		return strings.ToLower(parts[0] + "/" + parts[1])
+	}
+	return strings.ToLower(parts[0])
 }
 
 func cargoCrateFromPath(path string) string {

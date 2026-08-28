@@ -33,8 +33,8 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 | `/snapshots` | `PUBLIC` | Maven, redeployment разрешён |
 | `/private` | `PRIVATE` | Maven, требуется вход |
 
-Cargo, Docker и `files` создаются явно в управлении. Docker images и Cargo names также явные ресурсы и создаются или
-публикуются впервые только после upstream name check. Maven требует проверенный domain из меню аккаунта.
+npm, Cargo, Docker и `files` создаются явно в управлении. Docker images и npm packages резервируются на странице
+репозитория до push. Cargo names создаются после upstream check. Maven требует проверенный domain из меню аккаунта.
 
 ## Проверка здоровья
 
@@ -64,3 +64,4 @@ curl -s http://localhost:3000/api/status/health
 - [Maven и Gradle](../guides/maven-client.md) — Проверка domain и JVM clients
 - [Cargo Registry](../guides/cargo-registry.md) — Создание репозитория и публикация crates
 - [Docker Registry](../guides/docker-registry.md) — Создание image до push и настройка клиента
+- [Реестр npm](../guides/npm-registry.md) — Резервирование пакетов и настройка совместимых клиентов

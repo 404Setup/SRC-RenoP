@@ -8,27 +8,10 @@
 
 package cargo
 
-import (
-	"io"
+import "renop/internal/service/packagestore"
 
-	"renop/internal/core"
-)
+// StagedFile is the shared streaming package staging contract.
+type StagedFile = packagestore.StagedFile
 
-// StagedFile is a temporary, bounded-lifetime blob. Callers stream data into
-// it, reopen it for validation, then atomically commit or discard it.
-type StagedFile interface {
-	io.WriteCloser
-	Open() (io.ReadCloser, error)
-	Size() (int64, error)
-	Commit(state *core.AppState) error
-	Discard() error
-}
-
-// Store is the only persistence boundary used by the Cargo module. Open and
-// Stage are streaming so crate and index sizes do not become heap allocations.
-type Store interface {
-	Open(path string) (reader io.ReadCloser, found bool, err error)
-	Exists(path string) (bool, error)
-	Stage(path string) (StagedFile, error)
-	Delete(state *core.AppState, path string) error
-}
+// Store is the shared streaming package persistence contract.
+type Store = packagestore.Store

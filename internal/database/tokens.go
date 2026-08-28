@@ -622,6 +622,11 @@ func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.Acces
 		{`UPDATE docker_manifests SET publisher = ? WHERE publisher = ?`, "Docker manifest publishers"},
 		{`UPDATE docker_invitations SET inviter = ? WHERE inviter = ?`, "Docker invitation senders"},
 		{`UPDATE docker_invitations SET recipient = ? WHERE recipient = ?`, "Docker invitation recipients"},
+		{`UPDATE npm_members SET username = ? WHERE username = ?`, "npm memberships"},
+		{`UPDATE npm_versions SET publisher = ? WHERE publisher = ?`, "npm version publishers"},
+		{`UPDATE npm_packages SET publisher = ? WHERE publisher = ?`, "npm package publishers"},
+		{`UPDATE npm_invitations SET inviter = ? WHERE inviter = ?`, "npm invitation senders"},
+		{`UPDATE npm_invitations SET recipient = ? WHERE recipient = ?`, "npm invitation recipients"},
 	}
 	for _, update := range updates {
 		if _, err := tx.Exec(update.query, newName, oldName); err != nil {
