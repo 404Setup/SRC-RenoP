@@ -66,6 +66,25 @@ PostgreSQL 支持标准 URI 格式或 Key-Value 格式连接串：
 - **URI 格式**：`postgres://username:password@host:port/dbname?sslmode=disable`
 - **Key-Value 格式**：`host=127.0.0.1 port=5432 user=renop_user password=your_password dbname=renop_db sslmode=disable`
 
+## ClickHouse 26.9+
+
+RenoP 通过 `clickhouse-go/v2` 的原生 `clickhouse.Open` API 连接自行维护的 ClickHouse，不使用
+`database/sql` 兼容 API。需要在 RenoP 启动前创建独立数据库：
+
+```yaml
+database:
+  driver: "clickhouse"
+  dsn: "clickhouse://renop_user:password@127.0.0.1:9000/renop_db?compress=lz4"
+  max_open_conns: 8
+  max_idle_conns: 4
+  conn_max_lifetime_sec: 600
+```
+
+官方 ClickHouse 构建必须包含 `EmbeddedRocksDB`。RenoP 使用物化的无碰撞复合键创建可变键值表，并把行更新
+转换为同步原生 mutation。ClickHouse 26.9 不提供多语句事务，因此 RenoP 会串行执行写操作并记录行级持久
+快照；中断的事务会在下次启动时根据日志回滚。此存储模式不支持 ClickHouse Cloud。数据库矩阵已使用
+ClickHouse 26.9.1 与 `clickhouse-go/v2` 2.48.0 验证。
+
 ## 连接池参数说明
 
 | 参数名                  | 默认值 | 作用说明                                                                 |

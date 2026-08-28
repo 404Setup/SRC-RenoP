@@ -65,6 +65,26 @@ database:
 
 本番環境では `sslmode=disable` ではなく、データベース提供元の方針に従って TLS を有効化してください。
 
+## ClickHouse 26.9+
+
+RenoP はセルフ管理 ClickHouse に `clickhouse-go/v2` のネイティブ `clickhouse.Open` API で接続し、
+`database/sql` 互換 API は使用しません。RenoP の起動前に専用 database を作成してください。
+
+```yaml
+database:
+  driver: "clickhouse"
+  dsn: "clickhouse://renop_user:password@127.0.0.1:9000/renop_db?compress=lz4"
+  max_open_conns: 8
+  max_idle_conns: 4
+  conn_max_lifetime_sec: 600
+```
+
+公式 build に `EmbeddedRocksDB` が必要です。RenoP は衝突しない複合キーを materialized column として持つ
+可変 key-value table を作成し、行更新を同期 native mutation に変換します。ClickHouse 26.9 には複数文の
+transaction がないため、書き込みを直列化し、行単位の永続 snapshot を journal に記録します。中断した
+transaction は次回起動時に復元されます。この保存モードは ClickHouse Cloud に対応しません。
+ClickHouse 26.9.1 と `clickhouse-go/v2` 2.48.0 で matrix test 済みです。
+
 ## connection pool
 
 | パラメーター            | 既定  | 説明                                      |

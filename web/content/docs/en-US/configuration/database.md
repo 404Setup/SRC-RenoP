@@ -67,6 +67,26 @@ PostgreSQL supports URI format or Key-Value format:
 - **URI**: `postgres://username:password@host:port/dbname?sslmode=disable`
 - **Key-Value**: `host=127.0.0.1 port=5432 user=renop_user password=password dbname=renop_db sslmode=disable`
 
+## ClickHouse 26.9+
+
+RenoP supports self-managed ClickHouse through the native `clickhouse.Open` API from `clickhouse-go/v2`; it never
+uses the slower `database/sql` compatibility API. Use an isolated database created before RenoP starts:
+
+```yaml
+database:
+  driver: "clickhouse"
+  dsn: "clickhouse://renop_user:password@127.0.0.1:9000/renop_db?compress=lz4"
+  max_open_conns: 8
+  max_idle_conns: 4
+  conn_max_lifetime_sec: 600
+```
+
+The official ClickHouse build must include `EmbeddedRocksDB`. RenoP creates mutable key-value tables with materialized
+collision-free composite keys and translates row updates to synchronous native mutations. Because ClickHouse 26.9 has
+no multi-statement transactions, RenoP serializes writes and records row-level persistent snapshots; an interrupted
+transaction is rolled back from its journal at the next startup. ClickHouse Cloud is not supported by this storage
+mode. The implementation and driver matrix are tested against ClickHouse 26.9.1 and `clickhouse-go/v2` 2.48.0.
+
 ## Connection Pool Parameters
 
 | Parameter               | Default | Description                                                     |

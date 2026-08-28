@@ -21,7 +21,7 @@ import (
 
 const maxGitHubPrincipals = 1001
 
-func scanGitHubIdentity(row *sql.Row) (*core.GitHubIdentity, error) {
+func scanGitHubIdentity(row row) (*core.GitHubIdentity, error) {
 	identity := &core.GitHubIdentity{}
 	err := row.Scan(&identity.UserID, &identity.Username, &identity.GitHubUserID,
 		&identity.GitHubLogin, &identity.AuthorizedAt, &identity.PrincipalCount)

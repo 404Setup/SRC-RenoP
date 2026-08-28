@@ -33,7 +33,7 @@ export default Object.freeze({
     "settings.databaseTitle": "데이터베이스 설정",
     "settings.databaseSubtitle": "SQLite, MySQL 또는 PostgreSQL 데이터베이스 연결 및 풀링 매개변수 설정",
     "settings.dbDriver": "데이터베이스 드라이버",
-    "settings.dbDriverHint": "데이터베이스 엔진 유형 선택 (sqlite3, mysql 또는 postgres)",
+    "settings.dbDriverHint": "데이터베이스 엔진 선택 (SQLite, MySQL, PostgreSQL 또는 ClickHouse)",
     "settings.dbDsn": "SQLite 파일 경로",
     "settings.dbDsnHint": "SQLite 데이터베이스 파일 저장 경로 (예: renop.db)",
     "settings.dbHost": "데이터베이스 호스트",

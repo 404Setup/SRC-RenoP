@@ -33,7 +33,7 @@ export default Object.freeze({
     "settings.databaseTitle": "資料庫設定",
     "settings.databaseSubtitle": "設定 SQLite、MySQL 或 PostgreSQL 資料庫連線與連線池參數",
     "settings.dbDriver": "資料庫驅動",
-    "settings.dbDriverHint": "選擇資料庫引擎類型 (sqlite3、mysql 或 postgres)",
+    "settings.dbDriverHint": "選擇資料庫引擎（SQLite、MySQL、PostgreSQL 或 ClickHouse）",
     "settings.dbDsn": "SQLite 檔案路徑",
     "settings.dbDsnHint": "SQLite 資料庫檔案儲存路徑 (例如 renop.db)",
     "settings.dbHost": "資料庫主機",

@@ -75,7 +75,7 @@ database:
   conn_max_lifetime_sec: 300
 ```
 
-Поддерживаются `sqlite3` (или `sqlite`), `mysql` и `postgres`. См.
+Поддерживаются `sqlite3` (или `sqlite`), `mysql`, `postgres` и нативный `clickhouse`. См.
 [Настройка базы](./database.md).
 
 ### Исходящий маршрут `proxy`

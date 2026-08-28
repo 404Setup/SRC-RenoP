@@ -11,6 +11,7 @@
 package database_test
 
 import (
+	"context"
 	"database/sql"
 	"path/filepath"
 	"testing"
@@ -388,4 +389,15 @@ func TestInitDB_SQLite(t *testing.T) {
 		})
 		assert.NoError(t, err)
 	})
+}
+
+func TestSQLiteDriverContract(t *testing.T) {
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite3", Dsn: "file:driver-contract?mode=memory&cache=shared", MaxOpenConns: 2, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	results, err := database.RunDriverCheck(context.Background(), db)
+	require.NoError(t, err)
+	require.Len(t, results, 5)
 }

@@ -11,7 +11,7 @@
 package config
 
 type DatabaseConfig struct {
-	Driver             string `json:"driver" yaml:"driver"` // "sqlite3", "mysql", or "postgres"
+	Driver             string `json:"driver" yaml:"driver"` // "sqlite3", "mysql", "postgres", or "clickhouse"
 	Dsn                string `json:"dsn" yaml:"dsn"`
 	MaxOpenConns       int    `json:"max_open_conns" yaml:"max_open_conns"`
 	MaxIdleConns       int    `json:"max_idle_conns" yaml:"max_idle_conns"`
@@ -34,6 +34,8 @@ func (d *DatabaseConfig) setDefaults() {
 	}
 	if d.Dsn == "" && (d.Driver == "sqlite3" || d.Driver == "sqlite") {
 		d.Dsn = "renop.db"
+	} else if d.Dsn == "" && (d.Driver == "clickhouse" || d.Driver == "ch") {
+		d.Dsn = "clickhouse://default@localhost:9000/default"
 	}
 	if d.MaxOpenConns <= 0 {
 		d.MaxOpenConns = 25

@@ -76,7 +76,7 @@ database:
   conn_max_lifetime_sec: 300
 ```
 
-Les pilotes sont `sqlite3` (ou `sqlite`), `mysql` et `postgres`. Voir
+Les pilotes sont `sqlite3` (ou `sqlite`), `mysql`, `postgres` et le pilote natif `clickhouse`. Voir
 [Configuration de la base](./database.md).
 
 ### Routage sortant `proxy`

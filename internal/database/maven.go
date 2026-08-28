@@ -539,17 +539,59 @@ func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrato
 	}
 	domain = sanitizeMavenDomain(domain)
 	actor = sanitizeMavenUsername(actor)
-	var result sql.Result
+	if db.Dialect.Name() == "clickhouse" {
+		actorID := ""
+		if !administrator {
+			var identityErr error
+			actorID, identityErr = db.userIDForUsername(actor)
+			if identityErr != nil {
+				return core.ErrMavenPermissionDenied
+			}
+		}
+		tx, err := db.Begin()
+		if err != nil {
+			return fmt.Errorf("begin ClickHouse Maven verification reservation: %w", err)
+		}
+		defer tx.Rollback()
+		if !administrator {
+			var memberCount int
+			if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members WHERE repository = ? AND domain = ?
+				AND user_id = ? AND permission_level = ?`, globalMavenRepository, domain, actorID,
+				core.MavenPermissionOwner).Scan(&memberCount); err != nil {
+				return fmt.Errorf("inspect ClickHouse Maven verification owner: %w", err)
+			}
+			if memberCount == 0 {
+				return core.ErrMavenPermissionDenied
+			}
+		}
+		result, err := tx.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
+			AND verified = 0 AND last_check_at <= ?`, checkedAt, globalMavenRepository, domain, minimumPrevious)
+		if err != nil {
+			return fmt.Errorf("reserve ClickHouse Maven verification attempt: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("count ClickHouse Maven verification reservation: %w", err)
+		}
+		if changed == 0 {
+			return core.ErrMavenVerificationRateLimit
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit ClickHouse Maven verification reservation: %w", err)
+		}
+		return nil
+	}
+	var updateResult result
 	var err error
 	if administrator {
-		result, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
+		updateResult, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
 			AND verified = 0 AND last_check_at <= ?`, checkedAt, globalMavenRepository, domain, minimumPrevious)
 	} else {
 		actorID, identityErr := db.userIDForUsername(actor)
 		if identityErr != nil {
 			return core.ErrMavenPermissionDenied
 		}
-		result, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
+		updateResult, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
 			AND verified = 0 AND last_check_at <= ? AND EXISTS (
 				SELECT 1 FROM maven_domain_members m WHERE m.repository = maven_domains.repository
 				AND m.domain = maven_domains.domain AND m.user_id = ? AND m.permission_level = ?
@@ -558,7 +600,7 @@ func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrato
 	if err != nil {
 		return fmt.Errorf("reserve Maven verification attempt: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := updateResult.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("count Maven verification reservation: %w", err)
 	}
@@ -766,11 +808,22 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		publisher, publisher, version.Size, version.Size, mirroredValue, repository, groupID, artifactID, versionName); err != nil {
 		return fmt.Errorf("update Maven version: %w", err)
 	}
-	if _, err := tx.Exec(`UPDATE maven_artifacts SET mirrored = CASE WHEN EXISTS (
+	mirroredUpdate := `UPDATE maven_artifacts SET mirrored = CASE WHEN EXISTS (
 		SELECT 1 FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id
 		AND v.mirrored = 1) THEN 1 ELSE 0 END
-		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, repository, groupID, artifactID); err != nil {
+		WHERE repository = ? AND group_id = ? AND artifact_id = ?`
+	mirroredArgs := []any{repository, groupID, artifactID}
+	if db.Dialect.Name() == "clickhouse" {
+		var mirroredCount int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_versions WHERE repository = ? AND group_id = ?
+			AND artifact_id = ? AND mirrored = 1`, repository, groupID, artifactID).Scan(&mirroredCount); err != nil {
+			return fmt.Errorf("count mirrored Maven versions: %w", err)
+		}
+		mirroredUpdate = `UPDATE maven_artifacts SET mirrored = ? WHERE repository = ? AND group_id = ? AND artifact_id = ?`
+		mirroredArgs = []any{boolInt(mirroredCount > 0), repository, groupID, artifactID}
+	}
+	if _, err := tx.Exec(mirroredUpdate, mirroredArgs...); err != nil {
 		return fmt.Errorf("update Maven artifact mirror provenance: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -976,12 +1029,23 @@ func (db *DB) DeleteMavenVersionMetadata(repository, groupID, artifactID, versio
 		}
 	} else {
 		slices.SortFunc(versions, func(left, right string) int { return -utils.CompareVersions(left, right) })
-		if _, err := tx.Exec(`UPDATE maven_artifacts SET latest_version = ?, updated_at = ?,
+		updateQuery := `UPDATE maven_artifacts SET latest_version = ?, updated_at = ?,
 			mirrored = CASE WHEN EXISTS (SELECT 1 FROM maven_versions v
 				WHERE v.repository = maven_artifacts.repository AND v.group_id = maven_artifacts.group_id
 				AND v.artifact_id = maven_artifacts.artifact_id AND v.mirrored = 1) THEN 1 ELSE 0 END
-		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, versions[0], time.Now().UnixMilli(),
-			repository, groupID, artifactID); err != nil {
+		WHERE repository = ? AND group_id = ? AND artifact_id = ?`
+		updateArgs := []any{versions[0], time.Now().UnixMilli(), repository, groupID, artifactID}
+		if db.Dialect.Name() == "clickhouse" {
+			var mirroredCount int
+			if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_versions WHERE repository = ? AND group_id = ?
+				AND artifact_id = ? AND mirrored = 1`, repository, groupID, artifactID).Scan(&mirroredCount); err != nil {
+				return fmt.Errorf("count remaining mirrored Maven versions: %w", err)
+			}
+			updateQuery = `UPDATE maven_artifacts SET latest_version = ?, updated_at = ?, mirrored = ?
+				WHERE repository = ? AND group_id = ? AND artifact_id = ?`
+			updateArgs = []any{versions[0], time.Now().UnixMilli(), boolInt(mirroredCount > 0), repository, groupID, artifactID}
+		}
+		if _, err := tx.Exec(updateQuery, updateArgs...); err != nil {
 			return fmt.Errorf("update latest Maven version: %w", err)
 		}
 	}

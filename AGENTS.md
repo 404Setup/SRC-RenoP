@@ -14,6 +14,9 @@
 - **`server.go`**: Application entry point and server lifecycle.
 - **`cmd/renop-brotli/`**: Streaming Go CLI installed automatically by `build.ps1` to encode each release executable
   as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
+- **`cmd/renop-dbtest/`**: Standalone destructive-on-isolated-data driver contract CLI. It requires
+  `-confirm-isolated` and exercises account/session persistence, rollback, message deduplication, Cargo/Docker/Maven/npm
+  catalogs, and download statistics through the same database API used by the server.
 - **`scripts/build-target.ps1` & `scripts/compress-target.ps1`**: Isolated release workers coordinated by `build.ps1`.
   Up to four compilations run independently from up to eight Brotli packaging tasks; a completed compilation releases
   its build slot immediately and queues compression without delaying the next architecture. The parent preserves
@@ -21,7 +24,13 @@
   raw `.br` packages plus `manifest.json`; `.github/scripts/test-release-payload.ps1` enforces that boundary before
   the update API is called. License, README, and third-party notices are attached to GitHub releases directly from the
   checkout and are never uploaded to the update API.
-- **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`). Includes
+- **`internal/database/`**: Pluggable multi-dialect DB (SQLite, MySQL, PostgreSQL via `jackc/pgx/v5`, and native
+  ClickHouse via `clickhouse.Open` from `clickhouse-go/v2`). ClickHouse uses mutable `EmbeddedRocksDB` tables with
+  materialized collision-free composite keys, synchronous mutations, portable scan conversion, and a serialized
+  row-level snapshot journal that restores interrupted multi-statement transactions at startup; it never uses
+  `clickhouse.OpenDB` or the `database/sql` compatibility API. Connection handling, transaction recovery, portable SQL
+  parsing, scan conversion, schema declarations, and dialect translation remain isolated in focused `clickhouse*.go`
+  modules. Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, private normalized login emails, serialized login-method
   invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, and hashed,
@@ -202,6 +211,7 @@
 | **Protobuf Generation**                             | `protoc -I proto --go_out=. --go_opt=module=renop proto/api/v1/api.proto`        |
 | **Run All Tests**                                   | `go test ./...`                                                                  |
 | **Run Package Tests**                               | `go test -v ./internal/...`                                                      |
+| **Database Driver Contract**                       | `go run ./cmd/renop-dbtest -driver <driver> -dsn <isolated-dsn> -confirm-isolated` |
 | **Install as Service**                              | `./renop --install`                                                              |
 | **Uninstall Service**                               | `./renop --uninstall`                                                            |
 

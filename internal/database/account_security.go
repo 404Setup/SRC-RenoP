@@ -143,6 +143,40 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 	}
 	security := &core.AccountSecurity{}
 	var passwordEnabled, passwordConfigured, githubLinked int
+	if db.Dialect.Name() == "clickhouse" {
+		var userID string
+		err := db.QueryRow(`SELECT profile.user_id, COALESCE(security.email, ''),
+			COALESCE(security.password_login_enabled, 1),
+			CASE WHEN token.encrypted_secret <> '' THEN 1 ELSE 0 END
+			FROM user_profiles profile JOIN tokens token ON token.name = profile.username
+			LEFT JOIN user_account_security security ON security.user_id = profile.user_id
+			WHERE profile.username = ?`, username).Scan(
+			&userID, &security.Email, &passwordEnabled, &passwordConfigured)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, core.ErrUserProfileNotFound
+		}
+		if err != nil {
+			return nil, fmt.Errorf("get account security for %s: %w", username, err)
+		}
+		if err := db.QueryRow(`SELECT COUNT(*) FROM fido_devices WHERE username = ?`, username).
+			Scan(&security.FidoDeviceCount); err != nil {
+			return nil, fmt.Errorf("count Passkeys for %s: %w", username, err)
+		}
+		if err := db.QueryRow(`SELECT COUNT(*) FROM github_identities WHERE user_id = ?`, userID).
+			Scan(&githubLinked); err != nil {
+			return nil, fmt.Errorf("count GitHub identities for %s: %w", username, err)
+		}
+		if err := db.QueryRow(`SELECT COUNT(*), countIf(used_at = 0), COALESCE(MAX(created_at), 0)
+			FROM user_recovery_codes WHERE user_id = ?`, userID).Scan(
+			&security.RecoveryCodeCount, &security.RecoveryCodesRemaining, &security.RecoveryGeneratedAt); err != nil {
+			return nil, fmt.Errorf("count recovery codes for %s: %w", username, err)
+		}
+		security.PasswordLoginEnabled = passwordEnabled != 0
+		security.PasswordConfigured = passwordConfigured != 0
+		security.GitHubLinked = githubLinked != 0
+		security.CanDisablePasswordLogin = security.FidoDeviceCount > 0 || security.GitHubLinked
+		return security, nil
+	}
 	err := db.QueryRow(`SELECT COALESCE(security.email, ''),
 		COALESCE(security.password_login_enabled, 1),
 		CASE WHEN token.encrypted_secret <> '' THEN 1 ELSE 0 END,

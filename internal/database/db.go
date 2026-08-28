@@ -28,6 +28,7 @@ import (
 
 type DB struct {
 	SQLDB            *sql.DB
+	clickHouse       *clickHouseBackend
 	Dialect          Dialect
 	tokenCache       *TTLCache[string, *core.AccessToken]
 	tokenSecretCache *TTLCache[string, *core.AccessToken]
@@ -35,8 +36,25 @@ type DB struct {
 }
 
 type Tx struct {
-	*sql.Tx
-	db *DB
+	sqlTx      *sql.Tx
+	clickHouse *clickHouseTransaction
+	db         *DB
+}
+
+type result interface {
+	LastInsertId() (int64, error)
+	RowsAffected() (int64, error)
+}
+
+type rows interface {
+	Next() bool
+	Scan(dest ...any) error
+	Close() error
+	Err() error
+}
+
+type row interface {
+	Scan(dest ...any) error
 }
 
 func (db *DB) Rebind(query string) string {
@@ -46,36 +64,75 @@ func (db *DB) Rebind(query string) string {
 	return db.Dialect.Rebind(query)
 }
 
-func (db *DB) Exec(query string, args ...any) (sql.Result, error) {
+func (db *DB) Exec(query string, args ...any) (result, error) {
+	if db != nil && db.clickHouse != nil {
+		return db.clickHouse.exec(db.Rebind(query), args...)
+	}
 	return db.SQLDB.Exec(db.Rebind(query), args...)
 }
 
-func (db *DB) Query(query string, args ...any) (*sql.Rows, error) {
+func (db *DB) Query(query string, args ...any) (rows, error) {
+	if db != nil && db.clickHouse != nil {
+		return db.clickHouse.query(db.Rebind(query), args...)
+	}
 	return db.SQLDB.Query(db.Rebind(query), args...)
 }
 
-func (db *DB) QueryRow(query string, args ...any) *sql.Row {
+func (db *DB) QueryRow(query string, args ...any) row {
+	if db != nil && db.clickHouse != nil {
+		return db.clickHouse.queryRow(db.Rebind(query), args...)
+	}
 	return db.SQLDB.QueryRow(db.Rebind(query), args...)
 }
 
 func (db *DB) Begin() (*Tx, error) {
+	if db != nil && db.clickHouse != nil {
+		tx, err := db.clickHouse.begin()
+		if err != nil {
+			return nil, err
+		}
+		return &Tx{clickHouse: tx, db: db}, nil
+	}
 	tx, err := db.SQLDB.Begin()
 	if err != nil {
 		return nil, err
 	}
-	return &Tx{Tx: tx, db: db}, nil
+	return &Tx{sqlTx: tx, db: db}, nil
 }
 
-func (tx *Tx) Exec(query string, args ...any) (sql.Result, error) {
-	return tx.Tx.Exec(tx.db.Rebind(query), args...)
+func (tx *Tx) Exec(query string, args ...any) (result, error) {
+	if tx.clickHouse != nil {
+		return tx.clickHouse.exec(tx.db.Rebind(query), args...)
+	}
+	return tx.sqlTx.Exec(tx.db.Rebind(query), args...)
 }
 
-func (tx *Tx) Query(query string, args ...any) (*sql.Rows, error) {
-	return tx.Tx.Query(tx.db.Rebind(query), args...)
+func (tx *Tx) Query(query string, args ...any) (rows, error) {
+	if tx.clickHouse != nil {
+		return tx.clickHouse.query(tx.db.Rebind(query), args...)
+	}
+	return tx.sqlTx.Query(tx.db.Rebind(query), args...)
 }
 
-func (tx *Tx) QueryRow(query string, args ...any) *sql.Row {
-	return tx.Tx.QueryRow(tx.db.Rebind(query), args...)
+func (tx *Tx) QueryRow(query string, args ...any) row {
+	if tx.clickHouse != nil {
+		return tx.clickHouse.queryRow(tx.db.Rebind(query), args...)
+	}
+	return tx.sqlTx.QueryRow(tx.db.Rebind(query), args...)
+}
+
+func (tx *Tx) Commit() error {
+	if tx.clickHouse != nil {
+		return tx.clickHouse.commit()
+	}
+	return tx.sqlTx.Commit()
+}
+
+func (tx *Tx) Rollback() error {
+	if tx.clickHouse != nil {
+		return tx.clickHouse.rollback()
+	}
+	return tx.sqlTx.Rollback()
 }
 
 func InitDB(cfg config.DatabaseConfig) (*DB, error) {
@@ -88,14 +145,32 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 	if dsn == "" {
 		if strings.HasPrefix(driver, "sqlite") {
 			dsn = "renop.db"
+		} else if strings.EqualFold(driver, "clickhouse") || strings.EqualFold(driver, "ch") {
+			dsn = "clickhouse://default@localhost:9000/default"
 		}
+	}
+
+	lowerDriver := strings.ToLower(driver)
+	if lowerDriver == "clickhouse" || lowerDriver == "ch" {
+		backend, err := openClickHouse(cfg, dsn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize database (%s): %w", driver, err)
+		}
+		db := newDatabaseCaches(&DB{
+			SQLDB: new(sql.DB), clickHouse: backend, Dialect: NewDialect("clickhouse"),
+		})
+		if err := db.initializePersistentMigrations(); err != nil {
+			_ = backend.close()
+			return nil, err
+		}
+		log.Printf("Database initialized successfully (driver: clickhouse, dsn: %s)", sanitizeDSN(dsn))
+		return db, nil
 	}
 
 	var sqlDB *sql.DB
 	var err error
 	actualDriver := driver
 
-	lowerDriver := strings.ToLower(driver)
 	if strings.HasPrefix(lowerDriver, "sqlite") {
 		dsn = buildSQLiteDSN(dsn)
 		sqlDB, err = openAndPing("sqlite3", dsn, cfg)
@@ -116,33 +191,42 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 
 	dialect := NewDialect(actualDriver)
 
-	db := &DB{
-		SQLDB:            sqlDB,
-		Dialect:          dialect,
-		tokenCache:       NewTTLCache[string, *core.AccessToken](10 * time.Minute),
-		tokenSecretCache: NewTTLCache[string, *core.AccessToken](10 * time.Minute),
-		sessionCache:     NewTTLCache[string, *core.Session](15 * time.Minute),
-	}
+	db := newDatabaseCaches(&DB{
+		SQLDB:   sqlDB,
+		Dialect: dialect,
+	})
 
 	if err := db.Dialect.InitTables(sqlDB); err != nil {
 		_ = sqlDB.Close()
 		return nil, fmt.Errorf("failed to initialize database tables: %w", err)
 	}
-	if err := db.initializeUserIdentities(); err != nil {
+	if err := db.initializePersistentMigrations(); err != nil {
 		_ = sqlDB.Close()
-		return nil, fmt.Errorf("failed to initialize stable user identities: %w", err)
-	}
-	if err := db.migrateLegacyAPITokens(); err != nil {
-		_ = sqlDB.Close()
-		return nil, fmt.Errorf("failed to migrate legacy API tokens: %w", err)
-	}
-	if err := db.migrateGlobalMavenDomains(); err != nil {
-		_ = sqlDB.Close()
-		return nil, fmt.Errorf("failed to migrate global Maven domains: %w", err)
+		return nil, err
 	}
 
 	log.Printf("Database initialized successfully (driver: %s, dsn: %s)", actualDriver, sanitizeDSN(dsn))
 	return db, nil
+}
+
+func newDatabaseCaches(db *DB) *DB {
+	db.tokenCache = NewTTLCache[string, *core.AccessToken](10 * time.Minute)
+	db.tokenSecretCache = NewTTLCache[string, *core.AccessToken](10 * time.Minute)
+	db.sessionCache = NewTTLCache[string, *core.Session](15 * time.Minute)
+	return db
+}
+
+func (db *DB) initializePersistentMigrations() error {
+	if err := db.initializeUserIdentities(); err != nil {
+		return fmt.Errorf("failed to initialize stable user identities: %w", err)
+	}
+	if err := db.migrateLegacyAPITokens(); err != nil {
+		return fmt.Errorf("failed to migrate legacy API tokens: %w", err)
+	}
+	if err := db.migrateGlobalMavenDomains(); err != nil {
+		return fmt.Errorf("failed to migrate global Maven domains: %w", err)
+	}
+	return nil
 }
 
 func buildSQLiteDSN(dsn string) string {
@@ -284,6 +368,9 @@ func truncateUTF8(s string, maxLen int) string {
 func (db *DB) Close() error {
 	if db == nil {
 		return nil
+	}
+	if db.clickHouse != nil {
+		return db.clickHouse.close()
 	}
 	if db.SQLDB == nil {
 		return nil

@@ -228,8 +228,8 @@ updater:
   mode: manual                    # manual | auto_check | auto_install | safe_install
 
 database:
-  driver: sqlite3                 # sqlite3 | mysql | postgres
-  dsn: renop.db                   # SQLite file path, or a standard DSN for MySQL/PostgreSQL
+  driver: sqlite3                 # sqlite3 | mysql | postgres | clickhouse
+  dsn: renop.db                   # SQLite path or a standard MySQL/PostgreSQL/ClickHouse DSN
   max_open_conns: 25
   max_idle_conns: 25
   conn_max_lifetime_sec: 300

@@ -11,6 +11,7 @@
 package database_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/url"
@@ -390,4 +391,16 @@ func TestPostgresMavenDomainsMigrateToGlobalOwnership(t *testing.T) {
 	domainAfterDelete, err := db.GetMavenDomainDetails("com.example", "maven_bob")
 	require.NoError(t, err)
 	require.True(t, domainAfterDelete.Domain.Verified)
+}
+
+func TestPostgresDriverContract(t *testing.T) {
+	dsn, _, _ := newPostgresTestSchema(t, "renop_driver_contract")
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "postgres", Dsn: dsn, MaxOpenConns: 4, MaxIdleConns: 2,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	results, err := database.RunDriverCheck(context.Background(), db)
+	require.NoError(t, err)
+	require.Len(t, results, 5)
 }

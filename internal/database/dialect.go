@@ -351,6 +351,8 @@ var sharedColumnMigrations = []SchemaMigration{
 
 func NewDialect(driver string) Dialect {
 	switch strings.ToLower(strings.TrimSpace(driver)) {
+	case "clickhouse", "ch":
+		return &ClickHouseDialect{}
 	case "mysql":
 		return &MySQLDialect{}
 	case "postgres", "postgresql", "pgx", "pg":

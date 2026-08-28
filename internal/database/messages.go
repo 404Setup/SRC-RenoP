@@ -164,17 +164,23 @@ func (db *DB) SaveMessageIfAbsent(message *core.UserMessage) (bool, error) {
 		return true, nil
 	}
 	query := `INSERT INTO user_messages (` + messageColumns + `) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	switch db.Dialect.Name() {
-	case "mysql":
-		query += ` ON DUPLICATE KEY UPDATE id = id`
-	default:
-		query += ` ON CONFLICT (recipient, dedupe_key) DO NOTHING`
-	}
-	result, err := db.Exec(query,
+	arguments := []any{
 		message.ID, message.Recipient, message.Sender, message.Kind, message.Severity,
 		message.Title, message.Body, string(message.Payload), message.ActionKind, message.ActionStatus,
 		message.CreatedAt, message.ReadAt, message.ActedAt, message.ExpiresAt, message.DedupeKey,
-	)
+	}
+	switch db.Dialect.Name() {
+	case "mysql":
+		query += ` ON DUPLICATE KEY UPDATE id = id`
+	case "clickhouse":
+		query = `/* renop:ignore-if-exists */ INSERT INTO user_messages (` + messageColumns + `)
+			SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			WHERE NOT EXISTS (SELECT 1 FROM user_messages WHERE recipient = ? AND dedupe_key = ?)`
+		arguments = append(arguments, message.Recipient, message.DedupeKey)
+	default:
+		query += ` ON CONFLICT (recipient, dedupe_key) DO NOTHING`
+	}
+	result, err := db.Exec(query, arguments...)
 	if err != nil {
 		return false, fmt.Errorf("insert deduplicated message for %s: %w", message.Recipient, err)
 	}

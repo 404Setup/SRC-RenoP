@@ -985,7 +985,8 @@ function renderServerSettings(container, data) {
     const driverOptions = [
         {value: 'sqlite3', label: 'SQLite (sqlite3)'},
         {value: 'mysql', label: 'MySQL'},
-        {value: 'postgres', label: 'PostgreSQL'}
+        {value: 'postgres', label: 'PostgreSQL'},
+        {value: 'clickhouse', label: 'ClickHouse'}
     ];
 
     const dsnContainer = el('div', {class: 'cfg-dsn-container'});
@@ -994,7 +995,43 @@ function renderServerSettings(container, data) {
 
     function buildDsnFields(driver) {
         const fragment = document.createDocumentFragment();
-        if (driver === 'postgres' || driver === 'postgresql' || driver === 'pgx' || driver === 'pg') {
+        if (driver === 'clickhouse' || driver === 'ch') {
+            const clickHouseParts = parseClickHouseDsn(currentConfig.database.dsn);
+            const updateClickHouse = () => {
+                currentConfig.database.dsn = formatClickHouseDsn(clickHouseParts);
+                enableSave();
+            };
+            const hostInput = buildInput('text', clickHouseParts.host, '127.0.0.1', event => {
+                clickHouseParts.host = event.target.value;
+                updateClickHouse();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbHost'), t('settings.dbHostHint'), hostInput));
+            const portInput = buildInput('number', clickHouseParts.port, '9000', event => {
+                clickHouseParts.port = event.target.value;
+                updateClickHouse();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbPort'), t('settings.dbPortHint'), portInput));
+            const userInput = buildInput('text', clickHouseParts.user, 'default', event => {
+                clickHouseParts.user = event.target.value;
+                updateClickHouse();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbUser'), t('settings.dbUserHint'), userInput));
+            const passInput = buildInput('password', clickHouseParts.password, '••••••••', event => {
+                clickHouseParts.password = event.target.value;
+                updateClickHouse();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbPassword'), t('settings.dbPasswordHint'), passInput));
+            const dbNameInput = buildInput('text', clickHouseParts.database, 'default', event => {
+                clickHouseParts.database = event.target.value;
+                updateClickHouse();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbName'), t('settings.dbNameHint'), dbNameInput));
+            const paramsInput = buildInput('text', clickHouseParts.params, 'secure=false&compress=lz4', event => {
+                clickHouseParts.params = event.target.value;
+                updateClickHouse();
+            });
+            fragment.appendChild(createFieldRow(t('settings.dbParams'), t('settings.dbParamsHint'), paramsInput));
+        } else if (driver === 'postgres' || driver === 'postgresql' || driver === 'pgx' || driver === 'pg') {
             const pgParts = parsePostgresDsn(currentConfig.database.dsn);
 
             const updatePostgres = () => {
@@ -1157,7 +1194,9 @@ function renderServerSettings(container, data) {
             currentConfig.database.dsn = formatMysqlDsn(parseMysqlDsn(''));
         } else if (val === 'postgres' && (!currentConfig.database.dsn || (!currentConfig.database.dsn.startsWith('postgres://') && !currentConfig.database.dsn.startsWith('postgresql://')))) {
             currentConfig.database.dsn = formatPostgresDsn(parsePostgresDsn(''));
-        } else if (val === 'sqlite3' && (!currentConfig.database.dsn || currentConfig.database.dsn.includes('tcp(') || currentConfig.database.dsn.startsWith('postgres://') || currentConfig.database.dsn.startsWith('postgresql://'))) {
+        } else if (val === 'clickhouse' && (!currentConfig.database.dsn || !currentConfig.database.dsn.startsWith('clickhouse://'))) {
+            currentConfig.database.dsn = formatClickHouseDsn(parseClickHouseDsn(''));
+        } else if (val === 'sqlite3' && (!currentConfig.database.dsn || currentConfig.database.dsn.includes('tcp(') || currentConfig.database.dsn.startsWith('postgres://') || currentConfig.database.dsn.startsWith('postgresql://') || currentConfig.database.dsn.startsWith('clickhouse://'))) {
             currentConfig.database.dsn = 'renop.db';
         }
         updateDsnUI(val, true);
@@ -1314,6 +1353,47 @@ function formatMysqlDsn(parts) {
         dsn += '?' + params;
     }
     return dsn;
+}
+
+/**
+ * Parse a native ClickHouse DSN into editable connection fields.
+ * @param {string} dsnStr - ClickHouse connection URL.
+ * @returns {object} Parsed connection fields.
+ */
+function parseClickHouseDsn(dsnStr) {
+    const defaults = {
+        user: 'default', password: '', host: '127.0.0.1', port: '9000', database: 'default', params: ''
+    };
+    if (!dsnStr || typeof dsnStr !== 'string' || !dsnStr.trim().startsWith('clickhouse://')) return defaults;
+    try {
+        const parsedUrl = new URL(dsnStr.trim());
+        return {
+            user: decodeURIComponent(parsedUrl.username || '') || defaults.user,
+            password: decodeURIComponent(parsedUrl.password || ''),
+            host: parsedUrl.hostname || defaults.host,
+            port: parsedUrl.port || defaults.port,
+            database: decodeURIComponent((parsedUrl.pathname || '').replace(/^\//, '')) || defaults.database,
+            params: parsedUrl.search ? parsedUrl.search.substring(1) : ''
+        };
+    } catch {
+        return defaults;
+    }
+}
+
+/**
+ * Format editable fields as a native ClickHouse DSN.
+ * @param {object} parts - ClickHouse connection fields.
+ * @returns {string} Native ClickHouse connection URL.
+ */
+function formatClickHouseDsn(parts) {
+    const user = encodeURIComponent(String(parts.user || 'default').trim());
+    const password = String(parts.password || '');
+    const credentials = password ? `${user}:${encodeURIComponent(password)}` : user;
+    const host = String(parts.host || '127.0.0.1').trim();
+    const port = String(parts.port || '9000').trim();
+    const database = encodeURIComponent(String(parts.database || 'default').trim());
+    const params = String(parts.params || '').trim().replace(/^\?/, '');
+    return `clickhouse://${credentials}@${host}${port ? `:${port}` : ''}/${database}${params ? `?${params}` : ''}`;
 }
 
 /**

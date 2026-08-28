@@ -33,7 +33,7 @@ export default Object.freeze({
     "settings.databaseTitle": "データベース設定",
     "settings.databaseSubtitle": "SQLite、MySQL、または PostgreSQL データベース接続およびプーリングパラメータを設定",
     "settings.dbDriver": "データベースドライバー",
-    "settings.dbDriverHint": "データベースエンジンタイプを選択 (sqlite3、mysql、または postgres)",
+    "settings.dbDriverHint": "データベースエンジンを選択（SQLite、MySQL、PostgreSQL、ClickHouse）",
     "settings.dbDsn": "SQLite ファイルパス",
     "settings.dbDsnHint": "SQLite データベースファイルの保存パス (例: renop.db)",
     "settings.dbHost": "データベースホスト",

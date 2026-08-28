@@ -33,7 +33,7 @@ export default Object.freeze({
     "settings.databaseTitle": "Database Settings",
     "settings.databaseSubtitle": "Configure SQLite, MySQL, or PostgreSQL database connection and pooling parameters",
     "settings.dbDriver": "Database Driver",
-    "settings.dbDriverHint": "Select database engine type (sqlite3, mysql, or postgres)",
+    "settings.dbDriverHint": "Select database engine type (SQLite, MySQL, PostgreSQL, or ClickHouse)",
     "settings.dbDsn": "SQLite File Path",
     "settings.dbDsnHint": "SQLite database file path (e.g. renop.db)",
     "settings.dbHost": "Database Host",

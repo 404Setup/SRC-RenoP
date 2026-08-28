@@ -600,7 +600,6 @@ func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.Acces
 	}{
 		{`UPDATE sessions SET username = ? WHERE username = ?`, "sessions"},
 		{`UPDATE fido_devices SET username = ? WHERE username = ?`, "FIDO devices"},
-		{`UPDATE user_gpg_keys SET username = ? WHERE username = ?`, "GPG keys"},
 		{`UPDATE gpg_signatures SET uploader = ? WHERE uploader = ?`, "GPG signatures"},
 		{`UPDATE gpg_releases SET uploader = ? WHERE uploader = ?`, "GPG releases"},
 		{`UPDATE audit_logs SET username = ? WHERE username = ?`, "audit subjects"},
@@ -628,10 +627,58 @@ func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.Acces
 		{`UPDATE npm_invitations SET inviter = ? WHERE inviter = ?`, "npm invitation senders"},
 		{`UPDATE npm_invitations SET recipient = ? WHERE recipient = ?`, "npm invitation recipients"},
 	}
+	if db.clickHouse != nil {
+		if err := renameClickHouseUserGPGKeys(tx, oldName, newName); err != nil {
+			return err
+		}
+	} else {
+		updates = append(updates, struct {
+			query string
+			name  string
+		}{`UPDATE user_gpg_keys SET username = ? WHERE username = ?`, "GPG keys"})
+	}
 	for _, update := range updates {
 		if _, err := tx.Exec(update.query, newName, oldName); err != nil {
 			return fmt.Errorf("rename %s from %s to %s: %w", update.name, oldName, newName, err)
 		}
+	}
+	return nil
+}
+
+func renameClickHouseUserGPGKeys(tx *Tx, oldName, newName string) error {
+	rows, err := tx.Query(`SELECT fingerprint, requested_id, added_at FROM user_gpg_keys WHERE username = ?`, oldName)
+	if err != nil {
+		return fmt.Errorf("list GPG keys before username change: %w", err)
+	}
+	type userGPGKey struct {
+		fingerprint string
+		requestedID string
+		addedAt     int64
+	}
+	keys := make([]userGPGKey, 0, 10)
+	for rows.Next() {
+		var key userGPGKey
+		if err := rows.Scan(&key.fingerprint, &key.requestedID, &key.addedAt); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("read GPG key before username change: %w", err)
+		}
+		keys = append(keys, key)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return fmt.Errorf("iterate GPG keys before username change: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close GPG key query before username change: %w", err)
+	}
+	for _, key := range keys {
+		if _, err := tx.Exec(`INSERT INTO user_gpg_keys (username, fingerprint, requested_id, added_at) VALUES (?, ?, ?, ?)`,
+			newName, key.fingerprint, key.requestedID, key.addedAt); err != nil {
+			return fmt.Errorf("copy GPG key during username change: %w", err)
+		}
+	}
+	if _, err := tx.Exec(`DELETE FROM user_gpg_keys WHERE username = ?`, oldName); err != nil {
+		return fmt.Errorf("remove previous GPG key ownership during username change: %w", err)
 	}
 	return nil
 }

@@ -65,6 +65,26 @@ database:
 
 En production, activez TLS selon la politique de votre fournisseur au lieu de `sslmode=disable`.
 
+## ClickHouse 26.9+
+
+RenoP prend en charge une instance ClickHouse autogérée avec l’API native `clickhouse.Open` de `clickhouse-go/v2`,
+sans utiliser la couche de compatibilité `database/sql`. La base isolée doit exister avant le démarrage :
+
+```yaml
+database:
+  driver: "clickhouse"
+  dsn: "clickhouse://renop_user:password@127.0.0.1:9000/renop_db?compress=lz4"
+  max_open_conns: 8
+  max_idle_conns: 4
+  conn_max_lifetime_sec: 600
+```
+
+Le build officiel doit inclure `EmbeddedRocksDB`. RenoP crée des tables clé-valeur mutables avec des clés composites
+matérialisées sans collision et exécute les mises à jour comme mutations natives synchrones. ClickHouse 26.9 ne
+proposant pas de transactions multi-instructions, RenoP sérialise les écritures et journalise des instantanés par ligne
+pour restaurer toute transaction interrompue au prochain démarrage. ClickHouse Cloud n’est pas compatible avec ce mode.
+La matrice est testée avec ClickHouse 26.9.1 et `clickhouse-go/v2` 2.48.0.
+
 ## Paramètres du pool
 
 | Paramètre               | Défaut | Description                                      |

@@ -269,7 +269,7 @@ func downloadStatisticsGroup(groupBy string) (downloadStatisticsGrouping, bool) 
 	}
 }
 
-func scanDownloadStatistic(rows *sql.Rows, groupBy string) (*core.DownloadStatisticRecord, error) {
+func scanDownloadStatistic(rows rows, groupBy string) (*core.DownloadStatisticRecord, error) {
 	record := &core.DownloadStatisticRecord{}
 	var err error
 	switch groupBy {

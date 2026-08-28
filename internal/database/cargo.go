@@ -576,10 +576,21 @@ func (db *DB) DeleteCargoVersion(repository, normalizedName, version string) err
 	if rows == 0 {
 		return core.ErrCargoVersionNotFound
 	}
-	if _, err := tx.Exec(`UPDATE cargo_packages SET mirrored = CASE WHEN EXISTS (
+	updateQuery := `UPDATE cargo_packages SET mirrored = CASE WHEN EXISTS (
 		SELECT 1 FROM cargo_versions v WHERE v.repository = cargo_packages.repository
 		AND v.normalized_name = cargo_packages.normalized_name AND v.mirrored = 1
-	) THEN 1 ELSE 0 END WHERE repository = ? AND normalized_name = ?`, repository, normalizedName); err != nil {
+	) THEN 1 ELSE 0 END WHERE repository = ? AND normalized_name = ?`
+	updateArgs := []any{repository, normalizedName}
+	if db.Dialect.Name() == "clickhouse" {
+		var mirroredCount int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_versions WHERE repository = ? AND normalized_name = ?
+			AND mirrored = 1`, repository, normalizedName).Scan(&mirroredCount); err != nil {
+			return fmt.Errorf("count remaining mirrored Cargo versions: %w", err)
+		}
+		updateQuery = `UPDATE cargo_packages SET mirrored = ? WHERE repository = ? AND normalized_name = ?`
+		updateArgs = []any{boolInt(mirroredCount > 0), repository, normalizedName}
+	}
+	if _, err := tx.Exec(updateQuery, updateArgs...); err != nil {
 		return fmt.Errorf("update Cargo package mirror provenance: %w", err)
 	}
 	if err := tx.Commit(); err != nil {

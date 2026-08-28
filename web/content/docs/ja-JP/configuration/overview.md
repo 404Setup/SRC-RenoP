@@ -76,7 +76,7 @@ database:
   conn_max_lifetime_sec: 300
 ```
 
-`sqlite3`（または `sqlite`）、`mysql`、`postgres` に対応します。
+`sqlite3`（または `sqlite`）、`mysql`、`postgres`、ネイティブ `clickhouse` に対応します。
 [データベース設定](./database.md)を参照してください。
 
 ### `proxy` 送信ルート

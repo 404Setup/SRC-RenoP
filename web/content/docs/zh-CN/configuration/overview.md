@@ -75,7 +75,7 @@ database:
   conn_max_lifetime_sec: 300
 ```
 
-支持 `sqlite3`（或 `sqlite`）、`mysql` 与 `postgres`。详见[数据库配置](./database.md)。
+支持 `sqlite3`（或 `sqlite`）、`mysql`、`postgres` 与原生 `clickhouse`。详见[数据库配置](./database.md)。
 
 ### `proxy` 出站路由
 

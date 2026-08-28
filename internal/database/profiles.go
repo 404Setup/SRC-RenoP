@@ -431,6 +431,9 @@ func (db *DB) initializeUserIdentities() error {
 			return fmt.Errorf("backfill npm member identity for %s: %w", username, err)
 		}
 	}
+	if db.Dialect.Name() == "clickhouse" {
+		return nil
+	}
 	indexQueries := []string{
 		`CREATE UNIQUE INDEX uq_user_profiles_user_id ON user_profiles(user_id)`,
 		`CREATE UNIQUE INDEX uq_maven_members_user_id ON maven_domain_members(repository, domain, user_id)`,

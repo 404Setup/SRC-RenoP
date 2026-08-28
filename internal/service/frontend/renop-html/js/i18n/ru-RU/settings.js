@@ -33,7 +33,7 @@ export default Object.freeze({
     "settings.databaseTitle": "Настройки базы данных",
     "settings.databaseSubtitle": "Настройка подключения к базе данных SQLite, MySQL или PostgreSQL и параметров пула",
     "settings.dbDriver": "Драйвер БД",
-    "settings.dbDriverHint": "Выберите тип СУБД (sqlite3, mysql или postgres)",
+    "settings.dbDriverHint": "Выберите СУБД (SQLite, MySQL, PostgreSQL или ClickHouse)",
     "settings.dbDsn": "Путь к файлу SQLite",
     "settings.dbDsnHint": "Путь к файлу базы данных SQLite (напр., renop.db)",
     "settings.dbHost": "Хост БД",

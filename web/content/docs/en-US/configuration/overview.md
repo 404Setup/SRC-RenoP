@@ -76,7 +76,7 @@ database:
   conn_max_lifetime_sec: 300
 ```
 
-Supported drivers are `sqlite3` (or `sqlite`), `mysql`, and `postgres`. See
+Supported drivers are `sqlite3` (or `sqlite`), `mysql`, `postgres`, and native `clickhouse`. See
 [Database Configuration](./database.md).
 
 ### `proxy` outbound routing
