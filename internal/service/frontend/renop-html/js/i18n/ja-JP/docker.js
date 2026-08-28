@@ -94,6 +94,7 @@ export default Object.freeze({
     "docker.deleteImageFailed": "イメージの削除に失敗しました。",
     "docker.deleteTagFailed": "タグの削除に失敗しました。",
     "docker.updateReadmeFailed": "READMEの更新に失敗しました。",
+    "docker.readmeTooLarge": "README は 512 KiB 以下にしてください。",
     "docker.updateMemberFailed": "メンバー権限の更新に失敗しました。",
     "docker.removeMemberFailed": "メンバーの削除に失敗しました。",
     "docker.sendInviteFailed": "招待の送信に失敗しました。",

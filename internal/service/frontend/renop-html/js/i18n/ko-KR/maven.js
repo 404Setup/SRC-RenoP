@@ -24,6 +24,8 @@ export default {
     "maven.deleteDomainFailed": "Maven 도메인을 삭제하지 못했습니다", "maven.deleteDomain": "도메인 삭제", "maven.backToRepository": "Maven 저장소로 돌아가기",
     "maven.domainKicker": "게시 도메인", "maven.verifiedAt": "{date}에 확인", "maven.noDomainArtifacts": "이 도메인에 게시된 아티팩트가 없습니다.",
     "maven.domainLoadFailed": "Maven 도메인을 불러오지 못했습니다", "maven.editDescription": "설명 편집", "maven.updateDescriptionFailed": "아티팩트 설명을 변경하지 못했습니다",
+    "maven.readme": "README", "maven.noReadme": "이 아티팩트에는 Markdown README가 추가되지 않았습니다.", "maven.editReadme": "README 편집",
+    "maven.readmeSaved": "README가 업데이트되었습니다", "maven.readmePlaceholder": "이 Maven 아티팩트의 문서를 Markdown으로 작성하세요…", "maven.updateReadmeFailed": "아티팩트 README를 업데이트하지 못했습니다",
     "maven.artifactLoadFailed": "Maven 아티팩트를 불러오지 못했습니다", "maven.artifactKicker": "Maven 아티팩트", "maven.versionCount": "버전 {count}개",
     "maven.publishedBy": "게시자", "maven.deleteVersion": "버전 삭제", "maven.deleteVersionConfirm": "버전 {version}을 영구 삭제하시겠습니까?",
     "maven.deleteVersionFailed": "Maven 버전을 삭제하지 못했습니다", "maven.noVersions": "이 아티팩트에 인덱싱된 버전이 없습니다.", "maven.versionsTitle": "버전",

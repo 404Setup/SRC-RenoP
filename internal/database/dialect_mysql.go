@@ -250,6 +250,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		normalized_name VARCHAR(64) NOT NULL,
 		package_name VARCHAR(64) NOT NULL,
 		description TEXT NOT NULL,
+		readme MEDIUMTEXT NOT NULL,
 		repository_url VARCHAR(1024) NOT NULL DEFAULT '',
 		homepage VARCHAR(1024) NOT NULL DEFAULT '',
 		documentation VARCHAR(1024) NOT NULL DEFAULT '',
@@ -465,7 +466,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if err := initAccountSecurityTables(db); err != nil {
 		return err
 	}
-	if err := initMavenTables(db); err != nil {
+	if err := initMavenTables(db, "MEDIUMTEXT NOT NULL"); err != nil {
 		return err
 	}
 	if err := initNPMTables(db); err != nil {
@@ -482,7 +483,11 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	}
 
 	for _, migration := range sharedColumnMigrations {
-		if err := execIgnoreDuplicateColumn(db, migration.Query); err != nil {
+		query := migration.Query
+		if migration.MySQLQuery != "" {
+			query = migration.MySQLQuery
+		}
+		if err := execIgnoreDuplicateColumn(db, query); err != nil {
 			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
 		}
 	}

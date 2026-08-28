@@ -189,7 +189,7 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
  */
 function openReadmeEditor(repoName, imageName, currentDescription, onSaved) {
     const textarea = el('textarea', {
-        placeholder: t('docker.readmePlaceholder')
+        maxlength: '524288', rows: '16', placeholder: t('docker.readmePlaceholder')
     }, currentDescription || '');
 
     const editorWrap = el('div', {class: 'docker-readme-editor'}, textarea);
@@ -210,24 +210,26 @@ function openReadmeEditor(repoName, imageName, currentDescription, onSaved) {
                 text: t('docker.saveReadme'),
                 className: 'action-btn primary-btn',
                 onClick: async (e, dlg) => {
-                    const newDescription = textarea.value.trim();
-                    try {
-                        const resp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`, {
-                            method: 'PUT',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({description: newDescription})
-                        });
-                        if (resp.ok) {
-                            dlg.close();
-                            showAlert(t('docker.readmeSaved'), 'success');
-                            if (typeof onSaved === 'function') onSaved(newDescription);
-                        } else {
-                            showAlert(dockerResponseError(resp, 'docker.updateReadmeFailed'), 'error');
+                    await runButtonAction(e.currentTarget, async () => {
+                        const newDescription = textarea.value.trim();
+                        try {
+                            const resp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images?image=${encodeURIComponent(imageName)}`, {
+                                method: 'PUT',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({description: newDescription})
+                            });
+                            if (resp.ok) {
+                                dlg.close();
+                                showAlert(t('docker.readmeSaved'), 'success');
+                                if (typeof onSaved === 'function') onSaved(newDescription);
+                            } else {
+                                showAlert(dockerResponseError(resp, 'docker.updateReadmeFailed'), 'error');
+                            }
+                        } catch (err) {
+                            console.error('Failed to update Docker image README', err);
+                            showAlert(t('docker.updateReadmeFailed'), 'error');
                         }
-                    } catch (err) {
-                        console.error('Failed to update Docker image README', err);
-                        showAlert(t('docker.updateReadmeFailed'), 'error');
-                    }
+                    });
                 }
             }
         ]
@@ -857,7 +859,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const readmeContent = el('div');
         const updateReadmeView = (descText) => {
             if (descText && descText.trim().length > 0) {
-                readmeContent.className = 'docker-readme-body';
+                readmeContent.className = 'docker-readme-body repository-markdown';
                 setSafeMarkdown(readmeContent, descText.trim());
             } else {
                 readmeContent.className = 'docker-readme-empty';

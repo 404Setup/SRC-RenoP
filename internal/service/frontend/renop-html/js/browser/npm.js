@@ -765,7 +765,7 @@ function readmeSection() {
             createIcon('fileMarkdown'), el('p', {}, t('npm.noReadme'))));
         return section;
     }
-    const content = el('article', {class: 'npm-readme-body'});
+    const content = el('article', {class: 'npm-readme-body repository-markdown'});
     setSafeMarkdown(content, project.readme);
     section.appendChild(content);
     return section;

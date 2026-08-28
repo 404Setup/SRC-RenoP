@@ -59,6 +59,8 @@ export default Object.freeze({
     "cargo.homepage": "홈페이지",
     "cargo.documentation": "문서",
     "cargo.repository": "저장소",
+    "cargo.readme": "README",
+    "cargo.noReadme": "게시된 crate에 Markdown README가 포함되어 있지 않습니다.",
     "cargo.unspecified": "지정되지 않음",
     "cargo.activeVersionBadge": "선택됨",
     "cargo.copyChecksum": "체크섬 복사",

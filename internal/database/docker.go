@@ -51,6 +51,17 @@ func setDockerImageFlags(image *core.DockerRepositoryImage, privateValue, pushEn
 	image.Mirrored = !image.PushEnabled
 }
 
+func boundDockerImageDescription(image *core.DockerRepositoryImage, catalog bool) {
+	if image == nil {
+		return
+	}
+	if catalog {
+		image.Description = strings.TrimSpace(SanitizeInputString(image.Description, 4000))
+		return
+	}
+	image.Description = sanitizePackageReadme(image.Description)
+}
+
 // CreateDockerImage reserves an empty image and assigns its initial L4 owner.
 func (db *DB) CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*core.DockerRepositoryImage, error) {
 	if db == nil || db.SQLDB == nil {
@@ -131,7 +142,7 @@ func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerReposito
 	img := &core.DockerRepositoryImage{}
 	var privateValue, pushEnabledValue int
 	err := db.QueryRow(
-		`SELECT repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ? AND image_name = ?`,
+		`SELECT repository, image_name, SUBSTR(description, 1, 524288), publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ? AND image_name = ?`,
 		repository, imageName,
 	).Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount,
 		&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt)
@@ -142,6 +153,7 @@ func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerReposito
 		return nil, fmt.Errorf("get Docker image: %w", err)
 	}
 	setDockerImageFlags(img, privateValue, pushEnabledValue)
+	boundDockerImageDescription(img, false)
 
 	if img.Publisher == "" {
 		var tagPub string
@@ -203,7 +215,7 @@ func (db *DB) UpdateDockerImageDescription(repository, imageName, description st
 		return core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
-	description = strings.TrimSpace(description)
+	description = sanitizePackageReadme(description)
 	now := time.Now().UnixMilli()
 
 	res, err := db.Exec(
@@ -233,7 +245,7 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 		limit = 50
 	}
 
-	query := `SELECT repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ?`
+	query := `SELECT repository, image_name, SUBSTR(description, 1, 4000), publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ?`
 	args := []any{repository}
 	if last != "" {
 		query += ` AND image_name > ?`
@@ -257,6 +269,7 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 			return nil, fmt.Errorf("scan Docker image: %w", err)
 		}
 		setDockerImageFlags(img, privateValue, pushEnabledValue)
+		boundDockerImageDescription(img, true)
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
@@ -318,7 +331,7 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 	}
 
 	rows, err := db.Query(
-		`SELECT repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE `+where+
+		`SELECT repository, image_name, SUBSTR(description, 1, 4000), publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE `+where+
 			` ORDER BY CASE WHEN image_name = ? THEN 0 ELSE 1 END, image_name LIMIT ? OFFSET ?`,
 		repository, pattern, pattern, query, limit, offset,
 	)
@@ -336,6 +349,7 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 			return nil, 0, fmt.Errorf("scan Docker search result: %w", err)
 		}
 		setDockerImageFlags(img, privateValue, pushEnabledValue)
+		boundDockerImageDescription(img, true)
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {

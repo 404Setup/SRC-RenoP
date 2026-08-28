@@ -55,6 +55,7 @@ type CargoPackage struct {
 	Name            string `json:"name"`
 	NormalizedName  string `json:"-"`
 	Description     string `json:"description"`
+	Readme          string `json:"readme,omitempty"`
 	RepositoryURL   string `json:"repository_url,omitempty"`
 	Homepage        string `json:"homepage,omitempty"`
 	Documentation   string `json:"documentation,omitempty"`

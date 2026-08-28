@@ -41,6 +41,10 @@ RenoP implements the Cargo Registry and Sparse Index specifications.
 - **Name conflicts**: A first publication returns `409 Conflict` when the normalized name exists locally or on an
   applicable enabled mirror. An inconclusive upstream check returns `503 Service Unavailable`.
 
+For local publications, RenoP reads the `package.readme` declaration from the validated `Cargo.toml` and extracts that
+file from the archive without buffering the crate. Package-detail responses expose at most 512 KiB of Markdown, which
+the browser renders through the shared element and URL allowlist. Catalog and search pages do not load README bodies.
+
 ---
 
 ## Download Crate

@@ -98,6 +98,7 @@ type MavenArtifact struct {
 	GroupID         string `json:"group_id"`
 	ArtifactID      string `json:"artifact_id"`
 	Description     string `json:"description,omitempty"`
+	Readme          string `json:"readme,omitempty"`
 	Publisher       string `json:"publisher,omitempty"`
 	LatestVersion   string `json:"latest_version,omitempty"`
 	VersionCount    int    `json:"version_count"`

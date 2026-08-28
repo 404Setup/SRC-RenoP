@@ -94,6 +94,7 @@ export default Object.freeze({
     "docker.deleteImageFailed": "Échec de la suppression de l'image.",
     "docker.deleteTagFailed": "Échec de la suppression du tag.",
     "docker.updateReadmeFailed": "Échec de la mise à jour du README.",
+    "docker.readmeTooLarge": "Le README ne doit pas dépasser 512 Kio.",
     "docker.updateMemberFailed": "Échec de la mise à jour des permissions du membre.",
     "docker.removeMemberFailed": "Échec de la suppression du membre.",
     "docker.sendInviteFailed": "Échec de l'envoi de l'invitation.",

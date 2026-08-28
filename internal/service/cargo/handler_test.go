@@ -218,7 +218,8 @@ func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
 	user := &config.User{Username: "publisher", Roles: []string{"canupdate:cargo"}}
 	app := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, user)
 	crate := makeCrateArchive(t, map[string]string{
-		"demo-1.2.3/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.2.3\"\n",
+		"demo-1.2.3/Cargo.toml":     "[package]\nname = \"demo\"\nversion = \"1.2.3\"\nreadme = \"docs/README.md\"\n",
+		"demo-1.2.3/docs/README.md": "# Demo\n\nPublished Cargo **README**.\n",
 	})
 	body := makePublishBody(t, PublishMetadata{
 		Name: "demo", Version: "1.2.3", Deps: []PublishDependency{}, Features: map[string][]string{},
@@ -263,6 +264,10 @@ func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
 	_ = indexReader.Close()
 	if !bytes.Contains(indexData, []byte(`"vers":"1.2.3"`)) || !bytes.Contains(indexData, []byte(`"cksum":`)) {
 		t.Fatalf("invalid sparse index entry: %s", indexData)
+	}
+	details, err := db.GetCargoPackageDetails("cargo", "demo", "publisher")
+	if err != nil || details == nil || details.Package == nil || details.Package.Readme != "# Demo\n\nPublished Cargo **README**." {
+		t.Fatalf("published Cargo README was not persisted: %#v, %v", details, err)
 	}
 	status, _ = publish()
 	if status != fiber.StatusConflict {

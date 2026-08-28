@@ -15,6 +15,7 @@ import {cachedIsLoggedIn, cachedIsManager} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {t} from '../i18n.js';
+import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
@@ -346,20 +347,16 @@ function artifactInformationSection(details, repository) {
 function mavenExternalLink(value, label = value) {
     const raw = String(value || '').trim();
     const text = String(label || raw).trim();
-    try {
-        const parsed = new URL(raw);
-        if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || parsed.username || parsed.password) {
-            throw new TypeError('Unsupported project URL');
-        }
+    const href = safeMarkdownURL(raw);
+    if (href) {
         return el('a', {
-            href: parsed.href,
+            href,
             target: '_blank',
-            rel: 'noopener noreferrer',
+            rel: 'noopener noreferrer nofollow',
             title: raw
         }, text || raw);
-    } catch {
-        return el('span', {}, text || raw);
     }
+    return el('span', {}, text || raw);
 }
 
 /**
@@ -1111,6 +1108,79 @@ function openDescriptionEditor(container, repository, artifact, sequence) {
 }
 
 /**
+ * Open the bounded Markdown README editor for one Maven artifact.
+ * @param {HTMLElement} container
+ * @param {string} repository
+ * @param {object} artifact
+ * @param {number} sequence
+ * @returns {void}
+ */
+function openArtifactReadmeEditor(container, repository, artifact, sequence) {
+    const textarea = el('textarea', {
+        maxlength: '524288', rows: '16', placeholder: t('maven.readmePlaceholder')
+    }, artifact.readme || '');
+    RenopDialog.show({
+        id: 'maven-readme-dialog', maxWidth: '760px', icon: 'fileMarkdown', title: t('maven.editReadme'),
+        body: el('div', {class: 'maven-dialog-form repository-markdown-editor'}, textarea),
+        footer: [
+            {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
+            {
+                text: t('common.save'), className: 'action-btn primary-btn', onClick: async (event, dialog) => {
+                    await runButtonAction(event.currentTarget, async () => {
+                        try {
+                            const query = new URLSearchParams({group: artifact.group_id, artifact: artifact.artifact_id});
+                            const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`, {
+                                method: 'PUT', headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({readme: textarea.value.trim()})
+                            });
+                            if (!response.ok) {
+                                showAlert(await responseErrorMessage(response, 'maven.updateReadmeFailed'), 'error');
+                                return;
+                            }
+                            dialog.close(true);
+                            showAlert(t('maven.readmeSaved'), 'success');
+                            await renderArtifact(container, repository, artifact.group_id, artifact.artifact_id, sequence);
+                        } catch (error) {
+                            console.error('Failed to update Maven artifact README', error);
+                            showAlert(t('maven.updateReadmeFailed'), 'error');
+                        }
+                    });
+                }
+            }
+        ]
+    });
+}
+
+/**
+ * Build the safe Markdown README card for one Maven artifact.
+ * @param {HTMLElement} container
+ * @param {string} repository
+ * @param {object} artifact
+ * @param {number} sequence
+ * @param {boolean} canManage
+ * @returns {HTMLElement}
+ */
+function mavenArtifactReadmeSection(container, repository, artifact, sequence, canManage) {
+    const heading = el('div', {class: 'maven-readme-heading'},
+        el('h3', {}, t('maven.readme')),
+        canManage ? el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+            onclick: () => openArtifactReadmeEditor(container, repository, artifact, sequence)
+        }, createIcon('edit'), el('span', {}, t('maven.editReadme'))) : null
+    );
+    const section = el('section', {class: 'maven-section maven-readme-section'}, heading);
+    if (!artifact.readme) {
+        section.appendChild(el('div', {class: 'maven-empty maven-readme-empty'},
+            createIcon('fileMarkdown'), el('span', {}, t('maven.noReadme'))));
+        return section;
+    }
+    const content = el('article', {class: 'repository-markdown'});
+    setSafeMarkdown(content, artifact.readme);
+    section.appendChild(content);
+    return section;
+}
+
+/**
  * Render Maven artifact details and version management.
  * @param {HTMLElement} container
  * @param {string} repository
@@ -1203,6 +1273,7 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             artifactInformationSection(details, repository),
             mavenProjectInformationSection(details),
             mavenDependencySection(project),
+            mavenArtifactReadmeSection(container, repository, artifact, sequence, canManageVersions),
             el('section', {class: 'maven-section'}, el('h3', {}, t('maven.versionsTitle')), versionList)
         ], {duration: 280, enterDuration: 420});
     } catch (error) {

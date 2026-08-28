@@ -94,6 +94,7 @@ export default Object.freeze({
     "docker.deleteImageFailed": "Falha ao eliminar a imagem.",
     "docker.deleteTagFailed": "Falha ao eliminar a etiqueta.",
     "docker.updateReadmeFailed": "Falha ao atualizar o README.",
+    "docker.readmeTooLarge": "O README não pode exceder 512 KiB.",
     "docker.updateMemberFailed": "Falha ao atualizar a permissão do membro.",
     "docker.removeMemberFailed": "Falha ao remover o membro.",
     "docker.sendInviteFailed": "Falha ao enviar o convite.",

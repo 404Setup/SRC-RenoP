@@ -39,6 +39,10 @@ Use `GET /api/maven/repositories/:repo/domains` to list domains containing artif
 
 The detail response summarizes indexed primary files, sizes, modification times, available checksums, and detached-signature coverage. It returns at most 64 primary files per version. When the latest indexed POM is no larger than 2 MiB, RenoP also streams and parses its project, organization, license, developer, source-control, issue-tracker, parent, and direct-dependency metadata. Direct dependencies are limited to 128 entries; companion checksum and signature files are not counted as primary files.
 
+An L2-L4 domain member or administrator can maintain a separate package-level Markdown README through the artifact
+update endpoint. The README is limited to 512 KiB, returned only by the detail endpoint, and rendered through the
+shared element and URL allowlist. The short POM or catalog description remains a distinct field.
+
 Legacy Maven repositories are indexed into the domain catalog during upgrade. Imported domains are verified but receive no automatic team members; an administrator must explicitly assign access before new publication. Configured Maven mirrors continue to resolve missing artifacts.
 
 ## Layouts and file repositories

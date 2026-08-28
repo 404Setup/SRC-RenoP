@@ -184,6 +184,22 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	if closeErr != nil {
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to validate Cargo crate")
 	}
+	readme := ""
+	if manifest != nil {
+		readme = manifest.readmeContent
+		readmePath, readmeEnabled := cargoReadmePath(manifest.Readme)
+		if readme == "" && readmeEnabled && readmePath != "" && defaultCargoReadmeRank(readmePath) < 0 {
+			readmeReader, openErr := crateStage.Open()
+			if openErr != nil {
+				return errorResponse(c, fiber.StatusInternalServerError, "Failed to read Cargo crate README")
+			}
+			readme, openErr = readDeclaredCargoReadme(readmeReader, metadata.Name, metadata.Version, readmePath)
+			readmeCloseErr := readmeReader.Close()
+			if openErr != nil || readmeCloseErr != nil {
+				return errorResponse(c, fiber.StatusBadRequest, "Cargo crate README could not be read")
+			}
+		}
+	}
 
 	license := ""
 	homepageURL := ""
@@ -274,7 +290,7 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	now := time.Now().UnixMilli()
 	if err := db.RecordCargoPublication(&core.CargoPackage{
 		Repository: repo.Name, Name: packageName, NormalizedName: normalizedName,
-		Description: metadata.Description, RepositoryURL: repoURL, Homepage: homepageURL,
+		Description: metadata.Description, Readme: readme, RepositoryURL: repoURL, Homepage: homepageURL,
 		Documentation: docURL, CreatedAt: now, UpdatedAt: now,
 	}, &core.CargoVersion{
 		Repository: repo.Name, Package: normalizedName, Version: metadata.Version,

@@ -59,6 +59,8 @@ export default Object.freeze({
     "cargo.homepage": "Página inicial",
     "cargo.documentation": "Documentação",
     "cargo.repository": "Repositório",
+    "cargo.readme": "README",
+    "cargo.noReadme": "O crate publicado não inclui um README em Markdown.",
     "cargo.unspecified": "Não especificado",
     "cargo.activeVersionBadge": "Ativo",
     "cargo.copyChecksum": "Copiar soma de verificação",

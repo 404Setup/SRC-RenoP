@@ -94,6 +94,7 @@ export default Object.freeze({
     "docker.deleteImageFailed": "Image konnte nicht gelöscht werden.",
     "docker.deleteTagFailed": "Tag konnte nicht gelöscht werden.",
     "docker.updateReadmeFailed": "README konnte nicht aktualisiert werden.",
+    "docker.readmeTooLarge": "Die README darf höchstens 512 KiB groß sein.",
     "docker.updateMemberFailed": "Mitgliedsberechtigung konnte nicht aktualisiert werden.",
     "docker.removeMemberFailed": "Mitglied konnte nicht entfernt werden.",
     "docker.sendInviteFailed": "Einladung konnte nicht gesendet werden.",

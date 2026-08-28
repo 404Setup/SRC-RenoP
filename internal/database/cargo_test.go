@@ -41,7 +41,7 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	}))
 	pkg := &core.CargoPackage{
 		Repository: "cargo", Name: "demo", NormalizedName: "demo",
-		Description: "Demo crate", RepositoryURL: "https://github.com/example/demo",
+		Description: "Demo crate", Readme: "# Demo\n\nCargo **README**.", RepositoryURL: "https://github.com/example/demo",
 		Homepage: "https://example.com/demo", Documentation: "https://docs.rs/demo",
 		CreatedAt: now, UpdatedAt: now,
 	}
@@ -58,6 +58,7 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	require.Equal(t, "https://github.com/example/demo", details.Package.RepositoryURL)
 	require.Equal(t, "https://example.com/demo", details.Package.Homepage)
 	require.Equal(t, "https://docs.rs/demo", details.Package.Documentation)
+	require.Equal(t, "# Demo\n\nCargo **README**.", details.Package.Readme)
 	require.Len(t, details.Versions, 1)
 	require.Equal(t, int64(1024), details.Versions[0].Size)
 	require.Equal(t, "abcdef123456", details.Versions[0].Checksum)
@@ -99,6 +100,7 @@ func TestCargoOwnershipInvitationAndAdministratorLocks(t *testing.T) {
 	require.Equal(t, 1, total)
 	require.Len(t, results, 1)
 	require.Equal(t, "1.10.0", results[0].MaxVersion)
+	require.Empty(t, results[0].Readme, "catalog searches must not load large README bodies")
 
 	err = db.SetCargoMemberLevel("cargo", "demo", "bob", "alice", core.CargoPermissionVersion)
 	require.ErrorIs(t, err, core.ErrCargoPermissionDenied)

@@ -20,6 +20,10 @@ API が暗黙にイメージを作ることはありません。非公開イメ�
 管理 API は可読本文と `X-Renop-Error-Code` を返し、UI は生の本文ではなくコードを翻訳します。OCI API は
 仕様で定められた `errors` 構造を使用します。
 
+イメージページにはパッケージ単位の Markdown README があります。L3/L4 メンバーまたは管理者は
+`PUT /api/docker/repositories/{repo}/images?image={name}` で更新できます。JSON の `description` は 512 KiB に
+制限され、共通の要素と URL の許可リストを通して描画されます。
+
 ## バージョン確認
 
 - **パス**: `GET /v2/` または `HEAD /v2/`

@@ -13,6 +13,7 @@ package cargo
 import (
 	"archive/tar"
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/klauspost/compress/gzip"
@@ -43,12 +44,20 @@ func makeCrateArchive(t *testing.T, entries map[string]string) []byte {
 
 func TestValidateArchive(t *testing.T) {
 	valid := makeCrateArchive(t, map[string]string{
-		"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+		"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\nreadme = \"README.md\"\n",
+		"demo-1.0.0/README.md":  "# Demo\n\nPublished **crate** documentation.\n",
 		"demo-1.0.0/src/lib.rs": "pub fn demo() {}\n",
 	})
 	manifest, err := validateArchive(bytes.NewReader(valid), "demo", "1.0.0")
 	if err != nil || manifest == nil || manifest.Name != "demo" {
 		t.Fatalf("valid crate rejected: %v", err)
+	}
+	if manifest.readmeContent != "# Demo\n\nPublished **crate** documentation." {
+		t.Fatalf("crate README was not extracted: %q", manifest.readmeContent)
+	}
+	declared, err := readDeclaredCargoReadme(bytes.NewReader(valid), "demo", "1.0.0", "README.md")
+	if err != nil || declared != manifest.readmeContent {
+		t.Fatalf("declared crate README lookup = %q, %v", declared, err)
 	}
 
 	unsafe := makeCrateArchive(t, map[string]string{
@@ -92,5 +101,15 @@ func TestValidatePackage(t *testing.T) {
 		if (err == nil) != test.valid {
 			t.Errorf("validatePackage(%q, %q) error = %v, valid = %v", test.name, test.version, err, test.valid)
 		}
+	}
+}
+
+func TestCargoReadmeExtractionIsUTF8SafeAndBounded(t *testing.T) {
+	readme, err := readCargoReadmeFile(strings.NewReader(strings.Repeat("界", maxCargoReadmeSize)), int64(maxCargoReadmeSize*3))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(readme) > maxCargoReadmeSize || !strings.HasSuffix(readme, "…") {
+		t.Fatalf("bounded Cargo README length = %d, suffix = %q", len(readme), readme[len(readme)-3:])
 	}
 }

@@ -174,7 +174,10 @@ func initNPMTables(db *sql.DB) error {
 	return nil
 }
 
-func initMavenTables(db *sql.DB) error {
+func initMavenTables(db *sql.DB, readmeColumnDefinition string) error {
+	if readmeColumnDefinition == "" {
+		readmeColumnDefinition = "TEXT NOT NULL"
+	}
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS maven_domains (
 			repository VARCHAR(64) NOT NULL,
@@ -214,6 +217,7 @@ func initMavenTables(db *sql.DB) error {
 			group_id VARCHAR(253) NOT NULL,
 			artifact_id VARCHAR(255) NOT NULL,
 			description TEXT NOT NULL,
+			readme ` + readmeColumnDefinition + `,
 			publisher VARCHAR(255) NOT NULL,
 			latest_version VARCHAR(255) NOT NULL,
 			mirrored INT NOT NULL DEFAULT 0,
@@ -256,8 +260,9 @@ type Dialect interface {
 }
 
 type SchemaMigration struct {
-	Name  string
-	Query string
+	Name       string
+	Query      string
+	MySQLQuery string
 }
 
 var sharedIndexMigrations = []SchemaMigration{
@@ -320,6 +325,7 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "cargo_packages.repository_url", Query: "ALTER TABLE cargo_packages ADD COLUMN repository_url VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_packages.homepage", Query: "ALTER TABLE cargo_packages ADD COLUMN homepage VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_packages.documentation", Query: "ALTER TABLE cargo_packages ADD COLUMN documentation VARCHAR(1024) NOT NULL DEFAULT '';"},
+	{Name: "cargo_packages.readme", Query: "ALTER TABLE cargo_packages ADD COLUMN readme TEXT;", MySQLQuery: "ALTER TABLE cargo_packages ADD COLUMN readme MEDIUMTEXT;"},
 	{Name: "cargo_packages.mirrored", Query: "ALTER TABLE cargo_packages ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
 	{Name: "cargo_versions.size", Query: "ALTER TABLE cargo_versions ADD COLUMN size BIGINT NOT NULL DEFAULT 0;"},
 	{Name: "cargo_versions.checksum", Query: "ALTER TABLE cargo_versions ADD COLUMN checksum VARCHAR(64) NOT NULL DEFAULT '';"},
@@ -330,6 +336,7 @@ var sharedColumnMigrations = []SchemaMigration{
 	{Name: "cargo_versions.documentation", Query: "ALTER TABLE cargo_versions ADD COLUMN documentation VARCHAR(1024) NOT NULL DEFAULT '';"},
 	{Name: "cargo_versions.mirrored", Query: "ALTER TABLE cargo_versions ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
 	{Name: "maven_artifacts.mirrored", Query: "ALTER TABLE maven_artifacts ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
+	{Name: "maven_artifacts.readme", Query: "ALTER TABLE maven_artifacts ADD COLUMN readme TEXT;", MySQLQuery: "ALTER TABLE maven_artifacts ADD COLUMN readme MEDIUMTEXT;"},
 	{Name: "maven_versions.mirrored", Query: "ALTER TABLE maven_versions ADD COLUMN mirrored INT NOT NULL DEFAULT 0;"},
 	{Name: "docker_images.publisher", Query: "ALTER TABLE docker_images ADD COLUMN publisher VARCHAR(255) NOT NULL DEFAULT '';"},
 	{Name: "docker_images.pull_count", Query: "ALTER TABLE docker_images ADD COLUMN pull_count BIGINT NOT NULL DEFAULT 0;"},

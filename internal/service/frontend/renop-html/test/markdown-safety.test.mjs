@@ -13,6 +13,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const markdownPath = join(frontendRoot, 'js/markdown.js');
 const markdownSource = readFileSync(markdownPath, 'utf8');
+const markdownStyles = readFileSync(join(frontendRoot, 'css/components/markdown.css'), 'utf8');
 const {safeMarkdownURL} = await import(pathToFileURL(markdownPath));
 
 test('package Markdown accepts only credential-free absolute HTTP links', () => {
@@ -23,6 +24,17 @@ test('package Markdown accepts only credential-free absolute HTTP links', () => 
         'https://user:secret@example.test/path', 'file:///etc/passwd'
     ]) {
         assert.equal(safeMarkdownURL(unsafe), '', `unsafe Markdown URL was accepted: ${unsafe}`);
+    }
+});
+
+test('all package formats share the safe Markdown renderer and neutral layout', () => {
+    for (const format of ['npm', 'docker', 'cargo', 'maven']) {
+        const source = readFileSync(join(frontendRoot, `js/browser/${format}.js`), 'utf8');
+        assert.ok(source.includes('setSafeMarkdown'), `${format} does not use the safe Markdown renderer`);
+        assert.ok(source.includes('repository-markdown'), `${format} does not use the shared Markdown layout`);
+    }
+    for (const required of ['overflow-wrap: anywhere', 'overflow-x: auto', 'max-width: 100%', 'var(--text-color) 5%']) {
+        assert.ok(markdownStyles.includes(required), `shared Markdown styles are missing ${required}`);
     }
 });
 

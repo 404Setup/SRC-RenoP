@@ -94,6 +94,7 @@ export default Object.freeze({
     "docker.deleteImageFailed": "删除镜像失败。",
     "docker.deleteTagFailed": "删除标签失败。",
     "docker.updateReadmeFailed": "更新 README 失败。",
+    "docker.readmeTooLarge": "README 不能超过 512 KiB。",
     "docker.updateMemberFailed": "更新成员权限失败。",
     "docker.removeMemberFailed": "移除成员失败。",
     "docker.sendInviteFailed": "发送邀请失败。",

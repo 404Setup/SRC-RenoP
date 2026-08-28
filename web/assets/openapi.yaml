@@ -1494,6 +1494,10 @@ components:
         description:
           type: string
           maxLength: 4000
+        readme:
+          type: string
+          maxLength: 524288
+          description: Bounded Markdown documentation returned only by artifact-detail responses.
         publisher:
           type: string
         latest_version:
@@ -1781,6 +1785,8 @@ components:
           example: team/service
         description:
           type: string
+          maxLength: 524288
+          description: Bounded Markdown README for the container image.
         publisher:
           type: string
         tag_count:
@@ -3627,7 +3633,7 @@ paths:
                 $ref: "#/components/schemas/MavenArtifactDetails"
     put:
       tags: [maven]
-      summary: Update a Maven artifact description
+      summary: Update a Maven artifact description or README
       operationId: updateMavenArtifact
       security:
         - sessionCookie: []
@@ -3649,11 +3655,16 @@ paths:
           application/json:
             schema:
               type: object
-              required: [description]
+              oneOf:
+                - required: [description]
+                - required: [readme]
               properties:
                 description:
                   type: string
                   maxLength: 4000
+                readme:
+                  type: string
+                  maxLength: 524288
       responses:
         "200":
           description: Artifact updated.
@@ -5220,7 +5231,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Crate metadata.
+          description: Crate metadata, versions, team state, and a bounded package README for local publications.
           content:
             application/json:
               schema:
@@ -6268,6 +6279,37 @@ paths:
           description: Image name is already occupied locally or by an enabled upstream mirror.
         "503":
           description: An enabled upstream mirror could not provide an authoritative image-name result.
+    put:
+      tags: [docker]
+      summary: Update a container image README
+      operationId: updateDockerImageReadme
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RepoName"
+        - name: image
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description:
+                  type: string
+                  maxLength: 524288
+                  description: Markdown README content. An empty string clears the README.
+      responses:
+        "200":
+          description: README updated.
+        "413":
+          description: README exceeds 512 KiB.
 
   # ========== Docker / OCI Registry ==========
   /v2/:

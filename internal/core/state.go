@@ -156,6 +156,7 @@ type StateDB interface {
 	ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*MavenArtifact, int, error)
 	GetMavenArtifactDetails(repository, groupID, artifactID string) (*MavenArtifactDetails, error)
 	UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error
+	UpdateMavenArtifactReadme(repository, groupID, artifactID, readme string) error
 	DeleteMavenVersionMetadata(repository, groupID, artifactID, version string) error
 	DeleteMavenRepository(repository string) error
 	EnsureImportedMavenDomain(domain *MavenDomain) error

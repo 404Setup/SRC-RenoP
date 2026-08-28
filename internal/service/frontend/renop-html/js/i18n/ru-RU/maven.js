@@ -24,6 +24,8 @@ export default {
     "maven.deleteDomainFailed": "Не удалось удалить домен Maven", "maven.deleteDomain": "Удалить домен", "maven.backToRepository": "Назад в репозиторий Maven",
     "maven.domainKicker": "Домен публикации", "maven.verifiedAt": "Подтвержден {date}", "maven.noDomainArtifacts": "В этом домене еще нет опубликованных артефактов.",
     "maven.domainLoadFailed": "Не удалось загрузить домен Maven", "maven.editDescription": "Изменить описание", "maven.updateDescriptionFailed": "Не удалось изменить описание артефакта",
+    "maven.readme": "README", "maven.noReadme": "Для этого артефакта не добавлен README в формате Markdown.", "maven.editReadme": "Изменить README",
+    "maven.readmeSaved": "README обновлён", "maven.readmePlaceholder": "Добавьте документацию Maven-артефакта в формате Markdown…", "maven.updateReadmeFailed": "Не удалось обновить README артефакта",
     "maven.artifactLoadFailed": "Не удалось загрузить артефакт Maven", "maven.artifactKicker": "Артефакт Maven", "maven.versionCount": "Версий: {count}",
     "maven.publishedBy": "Опубликовал", "maven.deleteVersion": "Удалить версию", "maven.deleteVersionConfirm": "Безвозвратно удалить версию {version}?",
     "maven.deleteVersionFailed": "Не удалось удалить версию Maven", "maven.noVersions": "Для этого артефакта нет проиндексированных версий.", "maven.versionsTitle": "Версии",

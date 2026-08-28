@@ -18,6 +18,7 @@
 @import "./components/dropzone.css";
 @import "./components/alert.css";
 @import "./components/code-badge.css";
+@import "./components/markdown.css";
 @import "./components/file-card.css";
 @import "./components/upload-entry.css";
 @import "@renop/ui/css/components/lang-card.css";

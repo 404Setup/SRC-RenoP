@@ -13,6 +13,7 @@ import {fileURLToPath} from 'node:url';
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const npmView = readFileSync(join(frontendRoot, 'js/browser/npm.js'), 'utf8');
 const npmCSS = readFileSync(join(frontendRoot, 'css/browser/npm.css'), 'utf8');
+const markdownCSS = readFileSync(join(frontendRoot, 'css/components/markdown.css'), 'utf8');
 const formats = readFileSync(join(frontendRoot, 'js/repository-formats.js'), 'utf8');
 const repositorySettings = readFileSync(join(frontendRoot, 'js/repositories.js'), 'utf8');
 
@@ -77,7 +78,7 @@ test('npm repository format and mirror controls are canonical and responsive', (
         'npm member removal must have an explicit destructive style');
     assert.match(npmCSS, /\.npm-information-grid\s*\{[^}]*grid-template-columns:/s,
         'npm package metadata must use the responsive information grid');
-    assert.match(npmCSS, /\.npm-readme-body\s*\{[^}]*overflow-wrap:\s*anywhere/s,
+    assert.match(markdownCSS, /\.repository-markdown\s*\{[^}]*overflow-wrap:\s*anywhere/s,
         'npm README content must remain within the package layout');
     assert.match(npmCSS, /@media \(max-width: 700px\)[\s\S]*\.npm-invite-controls\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
 });

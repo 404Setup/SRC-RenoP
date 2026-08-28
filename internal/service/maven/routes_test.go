@@ -175,6 +175,17 @@ func TestMavenDomainForceVerificationAndCrossRepositoryReuse(t *testing.T) {
 	assert.Equal(t, "jar", artifactDetails.Project.Packaging)
 	assert.Equal(t, 1, artifactDetails.FileCount)
 	assert.Positive(t, artifactDetails.TotalFileSize)
+	response = mavenRequest(t, app, http.MethodPut,
+		"/api/maven/repositories/releases/package?group=com.example&artifact=demo",
+		`{"readme":"# Demo Project\n\nMaven **documentation**."}`)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	response = mavenRequest(t, app, http.MethodGet,
+		"/api/maven/repositories/releases/package?group=com.example&artifact=demo", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&artifactDetails))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, "# Demo Project\n\nMaven **documentation**.", artifactDetails.Artifact.Readme)
 	response = mavenRequest(t, app, http.MethodGet, "/api/maven/repositories/releases/domains", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var releaseDomains struct {

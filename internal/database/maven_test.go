@@ -151,7 +151,7 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 
 	artifact := &core.MavenArtifact{
 		Repository: "releases", Domain: "com.example", GroupID: "com.example.tools",
-		ArtifactID: "demo", Description: "Demo", Publisher: "bob", LatestVersion: "1.0.0",
+		ArtifactID: "demo", Description: "Demo", Readme: "# Demo\n\nMaven **README**.", Publisher: "bob", LatestVersion: "1.0.0",
 		CreatedAt: now, UpdatedAt: now,
 	}
 	version := &core.MavenVersion{
@@ -163,11 +163,17 @@ func TestMavenDomainOwnershipAndCatalog(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, total)
 	require.Len(t, artifacts, 1)
+	assert.Empty(t, artifacts[0].Readme, "catalog pages must not load large README bodies")
 	assert.Equal(t, "1.0.0", artifacts[0].LatestVersion)
 	assert.Equal(t, int64(1024), artifacts[0].TotalSize)
 	artifactDetails, err := db.GetMavenArtifactDetails("releases", artifact.GroupID, artifact.ArtifactID)
 	require.NoError(t, err)
 	require.Len(t, artifactDetails.Versions, 1)
+	assert.Equal(t, "# Demo\n\nMaven **README**.", artifactDetails.Artifact.Readme)
+	require.NoError(t, db.UpdateMavenArtifactReadme("releases", artifact.GroupID, artifact.ArtifactID, "# Updated"))
+	artifactDetails, err = db.GetMavenArtifactDetails("releases", artifact.GroupID, artifact.ArtifactID)
+	require.NoError(t, err)
+	assert.Equal(t, "# Updated", artifactDetails.Artifact.Readme)
 	for _, candidate := range []string{"10.0.0", "2.0.0"} {
 		artifact.LatestVersion = candidate
 		artifact.UpdatedAt++

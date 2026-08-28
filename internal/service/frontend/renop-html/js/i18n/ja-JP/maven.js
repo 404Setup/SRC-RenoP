@@ -24,6 +24,8 @@ export default {
     "maven.deleteDomainFailed": "Maven ドメインを削除できませんでした", "maven.deleteDomain": "ドメインを削除", "maven.backToRepository": "Maven リポジトリに戻る",
     "maven.domainKicker": "公開ドメイン", "maven.verifiedAt": "{date} に検証", "maven.noDomainArtifacts": "このドメインでは成果物がまだ公開されていません。",
     "maven.domainLoadFailed": "Maven ドメインを読み込めませんでした", "maven.editDescription": "説明を編集", "maven.updateDescriptionFailed": "成果物の説明を更新できませんでした",
+    "maven.readme": "README", "maven.noReadme": "この成果物には Markdown README が追加されていません。", "maven.editReadme": "README を編集",
+    "maven.readmeSaved": "README を更新しました", "maven.readmePlaceholder": "この Maven 成果物のドキュメントを Markdown で記述します…", "maven.updateReadmeFailed": "成果物の README を更新できませんでした",
     "maven.artifactLoadFailed": "Maven 成果物を読み込めませんでした", "maven.artifactKicker": "Maven 成果物", "maven.versionCount": "{count} バージョン",
     "maven.publishedBy": "公開者", "maven.deleteVersion": "バージョンを削除", "maven.deleteVersionConfirm": "バージョン {version} を完全に削除しますか？",
     "maven.deleteVersionFailed": "Maven バージョンを削除できませんでした", "maven.noVersions": "この成果物にはインデックス済みバージョンがありません。", "maven.versionsTitle": "バージョン",

@@ -20,6 +20,10 @@ vérification amont indéterminée renvoie `503 Service Unavailable` et ne rése
 Les routes de gestion conservent un corps lisible et ajoutent `X-Renop-Error-Code`. L’interface traduit ce code au lieu
 d’afficher le texte brut. Les routes OCI gardent la structure `errors` imposée par la spécification.
 
+Les pages d’image proposent un README Markdown propre au paquet. Un membre L3/L4 ou un administrateur le modifie avec
+`PUT /api/docker/repositories/{repo}/images?image={name}`. La valeur JSON `description` est limitée à 512 Kio et rendue
+avec la liste commune d’éléments et d’URL autorisés.
+
 ## Vérification de version
 
 - **Chemin** : `GET /v2/` ou `HEAD /v2/`

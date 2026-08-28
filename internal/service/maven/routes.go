@@ -30,8 +30,10 @@ import (
 )
 
 const (
-	maxManagementRequestSize = 16 << 10
-	verificationInterval     = 5 * time.Second
+	maxManagementRequestSize   = 16 << 10
+	maxMavenReadmeBytes        = 512 << 10
+	maxMavenReadmeRequestBytes = maxMavenReadmeBytes + (16 << 10)
+	verificationInterval       = 5 * time.Second
 )
 
 type createDomainRequest struct {
@@ -39,7 +41,8 @@ type createDomainRequest struct {
 }
 
 type updateArtifactRequest struct {
-	Description string `json:"description"`
+	Description *string `json:"description"`
+	Readme      *string `json:"readme"`
 }
 
 func wireStorageHooks() {
@@ -551,14 +554,20 @@ func updateArtifact(c fiber.Ctx, state *core.AppState) error {
 	if _, err := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionVersion, true); err != nil {
 		return apiError(c, err)
 	}
-	if len(c.Body()) > maxManagementRequestSize {
-		return c.SendStatus(fiber.StatusRequestEntityTooLarge)
-	}
 	var request updateArtifactRequest
-	if err := c.Bind().Body(&request); err != nil || len(request.Description) > 4000 {
+	if err := utils.ReadJSONLimited(c, &request, maxMavenReadmeRequestBytes); errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+		return c.SendStatus(fiber.StatusRequestEntityTooLarge)
+	} else if err != nil || (request.Description == nil) == (request.Readme == nil) ||
+		request.Description != nil && len(*request.Description) > 4000 ||
+		request.Readme != nil && len(*request.Readme) > maxMavenReadmeBytes {
 		return apiError(c, fiber.ErrBadRequest)
 	}
-	if err := state.GetDB().UpdateMavenArtifactDescription(repo.Name, groupID, artifactID, request.Description); err != nil {
+	if request.Description != nil {
+		err = state.GetDB().UpdateMavenArtifactDescription(repo.Name, groupID, artifactID, *request.Description)
+	} else {
+		err = state.GetDB().UpdateMavenArtifactReadme(repo.Name, groupID, artifactID, *request.Readme)
+	}
+	if err != nil {
 		return apiError(c, err)
 	}
 	logAudit(c, state, audit.ActionMavenArtifactUpdate, fmt.Sprintf("Repository: %s, artifact: %s:%s", repo.Name, groupID, artifactID))

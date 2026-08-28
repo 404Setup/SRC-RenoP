@@ -56,6 +56,40 @@ func TestSQLiteMigrationsFailOnInvalidSchema(t *testing.T) {
 	assert.Contains(t, err.Error(), "idx_sessions_username")
 }
 
+func TestSQLiteMigrationsAddPackageReadmeColumns(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	require.NoError(t, err)
+	defer db.Close()
+	_, err = db.Exec(`CREATE TABLE cargo_packages (
+		repository VARCHAR(64) NOT NULL, normalized_name VARCHAR(64) NOT NULL, package_name VARCHAR(64) NOT NULL,
+		description TEXT NOT NULL DEFAULT '', repository_url VARCHAR(1024) NOT NULL DEFAULT '',
+		homepage VARCHAR(1024) NOT NULL DEFAULT '', documentation VARCHAR(1024) NOT NULL DEFAULT '',
+		archived INT NOT NULL DEFAULT 0, admin_archived INT NOT NULL DEFAULT 0, mirrored INT NOT NULL DEFAULT 0,
+		created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, PRIMARY KEY (repository, normalized_name));
+		CREATE TABLE maven_artifacts (
+		repository VARCHAR(64) NOT NULL, domain VARCHAR(253) NOT NULL, group_id VARCHAR(253) NOT NULL,
+		artifact_id VARCHAR(255) NOT NULL, description TEXT NOT NULL, publisher VARCHAR(255) NOT NULL,
+		latest_version VARCHAR(255) NOT NULL, mirrored INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL,
+		updated_at BIGINT NOT NULL, PRIMARY KEY (repository, group_id, artifact_id));`)
+	require.NoError(t, err)
+	require.NoError(t, database.NewDialect("sqlite").InitTables(db))
+	for _, table := range []string{"cargo_packages", "maven_artifacts"} {
+		rows, queryErr := db.Query("PRAGMA table_info(" + table + ")")
+		require.NoError(t, queryErr)
+		found := false
+		for rows.Next() {
+			var position, notNull, primaryKey int
+			var name, columnType string
+			var defaultValue any
+			require.NoError(t, rows.Scan(&position, &name, &columnType, &notNull, &defaultValue, &primaryKey))
+			found = found || name == "readme"
+		}
+		require.NoError(t, rows.Err())
+		require.NoError(t, rows.Close())
+		assert.Truef(t, found, "%s.readme migration was not applied", table)
+	}
+}
+
 func TestInitDB_SQLite(t *testing.T) {
 	dbFile := filepath.Join(t.TempDir(), "test_renop.db")
 

@@ -59,6 +59,8 @@ export default Object.freeze({
     "cargo.homepage": "首頁",
     "cargo.documentation": "文件",
     "cargo.repository": "代碼庫",
+    "cargo.readme": "README",
+    "cargo.noReadme": "已發佈的 crate 中未包含 Markdown README。",
     "cargo.unspecified": "未指定",
     "cargo.activeVersionBadge": "已選",
     "cargo.copyChecksum": "複製校驗和",

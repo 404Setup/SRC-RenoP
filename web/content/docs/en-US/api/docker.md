@@ -21,6 +21,10 @@ Browser-management endpoints keep a human-readable plain-text error body and als
 stable programmatic handling. The RenoP frontend maps this code through its active locale instead of displaying raw
 server text. OCI Distribution endpoints continue to use the specification-defined structured `errors` response.
 
+Image pages provide a package-level Markdown README. An L3/L4 image member or administrator updates it with
+`PUT /api/docker/repositories/{repo}/images?image={name}`. The JSON `description` value is limited to 512 KiB and is
+rendered through the shared element and URL allowlist.
+
 ## Version Check
 
 - **Path**: `GET /v2/` or `HEAD /v2/`

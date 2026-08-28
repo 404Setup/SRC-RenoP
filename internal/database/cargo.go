@@ -45,14 +45,18 @@ type cargoPackageScanner interface {
 	Scan(dest ...any) error
 }
 
-func scanCargoPackage(scanner cargoPackageScanner) (*core.CargoPackage, error) {
+func scanCargoPackage(scanner cargoPackageScanner, includeReadme bool) (*core.CargoPackage, error) {
 	result := &core.CargoPackage{}
 	var archived, adminArchived, mirrored int
-	if err := scanner.Scan(
+	destinations := []any{
 		&result.Repository, &result.NormalizedName, &result.Name, &result.Description,
 		&result.RepositoryURL, &result.Homepage, &result.Documentation,
 		&archived, &adminArchived, &mirrored, &result.CreatedAt, &result.UpdatedAt,
-	); err != nil {
+	}
+	if includeReadme {
+		destinations = append(destinations, &result.Readme)
+	}
+	if err := scanner.Scan(destinations...); err != nil {
 		return nil, err
 	}
 	result.Archived = archived != 0
@@ -77,9 +81,9 @@ func (db *DB) GetCargoPackage(repository, normalizedName string) (*core.CargoPac
 	}
 	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
 	result, err := scanCargoPackage(db.QueryRow(
-		`SELECT `+cargoPackageColumns+` FROM cargo_packages WHERE repository = ? AND normalized_name = ?`,
+		`SELECT `+cargoPackageColumns+`, COALESCE(readme, '') FROM cargo_packages WHERE repository = ? AND normalized_name = ?`,
 		repository, normalizedName,
-	))
+	), true)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -241,7 +245,7 @@ func (db *DB) SearchCargoPackages(repository, query string, limit, offset int) (
 	}
 	packages := make([]*core.CargoPackage, 0, limit)
 	for rows.Next() {
-		pkg, err := scanCargoPackage(rows)
+		pkg, err := scanCargoPackage(rows, false)
 		if err != nil {
 			_ = rows.Close()
 			return nil, 0, fmt.Errorf("scan Cargo search result: %w", err)
@@ -332,6 +336,7 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	username = sanitizeCargoUsername(username)
 	packageName := SanitizeInputString(strings.TrimSpace(pkg.Name), 64)
 	description := SanitizeInputString(strings.TrimSpace(pkg.Description), 4000)
+	readme := sanitizePackageReadme(pkg.Readme)
 	versionName := SanitizeInputString(strings.TrimSpace(version.Version), 128)
 	if repository == "" || normalizedName == "" || username == "" || packageName == "" || versionName == "" {
 		return errors.New("cargo publication metadata is invalid")
@@ -362,9 +367,9 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		if _, err = tx.Exec(`INSERT INTO cargo_packages
-			(repository, normalized_name, package_name, description, repository_url, homepage, documentation, archived, admin_archived, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
-			repository, normalizedName, packageName, description, repoURL, homepageURL, docURL, pkg.CreatedAt, pkg.UpdatedAt); err != nil {
+			(repository, normalized_name, package_name, description, readme, repository_url, homepage, documentation, archived, admin_archived, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
+			repository, normalizedName, packageName, description, readme, repoURL, homepageURL, docURL, pkg.CreatedAt, pkg.UpdatedAt); err != nil {
 			return fmt.Errorf("create Cargo package: %w", err)
 		}
 		if _, err = tx.Exec(`INSERT INTO cargo_members
@@ -406,13 +411,13 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 		repository, normalizedName, versionName, description, username, version.Size, checksum, rustVersion, license, vRepoURL, vHomepageURL, vDocURL, version.CreatedAt); err != nil {
 		return fmt.Errorf("record Cargo version: %w", err)
 	}
-	if _, err = tx.Exec(`UPDATE cargo_packages SET description = ?,
+	if _, err = tx.Exec(`UPDATE cargo_packages SET description = ?, readme = ?,
 		repository_url = CASE WHEN ? != '' THEN ? ELSE repository_url END,
 		homepage = CASE WHEN ? != '' THEN ? ELSE homepage END,
 		documentation = CASE WHEN ? != '' THEN ? ELSE documentation END,
 		updated_at = ?
 		WHERE repository = ? AND normalized_name = ?`,
-		description, repoURL, repoURL, homepageURL, homepageURL, docURL, docURL, pkg.UpdatedAt, repository, normalizedName); err != nil {
+		description, readme, repoURL, repoURL, homepageURL, homepageURL, docURL, docURL, pkg.UpdatedAt, repository, normalizedName); err != nil {
 		return fmt.Errorf("update Cargo package: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -433,6 +438,7 @@ func (db *DB) RecordCargoMirrorPublication(pkg *core.CargoPackage, version *core
 	packageName := SanitizeInputString(strings.TrimSpace(pkg.Name), 64)
 	versionName := SanitizeInputString(strings.TrimSpace(version.Version), 128)
 	description := SanitizeInputString(strings.TrimSpace(pkg.Description), 4000)
+	readme := sanitizePackageReadme(pkg.Readme)
 	createdAt := pkg.CreatedAt
 	if createdAt <= 0 {
 		createdAt = time.Now().UnixMilli()
@@ -451,10 +457,10 @@ func (db *DB) RecordCargoMirrorPublication(pkg *core.CargoPackage, version *core
 		repository, normalizedName).Scan(&storedName)
 	if errors.Is(err, sql.ErrNoRows) {
 		if _, err := tx.Exec(`INSERT INTO cargo_packages
-			(repository, normalized_name, package_name, description, repository_url, homepage, documentation,
+			(repository, normalized_name, package_name, description, readme, repository_url, homepage, documentation,
 			archived, admin_archived, mirrored, created_at, updated_at)
-			VALUES (?, ?, ?, ?, '', '', '', 0, 0, 1, ?, ?)`,
-			repository, normalizedName, packageName, description, createdAt, updatedAt); err != nil {
+			VALUES (?, ?, ?, ?, ?, '', '', '', 0, 0, 1, ?, ?)`,
+			repository, normalizedName, packageName, description, readme, createdAt, updatedAt); err != nil {
 			return fmt.Errorf("create mirrored Cargo package: %w", err)
 		}
 	} else if err != nil {
@@ -465,8 +471,9 @@ func (db *DB) RecordCargoMirrorPublication(pkg *core.CargoPackage, version *core
 		}
 		if _, err := tx.Exec(`UPDATE cargo_packages SET mirrored = 1,
 			description = CASE WHEN description = '' AND ? != '' THEN ? ELSE description END,
+			readme = CASE WHEN COALESCE(readme, '') = '' AND ? != '' THEN ? ELSE readme END,
 			updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
-			WHERE repository = ? AND normalized_name = ?`, description, description, updatedAt, updatedAt,
+			WHERE repository = ? AND normalized_name = ?`, description, description, readme, readme, updatedAt, updatedAt,
 			repository, normalizedName); err != nil {
 			return fmt.Errorf("update mirrored Cargo package: %w", err)
 		}

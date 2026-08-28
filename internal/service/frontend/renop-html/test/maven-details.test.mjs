@@ -23,6 +23,9 @@ test('Maven artifact pages expose bounded project, dependency, and file metadata
         'version.total_file_size',
         'project.dependencies_truncated',
         'version.files_truncated',
+        'mavenArtifactReadmeSection',
+        'openArtifactReadmeEditor',
+        'setSafeMarkdown',
     ]) {
         assert.ok(source.includes(required), `Maven artifact UI is missing ${required}`);
     }
@@ -31,10 +34,8 @@ test('Maven artifact pages expose bounded project, dependency, and file metadata
 test('published Maven project links reject unsafe URL forms', () => {
     const source = readFileSync(join(frontendRoot, 'js/browser/maven.js'), 'utf8');
     for (const required of [
-        "parsed.protocol !== 'https:'",
-        "parsed.protocol !== 'http:'",
-        'parsed.username || parsed.password',
-        "rel: 'noopener noreferrer'",
+        'safeMarkdownURL(raw)',
+        "rel: 'noopener noreferrer nofollow'",
     ]) {
         assert.ok(source.includes(required), `Maven project link handling is missing ${required}`);
     }

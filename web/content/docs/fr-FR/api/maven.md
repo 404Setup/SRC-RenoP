@@ -52,6 +52,10 @@ pas 2 Mio, RenoP le lit en flux et expose aussi le projet, l’organisation, les
 de source, le suivi des problèmes, le parent et les dépendances directes. Les dépendances directes sont limitées à 128
 entrées ; les fichiers compagnons de somme de contrôle et de signature ne sont pas comptés comme fichiers principaux.
 
+Un membre L2-L4 du domaine ou un administrateur peut gérer un README Markdown distinct au niveau du paquet via
+l’endpoint de mise à jour de l’artefact. Il est limité à 512 Kio, renvoyé uniquement par l’endpoint détaillé et rendu
+avec la liste commune d’éléments et d’URL autorisés. La description courte du POM ou du catalogue reste indépendante.
+
 Les anciens dépôts sont indexés lors de la mise à niveau. Les domaines importés sont vérifiés mais n’obtiennent aucun
 membre automatiquement. Les miroirs Maven configurés continuent de résoudre les artefacts absents.
 

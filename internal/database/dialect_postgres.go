@@ -304,6 +304,7 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 		normalized_name VARCHAR(64) NOT NULL,
 		package_name VARCHAR(64) NOT NULL,
 		description TEXT NOT NULL DEFAULT '',
+		readme TEXT NOT NULL DEFAULT '',
 		repository_url VARCHAR(1024) NOT NULL DEFAULT '',
 		homepage VARCHAR(1024) NOT NULL DEFAULT '',
 		documentation VARCHAR(1024) NOT NULL DEFAULT '',
@@ -474,7 +475,7 @@ func (d *PostgresDialect) InitTables(db *sql.DB) error {
 	if err := initAccountSecurityTables(db); err != nil {
 		return err
 	}
-	if err := initMavenTables(db); err != nil {
+	if err := initMavenTables(db, "TEXT NOT NULL"); err != nil {
 		return err
 	}
 	if err := initNPMTables(db); err != nil {

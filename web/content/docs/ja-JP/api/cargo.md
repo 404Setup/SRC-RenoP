@@ -41,6 +41,10 @@ RenoP は Cargo Registry と Sparse Index の仕様を実装します。
 - **名前競合**: 正規化名がローカルまたは適用対象ミラーに存在する最初の公開は `409 Conflict` になります。
   上流確認が確定できない場合は `503 Service Unavailable` を返します。
 
+ローカル公開では、検証済み `Cargo.toml` の `package.readme` 宣言を読み、crate 全体をメモリーに保持せずに
+対象ファイルをアーカイブから抽出します。パッケージ詳細は最大 512 KiB の Markdown を返し、ブラウザーは
+共通の要素と URL の許可リストで描画します。カタログと検索は README 本文を読み込みません。
+
 ---
 
 ## crate のダウンロード

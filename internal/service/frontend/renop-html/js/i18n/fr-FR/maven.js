@@ -24,6 +24,8 @@ export default {
     "maven.deleteDomainFailed": "Impossible de supprimer le domaine Maven", "maven.deleteDomain": "Supprimer le domaine", "maven.backToRepository": "Retour au dépôt Maven",
     "maven.domainKicker": "Domaine de publication", "maven.verifiedAt": "Vérifié le {date}", "maven.noDomainArtifacts": "Aucun artefact n’a été publié sous ce domaine.",
     "maven.domainLoadFailed": "Impossible de charger le domaine Maven", "maven.editDescription": "Modifier la description", "maven.updateDescriptionFailed": "Impossible de modifier la description de l’artefact",
+    "maven.readme": "README", "maven.noReadme": "Aucun README en Markdown n’a été ajouté à cet artefact.", "maven.editReadme": "Modifier le README",
+    "maven.readmeSaved": "README mis à jour", "maven.readmePlaceholder": "Rédigez la documentation Markdown de cet artefact Maven…", "maven.updateReadmeFailed": "Impossible de modifier le README de l’artefact",
     "maven.artifactLoadFailed": "Impossible de charger l’artefact Maven", "maven.artifactKicker": "Artefact Maven", "maven.versionCount": "{count} versions",
     "maven.publishedBy": "Publié par", "maven.deleteVersion": "Supprimer la version", "maven.deleteVersionConfirm": "Supprimer définitivement la version {version} ?",
     "maven.deleteVersionFailed": "Impossible de supprimer la version Maven", "maven.noVersions": "Aucune version n’est indexée pour cet artefact.", "maven.versionsTitle": "Versions",

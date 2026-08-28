@@ -43,7 +43,8 @@
   Browser session secrets are cookie-only, while Basic/password credentials are restricted to package protocols.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation
-  extraction/viewer (`/cargodoc/...`).
+  extraction/viewer (`/cargodoc/...`). Local publication streams a bounded Markdown README selected by the validated
+  `Cargo.toml` declaration into package metadata without loading the crate archive into memory.
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
   automatic migration of repository-scoped legacy domains. Upstream mirror discovery persists unverified global
@@ -55,13 +56,15 @@
   engine and back without moving stored objects; returning to Maven streams the existing Disk/S3 index into a rebuilt
   catalog and restores the prior Maven layout and publication policy. Artifact detail responses summarize bounded
   primary-file, checksum, and signature metadata from the in-memory index and stream-parse the latest POM up to 2 MiB;
-  project collections are capped before they reach the frontend.
+  project collections are capped before they reach the frontend. Artifact teams can maintain a separate bounded
+  package-level Markdown README without replacing the short catalog/POM description.
 - **`internal/service/docker/`**: OCI & Docker Registry v2 specification implementation (`/v2/...`), token-based
   Bearer authentication, explicitly reserved images, L0-L4 image teams, per-image private visibility, image-scoped
   blob references, chunked uploads, authorized cross-repository mounting, upstream mirror proxying, and catalog
   management. Client pushes cannot create images implicitly; administrators reserve public or private images through
   the frontend first. Local reservations are unique and cannot claim names exposed by an enabled upstream mirror;
-  mirror-discovered images remain permanently pull-only.
+  mirror-discovered images remain permanently pull-only. Image README content is editable by package managers and
+  bounded to 512 KiB at both the HTTP and database boundaries.
 - **`internal/service/npm/`**: npm-compatible per-repository registry with explicitly reserved public or scoped-private
   packages, immutable semantic versions, validated streaming tarball publication, dist-tags, deprecation/unpublish
   workflows, L0-L4 package teams, upstream packument/tarball mirrors, and full/abbreviated metadata negotiation.
@@ -145,8 +148,8 @@
   npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
   visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
   failures are localized through stable codes in `js/npm-errors.js`. Package-controlled Markdown flows through the
-  inert element-and-URL allowlist in `js/markdown.js`; protocol views never assign rendered Markdown directly to an
-  active element.
+  inert element-and-URL allowlist in `js/markdown.js` and the shared neutral layout in
+  `css/components/markdown.css`; protocol views never assign rendered Markdown directly to an active element.
   `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository
   name ordering plus engine filtering and bounded pagination, while `js/components/icon.js` maps detailed file types
   into a bounded set of shared visual families. npm, Cargo, and Docker team invitations

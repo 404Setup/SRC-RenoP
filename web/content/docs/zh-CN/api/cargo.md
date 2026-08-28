@@ -41,6 +41,10 @@ RenoP 实现 Cargo Registry 与 Sparse Index 规范。
 - **名称冲突**：首次发布时，若规范化名称已存在于本地或适用镜像，返回 `409 Conflict`；无法确定上游结果时
   返回 `503 Service Unavailable`。
 
+本地发布时，RenoP 会读取已验证 `Cargo.toml` 中的 `package.readme` 声明，并在不把整个 crate 载入内存的
+情况下从归档提取对应文件。软件包详情最多返回 512 KiB Markdown，浏览器通过共用的元素与 URL 白名单渲染。
+目录和搜索页面不会读取 README 正文。
+
 ---
 
 ## 下载 crate

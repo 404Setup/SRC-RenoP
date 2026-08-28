@@ -684,6 +684,7 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 	versionName := SanitizeInputString(strings.TrimSpace(version.Version), 255)
 	publisher := sanitizeMavenUsername(version.Publisher)
 	description := SanitizeInputString(strings.TrimSpace(artifact.Description), 4000)
+	readme := sanitizePackageReadme(artifact.Readme)
 	if repository == "" || domain == "" || groupID == "" || artifactID == "" || versionName == "" {
 		return errors.New("maven publication metadata is invalid")
 	}
@@ -722,9 +723,9 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		repository, groupID, artifactID).Scan(&latestVersion)
 	if errors.Is(err, sql.ErrNoRows) {
 		if _, err := tx.Exec(`INSERT INTO maven_artifacts
-			(repository, domain, group_id, artifact_id, description, publisher, latest_version, mirrored, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, repository, domain, groupID, artifactID,
-			description, publisher, versionName, mirroredValue, createdAt, updatedAt); err != nil {
+			(repository, domain, group_id, artifact_id, description, readme, publisher, latest_version, mirrored, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, repository, domain, groupID, artifactID,
+			description, readme, publisher, versionName, mirroredValue, createdAt, updatedAt); err != nil {
 			return fmt.Errorf("create Maven artifact: %w", err)
 		}
 	} else if err != nil {
@@ -737,10 +738,11 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		}
 		if _, err := tx.Exec(`UPDATE maven_artifacts SET
 		domain = ?, description = CASE WHEN ? != '' THEN ? ELSE description END,
+		readme = CASE WHEN ? != '' THEN ? ELSE readme END,
 		publisher = CASE WHEN ? != '' THEN ? ELSE publisher END,
 			latest_version = ?, updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
 		WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
-			domain, description, description, latestPublisher, latestPublisher, latestVersion,
+			domain, description, description, readme, readme, latestPublisher, latestPublisher, latestVersion,
 			updatedAt, updatedAt,
 			repository, groupID, artifactID); err != nil {
 			return fmt.Errorf("update Maven artifact: %w", err)
@@ -841,7 +843,7 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 	artifactID = SanitizeInputString(strings.TrimSpace(artifactID), 255)
 	result := &core.MavenArtifactDetails{Artifact: &core.MavenArtifact{}}
 	var mirrored int
-	err := db.QueryRow(`SELECT repository, domain, group_id, artifact_id, description, publisher,
+	err := db.QueryRow(`SELECT repository, domain, group_id, artifact_id, description, COALESCE(readme, ''), publisher,
 		latest_version, (SELECT COUNT(*) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
@@ -849,7 +851,7 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 		mirrored, created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
 		repository, groupID, artifactID).Scan(&result.Artifact.Repository, &result.Artifact.Domain,
 		&result.Artifact.GroupID, &result.Artifact.ArtifactID, &result.Artifact.Description,
-		&result.Artifact.Publisher, &result.Artifact.LatestVersion, &result.Artifact.VersionCount,
+		&result.Artifact.Readme, &result.Artifact.Publisher, &result.Artifact.LatestVersion, &result.Artifact.VersionCount,
 		&result.Artifact.TotalSize, &mirrored, &result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrMavenArtifactNotFound
@@ -884,7 +886,7 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 	return result, nil
 }
 
-// UpdateMavenArtifactDescription updates the catalog README text.
+// UpdateMavenArtifactDescription updates the short catalog description.
 func (db *DB) UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error {
 	description = SanitizeInputString(strings.TrimSpace(description), 4000)
 	result, err := db.Exec(`UPDATE maven_artifacts SET description = ?, updated_at = ?
@@ -897,6 +899,26 @@ func (db *DB) UpdateMavenArtifactDescription(repository, groupID, artifactID, de
 	changed, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("count Maven artifact update: %w", err)
+	}
+	if changed == 0 {
+		return core.ErrMavenArtifactNotFound
+	}
+	return nil
+}
+
+// UpdateMavenArtifactReadme updates bounded Markdown documentation for one catalog artifact.
+func (db *DB) UpdateMavenArtifactReadme(repository, groupID, artifactID, readme string) error {
+	readme = sanitizePackageReadme(readme)
+	result, err := db.Exec(`UPDATE maven_artifacts SET readme = ?, updated_at = ?
+		WHERE repository = ? AND group_id = ? AND artifact_id = ?`, readme, time.Now().UnixMilli(),
+		sanitizeMavenRepository(repository), sanitizeMavenDomain(groupID),
+		SanitizeInputString(strings.TrimSpace(artifactID), 255))
+	if err != nil {
+		return fmt.Errorf("update Maven artifact README: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count Maven artifact README update: %w", err)
 	}
 	if changed == 0 {
 		return core.ErrMavenArtifactNotFound

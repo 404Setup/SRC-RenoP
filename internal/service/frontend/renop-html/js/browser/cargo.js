@@ -23,6 +23,7 @@ import {
     RenopDialog
 } from '../components.js';
 import {t} from '../i18n.js';
+import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -1033,24 +1034,24 @@ function buildCargoPackageHero() {
 
     const hero = el('header', {class: 'cargo-page-hero cargo-package-hero'}, back, titleRow);
 
-    const homepage = packageRecord?.homepage || activeVersion?.homepage;
-    const documentation = packageRecord?.documentation || activeVersion?.documentation;
-    const repository = packageRecord?.repository_url || activeVersion?.repository_url;
+    const homepage = safeMarkdownURL(packageRecord?.homepage || activeVersion?.homepage);
+    const documentation = safeMarkdownURL(packageRecord?.documentation || activeVersion?.documentation);
+    const repository = safeMarkdownURL(packageRecord?.repository_url || activeVersion?.repository_url);
     if (homepage || documentation || repository) {
         const linksList = el('div', {class: 'cargo-package-links'});
         if (homepage) {
             linksList.appendChild(el('a', {
-                href: homepage, target: '_blank', rel: 'noopener noreferrer', class: 'cargo-package-link'
+                href: homepage, target: '_blank', rel: 'noopener noreferrer nofollow', class: 'cargo-package-link'
             }, createIcon('fileWeb'), el('span', {}, t('cargo.homepage'))));
         }
         if (documentation) {
             linksList.appendChild(el('a', {
-                href: documentation, target: '_blank', rel: 'noopener noreferrer', class: 'cargo-package-link'
+                href: documentation, target: '_blank', rel: 'noopener noreferrer nofollow', class: 'cargo-package-link'
             }, createIcon('docs'), el('span', {}, t('cargo.documentation'))));
         }
         if (repository) {
             linksList.appendChild(el('a', {
-                href: repository, target: '_blank', rel: 'noopener noreferrer', class: 'cargo-package-link'
+                href: repository, target: '_blank', rel: 'noopener noreferrer nofollow', class: 'cargo-package-link'
             }, createIcon('fileCode'), el('span', {}, t('cargo.repository'))));
         }
         hero.appendChild(linksList);
@@ -1160,6 +1161,26 @@ function buildCargoPackageHero() {
 }
 
 /**
+ * Build the README extracted from the latest locally published crate archive.
+ * @returns {HTMLElement} Safe Markdown README section.
+ */
+function buildCargoReadmeSection() {
+    const readme = String(activePackageDetails?.package?.readme || '');
+    const section = el('section', {class: 'cargo-page-section cargo-readme-section'},
+        el('h3', {}, t('cargo.readme'))
+    );
+    if (!readme) {
+        section.appendChild(el('div', {class: 'cargo-readme-empty'},
+            createIcon('fileMarkdown'), el('span', {}, t('cargo.noReadme'))));
+        return section;
+    }
+    const content = el('article', {class: 'repository-markdown'});
+    setSafeMarkdown(content, readme);
+    section.appendChild(content);
+    return section;
+}
+
+/**
  * Replace the Cargo package subpage from the latest server state.
  * @param {boolean} [animateTeam=false] - Animate refreshed team rows.
  * @returns {void}
@@ -1172,6 +1193,7 @@ function renderCargoPackagePage(animateTeam = false) {
     const sections = [
         buildCargoPackageHero(),
         buildCargoCommandsSection(packageName),
+        buildCargoReadmeSection(),
         buildCargoVersionFactsSection(),
         buildCargoInspectionSection(),
         buildCargoVersionsSection()

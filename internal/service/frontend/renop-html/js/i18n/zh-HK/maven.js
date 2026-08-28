@@ -24,6 +24,8 @@ export default {
     "maven.deleteDomainFailed": "無法刪除 Maven 域", "maven.deleteDomain": "刪除域", "maven.backToRepository": "返回 Maven 儲存庫",
     "maven.domainKicker": "發佈域", "maven.verifiedAt": "驗證於 {date}", "maven.noDomainArtifacts": "此域下尚未發佈製品。",
     "maven.domainLoadFailed": "無法載入 Maven 域", "maven.editDescription": "編輯描述", "maven.updateDescriptionFailed": "無法更新製品描述",
+    "maven.readme": "README", "maven.noReadme": "此製品尚未加入 Markdown README。", "maven.editReadme": "編輯 README",
+    "maven.readmeSaved": "README 已更新", "maven.readmePlaceholder": "使用 Markdown 編寫此 Maven 製品的文件……", "maven.updateReadmeFailed": "無法更新製品 README",
     "maven.artifactLoadFailed": "無法載入 Maven 製品", "maven.artifactKicker": "Maven 製品", "maven.versionCount": "{count} 個版本",
     "maven.publishedBy": "發佈者", "maven.deleteVersion": "刪除版本", "maven.deleteVersionConfirm": "確定永久刪除版本 {version}？",
     "maven.deleteVersionFailed": "無法刪除 Maven 版本", "maven.noVersions": "此製品沒有已索引版本。", "maven.versionsTitle": "版本",

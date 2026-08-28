@@ -94,6 +94,7 @@ export default Object.freeze({
     "docker.deleteImageFailed": "이미지 삭제에 실패했습니다.",
     "docker.deleteTagFailed": "태그 삭제에 실패했습니다.",
     "docker.updateReadmeFailed": "README 업데이트에 실패했습니다.",
+    "docker.readmeTooLarge": "README는 512 KiB를 초과할 수 없습니다.",
     "docker.updateMemberFailed": "멤버 권한 업데이트에 실패했습니다.",
     "docker.removeMemberFailed": "멤버 제거에 실패했습니다.",
     "docker.sendInviteFailed": "초대장 발송에 실패했습니다.",

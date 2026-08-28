@@ -30,7 +30,10 @@ import (
 	"renop/internal/utils"
 )
 
-const dockerAPIErrorCodeHeader = "X-Renop-Error-Code"
+const (
+	dockerAPIErrorCodeHeader = "X-Renop-Error-Code"
+	maxDockerReadmeBytes     = 512 << 10
+)
 
 func dockerAPIError(c fiber.Ctx, status int, code, message string) error {
 	c.Set(dockerAPIErrorCodeHeader, code)
@@ -249,18 +252,18 @@ func UpdateDockerImageDescriptionAPI(c fiber.Ctx, state *core.AppState) error {
 	imageName = strings.Trim(imageName, "/")
 
 	if !utils.IsValidRepositoryName(repoName) || imageName == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid parameters")
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid parameters")
 	}
 
 	cfg := state.Inner.Config.Load()
 	repo, exists := cfg.Maven.Repositories[repoName]
 	if !exists || repo.NormalizedFormat() != config.RepositoryFormatDocker {
-		return c.Status(fiber.StatusNotFound).SendString("Repository not found")
+		return dockerAPIError(c, fiber.StatusNotFound, "repository_not_found", "Repository not found")
 	}
 
 	db := state.GetDB()
 	if db == nil {
-		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
+		return dockerAPIError(c, fiber.StatusServiceUnavailable, "service_unavailable", "Database unavailable")
 	}
 
 	user := auth.GetUser(c)
@@ -270,19 +273,24 @@ func UpdateDockerImageDescriptionAPI(c fiber.Ctx, state *core.AppState) error {
 		canManage = lvl >= core.DockerPermissionManage
 	}
 	if !canManage {
-		return c.Status(fiber.StatusForbidden).SendString("Forbidden")
+		return dockerAPIError(c, fiber.StatusForbidden, "permission_denied", "Forbidden")
 	}
 
 	var req UpdateDockerImageDescriptionRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid request body")
+	if err := utils.ReadJSONLimited(c, &req, maxDockerReadmeBytes+(16<<10)); errors.Is(err, fiber.ErrRequestEntityTooLarge) {
+		return dockerAPIError(c, fiber.StatusRequestEntityTooLarge, "readme_too_large", "README exceeds the size limit")
+	} else if err != nil {
+		return dockerAPIError(c, fiber.StatusBadRequest, "invalid_request", "Invalid request body")
+	}
+	if len(req.Description) > maxDockerReadmeBytes {
+		return dockerAPIError(c, fiber.StatusRequestEntityTooLarge, "readme_too_large", "README exceeds the size limit")
 	}
 
 	if err := db.UpdateDockerImageDescription(repoName, imageName, req.Description); err != nil {
 		if errors.Is(err, core.ErrDockerImageNotFound) {
-			return c.Status(fiber.StatusNotFound).SendString("Image not found")
+			return dockerAPIError(c, fiber.StatusNotFound, "image_not_found", "Image not found")
 		}
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update description")
+		return dockerAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to update README")
 	}
 
 	logDockerAudit(c, state, audit.ActionDockerImageUpdate, fmt.Sprintf("Repository: %s, image: %s", repoName, imageName))

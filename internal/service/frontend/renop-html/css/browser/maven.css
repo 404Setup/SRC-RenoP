@@ -317,6 +317,25 @@ html.dark .maven-status-badge.is-pending {
     font-size: 0.98rem;
 }
 
+.maven-readme-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+}
+
+.maven-readme-heading h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.98rem;
+}
+
+.maven-readme-empty {
+    min-height: 6rem;
+}
+
 .maven-section-summary,
 .maven-section-note {
     margin: -0.35rem 0 0.85rem;

@@ -19,6 +19,10 @@ RenoP 实现 OCI Distribution Spec v2 与 Docker Registry v2 规范。
 管理 API 返回可读正文与 `X-Renop-Error-Code`，前端根据稳定错误码本地化，不显示原始服务端文本。OCI
 Distribution 接口继续使用规范要求的 `errors` 结构。
 
+镜像页面提供包级 Markdown README。L3/L4 镜像成员或管理员可通过
+`PUT /api/docker/repositories/{repo}/images?image={name}` 更新。JSON `description` 的上限为 512 KiB，并通过
+共用的元素与 URL 白名单渲染。
+
 ## 版本检查
 
 - **路径**：`GET /v2/` 或 `HEAD /v2/`
