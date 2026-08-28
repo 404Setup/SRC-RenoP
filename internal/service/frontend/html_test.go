@@ -11,6 +11,7 @@
 package frontend
 
 import (
+	"bytes"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -1045,6 +1046,9 @@ func TestIndexAndConditionalAssetsRetainCacheSafetyHeaders(t *testing.T) {
 	if cacheControl := indexResponse.Header.Get(fiber.HeaderCacheControl); cacheControl != frontendIndexCacheControl {
 		t.Fatalf("index Cache-Control = %q, want %q", cacheControl, frontendIndexCacheControl)
 	}
+	if policy := indexResponse.Header.Get("Content-Security-Policy"); !strings.Contains(policy, "font-src 'self' https: http:") {
+		t.Fatalf("index CSP does not permit validated asynchronous webfonts: %q", policy)
+	}
 
 	assetResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/js/main.js", nil))
 	if err != nil {
@@ -1121,5 +1125,23 @@ func TestGenerateIndexHtmlIncludesEscapedPublicSecurityFiling(t *testing.T) {
 	}
 	if !strings.Contains(generated, `京公网安备11000000000001号&lt;script&gt;`) {
 		t.Fatal("generated HTML does not contain the escaped public security filing")
+	}
+}
+
+func TestGenerateIndexHtmlIncludesSafeNonBlockingFontConfig(t *testing.T) {
+	cfg := config.DefaultFrontendConfig()
+	cfg.FontPreset = config.FrontendFontCustom
+	cfg.FontURL = `https://fonts.example.com/interface.woff2?name="renop"&v=1`
+
+	generated := string(GenerateIndexHTMLFromConfig(&cfg))
+	if !strings.Contains(generated, `data-font-preset="custom"`) {
+		t.Fatal("generated HTML does not activate the custom font preset")
+	}
+	if !strings.Contains(generated, `content="https://fonts.example.com/interface.woff2?name=&#34;renop&#34;&amp;v=1"`) {
+		t.Fatal("generated HTML does not safely escape the custom font URL")
+	}
+	RefreshIndexHTMLCache(&cfg)
+	if len(cfg.CachedIndexHTML) == 0 || !bytes.Equal(cfg.CachedIndexHTML, GenerateIndexHTMLFromConfig(&cfg)) {
+		t.Fatal("frontend H5 cache was not refreshed deterministically")
 	}
 }

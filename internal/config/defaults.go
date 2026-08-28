@@ -167,6 +167,8 @@ func DefaultFrontendConfig() FrontendConfig {
 		IcpLicense:           "",
 		PublicSecurityFiling: "",
 		LegalNoticeURL:       "",
+		FontPreset:           FrontendFontSystem,
+		FontURL:              "",
 		CachedIndexHTML:      []byte{},
 	}
 }

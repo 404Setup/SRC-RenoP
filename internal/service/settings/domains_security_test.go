@@ -52,6 +52,27 @@ func TestValidateExternalLinkURL(t *testing.T) {
 	}
 }
 
+func TestValidateFontURL(t *testing.T) {
+	tests := []externalLinkURLTestCase{
+		{name: "same origin", url: "/fonts/interface.woff2"},
+		{name: "HTTPS", url: "https://cdn.example.com/interface.woff2"},
+		{name: "HTTP", url: "http://fonts.example.com/interface.woff"},
+		{name: "relative without slash", url: "fonts/interface.woff2", wantErr: true},
+		{name: "protocol relative", url: "//cdn.example.com/interface.woff2", wantErr: true},
+		{name: "credentials", url: "https://user:secret@cdn.example.com/interface.woff2", wantErr: true},
+		{name: "unsupported scheme", url: "data:font/woff2;base64,AAAA", wantErr: true},
+		{name: "whitespace", url: "https://cdn.example.com/interface font.woff2", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateFontURL(tt.url)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("validateFontURL(%q) error=%v, wantErr=%v", tt.url, err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestIsValidPublicIP(t *testing.T) {
 	tests := []publicIPTestCase{
 		{ip: "8.8.8.8", want: true},

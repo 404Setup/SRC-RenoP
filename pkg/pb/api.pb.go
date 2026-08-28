@@ -2388,6 +2388,8 @@ type FrontendConfig struct {
 	IcpLicense           string                 `protobuf:"bytes,7,opt,name=icp_license,json=icpLicense,proto3" json:"icp_license,omitempty"`
 	LegalNoticeUrl       string                 `protobuf:"bytes,8,opt,name=legal_notice_url,json=legalNoticeUrl,proto3" json:"legal_notice_url,omitempty"`
 	PublicSecurityFiling string                 `protobuf:"bytes,9,opt,name=public_security_filing,json=publicSecurityFiling,proto3" json:"public_security_filing,omitempty"`
+	FontPreset           string                 `protobuf:"bytes,10,opt,name=font_preset,json=fontPreset,proto3" json:"font_preset,omitempty"`
+	FontUrl              string                 `protobuf:"bytes,11,opt,name=font_url,json=fontUrl,proto3" json:"font_url,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -2481,6 +2483,20 @@ func (x *FrontendConfig) GetLegalNoticeUrl() string {
 func (x *FrontendConfig) GetPublicSecurityFiling() string {
 	if x != nil {
 		return x.PublicSecurityFiling
+	}
+	return ""
+}
+
+func (x *FrontendConfig) GetFontPreset() string {
+	if x != nil {
+		return x.FontPreset
+	}
+	return ""
+}
+
+func (x *FrontendConfig) GetFontUrl() string {
+	if x != nil {
+		return x.FontUrl
 	}
 	return ""
 }
@@ -5375,7 +5391,7 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\x13RebuildIndexRequest\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\"3\n" +
 	"\x17SettingsDomainsResponse\x12\x18\n" +
-	"\adomains\x18\x01 \x03(\tR\adomains\"\xe0\x02\n" +
+	"\adomains\x18\x01 \x03(\tR\adomains\"\x9c\x03\n" +
 	"\x0eFrontendConfig\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -5386,7 +5402,11 @@ const file_api_v1_api_proto_rawDesc = "" +
 	"\vicp_license\x18\a \x01(\tR\n" +
 	"icpLicense\x12(\n" +
 	"\x10legal_notice_url\x18\b \x01(\tR\x0elegalNoticeUrl\x124\n" +
-	"\x16public_security_filing\x18\t \x01(\tR\x14publicSecurityFiling\"R\n" +
+	"\x16public_security_filing\x18\t \x01(\tR\x14publicSecurityFiling\x12\x1f\n" +
+	"\vfont_preset\x18\n" +
+	" \x01(\tR\n" +
+	"fontPreset\x12\x19\n" +
+	"\bfont_url\x18\v \x01(\tR\afontUrl\"R\n" +
 	"\x0eAuditLogConfig\x12%\n" +
 	"\x0eretention_days\x18\x01 \x01(\x05R\rretentionDays\x12\x19\n" +
 	"\bmax_rows\x18\x02 \x01(\x05R\amaxRows\"\xf2\x04\n" +

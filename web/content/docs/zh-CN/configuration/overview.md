@@ -101,12 +101,16 @@ frontend:
   organization_website: ""
   organization_logo: "/svg/logo.svg"
   background_url: ""
+  font_preset: "system"
+  font_url: ""
   icp_license: ""
   public_security_filing: ""
   legal_notice_url: ""
 ```
 
 品牌 URL 使用前会被校验。背景图必须满足 WebP 格式与大小策略。
+`font_preset` 支持 `system`、`inter`、`noto_sans`、`open_sans`、`source_sans` 和 `custom`。预设使用本机
+已安装字体；自定义字体从同源路径或 HTTP(S) URL 在后台加载，仅在完整加载后启用，因此不会阻塞首次渲染。
 
 ### `updater` 更新策略
 

@@ -1076,6 +1076,13 @@ components:
         legal_notice_url:
           type: string
           description: Optional absolute HTTP(S) URL linked as the legal notice in the footer.
+        font_preset:
+          type: string
+          enum: [system, inter, noto_sans, open_sans, source_sans, custom]
+          description: Locally resolved font stack, or `custom` for asynchronous webfont loading.
+        font_url:
+          type: string
+          description: Same-origin path or credential-free HTTP(S) font file URL required by the custom preset.
 
     ServerConfig:
       type: object

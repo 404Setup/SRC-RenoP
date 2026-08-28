@@ -118,6 +118,14 @@ func GenerateIndexHTMLFromConfig(cfg *config.FrontendConfig) []byte {
 		}
 	})
 
+	fontPreset, valid := config.NormalizeFrontendFontPreset(cfg.FontPreset)
+	if !valid {
+		fontPreset = config.FrontendFontSystem
+	}
+	fontURL := ""
+	if fontPreset == config.FrontendFontCustom {
+		fontURL = strings.TrimSpace(cfg.FontURL)
+	}
 	replacer := strings.NewReplacer(
 		"{{RENOP.TITLE}}", html.EscapeString(cfg.Title),
 		"{{RENOP.DESCRIPTION}}", html.EscapeString(cfg.Description),
@@ -129,11 +137,21 @@ func GenerateIndexHTMLFromConfig(cfg *config.FrontendConfig) []byte {
 		"{{RENOP.ICP_LICENSE}}", html.EscapeString(cfg.IcpLicense),
 		"{{RENOP.PUBLIC_SECURITY_FILING}}", html.EscapeString(cfg.PublicSecurityFiling),
 		"{{RENOP.LEGAL_NOTICE_URL}}", html.EscapeString(cfg.LegalNoticeURL),
+		"{{RENOP.FONT_PRESET}}", html.EscapeString(fontPreset),
+		"{{RENOP.FONT_URL}}", html.EscapeString(fontURL),
 		"{{RENOP.HASH}}", GetAssetsHash(),
 	)
 	htmlStr := replacer.Replace(indexHTML)
 
 	return []byte(htmlStr)
+}
+
+// RefreshIndexHTMLCache rebuilds the immutable H5 shell after frontend configuration changes.
+func RefreshIndexHTMLCache(cfg *config.FrontendConfig) {
+	if cfg == nil {
+		return
+	}
+	cfg.CachedIndexHTML = GenerateIndexHTMLFromConfig(cfg)
 }
 
 // GenerateIndexHTML renders the embedded index template from live state.
@@ -147,11 +165,12 @@ func GenerateIndexHTML(state *core.AppState) []byte {
 
 func CreateFallbackIndex() string {
 	return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-font-preset="{{RENOP.FONT_PRESET}}">
   <head>
     <meta charset="UTF-8" />
     <title>{{RENOP.TITLE}}</title>
     <meta name="description" content="{{RENOP.DESCRIPTION}}">
+    <meta name="renop-font-url" content="{{RENOP.FONT_URL}}">
   </head>
   <body>
     <div id="app">Welcome to {{RENOP.TITLE}}</div>

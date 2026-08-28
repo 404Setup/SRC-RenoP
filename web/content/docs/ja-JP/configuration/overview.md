@@ -103,12 +103,17 @@ frontend:
   organization_website: ""
   organization_logo: "/svg/logo.svg"
   background_url: ""
+  font_preset: "system"
+  font_url: ""
   icp_license: ""
   public_security_filing: ""
   legal_notice_url: ""
 ```
 
 URL は使用前に検証します。背景画像は WebP と size policy を満たす必要があります。
+`font_preset` には `system`、`inter`、`noto_sans`、`open_sans`、`source_sans`、`custom` を指定できます。
+プリセットはローカルにインストールされたフォントを使用します。カスタムフォントは同一オリジンのパスまたは HTTP(S) URL から
+バックグラウンドで取得し、完全に読み込まれた後でのみ有効になるため、初回描画を妨げません。
 
 ### `updater` 方針
 

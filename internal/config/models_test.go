@@ -315,6 +315,8 @@ func TestConfigDeepCopy(t *testing.T) {
 	orig := DefaultConfig()
 	orig.StoragePath = "original_storage"
 	orig.Frontend.Title = "Original Title"
+	orig.Frontend.FontPreset = FrontendFontCustom
+	orig.Frontend.FontURL = "https://fonts.example.test/renop.woff2"
 	orig.Frontend.CachedIndexHTML = []byte("hello")
 	orig.Server.TrustedProxies = []string{"192.168.1.1/32"}
 	orig.Server.GPG.KeyServers = []string{"https://keys.example.test"}
@@ -352,6 +354,7 @@ func TestConfigDeepCopy(t *testing.T) {
 
 	cloned.StoragePath = "modified_storage"
 	cloned.Frontend.Title = "Modified Title"
+	cloned.Frontend.FontURL = "https://fonts.example.test/changed.woff2"
 	cloned.Frontend.CachedIndexHTML[0] = 'X'
 	cloned.Server.TrustedProxies[0] = "10.0.0.1/32"
 	cloned.Server.GPG.KeyServers[0] = "https://changed.example.test"
@@ -367,6 +370,9 @@ func TestConfigDeepCopy(t *testing.T) {
 	}
 	if orig.Frontend.Title != "Original Title" {
 		t.Fatalf("Frontend.Title mutated in orig: %s", orig.Frontend.Title)
+	}
+	if orig.Frontend.FontPreset != FrontendFontCustom || orig.Frontend.FontURL != "https://fonts.example.test/renop.woff2" {
+		t.Fatalf("Frontend font config mutated in orig: preset=%q url=%q", orig.Frontend.FontPreset, orig.Frontend.FontURL)
 	}
 	if string(orig.Frontend.CachedIndexHTML) != "hello" {
 		t.Fatalf("Frontend.CachedIndexHtml mutated in orig: %s", string(orig.Frontend.CachedIndexHTML))
@@ -391,6 +397,26 @@ func TestConfigDeepCopy(t *testing.T) {
 	}
 	if orig.Maven.Repositories["testrepo"].Mirrors[0].Proxy.Username != "proxy-user" {
 		t.Fatalf("Mirror Proxy Username mutated in orig: %s", orig.Maven.Repositories["testrepo"].Mirrors[0].Proxy.Username)
+	}
+}
+
+func TestFrontendFontConfigNormalizesLegacyAndInvalidValues(t *testing.T) {
+	for name, input := range map[string]string{
+		"legacy YAML": "title: RenoP\n",
+		"invalid preset": "font_preset: unsupported\nfont_url: '  https://fonts.example.test/ui.woff2  '\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			var frontend FrontendConfig
+			if err := yaml.Unmarshal([]byte(input), &frontend); err != nil {
+				t.Fatal(err)
+			}
+			if frontend.FontPreset != FrontendFontSystem {
+				t.Fatalf("font preset = %q, want %q", frontend.FontPreset, FrontendFontSystem)
+			}
+			if strings.TrimSpace(frontend.FontURL) != frontend.FontURL {
+				t.Fatalf("font URL was not normalized: %q", frontend.FontURL)
+			}
+		})
 	}
 }
 

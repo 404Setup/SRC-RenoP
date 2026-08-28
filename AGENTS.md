@@ -169,7 +169,11 @@
   into a bounded set of shared visual families. npm, Cargo, and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
-  and `js/time.js`. Shared select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; native
+  and `js/time.js`. The server-rendered H5 shell is cached at bootstrap and regenerated atomically after frontend
+  settings updates. Its validated font preset metadata selects a shared system-ui baseline that keeps Linux text
+  metrics aligned; `js/font.js` starts custom HTTP(S) webfont loading during idle time and activates the family only
+  after a complete download, so fonts never enter the render-blocking stylesheet path. Shared select controls pair
+  `@renop/ui/custom-select` with its canonical package stylesheet; native
   option popups are not used for styled application dialogs. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
   shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the
   button-state helper exported by `js/components/button.js`, which restores controls after both successful and failed

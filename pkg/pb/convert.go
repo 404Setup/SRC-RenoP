@@ -218,6 +218,8 @@ func FromFrontendConfig(f config.FrontendConfig) *FrontendConfig {
 		IcpLicense:           f.IcpLicense,
 		PublicSecurityFiling: f.PublicSecurityFiling,
 		LegalNoticeUrl:       f.LegalNoticeURL,
+		FontPreset:           f.FontPreset,
+		FontUrl:              f.FontURL,
 	}
 }
 
@@ -236,6 +238,8 @@ func ApplyFrontendConfig(dst *config.FrontendConfig, src *FrontendConfig) {
 	dst.IcpLicense = src.IcpLicense
 	dst.PublicSecurityFiling = src.PublicSecurityFiling
 	dst.LegalNoticeURL = src.LegalNoticeUrl
+	dst.FontPreset = src.FontPreset
+	dst.FontURL = src.FontUrl
 	dst.CachedIndexHTML = cached
 }
 

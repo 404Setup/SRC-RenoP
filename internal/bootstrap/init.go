@@ -29,6 +29,7 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/cargodocs"
+	"renop/internal/service/frontend"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/statistics"
@@ -135,6 +136,7 @@ func Initialize() (*core.AppState, BootstrapContext) {
 		indexPath = "index.json"
 	}
 	fileIndex := LoadFileIndex(indexPath)
+	frontend.RefreshIndexHTMLCache(&cfg.Frontend)
 
 	state := core.NewAppState()
 	state.Inner.Config.Store(cfg)

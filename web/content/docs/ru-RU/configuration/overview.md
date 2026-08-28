@@ -102,12 +102,17 @@ frontend:
   organization_website: ""
   organization_logo: "/svg/logo.svg"
   background_url: ""
+  font_preset: "system"
+  font_url: ""
   icp_license: ""
   public_security_filing: ""
   legal_notice_url: ""
 ```
 
 URL проверяются до использования. Фон должен соответствовать политике WebP и размера.
+`font_preset` принимает `system`, `inter`, `noto_sans`, `open_sans`, `source_sans` или `custom`. Предустановки
+используют локальные шрифты. Пользовательский шрифт загружается в фоне с пути того же источника или по URL HTTP(S)
+и включается только после полной загрузки, поэтому первоначальная отрисовка не блокируется.
 
 ### Политика `updater`
 

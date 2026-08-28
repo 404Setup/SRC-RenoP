@@ -720,6 +720,50 @@ function renderFrontendSettings(container, data) {
     });
     brandFields.appendChild(createFieldRow(t('settings.bgUrl'), t('settings.bgUrlHint'), bgInput));
 
+    const typographySection = createSection(
+        createIcon('fileFont'),
+        t('settings.typography'),
+        t('settings.typographyDesc')
+    );
+    const typographyFields = typographySection.querySelector('.cfg-fields');
+    const fontOptions = [
+        {value: 'system', label: t('settings.fontSystem')},
+        {value: 'inter', label: t('settings.fontInter')},
+        {value: 'noto_sans', label: t('settings.fontNotoSans')},
+        {value: 'open_sans', label: t('settings.fontOpenSans')},
+        {value: 'source_sans', label: t('settings.fontSourceSans')},
+        {value: 'custom', label: t('settings.fontCustom')}
+    ];
+    currentConfig.font_preset = data.font_preset || 'system';
+    currentConfig.font_url = data.font_url || '';
+    const fontUrlInput = buildInput('url', currentConfig.font_url, 'https://example.com/font.woff2', e => {
+        currentConfig.font_url = e.target.value;
+        enableSave();
+    });
+    const fontUrlRow = createFieldRow(t('settings.fontUrl'), t('settings.fontUrlHint'), fontUrlInput);
+    /**
+     * Shows the resource URL only for the custom webfont mode.
+     * @returns {void}
+     */
+    function updateFontUrlVisibility() {
+        const custom = currentConfig.font_preset === 'custom';
+        fontUrlRow.hidden = !custom;
+        fontUrlInput.required = custom;
+    }
+    const fontSelect = makeCustomSelect(fontOptions, currentConfig.font_preset, value => {
+        currentConfig.font_preset = value;
+        updateFontUrlVisibility();
+        enableSave();
+    });
+    typographyFields.appendChild(createFieldRow(
+        t('settings.fontPreset'),
+        t('settings.fontPresetHint'),
+        fontSelect
+    ));
+    typographyFields.appendChild(fontUrlRow);
+    typographySection.appendChild(createCallout('neutral', t('settings.fontApplyHint'), 'info'));
+    updateFontUrlVisibility();
+
     const complianceSection = createSection(
         createIcon('compliance'),
         t('settings.compliance'),
@@ -751,6 +795,7 @@ function renderFrontendSettings(container, data) {
 
     wrap.appendChild(identitySection);
     wrap.appendChild(brandSection);
+    wrap.appendChild(typographySection);
     wrap.appendChild(complianceSection);
     container.appendChild(wrap);
 }

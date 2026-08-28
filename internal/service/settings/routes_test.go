@@ -426,6 +426,8 @@ func TestFullFrontendUpdate(t *testing.T) {
 		IcpLicense:           cfg.Frontend.IcpLicense,
 		PublicSecurityFiling: "京公网安备11000000000001号",
 		LegalNoticeUrl:       "https://custom.org/legal",
+		FontPreset:           config.FrontendFontCustom,
+		FontUrl:              "https://fonts.custom.org/interface.woff2",
 	})
 	if respPut.StatusCode != http.StatusOK {
 		t.Fatalf("expected PUT 200, got %d", respPut.StatusCode)
@@ -447,6 +449,15 @@ func TestFullFrontendUpdate(t *testing.T) {
 	if updatedCfg.Frontend.PublicSecurityFiling != "京公网安备11000000000001号" {
 		t.Fatalf("expected PublicSecurityFiling to be persisted, got %s", updatedCfg.Frontend.PublicSecurityFiling)
 	}
+	if updatedCfg.Frontend.FontPreset != config.FrontendFontCustom ||
+		updatedCfg.Frontend.FontURL != "https://fonts.custom.org/interface.woff2" {
+		t.Fatalf("expected custom font config to persist, got preset=%q url=%q",
+			updatedCfg.Frontend.FontPreset, updatedCfg.Frontend.FontURL)
+	}
+	if !bytes.Contains(updatedCfg.Frontend.CachedIndexHTML, []byte(`data-font-preset="custom"`)) ||
+		!bytes.Contains(updatedCfg.Frontend.CachedIndexHTML, []byte(`https://fonts.custom.org/interface.woff2`)) {
+		t.Fatal("frontend settings update did not refresh the cached H5 shell")
+	}
 }
 
 func TestFrontendUpdateRejectsUnsafeLegalNoticeURL(t *testing.T) {
@@ -460,6 +471,36 @@ func TestFrontendUpdateRejectsUnsafeLegalNoticeURL(t *testing.T) {
 	resp := protoPUT(t, app, "/domain/frontend", msg)
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected PUT 400, got %d", resp.StatusCode)
+	}
+}
+
+func TestFrontendUpdateRejectsUnsafeCustomFont(t *testing.T) {
+	tempDir := t.TempDir()
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = tempDir
+	app, _ := setupSettingsTestApp(t, cfg)
+
+	for name, mutate := range map[string]func(*pb.FrontendConfig){
+		"missing URL": func(msg *pb.FrontendConfig) {
+			msg.FontPreset = config.FrontendFontCustom
+			msg.FontUrl = ""
+		},
+		"unsafe URL": func(msg *pb.FrontendConfig) {
+			msg.FontPreset = config.FrontendFontCustom
+			msg.FontUrl = "javascript:alert(1)"
+		},
+		"unknown preset": func(msg *pb.FrontendConfig) {
+			msg.FontPreset = "unknown"
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			msg := pb.FromFrontendConfig(cfg.Frontend)
+			mutate(msg)
+			resp := protoPUT(t, app, "/domain/frontend", msg)
+			if resp.StatusCode != http.StatusBadRequest {
+				t.Fatalf("expected PUT 400, got %d", resp.StatusCode)
+			}
+		})
 	}
 }
 

@@ -12605,6 +12605,8 @@ export const renop = $root.renop = (() => {
                  * @property {string|null} [icp_license] FrontendConfig icp_license
                  * @property {string|null} [legal_notice_url] FrontendConfig legal_notice_url
                  * @property {string|null} [public_security_filing] FrontendConfig public_security_filing
+                 * @property {string|null} [font_preset] FrontendConfig font_preset
+                 * @property {string|null} [font_url] FrontendConfig font_url
                  * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
                  */
 
@@ -12709,6 +12711,22 @@ export const renop = $root.renop = (() => {
                 FrontendConfig.prototype.public_security_filing = "";
 
                 /**
+                 * FrontendConfig font_preset.
+                 * @member {string} font_preset
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.font_preset = "";
+
+                /**
+                 * FrontendConfig font_url.
+                 * @member {string} font_url
+                 * @memberof renop.api.v1.FrontendConfig
+                 * @instance
+                 */
+                FrontendConfig.prototype.font_url = "";
+
+                /**
                  * Creates a new FrontendConfig instance using the specified properties.
                  * @function create
                  * @memberof renop.api.v1.FrontendConfig
@@ -12758,6 +12776,10 @@ export const renop = $root.renop = (() => {
                         writer.uint32(/* id 8, wireType 2 =*/66).string(message.legal_notice_url);
                     if (message.public_security_filing != null && $Object.hasOwnProperty.call(message, "public_security_filing") && message.public_security_filing !== "")
                         writer.uint32(/* id 9, wireType 2 =*/74).string(message.public_security_filing);
+                    if (message.font_preset != null && $Object.hasOwnProperty.call(message, "font_preset") && message.font_preset !== "")
+                        writer.uint32(/* id 10, wireType 2 =*/82).string(message.font_preset);
+                    if (message.font_url != null && $Object.hasOwnProperty.call(message, "font_url") && message.font_url !== "")
+                        writer.uint32(/* id 11, wireType 2 =*/90).string(message.font_url);
                     if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                         for (let i = 0; i < message.$unknowns.length; ++i)
                             writer.raw(message.$unknowns[i]);
@@ -12886,6 +12908,24 @@ export const renop = $root.renop = (() => {
                                     delete message.public_security_filing;
                                 continue;
                             }
+                        case 10: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.font_preset = value;
+                                else
+                                    delete message.font_preset;
+                                continue;
+                            }
+                        case 11: {
+                                if (wireType !== 2)
+                                    break;
+                                if ((value = reader.stringVerify()).length)
+                                    message.font_url = value;
+                                else
+                                    delete message.font_url;
+                                continue;
+                            }
                         }
                         reader.skipType(wireType, _depth, tag);
                         if (!reader.discardUnknown) {
@@ -12956,6 +12996,12 @@ export const renop = $root.renop = (() => {
                     if (message.public_security_filing != null && $Object.hasOwnProperty.call(message, "public_security_filing"))
                         if (!$util.isString(message.public_security_filing))
                             return "public_security_filing: string expected";
+                    if (message.font_preset != null && $Object.hasOwnProperty.call(message, "font_preset"))
+                        if (!$util.isString(message.font_preset))
+                            return "font_preset: string expected";
+                    if (message.font_url != null && $Object.hasOwnProperty.call(message, "font_url"))
+                        if (!$util.isString(message.font_url))
+                            return "font_url: string expected";
                     return null;
                 };
 
@@ -13004,6 +13050,12 @@ export const renop = $root.renop = (() => {
                     if (object.public_security_filing != null)
                         if (typeof object.public_security_filing !== "string" || object.public_security_filing.length)
                             message.public_security_filing = $String(object.public_security_filing);
+                    if (object.font_preset != null)
+                        if (typeof object.font_preset !== "string" || object.font_preset.length)
+                            message.font_preset = $String(object.font_preset);
+                    if (object.font_url != null)
+                        if (typeof object.font_url !== "string" || object.font_url.length)
+                            message.font_url = $String(object.font_url);
                     return message;
                 };
 
@@ -13034,6 +13086,8 @@ export const renop = $root.renop = (() => {
                         object.icp_license = "";
                         object.legal_notice_url = "";
                         object.public_security_filing = "";
+                        object.font_preset = "";
+                        object.font_url = "";
                     }
                     if (message.id != null && $Object.hasOwnProperty.call(message, "id"))
                         object.id = message.id;
@@ -13053,6 +13107,10 @@ export const renop = $root.renop = (() => {
                         object.legal_notice_url = message.legal_notice_url;
                     if (message.public_security_filing != null && $Object.hasOwnProperty.call(message, "public_security_filing"))
                         object.public_security_filing = message.public_security_filing;
+                    if (message.font_preset != null && $Object.hasOwnProperty.call(message, "font_preset"))
+                        object.font_preset = message.font_preset;
+                    if (message.font_url != null && $Object.hasOwnProperty.call(message, "font_url"))
+                        object.font_url = message.font_url;
                     return object;
                 };
 

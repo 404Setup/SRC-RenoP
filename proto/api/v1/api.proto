@@ -276,6 +276,8 @@ message FrontendConfig {
   string icp_license = 7;
   string legal_notice_url = 8;
   string public_security_filing = 9;
+  string font_preset = 10;
+  string font_url = 11;
 }
 
 message AuditLogConfig {

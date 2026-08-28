@@ -104,12 +104,17 @@ frontend:
   organization_website: ""
   organization_logo: "/svg/logo.svg"
   background_url: ""
+  font_preset: "system"
+  font_url: ""
   icp_license: ""
   public_security_filing: ""
   legal_notice_url: ""
 ```
 
 Branding URLs are validated before use. Background images must satisfy the configured WebP and size policy.
+`font_preset` accepts `system`, `inter`, `noto_sans`, `open_sans`, `source_sans`, or `custom`. Presets use locally
+installed fonts. Custom font files are fetched asynchronously from a same-origin path or an HTTP(S) URL and activate
+only after the complete font has loaded, so they do not block initial rendering.
 
 ### `updater` policy
 

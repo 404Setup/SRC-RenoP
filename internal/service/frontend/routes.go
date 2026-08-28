@@ -37,7 +37,7 @@ func ServeIndex(c fiber.Ctx, state *core.AppState) error {
 	etag := `W/"` + hex.EncodeToString(hasher.Sum(nil))[:16] + `"`
 
 	c.Set(fiber.HeaderContentType, "text/html; charset=utf-8")
-	c.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * data: blob:;")
+	c.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' https: http:; img-src * data: blob:;")
 	setFrontendIndexCacheHeaders(c)
 	c.Set(fiber.HeaderETag, etag)
 

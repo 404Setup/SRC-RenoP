@@ -29,6 +29,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/cargodocs"
+	frontendservice "renop/internal/service/frontend"
 	"renop/internal/service/gpg"
 	"renop/internal/service/javadocs"
 	"renop/internal/service/outboundproxy"
@@ -113,6 +114,20 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 				}
 				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 			}
+		}
+		fontPreset, valid := config.NormalizeFrontendFontPreset(msg.FontPreset)
+		if !valid {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid frontend font preset")
+		}
+		msg.FontPreset = fontPreset
+		msg.FontUrl = strings.TrimSpace(msg.FontUrl)
+		if msg.FontUrl != "" {
+			if err := validateFontURL(msg.FontUrl); err != nil {
+				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			}
+		}
+		if msg.FontPreset == config.FrontendFontCustom && msg.FontUrl == "" {
+			return c.Status(fiber.StatusBadRequest).SendString("Custom font URL is required")
 		}
 		frontendMsg = msg
 
@@ -203,6 +218,7 @@ func UpdateDomainSettings(c fiber.Ctx, state *core.AppState) error {
 		case "frontend":
 			pb.ApplyFrontendConfig(&newConfig.Frontend, frontendMsg)
 			newConfig.Frontend = newConfig.Frontend.DeepCopy()
+			frontendservice.RefreshIndexHTMLCache(&newConfig.Frontend)
 		case "server":
 			pb.ApplyServerConfig(&newConfig.Server, &newConfig.Database, &newConfig.AuditLog, serverMsg)
 			newConfig.Server = newConfig.Server.DeepCopy()
@@ -288,6 +304,23 @@ func validateExternalLinkURL(rawURL string) error {
 	}
 	if parsedURL.User != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "URL must not contain credentials")
+	}
+	return nil
+}
+
+func validateFontURL(rawURL string) error {
+	if len(rawURL) > 2048 || strings.IndexFunc(rawURL, unicode.IsSpace) >= 0 {
+		return errors.New("font URL is invalid")
+	}
+	if strings.HasPrefix(rawURL, "/") && !strings.HasPrefix(rawURL, "//") {
+		parsedURL, err := url.ParseRequestURI(rawURL)
+		if err != nil || parsedURL.Host != "" || parsedURL.User != nil {
+			return errors.New("font URL is invalid")
+		}
+		return nil
+	}
+	if err := validateExternalLinkURL(rawURL); err != nil {
+		return errors.New("font URL must be a same-origin path or an http/https URL without credentials")
 	}
 	return nil
 }

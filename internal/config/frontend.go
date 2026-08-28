@@ -18,6 +18,35 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+const (
+	// FrontendFontSystem uses the operating system user-interface font stack.
+	FrontendFontSystem = "system"
+	// FrontendFontInter prefers a locally installed Inter family.
+	FrontendFontInter = "inter"
+	// FrontendFontNotoSans prefers locally installed Noto Sans families.
+	FrontendFontNotoSans = "noto_sans"
+	// FrontendFontOpenSans prefers a locally installed Open Sans family.
+	FrontendFontOpenSans = "open_sans"
+	// FrontendFontSourceSans prefers a locally installed Source Sans family.
+	FrontendFontSourceSans = "source_sans"
+	// FrontendFontCustom loads one administrator-provided webfont URL asynchronously.
+	FrontendFontCustom = "custom"
+)
+
+// NormalizeFrontendFontPreset returns a supported canonical font preset.
+func NormalizeFrontendFontPreset(value string) (string, bool) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "":
+		return FrontendFontSystem, true
+	case FrontendFontSystem, FrontendFontInter, FrontendFontNotoSans,
+		FrontendFontOpenSans, FrontendFontSourceSans, FrontendFontCustom:
+		return value, true
+	default:
+		return FrontendFontSystem, false
+	}
+}
+
 type FrontendConfig struct {
 	ID                   string `json:"id" yaml:"id"`
 	Title                string `json:"title" yaml:"title"`
@@ -28,6 +57,8 @@ type FrontendConfig struct {
 	IcpLicense           string `json:"icp_license" yaml:"icp_license"`
 	PublicSecurityFiling string `json:"public_security_filing" yaml:"public_security_filing"`
 	LegalNoticeURL       string `json:"legal_notice_url" yaml:"legal_notice_url"`
+	FontPreset           string `json:"font_preset" yaml:"font_preset"`
+	FontURL              string `json:"font_url" yaml:"font_url"`
 	CachedIndexHTML      []byte `json:"-" yaml:"-"`
 }
 
@@ -47,20 +78,38 @@ func (f *FrontendConfig) setDefaults() {
 	if f.OrganizationLogo == "" {
 		f.OrganizationLogo = DefaultOrganizationLogo()
 	}
+	f.normalizeFont()
+}
+
+func (f *FrontendConfig) normalizeFont() {
+	if preset, valid := NormalizeFrontendFontPreset(f.FontPreset); valid {
+		f.FontPreset = preset
+	} else {
+		f.FontPreset = FrontendFontSystem
+	}
+	f.FontURL = strings.TrimSpace(f.FontURL)
 }
 
 func (f *FrontendConfig) UnmarshalJSON(data []byte) error {
 	f.setDefaults()
 	type alias FrontendConfig
 	aux := (*alias)(f)
-	return json.Unmarshal(data, aux)
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	f.normalizeFont()
+	return nil
 }
 
 func (f *FrontendConfig) UnmarshalYAML(value *yaml.Node) error {
 	f.setDefaults()
 	type alias FrontendConfig
 	aux := (*alias)(f)
-	return value.Decode(aux)
+	if err := value.Decode(aux); err != nil {
+		return err
+	}
+	f.normalizeFont()
+	return nil
 }
 
 func (f *FrontendConfig) DeepCopy() FrontendConfig {
@@ -74,6 +123,8 @@ func (f *FrontendConfig) DeepCopy() FrontendConfig {
 		IcpLicense:           strings.Clone(f.IcpLicense),
 		PublicSecurityFiling: strings.Clone(f.PublicSecurityFiling),
 		LegalNoticeURL:       strings.Clone(f.LegalNoticeURL),
+		FontPreset:           strings.Clone(f.FontPreset),
+		FontURL:              strings.Clone(f.FontURL),
 	}
 	if f.CachedIndexHTML != nil {
 		cloned.CachedIndexHTML = bytes.Clone(f.CachedIndexHTML)
