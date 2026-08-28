@@ -55,6 +55,9 @@ func handleDistTags(c fiber.Ctx, state *core.AppState, repo *config.Repository, 
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return npmError(c, fiber.StatusUnauthorized, "ENEEDAUTH", "authentication is required")
 	}
+	if !canWriteRepository(user, repo) {
+		return npmError(c, fiber.StatusForbidden, "forbidden", "npm repository update permission is required")
+	}
 	if !requireLifecycleScope(c, repo.Name, packageName) {
 		return npmError(c, fiber.StatusForbidden, "forbidden", "API token package lifecycle scope is required")
 	}
@@ -137,6 +140,9 @@ func updatePackument(c fiber.Ctx, state *core.AppState, repo *config.Repository,
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return npmError(c, fiber.StatusUnauthorized, "ENEEDAUTH", "authentication is required")
 	}
+	if !canWriteRepository(user, repo) {
+		return npmError(c, fiber.StatusForbidden, "forbidden", "npm repository update permission is required")
+	}
 	if !requireLifecycleScope(c, repo.Name, packageName) {
 		return npmError(c, fiber.StatusForbidden, "forbidden", "API token package lifecycle scope is required")
 	}
@@ -167,6 +173,9 @@ func handleRevisionRequest(c fiber.Ctx, state *core.AppState, repo *config.Repos
 	user := auth.GetUser(c)
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return npmError(c, fiber.StatusUnauthorized, "ENEEDAUTH", "authentication is required")
+	}
+	if !canWriteRepository(user, repo) {
+		return npmError(c, fiber.StatusForbidden, "forbidden", "npm repository update permission is required")
 	}
 	if !requireLifecycleScope(c, repo.Name, packageName) {
 		return npmError(c, fiber.StatusForbidden, "forbidden", "API token package lifecycle scope is required")

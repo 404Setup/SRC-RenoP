@@ -51,7 +51,10 @@ func TestNPMCLIEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Skip("npm executable is not available")
 	}
-	app, _, _ := setupNPMTestApp(t)
+	app, state, _ := setupNPMTestApp(t)
+	const packageName = "@team/demo"
+	_, err = state.GetDB().CreateNPMPackage("npm", packageName, "alice", false, time.Now().UnixMilli())
+	require.NoError(t, err)
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	serveErrors := make(chan error, 1)
@@ -80,7 +83,7 @@ func TestNPMCLIEndToEnd(t *testing.T) {
 	publisher := filepath.Join(workspace, "publisher")
 	require.NoError(t, os.MkdirAll(publisher, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(publisher, "package.json"), []byte(`{
-		"name":"demo",
+		"name":"@team/demo",
 		"version":"4.5.6",
 		"description":"Official npm CLI integration package",
 		"main":"index.js",
@@ -94,9 +97,9 @@ func TestNPMCLIEndToEnd(t *testing.T) {
 	runNPMCLI(t, executable, publisher, userConfig, cache,
 		"publish", "--registry", registry, "--ignore-scripts", "--access", "public", "--loglevel", "error")
 	runNPMCLI(t, executable, publisher, userConfig, cache,
-		"dist-tag", "add", "demo@4.5.6", "stable", "--registry", registry, "--loglevel", "error")
+		"dist-tag", "add", packageName+"@4.5.6", "stable", "--registry", registry, "--loglevel", "error")
 	stable := runNPMCLI(t, executable, publisher, userConfig, cache,
-		"view", "demo", "dist-tags.stable", "--registry", registry, "--loglevel", "error")
+		"view", packageName, "dist-tags.stable", "--registry", registry, "--loglevel", "error")
 	require.Equal(t, "4.5.6", stable)
 
 	consumer := filepath.Join(workspace, "consumer")
@@ -104,8 +107,8 @@ func TestNPMCLIEndToEnd(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(consumer, "package.json"),
 		[]byte(`{"name":"consumer","version":"1.0.0","private":true}`), 0o600))
 	runNPMCLI(t, executable, consumer, userConfig, cache,
-		"install", "demo@4.5.6", "--registry", registry, "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel", "error")
-	installed, err := os.ReadFile(filepath.Join(consumer, "node_modules", "demo", "index.js"))
+		"install", packageName+"@4.5.6", "--registry", registry, "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel", "error")
+	installed, err := os.ReadFile(filepath.Join(consumer, "node_modules", "@team", "demo", "index.js"))
 	require.NoError(t, err)
 	require.Contains(t, string(installed), "renop-npm-integration")
 }

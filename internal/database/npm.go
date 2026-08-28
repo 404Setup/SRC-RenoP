@@ -356,7 +356,8 @@ func (db *DB) GetNPMPackageDetails(repository, packageName, username string) (*c
 		return nil, err
 	}
 	return &core.NPMPackageDetails{
-		Package: pkg, Versions: versions, DistTags: tags, Members: members, Member: member,
+		Package: pkg, Versions: versions, DistTags: tags, Members: members,
+		MemberCount: len(members), Member: member,
 	}, nil
 }
 

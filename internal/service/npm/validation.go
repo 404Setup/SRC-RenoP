@@ -114,6 +114,11 @@ func decodeRegistryPath(value string) (string, bool) {
 	return strings.Trim(decoded, "/"), true
 }
 
+// NormalizeRegistryPath decodes one repository-relative npm path for shared storage routing.
+func NormalizeRegistryPath(value string) (string, bool) {
+	return decodeRegistryPath(value)
+}
+
 func packageFromMetadataPath(value string) (string, bool) {
 	decoded, ok := decodeRegistryPath(value)
 	if !ok {

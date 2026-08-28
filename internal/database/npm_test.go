@@ -55,6 +55,7 @@ func TestNPMPackageLifecycleVisibilityAndTeamOwnership(t *testing.T) {
 	details, err := db.GetNPMPackageDetails("npm", "demo", "alice")
 	require.NoError(t, err)
 	require.Len(t, details.Versions, 1)
+	assert.Equal(t, 1, details.MemberCount)
 	assert.Equal(t, "1.0.0", details.Package.LatestVersion)
 	assert.Equal(t, "1.0.0", details.DistTags["latest"])
 	require.ErrorIs(t, db.RecordNPMPublication(&core.NPMPackage{
@@ -96,6 +97,9 @@ func TestNPMPackageLifecycleVisibilityAndTeamOwnership(t *testing.T) {
 	require.Len(t, members, 1)
 	assert.Equal(t, "bob", members[0].Username)
 	assert.Equal(t, core.NPMPermissionOwner, members[0].Level)
+	details, err = db.GetNPMPackageDetails("npm", "@team/secret", "bob")
+	require.NoError(t, err)
+	assert.Equal(t, 1, details.MemberCount)
 
 	profile, err := db.GetUserProfile("bob")
 	require.NoError(t, err)

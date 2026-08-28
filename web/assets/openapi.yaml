@@ -1901,9 +1901,68 @@ components:
           type: integer
           format: int64
 
+    NPMProjectPerson:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    NPMProjectMetadata:
+      type: object
+      description: Bounded presentation metadata parsed from the selected published version.
+      properties:
+        readme:
+          type: string
+          maxLength: 524288
+        readme_filename:
+          type: string
+        license:
+          type: string
+        homepage:
+          type: string
+          format: uri
+        repository:
+          type: string
+          format: uri
+        bugs:
+          type: string
+          format: uri
+        author:
+          $ref: "#/components/schemas/NPMProjectPerson"
+        contributors:
+          type: array
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/NPMProjectPerson"
+        maintainers:
+          type: array
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/NPMProjectPerson"
+        funding:
+          type: array
+          maxItems: 16
+          items:
+            type: string
+            format: uri
+        keywords:
+          type: array
+          maxItems: 64
+          items:
+            type: string
+        node_engine:
+          type: string
+        package_manager:
+          type: string
+
     NPMPackageDetails:
       type: object
-      required: [package, versions, dist_tags, member, administrator]
+      required: [package, versions, dist_tags, member_count, member, administrator]
       properties:
         package:
           $ref: "#/components/schemas/NPMPackage"
@@ -1920,9 +1979,14 @@ components:
           description: Present for L3/L4 package members and administrators.
           items:
             $ref: "#/components/schemas/NPMMember"
+        project:
+          $ref: "#/components/schemas/NPMProjectMetadata"
         member:
           type: boolean
           description: Whether the current account has an explicit L0-L4 package membership.
+        member_count:
+          type: integer
+          minimum: 0
         administrator:
           type: boolean
 

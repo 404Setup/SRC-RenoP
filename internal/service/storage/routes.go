@@ -66,6 +66,21 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	isDocker := repo.NormalizedFormat() == config.RepositoryFormatDocker
 	isMaven := repo.NormalizedFormat() == config.RepositoryFormatMaven
 	isNPM := repo.NormalizedFormat() == config.RepositoryFormatNPM
+	isRead := c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead
+
+	if isNPM {
+		if handled, err := npmHandler.Handle(c, state, repo, cfg.StoragePath, path); handled {
+			return err
+		}
+		if !isRead {
+			return c.Status(fiber.StatusMethodNotAllowed).SendString("npm repositories must be modified through npm registry endpoints")
+		}
+		var valid bool
+		path, valid = npm.NormalizeRegistryPath(path)
+		if !valid {
+			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
+		}
+	}
 
 	sanitized, ok := utils.SanitizePath(path)
 	if !ok {
@@ -83,7 +98,6 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 	isDirOnDisk, _, isIndexed, isNotFound := state.Inner.FileIndex.GetPathState(pathStr)
 	isConcreteArtifact := isIndexed && !isDirOnDisk
 
-	isRead := c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead
 	if isRead {
 		isRoot := strings.HasSuffix(path, "/") || path == "" || isDirOnDisk
 		canRead, err := cargo.CanReadRepository(state, user, repo, sanitized, isRoot)
@@ -146,15 +160,6 @@ func HandleRepository(c fiber.Ctx, state *core.AppState) error {
 		}
 		if !isRead {
 			return c.Status(fiber.StatusMethodNotAllowed).SendString("Cargo repositories must be modified through the Cargo registry API")
-		}
-	}
-
-	if isNPM {
-		if handled, err := npmHandler.Handle(c, state, repo, cfg.StoragePath, path); handled {
-			return err
-		}
-		if !isRead {
-			return c.Status(fiber.StatusMethodNotAllowed).SendString("npm repositories must be modified through npm registry endpoints")
 		}
 	}
 

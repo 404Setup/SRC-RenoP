@@ -265,6 +265,9 @@ func publish(c fiber.Ctx, state *core.AppState, repo *config.Repository, store S
 	if user == nil || user.Username == "" || strings.EqualFold(user.Username, "guest") {
 		return npmError(c, fiber.StatusUnauthorized, "authentication required", "npm publish requires authentication")
 	}
+	if !canWriteRepository(user, repo) {
+		return npmError(c, fiber.StatusForbidden, "forbidden", "npm repository publish permission is required")
+	}
 	if state.GetDB() == nil {
 		return npmError(c, fiber.StatusServiceUnavailable, "database unavailable", "npm metadata is unavailable")
 	}

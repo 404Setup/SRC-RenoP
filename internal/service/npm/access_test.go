@@ -64,3 +64,16 @@ func TestNPMVisibilityRequiresRepositoryAndPackageAccess(t *testing.T) {
 		t.Fatalf("manager hidden npm root access = %v, err = %v", allowed, err)
 	}
 }
+
+func TestNPMRepositoryWritesRequireExplicitRepositoryPermission(t *testing.T) {
+	repository := &config.Repository{Name: "npm", Format: config.RepositoryFormatNPM}
+	if canWriteRepository(&config.User{Username: "alice", Roles: []string{"base"}}, repository) {
+		t.Fatal("package membership must not replace repository write permission")
+	}
+	if !canWriteRepository(&config.User{Username: "alice", Roles: []string{"base", "canupdate:npm"}}, repository) {
+		t.Fatal("repository update permission was not recognized")
+	}
+	if !canWriteRepository(&config.User{Username: "admin", Roles: []string{"manager"}}, repository) {
+		t.Fatal("manager repository write permission was not recognized")
+	}
+}

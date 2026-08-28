@@ -27,7 +27,17 @@ test('npm repository UI uses shared routing, errors, clipboard, and team control
         'npmResponseError',
         'NPMRequestError',
         'packageDetails.member',
+        'packageDetails.member_count',
         'distTagsSection',
+        'setInviteValidation',
+        'npm-invite-error',
+        'createUserIdentity',
+        'setSafeMarkdown',
+        'packageDetails.project',
+        'projectMetadataSection',
+        'readmeSection',
+        'version.integrity',
+        'version.shasum',
     ]) {
         assert.ok(npmView.includes(required), `npm repository view is missing ${required}`);
     }
@@ -53,5 +63,21 @@ test('npm repository format and mirror controls are canonical and responsive', (
         assert.ok(repositorySettings.includes(required), `npm mirror settings are missing ${required}`);
     }
     assert.match(npmCSS, /\.npm-command pre\s*\{[^}]*overflow-x:\s*auto/s);
-    assert.match(npmCSS, /@media \(max-width: 700px\)[\s\S]*\.npm-invite\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+    assert.match(npmCSS, /\.npm-command-header strong\s*\{[^}]*color:\s*var\(--text-color\)[^}]*font-weight:\s*700/s,
+        'npm command titles must remain visually distinct from muted command content');
+    assert.match(npmCSS, /\.npm-command pre code\s*\{[^}]*color:\s*color-mix/s,
+        'npm command content must retain its secondary text color');
+    assert.match(npmCSS, /\.npm-command\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--text-color\) 2\.5%, transparent\)/s,
+        'npm command cards must use Maven-style neutral surfaces');
+    assert.match(npmCSS, /\.npm-package-card\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--text-color\) 2\.5%, transparent\)/s,
+        'npm package cards must use Maven-style neutral surfaces');
+    assert.match(npmCSS, /\.npm-invite-input\s*\{[^}]*border:[^}]*background:[^}]*color:/s,
+        'npm invitation input must have complete application styling');
+    assert.match(npmCSS, /\.npm-member-remove\s*\{[^}]*border:[^}]*background:[^}]*color:\s*#dc2626/s,
+        'npm member removal must have an explicit destructive style');
+    assert.match(npmCSS, /\.npm-information-grid\s*\{[^}]*grid-template-columns:/s,
+        'npm package metadata must use the responsive information grid');
+    assert.match(npmCSS, /\.npm-readme-body\s*\{[^}]*overflow-wrap:\s*anywhere/s,
+        'npm README content must remain within the package layout');
+    assert.match(npmCSS, /@media \(max-width: 700px\)[\s\S]*\.npm-invite-controls\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
 });

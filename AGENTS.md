@@ -65,7 +65,8 @@
 - **`internal/service/npm/`**: npm-compatible per-repository registry with explicitly reserved public or scoped-private
   packages, immutable semantic versions, validated streaming tarball publication, dist-tags, deprecation/unpublish
   workflows, L0-L4 package teams, upstream packument/tarball mirrors, and full/abbreviated metadata negotiation.
-  Mirrored packages remain pull-only, while local publication requires the package and its permission to exist first.
+  URL-encoded scoped metadata routes are decoded by the npm protocol before shared file-path sanitization. Mirrored
+  packages remain pull-only, while local publication requires both repository and package permission.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
@@ -141,8 +142,11 @@
   and filter shell and morphs only the bounded results/pagination region;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
-  npm repositories use `js/browser/npm.js` for bounded catalog, package, immutable-version, dist-tag, visibility,
-  and L0-L4 team management while protocol failures are localized through stable codes in `js/npm-errors.js`.
+  npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
+  visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
+  failures are localized through stable codes in `js/npm-errors.js`. Package-controlled Markdown flows through the
+  inert element-and-URL allowlist in `js/markdown.js`; protocol views never assign rendered Markdown directly to an
+  active element.
   `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository
   name ordering plus engine filtering and bounded pagination, while `js/components/icon.js` maps detailed file types
   into a bounded set of shared visual families. npm, Cargo, and Docker team invitations

@@ -7,12 +7,17 @@
 package storage
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 
 	"renop/internal/config"
@@ -21,6 +26,32 @@ import (
 	"renop/internal/service/index"
 	"renop/internal/service/statistics"
 )
+
+func npmStorageTestTarball(t *testing.T, packageName, version string) []byte {
+	t.Helper()
+	manifest, err := json.Marshal(map[string]string{"name": packageName, "version": version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buffer bytes.Buffer
+	gzipWriter := gzip.NewWriter(&buffer)
+	tarWriter := tar.NewWriter(gzipWriter)
+	if err := tarWriter.WriteHeader(&tar.Header{
+		Name: "package/package.json", Mode: 0o644, Size: int64(len(manifest)), Typeflag: tar.TypeReg,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tarWriter.Write(manifest); err != nil {
+		t.Fatal(err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
+}
 
 func TestNPMMirrorTarballRecordsProvenanceAndDownloadStatistics(t *testing.T) {
 	config.ClearRepoCacheConfigs()
@@ -120,5 +151,74 @@ func TestNPMMirrorTarballRecordsProvenanceAndDownloadStatistics(t *testing.T) {
 	if format != config.RepositoryFormatNPM || packageName != "mirror-demo" || version != "1.2.3" ||
 		count != 1 || bytes != int64(len(tarball)) {
 		t.Fatalf("npm download statistics = %s %s %s %d %d", format, packageName, version, count, bytes)
+	}
+}
+
+func TestNPMScopedPublishUsesDecodedPathThroughStorageRouter(t *testing.T) {
+	storagePath := storageTestTempDir(t)
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"npm": {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC", Mirrors: []config.Mirror{}},
+	}
+	InitS3(cfg)
+	state := core.NewAppState()
+	state.Inner.Config.Store(cfg)
+	state.Inner.FileIndex = index.NewFileIndex()
+	state.Inner.FileCache = core.NewFileByteCache(1 << 20)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "npm-scoped-publish.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state.Inner.DB = db
+	if err := db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base", "canupdate:npm"}}); err != nil {
+		t.Fatal(err)
+	}
+	const packageName = "@team/scoped-demo"
+	const version = "1.2.3"
+	if _, err := db.CreateNPMPackage("npm", packageName, "alice", false, 1); err != nil {
+		t.Fatal(err)
+	}
+	tarball := npmStorageTestTarball(t, packageName, version)
+	document := map[string]any{
+		"_id": packageName, "name": packageName, "description": "Scoped package", "access": "public",
+		"dist-tags": map[string]string{"latest": version},
+		"versions":  map[string]any{version: map[string]any{"name": packageName, "version": version}},
+		"_attachments": map[string]any{packageName + "-" + version + ".tgz": map[string]any{
+			"content_type": "application/octet-stream", "length": len(tarball),
+			"data": base64.StdEncoding.EncodeToString(tarball),
+		}},
+	}
+	body, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := fiber.New(fiber.Config{UnescapePath: false, StreamRequestBody: true})
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", &config.User{Username: "alice", Roles: []string{"base", "canupdate:npm"}})
+		return c.Next()
+	})
+	app.All("/:repo_name/*", func(c fiber.Ctx) error { return HandleRepository(c, state) })
+	request := httptest.NewRequest(http.MethodPut,
+		"http://registry.example/npm/@team%2fscoped-demo", bytes.NewReader(body))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	responseBody, readErr := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if readErr != nil || response.StatusCode != http.StatusCreated {
+		t.Fatalf("scoped npm storage publish = %d %q: %v", response.StatusCode, responseBody, readErr)
+	}
+	details, err := db.GetNPMPackageDetails("npm", packageName, "alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if details == nil || len(details.Versions) != 1 || details.Versions[0].Version != version {
+		t.Fatalf("scoped npm version was not recorded: %#v", details)
 	}
 }

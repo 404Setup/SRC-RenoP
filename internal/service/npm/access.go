@@ -14,6 +14,10 @@ import (
 	"renop/internal/core"
 )
 
+func canWriteRepository(user *config.User, repo *config.Repository) bool {
+	return user != nil && repo != nil && (user.IsManager() || user.CheckUpdatePermission(repo.Name))
+}
+
 // CanReadRepository applies repository visibility and npm package membership access.
 func CanReadRepository(state *core.AppState, user *config.User, repo *config.Repository, path string, isRoot bool) (bool, error) {
 	if repo == nil {

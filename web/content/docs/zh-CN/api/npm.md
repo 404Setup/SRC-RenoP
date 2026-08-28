@@ -68,6 +68,10 @@ description: npm 软件包元数据、发布、tarball、发布标签、团队�
 目录响应通过 `limit` 与 `offset` 分页；`limit` 范围为 1 至 100。调用者没有软件包成员关系或管理员权限时，
 私有软件包不会出现。团队详情只返回给 L3/L4 成员和管理员。
 
+软件包详情响应会从选定的已发布版本中返回大小受限的 README、作者、贡献者、维护者、许可证、运行环境、
+关键词与项目链接元数据。浏览器通过元素与 URL 白名单渲染 README Markdown，不会激活软件包提供的 HTML
+或不安全链接。
+
 ## 认证与授权
 
 npm 客户端可使用账号密码或 API Token 进行 Basic 认证，也可将 API Token 用作 `_authToken`。Bearer API Token

@@ -71,6 +71,10 @@ Catalog responses are paginated with `limit` from 1 to 100 and a bounded `offset
 the caller has package membership or administrator access. Team details are returned only to L3/L4 members and
 administrators.
 
+The package-detail response includes bounded README, author, contributor, maintainer, license, runtime, keyword, and
+project-link metadata from the selected published version. The browser renders README Markdown through an element and
+URL allowlist; package-controlled HTML and unsafe links are never activated.
+
 ## Authentication and authorization
 
 npm clients may use Basic authentication with an account password or API Token, or an API Token as `_authToken`.

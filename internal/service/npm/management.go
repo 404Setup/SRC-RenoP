@@ -132,6 +132,7 @@ func packageDetailsAPI(c fiber.Ctx, state *core.AppState, repo *config.Repositor
 	if err != nil || details == nil || details.Package == nil {
 		return npmAPIError(c, fiber.StatusNotFound, "package_not_found", "Package not found")
 	}
+	enrichNPMProjectMetadata(details)
 	details.Administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
 	if !details.Administrator && details.Package.PermissionLevel < core.NPMPermissionTeam {
 		details.Members = nil

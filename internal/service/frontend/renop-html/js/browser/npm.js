@@ -9,8 +9,16 @@ import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {canUpdateRepo} from '../auth.js';
-import {createButton, createIcon, createSkeleton, RenopDialog, runButtonAction} from '../components.js';
+import {
+    createButton,
+    createIcon,
+    createSkeleton,
+    createUserIdentity,
+    RenopDialog,
+    runButtonAction
+} from '../components.js';
 import {t} from '../i18n.js';
+import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {npmResponseError} from '../npm-errors.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -123,6 +131,96 @@ const npmUserSuggestions = new RepositoryUserSuggestions({
  */
 function statusBadge(label, className = '') {
     return el('span', {class: `npm-status-badge${className ? ` ${className}` : ''}`}, label);
+}
+
+/**
+ * Format an npm package permission with its numeric level.
+ * @param {number|string} level - L0-L4 permission level.
+ * @returns {string} Localized permission label.
+ */
+function permissionLabel(level) {
+    const numeric = Math.max(0, Math.min(4, Number(level) || 0));
+    return `L${numeric} — ${t(`npm.level${numeric}`)}`;
+}
+
+/**
+ * Return the scope portion of one canonical npm package name.
+ * @param {string} packageName - Canonical package name.
+ * @returns {string} Scope including `@`, or an empty string.
+ */
+function packageScope(packageName) {
+    return String(packageName || '').startsWith('@') ? String(packageName).split('/', 1)[0] : '';
+}
+
+/**
+ * Build a copyable integrity or digest row.
+ * @param {string} label - Localized metadata label.
+ * @param {string} value - Digest or integrity value.
+ * @returns {HTMLElement|null} Metadata row when a value exists.
+ */
+function copyableVersionMetadata(label, value) {
+    if (!value) return null;
+    const button = createButton('', {
+        class: 'npm-metadata-copy', icon: 'copy', title: t('details.copy')
+    });
+    button.setAttribute('aria-label', t('npm.copyMetadata', {label}));
+    button.addEventListener('click', () => copyCommand(button, value));
+    return el('div', {class: 'npm-version-digest'},
+        el('span', {}, label), el('code', {title: value}, value), button
+    );
+}
+
+/**
+ * Set or clear the invitation field validation state.
+ * @param {HTMLInputElement} input - Username input.
+ * @param {HTMLElement} errorNode - Inline validation message.
+ * @param {string} [message=''] - Localized error text.
+ * @returns {void}
+ */
+function setInviteValidation(input, errorNode, message = '') {
+    input.classList.toggle('is-invalid', Boolean(message));
+    input.setAttribute('aria-invalid', message ? 'true' : 'false');
+    errorNode.textContent = message;
+    errorNode.hidden = !message;
+}
+
+/**
+ * Build one safe external npm project link.
+ * @param {string} label - Localized link label.
+ * @param {unknown} value - Candidate absolute URL.
+ * @param {string} icon - Canonical icon name.
+ * @returns {HTMLAnchorElement|null} Safe link or null.
+ */
+function npmProjectLink(label, value, icon) {
+    const href = safeMarkdownURL(value);
+    if (!href) return null;
+    return el('a', {
+        class: 'npm-project-link', href, target: '_blank', rel: 'noopener noreferrer nofollow'
+    }, createIcon(icon), el('span', {}, label));
+}
+
+/**
+ * Render one published author or contributor identity.
+ * @param {object|null|undefined} person - Bounded project person metadata.
+ * @returns {HTMLElement|null} Person summary.
+ */
+function npmProjectPerson(person) {
+    if (!person || (!person.name && !person.email && !person.url)) return null;
+    const link = npmProjectLink(person.name || person.url, person.url, 'user');
+    return el('span', {class: 'npm-project-person'},
+        link || el('strong', {}, person.name || t('common.unknown')),
+        person.email ? el('span', {}, person.email) : null
+    );
+}
+
+/**
+ * Build a compact list of published people.
+ * @param {object[]} people - Bounded author-like records.
+ * @returns {HTMLElement|null} People list.
+ */
+function npmProjectPeople(people) {
+    const rendered = (Array.isArray(people) ? people : []).map(npmProjectPerson).filter(Boolean);
+    return rendered.length ? el('div', {class: 'npm-project-people'}, ...rendered) : null;
 }
 
 /**
@@ -383,19 +481,35 @@ function packageHero(pkg) {
 
 /** @returns {HTMLElement} Immutable npm version list. */
 function versionsSection() {
-    const section = el('section', {class: 'npm-page-section'}, el('h3', {}, t('npm.versions')));
     const versions = Array.isArray(packageDetails.versions) ? packageDetails.versions : [];
+    const section = el('section', {class: 'npm-page-section'},
+        el('div', {class: 'npm-section-heading'},
+            el('div', {}, el('h3', {}, t('npm.versions')),
+                el('p', {}, t('npm.versionCountLabel', {count: versions.length})))
+        )
+    );
     const list = el('div', {class: 'npm-version-list'});
     const canDelete = packageDetails.administrator || Number(packageDetails.package.permission_level) >= 2;
+    const tagsByVersion = new Map();
+    for (const [tag, target] of Object.entries(packageDetails.dist_tags || {})) {
+        if (!tagsByVersion.has(target)) tagsByVersion.set(target, []);
+        tagsByVersion.get(target).push(tag);
+    }
     for (const version of versions) {
-        const row = el('article', {class: `npm-version${version.unpublished ? ' is-unpublished' : ''}`},
-            el('div', {}, el('strong', {}, `v${version.version}`),
-                el('span', {}, formatRepositoryTimestamp(version.created_at))),
-            el('div', {class: 'npm-version-meta'},
-                version.publisher ? el('span', {}, t('npm.publishedBy', {name: version.publisher})) : null,
+        const tagNames = (tagsByVersion.get(version.version) || [])
+            .sort((left, right) => left.localeCompare(right, undefined, {sensitivity: 'base'}));
+        const states = el('div', {class: 'npm-version-states'});
+        for (const tag of tagNames) states.appendChild(statusBadge(tag, 'is-tag'));
+        if (version.mirrored) states.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
+        if (version.deprecated) states.appendChild(statusBadge(t('npm.deprecated'), 'is-deprecated'));
+        if (version.unpublished) states.appendChild(statusBadge(t('npm.unpublished'), 'is-archived'));
+
+        const header = el('div', {class: 'npm-version-header'},
+            el('div', {class: 'npm-version-title'}, el('strong', {}, `v${version.version}`), states),
+            el('div', {class: 'npm-version-summary'},
+                version.publisher ? createUserIdentity(version.publisher) : el('span', {}, t('common.unknown')),
                 version.size > 0 ? el('span', {}, formatBytes(Number(version.size))) : null,
-                version.deprecated ? statusBadge(t('npm.deprecated'), 'is-deprecated') : null,
-                version.unpublished ? statusBadge(t('npm.unpublished'), 'is-archived') : null
+                el('time', {}, formatRepositoryTimestamp(version.created_at))
             )
         );
         const actions = el('div', {class: 'npm-version-actions'});
@@ -410,7 +524,23 @@ function versionsSection() {
                 actions.appendChild(remove);
             }
         }
-        row.appendChild(actions);
+        const digestRows = [
+            copyableVersionMetadata(t('npm.integrity'), version.integrity),
+            copyableVersionMetadata(t('npm.shasum'), version.shasum)
+        ].filter(Boolean);
+        const details = el('details', {class: 'npm-version-details'},
+            el('summary', {}, createIcon('info'), el('span', {}, t('npm.versionDetails'))),
+            el('div', {class: 'npm-version-details-body'},
+                digestRows.length ? el('div', {class: 'npm-version-digests'}, ...digestRows) :
+                    el('p', {class: 'npm-version-no-integrity'}, t('npm.noIntegrity')),
+                actions
+            )
+        );
+        const row = el('article', {class: `npm-version${version.unpublished ? ' is-unpublished' : ''}`},
+            header,
+            version.deprecated ? el('p', {class: 'npm-deprecation-message'}, version.deprecated) : null,
+            details
+        );
         list.appendChild(row);
     }
     section.appendChild(versions.length ? list : el('div', {class: 'npm-empty'}, el('p', {}, t('npm.noVersions'))));
@@ -432,80 +562,242 @@ function distTagsSection() {
     return section;
 }
 
-/** @returns {HTMLElement|null} Authorized L0-L4 package-team controls. */
+/** @returns {HTMLElement} Package-team summary and authorized L0-L4 controls. */
 function teamSection() {
     const canManage = packageDetails.administrator || Number(packageDetails.package.permission_level) >= 3;
-    if (!canManage || packageDetails.package.mirrored) return null;
-    const section = el('section', {class: 'npm-page-section'}, el('h3', {}, t('npm.team')));
+    const canOwn = packageDetails.administrator || Number(packageDetails.package.permission_level) >= 4;
+    const members = Array.isArray(packageDetails.members) ? packageDetails.members : [];
+    const section = el('section', {class: 'npm-page-section npm-team-section'},
+        el('div', {class: 'npm-section-heading'},
+            el('div', {}, el('h3', {}, t('npm.team')), el('p', {}, t('npm.teamHint'))),
+            statusBadge(t('npm.memberCount', {count: Number(packageDetails.member_count || members.length)}), 'is-count')
+        )
+    );
+    if (packageDetails.package.mirrored) {
+        section.appendChild(el('p', {class: 'npm-team-notice'}, t('npm.mirrorNoTeam')));
+        return section;
+    }
+    if (!canManage) {
+        section.appendChild(el('p', {class: 'npm-team-notice'}, t('npm.teamRestricted')));
+        return section;
+    }
+
+    const memberList = el('div', {class: 'npm-member-list'});
+    for (const member of members) {
+        const numericLevel = Math.max(0, Math.min(4, Number(member.level) || 0));
+        const controls = el('div', {class: 'npm-member-controls'});
+        if (numericLevel === 4 && !canOwn) {
+            controls.appendChild(statusBadge(permissionLabel(numericLevel), 'is-permission'));
+        } else {
+            const allowedLevels = [0, 1, 2, 3];
+            if (canOwn) allowedLevels.push(4);
+            const memberLevel = makeCustomSelect(allowedLevels.map(value => ({
+                value: String(value), label: permissionLabel(value)
+            })), String(numericLevel), async value => {
+                try {
+                    await npmRequest(npmAPI(`owners/${encodeURIComponent(member.user_id || member.username)}`,
+                        packageDetails.package.name), {
+                        method: 'PUT', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({level: Number(value)})
+                    }, 'npm.teamUpdateFailed');
+                    showAlert(t('npm.memberUpdated', {name: member.username}), 'success');
+                    await refreshPackage();
+                } catch (error) {
+                    showAlert(npmErrorMessage(error, 'npm.teamUpdateFailed'), 'error');
+                    await refreshPackage();
+                }
+            });
+            memberLevel.classList.add('npm-permission-select');
+            controls.appendChild(memberLevel);
+        }
+        if (numericLevel < 4) {
+            const remove = createButton(t('common.remove'), {
+                class: 'npm-member-remove', icon: 'delete', title: t('npm.removeMember'),
+                'aria-label': t('npm.removeMember')
+            });
+            remove.addEventListener('click', () => runButtonAction(remove, async () => {
+                if (!await showConfirm(t('npm.removeMemberConfirm', {name: member.username}), {danger: true})) return;
+                try {
+                    await npmRequest(npmAPI(`owners/${encodeURIComponent(member.user_id || member.username)}`,
+                        packageDetails.package.name), {method: 'DELETE'}, 'npm.removeMemberFailed');
+                    showAlert(t('npm.memberRemoved', {name: member.username}), 'success');
+                    await refreshPackage();
+                } catch (error) {
+                    showAlert(npmErrorMessage(error, 'npm.removeMemberFailed'), 'error');
+                }
+            }));
+            controls.appendChild(remove);
+        } else {
+            controls.appendChild(el('span', {class: 'npm-owner-lock', title: t('npm.ownerProtected')},
+                createIcon('fileLock'), el('span', {}, t('npm.owner'))));
+        }
+        memberList.appendChild(el('div', {class: 'npm-member'},
+            el('div', {class: 'npm-member-identity'},
+                createUserIdentity(member.username, {avatar: true}),
+                member.added_at ? el('span', {}, t('npm.addedAt', {
+                    date: formatRepositoryTimestamp(member.added_at)
+                })) : null
+            ),
+            controls
+        ));
+    }
+    section.appendChild(memberList);
+
     const input = el('input', {
-        type: 'text', maxlength: '255', autocomplete: 'off', placeholder: t('npm.invitePlaceholder')
+        id: 'npm-invite-username', class: 'npm-invite-input', type: 'text', maxlength: '255',
+        autocomplete: 'off', placeholder: t('npm.invitePlaceholder'),
+        'aria-describedby': 'npm-invite-error', 'aria-invalid': 'false'
     });
     npmUserSuggestions.attach(input);
+    const inputError = el('span', {
+        id: 'npm-invite-error', class: 'npm-invite-error', role: 'alert', hidden: true
+    });
+    input.addEventListener('input', () => setInviteValidation(input, inputError));
     const level = makeCustomSelect([0, 1, 2, 3, 4].map(value => ({
-        value: String(value), label: `L${value} — ${t(`npm.level${value}`)}`
+        value: String(value), label: permissionLabel(value)
     })), String(inviteLevel), value => { inviteLevel = Number(value); });
-    const invite = createButton(t('npm.invite'), {class: 'pill-btn pill-btn--primary pill-btn--sm', icon: 'userPlus'});
-    invite.addEventListener('click', () => runButtonAction(invite, async () => {
+    level.classList.add('npm-invite-permission-select');
+    const invite = createButton(t('npm.invite'), {
+        class: 'pill-btn pill-btn--primary npm-invite-submit', icon: 'userPlus', type: 'submit'
+    });
+    const form = el('form', {class: 'npm-invite-form', action: 'javascript:void(0);'},
+        el('div', {class: 'npm-invite-heading'},
+            el('strong', {}, t('npm.invite')),
+            el('span', {}, t('npm.inviteMemberHint'))
+        ),
+        el('div', {class: 'npm-invite-controls'},
+            el('div', {class: 'npm-invite-input-wrap'}, input, inputError), level, invite
+        )
+    );
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
         const username = input.value.trim();
         if (!username) {
-            showAlert(t('team.inviteUsernameRequired'), 'warning');
+            const message = t('team.inviteUsernameRequired');
+            setInviteValidation(input, inputError, message);
+            showAlert(message, 'warning');
             input.focus();
             return;
         }
-        await npmRequest(npmAPI('owners', packageDetails.package.name), {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({users: [username], level: inviteLevel})
-        }, 'npm.inviteFailed');
-        showAlert(t('npm.inviteSent', {name: username}), 'success');
-        await refreshPackage();
-    }));
-    section.appendChild(el('div', {class: 'npm-invite'}, input, level, invite));
-    const members = el('div', {class: 'npm-member-list'});
-    for (const member of packageDetails.members || []) {
-        const memberLevel = makeCustomSelect([0, 1, 2, 3, 4].map(value => ({
-            value: String(value), label: `L${value}`
-        })), String(member.level), async value => {
-            try {
-                await npmRequest(`${npmAPI(`owners/${encodeURIComponent(member.user_id || member.username)}`, packageDetails.package.name)}`, {
-                    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level: Number(value)})
-                }, 'npm.teamUpdateFailed');
-                await refreshPackage();
-            } catch (error) {
-                showAlert(npmErrorMessage(error, 'npm.teamUpdateFailed'), 'error');
-                await refreshPackage();
-            }
-        });
-        const remove = createButton('', {class: 'icon-btn', icon: 'delete', title: t('npm.removeMember')});
-        remove.addEventListener('click', async () => {
-            if (!await showConfirm(t('npm.removeMemberConfirm', {name: member.username}), {danger: true})) return;
-            try {
-                await npmRequest(npmAPI(`owners/${encodeURIComponent(member.user_id || member.username)}`, packageDetails.package.name),
-                    {method: 'DELETE'}, 'npm.removeMemberFailed');
-                await refreshPackage();
-            } catch (error) {
-                showAlert(npmErrorMessage(error, 'npm.removeMemberFailed'), 'error');
-            }
-        });
-        members.appendChild(el('div', {class: 'npm-member'},
-            el('strong', {}, member.username), el('div', {}, memberLevel, remove)));
+        if (!/^[^\s\0\r\n]{1,255}$/.test(username)) {
+            const message = t('npm.invalidUsername');
+            setInviteValidation(input, inputError, message);
+            showAlert(message, 'warning');
+            input.focus();
+            return;
+        }
+        const currentUsername = String(localStorage.getItem('username') || '').toLowerCase();
+        if (currentUsername && username.toLowerCase() === currentUsername) {
+            const message = t('npm.cannotInviteSelf');
+            setInviteValidation(input, inputError, message);
+            showAlert(message, 'warning');
+            return;
+        }
+        invite.disabled = true;
+        try {
+            await npmRequest(npmAPI('owners', packageDetails.package.name), {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({users: [username], level: inviteLevel})
+            }, 'npm.inviteFailed');
+            npmUserSuggestions.clear();
+            setInviteValidation(input, inputError);
+            showAlert(t('npm.inviteSent', {name: username}), 'success');
+            await refreshPackage();
+        } catch (error) {
+            const message = npmErrorMessage(error, 'npm.inviteFailed');
+            setInviteValidation(input, inputError, message);
+            showAlert(message, 'error');
+        } finally {
+            invite.disabled = false;
+        }
+    });
+    section.appendChild(form);
+    return section;
+}
+
+/**
+ * Build published author, links, runtime, license, funding, and keyword metadata.
+ * @returns {HTMLElement|null} Project metadata section when any fields exist.
+ */
+function projectMetadataSection() {
+    const project = packageDetails.project || {};
+    const author = npmProjectPerson(project.author);
+    const contributors = npmProjectPeople(project.contributors);
+    const maintainers = npmProjectPeople(project.maintainers);
+    const keywords = Array.isArray(project.keywords) && project.keywords.length
+        ? el('div', {class: 'npm-keyword-list'}, ...project.keywords.map(keyword =>
+            el('span', {class: 'npm-keyword'}, keyword)))
+        : null;
+    const links = [
+        npmProjectLink(t('npm.homepage'), project.homepage, 'fileWeb'),
+        npmProjectLink(t('npm.sourceRepository'), project.repository, 'fileCode'),
+        npmProjectLink(t('npm.bugTracker'), project.bugs, 'alertCircle'),
+        ...(Array.isArray(project.funding) ? project.funding.map((url, index) =>
+            npmProjectLink(t('npm.fundingLink', {index: index + 1}), url, 'network')) : [])
+    ].filter(Boolean);
+    const facts = [
+        {label: t('npm.author'), value: author, wide: true},
+        {label: t('npm.contributors'), value: contributors, wide: true},
+        {label: t('npm.maintainers'), value: maintainers, wide: true},
+        {label: t('npm.license'), value: project.license},
+        {label: t('npm.nodeEngine'), value: project.node_engine, code: true},
+        {label: t('npm.packageManager'), value: project.package_manager, code: true},
+        {label: t('npm.keywords'), value: keywords, wide: true}
+    ];
+    if (!facts.some(fact => fact.value) && links.length === 0) return null;
+    const section = createRepositoryFactsSection(t('npm.projectInformation'), facts, {
+        className: 'npm-page-section npm-project-section'
+    });
+    if (links.length) section.appendChild(el('div', {class: 'npm-project-links'}, ...links));
+    return section;
+}
+
+/** @returns {HTMLElement} Safely rendered published package README section. */
+function readmeSection() {
+    const project = packageDetails.project || {};
+    const title = el('div', {class: 'npm-section-heading'},
+        el('div', {}, el('h3', {}, t('npm.readme')),
+            project.readme_filename ? el('p', {}, project.readme_filename) : null)
+    );
+    const section = el('section', {class: 'npm-page-section npm-readme-section'}, title);
+    if (!project.readme) {
+        section.appendChild(el('div', {class: 'npm-empty npm-empty--compact'},
+            createIcon('fileMarkdown'), el('p', {}, t('npm.noReadme'))));
+        return section;
     }
-    section.appendChild(members);
+    const content = el('article', {class: 'npm-readme-body'});
+    setSafeMarkdown(content, project.readme);
+    section.appendChild(content);
     return section;
 }
 
 /** @returns {HTMLElement[]} Selected npm package sections. */
 function renderPackage() {
     const pkg = packageDetails.package;
+    const scope = packageScope(pkg.name);
+    const source = pkg.mirrored ? t('npm.mirrorOrigin') : t('npm.localOrigin');
     const facts = createRepositoryFactsSection(t('npm.packageInformation'), [
+        {label: t('npm.packageName'), value: pkg.name, code: true, wide: true},
+        {label: t('npm.repository'), value: pkg.repository, code: true},
+        {label: t('npm.scope'), value: scope || t('npm.unscoped'), code: Boolean(scope)},
         {label: t('npm.latestVersion'), value: pkg.latest_version || t('npm.noVersions'), code: true},
         {label: t('npm.versionCount'), value: pkg.version_count},
-        {label: t('npm.publisher'), value: pkg.publisher || '-'},
+        {label: t('npm.distTagCount'), value: Object.keys(packageDetails.dist_tags || {}).length},
+        {label: t('npm.memberCountLabel'), value: Number(packageDetails.member_count || 0)},
+        {label: t('npm.publisher'), value: pkg.publisher ? createUserIdentity(pkg.publisher) : t('common.unknown')},
+        {label: t('npm.visibility'), value: pkg.private ? t('npm.private') : t('npm.public')},
+        {label: t('npm.origin'), value: source},
+        {label: t('npm.publishStatus'), value: pkg.publish_enabled ? t('npm.publishEnabled') : t('npm.publishDisabled')},
+        {label: t('npm.created'), value: formatRepositoryTimestamp(pkg.created_at)},
         {label: t('npm.updated'), value: formatRepositoryTimestamp(pkg.updated_at)},
         {label: t('npm.permission'), value: packageDetails.administrator ? t('npm.administrator') :
-            packageDetails.member ? `L${Number(pkg.permission_level || 0)}` : t('npm.publicAccess')}
+            packageDetails.member ? permissionLabel(pkg.permission_level) : t('npm.publicAccess'), wide: true}
     ], {className: 'npm-page-section'});
-    return [packageHero(pkg), registryCommands(pkg.name), facts, distTagsSection(), versionsSection(), teamSection()]
-        .filter(Boolean);
+    const information = el('div', {class: 'npm-information-grid'}, facts, distTagsSection());
+    return [
+        packageHero(pkg), registryCommands(pkg.name), information,
+        projectMetadataSection(), readmeSection(), versionsSection(), teamSection()
+    ].filter(Boolean);
 }
 
 /** @returns {Promise<void>} Completion of a selected-package refresh. */

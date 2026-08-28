@@ -77,6 +77,30 @@ type NPMMember struct {
 	AddedAt  int64  `json:"added_at"`
 }
 
+// NPMProjectPerson is one bounded author or contributor identity from package metadata.
+type NPMProjectPerson struct {
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email,omitempty"`
+	URL   string `json:"url,omitempty"`
+}
+
+// NPMProjectMetadata contains bounded presentation metadata from the selected npm version.
+type NPMProjectMetadata struct {
+	Readme         string             `json:"readme,omitempty"`
+	ReadmeFilename string             `json:"readme_filename,omitempty"`
+	License        string             `json:"license,omitempty"`
+	Homepage       string             `json:"homepage,omitempty"`
+	Repository     string             `json:"repository,omitempty"`
+	Bugs           string             `json:"bugs,omitempty"`
+	Author         *NPMProjectPerson  `json:"author,omitempty"`
+	Contributors   []NPMProjectPerson `json:"contributors,omitempty"`
+	Maintainers    []NPMProjectPerson `json:"maintainers,omitempty"`
+	Funding        []string           `json:"funding,omitempty"`
+	Keywords       []string           `json:"keywords,omitempty"`
+	NodeEngine     string             `json:"node_engine,omitempty"`
+	PackageManager string             `json:"package_manager,omitempty"`
+}
+
 // NPMInvitation is a pending npm package-team invitation.
 type NPMInvitation struct {
 	ID         string
@@ -90,10 +114,12 @@ type NPMInvitation struct {
 
 // NPMPackageDetails combines package, version, tag, and visible team metadata.
 type NPMPackageDetails struct {
-	Package       *NPMPackage       `json:"package"`
-	Versions      []*NPMVersion     `json:"versions"`
-	DistTags      map[string]string `json:"dist_tags"`
-	Members       []*NPMMember      `json:"members,omitempty"`
-	Member        bool              `json:"member"`
-	Administrator bool              `json:"administrator"`
+	Package       *NPMPackage         `json:"package"`
+	Versions      []*NPMVersion       `json:"versions"`
+	DistTags      map[string]string   `json:"dist_tags"`
+	Members       []*NPMMember        `json:"members,omitempty"`
+	Project       *NPMProjectMetadata `json:"project,omitempty"`
+	MemberCount   int                 `json:"member_count"`
+	Member        bool                `json:"member"`
+	Administrator bool                `json:"administrator"`
 }

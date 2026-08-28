@@ -292,6 +292,42 @@ func TestNPMTarballValidationRejectsUnsafeAndMismatchedArchives(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 }
 
+func TestNPMRegistryPublishesEncodedScopedPackage(t *testing.T) {
+	app, state, _ := setupNPMTestApp(t)
+	const packageName = "@r3/renop-test-core"
+	const version = "1.2.3"
+	_, err := state.GetDB().CreateNPMPackage("npm", packageName, "alice", false, time.Now().UnixMilli())
+	require.NoError(t, err)
+	tarball := npmTestTarball(t, packageName, version)
+	document := map[string]any{
+		"_id": packageName, "name": packageName, "description": "Scoped package", "access": "public",
+		"dist-tags": map[string]string{"server-e2e": version},
+		"versions": map[string]any{version: map[string]any{
+			"_id": packageName + "@" + version, "name": packageName, "version": version,
+			"description": "Scoped package", "_nodeVersion": "22.0.0", "_npmVersion": "11.0.0",
+			"dist": map[string]any{
+				"tarball": "http://registry.example/npm/@r3/renop-test-core/-/@r3/renop-test-core-1.2.3.tgz",
+			},
+		}},
+		"_attachments": map[string]any{packageName + "-" + version + ".tgz": map[string]any{
+			"content_type": "application/octet-stream",
+			"length":       len(tarball),
+			"data":         base64.StdEncoding.EncodeToString(tarball),
+		}},
+	}
+	body, err := json.Marshal(document)
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodPut,
+		"http://registry.example/npm/@r3%2frenop-test-core", bytes.NewReader(body))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	responseBody, readErr := io.ReadAll(response.Body)
+	require.NoError(t, readErr)
+	require.NoError(t, response.Body.Close())
+	require.Equalf(t, http.StatusCreated, response.StatusCode, "scoped npm publish failed: %s", responseBody)
+}
+
 func TestNPMDistTagValidationSeparatesTagsFromVersionRanges(t *testing.T) {
 	for _, tag := range []string{"latest", "next", "release-2", "2beta"} {
 		assert.Truef(t, validNPMTag(tag), "expected %q to be a valid npm dist-tag", tag)

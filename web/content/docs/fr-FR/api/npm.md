@@ -70,6 +70,10 @@ Les routes d'administration de même origine utilisent JSON et l'en-tête stable
 Les catalogues utilisent `limit` entre 1 et 100 et un `offset` borné. Un paquet privé est omis sans appartenance ou
 accès administrateur. Les détails d'équipe ne sont renvoyés qu'aux membres L3/L4 et aux administrateurs.
 
+La réponse détaillée d'un paquet contient des métadonnées bornées provenant de la version publiée sélectionnée :
+README, auteur, contributeurs, mainteneurs, licence, environnement, mots-clés et liens du projet. Le navigateur rend
+le Markdown du README avec une liste d'éléments et d'URL autorisés, sans activer le HTML ni les liens dangereux du paquet.
+
 ## Authentification et autorisation
 
 Les clients npm acceptent Basic avec un mot de passe ou API Token, ou un API Token comme `_authToken`. Les scopes

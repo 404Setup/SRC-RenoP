@@ -8,7 +8,6 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {marked} from 'marked';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {apiRequest} from '../api.js';
@@ -17,6 +16,7 @@ import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {dockerResponseError} from '../docker-errors.js';
 import {t} from '../i18n.js';
+import {setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
@@ -39,11 +39,6 @@ let activeNavigate = null;
 let dockerLoadSequence = 0;
 
 let inviteLevel = 1;
-
-marked.setOptions({
-    gfm: true,
-    breaks: false
-});
 
 /**
  * Search users for the active Docker image invitation form.
@@ -863,7 +858,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const updateReadmeView = (descText) => {
             if (descText && descText.trim().length > 0) {
                 readmeContent.className = 'docker-readme-body';
-                readmeContent.innerHTML = marked.parse(descText.trim());
+                setSafeMarkdown(readmeContent, descText.trim());
             } else {
                 readmeContent.className = 'docker-readme-empty';
                 readmeContent.replaceChildren(
