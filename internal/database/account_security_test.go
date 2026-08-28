@@ -34,6 +34,24 @@ func testRecoveryHashes(createdAt int64) []core.RecoveryCodeHash {
 	return hashes
 }
 
+func TestPasswordLoginPolicyAcceptsExistingLegacyShortUsername(t *testing.T) {
+	db, err := InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "legacy-username.db"),
+		MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "r3", EncryptedSecret: "legacy-password-hash", CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	}))
+
+	enabled, err := db.PasswordLoginEnabled("r3")
+	require.NoError(t, err)
+	assert.True(t, enabled)
+	_, validReplacement := core.NormalizeUsername("r3")
+	assert.False(t, validReplacement, "legacy login compatibility must not relax replacement username rules")
+}
+
 func TestPrivateAccountSecurityAndRecoveryLifecycle(t *testing.T) {
 	db, err := InitDB(config.DatabaseConfig{
 		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "account-security.db"),

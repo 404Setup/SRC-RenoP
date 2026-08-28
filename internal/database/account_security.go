@@ -177,7 +177,7 @@ func (db *DB) GetAccountSecurity(username string) (*core.AccountSecurity, error)
 // PasswordLoginEnabled returns the lightweight password-login policy used on authentication hot paths.
 func (db *DB) PasswordLoginEnabled(username string) (bool, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
-	if _, valid := core.NormalizeUsername(username); !valid {
+	if username == "" || len(username) > maxTokenNameLen || strings.ContainsAny(username, "\x00\r\n") {
 		return false, core.ErrUserProfileNotFound
 	}
 	var enabled int

@@ -45,6 +45,32 @@ func accountSecurityRequest(t *testing.T, app *fiber.App, method, path string, b
 	return response
 }
 
+func TestPasswordCredentialAcceptsExistingLegacyShortUsername(t *testing.T) {
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "legacy-password.db"),
+		MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("legacy-secret"), bcrypt.MinCost)
+	require.NoError(t, err)
+	account := &core.AccessToken{
+		Name: "r3", EncryptedSecret: string(passwordHash), CreatedAt: time.Now().UTC().Format(time.RFC3339),
+		Permissions: []string{"base"},
+	}
+	require.NoError(t, db.SaveToken(account))
+	state := core.NewAppState()
+	state.Inner.DB = db
+
+	credential, err := VerifyAccountCredential(state, account, "legacy-secret")
+	require.NoError(t, err)
+	require.NotNil(t, credential)
+	assert.Equal(t, credentialKindPassword, credential.Kind)
+	credential, err = VerifyAccountCredential(state, account, "wrong-secret")
+	require.NoError(t, err)
+	assert.Nil(t, credential)
+}
+
 func TestRecoveryCodeHashingUsesOneWayHighEntropyVerifiers(t *testing.T) {
 	codes, hashes, err := generateRecoveryCodeSet()
 	require.NoError(t, err)
