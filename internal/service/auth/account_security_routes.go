@@ -103,6 +103,7 @@ func putPrivateEmail(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update private email")
 	}
+	state.InvalidateAccountAuthCache(true, user.Username)
 	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username: username, Operator: operator, Action: audit.ActionProfileUpdate,
@@ -137,7 +138,7 @@ func putPasswordLogin(c fiber.Ctx, state *core.AppState) error {
 		Username: username, Operator: operator, Action: audit.ActionPasswordUpdate,
 		Details: "Updated password-login policy", AuthMethod: authMethod, SessionID: sessionID, IP: ip,
 	})
-	state.ClearAuthCache()
+	state.InvalidateAccountAuthCache(request.Enabled, user.Username)
 	setPrivateResponseHeaders(c)
 	return c.JSON(security)
 }
@@ -220,7 +221,7 @@ func purgeRecoveredSessions(state *core.AppState, username string) {
 		}
 		return true
 	})
-	state.ClearAuthCache()
+	state.InvalidateAccountAuthCache(true, username)
 }
 
 func postPasswordRecovery(c fiber.Ctx, state *core.AppState) error {

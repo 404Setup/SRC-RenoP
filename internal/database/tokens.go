@@ -136,35 +136,25 @@ func (db *DB) GetTokenByName(name string) (*core.AccessToken, error) {
 	}
 
 	lowerName := strings.ToLower(name)
-	if tok, ok := db.tokenCache.Get(lowerName); ok {
-		return tok, nil
-	}
-
-	query := `SELECT name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json FROM tokens WHERE name = ?`
-	row := db.QueryRow(query, lowerName)
-
-	var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
-	var typeValue int32
-	var expiresAt sql.NullInt64
-
-	err := row.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash, &tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			db.tokenCache.Set(lowerName, nil, 30*time.Second)
-			return nil, nil
+	tok, err := db.tokenCache.GetOrLoad(lowerName, func() (*core.AccessToken, time.Duration, error) {
+		query := `SELECT name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json FROM tokens WHERE name = ?`
+		row := db.QueryRow(query, lowerName)
+		var tokenName, tokenType, encryptedSecret, passwordHash, tokensJSON, createdAt, description, permissionsJSON string
+		var typeValue int32
+		var expiresAt sql.NullInt64
+		if scanErr := row.Scan(&tokenName, &tokenType, &typeValue, &encryptedSecret, &passwordHash,
+			&tokensJSON, &createdAt, &description, &expiresAt, &permissionsJSON); errors.Is(scanErr, sql.ErrNoRows) {
+			return nil, 30 * time.Second, nil
+		} else if scanErr != nil {
+			return nil, 0, fmt.Errorf("failed to query token by name (%s): %w", lowerName, scanErr)
 		}
-		return nil, fmt.Errorf("failed to query token by name (%s): %w", lowerName, err)
-	}
-
-	tok, err := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash, tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+		loaded, parseErr := parseTokenRow(tokenName, tokenType, typeValue, encryptedSecret, passwordHash,
+			tokensJSON, createdAt, description, expiresAt, permissionsJSON)
+		return loaded, 10 * time.Minute, parseErr
+	})
 	if err != nil {
 		return nil, err
 	}
-	db.tokenCache.Set(lowerName, tok, 10*time.Minute)
-	for _, t := range tok.Tokens {
-		db.tokenSecretCache.Set(t, tok, 10*time.Minute)
-	}
-
 	return tok, nil
 }
 
@@ -261,6 +251,9 @@ func (db *DB) SaveToken(token *core.AccessToken) error {
 	}
 
 	db.finishTokenUpdate(name, token)
+	if db.userIDCache != nil {
+		db.userIDCache.Set(name, userID, 30*time.Minute)
+	}
 
 	return nil
 }
@@ -375,6 +368,9 @@ func (db *DB) CreateToken(token *core.AccessToken, nickname string, changedAt in
 	}
 	token.Tokens = persistedTokens
 	db.finishTokenUpdate(name, token)
+	db.cacheUserProfile(&core.UserProfile{
+		UserID: userID, Username: name, Nickname: nickname, CreatedAt: token.CreatedAt,
+	})
 	return nil
 }
 
@@ -509,6 +505,7 @@ func (db *DB) DeleteToken(name string) error {
 	db.sessionCache.DeleteFunc(func(_ string, sess *core.Session) bool {
 		return sess == nil || strings.EqualFold(sess.Username, lowerName)
 	})
+	db.invalidateUserProfileCaches(lowerName)
 
 	return nil
 }
@@ -561,6 +558,10 @@ func (db *DB) RenameToken(oldName, newName string, token *core.AccessToken) erro
 		return fmt.Errorf("commit token rename: %w", err)
 	}
 	db.finishTokenRename(lowerOld, lowerNew, token)
+	db.invalidateUserProfileCaches(lowerOld, lowerNew)
+	if db.userIDCache != nil {
+		db.userIDCache.Set(lowerNew, userID, 30*time.Minute)
+	}
 	return nil
 }
 
@@ -706,6 +707,9 @@ func (db *DB) finishTokenUpdate(name string, token *core.AccessToken) {
 	})
 	for _, secret := range token.Tokens {
 		db.tokenSecretCache.Set(secret, token, 10*time.Minute)
+	}
+	if db.profileCache != nil {
+		db.profileCache.Delete(name)
 	}
 }
 

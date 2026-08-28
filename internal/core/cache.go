@@ -88,6 +88,57 @@ func (state *AppState) ClearAuthCache() {
 	state.Inner.AuthCacheEntries.Store(0)
 }
 
+func (state *AppState) deleteAuthCacheWhere(predicate func(AuthCacheEntry) bool) {
+	state.Inner.AuthCacheWriteLock.Lock()
+	defer state.Inner.AuthCacheWriteLock.Unlock()
+	var deleted uint64
+	state.Inner.AuthCache.Range(func(key string, entry AuthCacheEntry) bool {
+		if predicate(entry) {
+			if _, loaded := state.Inner.AuthCache.LoadAndDelete(key); loaded {
+				deleted++
+			}
+		}
+		return true
+	})
+	if deleted != 0 {
+		state.Inner.AuthCacheEntries.Add(^(deleted - 1))
+	}
+}
+
+// InvalidateAccountAuthCache removes cached credentials for selected accounts.
+// When clearFailures is true, negative credential results are also discarded so newly valid credentials work immediately.
+func (state *AppState) InvalidateAccountAuthCache(clearFailures bool, usernames ...string) {
+	if state == nil || state.Inner == nil {
+		return
+	}
+	names := make(map[string]struct{}, len(usernames))
+	for _, username := range usernames {
+		if username = strings.ToLower(strings.TrimSpace(username)); username != "" {
+			names[username] = struct{}{}
+		}
+	}
+	state.deleteAuthCacheWhere(func(entry AuthCacheEntry) bool {
+		if clearFailures && entry.Invalid {
+			return true
+		}
+		if entry.User == nil {
+			return false
+		}
+		_, remove := names[strings.ToLower(entry.User.Username)]
+		return remove
+	})
+}
+
+// InvalidateAPITokenAuthCache removes only authentication results produced by one revoked API token.
+func (state *AppState) InvalidateAPITokenAuthCache(tokenID string) {
+	if state == nil || state.Inner == nil || tokenID == "" {
+		return
+	}
+	state.deleteAuthCacheWhere(func(entry AuthCacheEntry) bool {
+		return entry.APITokenID == tokenID
+	})
+}
+
 func (state *AppState) StoreMetadataCache(key string, metadata *config.Metadata) {
 	if metadata == nil {
 		return

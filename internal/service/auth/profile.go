@@ -70,7 +70,7 @@ func UpdatePassword(c fiber.Ctx, state *core.AppState, opChan chan<- token.Token
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to update token")
 	}
-	state.ClearAuthCache()
+	state.InvalidateAccountAuthCache(true, user.Username)
 
 	_, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{

@@ -96,7 +96,6 @@ func createAPITokenForAccount(state *core.AppState, account *core.AccessToken, n
 	if err := state.GetDB().CreateAPIToken(account.Name, token, apiTokenSecretHash(secret)); err != nil {
 		return nil, "", err
 	}
-	state.ClearAuthCache()
 	return token, secret, nil
 }
 
@@ -178,7 +177,7 @@ func deleteProfileAPIToken(c fiber.Ctx, state *core.AppState) error {
 	} else if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to revoke API token")
 	}
-	state.ClearAuthCache()
+	state.InvalidateAPITokenAuthCache(tokenID)
 	username, operator, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	audit.Log(state, &core.AuditLogEntry{
 		Username: username, Operator: operator, Action: audit.ActionTokenRevoke,

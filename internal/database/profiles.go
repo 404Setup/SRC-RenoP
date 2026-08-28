@@ -67,7 +67,50 @@ func (db *DB) getUserProfile(whereClause, value string) (*core.UserProfile, erro
 	if err != nil {
 		return nil, fmt.Errorf("load user profile %s: %w", value, err)
 	}
+	db.cacheUserProfile(profile)
 	return profile, nil
+}
+
+func profileSummary(profile *core.UserProfile) core.UserProfile {
+	if profile == nil {
+		return core.UserProfile{}
+	}
+	return core.UserProfile{
+		UserID: profile.UserID, Username: profile.Username, CreatedAt: profile.CreatedAt,
+		Nickname: profile.Nickname, UsernameChangeWindowAt: profile.UsernameChangeWindowAt,
+		UsernameChangeCount: profile.UsernameChangeCount,
+	}
+}
+
+func (db *DB) cacheUserProfile(profile *core.UserProfile) {
+	if db == nil || profile == nil || profile.UserID == "" || profile.Username == "" {
+		return
+	}
+	username := strings.ToLower(profile.Username)
+	if db.userIDCache != nil {
+		db.userIDCache.Set(username, profile.UserID, 30*time.Minute)
+	}
+	if db.profileCache != nil {
+		db.profileCache.Set(username, profileSummary(profile), 10*time.Minute)
+	}
+}
+
+func (db *DB) invalidateUserProfileCaches(usernames ...string) {
+	if db == nil {
+		return
+	}
+	for _, username := range usernames {
+		username = strings.ToLower(strings.TrimSpace(username))
+		if username == "" {
+			continue
+		}
+		if db.userIDCache != nil {
+			db.userIDCache.Delete(username)
+		}
+		if db.profileCache != nil {
+			db.profileCache.Delete(username)
+		}
+	}
 }
 
 // ListUserPackageMemberships returns format-specific teams linked to an immutable user ID.
@@ -134,8 +177,7 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 	if len(usernames) == 0 || len(usernames) > 50 {
 		return nil, errors.New("user profile batch must contain between 1 and 50 usernames")
 	}
-	arguments := make([]any, 0, len(usernames))
-	placeholders := make([]string, 0, len(usernames))
+	requested := make([]string, 0, len(usernames))
 	seen := make(map[string]struct{}, len(usernames))
 	for _, candidate := range usernames {
 		username := strings.ToLower(SanitizeInputString(strings.TrimSpace(candidate), maxTokenNameLen))
@@ -146,11 +188,33 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 			continue
 		}
 		seen[username] = struct{}{}
-		arguments = append(arguments, username)
-		placeholders = append(placeholders, "?")
+		requested = append(requested, username)
 	}
-	if len(arguments) == 0 {
+	if len(requested) == 0 {
 		return map[string]*core.UserProfile{}, nil
+	}
+	profiles := make(map[string]*core.UserProfile, len(requested))
+	missing := make([]string, 0, len(requested))
+	for _, username := range requested {
+		if db.profileCache != nil {
+			if cached, ok := db.profileCache.Get(username); ok {
+				if cached.UserID != "" {
+					copy := cached
+					profiles[username] = &copy
+				}
+				continue
+			}
+		}
+		missing = append(missing, username)
+	}
+	if len(missing) == 0 {
+		return profiles, nil
+	}
+	arguments := make([]any, len(missing))
+	placeholders := make([]string, len(missing))
+	for index, username := range missing {
+		arguments[index] = username
+		placeholders[index] = "?"
 	}
 	rows, err := db.Query(`SELECT p.user_id, p.username, t.created_at, p.nickname,
 		p.rename_window_started_at, p.rename_count
@@ -160,7 +224,7 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 		return nil, fmt.Errorf("load user profile batch: %w", err)
 	}
 	defer rows.Close()
-	profiles := make(map[string]*core.UserProfile, len(arguments))
+	found := make(map[string]struct{}, len(missing))
 	for rows.Next() {
 		profile := &core.UserProfile{}
 		if err := rows.Scan(&profile.UserID, &profile.Username, &profile.CreatedAt, &profile.Nickname,
@@ -168,9 +232,18 @@ func (db *DB) GetUserProfiles(usernames []string) (map[string]*core.UserProfile,
 			return nil, fmt.Errorf("scan user profile batch: %w", err)
 		}
 		profiles[profile.Username] = profile
+		found[profile.Username] = struct{}{}
+		db.cacheUserProfile(profile)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate user profile batch: %w", err)
+	}
+	if db.profileCache != nil {
+		for _, username := range missing {
+			if _, ok := found[username]; !ok {
+				db.profileCache.Set(username, core.UserProfile{}, 30*time.Second)
+			}
+		}
 	}
 	return profiles, nil
 }
@@ -278,6 +351,8 @@ func (db *DB) UpdateUserProfile(oldUsername, newUsername, nickname string, token
 	} else {
 		db.finishTokenUpdate(oldUsername, token)
 	}
+	db.invalidateUserProfileCaches(oldUsername, newUsername)
+	db.cacheUserProfile(profile)
 	return profile, nil
 }
 
@@ -291,11 +366,20 @@ func (db *DB) userIDForUsername(username string) (string, error) {
 	if username == "" {
 		return "", core.ErrUserProfileNotFound
 	}
-	var userID string
-	if err := db.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, username).Scan(&userID); errors.Is(err, sql.ErrNoRows) {
+	userID, err := db.userIDCache.GetOrLoad(username, func() (string, time.Duration, error) {
+		var loaded string
+		if scanErr := db.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, username).Scan(&loaded); errors.Is(scanErr, sql.ErrNoRows) {
+			return "", 30 * time.Second, nil
+		} else if scanErr != nil {
+			return "", 0, fmt.Errorf("resolve user ID for %s: %w", username, scanErr)
+		}
+		return loaded, 30 * time.Minute, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if userID == "" {
 		return "", core.ErrUserProfileNotFound
-	} else if err != nil {
-		return "", fmt.Errorf("resolve user ID for %s: %w", username, err)
 	}
 	return userID, nil
 }
@@ -305,14 +389,14 @@ func (db *DB) userIDForExistingAccount(username string) (string, error) {
 	if username == "" {
 		return "", core.ErrUserProfileNotFound
 	}
-	var userID string
-	if err := db.QueryRow(`SELECT p.user_id FROM user_profiles p JOIN tokens t ON t.name = p.username
-		WHERE p.username = ?`, username).Scan(&userID); errors.Is(err, sql.ErrNoRows) {
-		return "", core.ErrUserProfileNotFound
-	} else if err != nil {
-		return "", fmt.Errorf("resolve existing account ID for %s: %w", username, err)
+	token, err := db.GetTokenByName(username)
+	if err != nil {
+		return "", err
 	}
-	return userID, nil
+	if token == nil {
+		return "", core.ErrUserProfileNotFound
+	}
+	return db.userIDForUsername(username)
 }
 
 func userIDForUsernameTx(tx *Tx, username string) (string, error) {
@@ -340,6 +424,9 @@ func (db *DB) ensureUserProfile(username string) (string, error) {
 			return existingID, nil
 		}
 		return "", fmt.Errorf("create stable user identity for %s: %w", username, err)
+	}
+	if db.userIDCache != nil {
+		db.userIDCache.Set(strings.ToLower(strings.TrimSpace(username)), userID, 30*time.Minute)
 	}
 	return userID, nil
 }

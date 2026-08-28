@@ -30,7 +30,10 @@
   row-level snapshot journal that restores interrupted multi-statement transactions at startup; it never uses
   `clickhouse.OpenDB` or the `database/sql` compatibility API. Connection handling, transaction recovery, portable SQL
   parsing, scan conversion, schema declarations, and dialect translation remain isolated in focused `clickhouse*.go`
-  modules. Includes
+  modules. Bounded sharded read-through caches use randomized zero-allocation key hashing and coalesce concurrent
+  token, session, and immutable-user lookup misses;
+  nickname-first profile batches query only uncached accounts, and commit-time invalidation prevents stale rename or
+  creation results. Includes
   zero-alloc SQL parameter rebinding (`RebindPostgres`), unified transaction wrappers, schema migrations, public user
   profiles, immutable user identities for package ownership, private normalized login emails, serialized login-method
   invariants, masked account-token/profile mutations, irreversible one-time recovery-code verifiers, and hashed,
@@ -50,6 +53,8 @@
   scopes remain authentication-only compatibility.
   Token secrets are owner-managed from a browser session; administrators cannot mint credentials for another user.
   Browser session secrets are cookie-only, while Basic/password credentials are restricted to package protocols.
+  Authentication-result invalidation is scoped to the changed account or revoked API token so unrelated hot entries
+  remain available; validity-changing operations also remove bounded negative credential results.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation
   extraction/viewer (`/cargodoc/...`). Local publication streams a bounded Markdown README selected by the validated

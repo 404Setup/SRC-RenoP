@@ -33,6 +33,8 @@ type DB struct {
 	tokenCache       *TTLCache[string, *core.AccessToken]
 	tokenSecretCache *TTLCache[string, *core.AccessToken]
 	sessionCache     *TTLCache[string, *core.Session]
+	userIDCache      *TTLCache[string, string]
+	profileCache     *TTLCache[string, core.UserProfile]
 }
 
 type Tx struct {
@@ -210,9 +212,11 @@ func InitDB(cfg config.DatabaseConfig) (*DB, error) {
 }
 
 func newDatabaseCaches(db *DB) *DB {
-	db.tokenCache = NewTTLCache[string, *core.AccessToken](10 * time.Minute)
-	db.tokenSecretCache = NewTTLCache[string, *core.AccessToken](10 * time.Minute)
-	db.sessionCache = NewTTLCache[string, *core.Session](15 * time.Minute)
+	db.tokenCache = NewTTLCacheWithCapacity[string, *core.AccessToken](10*time.Minute, 4096)
+	db.tokenSecretCache = NewTTLCacheWithCapacity[string, *core.AccessToken](10*time.Minute, 8192)
+	db.sessionCache = NewTTLCacheWithCapacity[string, *core.Session](15*time.Minute, 32768)
+	db.userIDCache = NewTTLCacheWithCapacity[string, string](30*time.Minute, 8192)
+	db.profileCache = NewTTLCacheWithCapacity[string, core.UserProfile](10*time.Minute, 8192)
 	return db
 }
 
@@ -394,5 +398,11 @@ func (db *DB) EvictExpiredCaches() {
 	}
 	if db.sessionCache != nil {
 		db.sessionCache.EvictExpired()
+	}
+	if db.userIDCache != nil {
+		db.userIDCache.EvictExpired()
+	}
+	if db.profileCache != nil {
+		db.profileCache.EvictExpired()
 	}
 }

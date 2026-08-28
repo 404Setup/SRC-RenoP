@@ -35,41 +35,27 @@ func (db *DB) GetSession(sessionToken string) (*core.Session, error) {
 		return nil, nil
 	}
 
-	if sess, ok := db.sessionCache.Get(sessionToken); ok {
-		return sess, nil
-	}
-
-	query := `SELECT public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE session_token = ?`
-	row := db.QueryRow(query, sessionToken)
-
-	var publicID, username, ip, userAgent, loginMethod string
-	var createdAt, lastActive int64
-
-	err := row.Scan(&publicID, &username, &ip, &userAgent, &createdAt, &lastActive, &loginMethod)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			db.sessionCache.Set(sessionToken, nil, 30*time.Second)
-			return nil, nil
+	return db.sessionCache.GetOrLoad(sessionToken, func() (*core.Session, time.Duration, error) {
+		query := `SELECT public_id, username, ip, user_agent, created_at, last_active, login_method FROM sessions WHERE session_token = ?`
+		row := db.QueryRow(query, sessionToken)
+		var publicID, username, ip, userAgent, loginMethod string
+		var createdAt, lastActive int64
+		if scanErr := row.Scan(&publicID, &username, &ip, &userAgent, &createdAt, &lastActive,
+			&loginMethod); errors.Is(scanErr, sql.ErrNoRows) {
+			return nil, 30 * time.Second, nil
+		} else if scanErr != nil {
+			return nil, 0, fmt.Errorf("failed to query session (%s...): %w", sessionTokenPrefix(sessionToken), scanErr)
 		}
-		return nil, fmt.Errorf("failed to query session (%s...): %w", sessionTokenPrefix(sessionToken), err)
-	}
-
-	if loginMethod == "" {
-		loginMethod = "password"
-	}
-
-	session := &core.Session{
-		PublicID:    publicID,
-		Username:    strings.ToLower(username),
-		IP:          ip,
-		UserAgent:   userAgent,
-		CreatedAt:   createdAt,
-		LoginMethod: loginMethod,
-	}
-	session.LastActive.Store(lastActive)
-
-	db.sessionCache.Set(sessionToken, session, 15*time.Minute)
-	return session, nil
+		if loginMethod == "" {
+			loginMethod = "password"
+		}
+		session := &core.Session{
+			PublicID: publicID, Username: strings.ToLower(username), IP: ip, UserAgent: userAgent,
+			CreatedAt: createdAt, LoginMethod: loginMethod,
+		}
+		session.LastActive.Store(lastActive)
+		return session, 15 * time.Minute, nil
+	})
 }
 
 func (db *DB) SaveSession(session *core.Session, sessionToken string) error {

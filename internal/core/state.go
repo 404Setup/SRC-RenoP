@@ -35,6 +35,7 @@ type AuthCacheEntry struct {
 	Scopes         []string
 	Targets        map[string][]string
 	ExpiredAt      int64
+	Invalid        bool
 }
 
 var ErrDatabaseUnavailable = errors.New("database unavailable")

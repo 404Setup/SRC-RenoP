@@ -735,7 +735,7 @@ func AuthMiddleware(state *core.AppState) fiber.Handler {
 				} else if !isSessionAuth {
 					state.StoreAuthCache(authCacheKey, core.AuthCacheEntry{
 						User: InvalidCredentialsUser, CredentialKind: credentialKindInvalid,
-						ExpiredAt: time.Now().Add(30 * time.Second).UnixMilli(),
+						ExpiredAt: time.Now().Add(30 * time.Second).UnixMilli(), Invalid: true,
 					})
 				}
 			} else if authenticated.User == InvalidCredentialsUser {

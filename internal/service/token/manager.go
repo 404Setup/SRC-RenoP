@@ -109,7 +109,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 			if existing == nil {
 				state.Inner.TokensCount.Add(1)
 			}
-			state.ClearAuthCache()
+			state.InvalidateAccountAuthCache(true, safeName)
 			completeTokenOp(op, nil)
 
 		case OpTokenCreate:
@@ -130,7 +130,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				continue
 			}
 			state.Inner.TokensCount.Add(1)
-			state.ClearAuthCache()
+			state.InvalidateAccountAuthCache(true, safeName)
 			completeTokenOp(op, nil)
 
 		case OpTokenDelete:
@@ -158,7 +158,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				}
 				return true
 			})
-			state.ClearAuthCache()
+			state.InvalidateAccountAuthCache(false, safeName)
 			completeTokenOp(op, nil)
 
 		case OpTokenUpdate:
@@ -176,7 +176,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 				completeTokenOp(op, err)
 				continue
 			}
-			state.ClearAuthCache()
+			state.InvalidateAccountAuthCache(true, safeName)
 			completeTokenOp(op, nil)
 
 		case OpTokenRename:
@@ -222,7 +222,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 						return true
 					})
 				}
-				state.ClearAuthCache()
+				state.InvalidateAccountAuthCache(true, oldName, newName)
 				completeTokenOp(op, nil)
 			} else {
 				completeTokenOp(op, errors.New("token not found"))
@@ -262,7 +262,7 @@ func StartTokenConsumer(state *core.AppState, opChan <-chan TokenOp) {
 					return true
 				})
 			}
-			state.ClearAuthCache()
+			state.InvalidateAccountAuthCache(true, oldName, newName)
 			completeTokenOp(op, nil)
 		}
 	}

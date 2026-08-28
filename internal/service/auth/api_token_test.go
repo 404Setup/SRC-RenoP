@@ -291,7 +291,7 @@ func TestAPITokenScopesRemainCappedByCurrentAccountPermissions(t *testing.T) {
 	require.NoError(t, db.UpdateToken("admin", func(account *core.AccessToken) {
 		account.Permissions = []string{"base"}
 	}))
-	state.ClearAuthCache()
+	state.InvalidateAccountAuthCache(false, "admin")
 	assert.Equal(t, http.StatusForbidden, request())
 }
 
