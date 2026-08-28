@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "Police web personnalisée",
     "settings.fontUrl": "URL du fichier de police",
-    "settings.fontUrlHint": "URL WOFF2, WOFF ou TTF directe ; l’hôte doit autoriser les requêtes de police du navigateur",
+    "settings.fontUrlHint": "URL directe d’un fichier WOFF2, WOFF ou TTF, ou URL CSS Google Fonts",
     "settings.fontApplyHint": "Les modifications enregistrées s’appliquent aux nouvelles pages chargées. La police personnalisée est téléchargée en arrière-plan et activée une fois prête.",
     "settings.compliance": "Conformité",
     "settings.complianceDesc": "Informations légales et réglementaires",

@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "自訂網絡字體",
     "settings.fontUrl": "字體檔案 URL",
-    "settings.fontUrlHint": "WOFF2、WOFF 或 TTF 檔案直連；來源網站要容許瀏覽器載入字體",
+    "settings.fontUrlHint": "WOFF2、WOFF 或 TTF 檔案直連，或者 Google Fonts CSS URL",
     "settings.fontApplyHint": "儲存之後會套用喺新載入嘅頁面。自訂字體會喺背景下載，完整載入之後先啟用。",
     "settings.compliance": "合規資訊",
     "settings.complianceDesc": "法律與監管備案資訊",

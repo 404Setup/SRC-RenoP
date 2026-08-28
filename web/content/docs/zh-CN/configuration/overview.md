@@ -110,7 +110,8 @@ frontend:
 
 品牌 URL 使用前会被校验。背景图必须满足 WebP 格式与大小策略。
 `font_preset` 支持 `system`、`inter`、`noto_sans`、`open_sans`、`source_sans` 和 `custom`。预设使用本机
-已安装字体；自定义字体从同源路径或 HTTP(S) URL 在后台加载，仅在完整加载后启用，因此不会阻塞首次渲染。
+已安装字体；自定义值可使用 WOFF2、WOFF、TTF 文件直链或 Google Fonts CSS URL。资源在后台加载，主要字体
+完整可用后才会启用，因此不会阻塞首次渲染。
 
 ### `updater` 更新策略
 

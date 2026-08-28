@@ -1049,6 +1049,9 @@ func TestIndexAndConditionalAssetsRetainCacheSafetyHeaders(t *testing.T) {
 	if policy := indexResponse.Header.Get("Content-Security-Policy"); !strings.Contains(policy, "font-src 'self' https: http:") {
 		t.Fatalf("index CSP does not permit validated asynchronous webfonts: %q", policy)
 	}
+	if policy := indexResponse.Header.Get("Content-Security-Policy"); !strings.Contains(policy, "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com") {
+		t.Fatalf("index CSP does not permit the supported Google Fonts stylesheet host: %q", policy)
+	}
 
 	assetResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/js/main.js", nil))
 	if err != nil {

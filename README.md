@@ -196,7 +196,7 @@ frontend:
   organization_logo: /svg/logo.svg
   background_url: ""              # Public WebP <= 5 MiB; served as a login-page background
   font_preset: system             # system | inter | noto_sans | open_sans | source_sans | custom
-  font_url: ""                    # Same-origin or HTTP(S) font file URL when font_preset is custom
+  font_url: ""                    # Direct font file or Google Fonts CSS URL when font_preset is custom
   icp_license: ""                 # Optional: ICP filing number (displayed in footer, China)
   public_security_filing: ""      # Optional: Public security filing number (China)
   legal_notice_url: ""            # Optional: Absolute URL for the legal notice footer link

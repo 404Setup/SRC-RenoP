@@ -113,8 +113,8 @@ frontend:
 
 Les URL sont validées avant usage. L’arrière-plan doit respecter la politique WebP et de taille.
 `font_preset` accepte `system`, `inter`, `noto_sans`, `open_sans`, `source_sans` ou `custom`. Les préréglages utilisent
-les polices installées localement. Une police personnalisée est chargée en arrière-plan depuis un chemin de même origine
-ou une URL HTTP(S), puis activée uniquement après son chargement complet afin de ne pas bloquer le rendu initial.
+les polices installées localement. Une valeur personnalisée peut être une ressource WOFF2, WOFF ou TTF directe, ou une
+URL CSS Google Fonts. Elle est chargée en arrière-plan et activée après le chargement de sa famille principale.
 
 ### Politique `updater`
 

@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "自定义网络字体",
     "settings.fontUrl": "字体文件 URL",
-    "settings.fontUrlHint": "WOFF2、WOFF 或 TTF 文件直链；来源站点必须允许浏览器加载字体",
+    "settings.fontUrlHint": "WOFF2、WOFF 或 TTF 文件直链，或者 Google Fonts CSS URL",
     "settings.fontApplyHint": "保存后对新加载的页面生效。自定义字体会在后台下载，并仅在完整加载后启用。",
     "settings.compliance": "合规信息",
     "settings.complianceDesc": "法律与监管备案信息",

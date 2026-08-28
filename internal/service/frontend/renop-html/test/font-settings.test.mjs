@@ -30,10 +30,15 @@ test('custom font loading is asynchronous and activates only after a complete lo
     const source = readFileSync(join(frontendRoot, 'js/font.js'), 'utf8');
     const idle = source.indexOf('requestIdleCallback');
     const createFace = source.indexOf('new FontFace');
-    const awaitLoad = source.indexOf('await face.load()');
-    const activate = source.indexOf("document.fonts.add(loaded)");
-    assert.ok(idle >= 0 && createFace >= 0 && awaitLoad > createFace && activate > awaitLoad);
+    const awaitLoad = source.indexOf('await withFontTimeout(face.load())');
+    const addFace = source.indexOf('document.fonts.add(loaded)', createFace);
+    assert.ok(idle >= 0 && createFace >= 0 && awaitLoad > createFace && addFace > awaitLoad);
     assert.ok(source.includes("root.dataset.customFontLoaded = 'true'"));
+    assert.ok(source.includes("googleFontsStylesheetHost = 'fonts.googleapis.com'"));
+    assert.ok(source.includes("parsed.searchParams.getAll('family')"));
+    assert.ok(source.includes("link.media = 'print'"));
+    assert.ok(source.includes('document.fonts.load('));
+    assert.ok(source.includes("root.style.setProperty('--font-sans'"));
     assert.doesNotMatch(source, /document\.write|<link[^>]+stylesheet/i);
 });
 

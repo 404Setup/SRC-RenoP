@@ -113,8 +113,8 @@ frontend:
 
 Branding URLs are validated before use. Background images must satisfy the configured WebP and size policy.
 `font_preset` accepts `system`, `inter`, `noto_sans`, `open_sans`, `source_sans`, or `custom`. Presets use locally
-installed fonts. Custom font files are fetched asynchronously from a same-origin path or an HTTP(S) URL and activate
-only after the complete font has loaded, so they do not block initial rendering.
+installed fonts. A custom value may be a direct WOFF2, WOFF, or TTF resource or a Google Fonts CSS URL. It is fetched
+asynchronously and activates only after its primary family has loaded, so it does not block initial rendering.
 
 ### `updater` policy
 

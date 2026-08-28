@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "Fuente web personalizada",
     "settings.fontUrl": "URL del archivo de fuente",
-    "settings.fontUrlHint": "URL directa WOFF2, WOFF o TTF; el servidor debe permitir solicitudes de fuentes del navegador",
+    "settings.fontUrlHint": "URL directa de un archivo WOFF2, WOFF o TTF, o una URL CSS de Google Fonts",
     "settings.fontApplyHint": "Los cambios guardados se aplican a las páginas que se carguen de nuevo. La fuente personalizada se descarga en segundo plano y solo se activa al terminar.",
     "settings.compliance": "Cumplimiento",
     "settings.complianceDesc": "Información legal y regulatoria",

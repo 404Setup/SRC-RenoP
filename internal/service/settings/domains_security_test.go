@@ -57,6 +57,7 @@ func TestValidateFontURL(t *testing.T) {
 		{name: "same origin", url: "/fonts/interface.woff2"},
 		{name: "HTTPS", url: "https://cdn.example.com/interface.woff2"},
 		{name: "HTTP", url: "http://fonts.example.com/interface.woff"},
+		{name: "Google Fonts CSS", url: "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Roboto:wght@400;700&display=swap"},
 		{name: "relative without slash", url: "fonts/interface.woff2", wantErr: true},
 		{name: "protocol relative", url: "//cdn.example.com/interface.woff2", wantErr: true},
 		{name: "credentials", url: "https://user:secret@cdn.example.com/interface.woff2", wantErr: true},

@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "カスタム Web フォント",
     "settings.fontUrl": "フォントファイル URL",
-    "settings.fontUrlHint": "WOFF2、WOFF、TTF の直接 URL。配信元でブラウザーからのフォント要求を許可する必要があります",
+    "settings.fontUrlHint": "WOFF2、WOFF、TTF ファイルの直接 URL、または Google Fonts の CSS URL",
     "settings.fontApplyHint": "保存した変更は新しく読み込むページに適用されます。カスタムフォントはバックグラウンドで取得され、読み込み完了後に有効になります。",
     "settings.compliance": "コンプライアンス",
     "settings.complianceDesc": "法的および規制に関する情報",

@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "사용자 지정 웹 글꼴",
     "settings.fontUrl": "글꼴 파일 URL",
-    "settings.fontUrlHint": "WOFF2, WOFF 또는 TTF 직접 URL이며 호스트가 브라우저 글꼴 요청을 허용해야 합니다",
+    "settings.fontUrlHint": "WOFF2, WOFF, TTF 파일 직접 URL 또는 Google Fonts CSS URL",
     "settings.fontApplyHint": "저장한 변경 사항은 새로 불러오는 페이지에 적용됩니다. 사용자 지정 글꼴은 백그라운드에서 내려받고 로드가 끝난 뒤 활성화됩니다.",
     "settings.compliance": "규정 준수",
     "settings.complianceDesc": "법률 및 규제 신고 정보",

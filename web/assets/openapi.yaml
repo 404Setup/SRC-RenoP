@@ -1082,7 +1082,7 @@ components:
           description: Locally resolved font stack, or `custom` for asynchronous webfont loading.
         font_url:
           type: string
-          description: Same-origin path or credential-free HTTP(S) font file URL required by the custom preset.
+          description: Direct font-file URL or Google Fonts CSS URL required by the custom preset.
 
     ServerConfig:
       type: object

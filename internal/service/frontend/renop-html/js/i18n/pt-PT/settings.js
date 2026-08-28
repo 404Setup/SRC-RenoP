@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "Tipo de letra Web personalizado",
     "settings.fontUrl": "URL do ficheiro de tipo de letra",
-    "settings.fontUrlHint": "URL WOFF2, WOFF ou TTF direta; o servidor tem de permitir pedidos de tipos de letra do navegador",
+    "settings.fontUrlHint": "URL direta de um ficheiro WOFF2, WOFF ou TTF, ou URL CSS do Google Fonts",
     "settings.fontApplyHint": "As alterações guardadas aplicam-se a páginas carregadas de novo. O tipo de letra personalizado é transferido em segundo plano e ativado apenas quando estiver pronto.",
     "settings.compliance": "Conformidade",
     "settings.complianceDesc": "Informações legais e regulamentares",

@@ -93,7 +93,7 @@ export default Object.freeze({
     "settings.fontSourceSans": "Source Sans 3",
     "settings.fontCustom": "Eigene Webschrift",
     "settings.fontUrl": "URL der Schriftdatei",
-    "settings.fontUrlHint": "Direkte WOFF2-, WOFF- oder TTF-URL; der Host muss Schriftanfragen des Browsers erlauben",
+    "settings.fontUrlHint": "Direkte WOFF2-, WOFF- oder TTF-Datei-URL oder eine Google-Fonts-CSS-URL",
     "settings.fontApplyHint": "Gespeicherte Änderungen gelten für neu geladene Seiten. Eigene Schriften werden im Hintergrund geladen und erst danach aktiviert.",
     "settings.compliance": "Compliance",
     "settings.complianceDesc": "Rechtliche und regulatorische Informationen",
