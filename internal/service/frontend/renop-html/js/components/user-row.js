@@ -136,8 +136,8 @@ export function openUserActionsDialog(token, options = {}) {
             icon: 'fileKey',
             iconColor: '#10b981',
             iconBg: 'rgba(16, 185, 129, 0.1)',
-            title: t('users.fidoDevices') || 'FIDO Devices',
-            desc: t('users.fidoDevicesDesc') || 'Manage FIDO security keys and devices',
+            title: t('users.fidoDevices') || 'Passkeys',
+            desc: t('users.fidoDevicesDesc') || 'Manage Passkeys',
             handler: options.onFido
         },
         {

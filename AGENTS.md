@@ -142,7 +142,9 @@
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
   Private email, password-login policy, and one-time recovery-code controls are isolated in
   `js/account-security.js` inside a default-collapsed, width-contained security card, while the public four-code reset
-  workflow lives in `js/password-recovery.js`.
+  workflow lives in `js/password-recovery.js`. The login dialog keeps password recovery as a secondary link and groups
+  Passkey and optional GitHub controls in one provider section below the `or` divider; visible copy uses Passkey while
+  stable FIDO/WebAuthn routes and audit identifiers remain unchanged.
   `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, one-time secret display, shared
   clipboard feedback, immediate revocation, and live language refresh without exposing stored credential material.
   `js/response-errors.js` is the shared boundary for user-facing HTTP failures: it reads only bounded error bodies,

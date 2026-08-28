@@ -639,12 +639,12 @@
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/><circle cx="12" cy="15" r="1.5"/></svg>
                         </div>
                         <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.fidoTitle">FIDO Devices</h3>
-                            <p class="profile-section-desc" data-i18n="profile.fidoDesc">Manage FIDO / Passkey security devices used for passwordless login.</p>
+                            <h3 class="profile-section-title" data-i18n="profile.fidoTitle">Passkeys</h3>
+                            <p class="profile-section-desc" data-i18n="profile.fidoDesc">Manage Passkeys used for passwordless login.</p>
                         </div>
                     </div>
                     <div class="profile-section-body">
-                        <button type="button" id="btn-profile-fido" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.fidoBtn">Manage FIDO Devices</button>
+                        <button type="button" id="btn-profile-fido" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.fidoBtn">Manage Passkeys</button>
                     </div>
                 </div>
 
@@ -971,25 +971,33 @@
         <div class="modal-body">
             <form id="login-form" action="javascript:void(0);">
                 <div class="form-group">
-                    <label for="username" data-i18n="login.usernameLabel">Username, email, or token name</label>
-                    <input type="text" id="username" autocomplete="username" required placeholder="Enter username, private email, or token name" data-i18n-placeholder="login.usernamePlaceholder">
+                    <label for="username" data-i18n="login.usernameLabel">Username or email</label>
+                    <input type="text" id="username" autocomplete="username" required placeholder="Enter username or private email" data-i18n-placeholder="login.usernamePlaceholder">
                 </div>
                 <div class="form-group">
-                    <label for="password" data-i18n="login.passwordLabel">Password / Secret</label>
-                    <input type="password" id="password" autocomplete="current-password" required placeholder="Enter password or secret" data-i18n-placeholder="login.passwordPlaceholder">
+                    <label for="password" data-i18n="login.passwordLabel">Password</label>
+                    <input type="password" id="password" autocomplete="current-password" required placeholder="Enter password" data-i18n-placeholder="login.passwordPlaceholder">
                 </div>
                 <div id="login-error" style="display: none; color: #ef4444; margin-bottom: 12px; font-size: 0.85rem; font-weight: 500;"></div>
-                <div class="fido-login-wrapper login-secondary-actions">
-                    <a href="javascript:void(0);" id="btn-forgot-password" class="fido-login-link" data-i18n="login.forgotPassword">Forgot password?</a>
-                    <a href="javascript:void(0);" id="btn-fido-login" class="fido-login-link" style="font-size: 0.82rem; color: var(--accent-color, #3b82f6); text-decoration: underline;" data-i18n="login.fidoLogin">Sign in with FIDO / Passkey</a>
+                <div class="login-secondary-actions">
+                    <a href="javascript:void(0);" id="btn-forgot-password" class="login-secondary-link" data-i18n="login.forgotPassword">Forgot password?</a>
                 </div>
                 <button type="submit" class="submit-btn" style="margin-top: 0.25rem;" data-i18n="login.submitBtn">Login</button>
-                <div id="github-login-wrapper" class="github-login-wrapper" hidden>
-                    <div class="github-login-divider"><span data-i18n="login.or">or</span></div>
-                    <button type="button" id="btn-github-login" class="github-login-btn">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>
-                        <span data-i18n="login.githubLogin">Continue with GitHub</span>
+                <div class="login-provider-section">
+                    <div class="login-provider-divider"><span data-i18n="login.or">or</span></div>
+                    <button type="button" id="btn-fido-login" class="login-provider-btn passkey-login-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="8" cy="15" r="4"></circle>
+                            <path d="m11 12 8-8M16 7l2 2M14 9l2 2"></path>
+                        </svg>
+                        <span data-i18n="login.fidoLogin">Continue with Passkey</span>
                     </button>
+                    <div id="github-login-wrapper" class="github-login-wrapper" hidden>
+                        <button type="button" id="btn-github-login" class="login-provider-btn github-login-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>
+                            <span data-i18n="login.githubLogin">Continue with GitHub</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1001,7 +1009,7 @@
     <div class="modal-content" style="max-width: 520px;">
         <button class="close-btn" id="close-user-fido-modal" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
         <div class="modal-header">
-            <h2 class="modal-title" id="user-fido-modal-title" data-i18n="users.fidoModalTitle">FIDO Devices</h2>
+            <h2 class="modal-title" id="user-fido-modal-title" data-i18n="users.fidoModalTitle">Passkeys</h2>
         </div>
         <div class="modal-body">
             <div id="user-fido-list" class="fido-device-list"></div>
@@ -1014,11 +1022,11 @@
     <div class="modal-content" style="max-width: 520px;">
         <button class="close-btn" id="close-profile-fido-modal" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
         <div class="modal-header">
-            <h2 class="modal-title" id="profile-fido-modal-title" data-i18n="profile.fidoTitle">FIDO Devices</h2>
+            <h2 class="modal-title" id="profile-fido-modal-title" data-i18n="profile.fidoTitle">Passkeys</h2>
         </div>
         <div class="modal-body">
             <div id="profile-fido-list" class="fido-device-list" style="margin-bottom: 1rem;"></div>
-            <button type="button" id="btn-add-fido-device" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.addFidoBtn">Add FIDO Device</button>
+            <button type="button" id="btn-add-fido-device" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.addFidoBtn">Add Passkey</button>
         </div>
     </div>
 </div>

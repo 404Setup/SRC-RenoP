@@ -246,7 +246,7 @@ export async function openUserFidoDialog(username) {
     if (!modal || !list) return;
 
     if (title) {
-        title.textContent = t('users.fidoModalTitle', {user: username}) || `FIDO Devices for "${username}"`;
+        title.textContent = t('users.fidoModalTitle', {user: username}) || `Passkeys for "${username}"`;
     }
 
     const loadDevices = async () => {
@@ -276,7 +276,7 @@ export async function openUserFidoDialog(username) {
                                 textAlign: 'center',
                                 color: '#ef4444',
                             }
-                        }, t('error.fidoLoadFailed') || 'Failed to load FIDO devices')
+                        }, t('error.fidoLoadFailed') || 'Failed to load Passkeys')
                     );
                 }, {duration: 300});
                 return;
@@ -355,7 +355,7 @@ export async function openUserFidoDialog(username) {
                             textAlign: 'center',
                             color: '#ef4444',
                         }
-                    }, t('error.fidoLoadFailed') || 'Error loading FIDO devices')
+                    }, t('error.fidoLoadFailed') || 'Error loading Passkeys')
                 );
             }, {duration: 300});
         }

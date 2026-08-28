@@ -395,7 +395,7 @@ export async function loadProfileFidoDevices() {
                             textAlign: 'center',
                             color: '#ef4444',
                         }
-                    }, t('error.fidoLoadFailed') || 'Failed to load FIDO devices')
+                    }, t('error.fidoLoadFailed') || 'Failed to load Passkeys')
                 );
             }, {duration: 300});
             return;

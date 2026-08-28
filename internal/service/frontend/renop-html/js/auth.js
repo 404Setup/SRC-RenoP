@@ -19,6 +19,7 @@ import {LoginRequest, SessionDetails} from './proto/index.js';
 import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 import {getUserProfile, profileDisplayName} from './user-profiles.js';
 import {responseErrorMessage} from './response-errors.js';
+import {runButtonAction} from './components/button.js';
 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
@@ -28,6 +29,7 @@ const loginModal = document.getElementById('login-modal');
 const closeLoginModal = document.getElementById('close-login-modal');
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
+const btnFidoLogin = document.getElementById('btn-fido-login');
 
 export let cachedIsLoggedIn = false;
 export let cachedIsManager = false;
@@ -546,11 +548,10 @@ if (loginForm) {
     });
 }
 
-const btnFidoLogin = document.getElementById('btn-fido-login');
 if (btnFidoLogin) {
     btnFidoLogin.addEventListener('click', (e) => {
         e.preventDefault();
-        fidoLogin();
+        void runButtonAction(btnFidoLogin, fidoLogin);
     });
 }
 
