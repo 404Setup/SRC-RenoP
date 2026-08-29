@@ -156,6 +156,9 @@
   stable FIDO/WebAuthn routes and audit identifiers remain unchanged.
   `js/api-tokens.js` owns the bounded token manager, scope selection, expiration, one-time secret display, shared
   clipboard feedback, immediate revocation, and live language refresh without exposing stored credential material.
+  Its repository/package/team/domain target editors and parameterized errors share the height-animation primitives;
+  the creation dialog grows naturally until the viewport clamp takes over, then keeps the footer fixed and body
+  scrollable.
   `js/response-errors.js` is the shared boundary for user-facing HTTP failures: it reads only bounded error bodies,
   accepts registered stable codes or known localized messages, maps common statuses, and never exposes unknown backend
   text or runtime exception strings in the UI.

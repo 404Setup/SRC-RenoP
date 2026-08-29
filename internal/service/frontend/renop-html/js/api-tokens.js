@@ -15,6 +15,8 @@ import {t} from './i18n.js';
 import {formatTimestamp} from './time.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
+import {collapseElement, expandElement, morphElementHeight} from '@renop/ui/height-anim';
+import {$} from '@renop/ui/jquery';
 
 const scopeKeys = Object.freeze({
     'repository:read': 'repositoryRead',
@@ -88,12 +90,32 @@ function renderAPITokenSummary(count, limit) {
 /**
  * Set a localized inline form error and retain its key for live language changes.
  * @param {HTMLElement} target - Error container.
- * @param {string} key - Translation key.
+ * @param {string} key - Translation key, or an empty string to clear the error.
+ * @param {Record<string, string|number>} [params={}] - Translation parameters.
  * @returns {void}
  */
-function setInlineError(target, key) {
-    target.dataset.i18n = key;
-    target.textContent = t(key);
+function setInlineError(target, key, params = {}) {
+    if (!key) {
+        delete target.dataset.apiTokenErrorKey;
+        delete target.dataset.apiTokenErrorParams;
+        target.textContent = '';
+        return;
+    }
+    target.dataset.apiTokenErrorKey = key;
+    target.dataset.apiTokenErrorParams = JSON.stringify(params);
+    target.textContent = t(key, params);
+}
+
+/**
+ * Morph a token form around a localized error update.
+ * @param {HTMLElement} container - Form content whose natural height may change.
+ * @param {HTMLElement} target - Error container.
+ * @param {string} key - Translation key, or an empty string to clear the error.
+ * @param {Record<string, string|number>} [params={}] - Translation parameters.
+ * @returns {void}
+ */
+function morphInlineError(container, target, key, params = {}) {
+    void morphElementHeight(container, () => setInlineError(target, key, params), {duration: 200});
 }
 
 /**
@@ -233,8 +255,13 @@ function createScopeOption(scope, targetKind = '') {
         }, t('profile.apiTokenTargetsHint'))
     );
     targetEditor.hidden = !input.checked;
-    input.addEventListener('change', () => {
-        targetEditor.hidden = !input.checked;
+    $(targetEditor).toggleClass('is-visible', input.checked);
+    $(input).on('change', () => {
+        if (input.checked) {
+            void expandElement(targetEditor, {duration: 240, marginTop: ''});
+        } else {
+            void collapseElement(targetEditor, {duration: 210, marginTop: false});
+        }
     });
     entry.appendChild(targetEditor);
     return entry;
@@ -307,16 +334,15 @@ function openCreateAPITokenDialog(catalog, onCreated) {
             id: 'profile-api-token-create-form',
             onSubmit: async (event, dialog) => {
                 event.preventDefault();
-                error.removeAttribute('data-i18n');
-                error.textContent = '';
+                morphInlineError(body, error, '');
                 const scopes = Array.from(scopeGrid.querySelectorAll('input:checked'), input => input.value);
                 if (!nameInput.value.trim()) {
-                    setInlineError(error, 'profile.apiTokenNameRequired');
+                    morphInlineError(body, error, 'profile.apiTokenNameRequired');
                     nameInput.focus();
                     return;
                 }
                 if (scopes.length === 0) {
-                    setInlineError(error, 'profile.apiTokenScopeRequired');
+                    morphInlineError(body, error, 'profile.apiTokenScopeRequired');
                     return;
                 }
                 const targets = {};
@@ -331,8 +357,9 @@ function openCreateAPITokenDialog(catalog, onCreated) {
                     }
                 });
                 if (targetCount > catalog.targetLimit) {
-                    error.removeAttribute('data-i18n');
-                    error.textContent = t('profile.apiTokenTargetLimitReached', {limit: catalog.targetLimit});
+                    morphInlineError(body, error, 'profile.apiTokenTargetLimitReached', {
+                        limit: catalog.targetLimit,
+                    });
                     return;
                 }
                 const submit = dialog.querySelector('#profile-api-token-create-submit');
@@ -348,7 +375,7 @@ function openCreateAPITokenDialog(catalog, onCreated) {
                     });
                     if (!response.ok) {
                         const code = response.headers.get('X-Renop-Error-Code');
-                        setInlineError(error, code === 'API_TOKEN_NAME_CONFLICT'
+                        morphInlineError(body, error, code === 'API_TOKEN_NAME_CONFLICT'
                             ? 'profile.apiTokenNameConflict'
                             : (code === 'API_TOKEN_LIMIT'
                                 ? 'profile.apiTokenLimitReached'
@@ -357,7 +384,7 @@ function openCreateAPITokenDialog(catalog, onCreated) {
                     }
                     const result = await response.json();
                     if (!result.secret || !result.token) {
-                        setInlineError(error, 'profile.apiTokenCreateFailed');
+                        morphInlineError(body, error, 'profile.apiTokenCreateFailed');
                         return;
                     }
                     dialog.close(true);
@@ -555,6 +582,15 @@ window.addEventListener('languageChanged', () => {
     if (cachedTokenCount !== null) renderAPITokenSummary(cachedTokenCount, cachedTokenLimit);
     document.querySelectorAll('[data-api-token-scope]').forEach(node => {
         node.textContent = scopeLabel(node.dataset.apiTokenScope);
+    });
+    document.querySelectorAll('[data-api-token-error-key]').forEach(node => {
+        let params = {};
+        try {
+            params = JSON.parse(node.dataset.apiTokenErrorParams || '{}');
+        } catch {
+            params = {};
+        }
+        node.textContent = t(node.dataset.apiTokenErrorKey, params);
     });
     const labels = {
         'profile-api-token-copy': 'profile.apiTokenCopy',
