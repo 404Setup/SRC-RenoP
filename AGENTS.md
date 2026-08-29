@@ -186,7 +186,9 @@
   `css/components/markdown.css`; protocol views never assign rendered Markdown directly to an active element.
   `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository
   name ordering plus engine filtering and bounded pagination, while `js/components/icon.js` maps detailed file types
-  into a bounded set of shared visual families. npm, Cargo, and Docker team invitations
+  into a bounded set of shared visual families. The top navigation and routed application content share one
+  border-box shell width and gutter, keeping the home brand aligned with page content at desktop widths. npm, Cargo,
+  and Docker team invitations
   share the keyboard-accessible, viewport-aware `js/browser/user-suggestions.js` controller and component stylesheet.
   All frontend clipboard writes and seconds/milliseconds/ISO timestamp normalization flow through `js/clipboard.js`
   and `js/time.js`. The server-rendered H5 shell is cached at bootstrap and regenerated atomically after frontend

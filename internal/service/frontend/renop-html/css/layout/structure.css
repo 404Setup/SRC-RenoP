@@ -9,9 +9,11 @@
  */
 
 #app {
-    max-width: 1200px;
+    width: 100%;
+    max-width: var(--app-shell-max-width);
     margin: 0 auto;
-    padding: 0 2rem 2rem 2rem;
+    padding: 0 var(--app-shell-gutter) 2rem;
+    box-sizing: border-box;
 }
 
 header.main-header {

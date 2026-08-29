@@ -66,6 +66,13 @@ test('every repository format has one distinct canonical icon', () => {
     assert.equal(getRepositoryFormat('maven-classic').icon, getRepositoryFormat('maven').icon);
 });
 
+test('the settings icon uses centered control sliders', () => {
+    assert.match(ICONS.settings, /<circle cx="12" cy="6" r="2"\/>/);
+    assert.match(ICONS.settings, /<circle cx="8" cy="12" r="2"\/>/);
+    assert.match(ICONS.settings, /<circle cx="15" cy="18" r="2"\/>/);
+    assert.doesNotMatch(ICONS.settings, /M19 13\.5v-3/);
+});
+
 test('every literal frontend icon reference resolves', () => {
     const sources = javascriptSources(join(frontendRoot, 'js'));
     sources.push(join(frontendRoot, 'index.html'));

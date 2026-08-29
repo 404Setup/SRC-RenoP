@@ -10,6 +10,11 @@
 
 @import url("@renop/ui/css/tokens.css");
 
+:root {
+    --app-shell-max-width: 1264px;
+    --app-shell-gutter: 2rem;
+}
+
 html[data-font-preset="inter"] {
     --font-sans: "Inter Variable", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }

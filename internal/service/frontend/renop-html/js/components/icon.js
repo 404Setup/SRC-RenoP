@@ -55,7 +55,7 @@ const baseIcons = Object.freeze({
     docs: strokeIcon('<path d="M3 4h6a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H3ZM21 4h-6a3 3 0 0 0-3 3v14a3 3 0 0 1 3-3h6Z"/>'),
     eye: strokeIcon('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>'),
     copy: strokeIcon('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/>', 16),
-    settings: strokeIcon('<circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.7-1.6.9-2-2.1-2.1-2 .9-1.6-.7L10.5 2h-3l-.7 2-1.6.7-2-.9-2.1 2.1.9 2-.7 1.6-2 .7v3l2 .7.7 1.6-.9 2 2.1 2.1 2-.9 1.6.7.7 2h3l.7-2 1.6-.7 2 .9 2.1-2.1-.9-2 .7-1.6Z"/>'),
+    settings: strokeIcon('<path d="M4 6h6M14 6h6M4 12h2M10 12h10M4 18h9M17 18h3"/><circle cx="12" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="15" cy="18" r="2"/>', 18, 1.8),
     viewport: strokeIcon('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 21h8M12 19v2M7 9h10"/>', 20),
     file: strokeIcon('<path d="M6 2h8l4 4v16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v6h6"/>', 20, 1.8),
     fileText: strokeIcon('<path d="M6 2h8l4 4v16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/>', 18, 1.8),
