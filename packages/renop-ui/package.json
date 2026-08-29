@@ -9,6 +9,7 @@
     "./theme": "./js/theme.js",
     "./height-anim": "./js/height-anim.js",
     "./dom": "./js/dom.js",
+    "./disclosure": "./js/disclosure.js",
     "./lang-card": "./js/lang-card.js",
     "./modal": "./js/modal.js",
     "./scroll": "./js/scroll.js",

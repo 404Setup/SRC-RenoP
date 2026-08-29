@@ -84,7 +84,7 @@ export default Object.freeze({
     "npm.teamUpdateFailed": "Impossible de mettre à jour l’équipe npm", "npm.removeMember": "Retirer le membre",
     "npm.removeMemberConfirm": "Retirer {name} de l’équipe de ce paquet npm ?", "npm.removeMemberFailed": "Impossible de retirer le membre npm",
     "npm.level0": "Lire le paquet", "npm.level1": "Publier des versions", "npm.level2": "Gérer métadonnées et versions",
-    "npm.level3": "Gérer l’équipe", "npm.level4": "Posséder le paquet", "npm.save": "Enregistrer",
+    "npm.level3": "Gérer l’équipe", "npm.level4": "Posséder le paquet",
     "npm.authenticationRequired": "Connectez-vous pour gérer ce paquet npm", "npm.cannotInviteSelf": "Vous ne pouvez pas vous inviter",
     "npm.invalidRequest": "La requête npm est invalide", "npm.invitationInvalid": "Cette invitation npm est invalide ou expirée",
     "npm.invitationPending": "Une invitation active est déjà en attente", "npm.lastOwner": "Le paquet doit conserver un propriétaire L4",

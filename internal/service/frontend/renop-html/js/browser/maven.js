@@ -10,6 +10,7 @@
 
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
+import {bindAnimatedDetails} from '@renop/ui/disclosure';
 import {apiRequest} from '../api.js';
 import {cachedIsLoggedIn, cachedIsManager} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
@@ -484,12 +485,17 @@ function mavenVersionFiles(version) {
             )
         ));
     });
-    return el('details', {class: 'maven-version-files'},
-        el('summary', {}, createIcon('folder'),
-            el('span', {}, t('maven.versionFiles', {count: Number(version.file_count) || files.length}))),
+    const body = el('div', {class: 'maven-version-files-body'},
         list,
         version.files_truncated ? el('p', {class: 'maven-section-note'}, t('maven.filesTruncated')) : null
     );
+    const details = el('details', {class: 'maven-version-files'},
+        el('summary', {}, createIcon('folder'),
+            el('span', {}, t('maven.versionFiles', {count: Number(version.file_count) || files.length}))),
+        body
+    );
+    bindAnimatedDetails(details, {content: body, marginTop: '0.55rem'});
+    return details;
 }
 
 /**
@@ -1074,7 +1080,9 @@ async function renderDomain(container, repository, domainName, sequence) {
  * @returns {void}
  */
 function openDescriptionEditor(container, repository, artifact, sequence) {
-    const textarea = el('textarea', {maxlength: '4000', rows: '8'}, artifact.description || '');
+    const textarea = el('textarea', {
+        maxlength: '4000', rows: '8', value: artifact.description || ''
+    });
     RenopDialog.show({
         id: 'maven-description-dialog', maxWidth: '680px', icon: 'edit', title: t('maven.editDescription'),
         body: el('div', {class: 'maven-dialog-form'}, textarea),

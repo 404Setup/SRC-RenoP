@@ -57,7 +57,7 @@ export default Object.freeze({
     "npm.ownerProtected": "移除此成員前必須先轉移 L4 所有權", "npm.addedAt": "加入於 {date}", "npm.removeMember": "移除成員",
     "npm.removeMemberConfirm": "將 {name} 從此 npm 套件團隊移除？", "npm.removeMemberFailed": "無法移除 npm 套件成員",
     "npm.level0": "讀取套件", "npm.level1": "發布版本", "npm.level2": "管理中繼資料與版本",
-    "npm.level3": "管理套件團隊", "npm.level4": "擁有套件", "npm.save": "儲存",
+    "npm.level3": "管理套件團隊", "npm.level4": "擁有套件",
     "npm.authenticationRequired": "請登入後管理此 npm 套件", "npm.cannotInviteSelf": "不能邀請自己",
     "npm.invalidRequest": "npm 請求無效", "npm.invitationInvalid": "此 npm 邀請無效或已過期",
     "npm.invitationPending": "此使用者已有待處理的有效邀請", "npm.lastOwner": "套件必須至少保留一名 L4 擁有者",

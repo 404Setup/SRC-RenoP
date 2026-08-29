@@ -175,7 +175,9 @@
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
   npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
   visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
-  failures are localized through stable codes in `js/npm-errors.js`. Package-controlled Markdown flows through the
+  failures are localized through stable codes in `js/npm-errors.js`. npm integrity/action panels and Maven version-file
+  panels use the reversible shared disclosure controller; description editors initialize textarea values through DOM
+  properties, and their common save action is localized from the shared catalog. Package-controlled Markdown flows through the
   inert element-and-URL allowlist in `js/markdown.js` and the shared neutral layout in
   `css/components/markdown.css`; protocol views never assign rendered Markdown directly to an active element.
   `js/repository-formats.js` owns canonical per-engine icons, `js/repository-list.js` owns deterministic repository
@@ -192,7 +194,9 @@
   and emits `jqueryReady` without a Migrate shim. jQuery owns document-ready/delegated event wiring plus the shared
   DOM, modal, theme, tabs, language-card, toggle, custom-select, and website-router layers; streaming fetches,
   observers, pointer-capture details, and Web Animations remain native where jQuery would weaken security or
-  performance. Shared
+  performance. `@renop/ui/disclosure` composes the height-animation layer with accessible details/summary semantics
+  and supports rapid direction reversal. Unstructured files repositories suppress the protocol-specific repository
+  snippet card while retaining storage and mirror statistics. Shared
   select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; native
   option popups are not used for styled application dialogs. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
   shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the

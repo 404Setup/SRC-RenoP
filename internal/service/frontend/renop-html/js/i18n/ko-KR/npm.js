@@ -84,7 +84,7 @@ export default Object.freeze({
     "npm.teamUpdateFailed": "npm 패키지 팀을 업데이트할 수 없습니다", "npm.removeMember": "구성원 제거",
     "npm.removeMemberConfirm": "{name}을 이 npm 패키지 팀에서 제거할까요?", "npm.removeMemberFailed": "npm 패키지 구성원을 제거할 수 없습니다",
     "npm.level0": "패키지 읽기", "npm.level1": "버전 게시", "npm.level2": "메타데이터 및 버전 관리",
-    "npm.level3": "패키지 팀 관리", "npm.level4": "패키지 소유", "npm.save": "저장",
+    "npm.level3": "패키지 팀 관리", "npm.level4": "패키지 소유",
     "npm.authenticationRequired": "이 npm 패키지를 관리하려면 로그인하세요", "npm.cannotInviteSelf": "자신을 초대할 수 없습니다",
     "npm.invalidRequest": "npm 요청이 잘못되었습니다", "npm.invitationInvalid": "npm 초대가 잘못되었거나 만료되었습니다",
     "npm.invitationPending": "처리 중인 유효한 초대가 이미 있습니다", "npm.lastOwner": "패키지에는 L4 소유자가 한 명 이상 있어야 합니다",

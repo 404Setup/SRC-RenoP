@@ -748,8 +748,11 @@ button.maven-artifact-card:focus-visible {
     color: #ea580c;
 }
 
-.maven-version-files[open] > summary {
-    margin-bottom: 0.55rem;
+.maven-version-files-body {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+    overflow: hidden;
 }
 
 .maven-version-file-name {

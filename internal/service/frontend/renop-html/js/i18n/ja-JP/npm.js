@@ -84,7 +84,7 @@ export default Object.freeze({
     "npm.teamUpdateFailed": "npm パッケージチームを更新できませんでした", "npm.removeMember": "メンバーを削除",
     "npm.removeMemberConfirm": "{name} をこの npm パッケージチームから削除しますか？", "npm.removeMemberFailed": "npm パッケージメンバーを削除できませんでした",
     "npm.level0": "パッケージを読み取る", "npm.level1": "バージョンを公開", "npm.level2": "メタデータとバージョンを管理",
-    "npm.level3": "パッケージチームを管理", "npm.level4": "パッケージを所有", "npm.save": "保存",
+    "npm.level3": "パッケージチームを管理", "npm.level4": "パッケージを所有",
     "npm.authenticationRequired": "この npm パッケージを管理するにはログインしてください", "npm.cannotInviteSelf": "自分自身は招待できません",
     "npm.invalidRequest": "npm リクエストが無効です", "npm.invitationInvalid": "npm 招待が無効または期限切れです",
     "npm.invitationPending": "有効な招待がすでに保留中です", "npm.lastOwner": "L4 所有者を少なくとも 1 人残す必要があります",

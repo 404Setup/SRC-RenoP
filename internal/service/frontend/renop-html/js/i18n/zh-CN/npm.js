@@ -135,7 +135,6 @@ export default Object.freeze({
     "npm.level2": "管理元数据与版本",
     "npm.level3": "管理软件包团队",
     "npm.level4": "拥有软件包",
-    "npm.save": "保存",
     "npm.authenticationRequired": "请登录后管理此 npm 软件包",
     "npm.cannotInviteSelf": "不能邀请自己",
     "npm.invalidRequest": "npm 请求无效",

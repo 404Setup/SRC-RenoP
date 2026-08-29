@@ -348,9 +348,7 @@
 }
 
 .npm-project-person {
-    padding: 0.28rem 0.45rem;
-    border-radius: 0.42rem;
-    background: color-mix(in srgb, var(--text-color) 3.5%, transparent);
+    padding: 0;
 }
 
 .npm-project-person > span {
@@ -529,14 +527,44 @@
 
 .npm-metadata-copy {
     display: inline-grid;
-    width: 2.1rem;
+    width: auto;
+    min-width: 2.1rem;
     height: 2.1rem;
-    padding: 0;
+    padding: 0 0.52rem;
     place-items: center;
     border: 1px solid var(--border-color);
     border-radius: 0.48rem;
     background: var(--card-bg);
     color: var(--text-muted);
+    box-shadow: 0 3px 10px -7px rgba(15, 23, 42, 0.8);
+    transition: transform 0.16s ease, box-shadow 0.16s ease,
+        border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+}
+
+.npm-metadata-copy:hover,
+.npm-metadata-copy:focus-visible {
+    border-color: color-mix(in srgb, var(--link-hover-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 7%, var(--card-bg));
+    color: var(--link-hover-color);
+    box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--link-hover-color) 55%, transparent);
+    transform: translateY(-1px);
+}
+
+.npm-metadata-copy:active {
+    box-shadow: 0 2px 6px -5px rgba(15, 23, 42, 0.7);
+    transform: translateY(0);
+}
+
+.npm-metadata-copy.copied {
+    border-color: color-mix(in srgb, #10b981 48%, var(--border-color));
+    background: color-mix(in srgb, #10b981 10%, var(--card-bg));
+    color: #059669;
+}
+
+.npm-metadata-copy .copy-toast {
+    margin-left: 0.3rem;
+    font-size: 0.7rem;
+    white-space: nowrap;
 }
 
 .npm-version-no-integrity,

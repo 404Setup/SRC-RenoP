@@ -6,6 +6,7 @@
 
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
+import {bindAnimatedDetails} from '@renop/ui/disclosure';
 import {apiRequest} from '../api.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {canUpdateRepo} from '../auth.js';
@@ -528,14 +529,16 @@ function versionsSection() {
             copyableVersionMetadata(t('npm.integrity'), version.integrity),
             copyableVersionMetadata(t('npm.shasum'), version.shasum)
         ].filter(Boolean);
+        const detailsBody = el('div', {class: 'npm-version-details-body'},
+            digestRows.length ? el('div', {class: 'npm-version-digests'}, ...digestRows) :
+                el('p', {class: 'npm-version-no-integrity'}, t('npm.noIntegrity')),
+            actions
+        );
         const details = el('details', {class: 'npm-version-details'},
             el('summary', {}, createIcon('info'), el('span', {}, t('npm.versionDetails'))),
-            el('div', {class: 'npm-version-details-body'},
-                digestRows.length ? el('div', {class: 'npm-version-digests'}, ...digestRows) :
-                    el('p', {class: 'npm-version-no-integrity'}, t('npm.noIntegrity')),
-                actions
-            )
+            detailsBody
         );
+        bindAnimatedDetails(details, {content: detailsBody, marginTop: '0.7rem'});
         const row = el('article', {class: `npm-version${version.unpublished ? ' is-unpublished' : ''}`},
             header,
             version.deprecated ? el('p', {class: 'npm-deprecation-message'}, version.deprecated) : null,
@@ -830,7 +833,9 @@ async function mutatePackage(change, successKey) {
 
 /** Open the package-description editor. */
 function showDescriptionDialog() {
-    const textarea = el('textarea', {maxlength: '4000', rows: '5'}, packageDetails.package.description || '');
+    const textarea = el('textarea', {
+        maxlength: '4000', rows: '5', value: packageDetails.package.description || ''
+    });
     RenopDialog.show({
         id: 'npm-description-dialog', icon: 'edit', title: t('npm.editDescription'),
         form: {id: 'npm-description-form', onSubmit: async (event, dialog) => {
@@ -839,8 +844,8 @@ function showDescriptionDialog() {
         }},
         body: el('div', {class: 'npm-dialog-fields'}, el('label', {}, el('span', {}, t('npm.description')), textarea)),
         footer: [
-            {text: t('npm.save'), className: 'action-btn primary-btn', type: 'submit'},
-            {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)}
+            {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
+            {text: t('common.save'), className: 'action-btn primary-btn', type: 'submit'}
         ]
     });
 }

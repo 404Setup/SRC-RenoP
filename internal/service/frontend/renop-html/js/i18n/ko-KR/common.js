@@ -41,6 +41,7 @@ export default Object.freeze({
     "common.delete": "삭제",
     "common.edit": "편집",
     "common.cancel": "취소",
+    "common.save": "저장",
     "common.ok": "확인",
     "common.yes": "예",
     "common.no": "아니오",

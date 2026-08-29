@@ -84,7 +84,7 @@ export default Object.freeze({
     "npm.teamUpdateFailed": "No se pudo actualizar el equipo npm", "npm.removeMember": "Quitar miembro",
     "npm.removeMemberConfirm": "¿Quitar a {name} del equipo de este paquete npm?", "npm.removeMemberFailed": "No se pudo quitar al miembro npm",
     "npm.level0": "Leer paquete", "npm.level1": "Publicar versiones", "npm.level2": "Gestionar metadatos y versiones",
-    "npm.level3": "Gestionar equipo", "npm.level4": "Ser propietario", "npm.save": "Guardar",
+    "npm.level3": "Gestionar equipo", "npm.level4": "Ser propietario",
     "npm.authenticationRequired": "Inicia sesión para gestionar este paquete npm", "npm.cannotInviteSelf": "No puedes invitarte a ti mismo",
     "npm.invalidRequest": "La solicitud npm no es válida", "npm.invitationInvalid": "La invitación npm no es válida o ha caducado",
     "npm.invitationPending": "Ya hay una invitación activa pendiente", "npm.lastOwner": "El paquete debe conservar un propietario L4",

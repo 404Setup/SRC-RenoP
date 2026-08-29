@@ -140,7 +140,6 @@ export default Object.freeze({
     "npm.level2": "Manage metadata and versions",
     "npm.level3": "Manage package team",
     "npm.level4": "Own package",
-    "npm.save": "Save",
     "npm.authenticationRequired": "Sign in to manage this npm package",
     "npm.cannotInviteSelf": "You cannot invite yourself",
     "npm.invalidRequest": "The npm request is invalid",

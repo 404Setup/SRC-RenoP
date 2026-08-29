@@ -41,6 +41,7 @@ export default Object.freeze({
     "common.delete": "删除",
     "common.edit": "编辑",
     "common.cancel": "取消",
+    "common.save": "保存",
     "common.ok": "确定",
     "common.yes": "是",
     "common.no": "否",

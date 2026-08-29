@@ -41,6 +41,7 @@ export default Object.freeze({
     "common.delete": "Löschen",
     "common.edit": "Bearbeiten",
     "common.cancel": "Abbrechen",
+    "common.save": "Speichern",
     "common.ok": "OK",
     "common.yes": "Ja",
     "common.no": "Nein",

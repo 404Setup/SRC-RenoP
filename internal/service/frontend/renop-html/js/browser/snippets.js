@@ -340,7 +340,7 @@ export async function updateSnippets(path, detailsPromise) {
 
     if (colRight) colRight.hidden = false;
     if (layoutTwoCol) layoutTwoCol.classList.remove('no-sidebar');
-    if (card) card.style.display = '';
+    if (card) card.style.display = 'none';
 
     const code = document.getElementById('snippet-code');
     if (!code) return;
@@ -354,6 +354,11 @@ export async function updateSnippets(path, detailsPromise) {
     }
 	if (sequence !== snippetUpdateSequence) return;
     const format = getRepositoryFormat(details?.format);
+    if (format.id === 'files') {
+        currentSnippets = {};
+        return;
+    }
+    if (card) card.style.display = '';
     if (format.id === 'cargo' && pathParts.length > 0) {
         currentSnippets = buildCargoSnippets(pathParts[0]);
         if (title) title.textContent = t('details.cargoTitle');

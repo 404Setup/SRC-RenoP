@@ -84,7 +84,7 @@ export default Object.freeze({
     "npm.teamUpdateFailed": "Не удалось обновить команду npm", "npm.removeMember": "Удалить участника",
     "npm.removeMemberConfirm": "Удалить {name} из команды этого npm-пакета?", "npm.removeMemberFailed": "Не удалось удалить участника npm",
     "npm.level0": "Чтение пакета", "npm.level1": "Публикация версий", "npm.level2": "Управление метаданными и версиями",
-    "npm.level3": "Управление командой", "npm.level4": "Владение пакетом", "npm.save": "Сохранить",
+    "npm.level3": "Управление командой", "npm.level4": "Владение пакетом",
     "npm.authenticationRequired": "Войдите, чтобы управлять этим npm-пакетом", "npm.cannotInviteSelf": "Нельзя пригласить себя",
     "npm.invalidRequest": "Некорректный запрос npm", "npm.invitationInvalid": "Приглашение npm недействительно или истекло",
     "npm.invitationPending": "Активное приглашение уже ожидает ответа", "npm.lastOwner": "У пакета должен остаться владелец L4",
