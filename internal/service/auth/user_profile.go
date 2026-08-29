@@ -30,17 +30,18 @@ type userProfileUpdateRequest struct {
 }
 
 type userProfileResponse struct {
-	UserID                       string `json:"user_id"`
-	Username                     string `json:"username"`
-	Nickname                     string `json:"nickname"`
-	CreatedAt                    string `json:"created_at"`
-	OwnProfile                   bool   `json:"own_profile"`
-	UsernameChangesRemaining     int    `json:"username_changes_remaining"`
-	UsernameChangeWindowResetsAt int64  `json:"username_change_window_resets_at,omitempty"`
-	MavenDomainCount             int    `json:"maven_domain_count"`
-	CargoPackageCount            int    `json:"cargo_package_count"`
-	DockerImageCount             int    `json:"docker_image_count"`
-	NPMPackageCount              int    `json:"npm_package_count"`
+	UserID                       string               `json:"user_id"`
+	Username                     string               `json:"username"`
+	Nickname                     string               `json:"nickname"`
+	CreatedAt                    string               `json:"created_at"`
+	OwnProfile                   bool                 `json:"own_profile"`
+	UsernameChangesRemaining     int                  `json:"username_changes_remaining"`
+	UsernameChangeWindowResetsAt int64                `json:"username_change_window_resets_at,omitempty"`
+	MavenDomainCount             int                  `json:"maven_domain_count"`
+	CargoPackageCount            int                  `json:"cargo_package_count"`
+	DockerImageCount             int                  `json:"docker_image_count"`
+	NPMPackageCount              int                  `json:"npm_package_count"`
+	GitHub                       *githubProfileStatus `json:"github,omitempty"`
 }
 
 func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
@@ -74,7 +75,10 @@ func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load npm memberships")
 	}
-	response := profileResponse(profile, own, time.Now().UnixMilli())
+	response, err := profileResponseWithConnections(state, profile, own, time.Now().UnixMilli())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account connections")
+	}
 	response.MavenDomainCount = len(mavenMemberships)
 	response.CargoPackageCount = len(cargoMemberships)
 	response.DockerImageCount = len(dockerMemberships)
@@ -225,7 +229,11 @@ func ownUserProfile(c fiber.Ctx, state *core.AppState) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load user profile")
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(profileResponse(profile, true, time.Now().UnixMilli()))
+	response, err := profileResponseWithConnections(state, profile, true, time.Now().UnixMilli())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account connections")
+	}
+	return c.JSON(response)
 }
 
 func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token.TokenOp) error {
@@ -268,8 +276,15 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 		}
 	}
+	github, err := githubProfileStatusForAccount(state, current.Username)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load account connections")
+	}
 	if newUsername == current.Username && nickname == current.Nickname {
-		return c.JSON(profileResponse(current, true, time.Now().UnixMilli()))
+		response := profileResponse(current, true, time.Now().UnixMilli())
+		response.GitHub = &github
+		c.Set(fiber.HeaderCacheControl, "no-store")
+		return c.JSON(response)
 	}
 
 	changedAt := time.Now().UnixMilli()
@@ -294,7 +309,23 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	}
 	logProfileUpdate(c, state, current, updated)
 	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(profileResponse(updated, true, changedAt))
+	response := profileResponse(updated, true, changedAt)
+	response.GitHub = &github
+	return c.JSON(response)
+}
+
+func profileResponseWithConnections(state *core.AppState, profile *core.UserProfile, own bool,
+	now int64) (userProfileResponse, error) {
+	response := profileResponse(profile, own, now)
+	if !own {
+		return response, nil
+	}
+	github, err := githubProfileStatusForAccount(state, profile.Username)
+	if err != nil {
+		return userProfileResponse{}, err
+	}
+	response.GitHub = &github
+	return response, nil
 }
 
 func profileResponse(profile *core.UserProfile, own bool, now int64) userProfileResponse {

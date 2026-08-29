@@ -48,6 +48,10 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	cfg.Maven.Repositories["hidden-cargo"] = &config.Repository{
 		Name: "hidden-cargo", Format: config.RepositoryFormatCargo, Visibility: "HIDDEN",
 	}
+	cfg.Server.GitHubOAuth = config.GitHubOAuthConfig{
+		Enabled: true, ClientID: "profile-client", ClientSecret: "profile-secret",
+		CallbackURL: "https://repo.example/api/auth/github/callback",
+	}
 	state.Inner.Config.Store(cfg)
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "profile-routes.db"), MaxOpenConns: 1, MaxIdleConns: 1,
@@ -56,9 +60,14 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	state.Inner.DB = db
 	for index, username := range []string{"alice", "bobby"} {
+		passwordHash := ""
+		if username == "alice" {
+			passwordHash = "configured-password-hash"
+		}
 		require.NoError(t, db.SaveToken(&core.AccessToken{
 			Identifier: core.AccessTokenIdentifier{Type: core.Persistent, Value: int32(index + 1)},
-			Name:       username, CreatedAt: "2026-08-24T00:00:00Z", Permissions: []string{"base"},
+			Name:       username, EncryptedSecret: passwordHash,
+			CreatedAt: "2026-08-24T00:00:00Z", Permissions: []string{"base"},
 		}))
 	}
 
@@ -79,6 +88,11 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.NoError(t, err)
 	aliceProfile, err := db.GetUserProfile("alice")
 	require.NoError(t, err)
+	const githubAuthorizedAt int64 = 1_800_000_000_000
+	require.NoError(t, db.StoreGitHubIdentity(aliceProfile.UserID, 101, "alice-github", []core.GitHubPrincipal{
+		{Type: core.GitHubPrincipalUser, GitHubID: 101, Login: "alice-github", AuthorizedAt: githubAuthorizedAt},
+		{Type: core.GitHubPrincipalOrganization, GitHubID: 202, Login: "example-org", AuthorizedAt: githubAuthorizedAt},
+	}, githubAuthorizedAt))
 	const membershipCreatedAt int64 = 1_800_000_000_000
 	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
 		Repository: "profile-cargo", Name: "profile-crate", NormalizedName: "profile-crate",
@@ -128,7 +142,21 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, 1, publicProfile.CargoPackageCount)
 	require.Equal(t, 1, publicProfile.DockerImageCount)
 	require.Equal(t, 1, publicProfile.NPMPackageCount)
+	require.Nil(t, publicProfile.GitHub)
 	require.NoError(t, response.Body.Close())
+
+	response = profileRequest(t, app, http.MethodGet, "/users/alice/profile", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var ownProfile userProfileResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&ownProfile))
+	require.NoError(t, response.Body.Close())
+	require.True(t, ownProfile.OwnProfile)
+	require.NotNil(t, ownProfile.GitHub)
+	require.True(t, ownProfile.GitHub.Configured)
+	require.True(t, ownProfile.GitHub.Linked)
+	require.True(t, ownProfile.GitHub.CanDisconnect)
+	require.Equal(t, "alice-github", ownProfile.GitHub.GitHubLogin)
+	require.Equal(t, 2, ownProfile.GitHub.PrincipalCount)
 	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var membershipResponse struct {
@@ -176,6 +204,9 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&batch))
 	require.NoError(t, response.Body.Close())
 	require.Len(t, batch.Profiles, 2)
+	for _, profile := range batch.Profiles {
+		require.Nil(t, profile.GitHub)
+	}
 
 	response = profileRequest(t, app, http.MethodPut, "/auth/profile", `{"username":"bad-name"}`)
 	require.Equal(t, http.StatusBadRequest, response.StatusCode)
@@ -197,6 +228,8 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, "alice_one", firstRename.Username)
 	require.Equal(t, "Alice Example", firstRename.Nickname)
 	require.Equal(t, 1, firstRename.UsernameChangesRemaining)
+	require.NotNil(t, firstRename.GitHub)
+	require.Equal(t, "alice-github", firstRename.GitHub.GitHubLogin)
 	currentUsername = firstRename.Username
 
 	response = profileRequest(t, app, http.MethodPut, "/auth/profile", `{"username":"alice_two"}`)

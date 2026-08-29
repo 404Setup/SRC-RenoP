@@ -231,24 +231,32 @@ func getProfileGitHub(c fiber.Ctx, state *core.AppState) error {
 	if user == nil || user.Username == "" || user.Username == "guest" {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
-	identity, err := state.GetDB().GetGitHubIdentity(user.Username)
+	status, err := githubProfileStatusForAccount(state, user.Username)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to load GitHub identity")
 	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(status)
+}
+
+func githubProfileStatusForAccount(state *core.AppState, username string) (githubProfileStatus, error) {
 	cfg := state.Inner.Config.Load()
 	status := githubProfileStatus{Configured: cfg != nil && cfg.Server.GitHubOAuth.Configured()}
+	identity, err := state.GetDB().GetGitHubIdentity(username)
+	if err != nil {
+		return status, err
+	}
 	if identity != nil {
 		status.Linked = true
 		status.GitHubLogin = identity.GitHubLogin
 		status.AuthorizedAt = identity.AuthorizedAt
 		status.PrincipalCount = identity.PrincipalCount
-		status.CanDisconnect, err = canDisconnectGitHub(state, user.Username)
+		status.CanDisconnect, err = canDisconnectGitHub(state, username)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to inspect login methods")
+			return status, err
 		}
 	}
-	c.Set(fiber.HeaderCacheControl, "no-store")
-	return c.JSON(status)
+	return status, nil
 }
 
 func canDisconnectGitHub(state *core.AppState, username string) (bool, error) {

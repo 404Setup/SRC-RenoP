@@ -12,8 +12,9 @@ import {apiRequest} from './api.js';
 import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {refreshAccountSecurity} from './account-security.js';
+import {runButtonAction} from './components.js';
 
-let githubProfileLoadSequence = 0;
+let currentGitHubProfileStatus = null;
 
 /**
  * Start a GitHub OAuth flow that returns to the current routed page.
@@ -76,74 +77,82 @@ export async function initializeGitHubAuth() {
 }
 
 /**
- * Refresh the GitHub connection card on the current account edit page.
- * @returns {Promise<void>}
+ * Render the GitHub connection carried by the current account profile response.
+ * @param {object|null|undefined} status - Private connection state for the signed-in account.
+ * @returns {void}
  */
-export async function refreshGitHubConnection() {
-    const sequence = ++githubProfileLoadSequence;
+export function renderGitHubConnection(status) {
     const section = document.getElementById('profile-github-section');
     const statusText = document.getElementById('profile-github-status');
     const connectButton = document.getElementById('btn-profile-github-connect');
     const disconnectButton = document.getElementById('btn-profile-github-disconnect');
     if (!section || !statusText || !connectButton || !disconnectButton) return;
-    section.hidden = false;
-    statusText.textContent = t('profile.githubLoading');
+    currentGitHubProfileStatus = status && typeof status === 'object' ? {...status} : null;
     connectButton.hidden = true;
     disconnectButton.hidden = true;
-    try {
-        const response = await apiRequest('/api/auth/profile/github');
-        if (!response.ok) throw new Error('GitHub identity request failed');
-        const status = await response.json();
-        if (sequence !== githubProfileLoadSequence) return;
-        if (!status.configured && !status.linked) {
-            section.hidden = true;
-            return;
-        }
-        if (status.linked) {
-            const identityText = t('profile.githubConnectedAs', {
-                login: status.github_login || '',
-                count: Number(status.principal_count) || 1,
-            });
-            statusText.textContent = status.can_disconnect
-                ? identityText
-                : identityText + ' ' + t('profile.githubOnlyLogin');
-            connectButton.textContent = t('profile.githubRefresh');
-            connectButton.hidden = !status.configured;
-            disconnectButton.hidden = !status.can_disconnect;
-        } else {
-            statusText.textContent = t('profile.githubNotConnected');
-            connectButton.textContent = t('profile.githubConnect');
-            connectButton.hidden = !status.configured;
-            disconnectButton.hidden = true;
-        }
-    } catch (error) {
-        if (sequence !== githubProfileLoadSequence) return;
-        console.error('Failed to load GitHub connection', error);
-        statusText.textContent = t('profile.githubLoadFailed');
+    if (!currentGitHubProfileStatus ||
+        (!currentGitHubProfileStatus.configured && !currentGitHubProfileStatus.linked)) {
+        section.hidden = true;
+        return;
     }
+    section.hidden = false;
+    if (currentGitHubProfileStatus.linked) {
+        const identityText = t('profile.githubConnectedAs', {
+            login: currentGitHubProfileStatus.github_login || '',
+            count: Number(currentGitHubProfileStatus.principal_count) || 1,
+        });
+        statusText.textContent = currentGitHubProfileStatus.can_disconnect
+            ? identityText
+            : identityText + ' ' + t('profile.githubOnlyLogin');
+        connectButton.textContent = t('profile.githubRefresh');
+        connectButton.hidden = !currentGitHubProfileStatus.configured;
+        disconnectButton.hidden = !currentGitHubProfileStatus.can_disconnect;
+        return;
+    }
+    statusText.textContent = t('profile.githubNotConnected');
+    connectButton.textContent = t('profile.githubConnect');
+    connectButton.hidden = !currentGitHubProfileStatus.configured;
 }
 
 document.getElementById('btn-profile-github-connect')?.addEventListener('click', startGitHubOAuth);
 document.getElementById('btn-profile-github-disconnect')?.addEventListener('click', async event => {
     if (!(await window.showConfirm(t('profile.githubDisconnectConfirm')))) return;
     const button = event.currentTarget;
-    button.disabled = true;
-    try {
-        const response = await apiRequest('/api/auth/profile/github', {method: 'DELETE'});
-        if (!response.ok) {
-            if (response.headers.get('X-Renop-Error-Code') === 'GITHUB_LAST_LOGIN_METHOD') {
-                showAlert(t('profile.githubOnlyLogin'), 'error');
-                return;
+    await runButtonAction(button, async () => {
+        try {
+            const response = await apiRequest('/api/auth/profile/github', {method: 'DELETE'});
+            if (!response.ok) {
+                if (response.headers.get('X-Renop-Error-Code') === 'GITHUB_LAST_LOGIN_METHOD') {
+                    showAlert(t('profile.githubOnlyLogin'), 'error');
+                    return;
+                }
+                throw new Error('GitHub disconnect failed');
             }
-            throw new Error('GitHub disconnect failed');
+            const nextStatus = {
+                configured: Boolean(currentGitHubProfileStatus?.configured),
+                linked: false,
+                can_disconnect: false,
+            };
+            renderGitHubConnection(nextStatus);
+            window.dispatchEvent(new CustomEvent('githubConnectionChanged', {detail: nextStatus}));
+            showAlert(t('profile.githubDisconnected'), 'success');
+            await refreshAccountSecurity();
+        } catch (error) {
+            console.error('Failed to disconnect GitHub account', error);
+            showAlert(t('profile.githubDisconnectFailed'), 'error');
         }
-        showAlert(t('profile.githubDisconnected'), 'success');
-        await refreshGitHubConnection();
-        await refreshAccountSecurity();
-    } catch (error) {
-        console.error('Failed to disconnect GitHub account', error);
-        showAlert(t('profile.githubDisconnectFailed'), 'error');
-    } finally {
-        button.disabled = false;
-    }
+    });
+});
+
+window.addEventListener('languageChanged', () => {
+    if (currentGitHubProfileStatus) renderGitHubConnection(currentGitHubProfileStatus);
+});
+
+window.addEventListener('accountSecurityUpdated', event => {
+    if (!currentGitHubProfileStatus?.linked || !event.detail) return;
+    const security = event.detail;
+    const canDisconnect = Number(security.fido_device_count) > 0 ||
+        (security.password_configured === true && security.password_login_enabled === true);
+    if (canDisconnect === Boolean(currentGitHubProfileStatus.can_disconnect)) return;
+    renderGitHubConnection({...currentGitHubProfileStatus, can_disconnect: canDisconnect});
 });

@@ -140,6 +140,10 @@
   profile linking request account/organization read access, persist immutable provider IDs without access tokens, and
   allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
+  Singular own-profile responses embed the private GitHub connection snapshot so the responsive two-column profile
+  editor can render authorization state with the identity payload instead of issuing a delayed follow-up request;
+  public and batched profile responses omit that connection data. OAuth redirects refresh the same snapshot, while
+  disconnects update the visible state immediately and retain the server-side alternate-login invariant.
   Administrator account creation and editing use the responsive two-column `js/users/modal.js` dialog, with account
   identity and password semantics separated from the asynchronously loaded repository permission editor in
   `js/users/permissions.js`; narrow viewports stack both sections without allowing the modal to exceed the dynamic

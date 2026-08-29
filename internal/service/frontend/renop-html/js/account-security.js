@@ -58,6 +58,7 @@ function renderAccountSecurity(security) {
         recoveryStatus.textContent = t('profile.recoveryCodesNone');
         recoveryButton.textContent = t('profile.generateRecoveryCodes');
     }
+    window.dispatchEvent(new CustomEvent('accountSecurityUpdated', {detail: {...security}}));
 }
 
 /**
