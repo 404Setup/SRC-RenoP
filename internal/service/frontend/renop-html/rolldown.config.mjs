@@ -12,8 +12,9 @@ export default defineConfig({
   output: {
     dir: outDir,
     format: 'esm',
-    codeSplitting: false,
+    codeSplitting: true,
     entryFileNames: 'js/[name].js',
+    chunkFileNames: 'js/chunks/[name]-[hash].js',
     assetFileNames: 'assets/[name]-[hash][extname]',
     minify: true,
   },

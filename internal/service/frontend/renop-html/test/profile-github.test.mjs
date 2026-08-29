@@ -25,8 +25,8 @@ test('own profile payload renders GitHub state without a delayed profile request
         profile.indexOf('void refreshAccountSecurity()', profile.indexOf('function showProfileEdit')));
     assert.doesNotMatch(github, /apiRequest\('\/api\/auth\/profile\/github'\s*\)/);
     assert.match(github, /renderGitHubConnection\(nextStatus\)/);
-    assert.match(github, /addEventListener\('languageChanged'/);
-    assert.match(github, /addEventListener\('accountSecurityUpdated'/);
+    assert.match(github, /\$\(window\)\.on\('languageChanged'/);
+    assert.match(github, /\$\(window\)\.on\('accountSecurityUpdated'/);
     assert.match(github, /security\.fido_device_count/);
 });
 

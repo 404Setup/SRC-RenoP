@@ -8,6 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {$} from './jquery.js';
+
 /**
  * Create a DOM element with attributes and children.
  * Special attrs: `class`/`className`, `text`, `html`, object `style`, object `dataset`,
@@ -35,7 +37,7 @@ export function el(tag, attrs = {}, ...children) {
         } else if (k === 'style' && typeof v === 'string') {
             node.setAttribute('style', v);
         } else if (k.startsWith('on') && typeof v === 'function') {
-            node.addEventListener(k.slice(2).toLowerCase(), v);
+            $(node).on(k.slice(2).toLowerCase(), v);
         } else if (k === 'dataset' && typeof v === 'object') {
             Object.assign(node.dataset, v);
         } else if (k.startsWith('data-') || k.startsWith('aria-') || k === 'role' || k === 'for') {
@@ -70,7 +72,7 @@ export function el(tag, attrs = {}, ...children) {
  * @returns {Node} The same node for chaining.
  */
 export function clear(node) {
-    while (node.firstChild) node.removeChild(node.firstChild);
+    $(node).empty();
     return node;
 }
 

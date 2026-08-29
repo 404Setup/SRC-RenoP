@@ -14,6 +14,7 @@
  */
 
 import {smoothScrollToTop, wait} from '@renop/ui/scroll';
+import {$} from '@renop/ui/jquery';
 
 const routes = [];
 let currentCleanup = null;
@@ -104,7 +105,7 @@ export async function renderRoute() {
     try {
         const path = location.pathname || '/';
         const matched = matchRoute(path) || matchRoute('/');
-        const root = document.getElementById('page-root');
+        const root = $('#page-root').get(0);
         if (!root || !matched) return;
 
         const soft =
@@ -112,14 +113,13 @@ export async function renderRoute() {
             previousPath != null &&
             sectionKey(previousPath) === sectionKey(path) &&
             sectionKey(path) === 'docs' &&
-            root.querySelector('.docs-layout');
+            $(root).find('.docs-layout').length > 0;
 
         previousPath = path;
 
         if (!soft) {
             if (!firstRender && root.childNodes.length) {
-                root.classList.remove('page-enter');
-                root.classList.add('page-leave');
+                $(root).removeClass('page-enter').addClass('page-leave');
                 await wait(180);
             }
             firstRender = false;
@@ -133,18 +133,17 @@ export async function renderRoute() {
                 currentCleanup = null;
             }
 
-            root.classList.remove('page-leave');
-            root.innerHTML = '';
+            $(root).removeClass('page-leave').empty();
 
             if ((window.scrollY || document.documentElement.scrollTop) > 0) {
                 smoothScrollToTop(350);
             }
         }
 
-        document.querySelectorAll('.nav-links a[data-link]').forEach((a) => {
+        $('.nav-links a[data-link]').each((index, a) => {
             const href = a.getAttribute('href') || '';
             const active = href === path || (href !== '/' && path.startsWith(href));
-            a.classList.toggle('active', active);
+            $(a).toggleClass('active', active);
         });
 
         const result = await matched.route.handler({
@@ -159,9 +158,9 @@ export async function renderRoute() {
         }
 
         if (!soft) {
-            root.classList.remove('page-enter');
+            $(root).removeClass('page-enter');
             void root.offsetWidth;
-            root.classList.add('page-enter');
+            $(root).addClass('page-enter');
         }
     } finally {
         rendering = false;
@@ -173,9 +172,8 @@ export async function renderRoute() {
  * @returns {void}
  */
 export function initRouter() {
-    document.addEventListener('click', (e) => {
-        const a = e.target.closest('a[data-link]');
-        if (!a) return;
+    $(document).on('click', 'a[data-link]', (e) => {
+        const a = e.currentTarget;
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
         const href = a.getAttribute('href');
         if (!href || href.startsWith('http') || href.startsWith('//') || href.startsWith('#')) return;
@@ -184,7 +182,7 @@ export function initRouter() {
         else renderRoute();
     });
 
-    window.addEventListener('popstate', () => {
+    $(window).on('popstate', () => {
         renderRoute();
     });
 }

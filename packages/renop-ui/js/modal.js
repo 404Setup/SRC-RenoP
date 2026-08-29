@@ -8,6 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {$} from './jquery.js';
+
 const EASE_OUT_EXPO = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 /** Animation CSS values and default close duration (ms). */
@@ -57,11 +59,11 @@ export function configureModalInert({
  */
 export function updateModalInertState() {
     const isAnyModalOpen = inertConfig.modalIds.some((id) => {
-        const el = document.getElementById(id);
+        const el = $(`#${$.escapeSelector(id)}`).get(0);
         return isModalOpen(el);
     });
     for (const sel of inertConfig.rootSelectors) {
-        const el = document.querySelector(sel);
+        const el = $(sel).get(0);
         if (el && el.inert !== isAnyModalOpen) el.inert = isAnyModalOpen;
     }
 }
@@ -85,7 +87,7 @@ function notifyInert() {
  */
 export function isModalOpen(modal) {
     if (!modal) return false;
-    if (modal.dataset.isClosing === 'true') return false;
+    if ($(modal).attr('data-is-closing') === 'true') return false;
     const display = modal.style.display;
     return display !== 'none' && display !== '';
 }
@@ -96,8 +98,9 @@ export function isModalOpen(modal) {
  * @returns {{ backdrop: HTMLElement|null, content: HTMLElement|null }}
  */
 function modalParts(modal) {
-    const backdrop = modal.querySelector('.modal-backdrop');
-    const content = modal.querySelector('.modal-content');
+    const $modal = $(modal);
+    const backdrop = $modal.find('.modal-backdrop').get(0) || null;
+    const content = $modal.find('.modal-content').get(0) || null;
     return {backdrop, content};
 }
 
@@ -108,13 +111,13 @@ function modalParts(modal) {
  * @returns {boolean} True if the modal was opened.
  */
 export function openModalWithAnim(modal, {display = 'flex', onOpen} = {}) {
-    if (!modal || modal.dataset.isClosing === 'true') return false;
+    if (!modal || $(modal).attr('data-is-closing') === 'true') return false;
 
     const {backdrop, content} = modalParts(modal);
-    if (backdrop) backdrop.style.animation = MODAL_ANIM.openBackdrop;
-    if (content) content.style.animation = MODAL_ANIM.openContent;
+    if (backdrop) $(backdrop).css('animation', MODAL_ANIM.openBackdrop);
+    if (content) $(content).css('animation', MODAL_ANIM.openContent);
 
-    modal.style.display = display;
+    $(modal).css('display', display);
     notifyInert();
     if (typeof onOpen === 'function') onOpen();
     return true;
@@ -132,9 +135,9 @@ export function openModalWithAnim(modal, {display = 'flex', onOpen} = {}) {
  * @returns {void}
  */
 export function closeModalWithAnim(modal, callback, {durationMs, fast = false} = {}) {
-    if (!modal || modal.dataset.isClosing === 'true') return;
+    if (!modal || $(modal).attr('data-is-closing') === 'true') return;
 
-    modal.dataset.isClosing = 'true';
+    $(modal).attr('data-is-closing', 'true');
     notifyInert();
 
     const {backdrop, content} = modalParts(modal);
@@ -143,23 +146,20 @@ export function closeModalWithAnim(modal, callback, {durationMs, fast = false} =
     const wait = durationMs ?? (fast ? MODAL_ANIM.closeDurationFastMs : MODAL_ANIM.closeDurationMs);
 
     if (backdrop && content) {
-        content.style.animation = contentAnim;
-        backdrop.style.animation = backdropAnim;
+        $(content).css('animation', contentAnim);
+        $(backdrop).css('animation', backdropAnim);
     } else if (content && content !== modal) {
-        content.style.animation = contentAnim;
-        modal.style.animation = backdropAnim;
+        $(content).css('animation', contentAnim);
+        $(modal).css('animation', backdropAnim);
     } else {
-        modal.style.animation = contentAnim;
+        $(modal).css('animation', contentAnim);
     }
 
     setTimeout(() => {
-        modal.style.display = 'none';
-        modal.style.animation = '';
-        modal.style.transition = '';
-        modal.style.opacity = '';
-        if (backdrop) backdrop.style.animation = '';
-        if (content && content !== modal) content.style.animation = '';
-        modal.dataset.isClosing = 'false';
+        $(modal).css({display: 'none', animation: '', transition: '', opacity: ''})
+            .attr('data-is-closing', 'false');
+        if (backdrop) $(backdrop).css('animation', '');
+        if (content && content !== modal) $(content).css('animation', '');
         notifyInert();
         if (typeof callback === 'function') callback();
     }, wait);
@@ -199,14 +199,14 @@ export function bindModalChrome({
     };
 
     for (const el of openTriggers) {
-        if (el) el.addEventListener('click', open);
+        if (el) $(el).on('click', open);
     }
     for (const el of closeTriggers) {
-        if (el) el.addEventListener('click', close);
+        if (el) $(el).on('click', close);
     }
 
     if (escape) {
-        document.addEventListener('keydown', (e) => {
+        $(document).on('keydown', (e) => {
             if (e.key === 'Escape' && isModalOpen(modal) && modal.style.display === 'flex') {
                 close();
             }

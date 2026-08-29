@@ -15,6 +15,7 @@ export default defineConfig({
     format: 'esm',
     codeSplitting: true,
     entryFileNames: 'js/[name].js',
+    chunkFileNames: 'js/chunks/[name]-[hash].js',
     assetFileNames: 'assets/[name]-[hash][extname]',
     minify: true,
   },

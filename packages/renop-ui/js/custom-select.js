@@ -9,6 +9,9 @@
  */
 
 import {el} from '@renop/ui/dom';
+import {$} from './jquery.js';
+
+let customSelectSequence = 0;
 
 /**
  * Dropdown chevron icon (SVG).
@@ -105,14 +108,15 @@ export function makeCustomSelect(options, current, onChange) {
     btn.appendChild(arrow);
 
     const dropdown = el('div', {class: 'custom-select-dropdown'});
-    document.body.appendChild(dropdown);
+    $('body').append(dropdown);
+    const eventNamespace = `.renopCustomSelect${++customSelectSequence}`;
 
     /**
      * Rebuild dropdown list items from `normalized` options.
      * @returns {void}
      */
     function renderItems() {
-        dropdown.innerHTML = '';
+        $(dropdown).empty();
         normalized.forEach((opt) => {
             const isSelected = selectedOpt && opt.value === selectedOpt.value;
             const item = el('div', {
@@ -124,16 +128,16 @@ export function makeCustomSelect(options, current, onChange) {
                 check.appendChild(checkSvg());
                 item.appendChild(check);
             }
-            item.addEventListener('click', (e) => {
+            $(item).on('click', (e) => {
                 e.stopPropagation();
                 selectedOpt = opt;
                 currentVal = opt.value;
-                textSpan.textContent = opt.label;
+                $(textSpan).text(opt.label);
                 closeDropdown();
                 renderItems();
                 if (typeof onChange === 'function') onChange(opt.value);
             });
-            dropdown.appendChild(item);
+            $(dropdown).append(item);
         });
     }
 
@@ -145,7 +149,7 @@ export function makeCustomSelect(options, current, onChange) {
     function applySelection(opt) {
         selectedOpt = opt;
         currentVal = opt ? opt.value : '';
-        textSpan.textContent = opt ? opt.label : '';
+        $(textSpan).text(opt ? opt.label : '');
     }
 
     /**
@@ -154,18 +158,19 @@ export function makeCustomSelect(options, current, onChange) {
      */
     function positionDropdown() {
         const rect = btn.getBoundingClientRect();
-        dropdown.style.left = `${rect.left}px`;
-        dropdown.style.width = `${Math.max(rect.width, 160)}px`;
-
-        dropdown.style.display = 'block';
-        dropdown.style.visibility = 'hidden';
+        $(dropdown).css({
+            left: `${rect.left}px`,
+            width: `${Math.max(rect.width, 160)}px`,
+            display: 'block',
+            visibility: 'hidden',
+        });
         const dropH = dropdown.offsetHeight;
-        dropdown.style.visibility = 'visible';
+        $(dropdown).css('visibility', 'visible');
 
         if (rect.bottom + dropH + 6 > window.innerHeight && rect.top - dropH - 6 > 0) {
-            dropdown.style.top = `${rect.top - dropH - 6}px`;
+            $(dropdown).css('top', `${rect.top - dropH - 6}px`);
         } else {
-            dropdown.style.top = `${rect.bottom + 6}px`;
+            $(dropdown).css('top', `${rect.bottom + 6}px`);
         }
     }
 
@@ -177,21 +182,19 @@ export function makeCustomSelect(options, current, onChange) {
      * @returns {void}
      */
     function closeDropdown(immediate = false) {
-        btn.classList.remove('is-open');
-        wrap.classList.remove('is-open');
-        if (!dropdown || dropdown.style.display === 'none' || dropdown.classList.contains('is-leaving')) return;
+        $(btn).removeClass('is-open');
+        $(wrap).removeClass('is-open');
+        if (!dropdown || dropdown.style.display === 'none' || $(dropdown).hasClass('is-leaving')) return;
 
         if (immediate) {
-            dropdown.style.display = 'none';
-            dropdown.classList.remove('is-leaving');
+            $(dropdown).css('display', 'none').removeClass('is-leaving');
             return;
         }
 
-        dropdown.classList.add('is-leaving');
+        $(dropdown).addClass('is-leaving');
         if (closeTimeout) clearTimeout(closeTimeout);
         closeTimeout = setTimeout(() => {
-            dropdown.style.display = 'none';
-            dropdown.classList.remove('is-leaving');
+            $(dropdown).css('display', 'none').removeClass('is-leaving');
             closeTimeout = null;
         }, 150);
     }
@@ -205,25 +208,23 @@ export function makeCustomSelect(options, current, onChange) {
             clearTimeout(closeTimeout);
             closeTimeout = null;
         }
-        document.querySelectorAll('.custom-select-dropdown').forEach((d) => {
+        $('.custom-select-dropdown').each((index, d) => {
             if (d !== dropdown) {
-                d.style.display = 'none';
-                d.classList.remove('is-leaving');
+                $(d).css('display', 'none').removeClass('is-leaving');
             }
         });
-        document.querySelectorAll('.custom-select-wrapper, .custom-select-btn').forEach((b) => {
-            if (b !== wrap && b !== btn) b.classList.remove('is-open');
+        $('.custom-select-wrapper, .custom-select-btn').each((index, b) => {
+            if (b !== wrap && b !== btn) $(b).removeClass('is-open');
         });
-        dropdown.classList.remove('is-leaving');
-        dropdown.style.display = 'block';
-        btn.classList.add('is-open');
-        wrap.classList.add('is-open');
+        $(dropdown).removeClass('is-leaving').css('display', 'block');
+        $(btn).addClass('is-open');
+        $(wrap).addClass('is-open');
         positionDropdown();
     }
 
-    btn.addEventListener('click', (e) => {
+    $(btn).on('click', (e) => {
         e.stopPropagation();
-        const isOpen = dropdown.style.display === 'block' && !dropdown.classList.contains('is-leaving');
+        const isOpen = dropdown.style.display === 'block' && !$(dropdown).hasClass('is-leaving');
         if (isOpen) closeDropdown();
         else openDropdown();
     });
@@ -235,13 +236,13 @@ export function makeCustomSelect(options, current, onChange) {
         }
     };
     const onScroll = () => {
-        if (btn.classList.contains('is-open')) positionDropdown();
+        if ($(btn).hasClass('is-open')) positionDropdown();
     };
     const onResize = () => closeDropdown();
 
-    document.addEventListener('click', onDocClick);
+    $(document).on(`click${eventNamespace}`, onDocClick);
     window.addEventListener('scroll', onScroll, {passive: true});
-    window.addEventListener('resize', onResize, {passive: true});
+    $(window).on(`resize${eventNamespace}`, onResize);
 
     // MutationObserver to clean up dropdown if `wrap` is removed from DOM
     const observer = new MutationObserver(() => {
@@ -252,12 +253,12 @@ export function makeCustomSelect(options, current, onChange) {
     observer.observe(document.body, {childList: true, subtree: true});
 
     function destroy() {
-        document.removeEventListener('click', onDocClick);
+        $(document).off(`click${eventNamespace}`, onDocClick);
         window.removeEventListener('scroll', onScroll);
-        window.removeEventListener('resize', onResize);
+        $(window).off(`resize${eventNamespace}`, onResize);
         observer.disconnect();
         if (dropdown && dropdown.parentNode) {
-            dropdown.parentNode.removeChild(dropdown);
+            $(dropdown).remove();
         }
     }
 

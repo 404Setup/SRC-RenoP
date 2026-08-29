@@ -8,6 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {$} from './jquery.js';
+
 let scrollToTopTimer = null;
 const dragScrollContainers = new WeakSet();
 const DRAG_DISTANCE_PX = 8;
@@ -30,7 +32,7 @@ export function smoothScrollToTop(duration = 350, {
 
     let mainEl = document.body;
     for (const sel of mainSelectors) {
-        const found = document.querySelector(sel);
+        const found = $(sel).get(0);
         if (found) {
             mainEl = found;
             break;
@@ -88,9 +90,10 @@ export function enableDragToScroll(container) {
     let holdTimer = null;
     let dragFrame = null;
     let pendingScrollLeft = 0;
+    const $container = $(container);
 
     const getScrollTarget = () => {
-        const tabsContainer = container.closest('.tabs-container');
+        const tabsContainer = $container.closest('.tabs-container').get(0);
         if (tabsContainer && tabsContainer !== container
             && tabsContainer.scrollWidth > tabsContainer.clientWidth + 1) {
             return tabsContainer;
@@ -118,8 +121,7 @@ export function enableDragToScroll(container) {
                 dragFrame = null;
                 if (isDragging) activeScrollTarget.scrollLeft = pendingScrollLeft;
             }
-            activeScrollTarget.style.cursor = '';
-            activeScrollTarget.classList.remove('is-dragging');
+            $(activeScrollTarget).css('cursor', '').removeClass('is-dragging');
         }
         if (e && activePointerId !== null && container.releasePointerCapture) {
             try {
@@ -187,8 +189,7 @@ export function enableDragToScroll(container) {
             if (window.getSelection) {
                 window.getSelection().removeAllRanges();
             }
-            activeScrollTarget.style.cursor = 'grabbing';
-            activeScrollTarget.classList.add('is-dragging');
+            $(activeScrollTarget).css('cursor', 'grabbing').addClass('is-dragging');
         }
 
         if (isDragging) {

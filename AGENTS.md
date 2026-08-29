@@ -183,7 +183,13 @@
   and `js/time.js`. The server-rendered H5 shell is cached at bootstrap and regenerated atomically after frontend
   settings updates. Its validated font preset metadata selects a shared system-ui baseline that keeps Linux text
   metrics aligned; `js/font.js` loads direct font files or Google Fonts CSS endpoints during idle time and activates
-  the resolved family only after it becomes usable, so fonts never enter the render-blocking stylesheet path. Shared
+  the resolved family only after it becomes usable, so fonts never enter the render-blocking stylesheet path.
+  `@renop/ui/jquery` owns the official self-hosted jQuery 4 runtime shared by the embedded frontend and website;
+  Rolldown emits it as a hashed module chunk, installs `jQuery` and a collision-safe `$` before interactive startup,
+  and emits `jqueryReady` without a Migrate shim. jQuery owns document-ready/delegated event wiring plus the shared
+  DOM, modal, theme, tabs, language-card, toggle, custom-select, and website-router layers; streaming fetches,
+  observers, pointer-capture details, and Web Animations remain native where jQuery would weaken security or
+  performance. Shared
   select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; native
   option popups are not used for styled application dialogs. The i18n runtime incrementally translates asynchronously inserted declarative UI nodes, while
   shared modal CSS clamps dialogs to the dynamic viewport and device safe areas. Shared asynchronous actions use the

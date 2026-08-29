@@ -9,6 +9,7 @@
  */
 
 import {enableDragToScroll} from './scroll.js';
+import {$} from './jquery.js';
 
 const tabClickContainers = new WeakSet();
 
@@ -16,10 +17,10 @@ const tabResizeObserver = new ResizeObserver((entries) => {
     const containersToUpdate = new Set();
     for (const entry of entries) {
         const target = entry.target;
-        if (target.classList.contains('tabs')) {
+        if ($(target).hasClass('tabs')) {
             containersToUpdate.add(target);
         } else {
-            const container = target.closest('.tabs');
+            const container = $(target).closest('.tabs').get(0);
             if (container) containersToUpdate.add(container);
         }
     }
@@ -36,7 +37,7 @@ const tabResizeObserver = new ResizeObserver((entries) => {
  */
 export function scrollTabIntoView(tab, {behavior = 'smooth', padding = 8} = {}) {
     if (!tab) return;
-    const scrollContainer = tab.closest('.tabs-container');
+    const scrollContainer = $(tab).closest('.tabs-container').get(0);
     if (!scrollContainer || scrollContainer.scrollWidth <= scrollContainer.clientWidth + 1) return;
 
     const containerRect = scrollContainer.getBoundingClientRect();
@@ -65,32 +66,35 @@ export function scrollTabIntoView(tab, {behavior = 'smooth', padding = 8} = {}) 
  */
 export function updateTabIndicator(tabsContainer) {
     if (!tabsContainer) return;
-    const activeTab = tabsContainer.querySelector('.tab.active');
-    let indicator = tabsContainer.querySelector('.tab-indicator');
+    const $tabs = $(tabsContainer);
+    const activeTab = $tabs.find('.tab.active').get(0);
+    let indicator = $tabs.find('.tab-indicator').get(0);
     if (!activeTab) return;
 
     let isNew = false;
     if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.className = 'tab-indicator';
-        tabsContainer.appendChild(indicator);
+        indicator = $('<div>', {class: 'tab-indicator'}).appendTo($tabs).get(0);
         isNew = true;
     }
 
     if (activeTab.style.display !== 'none' && activeTab.offsetWidth > 0) {
-        indicator.style.display = 'block';
+        $(indicator).css('display', 'block');
         if (isNew) {
-            indicator.style.transition = 'none';
-            indicator.style.width = `${activeTab.offsetWidth}px`;
-            indicator.style.transform = `translateX(${activeTab.offsetLeft}px)`;
+            $(indicator).css({
+                transition: 'none',
+                width: `${activeTab.offsetWidth}px`,
+                transform: `translateX(${activeTab.offsetLeft}px)`,
+            });
             void indicator.offsetHeight;
-            indicator.style.transition = '';
+            $(indicator).css('transition', '');
         } else {
-            indicator.style.width = `${activeTab.offsetWidth}px`;
-            indicator.style.transform = `translateX(${activeTab.offsetLeft}px)`;
+            $(indicator).css({
+                width: `${activeTab.offsetWidth}px`,
+                transform: `translateX(${activeTab.offsetLeft}px)`,
+            });
         }
     } else {
-        indicator.style.display = 'none';
+        $(indicator).css('display', 'none');
     }
 }
 
@@ -104,13 +108,13 @@ export function registerTabContainer(container) {
     enableDragToScroll(container);
     if (!tabClickContainers.has(container)) {
         tabClickContainers.add(container);
-        container.addEventListener('click', (e) => {
-            const tab = e.target.closest?.('.tab');
-            if (tab && container.contains(tab)) scrollTabIntoView(tab);
+        $(container).on('click', '.tab', (e) => {
+            const tab = e.currentTarget;
+            if (container.contains(tab)) scrollTabIntoView(tab);
         });
     }
     tabResizeObserver.observe(container);
-    container.querySelectorAll('.tab').forEach((tab) => {
+    $(container).find('.tab').each((index, tab) => {
         tabResizeObserver.observe(tab);
     });
 }

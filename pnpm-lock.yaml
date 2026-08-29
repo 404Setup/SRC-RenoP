@@ -30,7 +30,11 @@ importers:
         specifier: ^1.2.5
         version: 1.2.5
 
-  packages/renop-ui: {}
+  packages/renop-ui:
+    dependencies:
+      jquery:
+        specifier: 4.0.0
+        version: 4.0.0
 
   web:
     dependencies:
@@ -280,6 +284,9 @@ packages:
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+
+  jquery@4.0.0:
+    resolution: {integrity: sha512-TXCHVR3Lb6TZdtw1l3RTLf8RBWVGexdxL6AC8/e0xZKEpBflBsjh9/8LXw+dkNFuOyW9B7iB3O1sP7hS0Kiacg==}
 
   js2xmlparser@4.0.2:
     resolution: {integrity: sha512-6n4D8gLlLf1n5mNLQPRfViYzu9RATblzPEtm1SthMX1Pjao0r9YI9nw7ZIfRxQMERS87mcswrg+r/OYrPRX6jA==}
@@ -611,6 +618,8 @@ snapshots:
       wrappy: 1.0.2
 
   inherits@2.0.4: {}
+
+  jquery@4.0.0: {}
 
   js2xmlparser@4.0.2:
     dependencies:

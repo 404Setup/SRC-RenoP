@@ -13,6 +13,7 @@ import {writeClipboardText} from './clipboard.js';
 import {t} from './i18n.js';
 import {formatTimestamp} from './time.js';
 import {el} from '@renop/ui/dom';
+import {$} from '@renop/ui/jquery';
 
 let accountSecuritySequence = 0;
 let currentSecurity = null;
@@ -24,39 +25,39 @@ let currentSecurity = null;
  */
 function renderAccountSecurity(security) {
     currentSecurity = security;
-    const section = document.getElementById('profile-account-security-section');
-    const emailInput = document.getElementById('profile-private-email');
-    const toggle = document.getElementById('profile-password-login-toggle');
-    const passwordHint = document.getElementById('profile-password-login-hint');
-    const recoveryStatus = document.getElementById('profile-recovery-code-status');
-    const recoveryButton = document.getElementById('btn-profile-recovery-codes');
+    const section = $('#profile-account-security-section').get(0);
+    const emailInput = $('#profile-private-email').get(0);
+    const toggle = $('#profile-password-login-toggle').get(0);
+    const passwordHint = $('#profile-password-login-hint').get(0);
+    const recoveryStatus = $('#profile-recovery-code-status').get(0);
+    const recoveryButton = $('#btn-profile-recovery-codes').get(0);
     if (!section || !emailInput || !toggle || !passwordHint || !recoveryStatus || !recoveryButton) return;
-    section.hidden = false;
-    emailInput.value = security.email || '';
-    toggle.checked = security.password_login_enabled === true;
-    toggle.disabled = toggle.checked
+    $(section).prop('hidden', false);
+    $(emailInput).val(security.email || '');
+    $(toggle).prop('checked', security.password_login_enabled === true);
+    $(toggle).prop('disabled', toggle.checked
         ? security.can_disable_password_login !== true
-        : security.password_configured !== true;
+        : security.password_configured !== true);
     if (!security.password_configured) {
-        passwordHint.textContent = t('profile.passwordLoginNotConfigured');
+        $(passwordHint).text(t('profile.passwordLoginNotConfigured'));
     } else if (toggle.checked && !security.can_disable_password_login) {
-        passwordHint.textContent = t('profile.passwordLoginNeedsAlternative');
+        $(passwordHint).text(t('profile.passwordLoginNeedsAlternative'));
     } else if (toggle.checked) {
-        passwordHint.textContent = t('profile.passwordLoginEnabled');
+        $(passwordHint).text(t('profile.passwordLoginEnabled'));
     } else {
-        passwordHint.textContent = t('profile.passwordLoginDisabled');
+        $(passwordHint).text(t('profile.passwordLoginDisabled'));
     }
     const remaining = Number(security.recovery_codes_remaining) || 0;
     const total = Number(security.recovery_code_count) || 0;
     if (total > 0) {
-        recoveryStatus.textContent = t('profile.recoveryCodesStatus', {
+        $(recoveryStatus).text(t('profile.recoveryCodesStatus', {
             remaining,
             date: formatTimestamp(security.recovery_generated_at, {fallback: t('common.unknown')}),
-        });
-        recoveryButton.textContent = t('profile.regenerateRecoveryCodes');
+        }));
+        $(recoveryButton).text(t('profile.regenerateRecoveryCodes'));
     } else {
-        recoveryStatus.textContent = t('profile.recoveryCodesNone');
-        recoveryButton.textContent = t('profile.generateRecoveryCodes');
+        $(recoveryStatus).text(t('profile.recoveryCodesNone'));
+        $(recoveryButton).text(t('profile.generateRecoveryCodes'));
     }
     window.dispatchEvent(new CustomEvent('accountSecurityUpdated', {detail: {...security}}));
 }
@@ -114,7 +115,7 @@ function showRecoveryCodes(codes) {
  */
 export async function refreshAccountSecurity() {
     const sequence = ++accountSecuritySequence;
-    const section = document.getElementById('profile-account-security-section');
+    const section = $('#profile-account-security-section').get(0);
     if (!section) return;
     try {
         const response = await apiRequest('/api/auth/profile/security');
@@ -125,19 +126,19 @@ export async function refreshAccountSecurity() {
     } catch (error) {
         if (sequence !== accountSecuritySequence) return;
         console.error('Failed to load account security', error);
-        section.hidden = true;
+        $(section).prop('hidden', true);
     }
 }
 
-window.addEventListener('languageChanged', () => {
+$(window).on('languageChanged', () => {
     if (currentSecurity) renderAccountSecurity(currentSecurity);
 });
 
-document.getElementById('profile-private-email-form')?.addEventListener('submit', async event => {
+$('#profile-private-email-form').on('submit', async event => {
     event.preventDefault();
     const form = event.currentTarget;
-    const input = document.getElementById('profile-private-email');
-    const button = form.querySelector('button[type="submit"]');
+    const input = $('#profile-private-email').get(0);
+    const button = $(form).find('button[type="submit"]').get(0);
     if (!input || !button) return;
     const email = input.value.trim();
     if (!email || !input.checkValidity()) {
@@ -146,7 +147,7 @@ document.getElementById('profile-private-email-form')?.addEventListener('submit'
         input.reportValidity();
         return;
     }
-    button.disabled = true;
+    $(button).prop('disabled', true);
     try {
         const response = await apiRequest('/api/auth/profile/email', {
             method: 'PUT',
@@ -166,14 +167,14 @@ document.getElementById('profile-private-email-form')?.addEventListener('submit'
         console.error('Failed to save private email', error);
         showAlert(t('profile.privateEmailSaveFailed'), 'error');
     } finally {
-        button.disabled = false;
+        $(button).prop('disabled', false);
     }
 });
 
-document.getElementById('profile-password-login-toggle')?.addEventListener('change', async event => {
+$('#profile-password-login-toggle').on('change', async event => {
     const toggle = event.currentTarget;
     const previous = !toggle.checked;
-    toggle.disabled = true;
+    $(toggle).prop('disabled', true);
     try {
         const response = await apiRequest('/api/auth/profile/password-login', {
             method: 'PUT',
@@ -201,13 +202,13 @@ document.getElementById('profile-password-login-toggle')?.addEventListener('chan
     }
 });
 
-document.getElementById('btn-profile-recovery-codes')?.addEventListener('click', async event => {
+$('#btn-profile-recovery-codes').on('click', async event => {
     const button = event.currentTarget;
     if ((Number(currentSecurity?.recovery_code_count) || 0) > 0 &&
         !(await window.showConfirm(t('profile.recoveryCodesRegenerateConfirm')))) {
         return;
     }
-    button.disabled = true;
+    $(button).prop('disabled', true);
     try {
         const response = await apiRequest('/api/auth/profile/recovery-codes', {method: 'POST'});
         if (!response.ok) throw new Error('Recovery-code generation failed');
@@ -221,6 +222,6 @@ document.getElementById('btn-profile-recovery-codes')?.addEventListener('click',
         console.error('Failed to generate recovery codes', error);
         showAlert(t('profile.recoveryCodesGenerateFailed'), 'error');
     } finally {
-        button.disabled = false;
+        $(button).prop('disabled', false);
     }
 });

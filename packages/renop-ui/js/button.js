@@ -9,6 +9,7 @@
  */
 
 import {el} from './dom.js';
+import {$} from './jquery.js';
 
 /**
  * Create a styled button element with optional icon and click handler.
@@ -52,6 +53,6 @@ export function createButton(text, props = {}) {
     }
 
     const btn = el('button', btnProps, ...children);
-    if (props.onClick) btn.onclick = props.onClick;
+    if (props.onClick) $(btn).on('click', props.onClick);
     return btn;
 }

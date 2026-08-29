@@ -13,6 +13,7 @@ import {showAlert} from './alert.js';
 import {t} from './i18n.js';
 import {refreshAccountSecurity} from './account-security.js';
 import {runButtonAction} from './components.js';
+import {$} from '@renop/ui/jquery';
 
 let currentGitHubProfileStatus = null;
 
@@ -58,11 +59,10 @@ function showGitHubOAuthResult() {
  */
 export async function initializeGitHubAuth() {
     showGitHubOAuthResult();
-    const wrapper = document.getElementById('github-login-wrapper');
-    const button = document.getElementById('btn-github-login');
-    if (button && !button.dataset.bound) {
-        button.dataset.bound = 'true';
-        button.addEventListener('click', startGitHubOAuth);
+    const wrapper = $('#github-login-wrapper').get(0);
+    const button = $('#btn-github-login').get(0);
+    if (button && $(button).attr('data-bound') !== 'true') {
+        $(button).attr('data-bound', 'true').on('click', startGitHubOAuth);
     }
     try {
         const response = await fetch('/api/auth/github/status', {
@@ -70,9 +70,9 @@ export async function initializeGitHubAuth() {
             headers: {'Cache-Control': 'no-store'},
         });
         const status = response.ok ? await response.json() : null;
-        if (wrapper) wrapper.hidden = !status?.enabled;
+        if (wrapper) $(wrapper).prop('hidden', !status?.enabled);
     } catch {
-        if (wrapper) wrapper.hidden = true;
+        if (wrapper) $(wrapper).prop('hidden', true);
     }
 }
 
@@ -82,40 +82,40 @@ export async function initializeGitHubAuth() {
  * @returns {void}
  */
 export function renderGitHubConnection(status) {
-    const section = document.getElementById('profile-github-section');
-    const statusText = document.getElementById('profile-github-status');
-    const connectButton = document.getElementById('btn-profile-github-connect');
-    const disconnectButton = document.getElementById('btn-profile-github-disconnect');
+    const section = $('#profile-github-section').get(0);
+    const statusText = $('#profile-github-status').get(0);
+    const connectButton = $('#btn-profile-github-connect').get(0);
+    const disconnectButton = $('#btn-profile-github-disconnect').get(0);
     if (!section || !statusText || !connectButton || !disconnectButton) return;
     currentGitHubProfileStatus = status && typeof status === 'object' ? {...status} : null;
-    connectButton.hidden = true;
-    disconnectButton.hidden = true;
+    $(connectButton).prop('hidden', true);
+    $(disconnectButton).prop('hidden', true);
     if (!currentGitHubProfileStatus ||
         (!currentGitHubProfileStatus.configured && !currentGitHubProfileStatus.linked)) {
-        section.hidden = true;
+        $(section).prop('hidden', true);
         return;
     }
-    section.hidden = false;
+    $(section).prop('hidden', false);
     if (currentGitHubProfileStatus.linked) {
         const identityText = t('profile.githubConnectedAs', {
             login: currentGitHubProfileStatus.github_login || '',
             count: Number(currentGitHubProfileStatus.principal_count) || 1,
         });
-        statusText.textContent = currentGitHubProfileStatus.can_disconnect
+        $(statusText).text(currentGitHubProfileStatus.can_disconnect
             ? identityText
-            : identityText + ' ' + t('profile.githubOnlyLogin');
-        connectButton.textContent = t('profile.githubRefresh');
-        connectButton.hidden = !currentGitHubProfileStatus.configured;
-        disconnectButton.hidden = !currentGitHubProfileStatus.can_disconnect;
+            : identityText + ' ' + t('profile.githubOnlyLogin'));
+        $(connectButton).text(t('profile.githubRefresh'))
+            .prop('hidden', !currentGitHubProfileStatus.configured);
+        $(disconnectButton).prop('hidden', !currentGitHubProfileStatus.can_disconnect);
         return;
     }
-    statusText.textContent = t('profile.githubNotConnected');
-    connectButton.textContent = t('profile.githubConnect');
-    connectButton.hidden = !currentGitHubProfileStatus.configured;
+    $(statusText).text(t('profile.githubNotConnected'));
+    $(connectButton).text(t('profile.githubConnect'))
+        .prop('hidden', !currentGitHubProfileStatus.configured);
 }
 
-document.getElementById('btn-profile-github-connect')?.addEventListener('click', startGitHubOAuth);
-document.getElementById('btn-profile-github-disconnect')?.addEventListener('click', async event => {
+$('#btn-profile-github-connect').on('click', startGitHubOAuth);
+$('#btn-profile-github-disconnect').on('click', async event => {
     if (!(await window.showConfirm(t('profile.githubDisconnectConfirm')))) return;
     const button = event.currentTarget;
     await runButtonAction(button, async () => {
@@ -144,13 +144,14 @@ document.getElementById('btn-profile-github-disconnect')?.addEventListener('clic
     });
 });
 
-window.addEventListener('languageChanged', () => {
+$(window).on('languageChanged', () => {
     if (currentGitHubProfileStatus) renderGitHubConnection(currentGitHubProfileStatus);
 });
 
-window.addEventListener('accountSecurityUpdated', event => {
-    if (!currentGitHubProfileStatus?.linked || !event.detail) return;
-    const security = event.detail;
+$(window).on('accountSecurityUpdated', event => {
+    const detail = event.originalEvent?.detail || event.detail;
+    if (!currentGitHubProfileStatus?.linked || !detail) return;
+    const security = detail;
     const canDisconnect = Number(security.fido_device_count) > 0 ||
         (security.password_configured === true && security.password_login_enabled === true);
     if (canDisconnect === Boolean(currentGitHubProfileStatus.can_disconnect)) return;

@@ -36,12 +36,13 @@ import {installBackendAvailabilityMonitor} from './backend-availability.js';
 import {initializeGitHubAuth} from './github-auth.js';
 import './password-recovery.js';
 import {initConfiguredFont} from './font.js';
+import {$} from '@renop/ui/jquery';
 
 initI18n();
 initConfiguredFont();
 const backendAvailability = installBackendAvailabilityMonitor();
 
-window.addEventListener('languageChanged', async () => {
+$(window).on('languageChanged', async () => {
     updateCopyrightFooter();
 
     const currentTab = profileRouteFromPath(window.location.pathname)
@@ -633,4 +634,4 @@ async function initializeApplication() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', initializeApplication);
+$(initializeApplication);

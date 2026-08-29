@@ -8,6 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {$} from './jquery.js';
+
 /**
  * Match a raw language tag against a registry of known keys.
  * Handles exact match, Chinese family heuristics, then base-language prefix.
@@ -133,16 +135,16 @@ export function translateKey(key, params = {}, {current = {}, fallback = {}} = {
 export function animateLangButtonLabel({nameEl, btn, newName}) {
     if (!nameEl) return;
 
-    const oldName = nameEl.textContent.trim();
+    const oldName = $(nameEl).text().trim();
     if (oldName && oldName !== newName && btn && document.readyState !== 'loading') {
         const startWidth = btn.getBoundingClientRect().width;
 
         btn.style.width = `${startWidth}px`;
-        btn.classList.add('is-animating');
-        nameEl.classList.add('lang-name-changing');
+        $(btn).addClass('is-animating');
+        $(nameEl).addClass('lang-name-changing');
 
         setTimeout(() => {
-            nameEl.textContent = newName;
+            $(nameEl).text(newName);
 
             btn.style.width = 'auto';
             const targetWidth = btn.getBoundingClientRect().width;
@@ -151,17 +153,16 @@ export function animateLangButtonLabel({nameEl, btn, newName}) {
             void btn.offsetWidth;
 
             btn.style.width = `${targetWidth}px`;
-            nameEl.classList.remove('lang-name-changing');
-            nameEl.classList.add('lang-name-changed');
+            $(nameEl).removeClass('lang-name-changing').addClass('lang-name-changed');
 
             setTimeout(() => {
                 btn.style.width = '';
-                btn.classList.remove('is-animating');
-                nameEl.classList.remove('lang-name-changed');
+                $(btn).removeClass('is-animating');
+                $(nameEl).removeClass('lang-name-changed');
             }, 300);
         }, 120);
     } else {
-        nameEl.textContent = newName;
+        $(nameEl).text(newName);
     }
 }
 
@@ -173,8 +174,8 @@ export function animateLangButtonLabel({nameEl, btn, newName}) {
  */
 export function syncLangCardsActive(grid, currentLang) {
     if (!grid) return;
-    grid.querySelectorAll('.lang-card').forEach((card) => {
-        const lKey = card.getAttribute('data-lang');
-        card.classList.toggle('active', lKey === currentLang);
+    $(grid).find('.lang-card').each((index, card) => {
+        const lKey = $(card).attr('data-lang');
+        $(card).toggleClass('active', lKey === currentLang);
     });
 }

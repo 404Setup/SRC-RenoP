@@ -8,19 +8,16 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
+import {$} from './jquery.js';
+
 /**
  * Apply light or dark theme classes on `<html>`.
  * @param {'dark'|'light'|string} mode - Target color scheme.
  * @returns {void}
  */
 export function applyTheme(mode) {
-    if (mode === 'dark') {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-    } else {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
-    }
+    const dark = mode === 'dark';
+    $('html').toggleClass('dark', dark).toggleClass('light', !dark);
 }
 
 /**
@@ -40,7 +37,7 @@ export function initTheme({
     applyTheme(initialMode);
 
     if (bindToggle) {
-        bindThemeToggle(document.querySelector(toggleSelector));
+        bindThemeToggle($(toggleSelector).get(0));
     }
 }
 
@@ -56,8 +53,8 @@ export function bindThemeToggle(btn = document.getElementById('theme-toggle')) {
     if (!btn || themeToggleBound) return;
     themeToggleBound = true;
 
-    btn.addEventListener('click', () => {
-        const isDark = document.documentElement.classList.contains('dark');
+    $(btn).on('click', () => {
+        const isDark = $('html').hasClass('dark');
         const newMode = isDark ? 'light' : 'dark';
         localStorage.setItem('theme-mode', newMode);
         playThemeTransition(newMode, btn);
@@ -72,27 +69,26 @@ export function bindThemeToggle(btn = document.getElementById('theme-toggle')) {
  */
 export function playThemeTransition(newMode, btn) {
     if (btn) {
-        btn.classList.add('theme-btn--switching');
-        btn.addEventListener('animationend', () => {
-            btn.classList.remove('theme-btn--switching');
-        }, {once: true});
+        $(btn).addClass('theme-btn--switching').one('animationend', () => {
+            $(btn).removeClass('theme-btn--switching');
+        });
     }
 
-    const overlay = document.createElement('div');
-    overlay.className = 'theme-transition-overlay';
-    overlay.style.setProperty(
+    const $overlay = $('<div>', {class: 'theme-transition-overlay'}).css(
         '--theme-transition-color',
         newMode === 'dark' ? '#000000' : '#f3f4f6',
     );
 
     if (btn) {
         const rect = btn.getBoundingClientRect();
-        overlay.style.setProperty('--ripple-x', `${rect.left + rect.width / 2}px`);
-        overlay.style.setProperty('--ripple-y', `${rect.top + rect.height / 2}px`);
+        $overlay.css({
+            '--ripple-x': `${rect.left + rect.width / 2}px`,
+            '--ripple-y': `${rect.top + rect.height / 2}px`,
+        });
     }
 
-    document.body.appendChild(overlay);
+    $('body').append($overlay);
     const animDuration = 380;
     setTimeout(() => applyTheme(newMode), animDuration * 0.4);
-    setTimeout(() => overlay.remove(), animDuration + 50);
+    setTimeout(() => $overlay.remove(), animDuration + 50);
 }
