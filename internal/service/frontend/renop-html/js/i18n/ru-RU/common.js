@@ -51,6 +51,7 @@ export default Object.freeze({
     "common.error": "Ошибка",
     "common.close": "Закрыть",
     "common.page": "Страница",
+    "common.pagination": "Страница {page} из {pages} · всего {total}",
     "common.record": "запись",
     "common.records": "записей",
     "common.prev": "Назад",

@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -124,6 +125,13 @@ func (db *DB) GetNPMPackage(repository, packageName string) (*core.NPMPackage, e
 	if err := db.QueryRow(`SELECT COUNT(*) FROM npm_versions
 		WHERE repository = ? AND package_name = ? AND unpublished = 0`, repository, packageName).Scan(&result.VersionCount); err != nil {
 		return nil, fmt.Errorf("count npm versions: %w", err)
+	}
+	if result.VersionCount > 0 && result.LatestVersion == "" {
+		if err := db.QueryRow(`SELECT version FROM npm_versions WHERE repository = ? AND package_name = ?
+			AND unpublished = 0 ORDER BY created_at DESC, version DESC LIMIT 1`, repository, packageName).
+			Scan(&result.LatestVersion); err != nil {
+			return nil, fmt.Errorf("resolve npm latest version: %w", err)
+		}
 	}
 	return result, nil
 }
@@ -277,7 +285,59 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 	if err := rows.Close(); err != nil {
 		return nil, 0, fmt.Errorf("close npm packages: %w", err)
 	}
+	if err := db.fillMissingNPMLatestVersions(repository, packages); err != nil {
+		return nil, 0, err
+	}
 	return packages, total, nil
+}
+
+func (db *DB) fillMissingNPMLatestVersions(repository string, packages []*core.NPMPackage) error {
+	missing := make(map[string][]*core.NPMPackage)
+	for _, pkg := range packages {
+		if pkg != nil && pkg.VersionCount > 0 && pkg.LatestVersion == "" {
+			missing[pkg.Name] = append(missing[pkg.Name], pkg)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(missing))
+	for name := range missing {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(names)), ",")
+	args := make([]any, 0, len(names)+1)
+	args = append(args, repository)
+	for _, name := range names {
+		args = append(args, name)
+	}
+	rows, err := db.Query(`SELECT package_name, version FROM (
+		SELECT package_name, version, ROW_NUMBER() OVER (
+			PARTITION BY package_name ORDER BY created_at DESC, version DESC) AS version_rank
+		FROM npm_versions WHERE repository = ? AND unpublished = 0 AND package_name IN (`+
+		placeholders+`)) ranked WHERE version_rank = 1`, args...)
+	if err != nil {
+		return fmt.Errorf("list npm latest-version fallbacks: %w", err)
+	}
+	for rows.Next() {
+		var packageName, version string
+		if err := rows.Scan(&packageName, &version); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("scan npm latest-version fallback: %w", err)
+		}
+		for _, pkg := range missing[packageName] {
+			pkg.LatestVersion = version
+		}
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return fmt.Errorf("iterate npm latest-version fallbacks: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close npm latest-version fallbacks: %w", err)
+	}
+	return nil
 }
 
 // GetNPMPackageDetails returns versions, tags, and team metadata for one package.
@@ -503,6 +563,12 @@ func (db *DB) RecordNPMPublication(pkg *core.NPMPackage, version *core.NPMVersio
 	if err != nil {
 		return fmt.Errorf("read npm latest dist-tag: %w", err)
 	}
+	if latest == "" {
+		latest, err = latestNPMVersionTx(tx, repository, packageName)
+		if err != nil {
+			return fmt.Errorf("choose npm latest version: %w", err)
+		}
+	}
 	if _, err := tx.Exec(`UPDATE npm_packages SET description = ?, publisher = ?, latest_version = ?,
 		revision = revision + 1, updated_at = ? WHERE repository = ? AND package_name = ?`,
 		SanitizeInputString(strings.TrimSpace(pkg.Description), 4000), username, latest,
@@ -608,6 +674,20 @@ func (db *DB) RecordNPMMirrorPublication(pkg *core.NPMPackage, versions []*core.
 		if err := upsertNPMTag(tx, repository, packageName, tag, version, pkg.UpdatedAt); err != nil {
 			return fmt.Errorf("insert mirrored npm dist-tag: %w", err)
 		}
+	}
+	latest, err := npmTagVersionTx(tx, repository, packageName, "latest")
+	if err != nil {
+		return fmt.Errorf("read mirrored npm latest dist-tag: %w", err)
+	}
+	if latest == "" {
+		latest, err = latestNPMVersionTx(tx, repository, packageName)
+		if err != nil {
+			return fmt.Errorf("choose mirrored npm latest version: %w", err)
+		}
+	}
+	if _, err := tx.Exec(`UPDATE npm_packages SET latest_version = ? WHERE repository = ? AND package_name = ?`,
+		latest, repository, packageName); err != nil {
+		return fmt.Errorf("update mirrored npm latest version: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit npm mirror publication: %w", err)
@@ -739,6 +819,12 @@ func (db *DB) SetNPMDistTag(repository, packageName, tag, version, actor string,
 	if err != nil {
 		return fmt.Errorf("read npm latest dist-tag: %w", err)
 	}
+	if latest == "" {
+		latest, err = latestNPMVersionTx(tx, repository, packageName)
+		if err != nil {
+			return fmt.Errorf("choose npm latest version: %w", err)
+		}
+	}
 	if _, err := tx.Exec(`UPDATE npm_packages SET latest_version = ?, revision = revision + 1, updated_at = ?
 		WHERE repository = ? AND package_name = ?`, latest, now, repository, packageName); err != nil {
 		return fmt.Errorf("update npm package tag revision: %w", err)
@@ -785,6 +871,12 @@ func (db *DB) DeleteNPMDistTag(repository, packageName, tag, actor string, expec
 	latest, err := npmTagVersionTx(tx, repository, packageName, "latest")
 	if err != nil {
 		return fmt.Errorf("read npm latest dist-tag: %w", err)
+	}
+	if latest == "" {
+		latest, err = latestNPMVersionTx(tx, repository, packageName)
+		if err != nil {
+			return fmt.Errorf("choose npm latest version: %w", err)
+		}
 	}
 	now := time.Now().UnixMilli()
 	if _, err := tx.Exec(`UPDATE npm_packages SET latest_version = ?, revision = revision + 1, updated_at = ?

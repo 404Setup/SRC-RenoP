@@ -7,6 +7,7 @@
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {bindAnimatedDetails} from '@renop/ui/disclosure';
+import {createPaginatedCollection} from '@renop/ui/pagination';
 import {apiRequest} from '../api.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {canUpdateRepo} from '../auth.js';
@@ -38,6 +39,7 @@ import {formatBytes} from './utils.js';
 
 const npmIcon = getRepositoryFormat('npm').icon;
 const pageSize = 24;
+const versionPageSize = 8;
 let view = null;
 let activeRepository = '';
 let activeNavigate = null;
@@ -47,6 +49,8 @@ let packageList = [];
 let packageTotal = 0;
 let packageOffset = 0;
 let inviteLevel = 0;
+let versionPage = 0;
+let versionPackage = '';
 
 /** Localized failure returned by the stable npm management error boundary. */
 class NPMRequestError extends Error {}
@@ -480,6 +484,66 @@ function packageHero(pkg) {
     );
 }
 
+/**
+ * Build one immutable npm version card.
+ * @param {object} version - Version metadata.
+ * @param {Map<string, string[]>} tagsByVersion - Dist-tags grouped by version.
+ * @param {boolean} canDelete - Whether unpublish is available.
+ * @returns {HTMLElement} Version card.
+ */
+function npmVersionItem(version, tagsByVersion, canDelete) {
+    const tagNames = (tagsByVersion.get(version.version) || [])
+        .sort((left, right) => left.localeCompare(right, undefined, {sensitivity: 'base'}));
+    const states = el('div', {class: 'npm-version-states'});
+    for (const tag of tagNames) states.appendChild(statusBadge(tag, 'is-tag'));
+    if (version.mirrored) states.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
+    if (version.deprecated) states.appendChild(statusBadge(t('npm.deprecated'), 'is-deprecated'));
+    if (version.unpublished) states.appendChild(statusBadge(t('npm.unpublished'), 'is-archived'));
+
+    const header = el('div', {class: 'npm-version-header'},
+        el('div', {class: 'npm-version-title'}, el('strong', {}, `v${version.version}`), states),
+        el('div', {class: 'npm-version-summary'},
+            version.publisher ? createUserIdentity(version.publisher) : el('span', {}, t('common.unknown')),
+            version.size > 0 ? el('span', {}, formatBytes(Number(version.size))) : null,
+            el('time', {}, formatRepositoryTimestamp(version.created_at))
+        )
+    );
+    const actions = el('div', {class: 'npm-version-actions'});
+    if (!version.unpublished) {
+        actions.appendChild(el('a', {
+            class: 'pill-btn pill-btn--soft pill-btn--sm', href: tarballURL(packageDetails.package.name, version.version),
+            download: `${packageDetails.package.name.replace('/', '-')}-${version.version}.tgz`
+        }, createIcon('download'), el('span', {}, t('npm.downloadTarball'))));
+        if (canDelete && !version.mirrored) {
+            const remove = createButton(t('npm.deleteVersion'), {
+                class: 'pill-btn pill-btn--danger pill-btn--sm', icon: 'delete'
+            });
+            remove.addEventListener('click', () => deleteVersion(version.version));
+            actions.appendChild(remove);
+        }
+    }
+    const digestRows = [
+        copyableVersionMetadata(t('npm.integrity'), version.integrity),
+        copyableVersionMetadata(t('npm.shasum'), version.shasum)
+    ].filter(Boolean);
+    const detailsBody = el('div', {class: 'npm-version-details-body'},
+        digestRows.length ? el('div', {class: 'npm-version-digests'}, ...digestRows) :
+            el('p', {class: 'npm-version-no-integrity'}, t('npm.noIntegrity')),
+        actions
+    );
+    const details = el('details', {class: 'npm-version-details'},
+        el('summary', {}, createIcon('info'), el('span', {}, t('npm.versionDetails'))),
+        detailsBody
+    );
+    bindAnimatedDetails(details, {content: detailsBody, marginTop: '0.7rem'});
+    const row = el('article', {class: `npm-version${version.unpublished ? ' is-unpublished' : ''}`},
+        header,
+        version.deprecated ? el('p', {class: 'npm-deprecation-message'}, version.deprecated) : null,
+        details
+    );
+    return row;
+}
+
 /** @returns {HTMLElement} Immutable npm version list. */
 function versionsSection() {
     const versions = Array.isArray(packageDetails.versions) ? packageDetails.versions : [];
@@ -490,63 +554,29 @@ function versionsSection() {
         )
     );
     const list = el('div', {class: 'npm-version-list'});
+    const pager = el('div', {class: 'npm-version-pagination'});
     const canDelete = packageDetails.administrator || Number(packageDetails.package.permission_level) >= 2;
     const tagsByVersion = new Map();
     for (const [tag, target] of Object.entries(packageDetails.dist_tags || {})) {
         if (!tagsByVersion.has(target)) tagsByVersion.set(target, []);
         tagsByVersion.get(target).push(tag);
     }
-    for (const version of versions) {
-        const tagNames = (tagsByVersion.get(version.version) || [])
-            .sort((left, right) => left.localeCompare(right, undefined, {sensitivity: 'base'}));
-        const states = el('div', {class: 'npm-version-states'});
-        for (const tag of tagNames) states.appendChild(statusBadge(tag, 'is-tag'));
-        if (version.mirrored) states.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
-        if (version.deprecated) states.appendChild(statusBadge(t('npm.deprecated'), 'is-deprecated'));
-        if (version.unpublished) states.appendChild(statusBadge(t('npm.unpublished'), 'is-archived'));
-
-        const header = el('div', {class: 'npm-version-header'},
-            el('div', {class: 'npm-version-title'}, el('strong', {}, `v${version.version}`), states),
-            el('div', {class: 'npm-version-summary'},
-                version.publisher ? createUserIdentity(version.publisher) : el('span', {}, t('common.unknown')),
-                version.size > 0 ? el('span', {}, formatBytes(Number(version.size))) : null,
-                el('time', {}, formatRepositoryTimestamp(version.created_at))
-            )
-        );
-        const actions = el('div', {class: 'npm-version-actions'});
-        if (!version.unpublished) {
-            actions.appendChild(el('a', {
-                class: 'pill-btn pill-btn--soft pill-btn--sm', href: tarballURL(packageDetails.package.name, version.version),
-                download: `${packageDetails.package.name.replace('/', '-')}-${version.version}.tgz`
-            }, createIcon('download'), el('span', {}, t('npm.downloadTarball'))));
-            if (canDelete && !version.mirrored) {
-                const remove = createButton(t('npm.deleteVersion'), {class: 'pill-btn pill-btn--danger pill-btn--sm', icon: 'delete'});
-                remove.addEventListener('click', () => deleteVersion(version.version));
-                actions.appendChild(remove);
-            }
-        }
-        const digestRows = [
-            copyableVersionMetadata(t('npm.integrity'), version.integrity),
-            copyableVersionMetadata(t('npm.shasum'), version.shasum)
-        ].filter(Boolean);
-        const detailsBody = el('div', {class: 'npm-version-details-body'},
-            digestRows.length ? el('div', {class: 'npm-version-digests'}, ...digestRows) :
-                el('p', {class: 'npm-version-no-integrity'}, t('npm.noIntegrity')),
-            actions
-        );
-        const details = el('details', {class: 'npm-version-details'},
-            el('summary', {}, createIcon('info'), el('span', {}, t('npm.versionDetails'))),
-            detailsBody
-        );
-        bindAnimatedDetails(details, {content: detailsBody, marginTop: '0.7rem'});
-        const row = el('article', {class: `npm-version${version.unpublished ? ' is-unpublished' : ''}`},
-            header,
-            version.deprecated ? el('p', {class: 'npm-deprecation-message'}, version.deprecated) : null,
-            details
-        );
-        list.appendChild(row);
-    }
-    section.appendChild(versions.length ? list : el('div', {class: 'npm-empty'}, el('p', {}, t('npm.noVersions'))));
+    createPaginatedCollection({
+        list,
+        pager,
+        items: versions,
+        pageSize: versionPageSize,
+        initialPage: versionPage,
+        renderItem: version => npmVersionItem(version, tagsByVersion, canDelete),
+        renderEmpty: () => el('div', {class: 'npm-empty'}, el('p', {}, t('npm.noVersions'))),
+        previousLabel: t('common.prev'),
+        nextLabel: t('common.next'),
+        summary: state => t('common.pagination', state),
+        onPageChanged: page => {
+            versionPage = page;
+        },
+    });
+    section.append(list, pager);
     return section;
 }
 
@@ -887,6 +917,8 @@ async function deletePackage() {
  */
 async function loadOverview(sequence) {
     packageDetails = null;
+    versionPackage = '';
+    versionPage = 0;
     setRepositoryViewBusy(view, true);
     if (!view.firstElementChild) view.replaceChildren(el('section', {class: 'npm-page-section'}, createSkeleton('list', 3)));
     try {
@@ -911,6 +943,10 @@ async function loadPackage(packageName, sequence) {
     setRepositoryViewBusy(view, true);
     if (!view.firstElementChild) view.replaceChildren(el('section', {class: 'npm-page-section'}, createSkeleton('list', 3)));
     try {
+        if (versionPackage !== packageName) {
+            versionPackage = packageName;
+            versionPage = 0;
+        }
         packageDetails = await npmRequest(npmAPI('packages', packageName), {}, 'npm.loadFailed');
         if (sequence === loadSequence) await replaceRepositoryView(view, renderPackage(), {duration: 300});
     } catch (error) {

@@ -10,6 +10,7 @@
     "./height-anim": "./js/height-anim.js",
     "./dom": "./js/dom.js",
     "./disclosure": "./js/disclosure.js",
+    "./pagination": "./js/pagination.js",
     "./lang-card": "./js/lang-card.js",
     "./modal": "./js/modal.js",
     "./scroll": "./js/scroll.js",
@@ -26,6 +27,7 @@
     "./css/components/lang-card.css": "./css/components/lang-card.css",
     "./css/components/lang-btn.css": "./css/components/lang-btn.css",
     "./css/components/modal.css": "./css/components/modal.css",
+    "./css/components/pagination.css": "./css/components/pagination.css",
     "./css/components/tabs.css": "./css/components/tabs.css",
     "./css/components/custom-select.css": "./css/components/custom-select.css"
   },

@@ -1,0 +1,81 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ */
+
+.renop-pagination {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) minmax(5.5rem, auto);
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.9rem;
+}
+
+.renop-pagination-btn {
+    min-height: 2.25rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.55rem;
+    background: var(--card-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 650;
+    transition: border-color 0.16s ease, background-color 0.16s ease,
+        color 0.16s ease, transform 0.16s ease;
+}
+
+.renop-pagination-btn:hover:not(:disabled),
+.renop-pagination-btn:focus-visible:not(:disabled) {
+    border-color: color-mix(in srgb, var(--link-hover-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 8%, var(--card-bg));
+    color: var(--link-hover-color);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.renop-pagination-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+}
+
+.renop-pagination-summary {
+    min-width: 0;
+    color: var(--muted-text);
+    font-size: 0.76rem;
+    text-align: center;
+}
+
+.renop-page-enter > * {
+    animation: renopPageItemIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes renopPageItemIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 520px) {
+    .renop-pagination {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .renop-pagination-summary {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .renop-page-enter > * {
+        animation: none;
+    }
+}

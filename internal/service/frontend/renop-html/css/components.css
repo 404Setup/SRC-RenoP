@@ -15,6 +15,7 @@
 @import "./components/dialog.css";
 @import "./components/field-row.css";
 @import "@renop/ui/css/components/custom-select.css";
+@import "@renop/ui/css/components/pagination.css";
 @import "./components/dropzone.css";
 @import "./components/alert.css";
 @import "./components/code-badge.css";

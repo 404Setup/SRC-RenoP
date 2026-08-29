@@ -171,6 +171,14 @@ func TestClickHouseNativePackageAndStatisticsMatrix(t *testing.T) {
 	npmDetails, err := db.GetNPMPackageDetails("npm", "@team/demo", "alice")
 	require.NoError(t, err)
 	require.Equal(t, "1.0.0", npmDetails.Package.LatestVersion)
+	_, err = db.Exec(`UPDATE npm_packages SET latest_version = '' WHERE repository = ? AND package_name = ?`,
+		"npm", "@team/demo")
+	require.NoError(t, err)
+	npmPackages, npmTotal, err := db.ListNPMPackages("npm", "alice", false, 20, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, npmTotal)
+	require.Len(t, npmPackages, 1)
+	require.Equal(t, "1.0.0", npmPackages[0].LatestVersion)
 
 	require.NoError(t, db.BatchIncrementDownloadStatistics([]*core.DownloadStatisticDelta{
 		{Username: "alice", Repository: "maven", Format: config.RepositoryFormatMaven,

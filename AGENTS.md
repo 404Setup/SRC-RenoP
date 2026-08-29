@@ -40,7 +40,8 @@
   expiring fine-grained API credentials. Legacy plaintext upload tokens migrate transactionally to scoped hashes;
   durable GitHub identity/principal snapshots and username-change throttling remain bound to immutable user IDs.
   npm package reservations, immutable versions, dist-tags, L0-L4 teams, and invitations use the same immutable
-  identities across every supported SQL dialect.
+  identities across every supported SQL dialect. Catalog reads and writes derive a usable latest published version
+  when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -173,6 +174,9 @@
   and filter shell and morphs only the bounded results/pagination region;
   repository clipboard feedback is centralized in `js/browser/copy-feedback.js`; repository package and namespace
   metadata grids and cross-format mirror-source badges are built by `js/browser/repository-view.js`.
+  Maven artifact versions, npm package versions, and Docker image tags use `@renop/ui/pagination` for bounded
+  previous/next pages, responsive summaries, height-morphed page changes, and page clamping after deletions; the
+  shared pager intentionally avoids dense numbered-button rows on mobile.
   npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
   visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
   failures are localized through stable codes in `js/npm-errors.js`. npm integrity/action panels and Maven version-file

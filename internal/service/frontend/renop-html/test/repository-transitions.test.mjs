@@ -43,6 +43,6 @@ test('Maven repository domain and artifact routes opt into shared entrances', ()
     const source = readFileSync(join(frontendRoot, 'js/browser/maven.js'), 'utf8');
     assert.match(source, /replaceRepositoryView\(container, sections, \{duration: 280, enterDuration: 420\}\)/,
         'Maven domain route does not animate');
-    assert.match(source, /maven\.versionsTitle[\s\S]{0,180}\{duration: 280, enterDuration: 420\}/,
+    assert.match(source, /versionsSection[\s\S]{0,500}\{duration: 280, enterDuration: 420\}/,
         'Maven artifact route does not animate');
 });

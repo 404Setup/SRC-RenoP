@@ -51,6 +51,7 @@ export default Object.freeze({
     "common.error": "Erro",
     "common.close": "Fechar",
     "common.page": "Página",
+    "common.pagination": "Página {page} de {pages} · {total} no total",
     "common.record": "registo",
     "common.records": "registos",
     "common.prev": "Anterior",

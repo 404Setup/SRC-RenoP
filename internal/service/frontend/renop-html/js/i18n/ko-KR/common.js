@@ -51,6 +51,7 @@ export default Object.freeze({
     "common.error": "오류",
     "common.close": "닫기",
     "common.page": "페이지",
+    "common.pagination": "{pages}페이지 중 {page}페이지 · 총 {total}개",
     "common.record": "개",
     "common.records": "개",
     "common.prev": "이전",

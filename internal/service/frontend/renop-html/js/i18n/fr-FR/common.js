@@ -51,6 +51,7 @@ export default Object.freeze({
     "common.error": "Erreur",
     "common.close": "Fermer",
     "common.page": "Page",
+    "common.pagination": "Page {page} sur {pages} · {total} au total",
     "common.record": "enregistrement",
     "common.records": "enregistrements",
     "common.prev": "Précédent",

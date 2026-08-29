@@ -11,6 +11,7 @@
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {bindAnimatedDetails} from '@renop/ui/disclosure';
+import {createPaginatedCollection} from '@renop/ui/pagination';
 import {apiRequest} from '../api.js';
 import {cachedIsLoggedIn, cachedIsManager} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
@@ -42,6 +43,8 @@ let domainCenterOffset = 0;
 const domainCenterPageSize = 12;
 const domainCenterFilters = new Set();
 const domainCenterRouteRoot = '/account/maven-domains';
+let artifactVersionPage = 0;
+let artifactVersionKey = '';
 
 /**
  * Parse the account Maven-domain route.
@@ -1189,6 +1192,67 @@ function mavenArtifactReadmeSection(container, repository, artifact, sequence, c
 }
 
 /**
+ * Build one Maven version row with bounded file metadata and management actions.
+ * @param {object} version - Version detail.
+ * @param {object} options - Row options.
+ * @param {boolean} options.canManageVersions - Whether delete is available.
+ * @param {HTMLElement} options.container - Repository view container.
+ * @param {string} options.repository - Repository name.
+ * @param {object} options.artifact - Parent artifact.
+ * @param {string} options.groupID - Route group id.
+ * @param {string} options.artifactID - Route artifact id.
+ * @param {number} options.sequence - Active route sequence.
+ * @returns {HTMLElement} Version entry.
+ */
+function mavenVersionEntry(version, {
+    canManageVersions,
+    container,
+    repository,
+    artifact,
+    groupID,
+    artifactID,
+    sequence,
+}) {
+    const actions = el('div', {class: 'maven-version-actions'});
+    if (canManageVersions) {
+        actions.appendChild(el('button', {
+            type: 'button', class: 'maven-icon-btn is-danger', title: t('maven.deleteVersion'), onclick: async () => {
+                if (!(await showConfirm(t('maven.deleteVersionConfirm', {version: version.version})))) return;
+                const deleteQuery = new URLSearchParams({
+                    group: artifact.group_id, artifact: artifact.artifact_id, version: version.version
+                });
+                const deleteResponse = await apiRequest(
+                    `/api/maven/repositories/${encodeURIComponent(repository)}/versions?${deleteQuery}`,
+                    {method: 'DELETE'}
+                );
+                if (!deleteResponse.ok) {
+                    showAlert(await responseErrorMessage(deleteResponse, 'maven.deleteVersionFailed'), 'error');
+                } else {
+                    await renderArtifact(container, repository, groupID, artifactID, sequence);
+                }
+            }
+        }, createIcon('delete')));
+    }
+    const row = el('div', {class: 'maven-version-row'},
+        el('div', {class: 'maven-version-main'}, el('code', {}, version.version),
+            el('span', {}, formatDate(version.created_at))),
+        el('div', {class: 'maven-version-meta'},
+            version.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
+            version.publisher ? createUserIdentity(version.publisher) : null,
+            Number(version.file_count) > 0
+                ? el('span', {}, t('maven.versionFiles', {count: Number(version.file_count)}))
+                : null,
+            Number(version.signed_file_count) > 0
+                ? el('span', {}, t('maven.signedFiles', {count: Number(version.signed_file_count)}))
+                : null,
+            el('span', {}, formatBytes(Number(version.total_file_size) || Number(version.size) || 0)),
+            version.last_modified ? el('span', {}, formatDate(version.last_modified)) : null,
+            actions)
+    );
+    return el('div', {class: 'maven-version-entry'}, row, mavenVersionFiles(version));
+}
+
+/**
  * Render Maven artifact details and version management.
  * @param {HTMLElement} container
  * @param {string} repository
@@ -1200,6 +1264,11 @@ function mavenArtifactReadmeSection(container, repository, artifact, sequence, c
 async function renderArtifact(container, repository, groupID, artifactID, sequence) {
     setRepositoryViewBusy(container, true);
     try {
+        const versionKey = `${repository}/${groupID}/${artifactID}`;
+        if (artifactVersionKey !== versionKey) {
+            artifactVersionKey = versionKey;
+            artifactVersionPage = 0;
+        }
         const query = new URLSearchParams({group: groupID, artifact: artifactID});
         const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`);
         if (sequence !== mavenLoadSequence) return;
@@ -1229,7 +1298,9 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             ),
             el('div', {class: 'maven-stats'},
                 el('span', {}, artifact.domain),
-                el('span', {}, t('maven.versionCount', {count: versions.length})),
+                el('span', {}, t('maven.versionCount', {
+                    count: Number(artifact.version_count) || versions.length
+                })),
                 Number(details.file_count) > 0
                     ? el('span', {}, t('maven.versionFiles', {count: Number(details.file_count)}))
                     : null,
@@ -1242,47 +1313,33 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
             )
         );
         const versionList = el('div', {class: 'maven-version-list'});
-        versions.forEach(version => {
-            const actions = el('div', {class: 'maven-version-actions'});
-            if (canManageVersions) {
-                actions.appendChild(el('button', {
-                    type: 'button', class: 'maven-icon-btn is-danger', title: t('maven.deleteVersion'), onclick: async () => {
-                        if (!(await showConfirm(t('maven.deleteVersionConfirm', {version: version.version})))) return;
-                        const deleteQuery = new URLSearchParams({group: artifact.group_id, artifact: artifact.artifact_id, version: version.version});
-                        const deleteResponse = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/versions?${deleteQuery}`, {method: 'DELETE'});
-                        if (!deleteResponse.ok) {
-                            showAlert(await responseErrorMessage(deleteResponse, 'maven.deleteVersionFailed'), 'error');
-                        }
-                        else await renderArtifact(container, repository, groupID, artifactID, sequence);
-                    }
-                }, createIcon('delete')));
-            }
-            const row = el('div', {class: 'maven-version-row'},
-                el('div', {class: 'maven-version-main'}, el('code', {}, version.version),
-                    el('span', {}, formatDate(version.created_at))),
-                el('div', {class: 'maven-version-meta'},
-                    version.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
-                    version.publisher ? createUserIdentity(version.publisher) : null,
-                    Number(version.file_count) > 0
-                        ? el('span', {}, t('maven.versionFiles', {count: Number(version.file_count)}))
-                        : null,
-                    Number(version.signed_file_count) > 0
-                        ? el('span', {}, t('maven.signedFiles', {count: Number(version.signed_file_count)}))
-                        : null,
-                    el('span', {}, formatBytes(Number(version.total_file_size) || Number(version.size) || 0)),
-                    version.last_modified ? el('span', {}, formatDate(version.last_modified)) : null,
-                    actions)
-            );
-            versionList.appendChild(el('div', {class: 'maven-version-entry'}, row, mavenVersionFiles(version)));
+        const versionPager = el('div', {class: 'maven-version-pagination'});
+        createPaginatedCollection({
+            list: versionList,
+            pager: versionPager,
+            items: versions,
+            pageSize: 8,
+            initialPage: artifactVersionPage,
+            renderItem: version => mavenVersionEntry(version, {
+                canManageVersions, container, repository, artifact, groupID, artifactID, sequence
+            }),
+            renderEmpty: () => el('div', {class: 'maven-empty'}, t('maven.noVersions')),
+            previousLabel: t('common.prev'),
+            nextLabel: t('common.next'),
+            summary: state => t('common.pagination', state),
+            onPageChanged: page => {
+                artifactVersionPage = page;
+            },
         });
-        if (versions.length === 0) versionList.appendChild(el('div', {class: 'maven-empty'}, t('maven.noVersions')));
+        const versionsSection = el('section', {class: 'maven-section'},
+            el('h3', {}, t('maven.versionsTitle')), versionList, versionPager);
         await replaceRepositoryView(container, [
             hero,
             artifactInformationSection(details, repository),
             mavenProjectInformationSection(details),
             mavenDependencySection(project),
             mavenArtifactReadmeSection(container, repository, artifact, sequence, canManageVersions),
-            el('section', {class: 'maven-section'}, el('h3', {}, t('maven.versionsTitle')), versionList)
+            versionsSection
         ], {duration: 280, enterDuration: 420});
     } catch (error) {
         if (sequence !== mavenLoadSequence) return;

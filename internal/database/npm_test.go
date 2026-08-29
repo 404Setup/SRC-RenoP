@@ -108,6 +108,39 @@ func TestNPMPackageLifecycleVisibilityAndTeamOwnership(t *testing.T) {
 	assert.True(t, errors.Is(err, core.ErrNPMPackageNotFound))
 }
 
+func TestNPMPackageLatestVersionFallsBackWithoutDistTag(t *testing.T) {
+	db := newMavenDB(t)
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "publisher", Permissions: []string{"base"}}))
+	now := time.Now().UnixMilli()
+	_, err := db.CreateNPMPackage("npm", "untagged", "publisher", false, now)
+	require.NoError(t, err)
+	require.NoError(t, db.RecordNPMPublication(&core.NPMPackage{
+		Repository: "npm", Name: "untagged", UpdatedAt: now + 1,
+	}, &core.NPMVersion{
+		Repository: "npm", Package: "untagged", Version: "1.2.3",
+		ManifestJSON: `{"name":"untagged","version":"1.2.3"}`,
+		Publisher:    "publisher", TarballPath: "untagged/-/untagged-1.2.3.tgz", CreatedAt: now + 1,
+	}, nil, "publisher"))
+
+	details, err := db.GetNPMPackageDetails("npm", "untagged", "publisher")
+	require.NoError(t, err)
+	require.Equal(t, "1.2.3", details.Package.LatestVersion)
+	require.Empty(t, details.DistTags)
+
+	_, err = db.Exec(`UPDATE npm_packages SET latest_version = '' WHERE repository = ? AND package_name = ?`,
+		"npm", "untagged")
+	require.NoError(t, err)
+	details, err = db.GetNPMPackageDetails("npm", "untagged", "publisher")
+	require.NoError(t, err)
+	require.Equal(t, "1.2.3", details.Package.LatestVersion)
+	packages, total, err := db.ListNPMPackages("npm", "guest", false, 20, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Len(t, packages, 1)
+	require.Equal(t, "1.2.3", packages[0].LatestVersion)
+	require.Equal(t, 1, packages[0].VersionCount)
+}
+
 func TestNPMMirrorRefreshRemovesVersionsDeletedUpstream(t *testing.T) {
 	db := newMavenDB(t)
 	now := time.Now().UnixMilli()
@@ -207,4 +240,12 @@ func TestPostgresNPMPackageIntegration(t *testing.T) {
 	require.True(t, details.Member)
 	require.Equal(t, "1.0.0", details.DistTags["latest"])
 	require.Len(t, details.Versions, 1)
+	_, err = db.Exec(`UPDATE npm_packages SET latest_version = '' WHERE repository = ? AND package_name = ?`,
+		"npm-pg", "@team/private-demo")
+	require.NoError(t, err)
+	readerPackages, readerTotal, err = db.ListNPMPackages("npm-pg", "npm_pg_reader", false, 20, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, readerTotal)
+	require.Len(t, readerPackages, 1)
+	require.Equal(t, "1.0.0", readerPackages[0].LatestVersion)
 }

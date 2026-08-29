@@ -10,6 +10,7 @@
 
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
+import {createPaginatedCollection} from '@renop/ui/pagination';
 import {apiRequest} from '../api.js';
 import {canUpdateRepo} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
@@ -33,10 +34,13 @@ import {
 import {RepositoryUserSuggestions} from './user-suggestions.js';
 
 const dockerRepositoryIcon = getRepositoryFormat('docker').icon;
+const dockerTagPageSize = 10;
 let dockerViewContainer = null;
 let activeRepository = '';
 let activeNavigate = null;
 let dockerLoadSequence = 0;
+let dockerTagPage = 0;
+let dockerTagImage = '';
 
 let inviteLevel = 1;
 
@@ -602,6 +606,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         const details = await response.json();
         let image = details.image || {};
         const tags = details.tags || [];
+        const tagImageKey = `${repoName}/${imageName}`;
+        if (dockerTagImage !== tagImageKey) {
+            dockerTagImage = tagImageKey;
+            dockerTagPage = 0;
+        }
         const members = details.members || [];
         const permissionLevel = Number(details.permission_level || 0);
         const isAdministrator = Boolean(details.administrator);
@@ -753,7 +762,9 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         );
 
         const tagListEl = el('div', {class: 'docker-tag-list'});
+        const tagPager = el('div', {class: 'docker-tag-pagination'});
         if (tags.length === 0) {
+            dockerTagPage = 0;
             tagListEl.appendChild(
                 el('div', {class: 'docker-readme-empty'},
                     createIcon('fileCode', {class: 'icon-svg'}),
@@ -761,6 +772,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 )
             );
         } else {
+            const tagRows = [];
             for (const tObj of tags) {
                 const tagPullCmd = `docker pull ${window.location.host}/${repoName}/${imageName}:${tObj.tag}`;
                 const shortDigest = tObj.digest ? tObj.digest.slice(0, 19) + '…' : '';
@@ -843,8 +855,22 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     ),
                     actionsWrap
                 );
-                tagListEl.appendChild(row);
+                tagRows.push(row);
             }
+            createPaginatedCollection({
+                list: tagListEl,
+                pager: tagPager,
+                items: tagRows,
+                pageSize: dockerTagPageSize,
+                initialPage: dockerTagPage,
+                renderItem: row => row,
+                previousLabel: t('common.prev'),
+                nextLabel: t('common.next'),
+                summary: state => t('common.pagination', state),
+                onPageChanged: page => {
+                    dockerTagPage = page;
+                },
+            });
         }
 
         const tagsSection = el('div', {class: 'docker-page-section'},
@@ -852,7 +878,8 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.tagsTitle')),
                 el('span', {class: 'docker-tag-badge'}, `${tags.length}`)
             ),
-            tagListEl
+            tagListEl,
+            tagPager
         );
 
         // README / Markdown Section

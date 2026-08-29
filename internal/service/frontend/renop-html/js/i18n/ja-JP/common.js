@@ -51,6 +51,7 @@ export default Object.freeze({
     "common.error": "エラー",
     "common.close": "閉じる",
     "common.page": "ページ",
+    "common.pagination": "{pages} ページ中 {page} ページ · 全 {total} 件",
     "common.record": "件",
     "common.records": "件",
     "common.prev": "前へ",
