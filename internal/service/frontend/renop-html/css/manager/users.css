@@ -531,48 +531,42 @@ html.dark .permission-badge.badge-none {
     }
 }
 
-.token-form-card {
+.user-editor-card {
     background-color: var(--card-bg);
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-radius: 1rem;
+    box-shadow: 0 24px 60px -28px rgba(15, 23, 42, 0.55);
     padding: 0;
     border: 1px solid var(--border-color);
-    margin-bottom: 2.5rem;
-    max-width: 600px;
-}
-
-.modal-content.token-form-card--roles {
-    max-width: 680px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    max-height: min(90vh, 900px);
-    max-height: min(90dvh, 900px);
-    padding: 0;
+    width: min(920px, calc(100vw - 2rem));
+    max-height: min(92vh, 900px);
+    max-height: min(92dvh, 900px);
     position: relative;
 }
 
-.token-form-card--roles .close-btn {
+.user-editor-card .close-btn {
     position: absolute;
     top: 1.1rem;
     right: 1.25rem;
     z-index: 20;
 }
 
-.token-form-card--roles .modal-header {
+.user-editor-card .modal-header {
     flex-shrink: 0;
     margin: 0;
-    padding: 1.4rem 3.5rem 1.1rem 1.75rem;
+    padding: 1.35rem 3.75rem 1.05rem 1.6rem;
     border-bottom: 1px solid rgba(0, 0, 0, 0.07);
     background: transparent;
 }
 
-html.dark .token-form-card--roles .modal-header,
-html:not(.light) .token-form-card--roles .modal-header {
+html.dark .user-editor-card .modal-header,
+html:not(.light) .user-editor-card .modal-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.token-form-title {
+.user-editor-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 650;
@@ -584,8 +578,8 @@ html:not(.light) .token-form-card--roles .modal-header {
     color: var(--text-color);
 }
 
-.token-form-title-icon,
-.token-form-title renop-icon {
+.user-editor-title-icon,
+.user-editor-title renop-icon {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
@@ -598,7 +592,7 @@ html:not(.light) .token-form-card--roles .modal-header {
     justify-content: center;
 }
 
-.token-form-layout {
+.user-editor-layout {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
@@ -606,26 +600,27 @@ html:not(.light) .token-form-card--roles .modal-header {
     margin: 0;
 }
 
-.token-form-scroll {
+.user-editor-scroll {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     margin-bottom: 0;
-    padding: 1.25rem 1.5rem 1.1rem;
+    padding: 1rem 1.1rem 1.1rem;
     scrollbar-width: thin;
 }
 
-.token-form-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+.user-editor-body {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.78fr) minmax(390px, 1.22fr);
+    gap: 1rem;
+    align-items: start;
 }
 
-.token-form-footer {
+.user-editor-footer {
     flex-shrink: 0;
     margin-top: 0;
-    padding: 1.1rem 1.75rem;
+    padding: 0.9rem 1.4rem;
     border-top: 1px solid var(--border-color);
     background: var(--card-bg);
     display: flex;
@@ -634,20 +629,15 @@ html:not(.light) .token-form-card--roles .modal-header {
     gap: 0.75rem;
 }
 
-.token-form-card .form-group {
-    margin-bottom: 1.35rem;
-}
-
-.token-form-card .form-group > label,
-.token-form-card .roles-label-row > label {
+.user-editor-card .form-group > label {
     font-size: 0.875rem;
     font-weight: 600;
     opacity: 0.9;
     color: var(--text-color);
 }
 
-.token-form-card .form-group input[type="text"],
-.token-form-card .form-group input[type="password"] {
+.user-editor-card .form-group input[type="text"],
+.user-editor-card .form-group input[type="password"] {
     width: 100%;
     padding: 0.7rem 0.9rem;
     font-size: 0.925rem;
@@ -658,26 +648,19 @@ html:not(.light) .token-form-card--roles .modal-header {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.token-form-card .form-group input[type="text"]:focus,
-.token-form-card .form-group input[type="password"]:focus {
+.user-editor-card .form-group input[type="text"]:focus,
+.user-editor-card .form-group input[type="password"]:focus {
     outline: none;
     border-color: var(--link-hover-color);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 15%, transparent);
 }
 
-.token-form-card small {
-    display: block;
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    opacity: 0.6;
-}
-
-.token-form-section {
+.user-editor-section {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 1.1rem 1.15rem 1.15rem;
-    margin-bottom: 1.25rem;
+    padding: 1rem;
+    margin: 0;
     border-radius: 0.9rem;
     border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
     background: linear-gradient(
@@ -688,27 +671,23 @@ html:not(.light) .token-form-card--roles .modal-header {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.token-form-section:last-child {
-    margin-bottom: 0;
-}
-
-.token-form-section-header {
+.user-editor-section-header {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
+    justify-content: flex-start;
+    gap: 0.65rem;
 }
 
-.token-form-section-title-wrap {
+.user-editor-section-heading {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
     min-width: 0;
 }
 
-.token-form-section-title {
+.user-editor-section-title {
     margin: 0;
-    font-size: 0.8rem;
+    font-size: 0.83rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -716,24 +695,34 @@ html:not(.light) .token-form-card--roles .modal-header {
     opacity: 0.78;
 }
 
-.token-form-section-desc {
+.user-editor-section-desc {
     margin: 0;
     font-size: 0.78rem;
     line-height: 1.4;
-    opacity: 0.5;
+    opacity: 0.58;
 }
 
-.token-form-fields {
+.user-editor-section-icon {
+    width: 1rem;
+    height: 1rem;
+    padding: 0.42rem;
+    border-radius: 0.55rem;
+    color: var(--link-hover-color);
+    background: color-mix(in srgb, var(--link-hover-color) 11%, transparent);
+    flex: 0 0 auto;
+}
+
+.user-editor-fields {
     display: flex;
     flex-direction: column;
     gap: 0.95rem;
 }
 
-.token-form-card .token-form-section .form-group {
+.user-editor-card .user-editor-section .form-group {
     margin-bottom: 0;
 }
 
-.token-form-card .token-form-section .form-group > label {
+.user-editor-card .user-editor-section .form-group > label {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -741,7 +730,7 @@ html:not(.light) .token-form-card--roles .modal-header {
     margin-bottom: 0.45rem;
 }
 
-.token-form-field-hint {
+.user-editor-field-hint {
     font-size: 0.72rem;
     font-weight: 500;
     opacity: 0.45;
@@ -749,23 +738,7 @@ html:not(.light) .token-form-card--roles .modal-header {
     letter-spacing: 0;
 }
 
-.roles-form-group {
-    margin-bottom: 0;
-}
-
-.roles-label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0;
-}
-
-.roles-label-row label {
-    margin-bottom: 0 !important;
-}
-
-.roles-selected-count {
+.user-permission-count {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--link-hover-color);
@@ -774,9 +747,10 @@ html:not(.light) .token-form-card--roles .modal-header {
     border-radius: 9999px;
     letter-spacing: 0.02em;
     flex-shrink: 0;
+    margin-left: auto;
 }
 
-.roles-selected-count[data-count="0"] {
+.user-permission-count[data-count="0"] {
     color: var(--text-color);
     background: color-mix(in srgb, var(--text-color) 8%, transparent);
     opacity: 0.6;
@@ -786,6 +760,13 @@ html:not(.light) .token-form-card--roles .modal-header {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
+}
+
+.user-permissions-loading {
+    padding: 0.85rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
 }
 
 renop-roles-group,
@@ -1078,7 +1059,98 @@ renop-roles-group,
     font-style: italic;
 }
 
+.user-generated-password-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.user-generated-password-label,
+.user-generated-password-warning {
+    margin: 0;
+}
+
+.user-generated-password-label {
+    font-size: 0.88rem;
+    font-weight: 650;
+}
+
+.user-generated-password-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.user-generated-password {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.72rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.6rem;
+    background: var(--bg-color);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.92rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+
+.user-generated-password-copy {
+    flex: 0 0 auto;
+}
+
+.user-generated-password-warning {
+    color: #dc2626;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+html.dark .user-generated-password-warning,
+html:not(.light) .user-generated-password-warning {
+    color: #f87171;
+}
+
+@media (max-width: 780px) {
+    .user-editor-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .user-editor-card {
+        width: min(680px, calc(100vw - 1rem));
+    }
+}
+
 @media (max-width: 560px) {
+    .user-editor-card {
+        width: 100%;
+        max-height: calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)));
+        border-radius: 0.85rem;
+    }
+
+    .user-editor-card .modal-header {
+        padding: 1.1rem 3rem 0.9rem 1rem;
+    }
+
+    .user-editor-scroll {
+        padding: 0.75rem;
+    }
+
+    .user-editor-section {
+        padding: 0.85rem;
+    }
+
+    .user-editor-footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 0.75rem;
+    }
+
+    .user-editor-footer .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
     .roles-chip-grid {
         grid-template-columns: 1fr;
     }
@@ -1090,6 +1162,15 @@ renop-roles-group,
 
     .roles-repo-actions {
         justify-content: flex-start;
+    }
+
+    .user-generated-password-row {
+        flex-direction: column;
+    }
+
+    .user-generated-password-copy {
+        width: 100%;
+        justify-content: center;
     }
 }
 
@@ -1121,14 +1202,14 @@ renop-roles-group,
     height: 0 !important;
 }
 
-#create-token-modal .modal-body,
+#user-editor-modal .modal-body,
 .modal-body,
 .roles-panel {
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--text-color) 25%, transparent) transparent;
 }
 
-#create-token-modal .modal-body::-webkit-scrollbar,
+#user-editor-modal .modal-body::-webkit-scrollbar,
 .modal-body::-webkit-scrollbar,
 .roles-panel::-webkit-scrollbar,
 .language-modal-content .modal-body::-webkit-scrollbar {
@@ -1136,7 +1217,7 @@ renop-roles-group,
     height: 6px;
 }
 
-#create-token-modal .modal-body::-webkit-scrollbar-track,
+#user-editor-modal .modal-body::-webkit-scrollbar-track,
 .modal-body::-webkit-scrollbar-track,
 .roles-panel::-webkit-scrollbar-track,
 .language-modal-content .modal-body::-webkit-scrollbar-track {
@@ -1144,7 +1225,7 @@ renop-roles-group,
     border-radius: 8px;
 }
 
-#create-token-modal .modal-body::-webkit-scrollbar-thumb,
+#user-editor-modal .modal-body::-webkit-scrollbar-thumb,
 .modal-body::-webkit-scrollbar-thumb,
 .roles-panel::-webkit-scrollbar-thumb,
 .language-modal-content .modal-body::-webkit-scrollbar-thumb {
@@ -1153,7 +1234,7 @@ renop-roles-group,
     transition: background-color 0.2s ease;
 }
 
-#create-token-modal .modal-body::-webkit-scrollbar-thumb:hover,
+#user-editor-modal .modal-body::-webkit-scrollbar-thumb:hover,
 .modal-body::-webkit-scrollbar-thumb:hover,
 .roles-panel::-webkit-scrollbar-thumb:hover,
 .language-modal-content .modal-body::-webkit-scrollbar-thumb:hover {

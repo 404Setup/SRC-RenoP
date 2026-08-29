@@ -12,7 +12,7 @@ import {t} from './i18n.js';
 import {showAlert} from './alert.js';
 import {apiRequest, fetchProto, getAuthHeaders} from './api.js';
 import {createUserRow, createUsersSkeletonRow} from './components.js';
-import {editToken as openEditModal, initUsersModal, setTokensRefreshHandler} from './users/modal.js';
+import {editUser as openEditModal, initUsersModal, setUsersRefreshHandler} from './users/modal.js';
 import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {logout} from './auth.js';
@@ -688,7 +688,7 @@ window.addEventListener('languageChanged', () => {
     updateUsersTableLanguage();
 });
 
-setTokensRefreshHandler(fetchTokens);
+setUsersRefreshHandler(fetchTokens);
 
 /**
  * Initialize users page search, sort headers, and create-user modal wiring.

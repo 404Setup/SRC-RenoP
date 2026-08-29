@@ -21,7 +21,6 @@ import {fetchInstanceStatus, startDashboardRefresh, stopDashboardRefresh} from '
 import {initSettings} from './settings.js';
 import {initRepositories} from './repositories.js';
 import {fetchTokens} from './users.js';
-import {populateRoles} from './users/modal.js';
 import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
 import {loadMavenDomainCenterPage, mavenDomainRouteFromPath, openMavenDomainCenter} from './browser/maven.js';
@@ -56,10 +55,6 @@ window.addEventListener('languageChanged', async () => {
         fetchInstanceStatus();
     }
 
-    const createTokenModal = document.getElementById('create-token-modal');
-    if (createTokenModal && createTokenModal.style.display !== 'none' && createTokenModal.style.display !== '' && createTokenModal.dataset.isClosing !== 'true') {
-        populateRoles();
-    }
 });
 
 (function () {
@@ -351,7 +346,7 @@ document.addEventListener('keydown', (e) => {
         const modals = document.querySelectorAll('.modal');
         modals.forEach(m => {
             if (m.style.display !== 'none' && m.style.display !== '') {
-                const closeBtn = m.querySelector('.close-btn') || m.querySelector('#btn-cancel-create-token') || m.querySelector('#btn-close-privacy-policy');
+                const closeBtn = m.querySelector('.close-btn') || m.querySelector('#user-editor-cancel') || m.querySelector('#btn-close-privacy-policy');
                 if (closeBtn) {
                     closeBtn.click();
                 } else {

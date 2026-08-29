@@ -140,6 +140,11 @@
   profile linking request account/organization read access, persist immutable provider IDs without access tokens, and
   allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
+  Administrator account creation and editing use the responsive two-column `js/users/modal.js` dialog, with account
+  identity and password semantics separated from the asynchronously loaded repository permission editor in
+  `js/users/permissions.js`; narrow viewports stack both sections without allowing the modal to exceed the dynamic
+  viewport. The legacy protobuf `secret` field remains a transport-only compatibility detail and is not exposed as
+  account-token terminology in the interface.
   Private email, password-login policy, and one-time recovery-code controls are isolated in
   `js/account-security.js` inside a default-collapsed, width-contained security card, while the public four-code reset
   workflow lives in `js/password-recovery.js`. The login dialog keeps password recovery as a secondary link and groups

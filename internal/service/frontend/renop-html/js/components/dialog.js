@@ -44,12 +44,14 @@ export class RenopDialog extends HTMLElement {
      * @param {string|Node} [options.title] - Header title.
      * @param {string|Node} [options.subtitle] - Header subtitle.
      * @param {string|Node} [options.icon] - Icon name, HTML string, or node.
+     * @param {string} [options.iconClass] - Class applied to a named title icon.
      * @param {string} [options.headerClass] - Extra header classes.
      * @param {object} [options.headerStyle] - Header inline styles.
      * @param {string} [options.titleClass] - Title element class.
      * @param {object} [options.titleStyle] - Title inline styles.
      * @param {string} [options.titleId] - Title span id.
      * @param {object} [options.subtitleStyle] - Subtitle inline styles.
+     * @param {string} [options.subtitleId] - Subtitle element id.
      * @param {boolean} [options.centered] - Center header/footer layout.
      * @param {string|Node|Array|Function} [options.body] - Body content or builder.
      * @param {string} [options.bodyClass] - Body class name.
@@ -150,7 +152,7 @@ export class RenopDialog extends HTMLElement {
 
             if (opts.icon) {
                 if (typeof opts.icon === 'string' && ICONS[opts.icon]) {
-                    titleEl.appendChild(createIcon(opts.icon, {class: 'token-form-title-icon'}));
+                    titleEl.appendChild(createIcon(opts.icon, {class: opts.iconClass || 'token-form-title-icon'}));
                 } else if (typeof opts.icon === 'string') {
                     const iconSpan = el('span', {class: 'modal-title-icon'});
                     iconSpan.innerHTML = opts.icon;
@@ -172,6 +174,7 @@ export class RenopDialog extends HTMLElement {
 
             if (opts.subtitle) {
                 const subProps = {class: 'modal-subtitle'};
+                if (opts.subtitleId) subProps.id = opts.subtitleId;
                 if (opts.subtitleStyle) subProps.style = opts.subtitleStyle;
                 const sub = el('p', subProps,
                     typeof opts.subtitle === 'string' ? translateError(opts.subtitle) : ''
