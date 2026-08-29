@@ -466,9 +466,18 @@ RenoP can register itself as a platform service to start automatically at boot.
 # Run as administrator / root
 ./renop --install
 
+# Configure a local Caddy reverse proxy and synchronize config.yaml
+./renop --install-caddy --hostname renop.example.com
+
 # Remove the service registration
 ./renop --uninstall
 ```
+
+The Caddy command discovers common `Caddyfile` locations, validates the generated site with Caddy, replaces each file
+atomically, rolls both back if reload fails, and reloads Caddy. It changes RenoP to listen on `127.0.0.1`, disables
+RenoP TLS, and adds the hostname to `server.domains`; restart RenoP afterward. Use `--caddyfile`, `--config`, or
+`--caddy-binary` for nonstandard paths.
+`--skip-reload` is available for offline preparation when Caddy is not installed on the current machine.
 
 | Platform           | Service backend                       |
 |--------------------|---------------------------------------|

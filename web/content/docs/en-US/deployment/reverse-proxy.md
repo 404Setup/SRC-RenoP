@@ -60,6 +60,25 @@ renop.example.com {
 }
 ```
 
+### Automatic installation
+
+Run the installer from RenoP's deployment directory. It discovers standard Caddyfile locations, validates the new
+site through the Caddy binary, then transactionally updates both files and reloads Caddy. RenoP's `config.yaml` is
+synchronized to use the selected public hostname, a loopback listener, and Caddy-managed TLS.
+
+```bash
+./renop --install-caddy --hostname renop.example.com
+
+# Explicit paths or offline preparation
+./renop --install-caddy --hostname renop.example.com \
+  --caddyfile /etc/caddy/Caddyfile \
+  --config /opt/renop/config.yaml \
+  --skip-reload
+```
+
+Restart RenoP after a successful command. Omit `--skip-reload` in normal operation; offline mode deliberately skips
+Caddy validation when no Caddy binary can be found.
+
 ## RenoP Trust Configuration
 
 To preserve real client IPs for rate limiting and audit logs, configure trusted proxies in `config.yaml`:

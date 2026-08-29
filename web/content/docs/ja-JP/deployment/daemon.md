@@ -15,6 +15,9 @@ RenoP は外部 wrapper を使わず、自動起動する OS ネイティブサ�
 # Register and start as a system service
 ./renop --install
 
+# Configure a local Caddy reverse proxy
+./renop --install-caddy --hostname renop.example.com
+
 # Stop and remove the system service
 ./renop --uninstall
 

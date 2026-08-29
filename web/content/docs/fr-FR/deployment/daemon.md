@@ -15,6 +15,9 @@ RenoP sait s’enregistrer comme service démarré automatiquement, sans wrapper
 # Register and start as a system service
 ./renop --install
 
+# Configure a local Caddy reverse proxy
+./renop --install-caddy --hostname renop.example.com
+
 # Stop and remove the system service
 ./renop --uninstall
 

@@ -63,6 +63,24 @@ renop.example.com {
 
 Caddy 自动管理 TLS；`flush_interval -1` 可避免延迟流式响应。
 
+### 自动配置
+
+在 RenoP 的部署目录中执行安装命令。程序会搜索常见位置中的 Caddyfile，调用 Caddy 校验新站点，然后以事务方式
+更新两份配置并重载 Caddy。同时，`config.yaml` 会同步公开主机名、回环监听地址和由 Caddy 接管的 TLS 设置。
+
+```bash
+./renop --install-caddy --hostname renop.example.com
+
+# Explicit paths or offline preparation
+./renop --install-caddy --hostname renop.example.com \
+  --caddyfile /etc/caddy/Caddyfile \
+  --config /opt/renop/config.yaml \
+  --skip-reload
+```
+
+命令成功后需重启 RenoP。正常部署不要传入 `--skip-reload`；当系统中找不到 Caddy 可执行文件时，离线模式会明确
+跳过 Caddy 校验与重载。
+
 ## RenoP 信任配置
 
 只配置公开主机名及由自己控制的代理 CIDR：

@@ -16,6 +16,9 @@ background service without third-party wrappers.
 # Register and start as a system service
 ./renop --install
 
+# Configure a local Caddy reverse proxy
+./renop --install-caddy --hostname renop.example.com
+
 # Stop and remove the system service
 ./renop --uninstall
 

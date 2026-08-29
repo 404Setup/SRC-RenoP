@@ -15,6 +15,9 @@ RenoP 二进制内置了对主流操作系统的服务管理能力，可以通�
 # Register and start as a system service
 ./renop --install
 
+# Configure a local Caddy reverse proxy
+./renop --install-caddy --hostname renop.example.com
+
 # Stop and remove the system service
 ./renop --uninstall
 

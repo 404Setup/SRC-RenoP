@@ -127,6 +127,11 @@
   classic Maven/files index, and npm/Cargo/Docker package catalogs), anomaly detection, and brute-force mitigation.
 - **`internal/daemon/`**: Cross-platform system service installation and lifecycle management (`--install`,
   `--uninstall`) supporting Windows Services (SCM), Linux (systemd & OpenRC), macOS (LaunchDaemons), and BSD (rc.d).
+- **`internal/caddy/`**: Transactional `--install-caddy` deployment integration. It discovers standard Caddyfile and
+  binary locations, validates normalized hostnames, updates one idempotent managed reverse-proxy block, constrains the
+  RenoP listener to loopback, synchronizes the public domain, disables origin TLS, validates through Caddy, atomically
+  replaces each file, and rolls both back if reload fails. Explicit paths and offline `--skip-reload` operation remain
+  available for nonstandard service layouts.
 - **`internal/utils/`**: Runtime memory/GC tuning (`InitMemoryTuning` for Linux/Windows) and process-wide string
   interning (`unique.Make`).
 - **`web/` & `internal/service/frontend/`**: Embedded SPA with username-based `/user/<username>` profile, edit, and
@@ -253,6 +258,7 @@
 | **Database Driver Contract**                       | `go run ./cmd/renop-dbtest -driver <driver> -dsn <isolated-dsn> -confirm-isolated` |
 | **Install as Service**                              | `./renop --install`                                                              |
 | **Uninstall Service**                               | `./renop --uninstall`                                                            |
+| **Configure Caddy**                                 | `./renop --install-caddy --hostname renop.example.com`                           |
 
 ---
 

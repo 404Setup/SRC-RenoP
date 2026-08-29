@@ -23,6 +23,7 @@ import (
 
 	"renop/internal/api"
 	"renop/internal/bootstrap"
+	caddyconfig "renop/internal/caddy"
 	"renop/internal/config"
 	"renop/internal/daemon"
 	"renop/internal/middleware"
@@ -65,12 +66,18 @@ func main() {
 				log.Fatalf("Failed to uninstall RenoP service: %v", err)
 			}
 			return
+		case "--install-caddy":
+			if err := caddyconfig.RunCLI(os.Args[2:], os.Stdin, os.Stdout); err != nil {
+				log.Fatalf("Failed to configure Caddy: %v", err)
+			}
+			return
 		case "--help", "-help", "-h", "/?":
 			fmt.Println("RenoP - High-performance self-hosted package repository server")
 			fmt.Println("\nUsage:")
 			fmt.Println("  renop                 Start RenoP server")
 			fmt.Println("  renop --install       Install and start RenoP as a system service")
 			fmt.Println("  renop --uninstall     Stop and remove the RenoP system service")
+			fmt.Println("  renop --install-caddy Configure a Caddy reverse proxy for RenoP")
 			fmt.Println("  renop --help          Show help information")
 			return
 		}

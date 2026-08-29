@@ -63,6 +63,25 @@ renop.example.com {
 
 Caddy автоматически управляет TLS. `flush_interval -1` не задерживает streaming responses.
 
+### Автоматическая настройка
+
+Запустите installer из каталога RenoP. Он ищет Caddyfile в стандартных расположениях, проверяет новый site бинарным
+файлом Caddy, транзакционно обновляет оба файла и перезагружает Caddy. В `config.yaml` синхронизируются публичный hostname,
+loopback listener и передача TLS под управление Caddy.
+
+```bash
+./renop --install-caddy --hostname renop.example.com
+
+# Explicit paths or offline preparation
+./renop --install-caddy --hostname renop.example.com \
+  --caddyfile /etc/caddy/Caddyfile \
+  --config /opt/renop/config.yaml \
+  --skip-reload
+```
+
+После успешной команды перезапустите RenoP. В обычном режиме не используйте `--skip-reload`; offline mode явно
+пропускает проверку и reload, если бинарный файл Caddy недоступен.
+
 ## Настройка доверия RenoP
 
 Укажите публичные host и только CIDR прокси, которыми вы управляете:
