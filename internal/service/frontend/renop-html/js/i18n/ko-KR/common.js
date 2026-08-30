@@ -55,6 +55,7 @@ export default Object.freeze({
     "common.record": "개",
     "common.records": "개",
     "common.prev": "이전",
+    "common.done": "완료",
     "common.next": "다음",
     "common.nexts": "다음",
     "main.updateAvailable": "업데이트 사용 가능",

@@ -372,7 +372,7 @@ function buildCargoCommandsSection(packageName) {
     const codeBox = el('div', {class: 'cargo-code-snippet-box'});
     const copyBtn = el('button', {
         type: 'button', class: 'cargo-snippet-copy-btn',
-        title: t('cargo.copyCommand'), 'aria-label': t('cargo.copyCommand')
+        title: t('details.copy'), 'aria-label': t('details.copy')
     }, createIcon('copy', {class: 'icon-svg'}));
     copyBtn.addEventListener('click', () => {
         void copyWithFeedback(copyBtn, currentSnippet, {copiedLabel: t('details.copied')}).catch(() => {

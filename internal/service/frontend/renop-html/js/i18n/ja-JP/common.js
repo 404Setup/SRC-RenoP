@@ -55,6 +55,7 @@ export default Object.freeze({
     "common.record": "件",
     "common.records": "件",
     "common.prev": "前へ",
+    "common.done": "完了",
     "common.next": "次へ",
     "common.nexts": "次へ",
     "main.updateAvailable": "更新が利用可能です",

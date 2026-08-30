@@ -208,7 +208,7 @@ function pager(total) {
             listOffset = Math.max(0, listOffset - pageSize);
             void loadList();
         }
-    }, t('common.previous'));
+    }, t('common.prev'));
     const next = el('button', {
         type: 'button', class: 'renop-pagination-btn', disabled: page >= pages - 1,
         onclick: () => {

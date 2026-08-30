@@ -567,7 +567,7 @@ export class RenopFileItem extends HTMLElement {
                 typeLabel = t(format.labelKey);
             } else {
                 typeI18nKey = 'browser.repository';
-                typeLabel = t('browser.repository') || t('repos.repository') || 'Repository';
+                typeLabel = t('browser.repository');
             }
         } else if (isDir) {
             category = 'dir';

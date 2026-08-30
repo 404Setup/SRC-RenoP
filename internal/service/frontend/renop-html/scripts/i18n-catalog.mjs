@@ -6,13 +6,17 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
  */
 
-import {existsSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
+import {join, relative} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
 const localePattern = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})+$/;
 const fragmentPattern = /^[a-z][a-z0-9-]*\.js$/;
 const placeholderPattern = /\{([A-Za-z0-9_]+)\}/g;
+const staticTranslationCallPattern = /(?:^|[^A-Za-z0-9_$])t\(\s*(['"])([A-Za-z0-9_.:-]+)\1/g;
+const declarativeTranslationPattern = /\bdata-i18n(?:-(?:title|placeholder|aria-label))?\s*=\s*(['"])([A-Za-z0-9_.:-]+)\1/g;
+const declarativeTranslationObjectPattern = /['"]data-i18n(?:-(?:title|placeholder|aria-label))?['"]\s*:\s*(['"])([A-Za-z0-9_.:-]+)\1/g;
+const ignoredSourceDirectories = new Set(['i18n', 'proto']);
 
 /**
  * List sorted translation fragment names for one locale.
@@ -101,17 +105,89 @@ function indexLocale(locale, fragments, issues) {
 }
 
 /**
+ * Collect handwritten JavaScript and HTML source files from configured roots.
+ * @param {string} path - File or directory path.
+ * @param {string[]} files - Accumulator.
+ * @returns {string[]} Source file paths.
+ */
+function collectTranslationSources(path, files = []) {
+    if (!existsSync(path)) return files;
+    const info = statSync(path);
+    if (info.isFile()) {
+        if (path.endsWith('.js') || path.endsWith('.html')) files.push(path);
+        return files;
+    }
+    if (!info.isDirectory()) return files;
+    for (const entry of readdirSync(path, {withFileTypes: true})) {
+        if (entry.isDirectory() && ignoredSourceDirectories.has(entry.name)) continue;
+        collectTranslationSources(join(path, entry.name), files);
+    }
+    return files;
+}
+
+/**
+ * Record static translation references from one source pattern.
+ * @param {RegExp} pattern - Global reference pattern whose second capture is the key.
+ * @param {string} source - Source text.
+ * @param {string} file - Diagnostic file label.
+ * @param {Map<string, Set<string>>} references - Key-to-location index.
+ * @returns {void}
+ */
+function indexTranslationPattern(pattern, source, file, references) {
+    pattern.lastIndex = 0;
+    let line = 1;
+    let scanned = 0;
+    let match;
+    while ((match = pattern.exec(source)) !== null) {
+        for (let index = scanned; index < match.index; index++) {
+            if (source.charCodeAt(index) === 10) line++;
+        }
+        scanned = match.index;
+        if (!references.has(match[2])) references.set(match[2], new Set());
+        references.get(match[2]).add(`${file}:${line}`);
+    }
+}
+
+/**
+ * Validate every statically named source reference against the English catalog.
+ * @param {string[]} sourceRoots - JavaScript directories or HTML files.
+ * @param {Set<string>} referenceKeys - Canonical English keys.
+ * @param {string[]} issues - Diagnostic accumulator.
+ * @returns {number} Unique referenced key count.
+ */
+function validateTranslationReferences(sourceRoots, referenceKeys, issues) {
+    const files = [...new Set(sourceRoots.flatMap(root => collectTranslationSources(root)))].sort();
+    const commonRoot = sourceRoots.length > 0 ? sourceRoots[0] : '';
+    const references = new Map();
+    for (const path of files) {
+        const source = readFileSync(path, 'utf8');
+        const label = commonRoot ? relative(commonRoot, path).replaceAll('\\', '/') || path : path;
+        indexTranslationPattern(staticTranslationCallPattern, source, label, references);
+        indexTranslationPattern(declarativeTranslationPattern, source, label, references);
+        indexTranslationPattern(declarativeTranslationObjectPattern, source, label, references);
+    }
+    for (const [key, locations] of references) {
+        if (!referenceKeys.has(key)) {
+            issues.push(`missing English key referenced by source: ${key} (${[...locations].sort().join(', ')})`);
+        }
+    }
+    return references.size;
+}
+
+/**
  * Scan all locales in parallel against the English fragment/key baseline.
  * @param {object} options - Scan configuration.
  * @param {string} options.i18nDir - Locale catalog root.
  * @param {string} [options.referenceLocale='en-US'] - Canonical locale.
  * @param {string} [options.catalogName='catalog.generated.js'] - Generated catalog file name.
- * @returns {Promise<{locales: string[], referenceFragments: string[], fragmentsByLocale: Map<string, Map<string, object>>, keyCount: number, durationMs: number}>} Validated scan.
+ * @param {string[]} [options.sourceRoots=[]] - Handwritten JavaScript/HTML roots whose static keys must exist.
+ * @returns {Promise<{locales: string[], referenceFragments: string[], fragmentsByLocale: Map<string, Map<string, object>>, keyCount: number, referenceCount: number, durationMs: number}>} Validated scan.
  */
 export async function scanI18nCatalog({
     i18nDir,
     referenceLocale = 'en-US',
-    catalogName = 'catalog.generated.js'
+    catalogName = 'catalog.generated.js',
+    sourceRoots = []
 }) {
     const startedAt = performance.now();
     if (!existsSync(i18nDir)) throw new Error(`i18n directory not found: ${i18nDir}`);
@@ -146,6 +222,8 @@ export async function scanI18nCatalog({
     const referenceDescriptors = fragmentsByLocale.get(referenceLocale);
     const referenceKeys = indexLocale(referenceLocale, referenceDescriptors, issues);
     if (issues.length > 0) throw new Error(`invalid reference locale:\n- ${issues.join('\n- ')}`);
+
+    const referenceCount = validateTranslationReferences(sourceRoots, referenceKeys, issues);
 
     const referenceFragmentSet = new Set(referenceFragments);
     for (const locale of locales) {
@@ -199,6 +277,7 @@ export async function scanI18nCatalog({
         referenceFragments,
         fragmentsByLocale,
         keyCount: referenceKeys.size,
+        referenceCount,
         durationMs: performance.now() - startedAt
     };
 }
@@ -262,22 +341,24 @@ function renderCatalog(locales, fragments) {
  * @param {string} options.catalogFile - Generated catalog path.
  * @param {string} [options.referenceLocale='en-US'] - Canonical locale.
  * @param {string} [options.catalogName='catalog.generated.js'] - Generated file name.
+ * @param {string[]} [options.sourceRoots=[]] - Handwritten source roots to validate.
  * @returns {Promise<void>}
  */
 export async function generateI18nCatalog({
     i18nDir,
     catalogFile,
     referenceLocale = 'en-US',
-    catalogName = 'catalog.generated.js'
+    catalogName = 'catalog.generated.js',
+    sourceRoots = []
 }) {
-    const scan = await scanI18nCatalog({i18nDir, referenceLocale, catalogName});
+    const scan = await scanI18nCatalog({i18nDir, referenceLocale, catalogName, sourceRoots});
     const generated = renderCatalog(scan.locales, scan.referenceFragments);
     if (!existsSync(catalogFile) || readFileSync(catalogFile, 'utf8') !== generated) {
         writeFileSync(catalogFile, generated, 'utf8');
     }
     console.log(
         `i18n validation OK: ${scan.locales.length} locales, ${scan.referenceFragments.length} fragments, ` +
-        `${scan.keyCount} English keys (${scan.durationMs.toFixed(1)} ms)`,
+        `${scan.keyCount} English keys, ${scan.referenceCount} static references (${scan.durationMs.toFixed(1)} ms)`,
     );
     console.log('Generated i18n catalog:', catalogFile.replaceAll('\\', '/'));
 }

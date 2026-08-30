@@ -55,6 +55,7 @@ export default Object.freeze({
     "common.record": "Eintrag",
     "common.records": "Einträge",
     "common.prev": "Zurück",
+    "common.done": "Fertig",
     "common.next": "Weiter",
     "common.nexts": "Weiter",
     "main.updateAvailable": "Update verfügbar",

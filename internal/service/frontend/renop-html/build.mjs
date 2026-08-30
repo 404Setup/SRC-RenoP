@@ -96,6 +96,7 @@ await generateI18nCatalog({
   catalogFile: i18nCatalogFile,
   referenceLocale: i18nReferenceLocale,
   catalogName: i18nCatalogName,
+  sourceRoots: [join(root, 'js'), join(root, 'index.html')],
 });
 if (i18nOnly) {
   console.log('Frontend i18n sources are complete.');

@@ -55,6 +55,7 @@ export default Object.freeze({
     "common.record": "條紀錄",
     "common.records": "條紀錄",
     "common.prev": "上一頁",
+    "common.done": "完成",
     "common.next": "下一頁",
     "common.nexts": "下一頁",
     "main.updateAvailable": "有可用更新",

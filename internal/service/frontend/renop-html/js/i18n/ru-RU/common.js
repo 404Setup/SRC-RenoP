@@ -55,6 +55,7 @@ export default Object.freeze({
     "common.record": "запись",
     "common.records": "записей",
     "common.prev": "Назад",
+    "common.done": "Готово",
     "common.next": "Вперед",
     "common.nexts": "Вперед",
     "main.updateAvailable": "Доступно обновление",

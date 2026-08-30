@@ -282,8 +282,9 @@
   administrators; npm protocol packuments and tarball routes continue to expose approved versions only.
   Modular i18n catalogs are split into common, auth/error, browser, management, messages/team, review, settings/updater,
   profile, repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads
-  fragments in parallel and reports all missing/extra keys and placeholder drift against the English catalog during
-  `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
+  fragments in parallel, reports all missing/extra keys and placeholder drift against the English catalog, and linearly
+  scans every handwritten JS/HTML static translation reference with file/line diagnostics for missing English keys
+  during `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`.
   Entrance state is prepared before replacement nodes can paint, while Maven-domain filtering preserves its toolbar
   and filter shell and morphs only the bounded results/pagination region;

@@ -532,7 +532,7 @@ function pager(total) {
                 pageOffset = Math.max(0, pageOffset - pageSize);
                 void loadTasks();
             }
-        }, t('common.previous')),
+        }, t('common.prev')),
         el('span', {class: 'renop-pagination-summary'}, t('review.pageSummary', {page: page + 1, pages, total})),
         el('button', {
             type: 'button', class: 'renop-pagination-btn', disabled: page >= pages - 1, onclick: () => {

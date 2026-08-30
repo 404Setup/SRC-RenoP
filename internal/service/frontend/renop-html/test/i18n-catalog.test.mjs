@@ -31,13 +31,43 @@ function writeFragment(root, locale, fragment, values) {
 test('parallel i18n scan accepts complete English-key parity', async () => {
     const root = mkdtempSync(join(tmpdir(), 'renop-i18n-valid-'));
     try {
-        writeFragment(root, 'en-US', 'common.js', {alpha: 'Hello {name}', beta: 'Ready'});
-        writeFragment(root, 'fr-FR', 'common.js', {alpha: 'Bonjour {name}', beta: 'Prêt'});
+        const catalogRoot = join(root, 'catalog');
+        writeFragment(catalogRoot, 'en-US', 'common.js', {alpha: 'Hello {name}', beta: 'Ready'});
+        writeFragment(catalogRoot, 'fr-FR', 'common.js', {alpha: 'Bonjour {name}', beta: 'Prêt'});
+        const sourceRoot = join(root, 'src');
+        mkdirSync(sourceRoot);
+        writeFileSync(join(sourceRoot, 'app.js'), "const label = t('alpha');\n", 'utf8');
 
-        const result = await scanI18nCatalog({i18nDir: root});
+        const result = await scanI18nCatalog({i18nDir: catalogRoot, sourceRoots: [sourceRoot]});
         assert.equal(result.keyCount, 2);
+        assert.equal(result.referenceCount, 1);
         assert.deepEqual(result.referenceFragments, ['common.js']);
         assert.ok(result.durationMs >= 0);
+    } finally {
+        rmSync(root, {recursive: true, force: true});
+    }
+});
+
+test('i18n scan reports missing English keys referenced by JavaScript and HTML', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'renop-i18n-references-'));
+    try {
+        const catalogRoot = join(root, 'catalog');
+        const sourceRoot = join(root, 'src');
+        mkdirSync(sourceRoot, {recursive: true});
+        writeFragment(catalogRoot, 'en-US', 'common.js', {alpha: 'Ready'});
+        writeFragment(catalogRoot, 'fr-FR', 'common.js', {alpha: 'Prêt'});
+        writeFileSync(join(sourceRoot, 'app.js'), "t('missing.javascript');\n", 'utf8');
+        writeFileSync(join(sourceRoot, 'index.html'), '<span data-i18n="missing.html"></span>\n', 'utf8');
+
+        await assert.rejects(
+            scanI18nCatalog({i18nDir: catalogRoot, sourceRoots: [sourceRoot]}),
+            (error) => {
+                assert.equal(error.code, 'I18N_VALIDATION_FAILED');
+                assert.match(error.message, /missing English key referenced by source: missing\.javascript \(app\.js:1\)/);
+                assert.match(error.message, /missing English key referenced by source: missing\.html \(index\.html:1\)/);
+                return true;
+            }
+        );
     } finally {
         rmSync(root, {recursive: true, force: true});
     }
