@@ -403,9 +403,9 @@
     overflow: hidden;
     pointer-events: none;
     transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                min-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    min-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .upload-file-index.is-visible {
@@ -416,9 +416,18 @@
 }
 
 @keyframes uploadIndexPop {
-    0% { transform: scale(1); opacity: 0.45; }
-    50% { transform: scale(1.35); opacity: 0.9; }
-    100% { transform: scale(1); opacity: 0.45; }
+    0% {
+        transform: scale(1);
+        opacity: 0.45;
+    }
+    50% {
+        transform: scale(1.35);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.45;
+    }
 }
 
 .upload-file-index.is-updated {

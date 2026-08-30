@@ -87,11 +87,11 @@ La matrice est testée avec ClickHouse 26.9.1 et `clickhouse-go/v2` 2.48.0.
 
 ## Paramètres du pool
 
-| Paramètre               | Défaut | Description                                      |
-|:------------------------|:-------|:-------------------------------------------------|
-| `max_open_conns`        | `25`   | Nombre maximal de connexions ouvertes            |
-| `max_idle_conns`        | `25`   | Nombre maximal de connexions inactives           |
-| `conn_max_lifetime_sec` | `300`  | Durée maximale avant recyclage d’une connexion   |
+| Paramètre               | Défaut | Description                                    |
+|:------------------------|:-------|:-----------------------------------------------|
+| `max_open_conns`        | `25`   | Nombre maximal de connexions ouvertes          |
+| `max_idle_conns`        | `25`   | Nombre maximal de connexions inactives         |
+| `conn_max_lifetime_sec` | `300`  | Durée maximale avant recyclage d’une connexion |
 
 Dimensionnez le pool selon la limite du serveur SQL. Une valeur excessive augmente la mémoire et peut épuiser les
 connexions disponibles sans améliorer le débit.

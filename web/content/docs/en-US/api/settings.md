@@ -22,7 +22,8 @@ to the operation. Responses use protobuf where defined in `proto/api/v1/api.prot
 - **Update**: `PUT /api/settings/domain/:name`
 - **Behavior**: The request and response schema depends on `:name`. Unknown fields and invalid values are rejected.
   Host, port, TLS, database, and selected runtime changes may require a service restart.
-- **GitHub OAuth**: `GET /api/settings/github-oauth` reads redacted state and `PUT /api/settings/github-oauth` updates the
+- **GitHub OAuth**: `GET /api/settings/github-oauth` reads redacted state and `PUT /api/settings/github-oauth` updates
+  the
   client ID and write-only secret.
 
 ## Repository settings

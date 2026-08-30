@@ -8,12 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {getAuthHeaders, PROTO_CONTENT_TYPE, decodeProtoResponse} from './api.js';
-import {
-    ChunkedUploadInitRequest,
-    ChunkedUploadInitResponse,
-    ChunkedUploadCompleteResponse,
-} from './proto/index.js';
+import {decodeProtoResponse, getAuthHeaders, PROTO_CONTENT_TYPE} from './api.js';
+import {ChunkedUploadCompleteResponse, ChunkedUploadInitRequest, ChunkedUploadInitResponse,} from './proto/index.js';
 
 /** Files smaller than this use the original single-request upload path (no multi-part). */
 export const CHUNK_THRESHOLD = 8 * 1024 * 1024;
@@ -105,8 +101,10 @@ export async function uploadFileChunked(file, options = {}) {
     const headers = {...getAuthHeaders(), ...(options.headers || {})};
     const preferredChunk = options.chunkSize || suggestChunkSize(file.size);
     const maxRetries = Math.max(0, options.maxRetries ?? CHUNK_MAX_RETRIES);
-    const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {};
-    const onChunkProgress = typeof options.onChunkProgress === 'function' ? options.onChunkProgress : () => {};
+    const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {
+    };
+    const onChunkProgress = typeof options.onChunkProgress === 'function' ? options.onChunkProgress : () => {
+    };
     const signal = options.signal;
 
     const initPayload = {
@@ -118,7 +116,7 @@ export async function uploadFileChunked(file, options = {}) {
     if (purpose === 'storage') {
         initPayload.path = options.path || '';
         initPayload.generate_checksums = !!options.generateChecksums;
-		initPayload.gpg_signature_expected = !!options.gpgSignatureExpected;
+        initPayload.gpg_signature_expected = !!options.gpgSignatureExpected;
     }
 
     const initBody = ChunkedUploadInitRequest.encode(initPayload).finish();

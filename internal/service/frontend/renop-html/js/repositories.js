@@ -27,13 +27,7 @@ import {
     RenopDialog,
     runButtonAction
 } from './components.js';
-import {
-    animateFieldsToggle,
-    makeCfgInput,
-    makeInlineNumber,
-    makeInlineToggle,
-    makeTagListInput
-} from './cfg-ui.js';
+import {animateFieldsToggle, makeCfgInput, makeInlineNumber, makeInlineToggle, makeTagListInput} from './cfg-ui.js';
 import {
     createRepositoryDraft,
     getRepositoryFormat,
@@ -263,7 +257,11 @@ function buildDownloadStatisticsControls(repository, settings) {
  * @returns {HTMLElement} Filter toolbar.
  */
 function buildRepositoryListToolbar(container, data) {
-    const filters = el('div', {class: 'repository-engine-filters', role: 'group', 'aria-label': t('repos.filterByEngine')});
+    const filters = el('div', {
+        class: 'repository-engine-filters',
+        role: 'group',
+        'aria-label': t('repos.filterByEngine')
+    });
     const allSelected = selectedRepositoryEngines.size === 0;
     filters.appendChild(el('button', {
         type: 'button', class: `repository-engine-filter${allSelected ? ' is-active' : ''}`,
@@ -410,12 +408,12 @@ function buildRepoSection(container, data, repoKey, repo) {
     const formatLabel = t(format.labelKey);
     let visibilityIndicator = repositoryVisibilityIndicator(repo.visibility || 'PUBLIC');
     const iconBox = el('div', {
-        class: `cfg-section-icon cfg-repository-type-icon is-${format.protocol}`
-    },
-    el('span', {
-        class: 'cfg-repository-format-icon', role: 'img', title: formatLabel, 'aria-label': formatLabel
-    }, createIcon(format.icon || 'repositoryFiles')),
-    visibilityIndicator);
+            class: `cfg-section-icon cfg-repository-type-icon is-${format.protocol}`
+        },
+        el('span', {
+            class: 'cfg-repository-format-icon', role: 'img', title: formatLabel, 'aria-label': formatLabel
+        }, createIcon(format.icon || 'repositoryFiles')),
+        visibilityIndicator);
 
     const meta = el('div', {class: 'cfg-section-meta'});
     const titleRow = el('div', {class: 'cfg-section-title-row'});
@@ -863,10 +861,10 @@ function mirrorProxyOptions(selected) {
  * @returns {HTMLElement} Mirror block element.
  */
 function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode) {
-	const format = getRepositoryFormat(repo.format);
-	const isCargo = format.id === 'cargo';
-	const isDocker = format.id === 'docker';
-	const isNPM = format.id === 'npm';
+    const format = getRepositoryFormat(repo.format);
+    const isCargo = format.id === 'cargo';
+    const isDocker = format.id === 'docker';
+    const isNPM = format.id === 'npm';
     const block = el('div', {
         class: 'mirror-block',
         style: {
@@ -1112,17 +1110,17 @@ function buildMirrorBlock(container, data, repoKey, repo, mirror, idx, metaNode)
     });
 
     fields.appendChild(makeFieldRow(
-		t('repos.mirrorAllowList'),
-		t(allowHint),
-		allowInput,
-		'cfg-field-row--top-align'
-	));
+        t('repos.mirrorAllowList'),
+        t(allowHint),
+        allowInput,
+        'cfg-field-row--top-align'
+    ));
     fields.appendChild(makeFieldRow(
-		t('repos.mirrorDenyList'),
-		t(denyHint),
-		denyInput,
-		'cfg-field-row--top-align'
-	));
+        t('repos.mirrorDenyList'),
+        t(denyHint),
+        denyInput,
+        'cfg-field-row--top-align'
+    ));
     fields.appendChild(conflictWarningEl);
 
     let currentMethod = (mirror.authorization && mirror.authorization.method)

@@ -29,14 +29,14 @@ storage、audit、update を統合します。
 
 ## 主な機能
 
-| 機能 | 説明 |
-|:-----|:-----|
-| **単一サービス** | 別 application runtime なしで frontend と protocol API を内蔵 |
-| **Global identity** | username 公開 profile と不変 internal user ID |
-| **細粒度アクセス** | repository permission、L0-L4 team、対象/期限付き API Token |
-| **検証済み公開** | Maven domain 所有権、上流名競合、任意 OpenPGP quarantine |
-| **運用** | native service、scheduled task、durable audit/message、in-place update |
-| **防御** | bounded streaming、rate limit、ban、trusted proxy、sandboxed viewer |
+| 機能                | 説明                                                                   |
+|:--------------------|:-----------------------------------------------------------------------|
+| **単一サービス**    | 別 application runtime なしで frontend と protocol API を内蔵          |
+| **Global identity** | username 公開 profile と不変 internal user ID                          |
+| **細粒度アクセス**  | repository permission、L0-L4 team、対象/期限付き API Token             |
+| **検証済み公開**    | Maven domain 所有権、上流名競合、任意 OpenPGP quarantine               |
+| **運用**            | native service、scheduled task、durable audit/message、in-place update |
+| **防御**            | bounded streaming、rate limit、ban、trusted proxy、sandboxed viewer    |
 
 ## ドキュメント案内
 

@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -116,7 +118,7 @@ func TestAPITokenLimitIsEnforced(t *testing.T) {
 	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", Permissions: []string{"base"}}))
 
 	now := time.Now().UnixMilli()
-	for index := 0; index < core.MaxAPITokensPerUser; index++ {
+	for index := range core.MaxAPITokensPerUser {
 		name := fmt.Sprintf("Automation %02d", index)
 		require.NoError(t, db.CreateAPIToken("alice", &core.APIToken{
 			ID: uuid.NewString(), Name: name, Scopes: []string{core.APITokenScopeRepositoryRead},

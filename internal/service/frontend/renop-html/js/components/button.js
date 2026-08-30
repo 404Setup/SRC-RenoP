@@ -8,8 +8,8 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import { createButton as createButtonBase } from '@renop/ui/button';
-import { createIcon } from './icon.js';
+import {createButton as createButtonBase} from '@renop/ui/button';
+import {createIcon} from './icon.js';
 
 /**
  * Create a styled button element with optional icon and click handler.
@@ -18,7 +18,7 @@ import { createIcon } from './icon.js';
  * @returns {HTMLElement}
  */
 export function createButton(text, props = {}) {
-    return createButtonBase(text, { createIcon, ...props });
+    return createButtonBase(text, {createIcon, ...props});
 }
 
 /**

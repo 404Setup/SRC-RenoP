@@ -30,14 +30,14 @@ verification workflows, package catalogs, mirrors, storage, audit, and updates.
 
 ## Core capabilities
 
-| Capability | Description |
-|:-----------|:------------|
-| **Single service** | Embedded frontend and protocol APIs with no separate application runtime |
-| **Global identity** | Username-based public profiles backed by immutable internal user IDs |
-| **Granular access** | Repository permissions, L0-L4 package/domain teams, scoped and expiring API tokens |
-| **Verified publishing** | Maven domain ownership, upstream name-conflict checks, and optional OpenPGP quarantine |
-| **Operations** | Native service installation, scheduled maintenance, durable audit/messages, and in-place updates |
-| **Defense** | Bounded streaming, rate limits, anomaly bans, trusted-proxy validation, and sandboxed documentation viewers |
+| Capability              | Description                                                                                                 |
+|:------------------------|:------------------------------------------------------------------------------------------------------------|
+| **Single service**      | Embedded frontend and protocol APIs with no separate application runtime                                    |
+| **Global identity**     | Username-based public profiles backed by immutable internal user IDs                                        |
+| **Granular access**     | Repository permissions, L0-L4 package/domain teams, scoped and expiring API tokens                          |
+| **Verified publishing** | Maven domain ownership, upstream name-conflict checks, and optional OpenPGP quarantine                      |
+| **Operations**          | Native service installation, scheduled maintenance, durable audit/messages, and in-place updates            |
+| **Defense**             | Bounded streaming, rate limits, anomaly bans, trusted-proxy validation, and sandboxed documentation viewers |
 
 ## Documentation map
 

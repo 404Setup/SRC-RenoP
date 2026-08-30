@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 import {el} from '@renop/ui/dom';
@@ -55,7 +59,8 @@ let versionPage = 0;
 let versionPackage = '';
 
 /** Localized failure returned by the stable npm management error boundary. */
-class NPMRequestError extends Error {}
+class NPMRequestError extends Error {
+}
 
 /**
  * Return only localized npm request failures to user-facing surfaces.
@@ -385,7 +390,11 @@ async function loadMorePackages() {
 /** Open the package reservation dialog. */
 function showCreatePackageDialog() {
     const name = el('input', {
-        type: 'text', maxlength: '214', autocomplete: 'off', placeholder: t('npm.packageNamePlaceholder'), required: true
+        type: 'text',
+        maxlength: '214',
+        autocomplete: 'off',
+        placeholder: t('npm.packageNamePlaceholder'),
+        required: true
     });
     const privateInput = el('input', {type: 'checkbox'});
     const teamBinding = createSuperTeamBindingField({minimumRole: 2});
@@ -409,8 +418,10 @@ function showCreatePackageDialog() {
                     await teamBinding.ready;
                     const pkg = await npmRequest(npmAPI('packages'), {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({name: name.value.trim(), private: privateInput.checked,
-                            super_team_prefix: teamBinding.value()})
+                        body: JSON.stringify({
+                            name: name.value.trim(), private: privateInput.checked,
+                            super_team_prefix: teamBinding.value()
+                        })
                     }, 'npm.createFailed');
                     dialog.close(true);
                     if (pkg.pending === true) {
@@ -461,7 +472,10 @@ function packageHero(pkg) {
     const canLifecycle = packageDetails.administrator || Number(pkg.permission_level) >= 2;
     const canOwn = packageDetails.administrator || Number(pkg.permission_level) >= 4;
     if (canLifecycle && !pkg.mirrored) {
-        const edit = createButton(t('npm.editDescription'), {class: 'pill-btn pill-btn--soft pill-btn--sm', icon: 'edit'});
+        const edit = createButton(t('npm.editDescription'), {
+            class: 'pill-btn pill-btn--soft pill-btn--sm',
+            icon: 'edit'
+        });
         edit.addEventListener('click', showDescriptionDialog);
         actions.appendChild(edit);
     }
@@ -487,7 +501,10 @@ function packageHero(pkg) {
         archive.addEventListener('click', () => mutatePackage({archived: !pkg.archived},
             pkg.archived ? 'npm.packageRestored' : 'npm.packageArchived'));
         actions.appendChild(archive);
-        const remove = createButton(t('npm.deletePackage'), {class: 'pill-btn pill-btn--danger pill-btn--sm', icon: 'delete'});
+        const remove = createButton(t('npm.deletePackage'), {
+            class: 'pill-btn pill-btn--danger pill-btn--sm',
+            icon: 'delete'
+        });
         remove.addEventListener('click', deletePackage);
         actions.appendChild(remove);
     }
@@ -512,7 +529,7 @@ function packageHero(pkg) {
  * @returns {HTMLElement} Version card.
  */
 function npmVersionItem(version, tagsByVersion, canDelete) {
-	const pendingReview = version.review_status === 'pending';
+    const pendingReview = version.review_status === 'pending';
     const tagNames = (tagsByVersion.get(version.version) || [])
         .sort((left, right) => left.localeCompare(right, undefined, {sensitivity: 'base'}));
     const states = el('div', {class: 'npm-version-states'});
@@ -520,7 +537,7 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
     if (version.mirrored) states.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
     if (version.deprecated) states.appendChild(statusBadge(t('npm.deprecated'), 'is-deprecated'));
     if (version.unpublished) states.appendChild(statusBadge(t('npm.unpublished'), 'is-archived'));
-	if (pendingReview) states.appendChild(statusBadge(t('npm.reviewPending'), 'is-deprecated'));
+    if (pendingReview) states.appendChild(statusBadge(t('npm.reviewPending'), 'is-deprecated'));
 
     const header = el('div', {class: 'npm-version-header'},
         el('div', {class: 'npm-version-title'}, el('strong', {}, `v${version.version}`), states),
@@ -533,7 +550,8 @@ function npmVersionItem(version, tagsByVersion, canDelete) {
     const actions = el('div', {class: 'npm-version-actions'});
     if (!version.unpublished && !pendingReview) {
         actions.appendChild(el('a', {
-            class: 'pill-btn pill-btn--soft pill-btn--sm', href: tarballURL(packageDetails.package.name, version.version),
+            class: 'pill-btn pill-btn--soft pill-btn--sm',
+            href: tarballURL(packageDetails.package.name, version.version),
             download: `${packageDetails.package.name.replace('/', '-')}-${version.version}.tgz`
         }, createIcon('download'), el('span', {}, t('npm.downloadTarball'))));
         if (canDelete && !version.mirrored) {
@@ -710,7 +728,9 @@ function teamSection() {
     input.addEventListener('input', () => setInviteValidation(input, inputError));
     const level = makeCustomSelect([0, 1, 2, 3, 4].map(value => ({
         value: String(value), label: permissionLabel(value)
-    })), String(inviteLevel), value => { inviteLevel = Number(value); });
+    })), String(inviteLevel), value => {
+        inviteLevel = Number(value);
+    });
     level.classList.add('npm-invite-permission-select');
     const invite = createButton(t('npm.invite'), {
         class: 'pill-btn pill-btn--primary npm-invite-submit', icon: 'userPlus', type: 'submit'
@@ -843,11 +863,16 @@ function renderPackage() {
         {label: t('npm.publisher'), value: pkg.publisher ? createUserIdentity(pkg.publisher) : t('common.unknown')},
         {label: t('npm.visibility'), value: pkg.private ? t('npm.private') : t('npm.public')},
         {label: t('npm.origin'), value: source},
-        {label: t('npm.publishStatus'), value: pkg.publish_enabled ? t('npm.publishEnabled') : t('npm.publishDisabled')},
+        {
+            label: t('npm.publishStatus'),
+            value: pkg.publish_enabled ? t('npm.publishEnabled') : t('npm.publishDisabled')
+        },
         {label: t('npm.created'), value: formatRepositoryTimestamp(pkg.created_at)},
         {label: t('npm.updated'), value: formatRepositoryTimestamp(pkg.updated_at)},
-        {label: t('npm.permission'), value: packageDetails.administrator ? t('npm.administrator') :
-            packageDetails.member ? permissionLabel(pkg.permission_level) : t('npm.publicAccess'), wide: true}
+        {
+            label: t('npm.permission'), value: packageDetails.administrator ? t('npm.administrator') :
+                packageDetails.member ? permissionLabel(pkg.permission_level) : t('npm.publicAccess'), wide: true
+        }
     ], {className: 'npm-page-section'});
     const information = el('div', {class: 'npm-information-grid'}, facts, distTagsSection());
     return [
@@ -891,10 +916,12 @@ function showDescriptionDialog() {
     });
     RenopDialog.show({
         id: 'npm-description-dialog', icon: 'edit', title: t('npm.editDescription'),
-        form: {id: 'npm-description-form', onSubmit: async (event, dialog) => {
-            event.preventDefault();
-            if (await mutatePackage({description: textarea.value}, 'npm.descriptionUpdated')) dialog.close(true);
-        }},
+        form: {
+            id: 'npm-description-form', onSubmit: async (event, dialog) => {
+                event.preventDefault();
+                if (await mutatePackage({description: textarea.value}, 'npm.descriptionUpdated')) dialog.close(true);
+            }
+        },
         body: el('div', {class: 'npm-dialog-fields'}, el('label', {}, el('span', {}, t('npm.description')), textarea)),
         footer: [
             {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
@@ -997,7 +1024,11 @@ export async function renderNPMRepository(path, repoDetails, navigate) {
     const sequence = ++loadSequence;
     if (parts[1] === 'packages' && parts.length >= 3) {
         let packageName = parts.slice(2).map(part => {
-            try { return decodeURIComponent(part); } catch { return part; }
+            try {
+                return decodeURIComponent(part);
+            } catch {
+                return part;
+            }
         }).join('/');
         packageName = packageName.replace(/^%40/i, '@');
         await loadPackage(packageName, sequence);

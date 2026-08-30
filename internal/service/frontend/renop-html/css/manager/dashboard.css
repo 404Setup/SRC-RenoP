@@ -470,11 +470,11 @@ html.dark .dashboard-section-badge {
 }
 
 .profile-section-icon--gpg {
-	--section-accent: #0f9f6e;
+    --section-accent: #0f9f6e;
 }
 
 .profile-section-icon--gpg-releases {
-	--section-accent: #c0266d;
+    --section-accent: #c0266d;
 }
 
 .profile-section-icon--github {

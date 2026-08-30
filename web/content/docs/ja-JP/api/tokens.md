@@ -92,30 +92,30 @@ API Token は 1 つのアカウントが所有する永続的な機械資格情�
 
 ## scope リファレンス
 
-| Scope | 能力 |
-|:------|:-----|
-| `repository:read` | カタログ、メタデータ、ファイル、イメージ、バージョンの読み取り |
-| `repository:publish` | Maven、npm、Cargo、Docker、files、分割アップロードでの公開 |
-| `repository:delete` | ファイル、バージョン、タグ、イメージの削除 |
-| `package:create` | リポジトリ認可後の npm/Cargo package または Docker image の予約 |
-| `package:metadata` | パッケージ説明とメタデータの更新 |
-| `package:lifecycle` | package/version の archive、restore、yank、unyank |
-| `team:manage` | npm、Cargo、Docker、Maven domain のチームと招待の閲覧・管理 |
-| `domain:read` | 非公開 Maven domain 設定の読み取り |
-| `domain:create` | Maven domain の作成 |
-| `domain:verify` | Maven domain の検証または強制検証 |
-| `domain:delete` | Maven domain の削除 |
-| `messages:read` | アカウントメッセージの閲覧、既読化、削除 |
-| `account:read` | 非公開アカウント情報と個人監査ログの読み取り |
-| `account:write` | API による公開プロフィール更新 |
-| `statistics:read` | アカウントが閲覧できるダウンロード統計の照会 |
-| `admin:users` | ユーザーとログインデバイスの管理 |
-| `admin:repositories` | リポジトリ管理とインデックス再構築 |
-| `admin:settings` | システム設定と診断の管理 |
-| `admin:audit` | 管理者向け監査・状態データの読み取りと消去 |
-| `admin:notifications` | 管理者通知の作成 |
-| `admin:updates` | 更新の確認、アップロード、インストール、再起動 |
-| `admin:statistics` | システム全体の統計照会 |
+| Scope                 | 能力                                                            |
+|:----------------------|:----------------------------------------------------------------|
+| `repository:read`     | カタログ、メタデータ、ファイル、イメージ、バージョンの読み取り  |
+| `repository:publish`  | Maven、npm、Cargo、Docker、files、分割アップロードでの公開      |
+| `repository:delete`   | ファイル、バージョン、タグ、イメージの削除                      |
+| `package:create`      | リポジトリ認可後の npm/Cargo package または Docker image の予約 |
+| `package:metadata`    | パッケージ説明とメタデータの更新                                |
+| `package:lifecycle`   | package/version の archive、restore、yank、unyank               |
+| `team:manage`         | npm、Cargo、Docker、Maven domain のチームと招待の閲覧・管理     |
+| `domain:read`         | 非公開 Maven domain 設定の読み取り                              |
+| `domain:create`       | Maven domain の作成                                             |
+| `domain:verify`       | Maven domain の検証または強制検証                               |
+| `domain:delete`       | Maven domain の削除                                             |
+| `messages:read`       | アカウントメッセージの閲覧、既読化、削除                        |
+| `account:read`        | 非公開アカウント情報と個人監査ログの読み取り                    |
+| `account:write`       | API による公開プロフィール更新                                  |
+| `statistics:read`     | アカウントが閲覧できるダウンロード統計の照会                    |
+| `admin:users`         | ユーザーとログインデバイスの管理                                |
+| `admin:repositories`  | リポジトリ管理とインデックス再構築                              |
+| `admin:settings`      | システム設定と診断の管理                                        |
+| `admin:audit`         | 管理者向け監査・状態データの読み取りと消去                      |
+| `admin:notifications` | 管理者通知の作成                                                |
+| `admin:updates`       | 更新の確認、アップロード、インストール、再起動                  |
+| `admin:statistics`    | システム全体の統計照会                                          |
 
 `admin:*` は管理者だけが作成でき、所有アカウントが管理者でなくなると効力を失います。既存 Token の
 `package:manage` と `domain:manage` は互換性のため受理しますが、新規割り当てはできません。
@@ -129,7 +129,8 @@ Authorization: Bearer rnp_pat_REDACTED
 ```
 
 パッケージクライアントは同じ Token をユーザー名に対する Basic password として使えます。Basic は
-パッケージプロトコル専用です。npm は `_authToken` または Basic、Cargo は Token 全体を `Authorization` として送ります。Docker は
+パッケージプロトコル専用です。npm は `_authToken` または Basic、Cargo は Token 全体を `Authorization` として送ります。Docker
+は
 `/v2/token` で短期 Token に交換し、scope とイメージ権限の両方で許可された操作だけを含めます。
 
 ## 互換 API

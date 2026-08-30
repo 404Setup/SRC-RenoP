@@ -27,11 +27,11 @@ Sans variable, RenoP génère un mot de passe et l’affiche une fois sur stdout
 
 Le premier `repositories.yaml` contient trois dépôts Maven de compatibilité :
 
-| Chemin | Visibilité | Politique |
-|:-------|:-----------|:----------|
-| `/releases` | `PUBLIC` | Maven, redéploiement interdit |
-| `/snapshots` | `PUBLIC` | Maven, redéploiement autorisé |
-| `/private` | `PRIVATE` | Maven, authentification requise |
+| Chemin       | Visibilité | Politique                       |
+|:-------------|:-----------|:--------------------------------|
+| `/releases`  | `PUBLIC`   | Maven, redéploiement interdit   |
+| `/snapshots` | `PUBLIC`   | Maven, redéploiement autorisé   |
+| `/private`   | `PRIVATE`  | Maven, authentification requise |
 
 Créez explicitement les dépôts npm, Cargo, Docker ou `files`. Les images Docker et paquets npm doivent être réservés
 depuis leur dépôt avant le push. Les noms Cargo exigent le contrôle amont. Maven exige aussi un domaine vérifié.
@@ -48,12 +48,12 @@ base et le stockage avec une opération authentifiée réelle avant d’ouvrir l
 
 ## Variables importantes
 
-| Variable | Défaut | Usage |
-|:---------|:-------|:------|
-| `RENOP_CONFIG` | `config.yaml` | Chemin de la configuration principale |
-| `RENOP_REPOSITORIES` | `repositories.yaml` | Chemin des dépôts |
-| `RENOP_INDEX` | `index.json` | Chemin de l’instantané d’index |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | Généré une fois | Mot de passe initial si `admin` n’existe pas |
+| Variable                       | Défaut              | Usage                                        |
+|:-------------------------------|:--------------------|:---------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | Chemin de la configuration principale        |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Chemin des dépôts                            |
+| `RENOP_INDEX`                  | `index.json`        | Chemin de l’instantané d’index               |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | Généré une fois     | Mot de passe initial si `admin` n’existe pas |
 
 Comptes, sessions, équipes, API Token, audit et messages sont en base et n’ont pas de variable de chemin YAML.
 

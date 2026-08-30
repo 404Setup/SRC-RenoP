@@ -643,8 +643,10 @@ export async function fetchUpdaterStatusQuietly() {
                 updateDashboardVersionUI(status);
             }
         }
-    } catch {}
+    } catch {
+    }
 }
+
 window.fetchUpdaterStatusQuietly = fetchUpdaterStatusQuietly;
 
 /**
@@ -736,7 +738,8 @@ export function pollUpdaterStatus() {
                 updaterPollTimer = null;
                 await refreshMessageUnreadCount();
             }
-        } catch {}
+        } catch {
+        }
     }, 3000);
 }
 

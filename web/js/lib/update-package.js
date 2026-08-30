@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 const minParallelPartSize = 8 << 20;
@@ -168,7 +172,8 @@ async function verifySHA256(bytes, expectedHex) {
  * @param {(phase: string, progress?: number) => void} [onProgress]
  * @returns {Promise<{blob: Blob, filename: string}>}
  */
-export async function convertBrotliUpdateToZip(options, onProgress = () => {}) {
+export async function convertBrotliUpdateToZip(options, onProgress = () => {
+}) {
     const expectedSize = Number(options.uncompressedSize) || 0;
     if (expectedSize <= 0 || expectedSize > maxUpdateExecutableSize) throw new Error('invalid_uncompressed_size');
     const compressed = await downloadPackage(options.url, options.size || 0, (received, total) => {

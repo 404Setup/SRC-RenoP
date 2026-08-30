@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 import test from 'node:test';
@@ -20,8 +24,10 @@ test('background request failures wait for a visible confirmation probe', async 
         },
         isVisible: () => visible,
         onOffline: () => offline++,
-        onOnline: () => {},
-        delay: async () => {}
+        onOnline: () => {
+        },
+        delay: async () => {
+        }
     });
     monitor.noteFailure();
     await Promise.resolve();
@@ -43,7 +49,8 @@ test('visible failures require two failed probes and recover on later success', 
         isVisible: () => true,
         onOffline: () => offline++,
         onOnline: () => online++,
-        delay: async () => {}
+        delay: async () => {
+        }
     });
     monitor.noteFailure();
     assert.equal(await monitor.confirm(), false);

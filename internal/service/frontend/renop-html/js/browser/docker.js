@@ -14,7 +14,14 @@ import {createPaginatedCollection} from '@renop/ui/pagination';
 import {apiRequest} from '../api.js';
 import {canUpdateRepo} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
-import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
+import {
+    createIcon,
+    createMetaGrid,
+    createSkeleton,
+    createUserIdentity,
+    RenopDialog,
+    runButtonAction
+} from '../components.js';
 import {dockerResponseError} from '../docker-errors.js';
 import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
@@ -148,7 +155,15 @@ async function openManifestDetails(repoName, imageName, digest, tag) {
         bodyNodes.push(createMetaGrid(gridItems));
 
         if (manifest.raw_json) {
-            const rawHeader = el('div', {style: {display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.75rem', marginBottom: '0.35rem'}},
+            const rawHeader = el('div', {
+                    style: {
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginTop: '0.75rem',
+                        marginBottom: '0.35rem'
+                    }
+                },
                 el('strong', {style: {fontSize: '0.85rem', color: 'var(--text-color)'}}, t('docker.rawManifest')),
                 el('button', {
                     class: 'docker-pull-copy-btn',
@@ -353,13 +368,13 @@ async function renderCatalogView(container, repoName, seq) {
             );
 
             const card = el('div', {
-                class: 'docker-image-card',
-                onclick: () => {
-                    if (activeNavigate) {
-                        activeNavigate(`/${encodePathSegment(repoName)}/${encodeRelativePath(img.image_name)}`);
+                    class: 'docker-image-card',
+                    onclick: () => {
+                        if (activeNavigate) {
+                            activeNavigate(`/${encodePathSegment(repoName)}/${encodeRelativePath(img.image_name)}`);
+                        }
                     }
-                }
-            },
+                },
                 el('div', {},
                     el('div', {class: 'docker-image-name'},
                         createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
@@ -382,7 +397,14 @@ async function renderCatalogView(container, repoName, seq) {
         }
 
         const imagesSection = el('div', {class: 'docker-page-section'},
-            el('h3', {style: {fontSize: '1rem', fontWeight: '650', marginBottom: '0.85rem', color: 'var(--text-color)'}}, t('docker.imagesTitle')),
+            el('h3', {
+                style: {
+                    fontSize: '1rem',
+                    fontWeight: '650',
+                    marginBottom: '0.85rem',
+                    color: 'var(--text-color)'
+                }
+            }, t('docker.imagesTitle')),
             grid
         );
 
@@ -418,7 +440,7 @@ function openCreateImageDialog(repoName) {
         placeholder: t('docker.imageNamePlaceholder')
     });
     const privateInput = el('input', {type: 'checkbox'});
-	const teamBinding = createSuperTeamBindingField({minimumRole: 2});
+    const teamBinding = createSuperTeamBindingField({minimumRole: 2});
     const privateOption = el('label', {class: 'docker-create-private-option'},
         privateInput,
         el('span', {class: 'docker-create-private-copy'},
@@ -437,7 +459,7 @@ function openCreateImageDialog(repoName) {
             ),
             el('label', {class: 'docker-create-image-field'},
                 el('span', {}, t('superTeam.projectOwner')), teamBinding.element,
-				el('small', {}, t('superTeam.creationBindingHint'))
+                el('small', {}, t('superTeam.creationBindingHint'))
             ),
             privateOption
         ),
@@ -457,8 +479,10 @@ function openCreateImageDialog(repoName) {
                             await teamBinding.ready;
                             const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`, {
                                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({image: imageName, private: privateInput.checked,
-                                    super_team_prefix: teamBinding.value()})
+                                body: JSON.stringify({
+                                    image: imageName, private: privateInput.checked,
+                                    super_team_prefix: teamBinding.value()
+                                })
                             });
                             if (!response.ok) {
                                 showAlert(dockerResponseError(response,
@@ -513,8 +537,15 @@ function createImageButton(repoName) {
  * @returns {Promise<void>}
  */
 async function updateDockerTeamMember({
-    container, repoName, imageName, sequence, member, permissionLevel, newLevel, selector
-}) {
+                                          container,
+                                          repoName,
+                                          imageName,
+                                          sequence,
+                                          member,
+                                          permissionLevel,
+                                          newLevel,
+                                          selector
+                                      }) {
     const previousLevel = Number(member.level ?? 1);
     if (newLevel === previousLevel) return;
     const currentUsername = String(localStorage.getItem('username') || '').trim().toLowerCase();
@@ -565,10 +596,10 @@ async function removeDockerTeamMember({container, repoName, imageName, sequence,
     const displayName = isSelf ? '' : await resolveUserDisplayName(member.username);
     const confirmed = await showConfirm(
         isSelf ? t('team.leaveConfirm') : t('docker.removeMemberConfirm', {name: displayName}), {
-        title: isSelf ? t('team.leave') : t('docker.removeMember'),
-        confirmText: isSelf ? t('team.leave') : t('common.remove'),
-        danger: true
-    });
+            title: isSelf ? t('team.leave') : t('docker.removeMember'),
+            confirmText: isSelf ? t('team.leave') : t('common.remove'),
+            danger: true
+        });
     if (!confirmed) return;
     const memberReference = member.user_id || member.username;
     const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/owners/${encodeURIComponent(memberReference)}?image=${encodeURIComponent(imageName)}`, {
@@ -839,17 +870,17 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                 if (!pendingReview) {
                     actionsWrap.append(
                         el('button', {
-                        class: 'docker-action-btn',
-                        type: 'button',
-                        title: t('docker.copyPull'),
-                        onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
-                    }, createIcon('copy', {class: 'icon-svg'})),
-                    el('button', {
-                        class: 'docker-action-btn',
-                        type: 'button',
-                        title: t('docker.inspect'),
-                        onclick: () => openManifestDetails(repoName, imageName, tObj.digest, tObj.tag)
-                    }, createIcon('eye', {class: 'icon-svg'}))
+                            class: 'docker-action-btn',
+                            type: 'button',
+                            title: t('docker.copyPull'),
+                            onclick: (e) => triggerDockerCopy(e.currentTarget, tagPullCmd)
+                        }, createIcon('copy', {class: 'icon-svg'})),
+                        el('button', {
+                            class: 'docker-action-btn',
+                            type: 'button',
+                            title: t('docker.inspect'),
+                            onclick: () => openManifestDetails(repoName, imageName, tObj.digest, tObj.tag)
+                        }, createIcon('eye', {class: 'icon-svg'}))
                     );
                 }
 
@@ -860,7 +891,10 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                             type: 'button',
                             title: t('docker.deleteTag'),
                             onclick: async () => {
-                                const confirmed = await showConfirm(t('docker.deleteTagConfirm', {tag: tObj.tag, image: imageName}));
+                                const confirmed = await showConfirm(t('docker.deleteTagConfirm', {
+                                    tag: tObj.tag,
+                                    image: imageName
+                                }));
                                 if (confirmed) {
                                     try {
                                         const delResp = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/tags?image=${encodeURIComponent(imageName)}&tag=${encodeURIComponent(tObj.tag)}`, {
@@ -912,8 +946,22 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         }
 
         const tagsSection = el('div', {class: 'docker-page-section'},
-            el('div', {style: {display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem'}},
-                el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.tagsTitle')),
+            el('div', {
+                    style: {
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.85rem'
+                    }
+                },
+                el('h3', {
+                    style: {
+                        fontSize: '1rem',
+                        fontWeight: '650',
+                        margin: '0',
+                        color: 'var(--text-color)'
+                    }
+                }, t('docker.tagsTitle')),
                 el('span', {class: 'docker-tag-badge'}, `${tags.length}`)
             ),
             tagListEl,
@@ -1109,8 +1157,22 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             }
 
             teamSection = el('div', {class: 'docker-page-section'},
-                el('div', {style: {display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem'}},
-                    el('h3', {style: {fontSize: '1rem', fontWeight: '650', margin: '0', color: 'var(--text-color)'}}, t('docker.teamTitle')),
+                el('div', {
+                        style: {
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '0.85rem'
+                        }
+                    },
+                    el('h3', {
+                        style: {
+                            fontSize: '1rem',
+                            fontWeight: '650',
+                            margin: '0',
+                            color: 'var(--text-color)'
+                        }
+                    }, t('docker.teamTitle')),
                     el('span', {class: 'docker-tag-badge'}, `${members.length}`)
                 ),
                 teamListEl,

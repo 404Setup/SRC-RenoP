@@ -52,7 +52,8 @@ Cargo 发布会先保存并隐藏 crate 归档，不修改 sparse index 与公�
 crate 不进入审核流程。
 
 Docker 的 T2 创建申请与 npm 一样，依次经过团队阶段和可选的存储库阶段。最终批准会重新检查本地与上游名称冲突、
-存储库权限和当前团队成员资格，再预占映像。`new_packages` 模式下，后续 Manifest 正常发布；`every_version` 模式会将每个 Manifest 的
+存储库权限和当前团队成员资格，再预占映像。`new_packages` 模式下，后续 Manifest 正常发布；`every_version` 模式会将每个
+Manifest 的
 原始字节保存为有界虚拟文件，批准前不写入引用和标签。审核相同 Digest 的新标签不会隐藏已有标签，Manifest、
 Blob 关联、标签和审核结果在同一事务中写入。镜像源导入不进入审核流程。
 

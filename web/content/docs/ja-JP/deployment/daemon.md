@@ -30,13 +30,13 @@ RenoP は外部 wrapper を使わず、自動起動する OS ネイティブサ�
 
 ## 対応プラットフォーム
 
-| OS | Service manager | 動作 |
-|:---|:----------------|:-----|
-| **Windows** | SCM | 自動起動の `RenoP` service を登録し、`services.msc` で管理 |
-| **Linux (systemd)** | systemd | `/etc/systemd/system/renop.service` を作成して有効化 |
-| **Linux (OpenRC)** | OpenRC | `/etc/init.d/renop` を作成して default runlevel に追加 |
-| **macOS** | launchd | `/Library/LaunchDaemons/one.pkg.renop.plist` を作成して load |
-| **BSD** | rc.d | OS に適した rc.d script を生成 |
+| OS                  | Service manager | 動作                                                         |
+|:--------------------|:----------------|:-------------------------------------------------------------|
+| **Windows**         | SCM             | 自動起動の `RenoP` service を登録し、`services.msc` で管理   |
+| **Linux (systemd)** | systemd         | `/etc/systemd/system/renop.service` を作成して有効化         |
+| **Linux (OpenRC)**  | OpenRC          | `/etc/init.d/renop` を作成して default runlevel に追加       |
+| **macOS**           | launchd         | `/Library/LaunchDaemons/one.pkg.renop.plist` を作成して load |
+| **BSD**             | rc.d            | OS に適した rc.d script を生成                               |
 
 install/uninstall には管理権限が必要です。登録済みパスを維持するため、バイナリの移動や置換は正規の更新手順で
 実施してください。

@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -10,7 +12,6 @@ import {el} from '@renop/ui/dom';
 import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {apiRequest} from './api.js';
-import {cachedIsManager} from './auth.js';
 import {showAlert, showConfirm} from './alert.js';
 import {createIcon, RenopDialog, runButtonAction} from './components.js';
 import {t} from './i18n.js';
@@ -175,21 +176,21 @@ function limitCard(label, used, limit, inherited) {
 function teamCard(team) {
     const prefix = String(team.prefix || '');
     const card = el('button', {
-        type: 'button', class: 'super-team-card', onclick: () => navigate(prefix)
-    },
-    el('span', {class: 'super-team-card-icon', 'aria-hidden': 'true'}, createIcon('identity')),
-    el('span', {class: 'super-team-card-main'},
-        el('span', {class: 'super-team-card-title'},
-            el('strong', {}, team.name || prefix),
-            el('code', {}, prefix)
+            type: 'button', class: 'super-team-card', onclick: () => navigate(prefix)
+        },
+        el('span', {class: 'super-team-card-icon', 'aria-hidden': 'true'}, createIcon('identity')),
+        el('span', {class: 'super-team-card-main'},
+            el('span', {class: 'super-team-card-title'},
+                el('strong', {}, team.name || prefix),
+                el('code', {}, prefix)
+            ),
+            el('span', {class: 'super-team-card-description'}, team.description || t('superTeam.noDescription'))
         ),
-        el('span', {class: 'super-team-card-description'}, team.description || t('superTeam.noDescription'))
-    ),
-    el('span', {class: 'super-team-card-meta'},
-        team.role_level ? el('span', {class: 'super-team-role-badge'}, roleLabel(team.role_level)) : null,
-        el('span', {}, t('superTeam.memberCount', {count: Number(team.member_count) || 0})),
-        createIcon('chevron')
-    ));
+        el('span', {class: 'super-team-card-meta'},
+            team.role_level ? el('span', {class: 'super-team-role-badge'}, roleLabel(team.role_level)) : null,
+            el('span', {}, t('superTeam.memberCount', {count: Number(team.member_count) || 0})),
+            createIcon('chevron')
+        ));
     return card;
 }
 
@@ -226,7 +227,11 @@ function pager(total) {
 function openCreateDialog() {
     const prefix = el('input', {class: 'profile-input', maxlength: '64', autocomplete: 'off'});
     const name = el('input', {class: 'profile-input', maxlength: '80', autocomplete: 'off'});
-    const description = el('textarea', {class: 'profile-input super-team-description-input', maxlength: '512', rows: '3'});
+    const description = el('textarea', {
+        class: 'profile-input super-team-description-input',
+        maxlength: '512',
+        rows: '3'
+    });
     const form = el('div', {class: 'super-team-dialog-form'},
         el('label', {}, el('span', {}, t('superTeam.prefix')), prefix,
             el('small', {}, t('superTeam.prefixHint'))),
@@ -324,7 +329,10 @@ async function loadList() {
 function openEditDialog(details) {
     const name = el('input', {class: 'profile-input', maxlength: '80', value: details.team.name || ''});
     const description = el('textarea', {
-        class: 'profile-input super-team-description-input', maxlength: '512', rows: '3', value: details.team.description || ''
+        class: 'profile-input super-team-description-input',
+        maxlength: '512',
+        rows: '3',
+        value: details.team.description || ''
     });
     RenopDialog.show({
         id: 'super-team-edit-dialog', maxWidth: '560px', icon: 'edit', title: t('superTeam.edit'),
@@ -365,7 +373,9 @@ function openInviteDialog(details) {
     const input = el('input', {class: 'profile-input', maxlength: '255', autocomplete: 'off'});
     const maximum = details.administrator || Number(details.team.role_level) >= 4 ? 4 : 2;
     let selectedLevel = '1';
-    const roleSelect = makeCustomSelect(roleOptions(maximum), selectedLevel, value => { selectedLevel = value; });
+    const roleSelect = makeCustomSelect(roleOptions(maximum), selectedLevel, value => {
+        selectedLevel = value;
+    });
     RenopDialog.show({
         id: 'super-team-invite-dialog', maxWidth: '520px', icon: 'userPlus', title: t('superTeam.invite'),
         onClose: () => userSuggestions.detach(),
@@ -478,7 +488,10 @@ function memberRow(details, member) {
         }, createIcon('delete')));
     }
     return el('div', {class: 'super-team-member-row'},
-        el('span', {class: 'super-team-member-avatar', 'aria-hidden': 'true'}, String(member.username || '?')[0].toUpperCase()),
+        el('span', {
+            class: 'super-team-member-avatar',
+            'aria-hidden': 'true'
+        }, String(member.username || '?')[0].toUpperCase()),
         el('span', {class: 'super-team-member-name'},
             el('strong', {}, member.username || ''),
             el('small', {}, t(`superTeam.roleT${memberLevel}Desc`))
@@ -535,9 +548,17 @@ async function loadDetails(prefix) {
         }, createIcon('userPlus'), el('span', {}, t('superTeam.invite'))));
         if (canOwn) {
             actions.append(
-                el('button', {type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', onclick: () => openEditDialog(details)},
+                el('button', {
+                        type: 'button',
+                        class: 'pill-btn pill-btn--soft pill-btn--sm',
+                        onclick: () => openEditDialog(details)
+                    },
                     createIcon('edit'), el('span', {}, t('common.edit'))),
-                el('button', {type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm', onclick: () => void deleteTeam(details)},
+                el('button', {
+                        type: 'button',
+                        class: 'pill-btn pill-btn--danger pill-btn--sm',
+                        onclick: () => void deleteTeam(details)
+                    },
                     createIcon('delete'), el('span', {}, t('common.delete')))
             );
         }

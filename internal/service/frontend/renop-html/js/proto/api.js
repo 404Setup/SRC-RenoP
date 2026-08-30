@@ -13,7 +13,10 @@ import $protobuf from "protobufjs/minimal.js";
 
 // Common aliases
 const $Reader = $protobuf.Reader, $Writer = $protobuf.Writer, $util = $protobuf.util;
-const $Object = $util.global.Object, $undefined = $util.global.undefined, $Error = $util.global.Error, $TypeError = $util.global.TypeError, $String = $util.global.String, $Number = $util.global.Number, $Array = $util.global.Array, $parseInt = $util.global.parseInt, $BigInt = $util.global.BigInt, $Boolean = $util.global.Boolean;
+const $Object = $util.global.Object, $undefined = $util.global.undefined, $Error = $util.global.Error,
+    $TypeError = $util.global.TypeError, $String = $util.global.String, $Number = $util.global.Number,
+    $Array = $util.global.Array, $parseInt = $util.global.parseInt, $BigInt = $util.global.BigInt,
+    $Boolean = $util.global.Boolean;
 
 // Exported root namespace
 const $root = $protobuf.roots["default"] || ($protobuf.roots["default"] = {});
@@ -27,7 +30,7 @@ export const renop = $root.renop = (() => {
      */
     const renop = {};
 
-    renop.api = (function() {
+    renop.api = (function () {
 
         /**
          * Namespace api.
@@ -36,7 +39,7 @@ export const renop = $root.renop = (() => {
          */
         const api = {};
 
-        api.v1 = (function() {
+        api.v1 = (function () {
 
             /**
              * Namespace v1.
@@ -45,7 +48,7 @@ export const renop = $root.renop = (() => {
              */
             const v1 = {};
 
-            v1.AccessTokenIdentifier = (function() {
+            v1.AccessTokenIdentifier = (function () {
 
                 /**
                  * Properties of an AccessTokenIdentifier.
@@ -111,7 +114,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.AccessTokenIdentifier.$Properties): renop.api.v1.AccessTokenIdentifier;
                  * }}
                  */
-                AccessTokenIdentifier.create = function(properties) {
+                AccessTokenIdentifier.create = function (properties) {
                     return new AccessTokenIdentifier(properties);
                 };
 
@@ -150,7 +153,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                AccessTokenIdentifier.encodeDelimited = function(message, writer) {
+                AccessTokenIdentifier.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -172,7 +175,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenIdentifier(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.AccessTokenIdentifier(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -182,7 +186,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -191,7 +195,7 @@ export const renop = $root.renop = (() => {
                                     delete message.type;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -222,7 +226,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                AccessTokenIdentifier.decodeDelimited = function(reader) {
+                AccessTokenIdentifier.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -314,7 +318,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                AccessTokenIdentifier.prototype.toJSON = function() {
+                AccessTokenIdentifier.prototype.toJSON = function () {
                     return AccessTokenIdentifier.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -326,7 +330,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                AccessTokenIdentifier.getTypeUrl = function(prefix) {
+                AccessTokenIdentifier.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.AccessTokenIdentifier";
@@ -335,7 +339,7 @@ export const renop = $root.renop = (() => {
                 return AccessTokenIdentifier;
             })();
 
-            v1.AccessTokenDto = (function() {
+            v1.AccessTokenDto = (function () {
 
                 /**
                  * Properties of an AccessTokenDto.
@@ -457,7 +461,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.AccessTokenDto.$Properties): renop.api.v1.AccessTokenDto;
                  * }}
                  */
-                AccessTokenDto.create = function(properties) {
+                AccessTokenDto.create = function (properties) {
                     return new AccessTokenDto(properties);
                 };
 
@@ -508,7 +512,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                AccessTokenDto.encodeDelimited = function(message, writer) {
+                AccessTokenDto.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -530,7 +534,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenDto(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.AccessTokenDto(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -540,13 +545,13 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 message.identifier = $root.renop.api.v1.AccessTokenIdentifier.decode(reader, reader.uint32(), $undefined, _depth + 1, message.identifier);
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -555,7 +560,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -564,7 +569,7 @@ export const renop = $root.renop = (() => {
                                     delete message.created_at;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -573,14 +578,14 @@ export const renop = $root.renop = (() => {
                                     delete message.description;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 message.expires_at = reader.int64();
                                 message._expires_at = "expires_at";
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.tokens && message.tokens.length))
@@ -588,7 +593,7 @@ export const renop = $root.renop = (() => {
                                 message.tokens.push(reader.stringVerify());
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.permissions && message.permissions.length))
@@ -618,7 +623,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                AccessTokenDto.decodeDelimited = function(reader) {
+                AccessTokenDto.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -796,7 +801,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                AccessTokenDto.prototype.toJSON = function() {
+                AccessTokenDto.prototype.toJSON = function () {
                     return AccessTokenDto.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -808,7 +813,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                AccessTokenDto.getTypeUrl = function(prefix) {
+                AccessTokenDto.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.AccessTokenDto";
@@ -817,7 +822,7 @@ export const renop = $root.renop = (() => {
                 return AccessTokenDto;
             })();
 
-            v1.AccessTokenPermission = (function() {
+            v1.AccessTokenPermission = (function () {
 
                 /**
                  * Properties of an AccessTokenPermission.
@@ -883,7 +888,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.AccessTokenPermission.$Properties): renop.api.v1.AccessTokenPermission;
                  * }}
                  */
-                AccessTokenPermission.create = function(properties) {
+                AccessTokenPermission.create = function (properties) {
                     return new AccessTokenPermission(properties);
                 };
 
@@ -922,7 +927,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                AccessTokenPermission.encodeDelimited = function(message, writer) {
+                AccessTokenPermission.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -944,7 +949,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenPermission(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.AccessTokenPermission(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -954,7 +960,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -963,7 +969,7 @@ export const renop = $root.renop = (() => {
                                     delete message.identifier;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -994,7 +1000,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                AccessTokenPermission.decodeDelimited = function(reader) {
+                AccessTokenPermission.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -1086,7 +1092,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                AccessTokenPermission.prototype.toJSON = function() {
+                AccessTokenPermission.prototype.toJSON = function () {
                     return AccessTokenPermission.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -1098,7 +1104,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                AccessTokenPermission.getTypeUrl = function(prefix) {
+                AccessTokenPermission.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.AccessTokenPermission";
@@ -1107,7 +1113,7 @@ export const renop = $root.renop = (() => {
                 return AccessTokenPermission;
             })();
 
-            v1.RoutePermission = (function() {
+            v1.RoutePermission = (function () {
 
                 /**
                  * Properties of a RoutePermission.
@@ -1173,7 +1179,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.RoutePermission.$Properties): renop.api.v1.RoutePermission;
                  * }}
                  */
-                RoutePermission.create = function(properties) {
+                RoutePermission.create = function (properties) {
                     return new RoutePermission(properties);
                 };
 
@@ -1212,7 +1218,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                RoutePermission.encodeDelimited = function(message, writer) {
+                RoutePermission.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -1234,7 +1240,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RoutePermission(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.RoutePermission(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -1244,7 +1251,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -1253,7 +1260,7 @@ export const renop = $root.renop = (() => {
                                     delete message.identifier;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -1284,7 +1291,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                RoutePermission.decodeDelimited = function(reader) {
+                RoutePermission.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -1376,7 +1383,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                RoutePermission.prototype.toJSON = function() {
+                RoutePermission.prototype.toJSON = function () {
                     return RoutePermission.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -1388,7 +1395,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                RoutePermission.getTypeUrl = function(prefix) {
+                RoutePermission.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.RoutePermission";
@@ -1397,7 +1404,7 @@ export const renop = $root.renop = (() => {
                 return RoutePermission;
             })();
 
-            v1.Route = (function() {
+            v1.Route = (function () {
 
                 /**
                  * Properties of a Route.
@@ -1463,7 +1470,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.Route.$Properties): renop.api.v1.Route;
                  * }}
                  */
-                Route.create = function(properties) {
+                Route.create = function (properties) {
                     return new Route(properties);
                 };
 
@@ -1502,7 +1509,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                Route.encodeDelimited = function(message, writer) {
+                Route.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -1524,7 +1531,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.Route(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.Route(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -1534,7 +1542,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -1543,7 +1551,7 @@ export const renop = $root.renop = (() => {
                                     delete message.path;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 message.permission = $root.renop.api.v1.RoutePermission.decode(reader, reader.uint32(), $undefined, _depth + 1, message.permission);
@@ -1571,7 +1579,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                Route.decodeDelimited = function(reader) {
+                Route.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -1667,7 +1675,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                Route.prototype.toJSON = function() {
+                Route.prototype.toJSON = function () {
                     return Route.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -1679,7 +1687,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                Route.getTypeUrl = function(prefix) {
+                Route.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.Route";
@@ -1688,7 +1696,7 @@ export const renop = $root.renop = (() => {
                 return Route;
             })();
 
-            v1.SessionDetails = (function() {
+            v1.SessionDetails = (function () {
 
                 /**
                  * Properties of a SessionDetails.
@@ -1774,7 +1782,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.SessionDetails.$Properties): renop.api.v1.SessionDetails;
                  * }}
                  */
-                SessionDetails.create = function(properties) {
+                SessionDetails.create = function (properties) {
                     return new SessionDetails(properties);
                 };
 
@@ -1819,7 +1827,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                SessionDetails.encodeDelimited = function(message, writer) {
+                SessionDetails.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -1841,7 +1849,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SessionDetails(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.SessionDetails(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -1851,13 +1860,13 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 message.access_token = $root.renop.api.v1.AccessTokenDto.decode(reader, reader.uint32(), $undefined, _depth + 1, message.access_token);
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.permissions && message.permissions.length))
@@ -1865,7 +1874,7 @@ export const renop = $root.renop = (() => {
                                 message.permissions.push($root.renop.api.v1.AccessTokenPermission.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.routes && message.routes.length))
@@ -1873,7 +1882,7 @@ export const renop = $root.renop = (() => {
                                 message.routes.push($root.renop.api.v1.Route.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -1904,7 +1913,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                SessionDetails.decodeDelimited = function(reader) {
+                SessionDetails.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -2052,7 +2061,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                SessionDetails.prototype.toJSON = function() {
+                SessionDetails.prototype.toJSON = function () {
                     return SessionDetails.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -2064,7 +2073,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                SessionDetails.getTypeUrl = function(prefix) {
+                SessionDetails.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.SessionDetails";
@@ -2073,7 +2082,7 @@ export const renop = $root.renop = (() => {
                 return SessionDetails;
             })();
 
-            v1.LoginRequest = (function() {
+            v1.LoginRequest = (function () {
 
                 /**
                  * Properties of a LoginRequest.
@@ -2139,7 +2148,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.LoginRequest.$Properties): renop.api.v1.LoginRequest;
                  * }}
                  */
-                LoginRequest.create = function(properties) {
+                LoginRequest.create = function (properties) {
                     return new LoginRequest(properties);
                 };
 
@@ -2178,7 +2187,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                LoginRequest.encodeDelimited = function(message, writer) {
+                LoginRequest.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -2200,7 +2209,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.LoginRequest(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.LoginRequest(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -2210,7 +2220,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -2219,7 +2229,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -2250,7 +2260,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                LoginRequest.decodeDelimited = function(reader) {
+                LoginRequest.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -2342,7 +2352,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                LoginRequest.prototype.toJSON = function() {
+                LoginRequest.prototype.toJSON = function () {
                     return LoginRequest.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -2354,7 +2364,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                LoginRequest.getTypeUrl = function(prefix) {
+                LoginRequest.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.LoginRequest";
@@ -2363,7 +2373,7 @@ export const renop = $root.renop = (() => {
                 return LoginRequest;
             })();
 
-            v1.SessionDto = (function() {
+            v1.SessionDto = (function () {
 
                 /**
                  * Properties of a SessionDto.
@@ -2446,7 +2456,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.SessionDto
                  * @instance
                  */
-                SessionDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                SessionDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * SessionDto last_active.
@@ -2454,7 +2464,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.SessionDto
                  * @instance
                  */
-                SessionDto.prototype.last_active = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                SessionDto.prototype.last_active = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * SessionDto expires_at.
@@ -2462,7 +2472,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.SessionDto
                  * @instance
                  */
-                SessionDto.prototype.expires_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                SessionDto.prototype.expires_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * SessionDto current.
@@ -2492,7 +2502,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.SessionDto.$Properties): renop.api.v1.SessionDto;
                  * }}
                  */
-                SessionDto.create = function(properties) {
+                SessionDto.create = function (properties) {
                     return new SessionDto(properties);
                 };
 
@@ -2545,7 +2555,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                SessionDto.encodeDelimited = function(message, writer) {
+                SessionDto.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -2567,7 +2577,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SessionDto(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.SessionDto(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -2577,7 +2588,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -2586,7 +2597,7 @@ export const renop = $root.renop = (() => {
                                     delete message.public_id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -2595,7 +2606,7 @@ export const renop = $root.renop = (() => {
                                     delete message.username;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -2604,7 +2615,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ip;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -2613,7 +2624,7 @@ export const renop = $root.renop = (() => {
                                     delete message.user_agent;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -2622,7 +2633,7 @@ export const renop = $root.renop = (() => {
                                     delete message.created_at;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -2631,7 +2642,7 @@ export const renop = $root.renop = (() => {
                                     delete message.last_active;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -2640,7 +2651,7 @@ export const renop = $root.renop = (() => {
                                     delete message.expires_at;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -2649,7 +2660,7 @@ export const renop = $root.renop = (() => {
                                     delete message.current;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -2680,7 +2691,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                SessionDto.decodeDelimited = function(reader) {
+                SessionDto.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -2883,7 +2894,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                SessionDto.prototype.toJSON = function() {
+                SessionDto.prototype.toJSON = function () {
                     return SessionDto.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -2895,7 +2906,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                SessionDto.getTypeUrl = function(prefix) {
+                SessionDto.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.SessionDto";
@@ -2904,7 +2915,7 @@ export const renop = $root.renop = (() => {
                 return SessionDto;
             })();
 
-            v1.SessionList = (function() {
+            v1.SessionList = (function () {
 
                 /**
                  * Properties of a SessionList.
@@ -2962,7 +2973,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.SessionList.$Properties): renop.api.v1.SessionList;
                  * }}
                  */
-                SessionList.create = function(properties) {
+                SessionList.create = function (properties) {
                     return new SessionList(properties);
                 };
 
@@ -3000,7 +3011,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                SessionList.encodeDelimited = function(message, writer) {
+                SessionList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -3022,7 +3033,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SessionList();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.SessionList();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -3032,7 +3044,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.sessions && message.sessions.length))
@@ -3062,7 +3074,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                SessionList.decodeDelimited = function(reader) {
+                SessionList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -3160,7 +3172,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                SessionList.prototype.toJSON = function() {
+                SessionList.prototype.toJSON = function () {
                     return SessionList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -3172,7 +3184,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                SessionList.getTypeUrl = function(prefix) {
+                SessionList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.SessionList";
@@ -3181,7 +3193,7 @@ export const renop = $root.renop = (() => {
                 return SessionList;
             })();
 
-            v1.StatusOk = (function() {
+            v1.StatusOk = (function () {
 
                 /**
                  * Properties of a StatusOk.
@@ -3238,7 +3250,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.StatusOk.$Properties): renop.api.v1.StatusOk;
                  * }}
                  */
-                StatusOk.create = function(properties) {
+                StatusOk.create = function (properties) {
                     return new StatusOk(properties);
                 };
 
@@ -3275,7 +3287,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                StatusOk.encodeDelimited = function(message, writer) {
+                StatusOk.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -3297,7 +3309,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StatusOk(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.StatusOk(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -3307,7 +3320,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -3338,7 +3351,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                StatusOk.decodeDelimited = function(reader) {
+                StatusOk.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -3420,7 +3433,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                StatusOk.prototype.toJSON = function() {
+                StatusOk.prototype.toJSON = function () {
                     return StatusOk.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -3432,7 +3445,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                StatusOk.getTypeUrl = function(prefix) {
+                StatusOk.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.StatusOk";
@@ -3441,7 +3454,7 @@ export const renop = $root.renop = (() => {
                 return StatusOk;
             })();
 
-            v1.AccessTokenList = (function() {
+            v1.AccessTokenList = (function () {
 
                 /**
                  * Properties of an AccessTokenList.
@@ -3499,7 +3512,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.AccessTokenList.$Properties): renop.api.v1.AccessTokenList;
                  * }}
                  */
-                AccessTokenList.create = function(properties) {
+                AccessTokenList.create = function (properties) {
                     return new AccessTokenList(properties);
                 };
 
@@ -3537,7 +3550,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                AccessTokenList.encodeDelimited = function(message, writer) {
+                AccessTokenList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -3559,7 +3572,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AccessTokenList();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.AccessTokenList();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -3569,7 +3583,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.tokens && message.tokens.length))
@@ -3599,7 +3613,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                AccessTokenList.decodeDelimited = function(reader) {
+                AccessTokenList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -3697,7 +3711,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                AccessTokenList.prototype.toJSON = function() {
+                AccessTokenList.prototype.toJSON = function () {
                     return AccessTokenList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -3709,7 +3723,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                AccessTokenList.getTypeUrl = function(prefix) {
+                AccessTokenList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.AccessTokenList";
@@ -3718,7 +3732,7 @@ export const renop = $root.renop = (() => {
                 return AccessTokenList;
             })();
 
-            v1.UpdateState = (function() {
+            v1.UpdateState = (function () {
 
                 /**
                  * Properties of an UpdateState.
@@ -3811,7 +3825,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.UpdateState
                  * @instance
                  */
-                UpdateState.prototype.size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                UpdateState.prototype.size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * UpdateState estimated_disk_space.
@@ -3819,7 +3833,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.UpdateState
                  * @instance
                  */
-                UpdateState.prototype.estimated_disk_space = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                UpdateState.prototype.estimated_disk_space = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * UpdateState release_date.
@@ -3865,7 +3879,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.UpdateState.$Properties): renop.api.v1.UpdateState;
                  * }}
                  */
-                UpdateState.create = function(properties) {
+                UpdateState.create = function (properties) {
                     return new UpdateState(properties);
                 };
 
@@ -3922,7 +3936,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                UpdateState.encodeDelimited = function(message, writer) {
+                UpdateState.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -3944,7 +3958,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UpdateState(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.UpdateState(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -3954,7 +3969,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -3963,7 +3978,7 @@ export const renop = $root.renop = (() => {
                                     delete message.status;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -3972,7 +3987,7 @@ export const renop = $root.renop = (() => {
                                     delete message.latest_version;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -3981,7 +3996,7 @@ export const renop = $root.renop = (() => {
                                     delete message.download_url;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -3990,7 +4005,7 @@ export const renop = $root.renop = (() => {
                                     delete message.progress;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -3999,7 +4014,7 @@ export const renop = $root.renop = (() => {
                                     delete message.error_message;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -4008,7 +4023,7 @@ export const renop = $root.renop = (() => {
                                     delete message.size;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -4017,7 +4032,7 @@ export const renop = $root.renop = (() => {
                                     delete message.estimated_disk_space;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -4026,7 +4041,7 @@ export const renop = $root.renop = (() => {
                                     delete message.release_date;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -4035,7 +4050,7 @@ export const renop = $root.renop = (() => {
                                     delete message.release_notes;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -4044,7 +4059,7 @@ export const renop = $root.renop = (() => {
                                     delete message.commit_sha;
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -4075,7 +4090,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                UpdateState.decodeDelimited = function(reader) {
+                UpdateState.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -4280,7 +4295,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                UpdateState.prototype.toJSON = function() {
+                UpdateState.prototype.toJSON = function () {
                     return UpdateState.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -4292,7 +4307,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                UpdateState.getTypeUrl = function(prefix) {
+                UpdateState.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.UpdateState";
@@ -4301,7 +4316,7 @@ export const renop = $root.renop = (() => {
                 return UpdateState;
             })();
 
-            v1.InstanceStatus = (function() {
+            v1.InstanceStatus = (function () {
 
                 /**
                  * Properties of an InstanceStatus.
@@ -4378,7 +4393,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.uptime = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                InstanceStatus.prototype.uptime = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * InstanceStatus used_memory.
@@ -4386,7 +4401,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.used_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.used_memory = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus total_memory.
@@ -4394,7 +4409,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.total_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.total_memory = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus renop_used_disk.
@@ -4402,7 +4417,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.renop_used_disk = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.renop_used_disk = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus disk_used.
@@ -4410,7 +4425,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.disk_used = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.disk_used = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus disk_total.
@@ -4418,7 +4433,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.disk_total = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.disk_total = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus used_threads.
@@ -4426,7 +4441,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.used_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.used_threads = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus available_threads.
@@ -4434,7 +4449,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.available_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.available_threads = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus total_threads.
@@ -4442,7 +4457,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.total_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.total_threads = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus architecture.
@@ -4482,7 +4497,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.failures_count = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.failures_count = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus update_state.
@@ -4498,7 +4513,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.InstanceStatus
                  * @instance
                  */
-                InstanceStatus.prototype.vss_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                InstanceStatus.prototype.vss_memory = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * InstanceStatus debug_mode.
@@ -4520,7 +4535,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.InstanceStatus.$Properties): renop.api.v1.InstanceStatus;
                  * }}
                  */
-                InstanceStatus.create = function(properties) {
+                InstanceStatus.create = function (properties) {
                     return new InstanceStatus(properties);
                 };
 
@@ -4593,7 +4608,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                InstanceStatus.encodeDelimited = function(message, writer) {
+                InstanceStatus.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -4615,7 +4630,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.InstanceStatus(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.InstanceStatus(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -4625,7 +4641,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -4634,7 +4650,7 @@ export const renop = $root.renop = (() => {
                                     delete message.version;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -4643,7 +4659,7 @@ export const renop = $root.renop = (() => {
                                     delete message.development;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -4652,7 +4668,7 @@ export const renop = $root.renop = (() => {
                                     delete message.uptime;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4661,7 +4677,7 @@ export const renop = $root.renop = (() => {
                                     delete message.used_memory;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4670,7 +4686,7 @@ export const renop = $root.renop = (() => {
                                     delete message.total_memory;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4679,7 +4695,7 @@ export const renop = $root.renop = (() => {
                                     delete message.renop_used_disk;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4688,7 +4704,7 @@ export const renop = $root.renop = (() => {
                                     delete message.disk_used;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4697,7 +4713,7 @@ export const renop = $root.renop = (() => {
                                     delete message.disk_total;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4706,7 +4722,7 @@ export const renop = $root.renop = (() => {
                                     delete message.used_threads;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4715,7 +4731,7 @@ export const renop = $root.renop = (() => {
                                     delete message.available_threads;
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4724,7 +4740,7 @@ export const renop = $root.renop = (() => {
                                     delete message.total_threads;
                                 continue;
                             }
-                        case 12: {
+                            case 12: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -4733,7 +4749,7 @@ export const renop = $root.renop = (() => {
                                     delete message.architecture;
                                 continue;
                             }
-                        case 13: {
+                            case 13: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -4742,7 +4758,7 @@ export const renop = $root.renop = (() => {
                                     delete message.os;
                                 continue;
                             }
-                        case 14: {
+                            case 14: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -4751,7 +4767,7 @@ export const renop = $root.renop = (() => {
                                     delete message.logical_cores;
                                 continue;
                             }
-                        case 15: {
+                            case 15: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -4760,7 +4776,7 @@ export const renop = $root.renop = (() => {
                                     delete message.physical_cores;
                                 continue;
                             }
-                        case 16: {
+                            case 16: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4769,13 +4785,13 @@ export const renop = $root.renop = (() => {
                                     delete message.failures_count;
                                 continue;
                             }
-                        case 17: {
+                            case 17: {
                                 if (wireType !== 2)
                                     break;
                                 message.update_state = $root.renop.api.v1.UpdateState.decode(reader, reader.uint32(), $undefined, _depth + 1, message.update_state);
                                 continue;
                             }
-                        case 18: {
+                            case 18: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -4784,7 +4800,7 @@ export const renop = $root.renop = (() => {
                                     delete message.vss_memory;
                                 continue;
                             }
-                        case 19: {
+                            case 19: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -4815,7 +4831,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                InstanceStatus.decodeDelimited = function(reader) {
+                InstanceStatus.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -5240,7 +5256,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                InstanceStatus.prototype.toJSON = function() {
+                InstanceStatus.prototype.toJSON = function () {
                     return InstanceStatus.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -5252,7 +5268,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                InstanceStatus.getTypeUrl = function(prefix) {
+                InstanceStatus.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.InstanceStatus";
@@ -5261,7 +5277,7 @@ export const renop = $root.renop = (() => {
                 return InstanceStatus;
             })();
 
-            v1.StatusSnapshot = (function() {
+            v1.StatusSnapshot = (function () {
 
                 /**
                  * Properties of a StatusSnapshot.
@@ -5308,7 +5324,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.StatusSnapshot
                  * @instance
                  */
-                StatusSnapshot.prototype.timestamp = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                StatusSnapshot.prototype.timestamp = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * StatusSnapshot used_memory.
@@ -5316,7 +5332,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.StatusSnapshot
                  * @instance
                  */
-                StatusSnapshot.prototype.used_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                StatusSnapshot.prototype.used_memory = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * StatusSnapshot used_threads.
@@ -5324,7 +5340,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.StatusSnapshot
                  * @instance
                  */
-                StatusSnapshot.prototype.used_threads = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                StatusSnapshot.prototype.used_threads = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * StatusSnapshot open_files.
@@ -5332,7 +5348,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.StatusSnapshot
                  * @instance
                  */
-                StatusSnapshot.prototype.open_files = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                StatusSnapshot.prototype.open_files = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * StatusSnapshot vss_memory.
@@ -5340,7 +5356,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.StatusSnapshot
                  * @instance
                  */
-                StatusSnapshot.prototype.vss_memory = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                StatusSnapshot.prototype.vss_memory = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * Creates a new StatusSnapshot instance using the specified properties.
@@ -5354,7 +5370,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.StatusSnapshot.$Properties): renop.api.v1.StatusSnapshot;
                  * }}
                  */
-                StatusSnapshot.create = function(properties) {
+                StatusSnapshot.create = function (properties) {
                     return new StatusSnapshot(properties);
                 };
 
@@ -5399,7 +5415,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                StatusSnapshot.encodeDelimited = function(message, writer) {
+                StatusSnapshot.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -5421,7 +5437,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StatusSnapshot(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.StatusSnapshot(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -5431,7 +5448,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -5440,7 +5457,7 @@ export const renop = $root.renop = (() => {
                                     delete message.timestamp;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -5449,7 +5466,7 @@ export const renop = $root.renop = (() => {
                                     delete message.used_memory;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -5458,7 +5475,7 @@ export const renop = $root.renop = (() => {
                                     delete message.used_threads;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -5467,7 +5484,7 @@ export const renop = $root.renop = (() => {
                                     delete message.open_files;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -5498,7 +5515,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                StatusSnapshot.decodeDelimited = function(reader) {
+                StatusSnapshot.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -5697,7 +5714,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                StatusSnapshot.prototype.toJSON = function() {
+                StatusSnapshot.prototype.toJSON = function () {
                     return StatusSnapshot.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -5709,7 +5726,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                StatusSnapshot.getTypeUrl = function(prefix) {
+                StatusSnapshot.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.StatusSnapshot";
@@ -5718,7 +5735,7 @@ export const renop = $root.renop = (() => {
                 return StatusSnapshot;
             })();
 
-            v1.StatusSnapshotList = (function() {
+            v1.StatusSnapshotList = (function () {
 
                 /**
                  * Properties of a StatusSnapshotList.
@@ -5776,7 +5793,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.StatusSnapshotList.$Properties): renop.api.v1.StatusSnapshotList;
                  * }}
                  */
-                StatusSnapshotList.create = function(properties) {
+                StatusSnapshotList.create = function (properties) {
                     return new StatusSnapshotList(properties);
                 };
 
@@ -5814,7 +5831,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                StatusSnapshotList.encodeDelimited = function(message, writer) {
+                StatusSnapshotList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -5836,7 +5853,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StatusSnapshotList();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.StatusSnapshotList();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -5846,7 +5864,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.snapshots && message.snapshots.length))
@@ -5876,7 +5894,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                StatusSnapshotList.decodeDelimited = function(reader) {
+                StatusSnapshotList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -5974,7 +5992,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                StatusSnapshotList.prototype.toJSON = function() {
+                StatusSnapshotList.prototype.toJSON = function () {
                     return StatusSnapshotList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -5986,7 +6004,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                StatusSnapshotList.getTypeUrl = function(prefix) {
+                StatusSnapshotList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.StatusSnapshotList";
@@ -5995,7 +6013,7 @@ export const renop = $root.renop = (() => {
                 return StatusSnapshotList;
             })();
 
-            v1.RuntimeMemoryBreakdown = (function() {
+            v1.RuntimeMemoryBreakdown = (function () {
 
                 /**
                  * Properties of a RuntimeMemoryBreakdown.
@@ -6069,7 +6087,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.process_rss = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.process_rss = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown process_vss.
@@ -6077,7 +6095,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.process_vss = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.process_vss = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown go_retained.
@@ -6085,7 +6103,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.go_retained = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.go_retained = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown heap_inuse.
@@ -6093,7 +6111,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.heap_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.heap_inuse = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown heap_alloc.
@@ -6101,7 +6119,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.heap_alloc = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.heap_alloc = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown heap_sys.
@@ -6109,7 +6127,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.heap_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.heap_sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown heap_idle.
@@ -6117,7 +6135,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.heap_idle = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.heap_idle = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown heap_released.
@@ -6125,7 +6143,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.heap_released = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.heap_released = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown heap_objects.
@@ -6133,7 +6151,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.heap_objects = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.heap_objects = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown stack_inuse.
@@ -6141,7 +6159,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.stack_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.stack_inuse = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown stack_sys.
@@ -6149,7 +6167,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.stack_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.stack_sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown mspan_inuse.
@@ -6157,7 +6175,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.mspan_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.mspan_inuse = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown mspan_sys.
@@ -6165,7 +6183,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.mspan_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.mspan_sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown mcache_inuse.
@@ -6173,7 +6191,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.mcache_inuse = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.mcache_inuse = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown mcache_sys.
@@ -6181,7 +6199,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.mcache_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.mcache_sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown buck_hash_sys.
@@ -6189,7 +6207,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.buck_hash_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.buck_hash_sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown gc_sys.
@@ -6197,7 +6215,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.gc_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.gc_sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown other_sys.
@@ -6205,7 +6223,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.other_sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.other_sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown sys.
@@ -6213,7 +6231,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.sys = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.sys = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown off_heap_runtime_estimate.
@@ -6221,7 +6239,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.off_heap_runtime_estimate = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.off_heap_runtime_estimate = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown rss_minus_go_retained.
@@ -6229,7 +6247,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.rss_minus_go_retained = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RuntimeMemoryBreakdown.prototype.rss_minus_go_retained = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown num_goroutine.
@@ -6237,7 +6255,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RuntimeMemoryBreakdown
                  * @instance
                  */
-                RuntimeMemoryBreakdown.prototype.num_goroutine = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RuntimeMemoryBreakdown.prototype.num_goroutine = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RuntimeMemoryBreakdown num_cpu.
@@ -6259,7 +6277,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.RuntimeMemoryBreakdown.$Properties): renop.api.v1.RuntimeMemoryBreakdown;
                  * }}
                  */
-                RuntimeMemoryBreakdown.create = function(properties) {
+                RuntimeMemoryBreakdown.create = function (properties) {
                     return new RuntimeMemoryBreakdown(properties);
                 };
 
@@ -6342,7 +6360,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                RuntimeMemoryBreakdown.encodeDelimited = function(message, writer) {
+                RuntimeMemoryBreakdown.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -6364,7 +6382,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RuntimeMemoryBreakdown(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.RuntimeMemoryBreakdown(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -6374,7 +6393,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -6383,7 +6402,7 @@ export const renop = $root.renop = (() => {
                                     delete message.note;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6392,7 +6411,7 @@ export const renop = $root.renop = (() => {
                                     delete message.process_rss;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6401,7 +6420,7 @@ export const renop = $root.renop = (() => {
                                     delete message.process_vss;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6410,7 +6429,7 @@ export const renop = $root.renop = (() => {
                                     delete message.go_retained;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6419,7 +6438,7 @@ export const renop = $root.renop = (() => {
                                     delete message.heap_inuse;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6428,7 +6447,7 @@ export const renop = $root.renop = (() => {
                                     delete message.heap_alloc;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6437,7 +6456,7 @@ export const renop = $root.renop = (() => {
                                     delete message.heap_sys;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6446,7 +6465,7 @@ export const renop = $root.renop = (() => {
                                     delete message.heap_idle;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6455,7 +6474,7 @@ export const renop = $root.renop = (() => {
                                     delete message.heap_released;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6464,7 +6483,7 @@ export const renop = $root.renop = (() => {
                                     delete message.heap_objects;
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6473,7 +6492,7 @@ export const renop = $root.renop = (() => {
                                     delete message.stack_inuse;
                                 continue;
                             }
-                        case 12: {
+                            case 12: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6482,7 +6501,7 @@ export const renop = $root.renop = (() => {
                                     delete message.stack_sys;
                                 continue;
                             }
-                        case 13: {
+                            case 13: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6491,7 +6510,7 @@ export const renop = $root.renop = (() => {
                                     delete message.mspan_inuse;
                                 continue;
                             }
-                        case 14: {
+                            case 14: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6500,7 +6519,7 @@ export const renop = $root.renop = (() => {
                                     delete message.mspan_sys;
                                 continue;
                             }
-                        case 15: {
+                            case 15: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6509,7 +6528,7 @@ export const renop = $root.renop = (() => {
                                     delete message.mcache_inuse;
                                 continue;
                             }
-                        case 16: {
+                            case 16: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6518,7 +6537,7 @@ export const renop = $root.renop = (() => {
                                     delete message.mcache_sys;
                                 continue;
                             }
-                        case 17: {
+                            case 17: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6527,7 +6546,7 @@ export const renop = $root.renop = (() => {
                                     delete message.buck_hash_sys;
                                 continue;
                             }
-                        case 18: {
+                            case 18: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6536,7 +6555,7 @@ export const renop = $root.renop = (() => {
                                     delete message.gc_sys;
                                 continue;
                             }
-                        case 19: {
+                            case 19: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6545,7 +6564,7 @@ export const renop = $root.renop = (() => {
                                     delete message.other_sys;
                                 continue;
                             }
-                        case 20: {
+                            case 20: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6554,7 +6573,7 @@ export const renop = $root.renop = (() => {
                                     delete message.sys;
                                 continue;
                             }
-                        case 21: {
+                            case 21: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6563,7 +6582,7 @@ export const renop = $root.renop = (() => {
                                     delete message.off_heap_runtime_estimate;
                                 continue;
                             }
-                        case 22: {
+                            case 22: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -6572,7 +6591,7 @@ export const renop = $root.renop = (() => {
                                     delete message.rss_minus_go_retained;
                                 continue;
                             }
-                        case 23: {
+                            case 23: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -6581,7 +6600,7 @@ export const renop = $root.renop = (() => {
                                     delete message.num_goroutine;
                                 continue;
                             }
-                        case 24: {
+                            case 24: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -6612,7 +6631,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                RuntimeMemoryBreakdown.decodeDelimited = function(reader) {
+                RuntimeMemoryBreakdown.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -7254,7 +7273,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                RuntimeMemoryBreakdown.prototype.toJSON = function() {
+                RuntimeMemoryBreakdown.prototype.toJSON = function () {
                     return RuntimeMemoryBreakdown.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -7266,7 +7285,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                RuntimeMemoryBreakdown.getTypeUrl = function(prefix) {
+                RuntimeMemoryBreakdown.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.RuntimeMemoryBreakdown";
@@ -7275,7 +7294,7 @@ export const renop = $root.renop = (() => {
                 return RuntimeMemoryBreakdown;
             })();
 
-            v1.MirrorCredentials = (function() {
+            v1.MirrorCredentials = (function () {
 
                 /**
                  * Properties of a MirrorCredentials.
@@ -7350,7 +7369,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.MirrorCredentials.$Properties): renop.api.v1.MirrorCredentials;
                  * }}
                  */
-                MirrorCredentials.create = function(properties) {
+                MirrorCredentials.create = function (properties) {
                     return new MirrorCredentials(properties);
                 };
 
@@ -7391,7 +7410,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                MirrorCredentials.encodeDelimited = function(message, writer) {
+                MirrorCredentials.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -7413,7 +7432,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MirrorCredentials(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.MirrorCredentials(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -7423,7 +7443,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -7432,7 +7452,7 @@ export const renop = $root.renop = (() => {
                                     delete message.method;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -7441,7 +7461,7 @@ export const renop = $root.renop = (() => {
                                     delete message.login;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -7472,7 +7492,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                MirrorCredentials.decodeDelimited = function(reader) {
+                MirrorCredentials.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -7573,7 +7593,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                MirrorCredentials.prototype.toJSON = function() {
+                MirrorCredentials.prototype.toJSON = function () {
                     return MirrorCredentials.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -7585,7 +7605,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                MirrorCredentials.getTypeUrl = function(prefix) {
+                MirrorCredentials.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.MirrorCredentials";
@@ -7594,7 +7614,7 @@ export const renop = $root.renop = (() => {
                 return MirrorCredentials;
             })();
 
-            v1.MirrorProxy = (function() {
+            v1.MirrorProxy = (function () {
 
                 /**
                  * Properties of a MirrorProxy.
@@ -7669,7 +7689,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.MirrorProxy.$Properties): renop.api.v1.MirrorProxy;
                  * }}
                  */
-                MirrorProxy.create = function(properties) {
+                MirrorProxy.create = function (properties) {
                     return new MirrorProxy(properties);
                 };
 
@@ -7710,7 +7730,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                MirrorProxy.encodeDelimited = function(message, writer) {
+                MirrorProxy.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -7732,7 +7752,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MirrorProxy(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.MirrorProxy(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -7742,7 +7763,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -7751,7 +7772,7 @@ export const renop = $root.renop = (() => {
                                     delete message.url;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -7760,7 +7781,7 @@ export const renop = $root.renop = (() => {
                                     delete message.username;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -7791,7 +7812,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                MirrorProxy.decodeDelimited = function(reader) {
+                MirrorProxy.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -7892,7 +7913,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                MirrorProxy.prototype.toJSON = function() {
+                MirrorProxy.prototype.toJSON = function () {
                     return MirrorProxy.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -7904,7 +7925,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                MirrorProxy.getTypeUrl = function(prefix) {
+                MirrorProxy.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.MirrorProxy";
@@ -7913,7 +7934,7 @@ export const renop = $root.renop = (() => {
                 return MirrorProxy;
             })();
 
-            v1.OutboundProxy = (function() {
+            v1.OutboundProxy = (function () {
 
                 /**
                  * Properties of an OutboundProxy.
@@ -7997,7 +8018,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.OutboundProxy.$Properties): renop.api.v1.OutboundProxy;
                  * }}
                  */
-                OutboundProxy.create = function(properties) {
+                OutboundProxy.create = function (properties) {
                     return new OutboundProxy(properties);
                 };
 
@@ -8040,7 +8061,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                OutboundProxy.encodeDelimited = function(message, writer) {
+                OutboundProxy.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -8062,7 +8083,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.OutboundProxy(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.OutboundProxy(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -8072,7 +8094,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8081,7 +8103,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8090,7 +8112,7 @@ export const renop = $root.renop = (() => {
                                     delete message.url;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8099,7 +8121,7 @@ export const renop = $root.renop = (() => {
                                     delete message.username;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8130,7 +8152,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                OutboundProxy.decodeDelimited = function(reader) {
+                OutboundProxy.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -8240,7 +8262,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                OutboundProxy.prototype.toJSON = function() {
+                OutboundProxy.prototype.toJSON = function () {
                     return OutboundProxy.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -8252,7 +8274,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                OutboundProxy.getTypeUrl = function(prefix) {
+                OutboundProxy.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.OutboundProxy";
@@ -8261,7 +8283,7 @@ export const renop = $root.renop = (() => {
                 return OutboundProxy;
             })();
 
-            v1.ProxyConfig = (function() {
+            v1.ProxyConfig = (function () {
 
                 /**
                  * Properties of a ProxyConfig.
@@ -8328,7 +8350,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.ProxyConfig.$Properties): renop.api.v1.ProxyConfig;
                  * }}
                  */
-                ProxyConfig.create = function(properties) {
+                ProxyConfig.create = function (properties) {
                     return new ProxyConfig(properties);
                 };
 
@@ -8368,7 +8390,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                ProxyConfig.encodeDelimited = function(message, writer) {
+                ProxyConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -8390,7 +8412,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ProxyConfig(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.ProxyConfig(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -8400,7 +8423,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8409,7 +8432,7 @@ export const renop = $root.renop = (() => {
                                     delete message.selected;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.proxies && message.proxies.length))
@@ -8439,7 +8462,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                ProxyConfig.decodeDelimited = function(reader) {
+                ProxyConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -8547,7 +8570,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                ProxyConfig.prototype.toJSON = function() {
+                ProxyConfig.prototype.toJSON = function () {
                     return ProxyConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -8559,7 +8582,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                ProxyConfig.getTypeUrl = function(prefix) {
+                ProxyConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.ProxyConfig";
@@ -8568,7 +8591,7 @@ export const renop = $root.renop = (() => {
                 return ProxyConfig;
             })();
 
-            v1.Mirror = (function() {
+            v1.Mirror = (function () {
 
                 /**
                  * Properties of a Mirror.
@@ -8648,7 +8671,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.Mirror
                  * @instance
                  */
-                Mirror.prototype.cache_ttl_secs = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                Mirror.prototype.cache_ttl_secs = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * Mirror negative_cache.
@@ -8664,7 +8687,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.Mirror
                  * @instance
                  */
-                Mirror.prototype.timeout_secs = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                Mirror.prototype.timeout_secs = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * Mirror authorization.
@@ -8726,7 +8749,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.Mirror.$Properties): renop.api.v1.Mirror;
                  * }}
                  */
-                Mirror.create = function(properties) {
+                Mirror.create = function (properties) {
                     return new Mirror(properties);
                 };
 
@@ -8787,7 +8810,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                Mirror.encodeDelimited = function(message, writer) {
+                Mirror.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -8809,7 +8832,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.Mirror(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.Mirror(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -8819,7 +8843,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8828,7 +8852,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8837,7 +8861,7 @@ export const renop = $root.renop = (() => {
                                     delete message.url;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -8846,7 +8870,7 @@ export const renop = $root.renop = (() => {
                                     delete message.persist;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -8855,7 +8879,7 @@ export const renop = $root.renop = (() => {
                                     delete message.cache_ttl_secs;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -8864,7 +8888,7 @@ export const renop = $root.renop = (() => {
                                     delete message.negative_cache;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -8873,13 +8897,13 @@ export const renop = $root.renop = (() => {
                                     delete message.timeout_secs;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 2)
                                     break;
                                 message.authorization = $root.renop.api.v1.MirrorCredentials.decode(reader, reader.uint32(), $undefined, _depth + 1, message.authorization);
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8888,7 +8912,7 @@ export const renop = $root.renop = (() => {
                                     delete message.enabled_date;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.allow_artifacts && message.allow_artifacts.length))
@@ -8896,7 +8920,7 @@ export const renop = $root.renop = (() => {
                                 message.allow_artifacts.push(reader.stringVerify());
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.deny_artifacts && message.deny_artifacts.length))
@@ -8904,7 +8928,7 @@ export const renop = $root.renop = (() => {
                                 message.deny_artifacts.push(reader.stringVerify());
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8913,7 +8937,7 @@ export const renop = $root.renop = (() => {
                                     delete message.proxy;
                                 continue;
                             }
-                        case 12: {
+                            case 12: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -8944,7 +8968,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                Mirror.decodeDelimited = function(reader) {
+                Mirror.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -9186,7 +9210,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                Mirror.prototype.toJSON = function() {
+                Mirror.prototype.toJSON = function () {
                     return Mirror.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -9198,7 +9222,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                Mirror.getTypeUrl = function(prefix) {
+                Mirror.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.Mirror";
@@ -9207,7 +9231,7 @@ export const renop = $root.renop = (() => {
                 return Mirror;
             })();
 
-            v1.S3Config = (function() {
+            v1.S3Config = (function () {
 
                 /**
                  * Properties of a S3Config.
@@ -9336,7 +9360,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.S3Config.$Properties): renop.api.v1.S3Config;
                  * }}
                  */
-                S3Config.create = function(properties) {
+                S3Config.create = function (properties) {
                     return new S3Config(properties);
                 };
 
@@ -9389,7 +9413,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                S3Config.encodeDelimited = function(message, writer) {
+                S3Config.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -9411,7 +9435,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.S3Config(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.S3Config(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -9421,7 +9446,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -9430,7 +9455,7 @@ export const renop = $root.renop = (() => {
                                     delete message.enabled;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9439,7 +9464,7 @@ export const renop = $root.renop = (() => {
                                     delete message.endpoint;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9448,7 +9473,7 @@ export const renop = $root.renop = (() => {
                                     delete message.bucket;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9457,7 +9482,7 @@ export const renop = $root.renop = (() => {
                                     delete message.region;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9466,7 +9491,7 @@ export const renop = $root.renop = (() => {
                                     delete message.access_key_id;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9475,7 +9500,7 @@ export const renop = $root.renop = (() => {
                                     delete message.secret_access_key;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -9484,7 +9509,7 @@ export const renop = $root.renop = (() => {
                                     delete message.force_path_style;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -9493,7 +9518,7 @@ export const renop = $root.renop = (() => {
                                     delete message.redirect_downloads;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9524,7 +9549,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                S3Config.decodeDelimited = function(reader) {
+                S3Config.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -9679,7 +9704,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                S3Config.prototype.toJSON = function() {
+                S3Config.prototype.toJSON = function () {
                     return S3Config.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -9691,7 +9716,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                S3Config.getTypeUrl = function(prefix) {
+                S3Config.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.S3Config";
@@ -9700,7 +9725,7 @@ export const renop = $root.renop = (() => {
                 return S3Config;
             })();
 
-            v1.Repository = (function() {
+            v1.Repository = (function () {
 
                 /**
                  * Properties of a Repository.
@@ -9812,7 +9837,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.Repository.$Properties): renop.api.v1.Repository;
                  * }}
                  */
-                Repository.create = function(properties) {
+                Repository.create = function (properties) {
                     return new Repository(properties);
                 };
 
@@ -9862,7 +9887,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                Repository.encodeDelimited = function(message, writer) {
+                Repository.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -9884,7 +9909,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.Repository(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.Repository(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -9894,7 +9920,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9903,7 +9929,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9912,7 +9938,7 @@ export const renop = $root.renop = (() => {
                                     delete message.visibility;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.mirrors && message.mirrors.length))
@@ -9920,7 +9946,7 @@ export const renop = $root.renop = (() => {
                                 message.mirrors.push($root.renop.api.v1.Mirror.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -9929,13 +9955,13 @@ export const renop = $root.renop = (() => {
                                     delete message.allow_redeployment;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 message.s3 = $root.renop.api.v1.S3Config.decode(reader, reader.uint32(), $undefined, _depth + 1, message.s3);
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -9944,7 +9970,7 @@ export const renop = $root.renop = (() => {
                                     delete message.require_gpg_signature;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -9975,7 +10001,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                Repository.decodeDelimited = function(reader) {
+                Repository.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -10133,7 +10159,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                Repository.prototype.toJSON = function() {
+                Repository.prototype.toJSON = function () {
                     return Repository.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -10145,7 +10171,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                Repository.getTypeUrl = function(prefix) {
+                Repository.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.Repository";
@@ -10154,7 +10180,7 @@ export const renop = $root.renop = (() => {
                 return Repository;
             })();
 
-            v1.MavenRepositoriesResponse = (function() {
+            v1.MavenRepositoriesResponse = (function () {
 
                 /**
                  * Properties of a MavenRepositoriesResponse.
@@ -10212,7 +10238,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.MavenRepositoriesResponse.$Properties): renop.api.v1.MavenRepositoriesResponse;
                  * }}
                  */
-                MavenRepositoriesResponse.create = function(properties) {
+                MavenRepositoriesResponse.create = function (properties) {
                     return new MavenRepositoriesResponse(properties);
                 };
 
@@ -10252,7 +10278,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                MavenRepositoriesResponse.encodeDelimited = function(message, writer) {
+                MavenRepositoriesResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -10274,7 +10300,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MavenRepositoriesResponse(), key, value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.MavenRepositoriesResponse(), key, value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -10284,7 +10311,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (message.repositories === $util.emptyObject)
@@ -10296,16 +10323,16 @@ export const renop = $root.renop = (() => {
                                     let tag2 = reader.tag();
                                     wireType = tag2 & 7;
                                     switch (tag2 >>>= 3) {
-                                    case 1:
-                                        if (wireType !== 2)
-                                            break;
-                                        key = reader.stringVerify();
-                                        continue;
-                                    case 2:
-                                        if (wireType !== 2)
-                                            break;
-                                        value = $root.renop.api.v1.Repository.decode(reader, reader.uint32(), $undefined, _depth + 1, value);
-                                        continue;
+                                        case 1:
+                                            if (wireType !== 2)
+                                                break;
+                                            key = reader.stringVerify();
+                                            continue;
+                                        case 2:
+                                            if (wireType !== 2)
+                                                break;
+                                            value = $root.renop.api.v1.Repository.decode(reader, reader.uint32(), $undefined, _depth + 1, value);
+                                            continue;
                                     }
                                     reader.skipType(wireType, _depth, tag2);
                                 }
@@ -10336,7 +10363,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                MavenRepositoriesResponse.decodeDelimited = function(reader) {
+                MavenRepositoriesResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -10441,7 +10468,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                MavenRepositoriesResponse.prototype.toJSON = function() {
+                MavenRepositoriesResponse.prototype.toJSON = function () {
                     return MavenRepositoriesResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -10453,7 +10480,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                MavenRepositoriesResponse.getTypeUrl = function(prefix) {
+                MavenRepositoriesResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.MavenRepositoriesResponse";
@@ -10462,7 +10489,7 @@ export const renop = $root.renop = (() => {
                 return MavenRepositoriesResponse;
             })();
 
-            v1.FileDetails = (function() {
+            v1.FileDetails = (function () {
 
                 /**
                  * Properties of a FileDetails.
@@ -10604,7 +10631,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.FileDetails.$Properties): renop.api.v1.FileDetails;
                  * }}
                  */
-                FileDetails.create = function(properties) {
+                FileDetails.create = function (properties) {
                     return new FileDetails(properties);
                 };
 
@@ -10656,7 +10683,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                FileDetails.encodeDelimited = function(message, writer) {
+                FileDetails.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -10678,7 +10705,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FileDetails(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.FileDetails(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -10688,7 +10716,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -10697,7 +10725,7 @@ export const renop = $root.renop = (() => {
                                     delete message.type;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -10706,28 +10734,28 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 message.content_length = reader.int64();
                                 message._content_length = "content_length";
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 message.content_type = reader.stringVerify();
                                 message._content_type = "content_type";
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 message.last_modified_time = reader.stringVerify();
                                 message._last_modified_time = "last_modified_time";
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.files && message.files.length))
@@ -10735,7 +10763,7 @@ export const renop = $root.renop = (() => {
                                 message.files.push($root.renop.api.v1.FileDetails.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -10744,7 +10772,7 @@ export const renop = $root.renop = (() => {
                                     delete message.signed;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -10775,7 +10803,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                FileDetails.decodeDelimited = function(reader) {
+                FileDetails.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -10951,7 +10979,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                FileDetails.prototype.toJSON = function() {
+                FileDetails.prototype.toJSON = function () {
                     return FileDetails.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -10963,7 +10991,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                FileDetails.getTypeUrl = function(prefix) {
+                FileDetails.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.FileDetails";
@@ -10972,7 +11000,7 @@ export const renop = $root.renop = (() => {
                 return FileDetails;
             })();
 
-            v1.RepoMirrorInfo = (function() {
+            v1.RepoMirrorInfo = (function () {
 
                 /**
                  * Properties of a RepoMirrorInfo.
@@ -11052,7 +11080,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepoMirrorInfo
                  * @instance
                  */
-                RepoMirrorInfo.prototype.cache_ttl = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+                RepoMirrorInfo.prototype.cache_ttl = $util.Long ? $util.Long.fromBits(0, 0, true) : 0;
 
                 /**
                  * RepoMirrorInfo negative_cache.
@@ -11074,7 +11102,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.RepoMirrorInfo.$Properties): renop.api.v1.RepoMirrorInfo;
                  * }}
                  */
-                RepoMirrorInfo.create = function(properties) {
+                RepoMirrorInfo.create = function (properties) {
                     return new RepoMirrorInfo(properties);
                 };
 
@@ -11121,7 +11149,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                RepoMirrorInfo.encodeDelimited = function(message, writer) {
+                RepoMirrorInfo.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -11143,7 +11171,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepoMirrorInfo(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.RepoMirrorInfo(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -11153,7 +11182,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -11162,7 +11191,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -11171,7 +11200,7 @@ export const renop = $root.renop = (() => {
                                     delete message.url;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -11180,7 +11209,7 @@ export const renop = $root.renop = (() => {
                                     delete message.persist;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -11189,7 +11218,7 @@ export const renop = $root.renop = (() => {
                                     delete message.enabled_date;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.uint64()) === "object" ? value.low || value.high : value !== 0)
@@ -11198,7 +11227,7 @@ export const renop = $root.renop = (() => {
                                     delete message.cache_ttl;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -11229,7 +11258,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                RepoMirrorInfo.decodeDelimited = function(reader) {
+                RepoMirrorInfo.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -11373,7 +11402,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                RepoMirrorInfo.prototype.toJSON = function() {
+                RepoMirrorInfo.prototype.toJSON = function () {
                     return RepoMirrorInfo.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -11385,7 +11414,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                RepoMirrorInfo.getTypeUrl = function(prefix) {
+                RepoMirrorInfo.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.RepoMirrorInfo";
@@ -11394,7 +11423,7 @@ export const renop = $root.renop = (() => {
                 return RepoMirrorInfo;
             })();
 
-            v1.RepoDetailsResponse = (function() {
+            v1.RepoDetailsResponse = (function () {
 
                 /**
                  * Properties of a RepoDetailsResponse.
@@ -11464,7 +11493,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepoDetailsResponse
                  * @instance
                  */
-                RepoDetailsResponse.prototype.total_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepoDetailsResponse.prototype.total_size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RepoDetailsResponse artifact_size.
@@ -11472,7 +11501,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepoDetailsResponse
                  * @instance
                  */
-                RepoDetailsResponse.prototype.artifact_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepoDetailsResponse.prototype.artifact_size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RepoDetailsResponse metadata_size.
@@ -11480,7 +11509,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepoDetailsResponse
                  * @instance
                  */
-                RepoDetailsResponse.prototype.metadata_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepoDetailsResponse.prototype.metadata_size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RepoDetailsResponse total_files.
@@ -11488,7 +11517,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepoDetailsResponse
                  * @instance
                  */
-                RepoDetailsResponse.prototype.total_files = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepoDetailsResponse.prototype.total_files = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RepoDetailsResponse artifact_count.
@@ -11496,7 +11525,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepoDetailsResponse
                  * @instance
                  */
-                RepoDetailsResponse.prototype.artifact_count = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepoDetailsResponse.prototype.artifact_count = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RepoDetailsResponse metadata_count.
@@ -11504,7 +11533,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepoDetailsResponse
                  * @instance
                  */
-                RepoDetailsResponse.prototype.metadata_count = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepoDetailsResponse.prototype.metadata_count = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RepoDetailsResponse mirrors.
@@ -11542,7 +11571,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.RepoDetailsResponse.$Properties): renop.api.v1.RepoDetailsResponse;
                  * }}
                  */
-                RepoDetailsResponse.create = function(properties) {
+                RepoDetailsResponse.create = function (properties) {
                     return new RepoDetailsResponse(properties);
                 };
 
@@ -11600,7 +11629,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                RepoDetailsResponse.encodeDelimited = function(message, writer) {
+                RepoDetailsResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -11622,7 +11651,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepoDetailsResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.RepoDetailsResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -11632,7 +11662,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -11641,7 +11671,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -11650,7 +11680,7 @@ export const renop = $root.renop = (() => {
                                     delete message.visibility;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -11659,7 +11689,7 @@ export const renop = $root.renop = (() => {
                                     delete message.total_size;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -11668,7 +11698,7 @@ export const renop = $root.renop = (() => {
                                     delete message.artifact_size;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -11677,7 +11707,7 @@ export const renop = $root.renop = (() => {
                                     delete message.metadata_size;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -11686,7 +11716,7 @@ export const renop = $root.renop = (() => {
                                     delete message.total_files;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -11695,7 +11725,7 @@ export const renop = $root.renop = (() => {
                                     delete message.artifact_count;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -11704,7 +11734,7 @@ export const renop = $root.renop = (() => {
                                     delete message.metadata_count;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.mirrors && message.mirrors.length))
@@ -11712,7 +11742,7 @@ export const renop = $root.renop = (() => {
                                 message.mirrors.push($root.renop.api.v1.RepoMirrorInfo.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -11721,7 +11751,7 @@ export const renop = $root.renop = (() => {
                                     delete message.require_gpg_signature;
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -11752,7 +11782,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                RepoDetailsResponse.decodeDelimited = function(reader) {
+                RepoDetailsResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -12038,7 +12068,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                RepoDetailsResponse.prototype.toJSON = function() {
+                RepoDetailsResponse.prototype.toJSON = function () {
                     return RepoDetailsResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -12050,7 +12080,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                RepoDetailsResponse.getTypeUrl = function(prefix) {
+                RepoDetailsResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.RepoDetailsResponse";
@@ -12059,7 +12089,7 @@ export const renop = $root.renop = (() => {
                 return RepoDetailsResponse;
             })();
 
-            v1.RebuildIndexRequest = (function() {
+            v1.RebuildIndexRequest = (function () {
 
                 /**
                  * Properties of a RebuildIndexRequest.
@@ -12116,7 +12146,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.RebuildIndexRequest.$Properties): renop.api.v1.RebuildIndexRequest;
                  * }}
                  */
-                RebuildIndexRequest.create = function(properties) {
+                RebuildIndexRequest.create = function (properties) {
                     return new RebuildIndexRequest(properties);
                 };
 
@@ -12153,7 +12183,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                RebuildIndexRequest.encodeDelimited = function(message, writer) {
+                RebuildIndexRequest.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -12175,7 +12205,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RebuildIndexRequest(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.RebuildIndexRequest(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -12185,7 +12216,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12216,7 +12247,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                RebuildIndexRequest.decodeDelimited = function(reader) {
+                RebuildIndexRequest.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -12298,7 +12329,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                RebuildIndexRequest.prototype.toJSON = function() {
+                RebuildIndexRequest.prototype.toJSON = function () {
                     return RebuildIndexRequest.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -12310,7 +12341,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                RebuildIndexRequest.getTypeUrl = function(prefix) {
+                RebuildIndexRequest.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.RebuildIndexRequest";
@@ -12319,7 +12350,7 @@ export const renop = $root.renop = (() => {
                 return RebuildIndexRequest;
             })();
 
-            v1.SettingsDomainsResponse = (function() {
+            v1.SettingsDomainsResponse = (function () {
 
                 /**
                  * Properties of a SettingsDomainsResponse.
@@ -12377,7 +12408,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.SettingsDomainsResponse.$Properties): renop.api.v1.SettingsDomainsResponse;
                  * }}
                  */
-                SettingsDomainsResponse.create = function(properties) {
+                SettingsDomainsResponse.create = function (properties) {
                     return new SettingsDomainsResponse(properties);
                 };
 
@@ -12415,7 +12446,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                SettingsDomainsResponse.encodeDelimited = function(message, writer) {
+                SettingsDomainsResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -12437,7 +12468,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SettingsDomainsResponse();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.SettingsDomainsResponse();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -12447,7 +12479,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.domains && message.domains.length))
@@ -12477,7 +12509,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                SettingsDomainsResponse.decodeDelimited = function(reader) {
+                SettingsDomainsResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -12570,7 +12602,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                SettingsDomainsResponse.prototype.toJSON = function() {
+                SettingsDomainsResponse.prototype.toJSON = function () {
                     return SettingsDomainsResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -12582,7 +12614,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                SettingsDomainsResponse.getTypeUrl = function(prefix) {
+                SettingsDomainsResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.SettingsDomainsResponse";
@@ -12591,7 +12623,7 @@ export const renop = $root.renop = (() => {
                 return SettingsDomainsResponse;
             })();
 
-            v1.FrontendConfig = (function() {
+            v1.FrontendConfig = (function () {
 
                 /**
                  * Properties of a FrontendConfig.
@@ -12738,7 +12770,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.FrontendConfig.$Properties): renop.api.v1.FrontendConfig;
                  * }}
                  */
-                FrontendConfig.create = function(properties) {
+                FrontendConfig.create = function (properties) {
                     return new FrontendConfig(properties);
                 };
 
@@ -12795,7 +12827,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                FrontendConfig.encodeDelimited = function(message, writer) {
+                FrontendConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -12817,7 +12849,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FrontendConfig(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.FrontendConfig(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -12827,7 +12860,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12836,7 +12869,7 @@ export const renop = $root.renop = (() => {
                                     delete message.id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12845,7 +12878,7 @@ export const renop = $root.renop = (() => {
                                     delete message.title;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12854,7 +12887,7 @@ export const renop = $root.renop = (() => {
                                     delete message.description;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12863,7 +12896,7 @@ export const renop = $root.renop = (() => {
                                     delete message.organization_website;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12872,7 +12905,7 @@ export const renop = $root.renop = (() => {
                                     delete message.organization_logo;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12881,7 +12914,7 @@ export const renop = $root.renop = (() => {
                                     delete message.background_url;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12890,7 +12923,7 @@ export const renop = $root.renop = (() => {
                                     delete message.icp_license;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12899,7 +12932,7 @@ export const renop = $root.renop = (() => {
                                     delete message.legal_notice_url;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12908,7 +12941,7 @@ export const renop = $root.renop = (() => {
                                     delete message.public_security_filing;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12917,7 +12950,7 @@ export const renop = $root.renop = (() => {
                                     delete message.font_preset;
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -12948,7 +12981,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                FrontendConfig.decodeDelimited = function(reader) {
+                FrontendConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -13121,7 +13154,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                FrontendConfig.prototype.toJSON = function() {
+                FrontendConfig.prototype.toJSON = function () {
                     return FrontendConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -13133,7 +13166,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                FrontendConfig.getTypeUrl = function(prefix) {
+                FrontendConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.FrontendConfig";
@@ -13142,7 +13175,7 @@ export const renop = $root.renop = (() => {
                 return FrontendConfig;
             })();
 
-            v1.AuditLogConfig = (function() {
+            v1.AuditLogConfig = (function () {
 
                 /**
                  * Properties of an AuditLogConfig.
@@ -13208,7 +13241,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.AuditLogConfig.$Properties): renop.api.v1.AuditLogConfig;
                  * }}
                  */
-                AuditLogConfig.create = function(properties) {
+                AuditLogConfig.create = function (properties) {
                     return new AuditLogConfig(properties);
                 };
 
@@ -13247,7 +13280,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                AuditLogConfig.encodeDelimited = function(message, writer) {
+                AuditLogConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -13269,7 +13302,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AuditLogConfig(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.AuditLogConfig(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -13279,7 +13313,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -13288,7 +13322,7 @@ export const renop = $root.renop = (() => {
                                     delete message.retention_days;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -13319,7 +13353,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                AuditLogConfig.decodeDelimited = function(reader) {
+                AuditLogConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -13411,7 +13445,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                AuditLogConfig.prototype.toJSON = function() {
+                AuditLogConfig.prototype.toJSON = function () {
                     return AuditLogConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -13423,7 +13457,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                AuditLogConfig.getTypeUrl = function(prefix) {
+                AuditLogConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.AuditLogConfig";
@@ -13432,7 +13466,7 @@ export const renop = $root.renop = (() => {
                 return AuditLogConfig;
             })();
 
-            v1.ServerConfig = (function() {
+            v1.ServerConfig = (function () {
 
                 /**
                  * Properties of a ServerConfig.
@@ -13627,7 +13661,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.ServerConfig.$Properties): renop.api.v1.ServerConfig;
                  * }}
                  */
-                ServerConfig.create = function(properties) {
+                ServerConfig.create = function (properties) {
                     return new ServerConfig(properties);
                 };
 
@@ -13697,7 +13731,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                ServerConfig.encodeDelimited = function(message, writer) {
+                ServerConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -13719,7 +13753,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ServerConfig(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.ServerConfig(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -13729,7 +13764,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -13738,7 +13773,7 @@ export const renop = $root.renop = (() => {
                                     delete message.host;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.uint32())
@@ -13747,7 +13782,7 @@ export const renop = $root.renop = (() => {
                                     delete message.port;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -13756,7 +13791,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ssl_enabled;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -13765,7 +13800,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ssl_cert_path;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -13774,7 +13809,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ssl_key_path;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.domains && message.domains.length))
@@ -13782,7 +13817,7 @@ export const renop = $root.renop = (() => {
                                 message.domains.push(reader.stringVerify());
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -13791,7 +13826,7 @@ export const renop = $root.renop = (() => {
                                     delete message.enable_compression;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.uint32())
@@ -13800,7 +13835,7 @@ export const renop = $root.renop = (() => {
                                     delete message.file_cache_size_mb;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.uint32())
@@ -13809,7 +13844,7 @@ export const renop = $root.renop = (() => {
                                     delete message.max_active_requests;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.trusted_proxies && message.trusted_proxies.length))
@@ -13817,7 +13852,7 @@ export const renop = $root.renop = (() => {
                                 message.trusted_proxies.push(reader.stringVerify());
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -13826,7 +13861,7 @@ export const renop = $root.renop = (() => {
                                     delete message.cdn_ip_header;
                                 continue;
                             }
-                        case 12: {
+                            case 12: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.cors_origins && message.cors_origins.length))
@@ -13834,7 +13869,7 @@ export const renop = $root.renop = (() => {
                                 message.cors_origins.push(reader.stringVerify());
                                 continue;
                             }
-                        case 13: {
+                            case 13: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -13843,19 +13878,19 @@ export const renop = $root.renop = (() => {
                                     delete message.debug_mode;
                                 continue;
                             }
-                        case 14: {
+                            case 14: {
                                 if (wireType !== 2)
                                     break;
                                 message.database = $root.renop.api.v1.DatabaseConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.database);
                                 continue;
                             }
-                        case 15: {
+                            case 15: {
                                 if (wireType !== 2)
                                     break;
                                 message.audit_log = $root.renop.api.v1.AuditLogConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.audit_log);
                                 continue;
                             }
-                        case 16: {
+                            case 16: {
                                 if (wireType !== 2)
                                     break;
                                 message.gpg = $root.renop.api.v1.GpgConfig.decode(reader, reader.uint32(), $undefined, _depth + 1, message.gpg);
@@ -13883,7 +13918,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                ServerConfig.decodeDelimited = function(reader) {
+                ServerConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -14148,7 +14183,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                ServerConfig.prototype.toJSON = function() {
+                ServerConfig.prototype.toJSON = function () {
                     return ServerConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -14160,7 +14195,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                ServerConfig.getTypeUrl = function(prefix) {
+                ServerConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.ServerConfig";
@@ -14169,7 +14204,7 @@ export const renop = $root.renop = (() => {
                 return ServerConfig;
             })();
 
-            v1.StorageConfig = (function() {
+            v1.StorageConfig = (function () {
 
                 /**
                  * Properties of a StorageConfig.
@@ -14242,7 +14277,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.StorageConfig
                  * @instance
                  */
-                StorageConfig.prototype.max_javadoc_size_mb = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                StorageConfig.prototype.max_javadoc_size_mb = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * StorageConfig enable_cargodoc_preview.
@@ -14266,7 +14301,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.StorageConfig
                  * @instance
                  */
-                StorageConfig.prototype.max_cargodoc_size_mb = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                StorageConfig.prototype.max_cargodoc_size_mb = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new StorageConfig instance using the specified properties.
@@ -14280,7 +14315,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.StorageConfig.$Properties): renop.api.v1.StorageConfig;
                  * }}
                  */
-                StorageConfig.create = function(properties) {
+                StorageConfig.create = function (properties) {
                     return new StorageConfig(properties);
                 };
 
@@ -14329,7 +14364,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                StorageConfig.encodeDelimited = function(message, writer) {
+                StorageConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -14351,7 +14386,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.StorageConfig(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.StorageConfig(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -14361,7 +14397,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -14370,7 +14406,7 @@ export const renop = $root.renop = (() => {
                                     delete message.storage_path;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -14379,7 +14415,7 @@ export const renop = $root.renop = (() => {
                                     delete message.enable_javadoc_preview;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -14388,7 +14424,7 @@ export const renop = $root.renop = (() => {
                                     delete message.javadoc_extract_path;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -14397,7 +14433,7 @@ export const renop = $root.renop = (() => {
                                     delete message.max_javadoc_size_mb;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -14406,7 +14442,7 @@ export const renop = $root.renop = (() => {
                                     delete message.enable_cargodoc_preview;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -14415,7 +14451,7 @@ export const renop = $root.renop = (() => {
                                     delete message.cargodoc_extract_path;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -14446,7 +14482,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                StorageConfig.decodeDelimited = function(reader) {
+                StorageConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -14615,7 +14651,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                StorageConfig.prototype.toJSON = function() {
+                StorageConfig.prototype.toJSON = function () {
                     return StorageConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -14627,7 +14663,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                StorageConfig.getTypeUrl = function(prefix) {
+                StorageConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.StorageConfig";
@@ -14636,7 +14672,7 @@ export const renop = $root.renop = (() => {
                 return StorageConfig;
             })();
 
-            v1.UpdaterConfig = (function() {
+            v1.UpdaterConfig = (function () {
 
                 /**
                  * Properties of an UpdaterConfig.
@@ -14702,7 +14738,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.UpdaterConfig.$Properties): renop.api.v1.UpdaterConfig;
                  * }}
                  */
-                UpdaterConfig.create = function(properties) {
+                UpdaterConfig.create = function (properties) {
                     return new UpdaterConfig(properties);
                 };
 
@@ -14741,7 +14777,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                UpdaterConfig.encodeDelimited = function(message, writer) {
+                UpdaterConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -14763,7 +14799,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UpdaterConfig(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.UpdaterConfig(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -14773,7 +14810,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -14782,7 +14819,7 @@ export const renop = $root.renop = (() => {
                                     delete message.channel;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -14813,7 +14850,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                UpdaterConfig.decodeDelimited = function(reader) {
+                UpdaterConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -14905,7 +14942,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                UpdaterConfig.prototype.toJSON = function() {
+                UpdaterConfig.prototype.toJSON = function () {
                     return UpdaterConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -14917,7 +14954,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                UpdaterConfig.getTypeUrl = function(prefix) {
+                UpdaterConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.UpdaterConfig";
@@ -14926,7 +14963,7 @@ export const renop = $root.renop = (() => {
                 return UpdaterConfig;
             })();
 
-            v1.DatabaseConfig = (function() {
+            v1.DatabaseConfig = (function () {
 
                 /**
                  * Properties of a DatabaseConfig.
@@ -15028,7 +15065,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.DatabaseConfig.$Properties): renop.api.v1.DatabaseConfig;
                  * }}
                  */
-                DatabaseConfig.create = function(properties) {
+                DatabaseConfig.create = function (properties) {
                     return new DatabaseConfig(properties);
                 };
 
@@ -15075,7 +15112,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                DatabaseConfig.encodeDelimited = function(message, writer) {
+                DatabaseConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -15097,7 +15134,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.DatabaseConfig(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.DatabaseConfig(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -15107,7 +15145,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -15116,7 +15154,7 @@ export const renop = $root.renop = (() => {
                                     delete message.enabled;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -15125,7 +15163,7 @@ export const renop = $root.renop = (() => {
                                     delete message.driver;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -15134,7 +15172,7 @@ export const renop = $root.renop = (() => {
                                     delete message.dsn;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -15143,7 +15181,7 @@ export const renop = $root.renop = (() => {
                                     delete message.max_open_conns;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -15152,7 +15190,7 @@ export const renop = $root.renop = (() => {
                                     delete message.max_idle_conns;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -15183,7 +15221,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                DatabaseConfig.decodeDelimited = function(reader) {
+                DatabaseConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -15311,7 +15349,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                DatabaseConfig.prototype.toJSON = function() {
+                DatabaseConfig.prototype.toJSON = function () {
                     return DatabaseConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -15323,7 +15361,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                DatabaseConfig.getTypeUrl = function(prefix) {
+                DatabaseConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.DatabaseConfig";
@@ -15332,7 +15370,7 @@ export const renop = $root.renop = (() => {
                 return DatabaseConfig;
             })();
 
-            v1.IndexDomainSettings = (function() {
+            v1.IndexDomainSettings = (function () {
 
                 /**
                  * Properties of an IndexDomainSettings.
@@ -15380,7 +15418,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.IndexDomainSettings.$Properties): renop.api.v1.IndexDomainSettings;
                  * }}
                  */
-                IndexDomainSettings.create = function(properties) {
+                IndexDomainSettings.create = function (properties) {
                     return new IndexDomainSettings(properties);
                 };
 
@@ -15415,7 +15453,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                IndexDomainSettings.encodeDelimited = function(message, writer) {
+                IndexDomainSettings.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -15437,7 +15475,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.IndexDomainSettings();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.IndexDomainSettings();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -15466,7 +15505,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                IndexDomainSettings.decodeDelimited = function(reader) {
+                IndexDomainSettings.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -15530,7 +15569,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                IndexDomainSettings.prototype.toJSON = function() {
+                IndexDomainSettings.prototype.toJSON = function () {
                     return IndexDomainSettings.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -15542,7 +15581,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                IndexDomainSettings.getTypeUrl = function(prefix) {
+                IndexDomainSettings.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.IndexDomainSettings";
@@ -15551,7 +15590,7 @@ export const renop = $root.renop = (() => {
                 return IndexDomainSettings;
             })();
 
-            v1.GpgConfig = (function() {
+            v1.GpgConfig = (function () {
 
                 /**
                  * Properties of a GpgConfig.
@@ -15609,7 +15648,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GpgConfig.$Properties): renop.api.v1.GpgConfig;
                  * }}
                  */
-                GpgConfig.create = function(properties) {
+                GpgConfig.create = function (properties) {
                     return new GpgConfig(properties);
                 };
 
@@ -15647,7 +15686,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GpgConfig.encodeDelimited = function(message, writer) {
+                GpgConfig.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -15669,7 +15708,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgConfig();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GpgConfig();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -15679,7 +15719,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.key_servers && message.key_servers.length))
@@ -15709,7 +15749,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GpgConfig.decodeDelimited = function(reader) {
+                GpgConfig.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -15802,7 +15842,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GpgConfig.prototype.toJSON = function() {
+                GpgConfig.prototype.toJSON = function () {
                     return GpgConfig.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -15814,7 +15854,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GpgConfig.getTypeUrl = function(prefix) {
+                GpgConfig.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GpgConfig";
@@ -15823,7 +15863,7 @@ export const renop = $root.renop = (() => {
                 return GpgConfig;
             })();
 
-            v1.ChunkedUploadInitRequest = (function() {
+            v1.ChunkedUploadInitRequest = (function () {
 
                 /**
                  * Properties of a ChunkedUploadInitRequest.
@@ -15888,7 +15928,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.ChunkedUploadInitRequest
                  * @instance
                  */
-                ChunkedUploadInitRequest.prototype.size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                ChunkedUploadInitRequest.prototype.size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * ChunkedUploadInitRequest path.
@@ -15912,7 +15952,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.ChunkedUploadInitRequest
                  * @instance
                  */
-                ChunkedUploadInitRequest.prototype.chunk_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                ChunkedUploadInitRequest.prototype.chunk_size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * ChunkedUploadInitRequest gpg_signature_expected.
@@ -15934,7 +15974,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.ChunkedUploadInitRequest.$Properties): renop.api.v1.ChunkedUploadInitRequest;
                  * }}
                  */
-                ChunkedUploadInitRequest.create = function(properties) {
+                ChunkedUploadInitRequest.create = function (properties) {
                     return new ChunkedUploadInitRequest(properties);
                 };
 
@@ -15983,7 +16023,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                ChunkedUploadInitRequest.encodeDelimited = function(message, writer) {
+                ChunkedUploadInitRequest.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -16005,7 +16045,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ChunkedUploadInitRequest(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.ChunkedUploadInitRequest(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -16015,7 +16056,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16024,7 +16065,7 @@ export const renop = $root.renop = (() => {
                                     delete message.purpose;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16033,7 +16074,7 @@ export const renop = $root.renop = (() => {
                                     delete message.filename;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -16042,7 +16083,7 @@ export const renop = $root.renop = (() => {
                                     delete message.size;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16051,7 +16092,7 @@ export const renop = $root.renop = (() => {
                                     delete message.path;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -16060,7 +16101,7 @@ export const renop = $root.renop = (() => {
                                     delete message.generate_checksums;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -16069,7 +16110,7 @@ export const renop = $root.renop = (() => {
                                     delete message.chunk_size;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -16100,7 +16141,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                ChunkedUploadInitRequest.decodeDelimited = function(reader) {
+                ChunkedUploadInitRequest.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -16269,7 +16310,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                ChunkedUploadInitRequest.prototype.toJSON = function() {
+                ChunkedUploadInitRequest.prototype.toJSON = function () {
                     return ChunkedUploadInitRequest.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -16281,7 +16322,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                ChunkedUploadInitRequest.getTypeUrl = function(prefix) {
+                ChunkedUploadInitRequest.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.ChunkedUploadInitRequest";
@@ -16290,7 +16331,7 @@ export const renop = $root.renop = (() => {
                 return ChunkedUploadInitRequest;
             })();
 
-            v1.ChunkedUploadInitResponse = (function() {
+            v1.ChunkedUploadInitResponse = (function () {
 
                 /**
                  * Properties of a ChunkedUploadInitResponse.
@@ -16344,7 +16385,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.ChunkedUploadInitResponse
                  * @instance
                  */
-                ChunkedUploadInitResponse.prototype.chunk_size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                ChunkedUploadInitResponse.prototype.chunk_size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * ChunkedUploadInitResponse chunk_count.
@@ -16374,7 +16415,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.ChunkedUploadInitResponse.$Properties): renop.api.v1.ChunkedUploadInitResponse;
                  * }}
                  */
-                ChunkedUploadInitResponse.create = function(properties) {
+                ChunkedUploadInitResponse.create = function (properties) {
                     return new ChunkedUploadInitResponse(properties);
                 };
 
@@ -16417,7 +16458,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                ChunkedUploadInitResponse.encodeDelimited = function(message, writer) {
+                ChunkedUploadInitResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -16439,7 +16480,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ChunkedUploadInitResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.ChunkedUploadInitResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -16449,7 +16491,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16458,7 +16500,7 @@ export const renop = $root.renop = (() => {
                                     delete message.upload_id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -16467,7 +16509,7 @@ export const renop = $root.renop = (() => {
                                     delete message.chunk_size;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -16476,7 +16518,7 @@ export const renop = $root.renop = (() => {
                                     delete message.chunk_count;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16507,7 +16549,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                ChunkedUploadInitResponse.decodeDelimited = function(reader) {
+                ChunkedUploadInitResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -16633,7 +16675,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                ChunkedUploadInitResponse.prototype.toJSON = function() {
+                ChunkedUploadInitResponse.prototype.toJSON = function () {
                     return ChunkedUploadInitResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -16645,7 +16687,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                ChunkedUploadInitResponse.getTypeUrl = function(prefix) {
+                ChunkedUploadInitResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.ChunkedUploadInitResponse";
@@ -16654,7 +16696,7 @@ export const renop = $root.renop = (() => {
                 return ChunkedUploadInitResponse;
             })();
 
-            v1.ChunkedUploadCompleteResponse = (function() {
+            v1.ChunkedUploadCompleteResponse = (function () {
 
                 /**
                  * Properties of a ChunkedUploadCompleteResponse.
@@ -16738,7 +16780,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.ChunkedUploadCompleteResponse.$Properties): renop.api.v1.ChunkedUploadCompleteResponse;
                  * }}
                  */
-                ChunkedUploadCompleteResponse.create = function(properties) {
+                ChunkedUploadCompleteResponse.create = function (properties) {
                     return new ChunkedUploadCompleteResponse(properties);
                 };
 
@@ -16781,7 +16823,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                ChunkedUploadCompleteResponse.encodeDelimited = function(message, writer) {
+                ChunkedUploadCompleteResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -16803,7 +16845,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ChunkedUploadCompleteResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.ChunkedUploadCompleteResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -16813,7 +16856,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16822,7 +16865,7 @@ export const renop = $root.renop = (() => {
                                     delete message.status;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16831,7 +16874,7 @@ export const renop = $root.renop = (() => {
                                     delete message.message;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16840,7 +16883,7 @@ export const renop = $root.renop = (() => {
                                     delete message.path;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -16871,7 +16914,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                ChunkedUploadCompleteResponse.decodeDelimited = function(reader) {
+                ChunkedUploadCompleteResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -16981,7 +17024,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                ChunkedUploadCompleteResponse.prototype.toJSON = function() {
+                ChunkedUploadCompleteResponse.prototype.toJSON = function () {
                     return ChunkedUploadCompleteResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -16993,7 +17036,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                ChunkedUploadCompleteResponse.getTypeUrl = function(prefix) {
+                ChunkedUploadCompleteResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.ChunkedUploadCompleteResponse";
@@ -17002,7 +17045,7 @@ export const renop = $root.renop = (() => {
                 return ChunkedUploadCompleteResponse;
             })();
 
-            v1.ErrorMessage = (function() {
+            v1.ErrorMessage = (function () {
 
                 /**
                  * Properties of an ErrorMessage.
@@ -17059,7 +17102,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.ErrorMessage.$Properties): renop.api.v1.ErrorMessage;
                  * }}
                  */
-                ErrorMessage.create = function(properties) {
+                ErrorMessage.create = function (properties) {
                     return new ErrorMessage(properties);
                 };
 
@@ -17096,7 +17139,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                ErrorMessage.encodeDelimited = function(message, writer) {
+                ErrorMessage.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -17118,7 +17161,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ErrorMessage(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.ErrorMessage(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -17128,7 +17172,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -17159,7 +17203,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                ErrorMessage.decodeDelimited = function(reader) {
+                ErrorMessage.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -17241,7 +17285,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                ErrorMessage.prototype.toJSON = function() {
+                ErrorMessage.prototype.toJSON = function () {
                     return ErrorMessage.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -17253,7 +17297,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                ErrorMessage.getTypeUrl = function(prefix) {
+                ErrorMessage.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.ErrorMessage";
@@ -17262,7 +17306,7 @@ export const renop = $root.renop = (() => {
                 return ErrorMessage;
             })();
 
-            v1.FidoDeviceDto = (function() {
+            v1.FidoDeviceDto = (function () {
 
                 /**
                  * Properties of a FidoDeviceDto.
@@ -17332,7 +17376,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.FidoDeviceDto
                  * @instance
                  */
-                FidoDeviceDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                FidoDeviceDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new FidoDeviceDto instance using the specified properties.
@@ -17346,7 +17390,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.FidoDeviceDto.$Properties): renop.api.v1.FidoDeviceDto;
                  * }}
                  */
-                FidoDeviceDto.create = function(properties) {
+                FidoDeviceDto.create = function (properties) {
                     return new FidoDeviceDto(properties);
                 };
 
@@ -17389,7 +17433,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                FidoDeviceDto.encodeDelimited = function(message, writer) {
+                FidoDeviceDto.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -17411,7 +17455,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FidoDeviceDto(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.FidoDeviceDto(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -17421,7 +17466,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -17430,7 +17475,7 @@ export const renop = $root.renop = (() => {
                                     delete message.id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -17439,7 +17484,7 @@ export const renop = $root.renop = (() => {
                                     delete message.username;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -17448,7 +17493,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -17479,7 +17524,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                FidoDeviceDto.decodeDelimited = function(reader) {
+                FidoDeviceDto.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -17605,7 +17650,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                FidoDeviceDto.prototype.toJSON = function() {
+                FidoDeviceDto.prototype.toJSON = function () {
                     return FidoDeviceDto.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -17617,7 +17662,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                FidoDeviceDto.getTypeUrl = function(prefix) {
+                FidoDeviceDto.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.FidoDeviceDto";
@@ -17626,7 +17671,7 @@ export const renop = $root.renop = (() => {
                 return FidoDeviceDto;
             })();
 
-            v1.FidoDeviceList = (function() {
+            v1.FidoDeviceList = (function () {
 
                 /**
                  * Properties of a FidoDeviceList.
@@ -17684,7 +17729,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.FidoDeviceList.$Properties): renop.api.v1.FidoDeviceList;
                  * }}
                  */
-                FidoDeviceList.create = function(properties) {
+                FidoDeviceList.create = function (properties) {
                     return new FidoDeviceList(properties);
                 };
 
@@ -17722,7 +17767,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                FidoDeviceList.encodeDelimited = function(message, writer) {
+                FidoDeviceList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -17744,7 +17789,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.FidoDeviceList();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.FidoDeviceList();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -17754,7 +17800,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.devices && message.devices.length))
@@ -17784,7 +17830,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                FidoDeviceList.decodeDelimited = function(reader) {
+                FidoDeviceList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -17882,7 +17928,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                FidoDeviceList.prototype.toJSON = function() {
+                FidoDeviceList.prototype.toJSON = function () {
                     return FidoDeviceList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -17894,7 +17940,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                FidoDeviceList.getTypeUrl = function(prefix) {
+                FidoDeviceList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.FidoDeviceList";
@@ -17903,7 +17949,7 @@ export const renop = $root.renop = (() => {
                 return FidoDeviceList;
             })();
 
-            v1.GpgKeyReferenceRequest = (function() {
+            v1.GpgKeyReferenceRequest = (function () {
 
                 /**
                  * Properties of a GpgKeyReferenceRequest.
@@ -17960,7 +18006,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GpgKeyReferenceRequest.$Properties): renop.api.v1.GpgKeyReferenceRequest;
                  * }}
                  */
-                GpgKeyReferenceRequest.create = function(properties) {
+                GpgKeyReferenceRequest.create = function (properties) {
                     return new GpgKeyReferenceRequest(properties);
                 };
 
@@ -17997,7 +18043,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GpgKeyReferenceRequest.encodeDelimited = function(message, writer) {
+                GpgKeyReferenceRequest.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -18019,7 +18065,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgKeyReferenceRequest(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GpgKeyReferenceRequest(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -18029,7 +18076,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -18060,7 +18107,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GpgKeyReferenceRequest.decodeDelimited = function(reader) {
+                GpgKeyReferenceRequest.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -18142,7 +18189,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GpgKeyReferenceRequest.prototype.toJSON = function() {
+                GpgKeyReferenceRequest.prototype.toJSON = function () {
                     return GpgKeyReferenceRequest.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -18154,7 +18201,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GpgKeyReferenceRequest.getTypeUrl = function(prefix) {
+                GpgKeyReferenceRequest.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GpgKeyReferenceRequest";
@@ -18163,7 +18210,7 @@ export const renop = $root.renop = (() => {
                 return GpgKeyReferenceRequest;
             })();
 
-            v1.GpgKeyDto = (function() {
+            v1.GpgKeyDto = (function () {
 
                 /**
                  * Properties of a GpgKeyDto.
@@ -18236,7 +18283,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgKeyDto
                  * @instance
                  */
-                GpgKeyDto.prototype.key_created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgKeyDto.prototype.key_created_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * GpgKeyDto key_expires_at.
@@ -18244,7 +18291,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgKeyDto
                  * @instance
                  */
-                GpgKeyDto.prototype.key_expires_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgKeyDto.prototype.key_expires_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * GpgKeyDto added_at.
@@ -18252,7 +18299,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgKeyDto
                  * @instance
                  */
-                GpgKeyDto.prototype.added_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgKeyDto.prototype.added_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * GpgKeyDto refreshed_at.
@@ -18260,7 +18307,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgKeyDto
                  * @instance
                  */
-                GpgKeyDto.prototype.refreshed_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgKeyDto.prototype.refreshed_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new GpgKeyDto instance using the specified properties.
@@ -18274,7 +18321,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GpgKeyDto.$Properties): renop.api.v1.GpgKeyDto;
                  * }}
                  */
-                GpgKeyDto.create = function(properties) {
+                GpgKeyDto.create = function (properties) {
                     return new GpgKeyDto(properties);
                 };
 
@@ -18323,7 +18370,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GpgKeyDto.encodeDelimited = function(message, writer) {
+                GpgKeyDto.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -18345,7 +18392,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgKeyDto(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GpgKeyDto(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -18355,7 +18403,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -18364,7 +18412,7 @@ export const renop = $root.renop = (() => {
                                     delete message.fingerprint;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -18373,7 +18421,7 @@ export const renop = $root.renop = (() => {
                                     delete message.key_id;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -18382,7 +18430,7 @@ export const renop = $root.renop = (() => {
                                     delete message.primary_identity;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -18391,7 +18439,7 @@ export const renop = $root.renop = (() => {
                                     delete message.key_created_at;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -18400,7 +18448,7 @@ export const renop = $root.renop = (() => {
                                     delete message.key_expires_at;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -18409,7 +18457,7 @@ export const renop = $root.renop = (() => {
                                     delete message.added_at;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -18440,7 +18488,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GpgKeyDto.decodeDelimited = function(reader) {
+                GpgKeyDto.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -18641,7 +18689,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GpgKeyDto.prototype.toJSON = function() {
+                GpgKeyDto.prototype.toJSON = function () {
                     return GpgKeyDto.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -18653,7 +18701,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GpgKeyDto.getTypeUrl = function(prefix) {
+                GpgKeyDto.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GpgKeyDto";
@@ -18662,7 +18710,7 @@ export const renop = $root.renop = (() => {
                 return GpgKeyDto;
             })();
 
-            v1.GpgKeyList = (function() {
+            v1.GpgKeyList = (function () {
 
                 /**
                  * Properties of a GpgKeyList.
@@ -18720,7 +18768,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GpgKeyList.$Properties): renop.api.v1.GpgKeyList;
                  * }}
                  */
-                GpgKeyList.create = function(properties) {
+                GpgKeyList.create = function (properties) {
                     return new GpgKeyList(properties);
                 };
 
@@ -18758,7 +18806,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GpgKeyList.encodeDelimited = function(message, writer) {
+                GpgKeyList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -18780,7 +18828,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgKeyList();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GpgKeyList();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -18790,7 +18839,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.keys && message.keys.length))
@@ -18820,7 +18869,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GpgKeyList.decodeDelimited = function(reader) {
+                GpgKeyList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -18918,7 +18967,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GpgKeyList.prototype.toJSON = function() {
+                GpgKeyList.prototype.toJSON = function () {
                     return GpgKeyList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -18930,7 +18979,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GpgKeyList.getTypeUrl = function(prefix) {
+                GpgKeyList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GpgKeyList";
@@ -18939,7 +18988,7 @@ export const renop = $root.renop = (() => {
                 return GpgKeyList;
             })();
 
-            v1.GpgSignatureDetails = (function() {
+            v1.GpgSignatureDetails = (function () {
 
                 /**
                  * Properties of a GpgSignatureDetails.
@@ -19039,7 +19088,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgSignatureDetails
                  * @instance
                  */
-                GpgSignatureDetails.prototype.signature_created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgSignatureDetails.prototype.signature_created_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * GpgSignatureDetails verified_at.
@@ -19047,7 +19096,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgSignatureDetails
                  * @instance
                  */
-                GpgSignatureDetails.prototype.verified_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgSignatureDetails.prototype.verified_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * GpgSignatureDetails hash_algorithm.
@@ -19077,7 +19126,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GpgSignatureDetails.$Properties): renop.api.v1.GpgSignatureDetails;
                  * }}
                  */
-                GpgSignatureDetails.create = function(properties) {
+                GpgSignatureDetails.create = function (properties) {
                     return new GpgSignatureDetails(properties);
                 };
 
@@ -19132,7 +19181,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GpgSignatureDetails.encodeDelimited = function(message, writer) {
+                GpgSignatureDetails.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -19154,7 +19203,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgSignatureDetails(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GpgSignatureDetails(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -19164,7 +19214,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19173,7 +19223,7 @@ export const renop = $root.renop = (() => {
                                     delete message.repository;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19182,7 +19232,7 @@ export const renop = $root.renop = (() => {
                                     delete message.artifact_path;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19191,7 +19241,7 @@ export const renop = $root.renop = (() => {
                                     delete message.fingerprint;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19200,7 +19250,7 @@ export const renop = $root.renop = (() => {
                                     delete message.key_id;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19209,7 +19259,7 @@ export const renop = $root.renop = (() => {
                                     delete message.primary_identity;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19218,7 +19268,7 @@ export const renop = $root.renop = (() => {
                                     delete message.uploader;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -19227,7 +19277,7 @@ export const renop = $root.renop = (() => {
                                     delete message.signature_created_at;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -19236,7 +19286,7 @@ export const renop = $root.renop = (() => {
                                     delete message.verified_at;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19245,7 +19295,7 @@ export const renop = $root.renop = (() => {
                                     delete message.hash_algorithm;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19276,7 +19326,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GpgSignatureDetails.decodeDelimited = function(reader) {
+                GpgSignatureDetails.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -19472,7 +19522,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GpgSignatureDetails.prototype.toJSON = function() {
+                GpgSignatureDetails.prototype.toJSON = function () {
                     return GpgSignatureDetails.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -19484,7 +19534,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GpgSignatureDetails.getTypeUrl = function(prefix) {
+                GpgSignatureDetails.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GpgSignatureDetails";
@@ -19493,7 +19543,7 @@ export const renop = $root.renop = (() => {
                 return GpgSignatureDetails;
             })();
 
-            v1.GpgReleaseDto = (function() {
+            v1.GpgReleaseDto = (function () {
 
                 /**
                  * Properties of a GpgReleaseDto.
@@ -19601,7 +19651,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgReleaseDto
                  * @instance
                  */
-                GpgReleaseDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgReleaseDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * GpgReleaseDto updated_at.
@@ -19609,7 +19659,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgReleaseDto
                  * @instance
                  */
-                GpgReleaseDto.prototype.updated_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgReleaseDto.prototype.updated_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * GpgReleaseDto completed_at.
@@ -19617,7 +19667,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.GpgReleaseDto
                  * @instance
                  */
-                GpgReleaseDto.prototype.completed_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                GpgReleaseDto.prototype.completed_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new GpgReleaseDto instance using the specified properties.
@@ -19631,7 +19681,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GpgReleaseDto.$Properties): renop.api.v1.GpgReleaseDto;
                  * }}
                  */
-                GpgReleaseDto.create = function(properties) {
+                GpgReleaseDto.create = function (properties) {
                     return new GpgReleaseDto(properties);
                 };
 
@@ -19686,7 +19736,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GpgReleaseDto.encodeDelimited = function(message, writer) {
+                GpgReleaseDto.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -19708,7 +19758,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgReleaseDto(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GpgReleaseDto(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -19718,7 +19769,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19727,7 +19778,7 @@ export const renop = $root.renop = (() => {
                                     delete message.id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19736,7 +19787,7 @@ export const renop = $root.renop = (() => {
                                     delete message.repository;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19745,7 +19796,7 @@ export const renop = $root.renop = (() => {
                                     delete message.artifact_path;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19754,7 +19805,7 @@ export const renop = $root.renop = (() => {
                                     delete message.status;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -19763,7 +19814,7 @@ export const renop = $root.renop = (() => {
                                     delete message.failure_reason;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -19772,7 +19823,7 @@ export const renop = $root.renop = (() => {
                                     delete message.signed;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -19781,7 +19832,7 @@ export const renop = $root.renop = (() => {
                                     delete message.require_signature;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -19790,7 +19841,7 @@ export const renop = $root.renop = (() => {
                                     delete message.created_at;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -19799,7 +19850,7 @@ export const renop = $root.renop = (() => {
                                     delete message.updated_at;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -19830,7 +19881,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GpgReleaseDto.decodeDelimited = function(reader) {
+                GpgReleaseDto.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -20042,7 +20093,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GpgReleaseDto.prototype.toJSON = function() {
+                GpgReleaseDto.prototype.toJSON = function () {
                     return GpgReleaseDto.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -20054,7 +20105,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GpgReleaseDto.getTypeUrl = function(prefix) {
+                GpgReleaseDto.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GpgReleaseDto";
@@ -20063,7 +20114,7 @@ export const renop = $root.renop = (() => {
                 return GpgReleaseDto;
             })();
 
-            v1.GpgReleaseList = (function() {
+            v1.GpgReleaseList = (function () {
 
                 /**
                  * Properties of a GpgReleaseList.
@@ -20148,7 +20199,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GpgReleaseList.$Properties): renop.api.v1.GpgReleaseList;
                  * }}
                  */
-                GpgReleaseList.create = function(properties) {
+                GpgReleaseList.create = function (properties) {
                     return new GpgReleaseList(properties);
                 };
 
@@ -20192,7 +20243,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GpgReleaseList.encodeDelimited = function(message, writer) {
+                GpgReleaseList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -20214,7 +20265,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GpgReleaseList(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GpgReleaseList(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -20224,7 +20276,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.releases && message.releases.length))
@@ -20232,7 +20284,7 @@ export const renop = $root.renop = (() => {
                                 message.releases.push($root.renop.api.v1.GpgReleaseDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -20241,7 +20293,7 @@ export const renop = $root.renop = (() => {
                                     delete message.total;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -20250,7 +20302,7 @@ export const renop = $root.renop = (() => {
                                     delete message.limit;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -20281,7 +20333,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GpgReleaseList.decodeDelimited = function(reader) {
+                GpgReleaseList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -20408,7 +20460,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GpgReleaseList.prototype.toJSON = function() {
+                GpgReleaseList.prototype.toJSON = function () {
                     return GpgReleaseList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -20420,7 +20472,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GpgReleaseList.getTypeUrl = function(prefix) {
+                GpgReleaseList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GpgReleaseList";
@@ -20429,7 +20481,7 @@ export const renop = $root.renop = (() => {
                 return GpgReleaseList;
             })();
 
-            v1.UpdatePasswordRequest = (function() {
+            v1.UpdatePasswordRequest = (function () {
 
                 /**
                  * Properties of an UpdatePasswordRequest.
@@ -20486,7 +20538,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.UpdatePasswordRequest.$Properties): renop.api.v1.UpdatePasswordRequest;
                  * }}
                  */
-                UpdatePasswordRequest.create = function(properties) {
+                UpdatePasswordRequest.create = function (properties) {
                     return new UpdatePasswordRequest(properties);
                 };
 
@@ -20523,7 +20575,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                UpdatePasswordRequest.encodeDelimited = function(message, writer) {
+                UpdatePasswordRequest.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -20545,7 +20597,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UpdatePasswordRequest(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.UpdatePasswordRequest(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -20555,7 +20608,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -20586,7 +20639,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                UpdatePasswordRequest.decodeDelimited = function(reader) {
+                UpdatePasswordRequest.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -20668,7 +20721,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                UpdatePasswordRequest.prototype.toJSON = function() {
+                UpdatePasswordRequest.prototype.toJSON = function () {
                     return UpdatePasswordRequest.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -20680,7 +20733,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                UpdatePasswordRequest.getTypeUrl = function(prefix) {
+                UpdatePasswordRequest.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.UpdatePasswordRequest";
@@ -20689,7 +20742,7 @@ export const renop = $root.renop = (() => {
                 return UpdatePasswordRequest;
             })();
 
-            v1.GenerateTokenResponse = (function() {
+            v1.GenerateTokenResponse = (function () {
 
                 /**
                  * Properties of a GenerateTokenResponse.
@@ -20746,7 +20799,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.GenerateTokenResponse.$Properties): renop.api.v1.GenerateTokenResponse;
                  * }}
                  */
-                GenerateTokenResponse.create = function(properties) {
+                GenerateTokenResponse.create = function (properties) {
                     return new GenerateTokenResponse(properties);
                 };
 
@@ -20783,7 +20836,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                GenerateTokenResponse.encodeDelimited = function(message, writer) {
+                GenerateTokenResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -20805,7 +20858,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.GenerateTokenResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.GenerateTokenResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -20815,7 +20869,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -20846,7 +20900,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                GenerateTokenResponse.decodeDelimited = function(reader) {
+                GenerateTokenResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -20928,7 +20982,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                GenerateTokenResponse.prototype.toJSON = function() {
+                GenerateTokenResponse.prototype.toJSON = function () {
                     return GenerateTokenResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -20940,7 +20994,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                GenerateTokenResponse.getTypeUrl = function(prefix) {
+                GenerateTokenResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.GenerateTokenResponse";
@@ -20949,7 +21003,7 @@ export const renop = $root.renop = (() => {
                 return GenerateTokenResponse;
             })();
 
-            v1.CreateAccessTokenRequest = (function() {
+            v1.CreateAccessTokenRequest = (function () {
 
                 /**
                  * Properties of a CreateAccessTokenRequest.
@@ -21064,7 +21118,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.CreateAccessTokenRequest.$Properties): renop.api.v1.CreateAccessTokenRequest;
                  * }}
                  */
-                CreateAccessTokenRequest.create = function(properties) {
+                CreateAccessTokenRequest.create = function (properties) {
                     return new CreateAccessTokenRequest(properties);
                 };
 
@@ -21110,7 +21164,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                CreateAccessTokenRequest.encodeDelimited = function(message, writer) {
+                CreateAccessTokenRequest.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -21132,7 +21186,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.CreateAccessTokenRequest(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.CreateAccessTokenRequest(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -21142,7 +21197,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.permissions && message.permissions.length))
@@ -21150,21 +21205,21 @@ export const renop = $root.renop = (() => {
                                 message.permissions.push(reader.stringVerify());
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 message.new_name = reader.stringVerify();
                                 message._new_name = "new_name";
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 message.secret = reader.stringVerify();
                                 message._secret = "secret";
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -21173,7 +21228,7 @@ export const renop = $root.renop = (() => {
                                     delete message.is_create;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 message.nickname = reader.stringVerify();
@@ -21202,7 +21257,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                CreateAccessTokenRequest.decodeDelimited = function(reader) {
+                CreateAccessTokenRequest.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -21333,7 +21388,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                CreateAccessTokenRequest.prototype.toJSON = function() {
+                CreateAccessTokenRequest.prototype.toJSON = function () {
                     return CreateAccessTokenRequest.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -21345,7 +21400,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                CreateAccessTokenRequest.getTypeUrl = function(prefix) {
+                CreateAccessTokenRequest.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.CreateAccessTokenRequest";
@@ -21354,7 +21409,7 @@ export const renop = $root.renop = (() => {
                 return CreateAccessTokenRequest;
             })();
 
-            v1.CreateAccessTokenResponse = (function() {
+            v1.CreateAccessTokenResponse = (function () {
 
                 /**
                  * Properties of a CreateAccessTokenResponse.
@@ -21420,7 +21475,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.CreateAccessTokenResponse.$Properties): renop.api.v1.CreateAccessTokenResponse;
                  * }}
                  */
-                CreateAccessTokenResponse.create = function(properties) {
+                CreateAccessTokenResponse.create = function (properties) {
                     return new CreateAccessTokenResponse(properties);
                 };
 
@@ -21459,7 +21514,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                CreateAccessTokenResponse.encodeDelimited = function(message, writer) {
+                CreateAccessTokenResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -21481,7 +21536,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.CreateAccessTokenResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.CreateAccessTokenResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -21491,13 +21547,13 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 message.access_token = $root.renop.api.v1.AccessTokenDto.decode(reader, reader.uint32(), $undefined, _depth + 1, message.access_token);
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -21528,7 +21584,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                CreateAccessTokenResponse.decodeDelimited = function(reader) {
+                CreateAccessTokenResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -21624,7 +21680,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                CreateAccessTokenResponse.prototype.toJSON = function() {
+                CreateAccessTokenResponse.prototype.toJSON = function () {
                     return CreateAccessTokenResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -21636,7 +21692,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                CreateAccessTokenResponse.getTypeUrl = function(prefix) {
+                CreateAccessTokenResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.CreateAccessTokenResponse";
@@ -21645,7 +21701,7 @@ export const renop = $root.renop = (() => {
                 return CreateAccessTokenResponse;
             })();
 
-            v1.VersionsResponse = (function() {
+            v1.VersionsResponse = (function () {
 
                 /**
                  * Properties of a VersionsResponse.
@@ -21712,7 +21768,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.VersionsResponse.$Properties): renop.api.v1.VersionsResponse;
                  * }}
                  */
-                VersionsResponse.create = function(properties) {
+                VersionsResponse.create = function (properties) {
                     return new VersionsResponse(properties);
                 };
 
@@ -21752,7 +21808,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                VersionsResponse.encodeDelimited = function(message, writer) {
+                VersionsResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -21774,7 +21830,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.VersionsResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.VersionsResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -21784,7 +21841,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -21793,7 +21850,7 @@ export const renop = $root.renop = (() => {
                                     delete message.is_snapshot;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.versions && message.versions.length))
@@ -21823,7 +21880,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                VersionsResponse.decodeDelimited = function(reader) {
+                VersionsResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -21926,7 +21983,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                VersionsResponse.prototype.toJSON = function() {
+                VersionsResponse.prototype.toJSON = function () {
                     return VersionsResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -21938,7 +21995,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                VersionsResponse.getTypeUrl = function(prefix) {
+                VersionsResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.VersionsResponse";
@@ -21947,7 +22004,7 @@ export const renop = $root.renop = (() => {
                 return VersionsResponse;
             })();
 
-            v1.LatestVersionResponse = (function() {
+            v1.LatestVersionResponse = (function () {
 
                 /**
                  * Properties of a LatestVersionResponse.
@@ -22013,7 +22070,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.LatestVersionResponse.$Properties): renop.api.v1.LatestVersionResponse;
                  * }}
                  */
-                LatestVersionResponse.create = function(properties) {
+                LatestVersionResponse.create = function (properties) {
                     return new LatestVersionResponse(properties);
                 };
 
@@ -22052,7 +22109,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                LatestVersionResponse.encodeDelimited = function(message, writer) {
+                LatestVersionResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -22074,7 +22131,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.LatestVersionResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.LatestVersionResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -22084,7 +22142,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -22093,7 +22151,7 @@ export const renop = $root.renop = (() => {
                                     delete message.is_snapshot;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22124,7 +22182,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                LatestVersionResponse.decodeDelimited = function(reader) {
+                LatestVersionResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -22216,7 +22274,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                LatestVersionResponse.prototype.toJSON = function() {
+                LatestVersionResponse.prototype.toJSON = function () {
                     return LatestVersionResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -22228,7 +22286,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                LatestVersionResponse.getTypeUrl = function(prefix) {
+                LatestVersionResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.LatestVersionResponse";
@@ -22237,7 +22295,7 @@ export const renop = $root.renop = (() => {
                 return LatestVersionResponse;
             })();
 
-            v1.PomDetails = (function() {
+            v1.PomDetails = (function () {
 
                 /**
                  * Properties of a PomDetails.
@@ -22312,7 +22370,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.PomDetails.$Properties): renop.api.v1.PomDetails;
                  * }}
                  */
-                PomDetails.create = function(properties) {
+                PomDetails.create = function (properties) {
                     return new PomDetails(properties);
                 };
 
@@ -22353,7 +22411,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                PomDetails.encodeDelimited = function(message, writer) {
+                PomDetails.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -22375,7 +22433,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.PomDetails(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.PomDetails(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -22385,7 +22444,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22394,7 +22453,7 @@ export const renop = $root.renop = (() => {
                                     delete message.group_id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22403,7 +22462,7 @@ export const renop = $root.renop = (() => {
                                     delete message.artifact_id;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22434,7 +22493,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                PomDetails.decodeDelimited = function(reader) {
+                PomDetails.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -22535,7 +22594,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                PomDetails.prototype.toJSON = function() {
+                PomDetails.prototype.toJSON = function () {
                     return PomDetails.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -22547,7 +22606,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                PomDetails.getTypeUrl = function(prefix) {
+                PomDetails.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.PomDetails";
@@ -22556,7 +22615,7 @@ export const renop = $root.renop = (() => {
                 return PomDetails;
             })();
 
-            v1.AuditLogEntryDto = (function() {
+            v1.AuditLogEntryDto = (function () {
 
                 /**
                  * Properties of an AuditLogEntryDto.
@@ -22607,7 +22666,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.AuditLogEntryDto
                  * @instance
                  */
-                AuditLogEntryDto.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                AuditLogEntryDto.prototype.id = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * AuditLogEntryDto username.
@@ -22671,7 +22730,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.AuditLogEntryDto
                  * @instance
                  */
-                AuditLogEntryDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                AuditLogEntryDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new AuditLogEntryDto instance using the specified properties.
@@ -22685,7 +22744,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.AuditLogEntryDto.$Properties): renop.api.v1.AuditLogEntryDto;
                  * }}
                  */
-                AuditLogEntryDto.create = function(properties) {
+                AuditLogEntryDto.create = function (properties) {
                     return new AuditLogEntryDto(properties);
                 };
 
@@ -22738,7 +22797,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                AuditLogEntryDto.encodeDelimited = function(message, writer) {
+                AuditLogEntryDto.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -22760,7 +22819,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AuditLogEntryDto(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.AuditLogEntryDto(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -22770,7 +22830,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -22779,7 +22839,7 @@ export const renop = $root.renop = (() => {
                                     delete message.id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22788,7 +22848,7 @@ export const renop = $root.renop = (() => {
                                     delete message.username;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22797,7 +22857,7 @@ export const renop = $root.renop = (() => {
                                     delete message.operator;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22806,7 +22866,7 @@ export const renop = $root.renop = (() => {
                                     delete message.action;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22815,7 +22875,7 @@ export const renop = $root.renop = (() => {
                                     delete message.details;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22824,7 +22884,7 @@ export const renop = $root.renop = (() => {
                                     delete message.auth_method;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22833,7 +22893,7 @@ export const renop = $root.renop = (() => {
                                     delete message.session_id;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -22842,7 +22902,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ip;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -22873,7 +22933,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                AuditLogEntryDto.decodeDelimited = function(reader) {
+                AuditLogEntryDto.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -23060,7 +23120,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                AuditLogEntryDto.prototype.toJSON = function() {
+                AuditLogEntryDto.prototype.toJSON = function () {
                     return AuditLogEntryDto.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -23072,7 +23132,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                AuditLogEntryDto.getTypeUrl = function(prefix) {
+                AuditLogEntryDto.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.AuditLogEntryDto";
@@ -23081,7 +23141,7 @@ export const renop = $root.renop = (() => {
                 return AuditLogEntryDto;
             })();
 
-            v1.AuditLogList = (function() {
+            v1.AuditLogList = (function () {
 
                 /**
                  * Properties of an AuditLogList.
@@ -23166,7 +23226,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.AuditLogList.$Properties): renop.api.v1.AuditLogList;
                  * }}
                  */
-                AuditLogList.create = function(properties) {
+                AuditLogList.create = function (properties) {
                     return new AuditLogList(properties);
                 };
 
@@ -23210,7 +23270,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                AuditLogList.encodeDelimited = function(message, writer) {
+                AuditLogList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -23232,7 +23292,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.AuditLogList(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.AuditLogList(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -23242,7 +23303,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.logs && message.logs.length))
@@ -23250,7 +23311,7 @@ export const renop = $root.renop = (() => {
                                 message.logs.push($root.renop.api.v1.AuditLogEntryDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -23259,7 +23320,7 @@ export const renop = $root.renop = (() => {
                                     delete message.total;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -23268,7 +23329,7 @@ export const renop = $root.renop = (() => {
                                     delete message.page;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -23299,7 +23360,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                AuditLogList.decodeDelimited = function(reader) {
+                AuditLogList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -23426,7 +23487,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                AuditLogList.prototype.toJSON = function() {
+                AuditLogList.prototype.toJSON = function () {
                     return AuditLogList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -23438,7 +23499,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                AuditLogList.getTypeUrl = function(prefix) {
+                AuditLogList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.AuditLogList";
@@ -23447,7 +23508,7 @@ export const renop = $root.renop = (() => {
                 return AuditLogList;
             })();
 
-            v1.UserMessageDto = (function() {
+            v1.UserMessageDto = (function () {
 
                 /**
                  * Properties of a UserMessageDto.
@@ -23583,7 +23644,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.UserMessageDto
                  * @instance
                  */
-                UserMessageDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                UserMessageDto.prototype.created_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * UserMessageDto read_at.
@@ -23591,7 +23652,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.UserMessageDto
                  * @instance
                  */
-                UserMessageDto.prototype.read_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                UserMessageDto.prototype.read_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * UserMessageDto acted_at.
@@ -23599,7 +23660,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.UserMessageDto
                  * @instance
                  */
-                UserMessageDto.prototype.acted_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                UserMessageDto.prototype.acted_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * UserMessageDto expires_at.
@@ -23607,7 +23668,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.UserMessageDto
                  * @instance
                  */
-                UserMessageDto.prototype.expires_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                UserMessageDto.prototype.expires_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new UserMessageDto instance using the specified properties.
@@ -23621,7 +23682,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.UserMessageDto.$Properties): renop.api.v1.UserMessageDto;
                  * }}
                  */
-                UserMessageDto.create = function(properties) {
+                UserMessageDto.create = function (properties) {
                     return new UserMessageDto(properties);
                 };
 
@@ -23684,7 +23745,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                UserMessageDto.encodeDelimited = function(message, writer) {
+                UserMessageDto.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -23706,7 +23767,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UserMessageDto(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.UserMessageDto(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -23716,7 +23778,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23725,7 +23787,7 @@ export const renop = $root.renop = (() => {
                                     delete message.id;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23734,7 +23796,7 @@ export const renop = $root.renop = (() => {
                                     delete message.recipient;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23743,7 +23805,7 @@ export const renop = $root.renop = (() => {
                                     delete message.sender;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23752,7 +23814,7 @@ export const renop = $root.renop = (() => {
                                     delete message.kind;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23761,7 +23823,7 @@ export const renop = $root.renop = (() => {
                                     delete message.severity;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23770,7 +23832,7 @@ export const renop = $root.renop = (() => {
                                     delete message.title;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23779,7 +23841,7 @@ export const renop = $root.renop = (() => {
                                     delete message.body;
                                 continue;
                             }
-                        case 8: {
+                            case 8: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23788,7 +23850,7 @@ export const renop = $root.renop = (() => {
                                     delete message.payload;
                                 continue;
                             }
-                        case 9: {
+                            case 9: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23797,7 +23859,7 @@ export const renop = $root.renop = (() => {
                                     delete message.action_kind;
                                 continue;
                             }
-                        case 10: {
+                            case 10: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -23806,7 +23868,7 @@ export const renop = $root.renop = (() => {
                                     delete message.action_status;
                                 continue;
                             }
-                        case 11: {
+                            case 11: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -23815,7 +23877,7 @@ export const renop = $root.renop = (() => {
                                     delete message.created_at;
                                 continue;
                             }
-                        case 12: {
+                            case 12: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -23824,7 +23886,7 @@ export const renop = $root.renop = (() => {
                                     delete message.read_at;
                                 continue;
                             }
-                        case 13: {
+                            case 13: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -23833,7 +23895,7 @@ export const renop = $root.renop = (() => {
                                     delete message.acted_at;
                                 continue;
                             }
-                        case 14: {
+                            case 14: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -23864,7 +23926,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                UserMessageDto.decodeDelimited = function(reader) {
+                UserMessageDto.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -24128,7 +24190,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                UserMessageDto.prototype.toJSON = function() {
+                UserMessageDto.prototype.toJSON = function () {
                     return UserMessageDto.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -24140,7 +24202,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                UserMessageDto.getTypeUrl = function(prefix) {
+                UserMessageDto.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.UserMessageDto";
@@ -24149,7 +24211,7 @@ export const renop = $root.renop = (() => {
                 return UserMessageDto;
             })();
 
-            v1.UserMessageList = (function() {
+            v1.UserMessageList = (function () {
 
                 /**
                  * Properties of a UserMessageList.
@@ -24225,7 +24287,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.UserMessageList.$Properties): renop.api.v1.UserMessageList;
                  * }}
                  */
-                UserMessageList.create = function(properties) {
+                UserMessageList.create = function (properties) {
                     return new UserMessageList(properties);
                 };
 
@@ -24267,7 +24329,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                UserMessageList.encodeDelimited = function(message, writer) {
+                UserMessageList.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -24289,7 +24351,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UserMessageList(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.UserMessageList(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -24299,7 +24362,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.messages && message.messages.length))
@@ -24307,7 +24370,7 @@ export const renop = $root.renop = (() => {
                                 message.messages.push($root.renop.api.v1.UserMessageDto.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -24316,7 +24379,7 @@ export const renop = $root.renop = (() => {
                                     delete message.unread_count;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -24347,7 +24410,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                UserMessageList.decodeDelimited = function(reader) {
+                UserMessageList.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -24465,7 +24528,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                UserMessageList.prototype.toJSON = function() {
+                UserMessageList.prototype.toJSON = function () {
                     return UserMessageList.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -24477,7 +24540,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                UserMessageList.getTypeUrl = function(prefix) {
+                UserMessageList.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.UserMessageList";
@@ -24486,7 +24549,7 @@ export const renop = $root.renop = (() => {
                 return UserMessageList;
             })();
 
-            v1.UnreadCountResponse = (function() {
+            v1.UnreadCountResponse = (function () {
 
                 /**
                  * Properties of an UnreadCountResponse.
@@ -24543,7 +24606,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.UnreadCountResponse.$Properties): renop.api.v1.UnreadCountResponse;
                  * }}
                  */
-                UnreadCountResponse.create = function(properties) {
+                UnreadCountResponse.create = function (properties) {
                     return new UnreadCountResponse(properties);
                 };
 
@@ -24580,7 +24643,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                UnreadCountResponse.encodeDelimited = function(message, writer) {
+                UnreadCountResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -24602,7 +24665,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UnreadCountResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.UnreadCountResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -24612,7 +24676,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -24643,7 +24707,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                UnreadCountResponse.decodeDelimited = function(reader) {
+                UnreadCountResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -24725,7 +24789,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                UnreadCountResponse.prototype.toJSON = function() {
+                UnreadCountResponse.prototype.toJSON = function () {
                     return UnreadCountResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -24737,7 +24801,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                UnreadCountResponse.getTypeUrl = function(prefix) {
+                UnreadCountResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.UnreadCountResponse";
@@ -24746,7 +24810,7 @@ export const renop = $root.renop = (() => {
                 return UnreadCountResponse;
             })();
 
-            v1.MarkAllReadResponse = (function() {
+            v1.MarkAllReadResponse = (function () {
 
                 /**
                  * Properties of a MarkAllReadResponse.
@@ -24798,7 +24862,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.MarkAllReadResponse
                  * @instance
                  */
-                MarkAllReadResponse.prototype.updated = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                MarkAllReadResponse.prototype.updated = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new MarkAllReadResponse instance using the specified properties.
@@ -24812,7 +24876,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.MarkAllReadResponse.$Properties): renop.api.v1.MarkAllReadResponse;
                  * }}
                  */
-                MarkAllReadResponse.create = function(properties) {
+                MarkAllReadResponse.create = function (properties) {
                     return new MarkAllReadResponse(properties);
                 };
 
@@ -24851,7 +24915,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                MarkAllReadResponse.encodeDelimited = function(message, writer) {
+                MarkAllReadResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -24873,7 +24937,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.MarkAllReadResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.MarkAllReadResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -24883,7 +24948,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -24892,7 +24957,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ok;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -24923,7 +24988,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                MarkAllReadResponse.decodeDelimited = function(reader) {
+                MarkAllReadResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -25031,7 +25096,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                MarkAllReadResponse.prototype.toJSON = function() {
+                MarkAllReadResponse.prototype.toJSON = function () {
                     return MarkAllReadResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -25043,7 +25108,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                MarkAllReadResponse.getTypeUrl = function(prefix) {
+                MarkAllReadResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.MarkAllReadResponse";
@@ -25052,7 +25117,7 @@ export const renop = $root.renop = (() => {
                 return MarkAllReadResponse;
             })();
 
-            v1.ClearMessagesResponse = (function() {
+            v1.ClearMessagesResponse = (function () {
 
                 /**
                  * Properties of a ClearMessagesResponse.
@@ -25104,7 +25169,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.ClearMessagesResponse
                  * @instance
                  */
-                ClearMessagesResponse.prototype.deleted = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                ClearMessagesResponse.prototype.deleted = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new ClearMessagesResponse instance using the specified properties.
@@ -25118,7 +25183,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.ClearMessagesResponse.$Properties): renop.api.v1.ClearMessagesResponse;
                  * }}
                  */
-                ClearMessagesResponse.create = function(properties) {
+                ClearMessagesResponse.create = function (properties) {
                     return new ClearMessagesResponse(properties);
                 };
 
@@ -25157,7 +25222,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                ClearMessagesResponse.encodeDelimited = function(message, writer) {
+                ClearMessagesResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -25179,7 +25244,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.ClearMessagesResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.ClearMessagesResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -25189,7 +25255,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -25198,7 +25264,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ok;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -25229,7 +25295,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                ClearMessagesResponse.decodeDelimited = function(reader) {
+                ClearMessagesResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -25337,7 +25403,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                ClearMessagesResponse.prototype.toJSON = function() {
+                ClearMessagesResponse.prototype.toJSON = function () {
                     return ClearMessagesResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -25349,7 +25415,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                ClearMessagesResponse.getTypeUrl = function(prefix) {
+                ClearMessagesResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.ClearMessagesResponse";
@@ -25358,7 +25424,7 @@ export const renop = $root.renop = (() => {
                 return ClearMessagesResponse;
             })();
 
-            v1.SendNotificationRequest = (function() {
+            v1.SendNotificationRequest = (function () {
 
                 /**
                  * Properties of a SendNotificationRequest.
@@ -25452,7 +25518,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.SendNotificationRequest.$Properties): renop.api.v1.SendNotificationRequest;
                  * }}
                  */
-                SendNotificationRequest.create = function(properties) {
+                SendNotificationRequest.create = function (properties) {
                     return new SendNotificationRequest(properties);
                 };
 
@@ -25498,7 +25564,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                SendNotificationRequest.encodeDelimited = function(message, writer) {
+                SendNotificationRequest.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -25520,7 +25586,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SendNotificationRequest(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.SendNotificationRequest(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -25530,7 +25597,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.recipients && message.recipients.length))
@@ -25538,7 +25605,7 @@ export const renop = $root.renop = (() => {
                                 message.recipients.push(reader.stringVerify());
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -25547,7 +25614,7 @@ export const renop = $root.renop = (() => {
                                     delete message.all;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -25556,7 +25623,7 @@ export const renop = $root.renop = (() => {
                                     delete message.severity;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -25565,7 +25632,7 @@ export const renop = $root.renop = (() => {
                                     delete message.title;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -25596,7 +25663,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                SendNotificationRequest.decodeDelimited = function(reader) {
+                SendNotificationRequest.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -25727,7 +25794,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                SendNotificationRequest.prototype.toJSON = function() {
+                SendNotificationRequest.prototype.toJSON = function () {
                     return SendNotificationRequest.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -25739,7 +25806,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                SendNotificationRequest.getTypeUrl = function(prefix) {
+                SendNotificationRequest.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.SendNotificationRequest";
@@ -25748,7 +25815,7 @@ export const renop = $root.renop = (() => {
                 return SendNotificationRequest;
             })();
 
-            v1.SendNotificationResponse = (function() {
+            v1.SendNotificationResponse = (function () {
 
                 /**
                  * Properties of a SendNotificationResponse.
@@ -25800,7 +25867,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.SendNotificationResponse
                  * @instance
                  */
-                SendNotificationResponse.prototype.sent = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                SendNotificationResponse.prototype.sent = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new SendNotificationResponse instance using the specified properties.
@@ -25814,7 +25881,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.SendNotificationResponse.$Properties): renop.api.v1.SendNotificationResponse;
                  * }}
                  */
-                SendNotificationResponse.create = function(properties) {
+                SendNotificationResponse.create = function (properties) {
                     return new SendNotificationResponse(properties);
                 };
 
@@ -25853,7 +25920,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                SendNotificationResponse.encodeDelimited = function(message, writer) {
+                SendNotificationResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -25875,7 +25942,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.SendNotificationResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.SendNotificationResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -25885,7 +25953,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -25894,7 +25962,7 @@ export const renop = $root.renop = (() => {
                                     delete message.ok;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -25925,7 +25993,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                SendNotificationResponse.decodeDelimited = function(reader) {
+                SendNotificationResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -26033,7 +26101,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                SendNotificationResponse.prototype.toJSON = function() {
+                SendNotificationResponse.prototype.toJSON = function () {
                     return SendNotificationResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -26045,7 +26113,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                SendNotificationResponse.getTypeUrl = function(prefix) {
+                SendNotificationResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.SendNotificationResponse";
@@ -26054,7 +26122,7 @@ export const renop = $root.renop = (() => {
                 return SendNotificationResponse;
             })();
 
-            v1.UserSearchResponse = (function() {
+            v1.UserSearchResponse = (function () {
 
                 /**
                  * Properties of a UserSearchResponse.
@@ -26112,7 +26180,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.UserSearchResponse.$Properties): renop.api.v1.UserSearchResponse;
                  * }}
                  */
-                UserSearchResponse.create = function(properties) {
+                UserSearchResponse.create = function (properties) {
                     return new UserSearchResponse(properties);
                 };
 
@@ -26150,7 +26218,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                UserSearchResponse.encodeDelimited = function(message, writer) {
+                UserSearchResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -26172,7 +26240,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.UserSearchResponse();
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.UserSearchResponse();
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -26182,7 +26251,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.users && message.users.length))
@@ -26212,7 +26281,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                UserSearchResponse.decodeDelimited = function(reader) {
+                UserSearchResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -26305,7 +26374,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                UserSearchResponse.prototype.toJSON = function() {
+                UserSearchResponse.prototype.toJSON = function () {
                     return UserSearchResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -26317,7 +26386,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                UserSearchResponse.getTypeUrl = function(prefix) {
+                UserSearchResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.UserSearchResponse";
@@ -26326,7 +26395,7 @@ export const renop = $root.renop = (() => {
                 return UserSearchResponse;
             })();
 
-            v1.RepositorySearchResult = (function() {
+            v1.RepositorySearchResult = (function () {
 
                 /**
                  * Properties of a RepositorySearchResult.
@@ -26415,7 +26484,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepositorySearchResult
                  * @instance
                  */
-                RepositorySearchResult.prototype.size = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepositorySearchResult.prototype.size = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * RepositorySearchResult modified_at.
@@ -26423,7 +26492,7 @@ export const renop = $root.renop = (() => {
                  * @memberof renop.api.v1.RepositorySearchResult
                  * @instance
                  */
-                RepositorySearchResult.prototype.modified_at = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+                RepositorySearchResult.prototype.modified_at = $util.Long ? $util.Long.fromBits(0, 0, false) : 0;
 
                 /**
                  * Creates a new RepositorySearchResult instance using the specified properties.
@@ -26437,7 +26506,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.RepositorySearchResult.$Properties): renop.api.v1.RepositorySearchResult;
                  * }}
                  */
-                RepositorySearchResult.create = function(properties) {
+                RepositorySearchResult.create = function (properties) {
                     return new RepositorySearchResult(properties);
                 };
 
@@ -26486,7 +26555,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                RepositorySearchResult.encodeDelimited = function(message, writer) {
+                RepositorySearchResult.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -26508,7 +26577,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepositorySearchResult(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.RepositorySearchResult(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -26518,7 +26588,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -26527,7 +26597,7 @@ export const renop = $root.renop = (() => {
                                     delete message.name;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -26536,7 +26606,7 @@ export const renop = $root.renop = (() => {
                                     delete message.path;
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -26545,7 +26615,7 @@ export const renop = $root.renop = (() => {
                                     delete message.type;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -26554,7 +26624,7 @@ export const renop = $root.renop = (() => {
                                     delete message.description;
                                 continue;
                             }
-                        case 5: {
+                            case 5: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -26563,7 +26633,7 @@ export const renop = $root.renop = (() => {
                                     delete message.latest_version;
                                 continue;
                             }
-                        case 6: {
+                            case 6: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -26572,7 +26642,7 @@ export const renop = $root.renop = (() => {
                                     delete message.size;
                                 continue;
                             }
-                        case 7: {
+                            case 7: {
                                 if (wireType !== 0)
                                     break;
                                 if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
@@ -26603,7 +26673,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                RepositorySearchResult.decodeDelimited = function(reader) {
+                RepositorySearchResult.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -26772,7 +26842,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                RepositorySearchResult.prototype.toJSON = function() {
+                RepositorySearchResult.prototype.toJSON = function () {
                     return RepositorySearchResult.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -26784,7 +26854,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                RepositorySearchResult.getTypeUrl = function(prefix) {
+                RepositorySearchResult.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.RepositorySearchResult";
@@ -26793,7 +26863,7 @@ export const renop = $root.renop = (() => {
                 return RepositorySearchResult;
             })();
 
-            v1.RepositorySearchResponse = (function() {
+            v1.RepositorySearchResponse = (function () {
 
                 /**
                  * Properties of a RepositorySearchResponse.
@@ -26878,7 +26948,7 @@ export const renop = $root.renop = (() => {
                  *   (properties?: renop.api.v1.RepositorySearchResponse.$Properties): renop.api.v1.RepositorySearchResponse;
                  * }}
                  */
-                RepositorySearchResponse.create = function(properties) {
+                RepositorySearchResponse.create = function (properties) {
                     return new RepositorySearchResponse(properties);
                 };
 
@@ -26922,7 +26992,7 @@ export const renop = $root.renop = (() => {
                  * @param {$protobuf.Writer} [writer] Writer to encode to
                  * @returns {$protobuf.Writer} Writer
                  */
-                RepositorySearchResponse.encodeDelimited = function(message, writer) {
+                RepositorySearchResponse.encodeDelimited = function (message, writer) {
                     return this.encode(message, (writer || $Writer.create()).fork()).ldelim();
                 };
 
@@ -26944,7 +27014,8 @@ export const renop = $root.renop = (() => {
                         _depth = 0;
                     if (_depth > $Reader.recursionLimit)
                         throw $Error("max depth exceeded");
-                    let end = length === $undefined ? reader.len : reader.pos + length, message = _target || new $root.renop.api.v1.RepositorySearchResponse(), value;
+                    let end = length === $undefined ? reader.len : reader.pos + length,
+                        message = _target || new $root.renop.api.v1.RepositorySearchResponse(), value;
                     while (reader.pos < end) {
                         let start = reader.pos;
                         let tag = reader.tag();
@@ -26954,7 +27025,7 @@ export const renop = $root.renop = (() => {
                         }
                         let wireType = tag & 7;
                         switch (tag >>>= 3) {
-                        case 1: {
+                            case 1: {
                                 if (wireType !== 2)
                                     break;
                                 if ((value = reader.stringVerify()).length)
@@ -26963,7 +27034,7 @@ export const renop = $root.renop = (() => {
                                     delete message.format;
                                 continue;
                             }
-                        case 2: {
+                            case 2: {
                                 if (wireType !== 2)
                                     break;
                                 if (!(message.results && message.results.length))
@@ -26971,7 +27042,7 @@ export const renop = $root.renop = (() => {
                                 message.results.push($root.renop.api.v1.RepositorySearchResult.decode(reader, reader.uint32(), $undefined, _depth + 1));
                                 continue;
                             }
-                        case 3: {
+                            case 3: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.int32())
@@ -26980,7 +27051,7 @@ export const renop = $root.renop = (() => {
                                     delete message.total;
                                 continue;
                             }
-                        case 4: {
+                            case 4: {
                                 if (wireType !== 0)
                                     break;
                                 if (value = reader.bool())
@@ -27011,7 +27082,7 @@ export const renop = $root.renop = (() => {
                  * @throws {Error} If the payload is not a reader or valid buffer
                  * @throws {$protobuf.util.ProtocolError} If required fields are missing
                  */
-                RepositorySearchResponse.decodeDelimited = function(reader) {
+                RepositorySearchResponse.decodeDelimited = function (reader) {
                     if (!(reader instanceof $Reader))
                         reader = new $Reader(reader);
                     return this.decode(reader, reader.uint32());
@@ -27138,7 +27209,7 @@ export const renop = $root.renop = (() => {
                  * @instance
                  * @returns {Object.<string,*>} JSON object
                  */
-                RepositorySearchResponse.prototype.toJSON = function() {
+                RepositorySearchResponse.prototype.toJSON = function () {
                     return RepositorySearchResponse.toObject(this, $protobuf.util.toJSONOptions);
                 };
 
@@ -27150,7 +27221,7 @@ export const renop = $root.renop = (() => {
                  * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
                  * @returns {string} The type url
                  */
-                RepositorySearchResponse.getTypeUrl = function(prefix) {
+                RepositorySearchResponse.getTypeUrl = function (prefix) {
                     if (prefix === $undefined)
                         prefix = "type.googleapis.com";
                     return prefix + "/renop.api.v1.RepositorySearchResponse";
@@ -27169,5 +27240,5 @@ export const renop = $root.renop = (() => {
 })();
 
 export {
-  $root as default
+    $root as default
 };

@@ -9,133 +9,159 @@
   -->
 
 <!DOCTYPE html>
-<html lang="en" data-font-preset="{{RENOP.FONT_PRESET}}">
+<html data-font-preset="{{RENOP.FONT_PRESET}}" lang="en">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>{{RENOP.TITLE}}</title>
-    <meta name="description" content="{{RENOP.DESCRIPTION}}">
-    <meta name="renop-background-url" content="{{RENOP.BACKGROUND_URL}}">
-    <meta name="renop-font-url" content="{{RENOP.FONT_URL}}">
-    <link rel="icon" type="image/svg+xml" href="/svg/logo.svg">
-    <link rel="preload" href="/css/style.css?v={{RENOP.HASH}}" as="style">
-    <link rel="stylesheet" href="/css/style.css?v={{RENOP.HASH}}">
-    <link rel="modulepreload" href="/js/main.js?v={{RENOP.HASH}}">
+    <meta content="{{RENOP.DESCRIPTION}}" name="description">
+    <meta content="{{RENOP.BACKGROUND_URL}}" name="renop-background-url">
+    <meta content="{{RENOP.FONT_URL}}" name="renop-font-url">
+    <link href="/svg/logo.svg" rel="icon" type="image/svg+xml">
+    <link as="style" href="/css/style.css?v={{RENOP.HASH}}" rel="preload">
+    <link href="/css/style.css?v={{RENOP.HASH}}" rel="stylesheet">
+    <link href="/js/main.js?v={{RENOP.HASH}}" rel="modulepreload">
 </head>
 <body>
 <div id="backend-offline">
     <h2 data-i18n="offline.title">Backend not started</h2>
-    <button id="reload-btn" data-i18n="offline.retryBtn">Retry</button>
+    <button data-i18n="offline.retryBtn" id="reload-btn">Retry</button>
 </div>
 <div class="top-nav">
     <div class="top-nav-left">
         <h1 class="nav-title">
-            <a id="home-link" href="/" title="{{RENOP.TITLE}}">
-                <img class="nav-title-logo" src="{{RENOP.ORGANIZATION_LOGO}}" alt="" id="header-logo" aria-hidden="true">
+            <a href="/" id="home-link" title="{{RENOP.TITLE}}">
+                <img alt="" aria-hidden="true" class="nav-title-logo" id="header-logo"
+                     src="{{RENOP.ORGANIZATION_LOGO}}">
                 <span class="nav-title-label">{{RENOP.TITLE}}</span>
             </a>
         </h1>
     </div>
     <div class="top-nav-right">
-        <div id="auth-container" class="nav-controls-group">
-            <button id="lang-btn" class="lang-btn" type="button" title="Select Language" data-i18n-title="language.selectTitle" data-i18n-aria-label="language.selectTitle" aria-label="Select language">
-                <svg class="lang-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <div class="nav-controls-group" id="auth-container">
+            <button aria-label="Select language" class="lang-btn" data-i18n-aria-label="language.selectTitle" data-i18n-title="language.selectTitle"
+                    id="lang-btn" title="Select Language"
+                    type="button">
+                <svg aria-hidden="true" class="lang-icon" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16">
                     <circle cx="12" cy="12" r="10"/>
-                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <line x1="2" x2="22" y1="12" y2="12"/>
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                 </svg>
-                <span id="current-lang-name" class="current-lang-name">English</span>
-                <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <span class="current-lang-name" id="current-lang-name">English</span>
+                <svg aria-hidden="true" class="chevron-icon" fill="none" height="14" stroke="currentColor" stroke-linecap="round"
+                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14">
                     <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
             </button>
-            <button id="theme-toggle" class="theme-btn" type="button" title="Toggle Theme" data-i18n-title="nav.toggleTheme" data-i18n-aria-label="nav.toggleTheme" aria-label="Toggle theme">
-                <svg class="theme-icon sun-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <button aria-label="Toggle theme" class="theme-btn" data-i18n-aria-label="nav.toggleTheme" data-i18n-title="nav.toggleTheme"
+                    id="theme-toggle" title="Toggle Theme" type="button">
+                <svg aria-hidden="true" class="theme-icon sun-icon" fill="none" height="16" stroke="currentColor"
+                     stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
+                     width="16">
                     <circle cx="12" cy="12" r="5"></circle>
-                    <line x1="12" y1="1" x2="12" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="23"></line>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                    <line x1="1" y1="12" x2="3" y2="12"></line>
-                    <line x1="21" y1="12" x2="23" y2="12"></line>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    <line x1="12" x2="12" y1="1" y2="3"></line>
+                    <line x1="12" x2="12" y1="21" y2="23"></line>
+                    <line x1="4.22" x2="5.64" y1="4.22" y2="5.64"></line>
+                    <line x1="18.36" x2="19.78" y1="18.36" y2="19.78"></line>
+                    <line x1="1" x2="3" y1="12" y2="12"></line>
+                    <line x1="21" x2="23" y1="12" y2="12"></line>
+                    <line x1="4.22" x2="5.64" y1="19.78" y2="18.36"></line>
+                    <line x1="18.36" x2="19.78" y1="5.64" y2="4.22"></line>
                 </svg>
-                <svg class="theme-icon moon-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg aria-hidden="true" class="theme-icon moon-icon" fill="none" height="16" stroke="currentColor"
+                     stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
+                     width="16">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
             </button>
-            <div class="divider" id="nav-divider" aria-hidden="true"></div>
-            <button id="login-btn" type="button" class="nav-sign-in-btn" data-i18n="nav.signIn">Sign in</button>
-            <div id="user-info" class="nav-user-info" style="display: none;">
-                <div id="profile-menu-wrap" class="nav-profile-menu-wrap">
-                    <button id="profile-trigger" class="user-text nav-profile-trigger" type="button"
-                            aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu"
-                            data-i18n-title="profile.openOwnProfile" title="Open account menu">
-                        <span class="user-avatar-wrap" aria-hidden="true">
+            <div aria-hidden="true" class="divider" id="nav-divider"></div>
+            <button class="nav-sign-in-btn" data-i18n="nav.signIn" id="login-btn" type="button">Sign in</button>
+            <div class="nav-user-info" id="user-info" style="display: none;">
+                <div class="nav-profile-menu-wrap" id="profile-menu-wrap">
+                    <button aria-controls="profile-menu" aria-expanded="false" aria-haspopup="menu"
+                            class="user-text nav-profile-trigger" data-i18n-title="profile.openOwnProfile" id="profile-trigger"
+                            title="Open account menu" type="button">
+                        <span aria-hidden="true" class="user-avatar-wrap">
                             <span class="user-avatar-dot" id="user-avatar-dot"></span>
-                            <span id="profile-message-unread-badge" class="message-unread-badge profile-message-unread-badge" hidden>0</span>
+                            <span class="message-unread-badge profile-message-unread-badge"
+                                  hidden id="profile-message-unread-badge">0</span>
                         </span>
-                        <span id="username-display" class="user-name"></span>
-                        <svg class="nav-profile-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <span class="user-name" id="username-display"></span>
+                        <svg aria-hidden="true" class="nav-profile-chevron" fill="none" height="13" stroke="currentColor"
+                             stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
+                             width="13">
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                     </button>
-                    <div id="profile-menu" class="nav-profile-menu" role="menu" hidden>
-                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-profile-tab="overview">
-                            <renop-icon name="chevronLeft" aria-hidden="true"></renop-icon>
+                    <div class="nav-profile-menu" hidden id="profile-menu" role="menu">
+                        <button class="nav-profile-menu-item" data-profile-tab="overview" role="menuitem" type="button">
+                            <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                             <span data-i18n="nav.backHome">Back to home</span>
                         </button>
                         <div class="nav-profile-menu-separator" role="separator"></div>
-                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-profile-action="view">
-                            <renop-icon name="user" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item" data-profile-action="view" role="menuitem" type="button">
+                            <renop-icon aria-hidden="true" name="user"></renop-icon>
                             <span data-i18n="profile.viewOwnProfile">View profile</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-profile-action="edit">
-                            <renop-icon name="edit" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item" data-profile-action="edit" role="menuitem" type="button">
+                            <renop-icon aria-hidden="true" name="edit"></renop-icon>
                             <span data-i18n="profile.editOwnProfile">Edit profile</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-account-action="maven-domains">
-                            <renop-icon name="network" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item" data-account-action="maven-domains" role="menuitem"
+                                type="button">
+                            <renop-icon aria-hidden="true" name="network"></renop-icon>
                             <span data-i18n="maven.domainSettings">Domain settings</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-account-action="super-teams">
-                            <renop-icon name="identity" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item" data-account-action="super-teams" role="menuitem"
+                                type="button">
+                            <renop-icon aria-hidden="true" name="identity"></renop-icon>
                             <span data-i18n="superTeam.nav">Global teams</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-account-action="reviews">
-                            <renop-icon name="refresh" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item" data-account-action="reviews" role="menuitem"
+                                type="button">
+                            <renop-icon aria-hidden="true" name="refresh"></renop-icon>
                             <span data-i18n="review.nav">Reviews</span>
                         </button>
-                        <button id="message-center-btn" type="button" class="nav-profile-menu-item message-center-menu-item" role="menuitem" data-account-action="messages">
-                            <renop-icon name="bell" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item message-center-menu-item" data-account-action="messages"
+                                id="message-center-btn" role="menuitem"
+                                type="button">
+                            <renop-icon aria-hidden="true" name="bell"></renop-icon>
                             <span data-i18n="messages.title">Messages</span>
-                            <span id="message-unread-badge" class="message-unread-badge" hidden>0</span>
+                            <span class="message-unread-badge" hidden id="message-unread-badge">0</span>
                         </button>
-                        <div class="nav-profile-menu-separator manager-only" data-auth-display="block" style="display: none;" role="separator"></div>
-                        <button id="message-compose-menu-btn" type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-account-action="compose-notification">
-                            <renop-icon name="send" aria-hidden="true"></renop-icon>
+                        <div class="nav-profile-menu-separator manager-only" data-auth-display="block"
+                             role="separator" style="display: none;"></div>
+                        <button class="nav-profile-menu-item manager-only" data-account-action="compose-notification" data-auth-display="flex"
+                                id="message-compose-menu-btn" role="menuitem" style="display: none;"
+                                type="button">
+                            <renop-icon aria-hidden="true" name="send"></renop-icon>
                             <span data-i18n="messages.compose">Send notification</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="dashboard">
-                            <renop-icon name="performance" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="dashboard"
+                                role="menuitem" style="display: none;" type="button">
+                            <renop-icon aria-hidden="true" name="performance"></renop-icon>
                             <span data-i18n="tabs.dashboard">Dashboard</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="users">
-                            <renop-icon name="identity" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="users"
+                                role="menuitem" style="display: none;" type="button">
+                            <renop-icon aria-hidden="true" name="identity"></renop-icon>
                             <span data-i18n="tabs.users">Users</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="repositories">
-                            <renop-icon name="box" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="repositories"
+                                role="menuitem" style="display: none;" type="button">
+                            <renop-icon aria-hidden="true" name="box"></renop-icon>
                             <span data-i18n="tabs.repositories">Repositories</span>
                         </button>
-                        <button type="button" class="nav-profile-menu-item manager-only" role="menuitem" data-auth-display="flex" style="display: none;" data-profile-tab="settings">
-                            <renop-icon name="settings" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item manager-only" data-auth-display="flex" data-profile-tab="settings"
+                                role="menuitem" style="display: none;" type="button">
+                            <renop-icon aria-hidden="true" name="settings"></renop-icon>
                             <span data-i18n="tabs.settings">Settings</span>
                         </button>
                         <div class="nav-profile-menu-separator" role="separator"></div>
-                        <button id="logout-btn" type="button" class="nav-profile-menu-item is-danger" role="menuitem" data-account-action="logout">
-                            <renop-icon name="logout" aria-hidden="true"></renop-icon>
+                        <button class="nav-profile-menu-item is-danger" data-account-action="logout" id="logout-btn" role="menuitem"
+                                type="button">
+                            <renop-icon aria-hidden="true" name="logout"></renop-icon>
                             <span data-i18n="nav.logout">Log out</span>
                         </button>
                     </div>
@@ -147,63 +173,88 @@
 
 <div id="app">
     <main>
-        <div id="tab-content-overview" class="tab-content active">
+        <div class="tab-content active" id="tab-content-overview">
             <div class="layout-two-col">
                 <div class="col-left">
                     <div class="browser-header">
-                        <nav id="breadcrumb" class="breadcrumb-nav" aria-label="Directory path">
+                        <nav aria-label="Directory path" class="breadcrumb-nav" id="breadcrumb">
                             <span class="index-of">
-                                <svg class="index-of-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <svg aria-hidden="true" class="index-of-icon" fill="none" height="14" stroke="currentColor"
+                                     stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                                     viewBox="0 0 24 24" width="14">
                                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                                 </svg>
                                 <span class="index-of-label" data-i18n="browser.indexOf">Index of</span>
                             </span>
-                            <div id="breadcrumb-links" class="breadcrumb-trail"></div>
-                            <a href=".." class="up-dir" id="up-dir-btn" title="Up a directory" aria-label="Up a directory" data-i18n-title="browser.upDirectory" data-i18n-aria-label="browser.upDirectory">
-                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <line x1="12" y1="19" x2="12" y2="5"/>
+                            <div class="breadcrumb-trail" id="breadcrumb-links"></div>
+                            <a aria-label="Up a directory" class="up-dir" data-i18n-aria-label="browser.upDirectory" data-i18n-title="browser.upDirectory"
+                               href=".." id="up-dir-btn"
+                               title="Up a directory">
+                                <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
+                                     width="15">
+                                    <line x1="12" x2="12" y1="19" y2="5"/>
                                     <polyline points="5 12 12 5 19 12"/>
                                 </svg>
                             </a>
                         </nav>
-                        <form id="repository-search" class="repository-search" role="search" action="/" hidden>
-                            <span class="repository-search-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <form action="/" class="repository-search" hidden id="repository-search" role="search">
+                            <span aria-hidden="true" class="repository-search-icon">
+                                <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                     stroke-width="2.2" viewBox="0 0 24 24" width="15">
                                     <circle cx="11" cy="11" r="7"></circle>
-                                    <line x1="20" y1="20" x2="16.65" y2="16.65"></line>
+                                    <line x1="20" x2="16.65" y1="20" y2="16.65"></line>
                                 </svg>
                             </span>
-                            <input id="repository-search-input" type="search" autocomplete="off" maxlength="128"
-                                   aria-controls="repository-search-results" aria-autocomplete="list">
-                            <button id="repository-search-clear" class="repository-search-clear" type="button"
-                                    aria-label="Clear search" data-i18n-aria-label="search.clear" hidden>
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                            <input aria-autocomplete="list" aria-controls="repository-search-results" autocomplete="off" id="repository-search-input"
+                                   maxlength="128" type="search">
+                            <button aria-label="Clear search" class="repository-search-clear" data-i18n-aria-label="search.clear"
+                                    hidden id="repository-search-clear" type="button">
+                                <svg aria-hidden="true" fill="none" height="13" stroke="currentColor" stroke-linecap="round"
+                                     stroke-width="2.4" viewBox="0 0 24 24" width="13">
+                                    <line x1="18" x2="6" y1="6" y2="18"></line>
+                                    <line x1="6" x2="18" y1="6" y2="18"></line>
                                 </svg>
                             </button>
                         </form>
                         <div class="browser-adjustments">
-                            <button id="adjustments-btn" type="button" class="adjustments-trigger-btn" title="Adjustments" data-i18n-title="browser.adjustments" aria-haspopup="true" aria-expanded="false" aria-controls="adjustments-menu">
-                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <line x1="4" y1="21" x2="4" y2="14"/>
-                                    <line x1="4" y1="10" x2="4" y2="3"/>
-                                    <line x1="12" y1="21" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12" y2="3"/>
-                                    <line x1="20" y1="21" x2="20" y2="16"/>
-                                    <line x1="20" y1="12" x2="20" y2="3"/>
-                                    <line x1="1" y1="14" x2="7" y2="14"/>
-                                    <line x1="9" y1="8" x2="15" y2="8"/>
-                                    <line x1="17" y1="16" x2="23" y2="16"/>
+                            <button aria-controls="adjustments-menu" aria-expanded="false" aria-haspopup="true"
+                                    class="adjustments-trigger-btn" data-i18n-title="browser.adjustments" id="adjustments-btn"
+                                    title="Adjustments" type="button">
+                                <svg aria-hidden="true" fill="none" height="15" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
+                                     width="15">
+                                    <line x1="4" x2="4" y1="21" y2="14"/>
+                                    <line x1="4" x2="4" y1="10" y2="3"/>
+                                    <line x1="12" x2="12" y1="21" y2="12"/>
+                                    <line x1="12" x2="12" y1="8" y2="3"/>
+                                    <line x1="20" x2="20" y1="21" y2="16"/>
+                                    <line x1="20" x2="20" y1="12" y2="3"/>
+                                    <line x1="1" x2="7" y1="14" y2="14"/>
+                                    <line x1="9" x2="15" y1="8" y2="8"/>
+                                    <line x1="17" x2="23" y1="16" y2="16"/>
                                 </svg>
                                 <span class="adjustments-trigger-label" data-i18n="browser.view">View</span>
                             </button>
-                            <div id="adjustments-menu" class="adjustments-panel" aria-hidden="true">
+                            <div aria-hidden="true" class="adjustments-panel" id="adjustments-menu">
                                 <div class="adjustments-panel-header">
                                     <div class="adjustments-panel-icon">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                                        <svg aria-hidden="true" fill="none" height="14" stroke="currentColor"
+                                             stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                             viewBox="0 0 24 24" width="14">
+                                            <line x1="4" x2="4" y1="21" y2="14"/>
+                                            <line x1="4" x2="4" y1="10" y2="3"/>
+                                            <line x1="12" x2="12" y1="21" y2="12"/>
+                                            <line x1="12" x2="12" y1="8" y2="3"/>
+                                            <line x1="20" x2="20" y1="21" y2="16"/>
+                                            <line x1="20" x2="20" y1="12" y2="3"/>
+                                            <line x1="1" x2="7" y1="14" y2="14"/>
+                                            <line x1="9" x2="15" y1="8" y2="8"/>
+                                            <line x1="17" x2="23" y1="16" y2="16"/>
+                                        </svg>
                                     </div>
-                                    <span class="adjustments-panel-title" data-i18n="browser.fileBrowser">File Browser</span>
+                                    <span class="adjustments-panel-title"
+                                          data-i18n="browser.fileBrowser">File Browser</span>
                                 </div>
                                 <div class="adjustments-panel-body">
                                     <div class="adjustments-row">
@@ -212,7 +263,7 @@
                                             <span class="adjustments-row-desc" data-i18n="browser.sortNewestDesc">Display files from newest to oldest</span>
                                         </div>
                                         <label class="adj-toggle">
-                                            <input type="checkbox" id="sort-order-checkbox">
+                                            <input id="sort-order-checkbox" type="checkbox">
                                             <span class="adj-toggle-track"><span class="adj-toggle-thumb"></span></span>
                                         </label>
                                     </div>
@@ -222,7 +273,7 @@
                                             <span class="adjustments-row-desc" data-i18n="browser.showUtilityFilesDesc">Display checksums and metadata files</span>
                                         </div>
                                         <label class="adj-toggle">
-                                            <input type="checkbox" id="utility-files-checkbox">
+                                            <input id="utility-files-checkbox" type="checkbox">
                                             <span class="adj-toggle-track"><span class="adj-toggle-thumb"></span></span>
                                         </label>
                                     </div>
@@ -230,62 +281,77 @@
                             </div>
                         </div>
                     </div>
-                    <section id="maven-repository-view" class="maven-repository-view" hidden></section>
-                    <section id="cargo-repository-view" class="cargo-repository-view" hidden></section>
-                    <section id="docker-repository-view" class="docker-repository-view" hidden></section>
-                    <section id="npm-repository-view" class="npm-repository-view" hidden></section>
-                    <div id="file-list-container" class="file-list-container">
+                    <section class="maven-repository-view" hidden id="maven-repository-view"></section>
+                    <section class="cargo-repository-view" hidden id="cargo-repository-view"></section>
+                    <section class="docker-repository-view" hidden id="docker-repository-view"></section>
+                    <section class="npm-repository-view" hidden id="npm-repository-view"></section>
+                    <div class="file-list-container" id="file-list-container">
                         <div class="file-list-viewport">
-                            <ul id="file-list" class="file-list"></ul>
-                            <div id="empty-state" class="file-list-state" hidden data-i18n="browser.emptyState">Directory is empty</div>
-                            <div id="error-state" class="file-list-state file-list-state--error" hidden data-i18n="browser.errorState">Directory not found</div>
+                            <ul class="file-list" id="file-list"></ul>
+                            <div class="file-list-state" data-i18n="browser.emptyState" hidden id="empty-state">
+                                Directory is empty
+                            </div>
+                            <div class="file-list-state file-list-state--error" data-i18n="browser.errorState" hidden
+                                 id="error-state">Directory not found
+                            </div>
                         </div>
                     </div>
 
-                    <div id="upload-zone-container" class="upload-panel" hidden>
-                        <div id="upload-zone" class="upload-dropzone" role="button" tabindex="0"
-                             aria-label="Upload files by dropping or clicking to browse" data-i18n-aria-label="browser.uploadZoneAria">
-                            <div class="upload-dropzone-icon" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-                                     stroke-linejoin="round">
+                    <div class="upload-panel" hidden id="upload-zone-container">
+                        <div aria-label="Upload files by dropping or clicking to browse" class="upload-dropzone" data-i18n-aria-label="browser.uploadZoneAria" id="upload-zone"
+                             role="button"
+                             tabindex="0">
+                            <div aria-hidden="true" class="upload-dropzone-icon">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24"
+                                     xmlns="http://www.w3.org/2000/svg">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                     <polyline points="17 8 12 3 7 8"/>
-                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                    <line x1="12" x2="12" y1="3" y2="15"/>
                                 </svg>
                             </div>
                             <div class="upload-dropzone-text">
-                                <p class="upload-dropzone-title" data-i18n="browser.uploadTitle">Drop files to upload</p>
-                                <p class="upload-dropzone-hint"><span data-i18n="browser.uploadHintOr">or</span> <span class="upload-dropzone-browse" data-i18n="browser.uploadHintBrowse">browse</span> <span data-i18n="browser.uploadHintFromDevice">from your device</span></p>
+                                <p class="upload-dropzone-title" data-i18n="browser.uploadTitle">Drop files to
+                                    upload</p>
+                                <p class="upload-dropzone-hint"><span data-i18n="browser.uploadHintOr">or</span> <span
+                                        class="upload-dropzone-browse"
+                                        data-i18n="browser.uploadHintBrowse">browse</span> <span
+                                        data-i18n="browser.uploadHintFromDevice">from your device</span></p>
                             </div>
-                            <input type="file" id="file-upload-input" multiple hidden>
+                            <input hidden id="file-upload-input" multiple type="file">
                         </div>
 
-                        <div id="upload-controls" class="upload-controls" aria-hidden="true" hidden>
+                        <div aria-hidden="true" class="upload-controls" hidden id="upload-controls">
                             <div class="upload-controls-inner">
                                 <div class="upload-controls-card">
                                     <div class="upload-files-header">
                                         <div class="upload-files-header-left">
                                             <span class="upload-files-title" data-i18n="browser.selectedFiles">Selected files</span>
-                                            <span id="upload-file-count" class="upload-file-count"></span>
-                                            <span id="upload-total-size" class="upload-total-size"></span>
+                                            <span class="upload-file-count" id="upload-file-count"></span>
+                                            <span class="upload-total-size" id="upload-total-size"></span>
                                         </div>
-                                        <button type="button" id="upload-clear-btn" class="upload-clear-btn" data-i18n="browser.clearAll">Clear all</button>
+                                        <button class="upload-clear-btn" data-i18n="browser.clearAll" id="upload-clear-btn"
+                                                type="button">Clear all
+                                        </button>
                                     </div>
-                                    <div id="upload-batch-progress-container" class="upload-batch-progress-container" style="display: none;">
+                                    <div class="upload-batch-progress-container" id="upload-batch-progress-container"
+                                         style="display: none;">
                                         <div class="upload-batch-progress-info">
-                                            <span id="upload-batch-progress-text" class="upload-batch-progress-text"></span>
-                                            <span id="upload-batch-progress-percent" class="upload-batch-progress-percent"></span>
+                                            <span class="upload-batch-progress-text"
+                                                  id="upload-batch-progress-text"></span>
+                                            <span class="upload-batch-progress-percent"
+                                                  id="upload-batch-progress-percent"></span>
                                         </div>
                                         <div class="upload-batch-progress-bar">
-                                            <div id="upload-batch-progress-fill" class="upload-batch-progress-fill"></div>
+                                            <div class="upload-batch-progress-fill"
+                                                 id="upload-batch-progress-fill"></div>
                                         </div>
                                     </div>
-                                    <div id="upload-file-list" class="upload-file-list"></div>
+                                    <div class="upload-file-list" id="upload-file-list"></div>
 
                                     <div class="upload-options">
                                         <label class="upload-option">
-                                            <span class="switch"><input type="checkbox" id="checksum-checkbox"><span
+                                            <span class="switch"><input id="checksum-checkbox" type="checkbox"><span
                                                     class="slider"></span></span>
                                             <span class="upload-option-text">
                                                 <span class="upload-option-label" data-i18n="browser.genChecksums">Generate checksums</span>
@@ -293,7 +359,7 @@
                                             </span>
                                         </label>
                                         <label class="upload-option">
-                                            <span class="switch"><input type="checkbox" id="pom-checkbox"><span
+                                            <span class="switch"><input id="pom-checkbox" type="checkbox"><span
                                                     class="slider"></span></span>
                                             <span class="upload-option-text">
                                                 <span class="upload-option-label" data-i18n="browser.genPom">Generate stub POM</span>
@@ -302,21 +368,29 @@
                                         </label>
                                     </div>
 
-                                    <div id="pom-form" class="pom-form">
+                                    <div class="pom-form" id="pom-form">
                                         <div class="pom-form-inner">
                                             <div class="pom-form-card">
                                                 <div class="pom-form-grid">
                                                     <div class="form-group">
-                                                        <label for="pom-group-id" data-i18n="browser.pomGroup">Group</label>
-                                                        <input type="text" id="pom-group-id" placeholder="com.example" data-i18n-placeholder="browser.pomGroupPlaceholder" autocomplete="off">
+                                                        <label data-i18n="browser.pomGroup"
+                                                               for="pom-group-id">Group</label>
+                                                        <input autocomplete="off" data-i18n-placeholder="browser.pomGroupPlaceholder" id="pom-group-id"
+                                                               placeholder="com.example"
+                                                               type="text">
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="pom-artifact-id" data-i18n="browser.pomArtifact">Artifact</label>
-                                                        <input type="text" id="pom-artifact-id" placeholder="my-app" data-i18n-placeholder="browser.pomArtifactPlaceholder" autocomplete="off">
+                                                        <label data-i18n="browser.pomArtifact" for="pom-artifact-id">Artifact</label>
+                                                        <input autocomplete="off" data-i18n-placeholder="browser.pomArtifactPlaceholder" id="pom-artifact-id"
+                                                               placeholder="my-app"
+                                                               type="text">
                                                     </div>
                                                     <div class="form-group">
-                                                        <label for="pom-version" data-i18n="browser.pomVersion">Version</label>
-                                                        <input type="text" id="pom-version" placeholder="1.0.0" data-i18n-placeholder="browser.pomVersionPlaceholder" autocomplete="off">
+                                                        <label data-i18n="browser.pomVersion"
+                                                               for="pom-version">Version</label>
+                                                        <input autocomplete="off" data-i18n-placeholder="browser.pomVersionPlaceholder" id="pom-version"
+                                                               placeholder="1.0.0"
+                                                               type="text">
                                                     </div>
                                                 </div>
                                             </div>
@@ -325,16 +399,22 @@
 
                                     <div class="upload-footer">
                                         <div class="upload-destination-field">
-                                            <label for="upload-destination" data-i18n="browser.uploadDest">Destination</label>
-                                            <input type="text" id="upload-destination" placeholder="repository/path/to/upload" data-i18n-placeholder="browser.uploadDestPlaceholder" autocomplete="off">
+                                            <label data-i18n="browser.uploadDest"
+                                                   for="upload-destination">Destination</label>
+                                            <input autocomplete="off" data-i18n-placeholder="browser.uploadDestPlaceholder"
+                                                   id="upload-destination"
+                                                   placeholder="repository/path/to/upload"
+                                                   type="text">
                                         </div>
-                                        <button id="upload-btn" type="button" class="pill-btn pill-btn--primary upload-submit-btn">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                                                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-                                                 aria-hidden="true">
+                                        <button class="pill-btn pill-btn--primary upload-submit-btn" id="upload-btn"
+                                                type="button">
+                                            <svg aria-hidden="true" fill="none" height="16" stroke="currentColor"
+                                                 stroke-linecap="round"
+                                                 stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24"
+                                                 width="16">
                                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                                 <polyline points="17 8 12 3 7 8"/>
-                                                <line x1="12" y1="3" x2="12" y2="15"/>
+                                                <line x1="12" x2="12" y1="3" y2="15"/>
                                             </svg>
                                             <span class="upload-btn-label" data-i18n="browser.uploadFilesBtn">Upload files</span>
                                         </button>
@@ -348,14 +428,32 @@
                 <div class="col-right" hidden>
                     <div class="details-card" id="repo-snippets-card" style="display: none;">
                         <div class="details-card-header">
-                            <div class="details-card-icon" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            <div aria-hidden="true" class="details-card-icon">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" x2="8" y1="13" y2="13"/>
+                                    <line x1="16" x2="8" y1="17" y2="17"/>
+                                    <polyline points="10 9 9 9 8 9"/>
+                                </svg>
                             </div>
                             <div class="details-card-meta">
-                                <h3 id="details-card-title" class="details-card-title" data-i18n="details.title">Repository details</h3>
-                                <p id="details-card-subtitle" class="details-card-subtitle" data-i18n="details.subtitle">Copy configuration snippets for your build tool</p>
+                                <h3 class="details-card-title" data-i18n="details.title" id="details-card-title">
+                                    Repository details</h3>
+                                <p class="details-card-subtitle" data-i18n="details.subtitle"
+                                   id="details-card-subtitle">Copy configuration snippets for your build tool</p>
                             </div>
-                            <button class="copy-btn" title="Copy snippet" data-i18n-title="details.copySnippet" id="copy-snippet-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="icon-svg"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                            <button class="copy-btn" data-i18n-title="details.copySnippet" id="copy-snippet-btn"
+                                    title="Copy snippet">
+                                <svg aria-hidden="true" class="icon-svg" fill="none" height="14" stroke="currentColor"
+                                     stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                                     width="14">
+                                    <rect height="13" rx="2" ry="2" width="13" x="9" y="9"/>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                            </button>
                         </div>
                         <div class="snippet-tabs">
                             <button class="snippet-tab active" data-snippet="maven">Maven</button>
@@ -369,12 +467,20 @@
                     </div>
                     <div class="details-card repo-stats-card" id="repo-stats-card" style="display: none;">
                         <div class="details-card-header">
-                            <div class="details-card-icon" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            <div aria-hidden="true" class="details-card-icon">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                                </svg>
                             </div>
                             <div class="details-card-meta">
-                                <h3 class="details-card-title" data-i18n="details.statsTitle">Repository Storage & Mirrors</h3>
-                                <p class="details-card-subtitle" data-i18n="details.statsSubtitle">Local storage usage and configured mirrors</p>
+                                <h3 class="details-card-title" data-i18n="details.statsTitle">Repository Storage &
+                                    Mirrors</h3>
+                                <p class="details-card-subtitle" data-i18n="details.statsSubtitle">Local storage usage
+                                    and configured mirrors</p>
                             </div>
                         </div>
                         <div class="repo-stats-content" id="repo-stats-content"></div>
@@ -383,30 +489,45 @@
             </div>
         </div>
 
-        <div id="tab-content-dashboard" class="tab-content" style="display: none;">
+        <div class="tab-content" id="tab-content-dashboard" style="display: none;">
             <div class="dashboard-hero">
                 <div class="dashboard-hero-text">
                     <h2 class="dashboard-title" data-i18n="dashboard.title">Instance Status</h2>
-                    <p class="dashboard-subtitle" data-i18n="dashboard.subtitle">Real-time metrics for your Renop instance</p>
+                    <p class="dashboard-subtitle" data-i18n="dashboard.subtitle">Real-time metrics for your Renop
+                        instance</p>
                 </div>
-                <div class="dashboard-status-dot" id="dashboard-status-indicator" title="Instance healthy" data-i18n-title="dashboard.healthy"></div>
+                <div class="dashboard-status-dot" data-i18n-title="dashboard.healthy" id="dashboard-status-indicator"
+                     title="Instance healthy"></div>
             </div>
             <div class="dashboard-cards">
                 <div class="dashboard-card dashboard-card--version">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                            <line x1="7" x2="7.01" y1="7" y2="7"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.version">Version</div>
-                        <div class="dashboard-card-value" style="display:flex; flex-direction:column; align-items:flex-start; gap:0.25rem;">
-                            <a href="https://github.com/404Setup/SRC-RenoP" target="_blank" id="dashboard-version">...</a>
-                            <button id="btn-dashboard-update" class="pill-btn pill-btn--soft pill-btn--sm manager-only" type="button" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;" data-i18n="dashboard.checkUpdate">Check for Updates</button>
+                        <div class="dashboard-card-value"
+                             style="display:flex; flex-direction:column; align-items:flex-start; gap:0.25rem;">
+                            <a href="https://github.com/404Setup/SRC-RenoP" id="dashboard-version"
+                               target="_blank">...</a>
+                            <button class="pill-btn pill-btn--soft pill-btn--sm manager-only" data-i18n="dashboard.checkUpdate"
+                                    id="btn-dashboard-update" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;"
+                                    type="button">Check for Updates
+                            </button>
                         </div>
                     </div>
                 </div>
                 <div class="dashboard-card dashboard-card--uptime">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.uptime">Uptime</div>
@@ -414,8 +535,15 @@
                     </div>
                 </div>
                 <div class="dashboard-card dashboard-card--memory">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <rect height="12" rx="2" width="20" x="2" y="6"/>
+                            <line x1="6" x2="6" y1="10" y2="14"/>
+                            <line x1="10" x2="10" y1="10" y2="14"/>
+                            <line x1="14" x2="14" y1="10" y2="14"/>
+                            <line x1="18" x2="18" y1="10" y2="14"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.memory">Memory Usage</div>
@@ -423,8 +551,13 @@
                     </div>
                 </div>
                 <div class="dashboard-card dashboard-card--disk">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                            <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
+                            <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.disk">Disk Usage</div>
@@ -432,8 +565,14 @@
                     </div>
                 </div>
                 <div class="dashboard-card dashboard-card--threads">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.threads">Threads</div>
@@ -441,8 +580,20 @@
                     </div>
                 </div>
                 <div class="dashboard-card dashboard-card--cores">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <rect height="16" rx="2" width="16" x="4" y="4"/>
+                            <rect height="6" width="6" x="9" y="9"/>
+                            <line x1="9" x2="9" y1="1" y2="4"/>
+                            <line x1="15" x2="15" y1="1" y2="4"/>
+                            <line x1="9" x2="9" y1="20" y2="23"/>
+                            <line x1="15" x2="15" y1="20" y2="23"/>
+                            <line x1="20" x2="23" y1="9" y2="9"/>
+                            <line x1="20" x2="23" y1="14" y2="14"/>
+                            <line x1="1" x2="4" y1="9" y2="9"/>
+                            <line x1="1" x2="4" y1="14" y2="14"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.cores">Cores (Log / Phy)</div>
@@ -450,8 +601,13 @@
                     </div>
                 </div>
                 <div class="dashboard-card dashboard-card--os">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <rect height="14" rx="2" width="20" x="2" y="3"/>
+                            <line x1="8" x2="16" y1="21" y2="21"/>
+                            <line x1="12" x2="12" y1="17" y2="21"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.os">OS / Arch</div>
@@ -459,8 +615,13 @@
                     </div>
                 </div>
                 <div class="dashboard-card dashboard-card--failures">
-                    <div class="dashboard-card-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <div aria-hidden="true" class="dashboard-card-icon">
+                        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" x2="12" y1="9" y2="13"/>
+                            <line x1="12" x2="12.01" y1="17" y2="17"/>
+                        </svg>
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-card-title" data-i18n="dashboard.failures">Failures</div>
@@ -474,36 +635,43 @@
                     <span class="dashboard-section-badge" data-i18n="dashboard.liveBadge">Live</span>
                 </div>
                 <div class="dashboard-chart-card">
-                    <div id="snapshots-chart" class="snapshots-chart"></div>
+                    <div class="snapshots-chart" id="snapshots-chart"></div>
                     <div class="dashboard-chart-legend">
                         <span class="dashboard-chart-legend-item">
-                            <span class="dashboard-chart-legend-swatch dashboard-chart-legend-swatch--rss" aria-hidden="true"></span>
+                            <span aria-hidden="true"
+                                  class="dashboard-chart-legend-swatch dashboard-chart-legend-swatch--rss"></span>
                             <span data-i18n="dashboard.chartLegendRss">RSS (resident)</span>
                         </span>
                         <span class="dashboard-chart-legend-item">
-                            <span class="dashboard-chart-legend-swatch dashboard-chart-legend-swatch--vss" aria-hidden="true"></span>
+                            <span aria-hidden="true"
+                                  class="dashboard-chart-legend-swatch dashboard-chart-legend-swatch--vss"></span>
                             <span data-i18n="dashboard.chartLegendVss">VSS (virtual)</span>
                         </span>
                     </div>
                 </div>
             </div>
-            <div class="dashboard-section dashboard-debug-section" id="dashboard-debug-tools" hidden>
+            <div class="dashboard-section dashboard-debug-section" hidden id="dashboard-debug-tools">
                 <div class="dashboard-section-header">
                     <h3 class="dashboard-section-title" data-i18n="dashboard.debugTitle">Debug memory</h3>
-                    <span class="dashboard-section-badge dashboard-section-badge--debug" data-i18n="dashboard.debugBadge">Debug</span>
+                    <span class="dashboard-section-badge dashboard-section-badge--debug"
+                          data-i18n="dashboard.debugBadge">Debug</span>
                 </div>
                 <div class="dashboard-debug-card">
                     <p class="dashboard-debug-hint" data-i18n="dashboard.debugMemoryHint">
-                        Download a full Go heap profile (pprof) for flame-graph analysis. Open with Speedscope or go tool pprof.
+                        Download a full Go heap profile (pprof) for flame-graph analysis. Open with Speedscope or go
+                        tool pprof.
                     </p>
                     <div class="dashboard-debug-actions">
-                        <button type="button" class="pill-btn pill-btn--soft" id="btn-dump-heap" data-i18n="dashboard.dumpHeap">
+                        <button class="pill-btn pill-btn--soft" data-i18n="dashboard.dumpHeap" id="btn-dump-heap"
+                                type="button">
                             Dump heap flamegraph
                         </button>
-                        <button type="button" class="pill-btn pill-btn--soft" id="btn-dump-allocs" data-i18n="dashboard.dumpAllocs">
+                        <button class="pill-btn pill-btn--soft" data-i18n="dashboard.dumpAllocs" id="btn-dump-allocs"
+                                type="button">
                             Dump allocs profile
                         </button>
-                        <button type="button" class="pill-btn pill-btn--soft" id="btn-dump-goroutine" data-i18n="dashboard.dumpGoroutine">
+                        <button class="pill-btn pill-btn--soft" data-i18n="dashboard.dumpGoroutine" id="btn-dump-goroutine"
+                                type="button">
                             Dump goroutines
                         </button>
                     </div>
@@ -511,260 +679,368 @@
             </div>
         </div>
 
-        <div id="tab-content-maven-domains" class="tab-content" style="display: none;">
-            <section class="maven-domain-page" aria-labelledby="maven-domain-page-title">
+        <div class="tab-content" id="tab-content-maven-domains" style="display: none;">
+            <section aria-labelledby="maven-domain-page-title" class="maven-domain-page">
                 <header class="maven-domain-page-header">
-                    <button id="maven-domain-home" type="button" class="maven-back-btn">
-                        <renop-icon name="chevronLeft" aria-hidden="true"></renop-icon>
+                    <button class="maven-back-btn" id="maven-domain-home" type="button">
+                        <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.backHome">Back to home</span>
                     </button>
                     <div>
                         <span class="maven-kicker">Maven</span>
-                        <h2 id="maven-domain-page-title" data-i18n="maven.domainCenterTitle">Global Maven domains</h2>
-                        <p data-i18n="maven.domainCenterSubtitle">Configure a publishing domain once and use its team across every Maven repository.</p>
+                        <h2 data-i18n="maven.domainCenterTitle" id="maven-domain-page-title">Global Maven domains</h2>
+                        <p data-i18n="maven.domainCenterSubtitle">Configure a publishing domain once and use its team
+                            across every Maven repository.</p>
                     </div>
                 </header>
-                <div id="maven-domain-page-content" class="maven-domain-center"></div>
+                <div class="maven-domain-center" id="maven-domain-page-content"></div>
             </section>
         </div>
 
-        <div id="tab-content-super-teams" class="tab-content" style="display: none;">
-            <section class="super-team-page" aria-labelledby="super-team-page-title">
+        <div class="tab-content" id="tab-content-super-teams" style="display: none;">
+            <section aria-labelledby="super-team-page-title" class="super-team-page">
                 <header class="super-team-page-header">
-                    <button id="super-team-home" type="button" class="super-team-back">
-                        <renop-icon name="chevronLeft" aria-hidden="true"></renop-icon>
+                    <button class="super-team-back" id="super-team-home" type="button">
+                        <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.backHome">Back to home</span>
                     </button>
                     <div>
                         <span class="super-team-kicker">RenoP</span>
-                        <h2 id="super-team-page-title" data-i18n="superTeam.title">Global teams</h2>
-                        <p data-i18n="superTeam.subtitle">Manage shared publishing identities and cross-engine namespaces.</p>
+                        <h2 data-i18n="superTeam.title" id="super-team-page-title">Global teams</h2>
+                        <p data-i18n="superTeam.subtitle">Manage shared publishing identities and cross-engine
+                            namespaces.</p>
                     </div>
                 </header>
-                <div id="super-team-page-content" class="super-team-center"></div>
+                <div class="super-team-center" id="super-team-page-content"></div>
             </section>
         </div>
 
-        <div id="tab-content-reviews" class="tab-content" style="display: none;">
-            <section class="review-page" aria-labelledby="review-page-title">
+        <div class="tab-content" id="tab-content-reviews" style="display: none;">
+            <section aria-labelledby="review-page-title" class="review-page">
                 <header class="review-page-header">
-                    <button id="review-home" type="button" class="super-team-back">
-                        <renop-icon name="chevronLeft" aria-hidden="true"></renop-icon>
+                    <button class="super-team-back" id="review-home" type="button">
+                        <renop-icon aria-hidden="true" name="chevronLeft"></renop-icon>
                         <span data-i18n="nav.backHome">Back to home</span>
                     </button>
                     <div>
-                        <h2 id="review-page-title" data-i18n="review.title">Reviews</h2>
-                        <p data-i18n="review.subtitle">Review ownership transfers and moderated publications independently from notifications.</p>
+                        <h2 data-i18n="review.title" id="review-page-title">Reviews</h2>
+                        <p data-i18n="review.subtitle">Review ownership transfers and moderated publications
+                            independently from notifications.</p>
                     </div>
                 </header>
-                <div id="review-page-content" class="review-center"></div>
+                <div class="review-center" id="review-page-content"></div>
             </section>
         </div>
 
-        <div id="tab-content-profile" class="tab-content" style="display: none;">
-            <div id="profile-public-view" class="profile-route-view"></div>
-            <div id="profile-edit-view" class="profile-route-view" hidden>
-            <div class="profile-hero">
-                <div class="profile-avatar-ring">
-                    <div class="profile-avatar-inner" id="profile-avatar-initials">?</div>
+        <div class="tab-content" id="tab-content-profile" style="display: none;">
+            <div class="profile-route-view" id="profile-public-view"></div>
+            <div class="profile-route-view" hidden id="profile-edit-view">
+                <div class="profile-hero">
+                    <div class="profile-avatar-ring">
+                        <div class="profile-avatar-inner" id="profile-avatar-initials">?</div>
+                    </div>
+                    <div class="profile-hero-text">
+                        <h2 class="profile-hero-name" data-i18n="profile.title" id="profile-display-name">My
+                            Profile</h2>
+                        <p class="profile-hero-sub" data-i18n="profile.subtitle">Manage your account settings and access
+                            credentials</p>
+                    </div>
                 </div>
-                <div class="profile-hero-text">
-                    <h2 class="profile-hero-name" id="profile-display-name" data-i18n="profile.title">My Profile</h2>
-                    <p class="profile-hero-sub" data-i18n="profile.subtitle">Manage your account settings and access credentials</p>
-                </div>
-            </div>
 
-            <div class="profile-settings-card">
-                <details class="profile-settings-section profile-collapsible-card">
-                    <summary class="profile-section-card-header profile-collapsible-summary">
-                        <div class="profile-section-icon profile-section-icon--password" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        </div>
-                        <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.changePasswordTitle">Change Password</h3>
-                            <p class="profile-section-desc" data-i18n="profile.changePasswordDesc">Update your account password below.</p>
-                        </div>
-                        <renop-icon name="chevronDown" class="profile-collapse-chevron" aria-hidden="true"></renop-icon>
-                    </summary>
-                    <div class="profile-collapsible-content" hidden>
-                        <form id="profile-password-form" action="javascript:void(0);" class="profile-section-body">
-                            <input type="text" id="profile-username-hidden" name="username" autocomplete="username" style="display: none;" readonly>
-                            <div class="form-group profile-form-group">
-                                <label for="profile-new-password" data-i18n="profile.newPasswordLabel">New Password</label>
-                                <input type="password" id="profile-new-password" autocomplete="new-password" placeholder="Enter new password" data-i18n-placeholder="profile.newPasswordPlaceholder"
-                                       class="profile-input">
+                <div class="profile-settings-card">
+                    <details class="profile-settings-section profile-collapsible-card">
+                        <summary class="profile-section-card-header profile-collapsible-summary">
+                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--password">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <rect height="11" rx="2" ry="2" width="18" x="3" y="11"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
                             </div>
-                            <button type="submit" id="btn-update-password" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.updatePasswordBtn">Update Password</button>
-                        </form>
-                    </div>
-                </details>
-
-                <details id="profile-account-security-section" class="profile-settings-section profile-account-security-section profile-collapsible-card" hidden>
-                    <summary class="profile-section-card-header profile-collapsible-summary">
-                        <div class="profile-section-icon profile-section-icon--account-security" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-                        </div>
-                        <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.accountSecurityTitle">Account Security</h3>
-                            <p class="profile-section-desc" data-i18n="profile.accountSecurityDesc">Manage your private login email, password login, and one-time recovery codes.</p>
-                        </div>
-                        <renop-icon name="chevronDown" class="profile-collapse-chevron" aria-hidden="true"></renop-icon>
-                    </summary>
-                    <div class="profile-collapsible-content" hidden>
-                    <div class="profile-section-body profile-account-security-body">
-                        <form id="profile-private-email-form" class="profile-security-email-form" action="javascript:void(0);">
-                            <label for="profile-private-email" data-i18n="profile.privateEmailLabel">Email</label>
-                            <div class="profile-security-inline">
-                                <input id="profile-private-email" class="profile-input" type="email" maxlength="254" autocomplete="email" required
-                                       placeholder="name@example.com" data-i18n-placeholder="profile.privateEmailPlaceholder">
-                                <button type="submit" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.savePrivateEmail">Save</button>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.changePasswordTitle">Change
+                                    Password</h3>
+                                <p class="profile-section-desc" data-i18n="profile.changePasswordDesc">Update your
+                                    account password below.</p>
                             </div>
-                            <p class="profile-security-hint" data-i18n="profile.privateEmailHint">This email is never shown publicly and can be used to sign in or recover your account.</p>
-                        </form>
-                        <div class="profile-security-control">
-                            <div>
-                                <strong data-i18n="profile.passwordLoginTitle">Password login</strong>
-                                <p id="profile-password-login-hint" class="profile-security-hint"></p>
+                            <renop-icon aria-hidden="true" class="profile-collapse-chevron"
+                                        name="chevronDown"></renop-icon>
+                        </summary>
+                        <div class="profile-collapsible-content" hidden>
+                            <form action="javascript:void(0);" class="profile-section-body" id="profile-password-form">
+                                <input autocomplete="username" id="profile-username-hidden" name="username" readonly
+                                       style="display: none;" type="text">
+                                <div class="form-group profile-form-group">
+                                    <label data-i18n="profile.newPasswordLabel" for="profile-new-password">New
+                                        Password</label>
+                                    <input autocomplete="new-password" class="profile-input" data-i18n-placeholder="profile.newPasswordPlaceholder"
+                                           id="profile-new-password"
+                                           placeholder="Enter new password"
+                                           type="password">
+                                </div>
+                                <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.updatePasswordBtn"
+                                        id="btn-update-password"
+                                        type="submit">Update Password
+                                </button>
+                            </form>
+                        </div>
+                    </details>
+
+                    <details class="profile-settings-section profile-account-security-section profile-collapsible-card"
+                             hidden
+                             id="profile-account-security-section">
+                        <summary class="profile-section-card-header profile-collapsible-summary">
+                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--account-security">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                     stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M12 3 4 6v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-3Z"/>
+                                    <path d="m9 12 2 2 4-4"/>
+                                </svg>
                             </div>
-                            <label class="profile-security-switch">
-                                <input id="profile-password-login-toggle" type="checkbox">
-                                <span aria-hidden="true"></span>
-                                <span class="sr-only" data-i18n="profile.passwordLoginTitle">Password login</span>
-                            </label>
-                        </div>
-                        <div class="profile-security-control profile-recovery-control">
-                            <div>
-                                <strong data-i18n="profile.recoveryCodesTitle">Recovery codes</strong>
-                                <p id="profile-recovery-code-status" class="profile-security-hint" data-i18n="profile.recoveryCodesNone">No recovery codes have been generated.</p>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.accountSecurityTitle">Account
+                                    Security</h3>
+                                <p class="profile-section-desc" data-i18n="profile.accountSecurityDesc">Manage your
+                                    private login email, password login, and one-time recovery codes.</p>
                             </div>
-                            <button id="btn-profile-recovery-codes" type="button" class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.generateRecoveryCodes">Generate codes</button>
+                            <renop-icon aria-hidden="true" class="profile-collapse-chevron"
+                                        name="chevronDown"></renop-icon>
+                        </summary>
+                        <div class="profile-collapsible-content" hidden>
+                            <div class="profile-section-body profile-account-security-body">
+                                <form action="javascript:void(0);" class="profile-security-email-form"
+                                      id="profile-private-email-form">
+                                    <label data-i18n="profile.privateEmailLabel"
+                                           for="profile-private-email">Email</label>
+                                    <div class="profile-security-inline">
+                                        <input autocomplete="email" class="profile-input" data-i18n-placeholder="profile.privateEmailPlaceholder"
+                                               id="profile-private-email" maxlength="254" placeholder="name@example.com"
+                                               required
+                                               type="email">
+                                        <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.savePrivateEmail"
+                                                type="submit">Save
+                                        </button>
+                                    </div>
+                                    <p class="profile-security-hint" data-i18n="profile.privateEmailHint">This email is
+                                        never shown publicly and can be used to sign in or recover your account.</p>
+                                </form>
+                                <div class="profile-security-control">
+                                    <div>
+                                        <strong data-i18n="profile.passwordLoginTitle">Password login</strong>
+                                        <p class="profile-security-hint" id="profile-password-login-hint"></p>
+                                    </div>
+                                    <label class="profile-security-switch">
+                                        <input id="profile-password-login-toggle" type="checkbox">
+                                        <span aria-hidden="true"></span>
+                                        <span class="sr-only"
+                                              data-i18n="profile.passwordLoginTitle">Password login</span>
+                                    </label>
+                                </div>
+                                <div class="profile-security-control profile-recovery-control">
+                                    <div>
+                                        <strong data-i18n="profile.recoveryCodesTitle">Recovery codes</strong>
+                                        <p class="profile-security-hint" data-i18n="profile.recoveryCodesNone"
+                                           id="profile-recovery-code-status">No recovery codes have been
+                                            generated.</p>
+                                    </div>
+                                    <button class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.generateRecoveryCodes"
+                                            id="btn-profile-recovery-codes"
+                                            type="button">Generate codes
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    </div>
-                </details>
+                    </details>
 
-                <div id="profile-api-token-section" class="profile-settings-section">
-                    <div class="profile-section-card-header">
-                        <div class="profile-section-icon profile-section-icon--token" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    <div class="profile-settings-section" id="profile-api-token-section">
+                        <div class="profile-section-card-header">
+                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--token">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                </svg>
+                            </div>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.apiTokensTitle">API Tokens</h3>
+                                <p class="profile-section-desc" data-i18n="profile.apiTokensDesc">Create named, expiring
+                                    credentials with only the permissions each automation needs.</p>
+                            </div>
                         </div>
-                        <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.apiTokensTitle">API Tokens</h3>
-                            <p class="profile-section-desc" data-i18n="profile.apiTokensDesc">Create named, expiring credentials with only the permissions each automation needs.</p>
+                        <div class="profile-section-body profile-api-token-summary">
+                            <p class="profile-security-hint" data-i18n="profile.apiTokensLoading"
+                               id="profile-api-token-status">Loading API tokens…</p>
+                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.manageApiTokens"
+                                    id="btn-manage-api-tokens"
+                                    type="button">Manage API Tokens
+                            </button>
                         </div>
                     </div>
-                    <div class="profile-section-body profile-api-token-summary">
-                        <p id="profile-api-token-status" class="profile-security-hint" data-i18n="profile.apiTokensLoading">Loading API tokens…</p>
-                        <button id="btn-manage-api-tokens" type="button" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.manageApiTokens">Manage API Tokens</button>
+
+                    <div class="profile-settings-section">
+                        <div class="profile-section-card-header">
+                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--sessions">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <rect height="14" rx="2" width="20" x="2" y="3"/>
+                                    <path d="M8 21h8"/>
+                                    <path d="M12 17v4"/>
+                                    <path d="M6 8h.01"/>
+                                    <path d="M9 8h6"/>
+                                </svg>
+                            </div>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.sessionsTitle">Active Sessions</h3>
+                                <p class="profile-section-desc" data-i18n="profile.sessionsDesc">Review browser logins,
+                                    devices, IPs, and revoke sessions you no longer trust.</p>
+                            </div>
+                        </div>
+                        <div class="profile-section-body">
+                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.sessionsBtn"
+                                    id="btn-profile-sessions"
+                                    type="button">Manage Sessions
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="profile-settings-section">
+                        <div class="profile-section-card-header">
+                            <div aria-hidden="true"
+                                 class="profile-section-icon profile-section-icon--fido" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round"
+                                     stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/>
+                                    <circle cx="12" cy="15" r="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.fidoTitle">Passkeys</h3>
+                                <p class="profile-section-desc" data-i18n="profile.fidoDesc">Manage Passkeys used for
+                                    passwordless login.</p>
+                            </div>
+                        </div>
+                        <div class="profile-section-body">
+                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.fidoBtn"
+                                    id="btn-profile-fido" type="button">
+                                Manage Passkeys
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="profile-settings-section" hidden id="profile-github-section">
+                        <div class="profile-section-card-header">
+                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--github">
+                                <svg fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/>
+                                </svg>
+                            </div>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.githubTitle">GitHub Account</h3>
+                                <p class="profile-section-desc" data-i18n="profile.githubDesc">Connect GitHub to sign in
+                                    and authorize Maven namespaces owned by your account or organizations.</p>
+                            </div>
+                        </div>
+                        <div class="profile-section-body profile-github-body">
+                            <p class="profile-github-status" data-i18n="profile.githubLoading"
+                               id="profile-github-status">Loading GitHub connection…</p>
+                            <div class="profile-github-actions">
+                                <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.githubConnect"
+                                        hidden id="btn-profile-github-connect"
+                                        type="button">Connect GitHub
+                                </button>
+                                <button class="pill-btn pill-btn--soft profile-action-btn" data-i18n="profile.githubDisconnect"
+                                        hidden id="btn-profile-github-disconnect"
+                                        type="button">Disconnect
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-settings-section">
+                        <div class="profile-section-card-header">
+                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--gpg">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                     stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M21 2l-2 2m-1.5 1.5L14 9.5"/>
+                                    <path d="M15.5 7.5L17 9"/>
+                                    <circle cx="7.5" cy="16.5" r="4.5"/>
+                                </svg>
+                            </div>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.gpgTitle">GPG Signing Keys</h3>
+                                <p class="profile-section-desc" data-i18n="profile.gpgDesc">Register public signing-key
+                                    IDs used to verify Maven uploads.</p>
+                            </div>
+                        </div>
+                        <div class="profile-section-body">
+                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.gpgBtn"
+                                    id="btn-profile-gpg" type="button">
+                                Manage GPG Keys
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="profile-settings-section">
+                        <div class="profile-section-card-header">
+                            <div aria-hidden="true" class="profile-section-icon profile-section-icon--gpg-releases">
+                                <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                     stroke-width="2" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="9"/>
+                                    <path d="M12 7v5l3 2"/>
+                                    <path d="M7 3.5 4.5 6"/>
+                                </svg>
+                            </div>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.gpgReleasesTitle">GPG
+                                    Publications</h3>
+                                <p class="profile-section-desc" data-i18n="profile.gpgReleasesDesc">Review queued,
+                                    validating, failed, and successful Maven publications.</p>
+                            </div>
+                        </div>
+                        <div class="profile-section-body">
+                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.gpgReleasesBtn"
+                                    id="btn-profile-gpg-releases"
+                                    type="button">View Publications
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="profile-settings-section">
+                        <div class="profile-section-card-header">
+                            <div aria-hidden="true"
+                                 class="profile-section-icon profile-section-icon--audit" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
+                                <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                     stroke-width="2" viewBox="0 0 24 24" width="20">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" x2="8" y1="13" y2="13"></line>
+                                    <line x1="16" x2="8" y1="17" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            <div class="profile-section-meta">
+                                <h3 class="profile-section-title" data-i18n="profile.auditLogsTitle">Activity Logs</h3>
+                                <p class="profile-section-desc" data-i18n="profile.auditLogsDesc">View your account
+                                    activity and operation history.</p>
+                            </div>
+                        </div>
+                        <div class="profile-section-body">
+                            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.auditLogsBtn"
+                                    id="btn-profile-audit-logs"
+                                    type="button">View Activity Logs
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <div class="profile-settings-section">
-                    <div class="profile-section-card-header">
-                        <div class="profile-section-icon profile-section-icon--sessions" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 8h.01"/><path d="M9 8h6"/></svg>
-                        </div>
-                        <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.sessionsTitle">Active Sessions</h3>
-                            <p class="profile-section-desc" data-i18n="profile.sessionsDesc">Review browser logins, devices, IPs, and revoke sessions you no longer trust.</p>
-                        </div>
-                    </div>
-                    <div class="profile-section-body">
-                        <button type="button" id="btn-profile-sessions" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.sessionsBtn">Manage Sessions</button>
-                    </div>
-                </div>
-
-                <div class="profile-settings-section">
-                    <div class="profile-section-card-header">
-                        <div class="profile-section-icon profile-section-icon--fido" style="background: rgba(16, 185, 129, 0.1); color: #10b981;" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/><circle cx="12" cy="15" r="1.5"/></svg>
-                        </div>
-                        <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.fidoTitle">Passkeys</h3>
-                            <p class="profile-section-desc" data-i18n="profile.fidoDesc">Manage Passkeys used for passwordless login.</p>
-                        </div>
-                    </div>
-                    <div class="profile-section-body">
-                        <button type="button" id="btn-profile-fido" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.fidoBtn">Manage Passkeys</button>
-                    </div>
-                </div>
-
-                <div id="profile-github-section" class="profile-settings-section" hidden>
-                    <div class="profile-section-card-header">
-                        <div class="profile-section-icon profile-section-icon--github" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>
-                        </div>
-                        <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.githubTitle">GitHub Account</h3>
-                            <p class="profile-section-desc" data-i18n="profile.githubDesc">Connect GitHub to sign in and authorize Maven namespaces owned by your account or organizations.</p>
-                        </div>
-                    </div>
-                    <div class="profile-section-body profile-github-body">
-                        <p id="profile-github-status" class="profile-github-status" data-i18n="profile.githubLoading">Loading GitHub connection…</p>
-                        <div class="profile-github-actions">
-                            <button type="button" id="btn-profile-github-connect" class="pill-btn pill-btn--primary profile-action-btn" hidden data-i18n="profile.githubConnect">Connect GitHub</button>
-                            <button type="button" id="btn-profile-github-disconnect" class="pill-btn pill-btn--soft profile-action-btn" hidden data-i18n="profile.githubDisconnect">Disconnect</button>
-                        </div>
-                    </div>
-                </div>
-
-				<div class="profile-settings-section">
-					<div class="profile-section-card-header">
-						<div class="profile-section-icon profile-section-icon--gpg" aria-hidden="true">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-1.5 1.5L14 9.5"/><path d="M15.5 7.5L17 9"/><circle cx="7.5" cy="16.5" r="4.5"/></svg>
-						</div>
-						<div class="profile-section-meta">
-							<h3 class="profile-section-title" data-i18n="profile.gpgTitle">GPG Signing Keys</h3>
-							<p class="profile-section-desc" data-i18n="profile.gpgDesc">Register public signing-key IDs used to verify Maven uploads.</p>
-						</div>
-					</div>
-					<div class="profile-section-body">
-						<button type="button" id="btn-profile-gpg" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.gpgBtn">Manage GPG Keys</button>
-					</div>
-				</div>
-
-				<div class="profile-settings-section">
-					<div class="profile-section-card-header">
-						<div class="profile-section-icon profile-section-icon--gpg-releases" aria-hidden="true">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M7 3.5 4.5 6"/></svg>
-						</div>
-						<div class="profile-section-meta">
-							<h3 class="profile-section-title" data-i18n="profile.gpgReleasesTitle">GPG Publications</h3>
-							<p class="profile-section-desc" data-i18n="profile.gpgReleasesDesc">Review queued, validating, failed, and successful Maven publications.</p>
-						</div>
-					</div>
-					<div class="profile-section-body">
-						<button type="button" id="btn-profile-gpg-releases" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.gpgReleasesBtn">View Publications</button>
-					</div>
-				</div>
-
-                <div class="profile-settings-section">
-                    <div class="profile-section-card-header">
-                        <div class="profile-section-icon profile-section-icon--audit" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                        </div>
-                        <div class="profile-section-meta">
-                            <h3 class="profile-section-title" data-i18n="profile.auditLogsTitle">Activity Logs</h3>
-                            <p class="profile-section-desc" data-i18n="profile.auditLogsDesc">View your account activity and operation history.</p>
-                        </div>
-                    </div>
-                    <div class="profile-section-body">
-                        <button type="button" id="btn-profile-audit-logs" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.auditLogsBtn">View Activity Logs</button>
-                    </div>
-                </div>
-            </div>
             </div>
         </div>
 
-        <div id="tab-content-users" class="tab-content" style="display: none;">
+        <div class="tab-content" id="tab-content-users" style="display: none;">
             <div class="settings-header">
-                <div>                    <h2 data-i18n="users.title">User Management</h2>
+                <div><h2 data-i18n="users.title">User Management</h2>
                     <p data-i18n="users.subtitle">Create and manage user accounts and access permissions.</p>
                 </div>
             </div>
@@ -772,7 +1048,13 @@
             <div class="users-stats-cards">
                 <div class="stat-card">
                     <div class="stat-icon stat-icon--total">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" width="20">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
                     </div>
                     <div class="stat-content">
                         <div class="stat-label" data-i18n="users.statTotal">Total Users</div>
@@ -781,7 +1063,10 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon stat-icon--admin">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" width="20">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
                     </div>
                     <div class="stat-content">
                         <div class="stat-label" data-i18n="users.statAdmins">Administrators</div>
@@ -790,7 +1075,11 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon stat-icon--active">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                             stroke-width="2" viewBox="0 0 24 24" width="20">
+                            <rect height="11" rx="2" width="18" x="3" y="11"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
                     </div>
                     <div class="stat-content">
                         <div class="stat-label" data-i18n="users.statTokens">API Tokens</div>
@@ -801,14 +1090,22 @@
 
             <div class="users-toolbar">
                 <div class="search-input-wrapper">
-                    <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="users-search-input" placeholder="Search users by name or permission..." data-i18n-placeholder="users.searchPlaceholder" autocomplete="off">
+                    <svg class="search-icon" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                         stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="16">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" x2="16.65" y1="21" y2="16.65"/>
+                    </svg>
+                    <input autocomplete="off" data-i18n-placeholder="users.searchPlaceholder" id="users-search-input"
+                           placeholder="Search users by name or permission..." type="text">
                 </div>
-                <div class="users-toolbar-actions" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <button id="btn-create-user" type="button" class="settings-save-btn" title="Create a new user" data-i18n-title="users.createUserBtnTitle">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
+                <div class="users-toolbar-actions"
+                     style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <button class="settings-save-btn" data-i18n-title="users.createUserBtnTitle" id="btn-create-user" title="Create a new user"
+                            type="button">
+                        <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="16">
+                            <line x1="12" x2="12" y1="5" y2="19"/>
+                            <line x1="5" x2="19" y1="12" y2="12"/>
                         </svg>
                         <span data-i18n="users.createUserBtn">Create User</span>
                     </button>
@@ -822,57 +1119,65 @@
                         <th data-i18n="users.thUser">User</th>
                         <th data-i18n="users.thPermissions">Permissions</th>
                         <th data-i18n="users.thCreatedAt">Created At</th>
-                        <th style="text-align: right;" data-i18n="users.thActions">Actions</th>
+                        <th data-i18n="users.thActions" style="text-align: right;">Actions</th>
                     </tr>
                     </thead>
                     <tbody id="tokens-table-body">
                     </tbody>
                 </table>
-                <div id="users-pagination" class="table-pagination"></div>
+                <div class="table-pagination" id="users-pagination"></div>
             </div>
         </div>
 
-        <div id="tab-content-repositories" class="tab-content" style="display: none;">
+        <div class="tab-content" id="tab-content-repositories" style="display: none;">
             <div class="settings-header repos-header">
                 <div class="repos-header-text">
                     <h2 data-i18n="repos.title">Repositories</h2>
-                    <p data-i18n="repos.subtitle">Manage package repositories and their protocol-specific configuration.</p>
+                    <p data-i18n="repos.subtitle">Manage package repositories and their protocol-specific
+                        configuration.</p>
                 </div>
-                <button id="btn-add-repository" type="button" class="settings-save-btn" title="Add a package repository" data-i18n-title="repos.addRepoTitle">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
+                <button class="settings-save-btn" data-i18n-title="repos.addRepoTitle" id="btn-add-repository" title="Add a package repository"
+                        type="button">
+                    <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                         stroke-width="2.5" viewBox="0 0 24 24" width="16">
+                        <line x1="12" x2="12" y1="5" y2="19"/>
+                        <line x1="5" x2="19" y1="12" y2="12"/>
                     </svg>
                     <span data-i18n="repos.addRepoBtn">Add Repository</span>
                 </button>
             </div>
-            <div id="repositories-container" class="cfg-page-content"></div>
+            <div class="cfg-page-content" id="repositories-container"></div>
         </div>
 
-        <div id="tab-content-settings" class="tab-content" style="display: none;">
+        <div class="tab-content" id="tab-content-settings" style="display: none;">
             <div class="settings-header">
                 <div>
                     <h2 data-i18n="settings.title">Settings</h2>
                     <p data-i18n="settings.subtitle">Modify configuration shared between all instances.</p>
-                    <p><strong style="font-size: 0.85rem;" data-i18n="settings.remember">Remember:</strong> <span style="font-size: 0.85rem;" data-i18n="settings.propagationNotice">Configuration propagation can take up to 10 seconds on all your instances.</span>
+                    <p><strong data-i18n="settings.remember" style="font-size: 0.85rem;">Remember:</strong> <span
+                            data-i18n="settings.propagationNotice" style="font-size: 0.85rem;">Configuration propagation can take up to 10 seconds on all your instances.</span>
                     </p>
                 </div>
             </div>
 
             <div class="settings-toolbar">
                 <div class="tabs-container settings-subtabs-container">
-                    <nav id="settings-tabs" class="tabs"></nav>
+                    <nav class="tabs" id="settings-tabs"></nav>
                 </div>
                 <div class="settings-actions">
-                    <button id="settings-restart-btn" type="button" class="pill-btn pill-btn--soft" title="Restart the Renop service" data-i18n-title="settings.restartBtnTitle">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <button class="pill-btn pill-btn--soft" data-i18n-title="settings.restartBtnTitle" id="settings-restart-btn"
+                            title="Restart the Renop service" type="button">
+                        <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16">
                             <polyline points="23 4 23 10 17 10"/>
                             <path d="M20.49 15a9 9 0 1 1-.38-3.72"/>
                         </svg>
                         <span data-i18n="settings.restartBtn">Restart Renop</span>
                     </button>
-                    <button id="settings-save-btn" class="settings-save-btn" disabled title="Save changes and reload configuration" data-i18n-title="settings.saveBtnTitle">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <button class="settings-save-btn" data-i18n-title="settings.saveBtnTitle" disabled
+                            id="settings-save-btn" title="Save changes and reload configuration">
+                        <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="16">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                             <polyline points="17 21 17 13 7 13 7 21"/>
                             <polyline points="7 3 7 8 15 8"/>
@@ -882,119 +1187,143 @@
                 </div>
             </div>
 
-            <div id="settings-form-container" class="cfg-page-content"></div>
+            <div class="cfg-page-content" id="settings-form-container"></div>
         </div>
     </main>
     <footer>
         <div id="footer-links">
-            <a href="{{RENOP.ORGANIZATION_WEBSITE}}" target="_blank" data-i18n="footer.organization">Organization</a>
+            <a data-i18n="footer.organization" href="{{RENOP.ORGANIZATION_WEBSITE}}" target="_blank">Organization</a>
             <span class="separator" id="privacy-policy-separator" style="display: none;">·</span>
-            <a href="#" id="privacy-policy-link" style="display: none;" data-i18n="footer.privacyPolicy">Privacy Policy</a>
+            <a data-i18n="footer.privacyPolicy" href="#" id="privacy-policy-link" style="display: none;">Privacy
+                Policy</a>
             <span id="icp-container" style="display: none;">
                 <span class="separator">·</span>
-                <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" id="icp-text">{{RENOP.ICP_LICENSE}}</a>
+                <a href="https://beian.miit.gov.cn/" id="icp-text" rel="noopener noreferrer" target="_blank">{{RENOP.ICP_LICENSE}}</a>
             </span>
             <span id="public-security-filing-container" style="display: none;">
                 <span class="separator">·</span>
-                <a href="https://beian.mps.gov.cn/" target="_blank" rel="noopener noreferrer" id="public-security-filing-text">{{RENOP.PUBLIC_SECURITY_FILING}}</a>
+                <a href="https://beian.mps.gov.cn/" id="public-security-filing-text" rel="noopener noreferrer"
+                   target="_blank">{{RENOP.PUBLIC_SECURITY_FILING}}</a>
             </span>
             <span id="legal-notice-container" style="display: none;">
                 <span class="separator">·</span>
-                <a data-url="{{RENOP.LEGAL_NOTICE_URL}}" target="_blank" rel="noopener noreferrer" id="legal-notice-link" data-i18n="footer.legalNotice">Legal Notice</a>
+                <a data-i18n="footer.legalNotice" data-url="{{RENOP.LEGAL_NOTICE_URL}}" id="legal-notice-link"
+                   rel="noopener noreferrer" target="_blank">Legal Notice</a>
             </span>
         </div>
         <div id="footer-copyright"></div>
     </footer>
 </div>
 
-<div id="privacy-policy-modal" class="modal" style="display: none;">
+<div class="modal" id="privacy-policy-modal" style="display: none;">
     <div class="modal-backdrop" id="privacy-policy-backdrop"></div>
     <div class="modal-content" style="max-width: 600px;">
-        <button id="btn-close-privacy-policy" class="close-btn" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <button aria-label="Close modal" class="close-btn" data-i18n-aria-label="modal.close"
+                id="btn-close-privacy-policy">&times;
+        </button>
         <div class="modal-header">
             <h3 class="modal-title" data-i18n="privacy.title">Privacy Policy</h3>
         </div>
         <div class="modal-body">
-            <div id="privacy-policy-content" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
+            <div id="privacy-policy-content"
+                 style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
         </div>
     </div>
 </div>
 
-<div id="message-center-modal" class="modal" style="display: none;">
+<div class="modal" id="message-center-modal" style="display: none;">
     <div class="modal-backdrop" id="message-center-backdrop"></div>
     <div class="modal-content message-center-modal-content">
-        <button id="message-center-close" class="close-btn" type="button" aria-label="Close message center" data-i18n-aria-label="modal.close">&times;</button>
+        <button aria-label="Close message center" class="close-btn" data-i18n-aria-label="modal.close" id="message-center-close"
+                type="button">&times;
+        </button>
         <div class="modal-header message-center-header">
             <div>
                 <h2 class="modal-title" data-i18n="messages.title">Messages</h2>
                 <p class="modal-subtitle" data-i18n="messages.subtitle">Notifications and requests for your account.</p>
             </div>
         </div>
-        <div id="message-center-body" class="modal-body message-center-body">
+        <div class="modal-body message-center-body" id="message-center-body">
             <div class="message-center-toolbar">
-                <button id="message-clear-all" type="button" class="pill-btn pill-btn--danger pill-btn--sm message-clear-all"
-                        aria-busy="false" data-i18n="messages.clearAll">Clear notifications</button>
-                <button id="message-mark-all-read" type="button" class="pill-btn pill-btn--soft pill-btn--sm" data-i18n="messages.markAllRead">Mark all read</button>
+                <button aria-busy="false" class="pill-btn pill-btn--danger pill-btn--sm message-clear-all"
+                        data-i18n="messages.clearAll"
+                        id="message-clear-all" type="button">Clear notifications
+                </button>
+                <button class="pill-btn pill-btn--soft pill-btn--sm" data-i18n="messages.markAllRead" id="message-mark-all-read"
+                        type="button">Mark all read
+                </button>
             </div>
-            <div id="message-center-loading" class="message-center-state" data-i18n="messages.loading">Loading messages...</div>
-            <div id="message-center-empty" class="message-center-state" hidden data-i18n="messages.empty">No messages yet.</div>
-            <div id="message-center-list" class="message-center-list"></div>
-            <button id="message-load-more" type="button" class="pill-btn pill-btn--soft message-load-more"
-                    aria-busy="false" aria-disabled="true" data-next-cursor="" disabled hidden data-i18n="messages.loadMore">Load more</button>
+            <div class="message-center-state" data-i18n="messages.loading" id="message-center-loading">Loading
+                messages...
+            </div>
+            <div class="message-center-state" data-i18n="messages.empty" hidden id="message-center-empty">No messages
+                yet.
+            </div>
+            <div class="message-center-list" id="message-center-list"></div>
+            <button aria-busy="false" aria-disabled="true" class="pill-btn pill-btn--soft message-load-more"
+                    data-i18n="messages.loadMore" data-next-cursor="" disabled hidden id="message-load-more"
+                    type="button">Load more
+            </button>
         </div>
     </div>
 </div>
 
-<div id="message-compose-modal" class="modal" style="display: none;">
+<div class="modal" id="message-compose-modal" style="display: none;">
     <div class="modal-backdrop" id="message-compose-backdrop"></div>
     <div class="modal-content message-compose-modal-content">
-        <button id="message-compose-close" class="close-btn" type="button" aria-label="Close notification composer" data-i18n-aria-label="modal.close">&times;</button>
+        <button aria-label="Close notification composer" class="close-btn" data-i18n-aria-label="modal.close" id="message-compose-close"
+                type="button">&times;
+        </button>
         <div class="modal-header message-compose-heading">
-            <span class="message-compose-heading-icon" aria-hidden="true">
+            <span aria-hidden="true" class="message-compose-heading-icon">
                 <renop-icon name="send"></renop-icon>
             </span>
             <div class="message-compose-heading-copy">
                 <h2 class="modal-title" data-i18n="messages.composeTitle">New notification</h2>
-                <p class="modal-subtitle" data-i18n="messages.composeHint">Send a plain-text notification to selected users or everyone.</p>
+                <p class="modal-subtitle" data-i18n="messages.composeHint">Send a plain-text notification to selected
+                    users or everyone.</p>
             </div>
         </div>
-        <form id="message-compose-form" class="message-compose-form" action="javascript:void(0);">
-            <div id="message-compose-region" class="modal-body message-compose-region">
+        <form action="javascript:void(0);" class="message-compose-form" id="message-compose-form">
+            <div class="modal-body message-compose-region" id="message-compose-region">
                 <div class="message-compose-audience">
                     <div class="message-compose-field message-compose-recipient-field">
-                        <label for="message-compose-recipients" data-i18n="messages.recipients">Recipients</label>
+                        <label data-i18n="messages.recipients" for="message-compose-recipients">Recipients</label>
                         <span class="message-recipient-input-wrap">
-                            <input id="message-compose-recipients" type="text" maxlength="4096" autocomplete="off"
-                                   role="combobox" aria-autocomplete="list" aria-expanded="false"
-                                   aria-controls="message-recipient-suggestions" placeholder="alice, bob"
-                                   data-i18n-placeholder="messages.recipientsPlaceholder">
-                            <span id="message-recipient-suggestions" class="custom-select-dropdown message-recipient-suggestions"
+                            <input aria-autocomplete="list" aria-controls="message-recipient-suggestions" aria-expanded="false" autocomplete="off"
+                                   data-i18n-placeholder="messages.recipientsPlaceholder" id="message-compose-recipients" maxlength="4096"
+                                   placeholder="alice, bob" role="combobox"
+                                   type="text">
+                            <span class="custom-select-dropdown message-recipient-suggestions"
+                                  id="message-recipient-suggestions"
                                   role="listbox"></span>
                         </span>
                     </div>
                     <div class="message-compose-broadcast">
-                        <span id="message-compose-all-label" data-i18n="messages.sendAll">Send to all users</span>
-                        <span id="message-compose-all" class="message-compose-all-switch"></span>
+                        <span data-i18n="messages.sendAll" id="message-compose-all-label">Send to all users</span>
+                        <span class="message-compose-all-switch" id="message-compose-all"></span>
                     </div>
                 </div>
                 <div class="message-compose-meta">
                     <label class="message-compose-field">
                         <span data-i18n="messages.subject">Subject</span>
-                        <input id="message-compose-title" type="text" maxlength="240" required>
+                        <input id="message-compose-title" maxlength="240" required type="text">
                     </label>
                     <div class="message-compose-field">
                         <span data-i18n="messages.severity">Severity</span>
-                        <span id="message-compose-severity" class="message-compose-severity"></span>
+                        <span class="message-compose-severity" id="message-compose-severity"></span>
                     </div>
                 </div>
                 <label class="message-compose-field message-compose-body-field">
                     <span data-i18n="messages.body">Message</span>
-                    <textarea id="message-compose-body" maxlength="8000" rows="4" required></textarea>
+                    <textarea id="message-compose-body" maxlength="8000" required rows="4"></textarea>
                 </label>
             </div>
             <div class="modal-footer message-compose-actions">
-                <button id="message-compose-cancel" type="button" class="pill-btn pill-btn--soft" data-i18n="common.cancel">Cancel</button>
-                <button id="message-compose-submit" type="submit" class="pill-btn pill-btn--primary">
+                <button class="pill-btn pill-btn--soft" data-i18n="common.cancel" id="message-compose-cancel"
+                        type="button">Cancel
+                </button>
+                <button class="pill-btn pill-btn--primary" id="message-compose-submit" type="submit">
                     <span class="message-compose-submit-label" data-i18n="messages.send">Send</span>
                 </button>
             </div>
@@ -1002,40 +1331,52 @@
     </div>
 </div>
 
-<div id="login-modal" class="modal" style="display: none;">
+<div class="modal" id="login-modal" style="display: none;">
     <div class="modal-backdrop" id="login-backdrop"></div>
     <div class="modal-content" style="max-width: 420px;">
-        <button class="close-btn" id="close-login-modal" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <button aria-label="Close modal" class="close-btn" data-i18n-aria-label="modal.close" id="close-login-modal">
+            &times;
+        </button>
         <div class="modal-header">
             <h2 class="modal-title" data-i18n="nav.signIn">Sign in</h2>
         </div>
         <div class="modal-body">
-            <form id="login-form" action="javascript:void(0);">
+            <form action="javascript:void(0);" id="login-form">
                 <div class="form-group">
-                    <label for="username" data-i18n="login.usernameLabel">Username or email</label>
-                    <input type="text" id="username" autocomplete="username" required placeholder="Enter username or private email" data-i18n-placeholder="login.usernamePlaceholder">
+                    <label data-i18n="login.usernameLabel" for="username">Username or email</label>
+                    <input autocomplete="username" data-i18n-placeholder="login.usernamePlaceholder" id="username" placeholder="Enter username or private email"
+                           required
+                           type="text">
                 </div>
                 <div class="form-group">
-                    <label for="password" data-i18n="login.passwordLabel">Password</label>
-                    <input type="password" id="password" autocomplete="current-password" required placeholder="Enter password" data-i18n-placeholder="login.passwordPlaceholder">
+                    <label data-i18n="login.passwordLabel" for="password">Password</label>
+                    <input autocomplete="current-password" data-i18n-placeholder="login.passwordPlaceholder" id="password" placeholder="Enter password"
+                           required type="password">
                 </div>
-                <div id="login-error" style="display: none; color: #ef4444; margin-bottom: 12px; font-size: 0.85rem; font-weight: 500;"></div>
+                <div id="login-error"
+                     style="display: none; color: #ef4444; margin-bottom: 12px; font-size: 0.85rem; font-weight: 500;"></div>
                 <div class="login-secondary-actions">
-                    <a href="javascript:void(0);" id="btn-forgot-password" class="login-secondary-link" data-i18n="login.forgotPassword">Forgot password?</a>
+                    <a class="login-secondary-link" data-i18n="login.forgotPassword" href="javascript:void(0);"
+                       id="btn-forgot-password">Forgot password?</a>
                 </div>
-                <button type="submit" class="submit-btn" style="margin-top: 0.25rem;" data-i18n="login.submitBtn">Login</button>
+                <button class="submit-btn" data-i18n="login.submitBtn" style="margin-top: 0.25rem;" type="submit">
+                    Login
+                </button>
                 <div class="login-provider-section">
                     <div class="login-provider-divider"><span data-i18n="login.or">or</span></div>
-                    <button type="button" id="btn-fido-login" class="login-provider-btn passkey-login-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <button class="login-provider-btn passkey-login-btn" id="btn-fido-login" type="button">
+                        <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
                             <circle cx="8" cy="15" r="4"></circle>
                             <path d="m11 12 8-8M16 7l2 2M14 9l2 2"></path>
                         </svg>
                         <span data-i18n="login.fidoLogin">Continue with Passkey</span>
                     </button>
-                    <div id="github-login-wrapper" class="github-login-wrapper" hidden>
-                        <button type="button" id="btn-github-login" class="login-provider-btn github-login-btn">
-                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>
+                    <div class="github-login-wrapper" hidden id="github-login-wrapper">
+                        <button class="login-provider-btn github-login-btn" id="btn-github-login" type="button">
+                            <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.89-.02-1.75-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.97c.85 0 1.69.12 2.5.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.59.69.49A10.23 10.23 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/>
+                            </svg>
                             <span data-i18n="login.githubLogin">Continue with GitHub</span>
                         </button>
                     </div>
@@ -1045,41 +1386,50 @@
     </div>
 </div>
 
-<div id="user-fido-modal" class="modal" style="display: none;">
+<div class="modal" id="user-fido-modal" style="display: none;">
     <div class="modal-backdrop" id="user-fido-backdrop"></div>
     <div class="modal-content" style="max-width: 520px;">
-        <button class="close-btn" id="close-user-fido-modal" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <button aria-label="Close modal" class="close-btn" data-i18n-aria-label="modal.close"
+                id="close-user-fido-modal">&times;
+        </button>
         <div class="modal-header">
-            <h2 class="modal-title" id="user-fido-modal-title" data-i18n="users.fidoModalTitle">Passkeys</h2>
+            <h2 class="modal-title" data-i18n="users.fidoModalTitle" id="user-fido-modal-title">Passkeys</h2>
         </div>
         <div class="modal-body">
-            <div id="user-fido-list" class="fido-device-list"></div>
+            <div class="fido-device-list" id="user-fido-list"></div>
         </div>
     </div>
 </div>
 
-<div id="profile-fido-modal" class="modal" style="display: none;">
+<div class="modal" id="profile-fido-modal" style="display: none;">
     <div class="modal-backdrop" id="profile-fido-backdrop"></div>
     <div class="modal-content" style="max-width: 520px;">
-        <button class="close-btn" id="close-profile-fido-modal" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <button aria-label="Close modal" class="close-btn" data-i18n-aria-label="modal.close"
+                id="close-profile-fido-modal">&times;
+        </button>
         <div class="modal-header">
-            <h2 class="modal-title" id="profile-fido-modal-title" data-i18n="profile.fidoTitle">Passkeys</h2>
+            <h2 class="modal-title" data-i18n="profile.fidoTitle" id="profile-fido-modal-title">Passkeys</h2>
         </div>
         <div class="modal-body">
-            <div id="profile-fido-list" class="fido-device-list" style="margin-bottom: 1rem;"></div>
-            <button type="button" id="btn-add-fido-device" class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.addFidoBtn">Add Passkey</button>
+            <div class="fido-device-list" id="profile-fido-list" style="margin-bottom: 1rem;"></div>
+            <button class="pill-btn pill-btn--primary profile-action-btn" data-i18n="profile.addFidoBtn" id="btn-add-fido-device"
+                    type="button">Add Passkey
+            </button>
         </div>
     </div>
 </div>
 
 
-<div id="language-modal" class="modal" style="display: none;">
+<div class="modal" id="language-modal" style="display: none;">
     <div class="modal-backdrop" id="language-backdrop"></div>
     <div class="modal-content language-modal-content" style="max-width: 580px;">
-        <button id="btn-close-language-modal" class="close-btn" aria-label="Close modal" data-i18n-aria-label="modal.close">&times;</button>
+        <button aria-label="Close modal" class="close-btn" data-i18n-aria-label="modal.close"
+                id="btn-close-language-modal">&times;
+        </button>
         <div class="modal-header">
             <h3 class="modal-title" data-i18n="language.modalTitle">Select Language</h3>
-            <p class="modal-subtitle" data-i18n="language.modalSubtitle" style="margin-top: 4px; font-size: 0.875rem; opacity: 0.75;">Choose your preferred interface language</p>
+            <p class="modal-subtitle" data-i18n="language.modalSubtitle"
+               style="margin-top: 4px; font-size: 0.875rem; opacity: 0.75;">Choose your preferred interface language</p>
         </div>
         <div class="modal-body">
             <div class="language-grid" id="language-grid"></div>
@@ -1087,6 +1437,6 @@
     </div>
 </div>
 
-<script type="module" src="/js/main.js?v={{RENOP.HASH}}"></script>
+<script src="/js/main.js?v={{RENOP.HASH}}" type="module"></script>
 </body>
 </html>

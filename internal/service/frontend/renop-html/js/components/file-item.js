@@ -501,7 +501,7 @@ export class RenopFileItem extends HTMLElement {
      * @returns {string[]}
      */
     static get observedAttributes() {
-		return ['file-name', 'file-type', 'file-size', 'index', 'path', 'signed', 'allow-delete', 'repository-format'];
+        return ['file-name', 'file-type', 'file-size', 'index', 'path', 'signed', 'allow-delete', 'repository-format'];
     }
 
     /**
@@ -548,7 +548,7 @@ export class RenopFileItem extends HTMLElement {
         const fileSize = this.getAttribute('file-size');
         const index = parseInt(this.getAttribute('index') || '0', 10);
         const path = this.getAttribute('path') || '/';
-		const signed = this.hasAttribute('signed');
+        const signed = this.hasAttribute('signed');
         const isDir = fileType === 'DIRECTORY';
         const isRootRepo = (path === '/' || path === '' || path === undefined) && isDir;
 
@@ -621,23 +621,23 @@ export class RenopFileItem extends HTMLElement {
         const isImage = category === 'image' || category === 'svg' || PREVIEWABLE_IMAGE_RE.test(fileName);
         const isPreviewableText = PREVIEWABLE_TEXT_RE.test(fileName) || category === 'markdown' || category === 'txt' || category === 'log' || category === 'yaml' || category === 'json' || category === 'xml' || category === 'config' || category === 'toml' || category === 'script' || category === 'diff';
 
-		if (!isDir && signed) {
-			const signatureBtn = el('button', {
-				type: 'button',
-				class: 'file-action-btn file-action-btn--signature',
-				title: t('browser.signatureDetails'),
-				ariaLabel: `${t('browser.signatureDetails')} ${fileName}`
-			}, createIcon('fileLock'));
-			signatureBtn.addEventListener('click', e => {
-				e.preventDefault();
-				e.stopPropagation();
-				this.dispatchEvent(new CustomEvent('signature', {
-					bubbles: true,
-					detail: {fileName, fullPath, event: e}
-				}));
-			});
-			rightDiv.appendChild(signatureBtn);
-		}
+        if (!isDir && signed) {
+            const signatureBtn = el('button', {
+                type: 'button',
+                class: 'file-action-btn file-action-btn--signature',
+                title: t('browser.signatureDetails'),
+                ariaLabel: `${t('browser.signatureDetails')} ${fileName}`
+            }, createIcon('fileLock'));
+            signatureBtn.addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.dispatchEvent(new CustomEvent('signature', {
+                    bubbles: true,
+                    detail: {fileName, fullPath, event: e}
+                }));
+            });
+            rightDiv.appendChild(signatureBtn);
+        }
 
         if (!isDir && (isImage || isJavadoc || isPreviewableText)) {
             const previewHref = isJavadoc ? (`/javadoc` + fullPath) : (fullPath + '?preview=true');
@@ -704,27 +704,33 @@ if (!customElements.get('renop-file-item')) {
  * @param {Function} [options.onSignature] - Handler for signature-detail events.
  * @returns {HTMLElement}
  */
-export function createFileItem(file, index, path, {formattedSize, allowDelete = true, onNavigate, onDelete, onSignature} = {}) {
+export function createFileItem(file, index, path, {
+    formattedSize,
+    allowDelete = true,
+    onNavigate,
+    onDelete,
+    onSignature
+} = {}) {
     const item = document.createElement('renop-file-item');
     item.setAttribute('file-name', file.name);
     item.setAttribute('file-type', file.type);
     if (formattedSize) {
         item.setAttribute('file-size', formattedSize);
     }
-	if (file.signed === true) {
-		item.setAttribute('signed', '');
-	}
-	if (file.format) {
-		item.setAttribute('repository-format', file.format);
-	}
-	if (allowDelete) {
-		item.setAttribute('allow-delete', '');
-	}
+    if (file.signed === true) {
+        item.setAttribute('signed', '');
+    }
+    if (file.format) {
+        item.setAttribute('repository-format', file.format);
+    }
+    if (allowDelete) {
+        item.setAttribute('allow-delete', '');
+    }
     item.setAttribute('index', String(index));
     item.setAttribute('path', path);
 
     if (onNavigate) item.addEventListener('navigate', e => onNavigate(e.detail));
     if (onDelete) item.addEventListener('delete', e => onDelete(e.detail));
-	if (onSignature) item.addEventListener('signature', e => onSignature(e.detail));
+    if (onSignature) item.addEventListener('signature', e => onSignature(e.detail));
     return item;
 }

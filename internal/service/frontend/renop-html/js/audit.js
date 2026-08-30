@@ -423,16 +423,16 @@ function renderActionBadge(action) {
             bg = 'rgba(239, 68, 68, 0.1)';
             break;
     }
-	if (String(action).startsWith('CARGO_')) {
-		color = '#b45309';
-		bg = 'rgba(245, 158, 11, 0.12)';
-	}
+    if (String(action).startsWith('CARGO_')) {
+        color = '#b45309';
+        bg = 'rgba(245, 158, 11, 0.12)';
+    }
 
     const badge = document.createElement('span');
     badge.className = 'audit-action-badge';
     badge.style.cssText = `display: inline-block; white-space: nowrap; flex-shrink: 0; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; color: ${color}; background: ${bg};`;
-	const translationKey = 'audit.action.' + action;
-	const translation = t(translationKey);
-	badge.textContent = translation === translationKey ? action : translation;
+    const translationKey = 'audit.action.' + action;
+    const translation = t(translationKey);
+    badge.textContent = translation === translationKey ? action : translation;
     return badge;
 }

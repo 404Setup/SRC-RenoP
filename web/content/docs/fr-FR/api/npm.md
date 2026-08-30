@@ -32,7 +32,8 @@ Les erreurs de protocole utilisent des champs JSON stables `error` et `reason` :
 - **Publication ou modification des métadonnées** : `PUT /{repo}/{package}`
 
 Un nom scoped peut être encodé en un paramètre, par exemple `%40example%2Flibrary`. Les packuments gèrent ETag et
-Last-Modified. Une requête `application/vnd.npm.install-v1+json` reçoit des métadonnées abrégées et bornées. Les réponses
+Last-Modified. Une requête `application/vnd.npm.install-v1+json` reçoit des métadonnées abrégées et bornées. Les
+réponses
 privées interdisent la mise en cache partagée.
 
 Un document de publication contient au plus une version SemVer et une pièce jointe tarball en base64. Le JSON est
@@ -72,10 +73,12 @@ accès administrateur. Les détails d'équipe ne sont renvoyés qu'aux membres L
 
 La réponse détaillée d'un paquet contient des métadonnées bornées provenant de la version publiée sélectionnée :
 README, auteur, contributeurs, mainteneurs, licence, environnement, mots-clés et liens du projet. Le navigateur rend
-le Markdown du README avec une liste d'éléments et d'URL autorisés, sans activer le HTML ni les liens dangereux du paquet.
+le Markdown du README avec une liste d'éléments et d'URL autorisés, sans activer le HTML ni les liens dangereux du
+paquet.
 
 ## Authentification et autorisation
 
 Les clients npm acceptent Basic avec un mot de passe ou API Token, ou un API Token comme `_authToken`. Les scopes
 Bearer sont intersectés avec les droits actuels du compte et les cibles exactes de dépôt, paquet ou équipe. La
-publication exige un paquet existant et L1 ; métadonnées et retrait exigent L2, l'équipe L3, propriété et suppression L4.
+publication exige un paquet existant et L1 ; métadonnées et retrait exigent L2, l'équipe L3, propriété et suppression
+L4.

@@ -32,10 +32,10 @@ requête ou fragment. Placez les secrets dans `username` et `password` uniquemen
 
 ## Comportement du routage
 
-| Sélecteur | Résultat |
-|:----------|:---------|
-| `""` | Hérite de `proxy.selected` |
-| `direct` | Contourne tous les proxys |
+| Sélecteur    | Résultat                    |
+|:-------------|:----------------------------|
+| `""`         | Hérite de `proxy.selected`  |
+| `direct`     | Contourne tous les proxys   |
 | Nom de proxy | Utilise exactement ce proxy |
 
 Une modification de sélection ou d’identifiants invalide les clients partagés concernés. Un nom inconnu est refusé au

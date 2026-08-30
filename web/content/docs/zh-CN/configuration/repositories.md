@@ -38,17 +38,17 @@ repositories:
 
 ## 存储库字段
 
-| 字段 | 默认值 | 说明 |
-|:-----|:-------|:-----|
-| `name` | 必填 | 不可变仓库 slug 与 URL 前缀 |
-| `format` | `maven` | `maven`、`maven-classic`、`files`、`npm`、`cargo` 或 `docker` |
-| `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN` 或 `PRIVATE` |
-| `allow_redeployment` | `false` | 在支持的引擎中允许 Maven 版本重发或 files/Docker 覆盖 |
-| `require_gpg_signature` | `false` | Maven 发布要求通过 OpenPGP 分离签名校验 |
-| `publication_review` | `off` | Maven/npm/Cargo/Docker 审核策略：`off`、`new_packages` 或 `every_version` |
-| `download_statistics` | 引擎默认值 | Maven/npm/Cargo/Docker 默认启用；`files` 需手动启用 |
-| `mirrors` | `[]` | 按顺序执行的上游镜像定义 |
-| `s3` | 省略 | 当前仓库独立的 S3 兼容存储 |
+| 字段                    | 默认值     | 说明                                                                      |
+|:------------------------|:-----------|:--------------------------------------------------------------------------|
+| `name`                  | 必填       | 不可变仓库 slug 与 URL 前缀                                               |
+| `format`                | `maven`    | `maven`、`maven-classic`、`files`、`npm`、`cargo` 或 `docker`             |
+| `visibility`            | `PUBLIC`   | `PUBLIC`、`HIDDEN` 或 `PRIVATE`                                           |
+| `allow_redeployment`    | `false`    | 在支持的引擎中允许 Maven 版本重发或 files/Docker 覆盖                     |
+| `require_gpg_signature` | `false`    | Maven 发布要求通过 OpenPGP 分离签名校验                                   |
+| `publication_review`    | `off`      | Maven/npm/Cargo/Docker 审核策略：`off`、`new_packages` 或 `every_version` |
+| `download_statistics`   | 引擎默认值 | Maven/npm/Cargo/Docker 默认启用；`files` 需手动启用                       |
+| `mirrors`               | `[]`       | 按顺序执行的上游镜像定义                                                  |
+| `s3`                    | 省略       | 当前仓库独立的 S3 兼容存储                                                |
 
 对于 npm 与 Docker，`new_packages` 会在占用名称前审核显式创建申请；`every_version` 还会审核之后的每个版本或
 Manifest。Maven 与 Cargo 没有空包创建步骤，因此其 `new_packages` 策略审核首次发布。所有引擎的镜像源导入
@@ -90,17 +90,17 @@ mirrors:
     deny_artifacts: []
 ```
 
-| 字段 | 默认值 | 说明 |
-|:-----|:-------|:-----|
-| `name` | 必填 | 当前存储库内唯一的镜像名称 |
-| `url` | 必填 | 上游基础 URL |
-| `persist` | `true` | 将成功响应写入仓库存储后端 |
-| `cache_ttl_secs` | `86400` | 正缓存有效时间 |
-| `negative_cache` | `true` | 缓存引擎支持的上游未命中结果 |
-| `timeout_secs` | `30` | 单次上游请求超时 |
-| `proxy` | `""` | 使用全局路由、`direct` 或精确命名代理 |
-| `allow_artifacts` | `[]` | 按引擎解释的允许规则 |
-| `deny_artifacts` | `[]` | 按引擎解释的拒绝规则，拒绝优先 |
+| 字段              | 默认值  | 说明                                  |
+|:------------------|:--------|:--------------------------------------|
+| `name`            | 必填    | 当前存储库内唯一的镜像名称            |
+| `url`             | 必填    | 上游基础 URL                          |
+| `persist`         | `true`  | 将成功响应写入仓库存储后端            |
+| `cache_ttl_secs`  | `86400` | 正缓存有效时间                        |
+| `negative_cache`  | `true`  | 缓存引擎支持的上游未命中结果          |
+| `timeout_secs`    | `30`    | 单次上游请求超时                      |
+| `proxy`           | `""`    | 使用全局路由、`direct` 或精确命名代理 |
+| `allow_artifacts` | `[]`    | 按引擎解释的允许规则                  |
+| `deny_artifacts`  | `[]`    | 按引擎解释的拒绝规则，拒绝优先        |
 
 需要凭据时使用结构化 authorization 字段，不得将密钥嵌入 `url`。
 

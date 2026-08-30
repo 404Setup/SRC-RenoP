@@ -3,10 +3,12 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
- * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the terms of the Mozilla Public License, v. 2.0.
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import {existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {join, relative} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
@@ -185,11 +187,11 @@ function validateTranslationReferences(sourceRoots, referenceKeys, issues) {
  * @returns {Promise<{locales: string[], referenceFragments: string[], fragmentsByLocale: Map<string, Map<string, object>>, keyCount: number, referenceCount: number, durationMs: number}>} Validated scan.
  */
 export async function scanI18nCatalog({
-    i18nDir,
-    referenceLocale = 'en-US',
-    catalogName = 'catalog.generated.js',
-    sourceRoots = []
-}) {
+                                          i18nDir,
+                                          referenceLocale = 'en-US',
+                                          catalogName = 'catalog.generated.js',
+                                          sourceRoots = []
+                                      }) {
     const startedAt = performance.now();
     if (!existsSync(i18nDir)) throw new Error(`i18n directory not found: ${i18nDir}`);
 
@@ -405,12 +407,12 @@ function renderCatalog(locales, fragments, referenceLocale) {
  * @returns {Promise<void>}
  */
 export async function generateI18nCatalog({
-    i18nDir,
-    catalogFile,
-    referenceLocale = 'en-US',
-    catalogName = 'catalog.generated.js',
-    sourceRoots = []
-}) {
+                                              i18nDir,
+                                              catalogFile,
+                                              referenceLocale = 'en-US',
+                                              catalogName = 'catalog.generated.js',
+                                              sourceRoots = []
+                                          }) {
     const scan = await scanI18nCatalog({i18nDir, referenceLocale, catalogName, sourceRoots});
     const generated = renderCatalog(scan.locales, scan.referenceFragments, referenceLocale);
     if (!existsSync(catalogFile) || readFileSync(catalogFile, 'utf8') !== generated) {

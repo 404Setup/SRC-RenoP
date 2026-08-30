@@ -27,11 +27,11 @@ Without the variable, RenoP generates a random password and prints it once to st
 
 The initial `repositories.yaml` contains three backward-compatible Maven repositories:
 
-| Path | Visibility | Policy |
-|:-----|:-----------|:-------|
-| `/releases` | `PUBLIC` | Maven, redeployment disabled |
-| `/snapshots` | `PUBLIC` | Maven, redeployment enabled |
-| `/private` | `PRIVATE` | Maven, authentication required |
+| Path         | Visibility | Policy                         |
+|:-------------|:-----------|:-------------------------------|
+| `/releases`  | `PUBLIC`   | Maven, redeployment disabled   |
+| `/snapshots` | `PUBLIC`   | Maven, redeployment enabled    |
+| `/private`   | `PRIVATE`  | Maven, authentication required |
 
 Create npm, Cargo, Docker, or `files` repositories explicitly from repository management. Docker images and npm
 packages must be reserved from their repository page before clients can push. Cargo names are created only after the
@@ -50,12 +50,12 @@ traffic.
 
 ## Important environment variables
 
-| Variable | Default | Purpose |
-|:---------|:--------|:--------|
-| `RENOP_CONFIG` | `config.yaml` | Main configuration path |
-| `RENOP_REPOSITORIES` | `repositories.yaml` | Repository configuration path |
-| `RENOP_INDEX` | `index.json` | Persisted file-index snapshot path |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | Generated once | Initial `admin` password when the account does not exist |
+| Variable                       | Default             | Purpose                                                  |
+|:-------------------------------|:--------------------|:---------------------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | Main configuration path                                  |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | Repository configuration path                            |
+| `RENOP_INDEX`                  | `index.json`        | Persisted file-index snapshot path                       |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | Generated once      | Initial `admin` password when the account does not exist |
 
 Accounts, sessions, teams, API tokens, audit logs, and messages are database data and have no YAML path variables.
 

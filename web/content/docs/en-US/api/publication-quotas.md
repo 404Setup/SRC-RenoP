@@ -27,7 +27,8 @@ does not move historical usage. Mirror downloads and mirror catalog updates neve
 
 Cargo and npm count one stored package file and one completed publication per accepted version. Docker counts the
 manifest, config, and layer descriptors and completes one publication at manifest submission. Maven counts every client
-PUT as a file and counts a project publication when its POM is accepted. The unstructured files engine counts each PUT as
+PUT as a file and counts a project publication when its POM is accepted. The unstructured files engine counts each PUT
+as
 one file and one publication. Server-generated indexes and checksums do not add separate usage.
 
 Concurrent uploads first create a durable, expiring reservation. A successful protocol validation commits it; rejected

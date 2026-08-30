@@ -25,19 +25,20 @@ RenoP — интегрированный self-hosted сервер публика
 
 - **Storage**: потоковый local Disk или S3-compatible backend для репозитория.
 - **Database**: встроенный SQLite по умолчанию, внешние MySQL и PostgreSQL.
-- **Consistency**: repository gates координируют uploads, удаления, mirror commits, GPG и смену engine/storage без полного
+- **Consistency**: repository gates координируют uploads, удаления, mirror commits, GPG и смену engine/storage без
+  полного
   чтения крупных объектов в память.
 
 ## Основные возможности
 
-| Возможность | Описание |
-|:------------|:---------|
-| **Один сервис** | Встроенные frontend и protocol API без отдельного runtime |
-| **Глобальная identity** | Публичные профили по имени и неизменяемые внутренние user ID |
-| **Точные права** | Права репозитория, команды L0-L4, целевые и истекающие API Token |
-| **Проверенная публикация** | Домены Maven, upstream name conflicts и необязательный OpenPGP quarantine |
-| **Эксплуатация** | Нативная служба, scheduled tasks, durable audit/messages и in-place updates |
-| **Защита** | Bounded streaming, rate limit, bans, trusted proxy и sandboxed viewers |
+| Возможность                | Описание                                                                    |
+|:---------------------------|:----------------------------------------------------------------------------|
+| **Один сервис**            | Встроенные frontend и protocol API без отдельного runtime                   |
+| **Глобальная identity**    | Публичные профили по имени и неизменяемые внутренние user ID                |
+| **Точные права**           | Права репозитория, команды L0-L4, целевые и истекающие API Token            |
+| **Проверенная публикация** | Домены Maven, upstream name conflicts и необязательный OpenPGP quarantine   |
+| **Эксплуатация**           | Нативная служба, scheduled tasks, durable audit/messages и in-place updates |
+| **Защита**                 | Bounded streaming, rate limit, bans, trusted proxy и sandboxed viewers      |
 
 ## Навигация по документации
 

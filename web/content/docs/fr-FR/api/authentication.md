@@ -15,7 +15,8 @@ jamais un mot de passe ou un API Token.
 
 - **Chemin** : `POST /api/auth/login`
 - **Authentification** : aucune.
-- **Corps** : protobuf `LoginRequest`; les noms JSON figurent ci-dessous. `name` accepte le nom du compte ou son e-mail privé.
+- **Corps** : protobuf `LoginRequest`; les noms JSON figurent ci-dessous. `name` accepte le nom du compte ou son e-mail
+  privé.
 
 ### Requête
 
@@ -64,7 +65,8 @@ Ces routes exigent la session navigateur courante et renvoient `Cache-Control: n
 - **Lire l’état** : `GET /api/auth/profile/security`
 - **Définir l’e-mail** : `PUT /api/auth/profile/email`
 - **Activer ou désactiver le mot de passe** : `PUT /api/auth/profile/password-login`
-- Le mot de passe ne peut être désactivé que si Passkey ou GitHub reste lié. Son activation exige un mot de passe défini.
+- Le mot de passe ne peut être désactivé que si Passkey ou GitHub reste lié. Son activation exige un mot de passe
+  défini.
 
 ### Codes de récupération
 

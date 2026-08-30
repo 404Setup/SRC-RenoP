@@ -30,13 +30,13 @@ RenoP может зарегистрироваться как автоматич�
 
 ## Поддерживаемые платформы
 
-| ОС | Менеджер | Поведение |
-|:---|:---------|:----------|
-| **Windows** | SCM | Служба `RenoP` с автозапуском, доступная в `services.msc` |
-| **Linux (systemd)** | systemd | Создаёт `/etc/systemd/system/renop.service` и включает службу |
-| **Linux (OpenRC)** | OpenRC | Создаёт `/etc/init.d/renop` и добавляет в default runlevel |
-| **macOS** | launchd | Создаёт и загружает `/Library/LaunchDaemons/one.pkg.renop.plist` |
-| **BSD** | rc.d | Генерирует подходящий сценарий rc.d |
+| ОС                  | Менеджер | Поведение                                                        |
+|:--------------------|:---------|:-----------------------------------------------------------------|
+| **Windows**         | SCM      | Служба `RenoP` с автозапуском, доступная в `services.msc`        |
+| **Linux (systemd)** | systemd  | Создаёт `/etc/systemd/system/renop.service` и включает службу    |
+| **Linux (OpenRC)**  | OpenRC   | Создаёт `/etc/init.d/renop` и добавляет в default runlevel       |
+| **macOS**           | launchd  | Создаёт и загружает `/Library/LaunchDaemons/one.pkg.renop.plist` |
+| **BSD**             | rc.d     | Генерирует подходящий сценарий rc.d                              |
 
 Установка и удаление требуют системных привилегий. Перемещайте или заменяйте бинарный файл только штатным механизмом
 обновления, чтобы сохранить зарегистрированный путь.

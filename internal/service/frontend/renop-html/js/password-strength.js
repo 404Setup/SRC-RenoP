@@ -107,9 +107,9 @@ export async function confirmWeakPasswordIfNeeded(password) {
 
     const t = window.i18n?.t || ((k) => k);
     const warnings = [
-        { title: t('strength.warnTitle1'), message: t('strength.warnMsg1') },
-        { title: t('strength.warnTitle2'), message: t('strength.warnMsg2') },
-        { title: t('strength.warnTitle3'), message: t('strength.warnMsg3') }
+        {title: t('strength.warnTitle1'), message: t('strength.warnMsg1')},
+        {title: t('strength.warnTitle2'), message: t('strength.warnMsg2')},
+        {title: t('strength.warnTitle3'), message: t('strength.warnMsg3')}
     ];
 
     for (const warning of warnings) {

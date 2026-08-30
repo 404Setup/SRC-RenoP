@@ -93,4 +93,5 @@ package tombstones every version and keeps the package name reserved.
 
 An npm repository can proxy an ordered upstream registry. Exact package names and `@scope/*` rules constrain mirror
 access. Refreshed packuments are bounded, concurrent refreshes are coalesced, local tarball URLs replace upstream URLs,
-and upstream versions that disappear are removed from the local catalog. Mirror-discovered packages cannot receive local pushes.
+and upstream versions that disappear are removed from the local catalog. Mirror-discovered packages cannot receive local
+pushes.

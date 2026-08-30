@@ -291,8 +291,16 @@ function chooseBrotliDownloadFormat(filename) {
                     el('p', {class: 'modal-subtitle'}, t('download.brotliChoiceBody', {file: filename})),
                 ),
                 el('div', {class: 'modal-footer brotli-download-actions'},
-                    el('button', {type: 'button', class: 'pill-btn', 'data-choice': 'brotli'}, t('download.keepBrotli')),
-                    el('button', {type: 'button', class: 'pill-btn pill-btn--primary', 'data-choice': 'zip'}, t('download.convertZip')),
+                    el('button', {
+                        type: 'button',
+                        class: 'pill-btn',
+                        'data-choice': 'brotli'
+                    }, t('download.keepBrotli')),
+                    el('button', {
+                        type: 'button',
+                        class: 'pill-btn pill-btn--primary',
+                        'data-choice': 'zip'
+                    }, t('download.convertZip')),
                 ),
             ),
         );

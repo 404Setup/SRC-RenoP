@@ -170,7 +170,7 @@ export function navigateToUserProfile(username, section = '', replace = false) {
     const normalized = String(username || '').trim().toLowerCase();
     if (!normalized) return;
     const normalizedSection = section === 'edit' || section === 'maven' || section === 'cargo' ||
-        section === 'docker' || section === 'npm'
+    section === 'docker' || section === 'npm'
         ? section
         : '';
     const path = `/user/${encodeURIComponent(normalized)}${normalizedSection ? `/${normalizedSection}` : ''}`;

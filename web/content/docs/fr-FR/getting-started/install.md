@@ -18,15 +18,16 @@ Les nouveaux paquets sont des flux RFC 7932 `.br`. Le centre peut les convertir 
 
 ## Niveaux x86-64
 
-| Niveau | Instructions | Usage recommandé |
-|:-------|:-------------|:-----------------|
-| **x86-64-v1** | Base x86-64 | Ancien matériel et VM générique |
-| **x86-64-v2** | SSE3, SSSE3, SSE4.1/4.2, POPCNT | Intel/AMD courants depuis 2008 |
-| **x86-64-v3** *(recommandé)* | AVX, AVX2, BMI1/2, FMA3 | Intel Haswell, AMD Zen 2 et plus récents |
-| **x86-64-v4** | Fondation AVX-512 | Serveurs dont AVX-512 est confirmé |
-| **ARM64** | NEON, Crypto | Apple Silicon, Graviton et Linux ARM64 |
+| Niveau                       | Instructions                    | Usage recommandé                         |
+|:-----------------------------|:--------------------------------|:-----------------------------------------|
+| **x86-64-v1**                | Base x86-64                     | Ancien matériel et VM générique          |
+| **x86-64-v2**                | SSE3, SSSE3, SSE4.1/4.2, POPCNT | Intel/AMD courants depuis 2008           |
+| **x86-64-v3** *(recommandé)* | AVX, AVX2, BMI1/2, FMA3         | Intel Haswell, AMD Zen 2 et plus récents |
+| **x86-64-v4**                | Fondation AVX-512               | Serveurs dont AVX-512 est confirmé       |
+| **ARM64**                    | NEON, Crypto                    | Apple Silicon, Graviton et Linux ARM64   |
 
-Choisissez le niveau réellement pris en charge. Un binaire v3/v4 ne dispose pas d’un repli dynamique sur un CPU plus ancien.
+Choisissez le niveau réellement pris en charge. Un binaire v3/v4 ne dispose pas d’un repli dynamique sur un CPU plus
+ancien.
 
 ## Vérifier et exécuter
 

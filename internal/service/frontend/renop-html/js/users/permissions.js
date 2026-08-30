@@ -1,19 +1,18 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 import {t} from '../i18n.js';
 import {fetchProto} from '../api.js';
 import {el} from '@renop/ui/dom';
 import {MavenRepositoriesResponse} from '../proto/index.js';
-import {
-    createEmptyState,
-    createRepoRow,
-    createRoleChip,
-    createRolesGroup,
-} from '../components.js';
+import {createEmptyState, createRepoRow, createRoleChip, createRolesGroup,} from '../components.js';
 
 const userPermissionPanelId = 'user-permissions-grid';
 const userPermissionCountId = 'user-permissions-count';
@@ -32,7 +31,11 @@ function permissionMeta(permission) {
         showing: {title: t('users.roleShowingTitle'), desc: t('users.roleShowingDesc'), tone: 'system'},
         allview: {title: t('users.roleAllviewTitle'), desc: t('users.roleAllviewDesc'), tone: 'view'},
         'canview:*': {title: t('users.roleCanviewAllTitle'), desc: t('users.roleCanviewAllDesc'), tone: 'view'},
-        'canmoderate:*': {title: t('users.roleModeratorAllTitle'), desc: t('users.roleModeratorAllDesc'), tone: 'moderator'},
+        'canmoderate:*': {
+            title: t('users.roleModeratorAllTitle'),
+            desc: t('users.roleModeratorAllDesc'),
+            tone: 'moderator'
+        },
         'canupdate:*': {title: t('users.roleCanupdateAllTitle'), desc: t('users.roleCanupdateAllDesc'), tone: 'update'},
     };
     return metadata[permission] || {title: permission, tone: 'system'};

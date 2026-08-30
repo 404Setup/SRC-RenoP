@@ -10,10 +10,7 @@
 
 import {el} from '@renop/ui/dom';
 import {t} from './i18n.js';
-import {
-    createIcon,
-    createToggle
-} from './components.js';
+import {createIcon, createToggle} from './components.js';
 
 /**
  * Creates a config-styled text/password input that fires onChange with the string value on change.
@@ -384,7 +381,6 @@ export function makeTagListInput({
     renderChips();
     return container;
 }
-
 
 
 /**

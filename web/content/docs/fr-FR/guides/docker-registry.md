@@ -19,7 +19,8 @@ docker login localhost:3000
 ```
 
 Utilisez un API Token dédié : `repository:read` pour pull, `repository:publish` pour push, `repository:delete` pour la
-suppression, `package:create` pour réserver une image via l’API et `team:manage` pour les collaborateurs. Le jeton Docker
+suppression, `package:create` pour réserver une image via l’API et `team:manage` pour les collaborateurs. Le jeton
+Docker
 court ne reçoit que les actions permises par scopes/cibles et par la politique L0-L4 actuelle.
 
 Utilisez HTTPS en production. Pour un test HTTP local uniquement :

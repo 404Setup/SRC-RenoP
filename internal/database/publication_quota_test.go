@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 package database_test
@@ -89,12 +93,10 @@ func TestPublicationQuotaConcurrentReservationsRespectLimit(t *testing.T) {
 	reservations := make([]*core.PublicationQuotaReservation, 2)
 	var wait sync.WaitGroup
 	for index := range errorsByAttempt {
-		wait.Add(1)
-		go func() {
-			defer wait.Done()
+		wait.Go(func() {
 			reservations[index], errorsByAttempt[index] = db.ReservePublicationQuota(subject, defaults,
 				core.PublicationQuotaDelta{Files: 1, Bytes: 10}, now, now+60_000)
-		}()
+		})
 	}
 	wait.Wait()
 	successes, limited := 0, 0

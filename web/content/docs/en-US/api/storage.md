@@ -7,7 +7,8 @@ description: Direct repository operations and bounded resumable uploads
 
 # Storage & Upload API
 
-Direct storage routes apply to Maven and `files` repositories. npm, Cargo, and Docker use their native protocol APIs. Every
+Direct storage routes apply to Maven and `files` repositories. npm, Cargo, and Docker use their native protocol APIs.
+Every
 mutation is checked against API-token scope, repository permission, repository format, and Maven-domain policy.
 
 ## Direct repository operations
@@ -59,7 +60,8 @@ session count, and deletes abandoned temporary files.
 
 - **Path**: `PUT /api/upload/chunked/{upload_id}/{index}`
 - **Content-Type**: `application/octet-stream`.
-- Parts may run concurrently. Retrying an already accepted index is idempotent; a part with the wrong length is rejected.
+- Parts may run concurrently. Retrying an already accepted index is idempotent; a part with the wrong length is
+  rejected.
 
 ### Complete or abort
 

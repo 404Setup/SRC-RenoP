@@ -8,4 +8,4 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-export { clear, el, iconCheck } from '@renop/ui/dom';
+export {clear, el, iconCheck} from '@renop/ui/dom';

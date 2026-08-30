@@ -66,6 +66,7 @@ Utilisez TLS et un gestionnaire de secrets ; ne publiez jamais les clés dans le
 ### Modes de téléchargement
 
 - **Streaming proxy (`redirect_downloads: false`)** : RenoP autorise puis diffuse S3 au client. Le bucket peut rester
-   privé et l’adresse S3 n’est pas exposée.
-- **Redirection (`redirect_downloads: true`)** : RenoP autorise puis renvoie `302 Found` vers une URL présignée de courte
-   durée, ce qui réduit la bande passante du serveur.
+  privé et l’adresse S3 n’est pas exposée.
+- **Redirection (`redirect_downloads: true`)** : RenoP autorise puis renvoie `302 Found` vers une URL présignée de
+  courte
+  durée, ce qui réduit la bande passante du serveur.

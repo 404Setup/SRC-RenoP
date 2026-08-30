@@ -12,16 +12,16 @@ Aucun identifiant ne conserve un droit perdu par son compte.
 
 ## Rôles du compte et du système
 
-| Rôle ou droit | Effet |
-|:--------------|:------|
-| Anonyme | Lit `PUBLIC` et les chemins exacts connus de `HIDDEN` |
-| `base` | Compte authentifié sans écriture implicite |
-| `canview:{repo}` / `canview:*` | Lit le dépôt nommé ou tous, y compris privés |
+| Rôle ou droit                          | Effet                                                                        |
+|:---------------------------------------|:-----------------------------------------------------------------------------|
+| Anonyme                                | Lit `PUBLIC` et les chemins exacts connus de `HIDDEN`                        |
+| `base`                                 | Compte authentifié sans écriture implicite                                   |
+| `canview:{repo}` / `canview:*`         | Lit le dépôt nommé ou tous, y compris privés                                 |
 | `canmoderate:{repo}` / `canmoderate:*` | Examine et décide le contenu en attente du dépôt nommé ou de tous les dépôts |
-| `canupdate:{repo}` / `canupdate:*` | Publie dans le dépôt, sous réserve de la politique paquet/domaine |
-| `showing` | Droit historique permettant de découvrir les dépôts cachés dans le catalogue |
-| `allview` / `proview` | Alias historiques de lecture privée globale |
-| `manager` / `admin` | Super-administrateur système et de toutes les équipes |
+| `canupdate:{repo}` / `canupdate:*`     | Publie dans le dépôt, sous réserve de la politique paquet/domaine            |
+| `showing`                              | Droit historique permettant de découvrir les dépôts cachés dans le catalogue |
+| `allview` / `proview`                  | Alias historiques de lecture privée globale                                  |
+| `manager` / `admin`                    | Super-administrateur système et de toutes les équipes                        |
 
 L’administration système est globale. Les niveaux L0-L4 restent l’autorité normale de collaboration. Une opération
 administrateur est auditée et n’ajoute pas silencieusement un membre affiché.
@@ -30,7 +30,8 @@ configuration des dépôts ni paramètres système.
 
 ## Couches dépôt et équipe
 
-- La visibilité définit découverte et lecture de base : `PUBLIC`, découverte de `HIDDEN` selon les droits ou `PRIVATE` autorisé.
+- La visibilité définit découverte et lecture de base : `PUBLIC`, découverte de `HIDDEN` selon les droits ou `PRIVATE`
+  autorisé.
 - Un droit de dépôt ne crée pas automatiquement un paquet npm/Cargo/Docker et ne vérifie pas un domaine Maven.
 - Les équipes npm/Cargo/Docker utilisent L0 lecture, L1 publication, L2 cycle/métadonnées, L3 membres, L4 propriété.
 - Une équipe Maven appartient à un domaine global vérifié et vaut dans tous les dépôts Maven.
@@ -52,5 +53,7 @@ sont toujours croisés avec les droits actuels.
 - Mots de passe et codes utilisent une vérification salée irréversible ; le secret API Token n’est pas persisté.
 - Les sessions expirent, sont révocables par appareil, et une récupération les révoque toutes atomiquement.
 - Limites, bannissements progressifs, plafond actif et proxys fiables protègent le réseau.
-- Uploads, archives, miroirs et mises à jour emploient streaming borné, validation de chemin, hashes et stockage temporaire.
-- Audit et messages conservent les résultats pertinents sans révéler l’opérateur lorsque la notification doit être neutre.
+- Uploads, archives, miroirs et mises à jour emploient streaming borné, validation de chemin, hashes et stockage
+  temporaire.
+- Audit et messages conservent les résultats pertinents sans révéler l’opérateur lorsque la notification doit être
+  neutre.

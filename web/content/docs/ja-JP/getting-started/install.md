@@ -18,13 +18,13 @@ description: Brotli package、CPU tier、検証、source build
 
 ## x86-64 tier
 
-| Tier | Instruction | 推奨用途 |
-|:-----|:------------|:---------|
-| **x86-64-v1** | baseline x86-64 | 旧 server と generic VM |
-| **x86-64-v2** | SSE3, SSSE3, SSE4.1/4.2, POPCNT | 2008 年以降の一般 Intel/AMD |
-| **x86-64-v3** *(推奨)* | AVX, AVX2, BMI1/2, FMA3 | Intel Haswell、AMD Zen 2 以降 |
-| **x86-64-v4** | AVX-512 foundation | AVX-512 を確認済みの high-performance server |
-| **ARM64** | NEON, Crypto | Apple Silicon、Graviton、ARM64 Linux |
+| Tier                   | Instruction                     | 推奨用途                                     |
+|:-----------------------|:--------------------------------|:---------------------------------------------|
+| **x86-64-v1**          | baseline x86-64                 | 旧 server と generic VM                      |
+| **x86-64-v2**          | SSE3, SSSE3, SSE4.1/4.2, POPCNT | 2008 年以降の一般 Intel/AMD                  |
+| **x86-64-v3** *(推奨)* | AVX, AVX2, BMI1/2, FMA3         | Intel Haswell、AMD Zen 2 以降                |
+| **x86-64-v4**          | AVX-512 foundation              | AVX-512 を確認済みの high-performance server |
+| **ARM64**              | NEON, Crypto                    | Apple Silicon、Graviton、ARM64 Linux         |
 
 CPU が実際に対応する tier を選びます。v3/v4 binary は古い CPU へ動的に fall back しません。
 

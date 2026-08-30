@@ -8,7 +8,8 @@ description: RenoP comme plateforme intégrée et auto-hébergée de publication
 # Introduction à RenoP
 
 RenoP est un serveur intégré et auto-hébergé de publication et distribution. Son modèle se rapproche d’un service privé
-de type Central plutôt que d’un simple dépôt Maven : un processus Go intègre interface, identités, équipes, vérifications,
+de type Central plutôt que d’un simple dépôt Maven : un processus Go intègre interface, identités, équipes,
+vérifications,
 catalogues, miroirs, stockage, audit et mises à jour.
 
 ## Protocoles pris en charge
@@ -25,19 +26,20 @@ catalogues, miroirs, stockage, audit et mises à jour.
 
 - **Stockage** : streaming sur Disk local ou S3 compatible propre à chaque dépôt.
 - **Base** : SQLite intégré par défaut, MySQL et PostgreSQL externes.
-- **Cohérence** : les verrous de dépôt coordonnent uploads, suppressions, miroirs, GPG et changements de moteur ou stockage
+- **Cohérence** : les verrous de dépôt coordonnent uploads, suppressions, miroirs, GPG et changements de moteur ou
+  stockage
   sans charger les gros objets en mémoire.
 
 ## Capacités principales
 
-| Capacité | Description |
-|:---------|:------------|
-| **Service unique** | Frontend et protocoles intégrés, sans runtime applicatif séparé |
-| **Identité globale** | Profils publics par nom, ID interne immuable |
-| **Accès fin** | Droits par dépôt, équipes L0-L4, API Token ciblés et expirables |
-| **Publication vérifiée** | Propriété de domaine Maven, conflits amont et quarantaine OpenPGP facultative |
-| **Exploitation** | Service natif, tâches planifiées, audit/messages durables et mise à jour intégrée |
-| **Défense** | Streaming borné, limites, bannissement, proxy fiable et aperçus sandboxés |
+| Capacité                 | Description                                                                       |
+|:-------------------------|:----------------------------------------------------------------------------------|
+| **Service unique**       | Frontend et protocoles intégrés, sans runtime applicatif séparé                   |
+| **Identité globale**     | Profils publics par nom, ID interne immuable                                      |
+| **Accès fin**            | Droits par dépôt, équipes L0-L4, API Token ciblés et expirables                   |
+| **Publication vérifiée** | Propriété de domaine Maven, conflits amont et quarantaine OpenPGP facultative     |
+| **Exploitation**         | Service natif, tâches planifiées, audit/messages durables et mise à jour intégrée |
+| **Défense**              | Streaming borné, limites, bannissement, proxy fiable et aperçus sandboxés         |
 
 ## Parcours documentaire
 

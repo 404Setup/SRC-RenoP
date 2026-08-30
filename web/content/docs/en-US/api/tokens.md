@@ -95,30 +95,30 @@ Successful revocation returns `204 No Content` and invalidates cached authentica
 
 ## Scope reference
 
-| Scope | Capability |
-|:------|:-----------|
-| `repository:read` | Read repository catalogs, metadata, files, images, and versions |
-| `repository:publish` | Publish through Maven, npm, Cargo, Docker, files, or chunked-upload protocols |
-| `repository:delete` | Delete repository files, package versions, tags, or images |
-| `package:create` | Reserve new npm/Cargo packages or Docker images after repository authorization |
-| `package:metadata` | Update package descriptions and other package metadata |
-| `package:lifecycle` | Archive, restore, yank, or unyank packages and versions |
-| `team:manage` | View and administer npm, Cargo, Docker, and Maven-domain teams and invitations |
-| `domain:read` | Read private Maven publishing-domain configuration |
-| `domain:create` | Create Maven publishing domains |
-| `domain:verify` | Request or force Maven-domain ownership verification |
-| `domain:delete` | Delete Maven publishing domains |
-| `messages:read` | Read, mark, and remove the account's message-center entries |
-| `account:read` | Read private account data and personal audit history |
-| `account:write` | Update the account's public profile through the API |
-| `statistics:read` | Query download statistics available to the account |
-| `admin:users` | Administer user accounts and their login devices |
-| `admin:repositories` | Administer repositories and rebuild repository indexes |
-| `admin:settings` | Administer system settings and diagnostics |
-| `admin:audit` | Read or clear administrator-visible audit and status data |
-| `admin:notifications` | Compose administrator notifications |
-| `admin:updates` | Check, upload, install, and restart system updates |
-| `admin:statistics` | Query system-wide download statistics |
+| Scope                 | Capability                                                                     |
+|:----------------------|:-------------------------------------------------------------------------------|
+| `repository:read`     | Read repository catalogs, metadata, files, images, and versions                |
+| `repository:publish`  | Publish through Maven, npm, Cargo, Docker, files, or chunked-upload protocols  |
+| `repository:delete`   | Delete repository files, package versions, tags, or images                     |
+| `package:create`      | Reserve new npm/Cargo packages or Docker images after repository authorization |
+| `package:metadata`    | Update package descriptions and other package metadata                         |
+| `package:lifecycle`   | Archive, restore, yank, or unyank packages and versions                        |
+| `team:manage`         | View and administer npm, Cargo, Docker, and Maven-domain teams and invitations |
+| `domain:read`         | Read private Maven publishing-domain configuration                             |
+| `domain:create`       | Create Maven publishing domains                                                |
+| `domain:verify`       | Request or force Maven-domain ownership verification                           |
+| `domain:delete`       | Delete Maven publishing domains                                                |
+| `messages:read`       | Read, mark, and remove the account's message-center entries                    |
+| `account:read`        | Read private account data and personal audit history                           |
+| `account:write`       | Update the account's public profile through the API                            |
+| `statistics:read`     | Query download statistics available to the account                             |
+| `admin:users`         | Administer user accounts and their login devices                               |
+| `admin:repositories`  | Administer repositories and rebuild repository indexes                         |
+| `admin:settings`      | Administer system settings and diagnostics                                     |
+| `admin:audit`         | Read or clear administrator-visible audit and status data                      |
+| `admin:notifications` | Compose administrator notifications                                            |
+| `admin:updates`       | Check, upload, install, and restart system updates                             |
+| `admin:statistics`    | Query system-wide download statistics                                          |
 
 The `admin:*` scopes can be created only by an administrator and stop authorizing administrator operations as soon as
 the owning account loses that role. Existing `package:manage` and `domain:manage` credentials remain compatible, but

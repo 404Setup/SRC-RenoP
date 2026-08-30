@@ -66,6 +66,6 @@ repositories:
 ### 下载方式
 
 - **代理流式传输 (`redirect_downloads: false`)**：RenoP 完成授权后从 S3 流式返回数据。Bucket 可保持私有，
-   不会暴露 S3 URL。
+  不会暴露 S3 URL。
 - **直接跳转 (`redirect_downloads: true`)**：RenoP 完成授权后返回指向短时预签名 URL 的 `302 Found`，降低
-   RenoP 带宽占用。
+  RenoP 带宽占用。

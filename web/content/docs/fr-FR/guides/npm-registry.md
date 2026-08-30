@@ -70,7 +70,8 @@ Un modérateur du dépôt ou un administrateur système examine ensemble le mani
 ## Visibilité et équipes de paquet
 
 Les paquets publics suivent la visibilité du dépôt. Un paquet privé doit être scoped et exige une appartenance explicite
-ou un accès administrateur. L0 lit, L1 publie, L2 gère versions et métadonnées, L3 gère l'équipe et L4 possède le paquet.
+ou un accès administrateur. L0 lit, L1 publie, L2 gère versions et métadonnées, L3 gère l'équipe et L4 possède le
+paquet.
 Une suppression ou rétrogradation ne peut pas retirer le dernier propriétaire L4.
 
 Invitez des comptes RenoP existants depuis la page du paquet. Les invitations sont des actions durables du centre de
@@ -93,4 +94,5 @@ marque toutes ses versions et conserve le nom réservé.
 
 Un dépôt npm peut relayer un registre amont ordonné. Les noms exacts et règles `@scope/*` bornent le miroir. RenoP
 limite les packuments, fusionne les rafraîchissements concurrents, remplace les URL de tarball par des URL locales et
-retire du catalogue local les versions supprimées en amont. Les paquets découverts par miroir n'acceptent aucune publication locale.
+retire du catalogue local les versions supprimées en amont. Les paquets découverts par miroir n'acceptent aucune
+publication locale.

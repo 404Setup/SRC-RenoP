@@ -23,6 +23,14 @@ export class RenopSection extends HTMLElement {
     }
 
     /**
+     * The fields container element (or the host if missing).
+     * @returns {Element}
+     */
+    get fields() {
+        return this.querySelector('.cfg-fields') || this;
+    }
+
+    /**
      * Render when inserted into the DOM.
      * @returns {void}
      */
@@ -63,14 +71,6 @@ export class RenopSection extends HTMLElement {
         const fieldsDiv = el('div', {class: 'cfg-fields'});
         this.appendChild(header);
         this.appendChild(fieldsDiv);
-    }
-
-    /**
-     * The fields container element (or the host if missing).
-     * @returns {Element}
-     */
-    get fields() {
-        return this.querySelector('.cfg-fields') || this;
     }
 }
 

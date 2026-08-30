@@ -12,11 +12,11 @@ RenoP 默认从工作目录读取 `config.yaml`，可通过 `RENOP_CONFIG` 覆�
 
 ## 配置文件
 
-| 文件 | 覆盖变量 | 用途 |
-|:-----|:---------|:-----|
-| `config.yaml` | `RENOP_CONFIG` | 服务、数据库、文档预览、代理、前端、审计与更新器 |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | 仓库引擎、可见性、镜像、Maven 策略与 S3 |
-| `index.json` | `RENOP_INDEX` | 持久化文件索引快照，必要时可从存储重建 |
+| 文件                | 覆盖变量             | 用途                                             |
+|:--------------------|:---------------------|:-------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | 服务、数据库、文档预览、代理、前端、审计与更新器 |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | 仓库引擎、可见性、镜像、Maven 策略与 S3          |
+| `index.json`        | `RENOP_INDEX`        | 持久化文件索引快照，必要时可从存储重建           |
 
 账号、API Token、会话、团队、行为日志与消息均存储在数据库中，不通过 YAML 配置。配置文件和仓库文件可能
 包含凭据，应只允许服务账号读取。

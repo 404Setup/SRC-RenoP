@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 import {el} from '@renop/ui/dom';
@@ -84,12 +88,12 @@ export function canReturnToPersonalOwnership(resourceType, resourceKey) {
  * @returns {void}
  */
 export function openSuperTeamTransferDialog({
-    resourceType,
-    repository = '',
-    resourceKey,
-    resourceName,
-    currentTeamPrefix = '',
-}) {
+                                                resourceType,
+                                                repository = '',
+                                                resourceKey,
+                                                resourceName,
+                                                currentTeamPrefix = '',
+                                            }) {
     const transferringOut = Boolean(currentTeamPrefix);
     if (transferringOut && !canReturnToPersonalOwnership(resourceType, resourceKey)) {
         showAlert(t('review.transferRestricted'), 'error');
@@ -222,17 +226,21 @@ async function submitDecision(task, decision, reason = '', reasonCode = '') {
     const resultKey = creation && decision === 'approved' && result?.status === 'pending'
         ? 'review.creationForwarded'
         : creation
-        ? decision === 'approved' ? 'review.creationApproved' : 'review.creationRejected'
-        : publication
-        ? decision === 'approved' ? 'review.publicationApproved' : 'review.publicationRejected'
-        : decision === 'approved' ? 'review.approved' : 'review.rejected';
+            ? decision === 'approved' ? 'review.creationApproved' : 'review.creationRejected'
+            : publication
+                ? decision === 'approved' ? 'review.publicationApproved' : 'review.publicationRejected'
+                : decision === 'approved' ? 'review.approved' : 'review.rejected';
     showAlert(t(resultKey), 'success');
     await loadTasks();
 }
 
 /** @param {object} task - Pending task. @returns {void} */
 function openRejectDialog(task) {
-    const reason = el('textarea', {class: 'profile-input', maxlength: task.kind === 'publication' ? '505' : '512', rows: '4'});
+    const reason = el('textarea', {
+        class: 'profile-input',
+        maxlength: task.kind === 'publication' ? '505' : '512',
+        rows: '4'
+    });
     const publication = task.kind === 'publication';
     const creation = publication && task.resource_version === '@create';
     let reasonCode = publication ? 'invalid_metadata' : '';

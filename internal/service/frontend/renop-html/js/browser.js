@@ -11,13 +11,7 @@
 import {t, updatePageTranslations} from './i18n.js';
 import {showAlert} from './alert.js';
 import {fetchProto, getAuthHeaders} from './api.js';
-import {
-	createBreadcrumbLink,
-	createBreadcrumbSep,
-	createFileItem,
-	createMetaGrid,
-	RenopDialog
-} from './components.js';
+import {createBreadcrumbLink, createBreadcrumbSep, createFileItem, createMetaGrid, RenopDialog} from './components.js';
 import {lockElementHeight, morphElementHeight} from '@renop/ui/height-anim';
 import {
     applyAdjustments,
@@ -443,8 +437,8 @@ function createFileItemElement(file, index, path) {
                     showAlert(t('browser.failedDelete'), 'error');
                 }
             }
-		},
-		onSignature: detail => openSignatureDetails(detail)
+        },
+        onSignature: detail => openSignatureDetails(detail)
     });
 
     const fullPath = (path.endsWith('/') ? path : path + '/') + encodePathSegment(file.name);
@@ -457,6 +451,7 @@ function createFileItemElement(file, index, path) {
         function prefetchDirectoryDetails() {
             prefetchUrl(`/api/repositories/details${fullPath}`);
         }
+
         link.addEventListener('mouseenter', prefetchDirectoryDetails, {once: true});
     }
 
@@ -473,7 +468,7 @@ function createFileItemElement(file, index, path) {
  * @returns {string}
  */
 function formatSignatureTime(value) {
-	return formatTimestamp(value, {fallback: t('common.none')});
+    return formatTimestamp(value, {fallback: t('common.none')});
 }
 
 /**
@@ -482,39 +477,39 @@ function formatSignatureTime(value) {
  * @returns {Promise<void>}
  */
 async function openSignatureDetails({fullPath}) {
-	try {
-		const {response, data} = await fetchProto(`/api/repositories/signatures${fullPath}`, GpgSignatureDetails);
-		if (!response.ok || !data) {
-			showAlert(t('browser.signatureLoadFailed'), 'error');
-			return;
-		}
-		const details = createMetaGrid([
-			{label: t('browser.signatureIdentity'), value: data.primary_identity || t('common.none')},
-			{label: t('browser.signatureFingerprint'), value: data.fingerprint || '', isCode: true},
-			{label: t('browser.signatureKeyId'), value: data.key_id || '', isCode: true},
-			{label: t('browser.signatureUploader'), value: data.uploader || ''},
-			{label: t('browser.signatureCreated'), value: formatSignatureTime(data.signature_created_at)},
-			{label: t('browser.signatureVerified'), value: formatSignatureTime(data.verified_at)},
-			{label: t('browser.signatureHash'), value: data.hash_algorithm || ''},
-			{label: t('browser.signatureAlgorithm'), value: data.public_key_algorithm || ''}
-		]);
-		RenopDialog.show({
-			id: 'gpg-signature-details-dialog',
-			maxWidth: '620px',
-			icon: 'fileLock',
-			title: t('browser.signatureDetails'),
-			subtitle: data.artifact_path || '',
-			body: details,
-			footer: [{
-				text: t('common.ok'),
-				className: 'action-btn primary-btn',
-				onClick: (event, dialog) => dialog.close(true)
-			}]
-		});
-	} catch (error) {
-		console.error('Failed to load GPG signature details', error);
-		showAlert(t('browser.signatureLoadFailed'), 'error');
-	}
+    try {
+        const {response, data} = await fetchProto(`/api/repositories/signatures${fullPath}`, GpgSignatureDetails);
+        if (!response.ok || !data) {
+            showAlert(t('browser.signatureLoadFailed'), 'error');
+            return;
+        }
+        const details = createMetaGrid([
+            {label: t('browser.signatureIdentity'), value: data.primary_identity || t('common.none')},
+            {label: t('browser.signatureFingerprint'), value: data.fingerprint || '', isCode: true},
+            {label: t('browser.signatureKeyId'), value: data.key_id || '', isCode: true},
+            {label: t('browser.signatureUploader'), value: data.uploader || ''},
+            {label: t('browser.signatureCreated'), value: formatSignatureTime(data.signature_created_at)},
+            {label: t('browser.signatureVerified'), value: formatSignatureTime(data.verified_at)},
+            {label: t('browser.signatureHash'), value: data.hash_algorithm || ''},
+            {label: t('browser.signatureAlgorithm'), value: data.public_key_algorithm || ''}
+        ]);
+        RenopDialog.show({
+            id: 'gpg-signature-details-dialog',
+            maxWidth: '620px',
+            icon: 'fileLock',
+            title: t('browser.signatureDetails'),
+            subtitle: data.artifact_path || '',
+            body: details,
+            footer: [{
+                text: t('common.ok'),
+                className: 'action-btn primary-btn',
+                onClick: (event, dialog) => dialog.close(true)
+            }]
+        });
+    } catch (error) {
+        console.error('Failed to load GPG signature details', error);
+        showAlert(t('browser.signatureLoadFailed'), 'error');
+    }
 }
 
 /**
@@ -700,7 +695,7 @@ export async function loadDirectory(path) {
     const pathParts = path.split('/').filter(p => p.length > 0);
     const repositoryName = pathParts[0] || '';
     const canReuseFormatDetails = (currentRepositoryFormat === 'maven' || currentRepositoryFormat === 'cargo' ||
-        currentRepositoryFormat === 'docker' || currentRepositoryFormat === 'npm') &&
+            currentRepositoryFormat === 'docker' || currentRepositoryFormat === 'npm') &&
         repositoryName !== '' && repositoryName === currentRepositoryName && currentRepoDetails !== null;
 
     let direction = 'fade';
@@ -733,7 +728,7 @@ export async function loadDirectory(path) {
         currentRepositoryName = '';
         void hideRepoStats();
     }
-	currentRepoDetailsPromise = repoDetailsPromise || null;
+    currentRepoDetailsPromise = repoDetailsPromise || null;
     if (!canReuseFormatDetails) {
         void updateSnippets(path, repoDetailsPromise);
         void updateUploadZone(path, repoDetailsPromise);
@@ -750,40 +745,40 @@ export async function loadDirectory(path) {
         if (seq !== currentLoadSeq) return;
 
         currentRepositoryFormat = getRepositoryFormat(repoDetails?.format).id;
-		currentRepoDetails = repoDetails;
-		currentRepositoryName = repoDetails ? repositoryName : '';
-		const isMavenRepository = currentRepositoryFormat === 'maven' && repoDetails && pathParts.length >= 1;
-		const isCargoRepository = currentRepositoryFormat === 'cargo' && pathParts.length >= 1;
-		const isDockerRepository = currentRepositoryFormat === 'docker' && pathParts.length >= 1;
-		const isNPMRepository = currentRepositoryFormat === 'npm' && pathParts.length >= 1;
-		setRepositoryContentMode(isMavenRepository ? 'maven' : (isCargoRepository ? 'cargo' :
-			(isDockerRepository ? 'docker' : (isNPMRepository ? 'npm' : ''))));
-		updateRepositorySearch(repoDetails ? pathParts[0] : '', currentRepositoryFormat, navigateToPath);
-		renderBreadcrumb(path);
+        currentRepoDetails = repoDetails;
+        currentRepositoryName = repoDetails ? repositoryName : '';
+        const isMavenRepository = currentRepositoryFormat === 'maven' && repoDetails && pathParts.length >= 1;
+        const isCargoRepository = currentRepositoryFormat === 'cargo' && pathParts.length >= 1;
+        const isDockerRepository = currentRepositoryFormat === 'docker' && pathParts.length >= 1;
+        const isNPMRepository = currentRepositoryFormat === 'npm' && pathParts.length >= 1;
+        setRepositoryContentMode(isMavenRepository ? 'maven' : (isCargoRepository ? 'cargo' :
+            (isDockerRepository ? 'docker' : (isNPMRepository ? 'npm' : ''))));
+        updateRepositorySearch(repoDetails ? pathParts[0] : '', currentRepositoryFormat, navigateToPath);
+        renderBreadcrumb(path);
 
-		if (isMavenRepository) {
-			setStateVisibility({empty: false, error: false});
-			await renderMavenRepository(path, repoDetails, navigateToPath);
-			return;
-		}
+        if (isMavenRepository) {
+            setStateVisibility({empty: false, error: false});
+            await renderMavenRepository(path, repoDetails, navigateToPath);
+            return;
+        }
 
-		if (isCargoRepository) {
-			setStateVisibility({empty: false, error: false});
-			await renderCargoRepository(path, repoDetails, navigateToPath);
-			return;
-		}
+        if (isCargoRepository) {
+            setStateVisibility({empty: false, error: false});
+            await renderCargoRepository(path, repoDetails, navigateToPath);
+            return;
+        }
 
-		if (isDockerRepository) {
-			setStateVisibility({empty: false, error: false});
-			await renderDockerRepository(path, repoDetails, navigateToPath);
-			return;
-		}
+        if (isDockerRepository) {
+            setStateVisibility({empty: false, error: false});
+            await renderDockerRepository(path, repoDetails, navigateToPath);
+            return;
+        }
 
-		if (isNPMRepository) {
-			setStateVisibility({empty: false, error: false});
-			await renderNPMRepository(path, repoDetails, navigateToPath);
-			return;
-		}
+        if (isNPMRepository) {
+            setStateVisibility({empty: false, error: false});
+            await renderNPMRepository(path, repoDetails, navigateToPath);
+            return;
+        }
 
         const {response, data} = directoryResult || {};
 
@@ -822,8 +817,8 @@ export async function loadDirectory(path) {
         await exitPromise;
         if (seq !== currentLoadSeq) return;
         console.error('Error fetching directory details:', error);
-		setRepositoryContentMode('');
-		updateRepositorySearch('', 'maven', navigateToPath);
+        setRepositoryContentMode('');
+        updateRepositorySearch('', 'maven', navigateToPath);
         if (fileList) fileList.innerHTML = '';
         if (errorState) {
             errorState.textContent = caughtErrorMessage(error, 'browser.errorState');
@@ -878,8 +873,8 @@ function handleBrowserLanguageChanged() {
             }
         });
     }
-	void updateSnippets(path, currentRepoDetailsPromise);
-	localizeRepositorySearch();
+    void updateSnippets(path, currentRepoDetailsPromise);
+    localizeRepositorySearch();
 }
 
 window.addEventListener('languageChanged', handleBrowserLanguageChanged);

@@ -36,11 +36,7 @@ import {
     parseMysqlDsn,
     parsePostgresDsn
 } from './settings/database-dsn.js';
-import {
-    caughtErrorMessage,
-    LocalizedResponseError,
-    responseErrorMessage
-} from './response-errors.js';
+import {caughtErrorMessage, LocalizedResponseError, responseErrorMessage} from './response-errors.js';
 import {
     FrontendConfig,
     IndexDomainSettings,
@@ -258,9 +254,9 @@ async function loadDomainSettings(domain, direction = 'next') {
                     ? await fetchGitHubOAuthSettings()
                     : (name === 'publication_quota'
                         ? await fetchPublicationQuotaSettings()
-                    : (name === 'super_teams'
-                        ? await fetchSuperTeamSettings()
-                        : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])))
+                        : (name === 'super_teams'
+                            ? await fetchSuperTeamSettings()
+                            : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])))
             })));
             const denied = results.find(({result}) => result.response.status === 401 || result.response.status === 403);
             if (denied) {
@@ -870,6 +866,7 @@ function renderFrontendSettings(container, data) {
         enableSave();
     });
     const fontUrlRow = createFieldRow(t('settings.fontUrl'), t('settings.fontUrlHint'), fontUrlInput);
+
     /**
      * Shows the resource URL only for the custom webfont mode.
      * @returns {void}
@@ -879,6 +876,7 @@ function renderFrontendSettings(container, data) {
         fontUrlRow.hidden = !custom;
         fontUrlInput.required = custom;
     }
+
     const fontSelect = makeCustomSelect(fontOptions, currentConfig.font_preset, value => {
         currentConfig.font_preset = value;
         updateFontUrlVisibility();

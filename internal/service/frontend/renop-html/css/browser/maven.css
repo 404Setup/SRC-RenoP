@@ -70,9 +70,8 @@
     padding: 1.35rem 1.45rem;
     border: 1px solid var(--border-color);
     border-radius: 1rem;
-    background:
-        radial-gradient(circle at 96% 0%, color-mix(in srgb, #f97316 12%, transparent), transparent 34%),
-        color-mix(in srgb, var(--card-bg) 97%, transparent);
+    background: radial-gradient(circle at 96% 0%, color-mix(in srgb, #f97316 12%, transparent), transparent 34%),
+    color-mix(in srgb, var(--card-bg) 97%, transparent);
 }
 
 .maven-domain-page-header .maven-back-btn {
@@ -207,9 +206,8 @@
 .maven-hero {
     overflow: hidden;
     padding: 1.3rem 1.4rem;
-    background:
-        radial-gradient(circle at 95% 5%, color-mix(in srgb, #f97316 13%, transparent), transparent 36%),
-        color-mix(in srgb, var(--card-bg) 97%, transparent);
+    background: radial-gradient(circle at 95% 5%, color-mix(in srgb, #f97316 13%, transparent), transparent 36%),
+    color-mix(in srgb, var(--card-bg) 97%, transparent);
 }
 
 .maven-hero-heading,
@@ -783,8 +781,14 @@ button.maven-artifact-card:focus-visible {
 }
 
 @keyframes mavenViewIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @media (max-width: 720px) {

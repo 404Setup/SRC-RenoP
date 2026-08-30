@@ -60,7 +60,8 @@ URL не позволяют управлять секретами.
 
 `targets` отдельно ограничивает каждый scope. Scope, не указанный в `targets`, действует для всех целей, которые сейчас
 разрешены аккаунту. Цель репозитория — точное имя; цель пакета — `repository/package`. Для Maven используйте, например,
-`maven-releases/com.example/library`. Цель команды — `package/repository/package` или `domain/example.com`, цель домена —
+`maven-releases/com.example/library`. Цель команды — `package/repository/package` или `domain/example.com`, цель
+домена —
 каноническое имя. Общий предел — 128 целей.
 
 Ограничения целей не обходят права репозитория и текущие уровни L0-L4.
@@ -91,30 +92,30 @@ URL не позволяют управлять секретами.
 
 ## Справочник scopes
 
-| Scope | Возможность |
-|:------|:------------|
-| `repository:read` | Чтение каталогов, метаданных, файлов, образов и версий |
-| `repository:publish` | Публикация через Maven, npm, Cargo, Docker, files или блочную загрузку |
-| `repository:delete` | Удаление файлов, версий, тегов и образов |
-| `package:create` | Резервирование npm/Cargo package или Docker image после проверки репозитория |
-| `package:metadata` | Изменение описания и метаданных пакета |
-| `package:lifecycle` | Archive, restore, yank и unyank пакета или версии |
-| `team:manage` | Просмотр и управление командами и приглашениями npm, Cargo, Docker и Maven domain |
-| `domain:read` | Чтение закрытой конфигурации Maven domain |
-| `domain:create` | Создание Maven domain |
-| `domain:verify` | Проверка или принудительная проверка Maven domain |
-| `domain:delete` | Удаление Maven domain |
-| `messages:read` | Чтение, отметка и удаление сообщений аккаунта |
-| `account:read` | Чтение закрытых данных аккаунта и личного аудита |
-| `account:write` | Изменение публичного профиля через API |
-| `statistics:read` | Запрос доступной аккаунту статистики скачиваний |
-| `admin:users` | Управление аккаунтами и устройствами входа |
-| `admin:repositories` | Управление репозиториями и перестроение индексов |
-| `admin:settings` | Управление системными настройками и диагностикой |
-| `admin:audit` | Чтение и очистка административного аудита и состояния |
-| `admin:notifications` | Создание уведомлений администратора |
-| `admin:updates` | Проверка, загрузка, установка и перезапуск обновлений |
-| `admin:statistics` | Запрос системной статистики |
+| Scope                 | Возможность                                                                       |
+|:----------------------|:----------------------------------------------------------------------------------|
+| `repository:read`     | Чтение каталогов, метаданных, файлов, образов и версий                            |
+| `repository:publish`  | Публикация через Maven, npm, Cargo, Docker, files или блочную загрузку            |
+| `repository:delete`   | Удаление файлов, версий, тегов и образов                                          |
+| `package:create`      | Резервирование npm/Cargo package или Docker image после проверки репозитория      |
+| `package:metadata`    | Изменение описания и метаданных пакета                                            |
+| `package:lifecycle`   | Archive, restore, yank и unyank пакета или версии                                 |
+| `team:manage`         | Просмотр и управление командами и приглашениями npm, Cargo, Docker и Maven domain |
+| `domain:read`         | Чтение закрытой конфигурации Maven domain                                         |
+| `domain:create`       | Создание Maven domain                                                             |
+| `domain:verify`       | Проверка или принудительная проверка Maven domain                                 |
+| `domain:delete`       | Удаление Maven domain                                                             |
+| `messages:read`       | Чтение, отметка и удаление сообщений аккаунта                                     |
+| `account:read`        | Чтение закрытых данных аккаунта и личного аудита                                  |
+| `account:write`       | Изменение публичного профиля через API                                            |
+| `statistics:read`     | Запрос доступной аккаунту статистики скачиваний                                   |
+| `admin:users`         | Управление аккаунтами и устройствами входа                                        |
+| `admin:repositories`  | Управление репозиториями и перестроение индексов                                  |
+| `admin:settings`      | Управление системными настройками и диагностикой                                  |
+| `admin:audit`         | Чтение и очистка административного аудита и состояния                             |
+| `admin:notifications` | Создание уведомлений администратора                                               |
+| `admin:updates`       | Проверка, загрузка, установка и перезапуск обновлений                             |
+| `admin:statistics`    | Запрос системной статистики                                                       |
 
 `admin:*` может создать только администратор; scope перестаёт действовать, если владелец теряет эту роль. Старые
 `package:manage` и `domain:manage` принимаются для существующих Token, но больше не назначаются.
@@ -128,7 +129,8 @@ Authorization: Bearer rnp_pat_REDACTED
 ```
 
 Пакетный клиент может использовать Token как Basic password с именем владельца. Basic ограничен пакетными протоколами.
-npm передаёт Token через `_authToken` или Basic; Cargo — целиком в `Authorization`. Docker обменивает его через `/v2/token`; краткосрочный Token содержит
+npm передаёт Token через `_authToken` или Basic; Cargo — целиком в `Authorization`. Docker обменивает его через
+`/v2/token`; краткосрочный Token содержит
 только операции, разрешённые одновременно scopes и правами образа.
 
 ## Совместимость

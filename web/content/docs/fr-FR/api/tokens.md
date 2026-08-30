@@ -93,30 +93,30 @@ d’authentification.
 
 ## Référence des scopes
 
-| Scope | Capacité |
-|:------|:---------|
-| `repository:read` | Lire catalogues, métadonnées, fichiers, images et versions |
-| `repository:publish` | Publier via Maven, npm, Cargo, Docker, files ou téléversement découpé |
-| `repository:delete` | Supprimer fichiers, versions, tags ou images |
-| `package:create` | Réserver un paquet npm/Cargo ou une image Docker après contrôle du dépôt |
-| `package:metadata` | Modifier la description et les métadonnées d’un paquet |
-| `package:lifecycle` | Archiver, restaurer, yank ou unyank un paquet ou une version |
-| `team:manage` | Consulter et gérer les équipes et invitations npm, Cargo, Docker et domaines Maven |
-| `domain:read` | Lire la configuration privée des domaines Maven |
-| `domain:create` | Créer un domaine Maven |
-| `domain:verify` | Vérifier ou forcer la vérification d’un domaine Maven |
-| `domain:delete` | Supprimer un domaine Maven |
-| `messages:read` | Lire, marquer et supprimer les messages du compte |
-| `account:read` | Lire les données privées et le journal personnel |
-| `account:write` | Modifier le profil public via l’API |
-| `statistics:read` | Interroger les statistiques de téléchargement accessibles au compte |
-| `admin:users` | Administrer les comptes et leurs appareils de connexion |
-| `admin:repositories` | Administrer les dépôts et reconstruire les index |
-| `admin:settings` | Administrer les paramètres et diagnostics |
-| `admin:audit` | Lire ou nettoyer l’audit et l’état réservés aux administrateurs |
-| `admin:notifications` | Composer des notifications administrateur |
-| `admin:updates` | Vérifier, envoyer, installer et redémarrer les mises à jour |
-| `admin:statistics` | Interroger les statistiques globales |
+| Scope                 | Capacité                                                                           |
+|:----------------------|:-----------------------------------------------------------------------------------|
+| `repository:read`     | Lire catalogues, métadonnées, fichiers, images et versions                         |
+| `repository:publish`  | Publier via Maven, npm, Cargo, Docker, files ou téléversement découpé              |
+| `repository:delete`   | Supprimer fichiers, versions, tags ou images                                       |
+| `package:create`      | Réserver un paquet npm/Cargo ou une image Docker après contrôle du dépôt           |
+| `package:metadata`    | Modifier la description et les métadonnées d’un paquet                             |
+| `package:lifecycle`   | Archiver, restaurer, yank ou unyank un paquet ou une version                       |
+| `team:manage`         | Consulter et gérer les équipes et invitations npm, Cargo, Docker et domaines Maven |
+| `domain:read`         | Lire la configuration privée des domaines Maven                                    |
+| `domain:create`       | Créer un domaine Maven                                                             |
+| `domain:verify`       | Vérifier ou forcer la vérification d’un domaine Maven                              |
+| `domain:delete`       | Supprimer un domaine Maven                                                         |
+| `messages:read`       | Lire, marquer et supprimer les messages du compte                                  |
+| `account:read`        | Lire les données privées et le journal personnel                                   |
+| `account:write`       | Modifier le profil public via l’API                                                |
+| `statistics:read`     | Interroger les statistiques de téléchargement accessibles au compte                |
+| `admin:users`         | Administrer les comptes et leurs appareils de connexion                            |
+| `admin:repositories`  | Administrer les dépôts et reconstruire les index                                   |
+| `admin:settings`      | Administrer les paramètres et diagnostics                                          |
+| `admin:audit`         | Lire ou nettoyer l’audit et l’état réservés aux administrateurs                    |
+| `admin:notifications` | Composer des notifications administrateur                                          |
+| `admin:updates`       | Vérifier, envoyer, installer et redémarrer les mises à jour                        |
+| `admin:statistics`    | Interroger les statistiques globales                                               |
 
 Seul un administrateur peut créer un scope `admin:*`, et celui-ci cesse d’autoriser l’opération si le compte perd ce
 rôle. Les anciens scopes `package:manage` et `domain:manage` restent acceptés pour les Token existants mais ne sont plus
@@ -131,7 +131,8 @@ Authorization: Bearer rnp_pat_REDACTED
 ```
 
 Les clients de paquets peuvent employer le même Token comme mot de passe Basic avec le nom du compte. Basic Auth reste
-limité aux protocoles de paquets. npm envoie le Token avec `_authToken` ou Basic ; Cargo l’envoie comme valeur complète de `Authorization`. Docker l’échange via
+limité aux protocoles de paquets. npm envoie le Token avec `_authToken` ou Basic ; Cargo l’envoie comme valeur complète
+de `Authorization`. Docker l’échange via
 `/v2/token`; le jeton court ne contient que les actions permises par scopes et droits de l’image.
 
 ## Compatibilité

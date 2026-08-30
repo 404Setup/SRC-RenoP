@@ -66,6 +66,6 @@ manager; never commit access keys to Git.
 ### Download modes
 
 - **Proxy streaming (`redirect_downloads: false`)**: RenoP authorizes and streams S3 data to the client. The bucket can
-   remain private and its URL is not exposed.
+  remain private and its URL is not exposed.
 - **Direct redirect (`redirect_downloads: true`)**: RenoP authorizes and returns `302 Found` to a short-lived presigned
-   URL, reducing RenoP bandwidth.
+  URL, reducing RenoP bandwidth.

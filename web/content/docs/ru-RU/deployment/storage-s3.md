@@ -66,6 +66,6 @@ secret manager, не добавляйте ключи в Git.
 ### Режимы скачивания
 
 - **Proxy streaming (`redirect_downloads: false`)**: RenoP авторизует и передаёт данные из S3 клиенту. Bucket остаётся
-   закрытым, S3 URL не раскрывается.
+  закрытым, S3 URL не раскрывается.
 - **Direct redirect (`redirect_downloads: true`)**: после авторизации RenoP отвечает `302 Found` на краткосрочный
-   presigned URL, уменьшая свою нагрузку на сеть.
+  presigned URL, уменьшая свою нагрузку на сеть.

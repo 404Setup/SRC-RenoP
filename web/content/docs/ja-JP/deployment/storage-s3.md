@@ -66,6 +66,6 @@ manager を使い、Git リポジトリへ鍵を commit しないでください
 ### ダウンロード方式
 
 - **Proxy streaming (`redirect_downloads: false`)**: RenoP が認可後に S3 から client へ stream します。
-   bucket を非公開に保ち、S3 URL を隠せます。
+  bucket を非公開に保ち、S3 URL を隠せます。
 - **Direct redirect (`redirect_downloads: true`)**: 認可後に短期 presigned URL への `302 Found` を返し、
-   RenoP の帯域使用を減らします。
+  RenoP の帯域使用を減らします。

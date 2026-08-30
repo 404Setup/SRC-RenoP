@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -50,10 +52,12 @@ const scopeGroups = Object.freeze([
     {key: 'package', scopes: ['package:create', 'package:metadata', 'package:lifecycle', 'team:manage']},
     {key: 'domain', scopes: ['domain:read', 'domain:create', 'domain:verify', 'domain:delete']},
     {key: 'account', scopes: ['messages:read', 'account:read', 'account:write', 'statistics:read']},
-    {key: 'administration', scopes: [
-        'admin:users', 'admin:repositories', 'admin:settings', 'admin:audit',
-        'admin:notifications', 'admin:updates', 'admin:statistics'
-    ]},
+    {
+        key: 'administration', scopes: [
+            'admin:users', 'admin:repositories', 'admin:settings', 'admin:audit',
+            'admin:notifications', 'admin:updates', 'admin:statistics'
+        ]
+    },
 ]);
 
 let apiTokenLoadSequence = 0;

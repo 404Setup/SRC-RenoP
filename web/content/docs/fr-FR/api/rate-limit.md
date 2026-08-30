@@ -15,7 +15,8 @@ service et l’extraction automatisée excessive.
 Les requêtes non authentifiées sont évaluées par adresse IP avec une fenêtre glissante et un seau de jetons :
 
 - les téléchargements publics disposent d’une marge élevée ;
-- la recherche et les métadonnées ont des limites plus strictes et renvoient `429 Too Many Requests` en cas de dépassement.
+- la recherche et les métadonnées ont des limites plus strictes et renvoient `429 Too Many Requests` en cas de
+  dépassement.
 
 ## Échecs d’authentification et bannissement
 

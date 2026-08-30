@@ -9,7 +9,6 @@
  */
 
 import {t} from '../i18n.js';
-import {createIcon} from '../components.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {decodePathSegment} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -161,21 +160,36 @@ function buildNPMSnippets(repositoryName) {
  */
 function snippetTabLabel(type) {
     switch (type) {
-        case 'gradle-kotlin': return 'Gradle Kotlin';
-        case 'gradle-groovy': return 'Gradle Groovy';
-        case 'sbt': return 'SBT';
-        case 'cargo-registry': return t('details.cargoRegistryTab');
-        case 'cargo-source': return t('details.cargoSourceTab');
-        case 'cargo-login': return t('details.cargoLoginTab');
-        case 'cargo-publish': return t('details.cargoPublishTab');
-        case 'docker-pull': return t('details.dockerPullTab');
-        case 'docker-tag': return t('details.dockerTagTab');
-        case 'docker-push': return t('details.dockerPushTab');
-        case 'docker-login': return t('details.dockerLoginTab');
-        case 'npm-config': return t('details.npmConfigTab');
-        case 'npm-install': return t('details.npmInstallTab');
-        case 'npm-publish': return t('details.npmPublishTab');
-        default: return 'Maven';
+        case 'gradle-kotlin':
+            return 'Gradle Kotlin';
+        case 'gradle-groovy':
+            return 'Gradle Groovy';
+        case 'sbt':
+            return 'SBT';
+        case 'cargo-registry':
+            return t('details.cargoRegistryTab');
+        case 'cargo-source':
+            return t('details.cargoSourceTab');
+        case 'cargo-login':
+            return t('details.cargoLoginTab');
+        case 'cargo-publish':
+            return t('details.cargoPublishTab');
+        case 'docker-pull':
+            return t('details.dockerPullTab');
+        case 'docker-tag':
+            return t('details.dockerTagTab');
+        case 'docker-push':
+            return t('details.dockerPushTab');
+        case 'docker-login':
+            return t('details.dockerLoginTab');
+        case 'npm-config':
+            return t('details.npmConfigTab');
+        case 'npm-install':
+            return t('details.npmInstallTab');
+        case 'npm-publish':
+            return t('details.npmPublishTab');
+        default:
+            return 'Maven';
     }
 }
 
@@ -325,7 +339,7 @@ function bindCopyButton() {
  * @returns {Promise<void>}
  */
 export async function updateSnippets(path, detailsPromise) {
-	const sequence = ++snippetUpdateSequence;
+    const sequence = ++snippetUpdateSequence;
     const card = document.getElementById('repo-snippets-card');
     const colRight = document.querySelector('.col-right');
     const layoutTwoCol = document.querySelector('.layout-two-col');
@@ -352,7 +366,7 @@ export async function updateSnippets(path, detailsPromise) {
     } catch (error) {
         console.error('Failed to load repository format for snippets', error);
     }
-	if (sequence !== snippetUpdateSequence) return;
+    if (sequence !== snippetUpdateSequence) return;
     const format = getRepositoryFormat(details?.format);
     if (format.id === 'files') {
         currentSnippets = {};
@@ -373,7 +387,7 @@ export async function updateSnippets(path, detailsPromise) {
         if (subtitle) subtitle.textContent = t('details.npmSubtitle');
     } else {
         const snippetState = await buildMavenSnippets(path, pathParts);
-		if (sequence !== snippetUpdateSequence) return;
+        if (sequence !== snippetUpdateSequence) return;
         currentSnippets = snippetState.snippets;
         if (title) title.textContent = t(snippetState.artifact ? 'details.artifactTitle' : 'details.title');
         if (subtitle) subtitle.textContent = t('details.subtitle');

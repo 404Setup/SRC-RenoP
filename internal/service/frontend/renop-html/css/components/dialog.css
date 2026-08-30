@@ -43,195 +43,195 @@
 .gpg-key-dialog-body,
 .gpg-key-list,
 .gpg-key-info {
-	display: flex;
-	flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .gpg-key-dialog-body {
-	gap: 0.85rem;
+    gap: 0.85rem;
 }
 
 .gpg-key-add-form {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	gap: 0.65rem;
-	align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    align-items: center;
 }
 
 .gpg-key-count,
 .gpg-key-dates,
 .gpg-key-empty {
-	font-size: 0.78rem;
-	color: color-mix(in srgb, var(--text-color) 62%, transparent);
+    font-size: 0.78rem;
+    color: color-mix(in srgb, var(--text-color) 62%, transparent);
 }
 
 .gpg-key-list {
-	gap: 0.5rem;
+    gap: 0.5rem;
 }
 
 .gpg-key-item {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	min-width: 0;
-	gap: 0.75rem;
-	padding: 0.7rem 0.8rem;
-	border: 1px solid var(--border-color);
-	border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
 }
 
 .gpg-key-info {
-	flex: 1 1 auto;
-	min-width: 0;
-	gap: 0.2rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0.2rem;
 }
 
 .gpg-key-identity {
-	font-size: 0.88rem;
-	min-width: 0;
-	overflow-wrap: anywhere;
-	word-break: break-word;
+    font-size: 0.88rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .gpg-key-item > .file-action-btn {
-	flex: 0 0 auto;
+    flex: 0 0 auto;
 }
 
 .gpg-key-fingerprint {
-	font-size: 0.73rem;
-	overflow-wrap: anywhere;
+    font-size: 0.73rem;
+    overflow-wrap: anywhere;
 }
 
 .gpg-key-error {
-	color: #ef4444;
-	font-size: 0.85rem;
+    color: #ef4444;
+    font-size: 0.85rem;
 }
 
 .gpg-release-dialog-body,
 .gpg-release-list {
-	display: flex;
-	flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .gpg-release-dialog-body {
-	gap: 0.75rem;
+    gap: 0.75rem;
 }
 
 .gpg-release-controls,
 .gpg-release-actions,
 .gpg-release-item-header,
 .gpg-release-meta {
-	display: flex;
-	align-items: center;
+    display: flex;
+    align-items: center;
 }
 
 .gpg-release-controls,
 .gpg-release-item-header {
-	justify-content: space-between;
+    justify-content: space-between;
 }
 
 .gpg-release-controls {
-	gap: 0.75rem;
+    gap: 0.75rem;
 }
 
 .gpg-release-actions {
-	gap: 0.35rem;
+    gap: 0.35rem;
 }
 
 .gpg-release-summary {
-	font-size: 0.8rem;
-	color: color-mix(in srgb, var(--text-color) 65%, transparent);
+    font-size: 0.8rem;
+    color: color-mix(in srgb, var(--text-color) 65%, transparent);
 }
 
 .gpg-release-list {
-	gap: 0.55rem;
-	max-height: min(52vh, 30rem);
-	overflow-y: auto;
-	overscroll-behavior: contain;
+    gap: 0.55rem;
+    max-height: min(52vh, 30rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .gpg-release-item {
-	display: flex;
-	flex-direction: column;
-	gap: 0.4rem;
-	padding: 0.75rem 0.85rem;
-	border: 1px solid var(--border-color);
-	border-radius: 8px;
-	background: color-mix(in srgb, var(--card-bg) 94%, var(--text-color) 6%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--card-bg) 94%, var(--text-color) 6%);
 }
 
 .gpg-release-item-header {
-	gap: 0.75rem;
+    gap: 0.75rem;
 }
 
 .gpg-release-path {
-	min-width: 0;
-	font-size: 0.78rem;
-	overflow-wrap: anywhere;
+    min-width: 0;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
 }
 
 .gpg-release-status {
-	flex: 0 0 auto;
-	padding: 0.2rem 0.48rem;
-	border-radius: 999px;
-	font-size: 0.7rem;
-	font-weight: 700;
-	background: color-mix(in srgb, #64748b 14%, transparent);
-	color: #475569;
+    flex: 0 0 auto;
+    padding: 0.2rem 0.48rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: color-mix(in srgb, #64748b 14%, transparent);
+    color: #475569;
 }
 
 .gpg-release-status--validating {
-	background: color-mix(in srgb, #2563eb 14%, transparent);
-	color: #2563eb;
+    background: color-mix(in srgb, #2563eb 14%, transparent);
+    color: #2563eb;
 }
 
 .gpg-release-status--failed {
-	background: color-mix(in srgb, #dc2626 14%, transparent);
-	color: #dc2626;
+    background: color-mix(in srgb, #dc2626 14%, transparent);
+    color: #dc2626;
 }
 
 .gpg-release-status--success {
-	background: color-mix(in srgb, #059669 14%, transparent);
-	color: #047857;
+    background: color-mix(in srgb, #059669 14%, transparent);
+    color: #047857;
 }
 
 .gpg-release-meta {
-	flex-wrap: wrap;
-	gap: 0.3rem 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.75rem;
 }
 
 .gpg-release-meta-item {
-	font-size: 0.72rem;
-	color: color-mix(in srgb, var(--text-color) 62%, transparent);
+    font-size: 0.72rem;
+    color: color-mix(in srgb, var(--text-color) 62%, transparent);
 }
 
 .gpg-release-failure {
-	padding: 0.5rem 0.6rem;
-	border-left: 3px solid #dc2626;
-	font-size: 0.78rem;
-	line-height: 1.45;
-	color: #b91c1c;
-	background: color-mix(in srgb, #dc2626 7%, transparent);
-	overflow-wrap: anywhere;
+    padding: 0.5rem 0.6rem;
+    border-left: 3px solid #dc2626;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #b91c1c;
+    background: color-mix(in srgb, #dc2626 7%, transparent);
+    overflow-wrap: anywhere;
 }
 
 @media (max-width: 560px) {
-	.gpg-key-add-form {
-		grid-template-columns: 1fr;
-	}
+    .gpg-key-add-form {
+        grid-template-columns: 1fr;
+    }
 
-	.gpg-release-controls {
-		align-items: flex-start;
-		flex-direction: column;
-	}
+    .gpg-release-controls {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 
-	.gpg-release-actions {
-		align-self: flex-end;
-	}
+    .gpg-release-actions {
+        align-self: flex-end;
+    }
 
-	.gpg-release-item-header {
-		align-items: flex-start;
-	}
+    .gpg-release-item-header {
+        align-items: flex-start;
+    }
 }
 
 .modal-content > form,

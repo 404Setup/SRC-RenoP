@@ -23,6 +23,25 @@ export class RenopRoleChip extends HTMLElement {
     }
 
     /**
+     * Whether the chip checkbox is checked.
+     * @returns {boolean}
+     */
+    get checked() {
+        const input = this.querySelector('input[type="checkbox"]');
+        return input ? input.checked : this.hasAttribute('checked');
+    }
+
+    /**
+     * Set the chip checked state.
+     * @param {boolean} val - Checked state.
+     */
+    set checked(val) {
+        if (val) this.setAttribute('checked', '');
+        else this.removeAttribute('checked');
+        this.syncCheckedState(!!val);
+    }
+
+    /**
      * Render when inserted into the DOM.
      * @returns {void}
      */
@@ -44,25 +63,6 @@ export class RenopRoleChip extends HTMLElement {
             return;
         }
         this.render();
-    }
-
-    /**
-     * Whether the chip checkbox is checked.
-     * @returns {boolean}
-     */
-    get checked() {
-        const input = this.querySelector('input[type="checkbox"]');
-        return input ? input.checked : this.hasAttribute('checked');
-    }
-
-    /**
-     * Set the chip checked state.
-     * @param {boolean} val - Checked state.
-     */
-    set checked(val) {
-        if (val) this.setAttribute('checked', '');
-        else this.removeAttribute('checked');
-        this.syncCheckedState(!!val);
     }
 
     /**

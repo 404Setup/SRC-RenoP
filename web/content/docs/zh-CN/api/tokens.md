@@ -91,30 +91,30 @@ Token 管理接口只接受 HttpOnly `renop_session` 浏览器 Cookie。API Toke
 
 ## 权限参考
 
-| Scope | 能力 |
-|:------|:-----|
-| `repository:read` | 读取存储库目录、元数据、文件、镜像与版本 |
-| `repository:publish` | 通过 Maven、npm、Cargo、Docker、files 或分块上传发布 |
-| `repository:delete` | 删除文件、版本、标签或镜像 |
-| `package:create` | 通过存储库授权后预留 npm/Cargo 软件包或 Docker 镜像 |
-| `package:metadata` | 更新包描述及其他元数据 |
-| `package:lifecycle` | 归档、恢复、yank 或 unyank 包与版本 |
-| `team:manage` | 查看和管理 npm、Cargo、Docker 与 Maven 域团队及邀请 |
-| `domain:read` | 读取 Maven 域私有配置 |
-| `domain:create` | 创建 Maven 域 |
-| `domain:verify` | 验证或强制验证 Maven 域 |
-| `domain:delete` | 删除 Maven 域 |
-| `messages:read` | 读取、标记和删除账号消息 |
-| `account:read` | 读取账号私有数据与个人行为日志 |
-| `account:write` | 通过 API 更新公开个人资料 |
-| `statistics:read` | 查询账号有权查看的下载统计 |
-| `admin:users` | 管理用户账号及登录设备 |
-| `admin:repositories` | 管理存储库与重建索引 |
-| `admin:settings` | 管理系统设置与诊断 |
-| `admin:audit` | 读取或清理管理员行为与状态数据 |
-| `admin:notifications` | 编写管理员通知 |
-| `admin:updates` | 检查、上传、安装更新及重启 |
-| `admin:statistics` | 查询系统级统计 |
+| Scope                 | 能力                                                 |
+|:----------------------|:-----------------------------------------------------|
+| `repository:read`     | 读取存储库目录、元数据、文件、镜像与版本             |
+| `repository:publish`  | 通过 Maven、npm、Cargo、Docker、files 或分块上传发布 |
+| `repository:delete`   | 删除文件、版本、标签或镜像                           |
+| `package:create`      | 通过存储库授权后预留 npm/Cargo 软件包或 Docker 镜像  |
+| `package:metadata`    | 更新包描述及其他元数据                               |
+| `package:lifecycle`   | 归档、恢复、yank 或 unyank 包与版本                  |
+| `team:manage`         | 查看和管理 npm、Cargo、Docker 与 Maven 域团队及邀请  |
+| `domain:read`         | 读取 Maven 域私有配置                                |
+| `domain:create`       | 创建 Maven 域                                        |
+| `domain:verify`       | 验证或强制验证 Maven 域                              |
+| `domain:delete`       | 删除 Maven 域                                        |
+| `messages:read`       | 读取、标记和删除账号消息                             |
+| `account:read`        | 读取账号私有数据与个人行为日志                       |
+| `account:write`       | 通过 API 更新公开个人资料                            |
+| `statistics:read`     | 查询账号有权查看的下载统计                           |
+| `admin:users`         | 管理用户账号及登录设备                               |
+| `admin:repositories`  | 管理存储库与重建索引                                 |
+| `admin:settings`      | 管理系统设置与诊断                                   |
+| `admin:audit`         | 读取或清理管理员行为与状态数据                       |
+| `admin:notifications` | 编写管理员通知                                       |
+| `admin:updates`       | 检查、上传、安装更新及重启                           |
+| `admin:statistics`    | 查询系统级统计                                       |
 
 只有管理员可以创建 `admin:*` 权限；所属账号失去管理员角色后，权限会立即失效。已有 Token 的
 `package:manage` 与 `domain:manage` 保持兼容，但新 Token 不再允许选择。
@@ -128,7 +128,8 @@ Authorization: Bearer rnp_pat_REDACTED
 ```
 
 标准包客户端可将同一个 Token 作为所属用户名的 Basic 密码。Basic 仅限包协议。npm 通过 `_authToken` 或
-Basic 发送 Token；Cargo 将 Token 作为完整 `Authorization` 值发送；Docker 通过 `/v2/token` 换取短期 Token，其中只包含 API Token 权限与镜像权限
+Basic 发送 Token；Cargo 将 Token 作为完整 `Authorization` 值发送；Docker 通过 `/v2/token` 换取短期 Token，其中只包含 API
+Token 权限与镜像权限
 共同允许的动作。
 
 ## 兼容接口

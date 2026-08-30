@@ -700,47 +700,185 @@
     border-color: color-mix(in srgb, #7ebae4 22%, transparent);
 }
 
-.file-type-badge--coffee { color: #244776; }
-.file-type-badge--elm { color: #60b5cc; }
-.file-type-badge--fortran { color: #734f96; }
-.file-type-badge--matlab { color: #e16737; }
-.file-type-badge--lisp { color: #3fb68b; }
-.file-type-badge--vb { color: #945db7; }
-.file-type-badge--haxe { color: #ea8220; }
-.file-type-badge--dlang { color: #b03931; }
-.file-type-badge--pascal { color: #ca8a04; }
-.file-type-badge--gleam { color: #db2777; }
-.file-type-badge--odin { color: #3882d2; }
-.file-type-badge--rescript { color: #e6484f; }
-.file-type-badge--prolog { color: #74283c; }
-.file-type-badge--scss { color: #c6538c; }
-.file-type-badge--less { color: #1d365d; }
-.file-type-badge--shader { color: #16a34a; }
-.file-type-badge--latex { color: #008080; }
-.file-type-badge--rst { color: #64748b; }
-.file-type-badge--adoc { color: #e40046; }
-.file-type-badge--nix { color: #5277c3; }
+.file-type-badge--coffee {
+    color: #244776;
+}
 
-.upload-file-icon--coffee { color: #244776; background: color-mix(in srgb, #244776 14%, transparent); }
-.upload-file-icon--elm { color: #60b5cc; background: color-mix(in srgb, #60b5cc 14%, transparent); }
-.upload-file-icon--fortran { color: #734f96; background: color-mix(in srgb, #734f96 14%, transparent); }
-.upload-file-icon--matlab { color: #e16737; background: color-mix(in srgb, #e16737 14%, transparent); }
-.upload-file-icon--lisp { color: #3fb68b; background: color-mix(in srgb, #3fb68b 14%, transparent); }
-.upload-file-icon--vb { color: #945db7; background: color-mix(in srgb, #945db7 14%, transparent); }
-.upload-file-icon--haxe { color: #ea8220; background: color-mix(in srgb, #ea8220 14%, transparent); }
-.upload-file-icon--dlang { color: #b03931; background: color-mix(in srgb, #b03931 14%, transparent); }
-.upload-file-icon--pascal { color: #ca8a04; background: color-mix(in srgb, #e3f171 18%, transparent); }
-.upload-file-icon--gleam { color: #db2777; background: color-mix(in srgb, #ffaff3 16%, transparent); }
-.upload-file-icon--odin { color: #3882d2; background: color-mix(in srgb, #3882d2 14%, transparent); }
-.upload-file-icon--rescript { color: #e6484f; background: color-mix(in srgb, #e6484f 14%, transparent); }
-.upload-file-icon--prolog { color: #74283c; background: color-mix(in srgb, #74283c 14%, transparent); }
-.upload-file-icon--scss { color: #c6538c; background: color-mix(in srgb, #c6538c 14%, transparent); }
-.upload-file-icon--less { color: #1d365d; background: color-mix(in srgb, #1d365d 14%, transparent); }
-.upload-file-icon--shader { color: #16a34a; background: color-mix(in srgb, #56d364 14%, transparent); }
-.upload-file-icon--latex { color: #008080; background: color-mix(in srgb, #008080 14%, transparent); }
-.upload-file-icon--rst { color: #64748b; background: color-mix(in srgb, #94a3b8 16%, transparent); }
-.upload-file-icon--adoc { color: #e40046; background: color-mix(in srgb, #e40046 14%, transparent); }
-.upload-file-icon--nix { color: #5277c3; background: color-mix(in srgb, #7ebae4 14%, transparent); }
+.file-type-badge--elm {
+    color: #60b5cc;
+}
+
+.file-type-badge--fortran {
+    color: #734f96;
+}
+
+.file-type-badge--matlab {
+    color: #e16737;
+}
+
+.file-type-badge--lisp {
+    color: #3fb68b;
+}
+
+.file-type-badge--vb {
+    color: #945db7;
+}
+
+.file-type-badge--haxe {
+    color: #ea8220;
+}
+
+.file-type-badge--dlang {
+    color: #b03931;
+}
+
+.file-type-badge--pascal {
+    color: #ca8a04;
+}
+
+.file-type-badge--gleam {
+    color: #db2777;
+}
+
+.file-type-badge--odin {
+    color: #3882d2;
+}
+
+.file-type-badge--rescript {
+    color: #e6484f;
+}
+
+.file-type-badge--prolog {
+    color: #74283c;
+}
+
+.file-type-badge--scss {
+    color: #c6538c;
+}
+
+.file-type-badge--less {
+    color: #1d365d;
+}
+
+.file-type-badge--shader {
+    color: #16a34a;
+}
+
+.file-type-badge--latex {
+    color: #008080;
+}
+
+.file-type-badge--rst {
+    color: #64748b;
+}
+
+.file-type-badge--adoc {
+    color: #e40046;
+}
+
+.file-type-badge--nix {
+    color: #5277c3;
+}
+
+.upload-file-icon--coffee {
+    color: #244776;
+    background: color-mix(in srgb, #244776 14%, transparent);
+}
+
+.upload-file-icon--elm {
+    color: #60b5cc;
+    background: color-mix(in srgb, #60b5cc 14%, transparent);
+}
+
+.upload-file-icon--fortran {
+    color: #734f96;
+    background: color-mix(in srgb, #734f96 14%, transparent);
+}
+
+.upload-file-icon--matlab {
+    color: #e16737;
+    background: color-mix(in srgb, #e16737 14%, transparent);
+}
+
+.upload-file-icon--lisp {
+    color: #3fb68b;
+    background: color-mix(in srgb, #3fb68b 14%, transparent);
+}
+
+.upload-file-icon--vb {
+    color: #945db7;
+    background: color-mix(in srgb, #945db7 14%, transparent);
+}
+
+.upload-file-icon--haxe {
+    color: #ea8220;
+    background: color-mix(in srgb, #ea8220 14%, transparent);
+}
+
+.upload-file-icon--dlang {
+    color: #b03931;
+    background: color-mix(in srgb, #b03931 14%, transparent);
+}
+
+.upload-file-icon--pascal {
+    color: #ca8a04;
+    background: color-mix(in srgb, #e3f171 18%, transparent);
+}
+
+.upload-file-icon--gleam {
+    color: #db2777;
+    background: color-mix(in srgb, #ffaff3 16%, transparent);
+}
+
+.upload-file-icon--odin {
+    color: #3882d2;
+    background: color-mix(in srgb, #3882d2 14%, transparent);
+}
+
+.upload-file-icon--rescript {
+    color: #e6484f;
+    background: color-mix(in srgb, #e6484f 14%, transparent);
+}
+
+.upload-file-icon--prolog {
+    color: #74283c;
+    background: color-mix(in srgb, #74283c 14%, transparent);
+}
+
+.upload-file-icon--scss {
+    color: #c6538c;
+    background: color-mix(in srgb, #c6538c 14%, transparent);
+}
+
+.upload-file-icon--less {
+    color: #1d365d;
+    background: color-mix(in srgb, #1d365d 14%, transparent);
+}
+
+.upload-file-icon--shader {
+    color: #16a34a;
+    background: color-mix(in srgb, #56d364 14%, transparent);
+}
+
+.upload-file-icon--latex {
+    color: #008080;
+    background: color-mix(in srgb, #008080 14%, transparent);
+}
+
+.upload-file-icon--rst {
+    color: #64748b;
+    background: color-mix(in srgb, #94a3b8 16%, transparent);
+}
+
+.upload-file-icon--adoc {
+    color: #e40046;
+    background: color-mix(in srgb, #e40046 14%, transparent);
+}
+
+.upload-file-icon--nix {
+    color: #5277c3;
+    background: color-mix(in srgb, #7ebae4 14%, transparent);
+}
 
 .upload-file-ext--script {
     color: #16a34a;

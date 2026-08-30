@@ -28,11 +28,11 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 
 初期 `repositories.yaml` には互換用 Maven repository が 3 件あります。
 
-| Path | Visibility | Policy |
-|:-----|:-----------|:-------|
-| `/releases` | `PUBLIC` | Maven、redeployment 無効 |
-| `/snapshots` | `PUBLIC` | Maven、redeployment 有効 |
-| `/private` | `PRIVATE` | Maven、認証必須 |
+| Path         | Visibility | Policy                   |
+|:-------------|:-----------|:-------------------------|
+| `/releases`  | `PUBLIC`   | Maven、redeployment 無効 |
+| `/snapshots` | `PUBLIC`   | Maven、redeployment 有効 |
+| `/private`   | `PRIVATE`  | Maven、認証必須          |
 
 npm、Cargo、Docker、`files` は管理画面から明示的に作成します。Docker image と npm package は各 repository
 画面で予約後に push できます。Cargo name は上流検査後に作成します。Maven 公開には検証済み domain が必要です。
@@ -49,12 +49,12 @@ traffic 前に実際の認証操作で DB と storage も検証してくださ�
 
 ## 主要な環境変数
 
-| 変数 | 既定 | 用途 |
-|:-----|:-----|:-----|
-| `RENOP_CONFIG` | `config.yaml` | main config path |
-| `RENOP_REPOSITORIES` | `repositories.yaml` | repository config path |
-| `RENOP_INDEX` | `index.json` | file-index snapshot path |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 1 回生成 | `admin` がない場合の初期 password |
+| 変数                           | 既定                | 用途                              |
+|:-------------------------------|:--------------------|:----------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | main config path                  |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | repository config path            |
+| `RENOP_INDEX`                  | `index.json`        | file-index snapshot path          |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | 1 回生成            | `admin` がない場合の初期 password |
 
 account、session、team、API Token、audit、message は DB data であり YAML path 変数はありません。
 

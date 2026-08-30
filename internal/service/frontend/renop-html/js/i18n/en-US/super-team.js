@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 export default Object.freeze({
@@ -84,16 +88,16 @@ export default Object.freeze({
     "superTeam.invitationBody": "{inviter} invited you to {prefix} with T{level} permission.",
     "superTeam.membershipAddedTitle": "Global team membership added",
     "superTeam.membershipAddedBody": "You were added to {prefix} with T{level} permission.",
-	"superTeam.projectOwner": "Project owner",
-	"superTeam.domainOwner": "Publishing domain owner",
-	"superTeam.personalOwnership": "Personal ownership",
-	"superTeam.bindingHint": "Choose a global team where you have T3 or T4 permission. Namespaced Docker images and scoped npm packages must match its prefix.",
-	"superTeam.creationBindingHint": "T3 and T4 members can create immediately. T2 requests require approval from a T3 or T4 member. The package namespace must match the team prefix.",
-	"superTeam.bindingLoadFailed": "Could not load your manageable global teams.",
-	"superTeam.bindingRequired": "Choose the global team that owns this namespace.",
-	"superTeam.bindingMismatch": "The package namespace must match the selected global team prefix.",
-	"superTeam.bindingPermission": "T3 or T4 permission is required to publish as this global team.",
-	"superTeam.teamNotEmpty": "Transfer or remove every project and publishing domain owned by this team before deleting it.",
+    "superTeam.projectOwner": "Project owner",
+    "superTeam.domainOwner": "Publishing domain owner",
+    "superTeam.personalOwnership": "Personal ownership",
+    "superTeam.bindingHint": "Choose a global team where you have T3 or T4 permission. Namespaced Docker images and scoped npm packages must match its prefix.",
+    "superTeam.creationBindingHint": "T3 and T4 members can create immediately. T2 requests require approval from a T3 or T4 member. The package namespace must match the team prefix.",
+    "superTeam.bindingLoadFailed": "Could not load your manageable global teams.",
+    "superTeam.bindingRequired": "Choose the global team that owns this namespace.",
+    "superTeam.bindingMismatch": "The package namespace must match the selected global team prefix.",
+    "superTeam.bindingPermission": "T3 or T4 permission is required to publish as this global team.",
+    "superTeam.teamNotEmpty": "Transfer or remove every project and publishing domain owned by this team before deleting it.",
     "audit.action.SUPER_TEAM_CREATE": "Global Team Created",
     "audit.action.SUPER_TEAM_UPDATE": "Global Team Updated",
     "audit.action.SUPER_TEAM_DELETE": "Global Team Deleted",

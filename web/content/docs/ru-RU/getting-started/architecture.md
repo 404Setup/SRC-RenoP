@@ -27,7 +27,8 @@ File index and mirrors      Identity, teams, audit, messages
 ```
 
 - `internal/api` и middleware владеют HTTP contracts, поиском, аномалиями и границами credentials.
-- Format services владеют Maven domains/catalogs, npm packuments, Cargo Sparse Index, Docker Distribution v2 и doc viewers.
+- Format services владеют Maven domains/catalogs, npm packuments, Cargo Sparse Index, Docker Distribution v2 и doc
+  viewers.
 - Database layer предоставляет dialect-aware transactions для SQLite, MySQL и PostgreSQL.
 - Disk/S3 потоково передаёт крупные тела, file index предоставляет ограниченный обход metadata.
 

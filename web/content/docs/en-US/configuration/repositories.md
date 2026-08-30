@@ -39,17 +39,17 @@ repositories:
 
 ## Repository fields
 
-| Field | Default | Description |
-|:------|:--------|:------------|
-| `name` | Required | Immutable repository slug and URL prefix |
-| `format` | `maven` | `maven`, `maven-classic`, `files`, `npm`, `cargo`, or `docker` |
-| `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN`, or `PRIVATE` |
-| `allow_redeployment` | `false` | Maven version redeployment or replacement in files/Docker, when supported |
-| `require_gpg_signature` | `false` | Require detached OpenPGP validation for Maven publication |
-| `publication_review` | `off` | Maven/npm/Cargo/Docker review policy: `off`, `new_packages`, or `every_version` |
-| `download_statistics` | Engine default | Enabled for Maven/npm/Cargo/Docker; unstructured `files` opts in |
-| `mirrors` | `[]` | Ordered upstream definitions |
-| `s3` | omitted | Repository-specific S3-compatible storage |
+| Field                   | Default        | Description                                                                     |
+|:------------------------|:---------------|:--------------------------------------------------------------------------------|
+| `name`                  | Required       | Immutable repository slug and URL prefix                                        |
+| `format`                | `maven`        | `maven`, `maven-classic`, `files`, `npm`, `cargo`, or `docker`                  |
+| `visibility`            | `PUBLIC`       | `PUBLIC`, `HIDDEN`, or `PRIVATE`                                                |
+| `allow_redeployment`    | `false`        | Maven version redeployment or replacement in files/Docker, when supported       |
+| `require_gpg_signature` | `false`        | Require detached OpenPGP validation for Maven publication                       |
+| `publication_review`    | `off`          | Maven/npm/Cargo/Docker review policy: `off`, `new_packages`, or `every_version` |
+| `download_statistics`   | Engine default | Enabled for Maven/npm/Cargo/Docker; unstructured `files` opts in                |
+| `mirrors`               | `[]`           | Ordered upstream definitions                                                    |
+| `s3`                    | omitted        | Repository-specific S3-compatible storage                                       |
 
 For npm and Docker, `new_packages` reviews the explicit creation request before reserving the name; `every_version`
 also reviews every later version or manifest. Maven and Cargo have no empty-package creation step, so their
@@ -95,17 +95,17 @@ mirrors:
     deny_artifacts: []
 ```
 
-| Field | Default | Description |
-|:------|:--------|:------------|
-| `name` | Required | Unique mirror name within the repository |
-| `url` | Required | Upstream base URL |
-| `persist` | `true` | Store successful responses in the repository backend |
-| `cache_ttl_secs` | `86400` | Positive-cache lifetime |
-| `negative_cache` | `true` | Cache supported upstream misses |
-| `timeout_secs` | `30` | Per-request upstream timeout |
-| `proxy` | `""` | Global route; `direct`; or an exact named proxy |
-| `allow_artifacts` | `[]` | Format-aware allow rules |
-| `deny_artifacts` | `[]` | Format-aware deny rules; deny wins |
+| Field             | Default  | Description                                          |
+|:------------------|:---------|:-----------------------------------------------------|
+| `name`            | Required | Unique mirror name within the repository             |
+| `url`             | Required | Upstream base URL                                    |
+| `persist`         | `true`   | Store successful responses in the repository backend |
+| `cache_ttl_secs`  | `86400`  | Positive-cache lifetime                              |
+| `negative_cache`  | `true`   | Cache supported upstream misses                      |
+| `timeout_secs`    | `30`     | Per-request upstream timeout                         |
+| `proxy`           | `""`     | Global route; `direct`; or an exact named proxy      |
+| `allow_artifacts` | `[]`     | Format-aware allow rules                             |
+| `deny_artifacts`  | `[]`     | Format-aware deny rules; deny wins                   |
 
 Mirror credentials, when required, use the structured authorization fields. Do not embed secrets in `url`.
 

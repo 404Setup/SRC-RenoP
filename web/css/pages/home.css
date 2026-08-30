@@ -50,9 +50,8 @@
     overflow: hidden;
     background: var(--card-bg);
     border: 1px solid color-mix(in srgb, var(--border-color) 85%, transparent);
-    box-shadow:
-        0 8px 28px rgba(0, 0, 0, 0.08),
-        0 1px 3px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04);
     box-sizing: border-box;
 }
 

@@ -38,17 +38,17 @@ repositories:
 
 ## リポジトリ項目
 
-| 項目 | 既定 | 説明 |
-|:-----|:-----|:-----|
-| `name` | 必須 | 不変 slug と URL prefix |
-| `format` | `maven` | `maven`、`maven-classic`、`files`、`npm`、`cargo`、`docker` |
-| `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN`、`PRIVATE` |
-| `allow_redeployment` | `false` | 対応形式で Maven 再公開または files/Docker 上書き |
-| `require_gpg_signature` | `false` | Maven 公開時の OpenPGP 分離署名検証 |
-| `publication_review` | `off` | Maven/npm/Cargo/Docker 審査方針: `off`、`new_packages`、`every_version` |
-| `download_statistics` | エンジン既定 | Maven/npm/Cargo/Docker は有効、`files` は明示的に有効化 |
-| `mirrors` | `[]` | 順序付き上流定義 |
-| `s3` | 省略 | リポジトリ固有 S3 storage |
+| 項目                    | 既定         | 説明                                                                    |
+|:------------------------|:-------------|:------------------------------------------------------------------------|
+| `name`                  | 必須         | 不変 slug と URL prefix                                                 |
+| `format`                | `maven`      | `maven`、`maven-classic`、`files`、`npm`、`cargo`、`docker`             |
+| `visibility`            | `PUBLIC`     | `PUBLIC`、`HIDDEN`、`PRIVATE`                                           |
+| `allow_redeployment`    | `false`      | 対応形式で Maven 再公開または files/Docker 上書き                       |
+| `require_gpg_signature` | `false`      | Maven 公開時の OpenPGP 分離署名検証                                     |
+| `publication_review`    | `off`        | Maven/npm/Cargo/Docker 審査方針: `off`、`new_packages`、`every_version` |
+| `download_statistics`   | エンジン既定 | Maven/npm/Cargo/Docker は有効、`files` は明示的に有効化                 |
+| `mirrors`               | `[]`         | 順序付き上流定義                                                        |
+| `s3`                    | 省略         | リポジトリ固有 S3 storage                                               |
 
 npm と Docker の `new_packages` は、名前を予約する前に明示的な作成 request を審査します。`every_version` は
 その後の各 version または manifest も審査します。Maven と Cargo には空 package の作成段階がないため、
@@ -91,17 +91,17 @@ mirrors:
     deny_artifacts: []
 ```
 
-| 項目 | 既定 | 説明 |
-|:-----|:-----|:-----|
-| `name` | 必須 | リポジトリ内で一意の名前 |
-| `url` | 必須 | 上流 base URL |
-| `persist` | `true` | 成功レスポンスを保存 |
-| `cache_ttl_secs` | `86400` | positive cache lifetime |
-| `negative_cache` | `true` | 対応する上流 miss を cache |
-| `timeout_secs` | `30` | 上流要求 timeout |
-| `proxy` | `""` | 全体 route、`direct`、または名前付き proxy |
-| `allow_artifacts` | `[]` | format-aware allow rule |
-| `deny_artifacts` | `[]` | 優先される deny rule |
+| 項目              | 既定    | 説明                                       |
+|:------------------|:--------|:-------------------------------------------|
+| `name`            | 必須    | リポジトリ内で一意の名前                   |
+| `url`             | 必須    | 上流 base URL                              |
+| `persist`         | `true`  | 成功レスポンスを保存                       |
+| `cache_ttl_secs`  | `86400` | positive cache lifetime                    |
+| `negative_cache`  | `true`  | 対応する上流 miss を cache                 |
+| `timeout_secs`    | `30`    | 上流要求 timeout                           |
+| `proxy`           | `""`    | 全体 route、`direct`、または名前付き proxy |
+| `allow_artifacts` | `[]`    | format-aware allow rule                    |
+| `deny_artifacts`  | `[]`    | 優先される deny rule                       |
 
 資格情報は構造化 authorization 項目に置き、`url` に埋め込まないでください。
 

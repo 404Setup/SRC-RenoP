@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -86,14 +88,14 @@ func gpgCompanionForPath(localFilePath string) (artifactPath, stagingName string
 	pathSlash := filepath.ToSlash(localFilePath)
 	for _, suffix := range gpgChecksumSuffixes {
 		signatureSuffix := ".asc" + suffix
-		if strings.HasSuffix(pathSlash, signatureSuffix) {
-			artifactPath = strings.TrimSuffix(pathSlash, signatureSuffix)
+		if before, ok0 := strings.CutSuffix(pathSlash, signatureSuffix); ok0 {
+			artifactPath = before
 			if gpg.IsProtectedArtifact(artifactPath) {
 				return artifactPath, "signature" + suffix, true
 			}
 		}
-		if strings.HasSuffix(pathSlash, suffix) {
-			artifactPath = strings.TrimSuffix(pathSlash, suffix)
+		if before, ok0 := strings.CutSuffix(pathSlash, suffix); ok0 {
+			artifactPath = before
 			if gpg.IsProtectedArtifact(artifactPath) {
 				return artifactPath, "artifact" + suffix, true
 			}

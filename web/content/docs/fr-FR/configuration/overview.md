@@ -12,11 +12,11 @@ utilise les mêmes structures validées et écrit les fichiers avec des permissi
 
 ## Fichiers de configuration
 
-| Fichier | Remplacement | Usage |
-|:--------|:-------------|:------|
-| `config.yaml` | `RENOP_CONFIG` | Serveur, base, aperçus, proxy, frontend, audit et mise à jour |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Moteurs, visibilité, miroirs, politique Maven et S3 |
-| `index.json` | `RENOP_INDEX` | Instantané de l’index de fichiers, reconstructible depuis le stockage |
+| Fichier             | Remplacement         | Usage                                                                 |
+|:--------------------|:---------------------|:----------------------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | Serveur, base, aperçus, proxy, frontend, audit et mise à jour         |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | Moteurs, visibilité, miroirs, politique Maven et S3                   |
+| `index.json`        | `RENOP_INDEX`        | Instantané de l’index de fichiers, reconstructible depuis le stockage |
 
 Comptes, API Token, sessions, équipes, audit et messages sont en base, jamais dans YAML. Limitez la lecture des fichiers
 de configuration au compte de service, car ils peuvent contenir des secrets.
@@ -124,5 +124,6 @@ updater:
   mode: "manual"
 ```
 
-`channel` vaut `release` ou `nightly`. `mode` vaut `manual`, `auto_check` ou `auto_install`. Les vérifications automatiques
+`channel` vaut `release` ou `nightly`. `mode` vaut `manual`, `auto_check` ou `auto_install`. Les vérifications
+automatiques
 sont fusionnées par le planificateur et leurs résultats sont envoyés aux administrateurs.

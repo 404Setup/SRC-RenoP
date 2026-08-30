@@ -27,7 +27,8 @@ File index and mirrors      Identity, teams, audit, messages
 ```
 
 - `internal/api` et les middlewares possèdent les contrats généraux, la recherche, les anomalies et les identifiants.
-- Les services de format possèdent domaines/catalogues Maven, packuments npm, Sparse Index Cargo, Distribution Docker v2 et aperçus.
+- Les services de format possèdent domaines/catalogues Maven, packuments npm, Sparse Index Cargo, Distribution Docker v2
+  et aperçus.
 - La base fournit des transactions multi-dialectes pour SQLite, MySQL et PostgreSQL.
 - Disk/S3 diffuse les gros corps et l’index fournit un parcours borné des métadonnées.
 
@@ -35,14 +36,16 @@ File index and mirrors      Identity, teams, audit, messages
 
 ### Streaming et cohérence
 
-Les transferts diffusent entre client et Disk/S3. Hash, extraction Brotli/ZIP, cache miroir et GPG utilisent des lecteurs
+Les transferts diffusent entre client et Disk/S3. Hash, extraction Brotli/ZIP, cache miroir et GPG utilisent des
+lecteurs
 bornés et fichiers temporaires. Un verrou segmenté évite qu’un changement de moteur ou stockage concurrence upload,
 suppression, miroir ou publication finale.
 
 ### Authentification et autorisation
 
 La session navigateur reste dans le cookie. Basic Auth est limité aux protocoles de paquets. Scopes et cibles exactes
-d’un API Token sont croisés à chaque requête avec les droits du compte et ses niveaux L0-L4. Les ID utilisateur immuables
+d’un API Token sont croisés à chaque requête avec les droits du compte et ses niveaux L0-L4. Les ID utilisateur
+immuables
 préservent la propriété lors d’un changement de nom.
 
 ### Travail asynchrone

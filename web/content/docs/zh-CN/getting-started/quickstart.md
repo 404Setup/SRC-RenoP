@@ -27,11 +27,11 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 
 初始 `repositories.yaml` 包含三个用于向后兼容的 Maven 存储库：
 
-| 路径 | 可见性 | 策略 |
-|:-----|:-------|:-----|
-| `/releases` | `PUBLIC` | Maven，禁止重复发布 |
-| `/snapshots` | `PUBLIC` | Maven，允许重复发布 |
-| `/private` | `PRIVATE` | Maven，要求认证 |
+| 路径         | 可见性    | 策略                |
+|:-------------|:----------|:--------------------|
+| `/releases`  | `PUBLIC`  | Maven，禁止重复发布 |
+| `/snapshots` | `PUBLIC`  | Maven，允许重复发布 |
+| `/private`   | `PRIVATE` | Maven，要求认证     |
 
 npm、Cargo、Docker 与 `files` 存储库需要在仓库管理中显式创建。Docker 镜像与 npm 软件包必须先从对应
 存储库页面预留，客户端才能推送。Cargo 名称仅在上游名称检查成功后创建。Maven 发布还要求账号菜单中已有验证通过的域。
@@ -48,12 +48,12 @@ protobuf 运行时指标位于 `/api/status/instance`。健康检查只说明进
 
 ## 重要环境变量
 
-| 变量 | 默认值 | 用途 |
-|:-----|:-------|:-----|
-| `RENOP_CONFIG` | `config.yaml` | 主配置文件路径 |
-| `RENOP_REPOSITORIES` | `repositories.yaml` | 存储库配置文件路径 |
-| `RENOP_INDEX` | `index.json` | 持久化文件索引快照路径 |
-| `RENOP_DEFAULT_ADMIN_PASSWORD` | 首次生成 | `admin` 不存在时的初始密码 |
+| 变量                           | 默认值              | 用途                       |
+|:-------------------------------|:--------------------|:---------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`       | 主配置文件路径             |
+| `RENOP_REPOSITORIES`           | `repositories.yaml` | 存储库配置文件路径         |
+| `RENOP_INDEX`                  | `index.json`        | 持久化文件索引快照路径     |
+| `RENOP_DEFAULT_ADMIN_PASSWORD` | 首次生成            | `admin` 不存在时的初始密码 |
 
 账号、会话、团队、API Token、行为日志与消息属于数据库数据，没有对应 YAML 路径变量。
 

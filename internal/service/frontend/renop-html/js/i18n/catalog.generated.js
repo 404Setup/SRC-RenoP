@@ -40,7 +40,7 @@ const localeLoaders = Object.freeze({
     'zh-YUE': () => import('./catalog.zh-YUE.generated.js').then((module) => module.default),
 });
 
-export const availableLocales = Object.freeze(["de-DE","en-US","es-ES","fr-FR","ja-JP","ko-KR","pt-PT","ru-RU","zh-CN","zh-HK","zh-TW","zh-YUE"]);
+export const availableLocales = Object.freeze(["de-DE", "en-US", "es-ES", "fr-FR", "ja-JP", "ko-KR", "pt-PT", "ru-RU", "zh-CN", "zh-HK", "zh-TW", "zh-YUE"]);
 const localePromises = new Map([['en-US', Promise.resolve(defaultLocale)]]);
 
 /**

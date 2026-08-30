@@ -7,7 +7,8 @@ description: Transferts de propriété et examen indépendant des publications
 
 # API de validation
 
-L'API de validation sépare les transferts de propriété et les publications modérées du centre de messages. Les tâches sont persistantes, paginées
+L'API de validation sépare les transferts de propriété et les publications modérées du centre de messages. Les tâches
+sont persistantes, paginées
 et ne peuvent recevoir qu'une seule décision. Elles couvrent les images Docker, les paquets npm, les crates Cargo,
 les artefacts Maven et les domaines de publication Maven.
 
@@ -65,9 +66,11 @@ version visible. Les crates issus d’un miroir ne sont pas examinés.
 
 Pour Docker, une création T2 suit les mêmes étapes ordonnées d’équipe puis, si nécessaire, de dépôt que npm. L’étape
 finale revérifie les conflits locaux ou amont, les droits du dépôt et l’appartenance actuelle à l’équipe avant de
-réserver l’image. Avec `new_packages`, les manifestes suivants sont publiés normalement. Avec `every_version`, chaque manifeste exact reste un fichier virtuel
+réserver l’image. Avec `new_packages`, les manifestes suivants sont publiés normalement. Avec `every_version`, chaque
+manifeste exact reste un fichier virtuel
 borné jusqu’à l’approbation ; sa référence et son tag n’entrent pas dans le catalogue, de sorte qu’un nouveau tag ne
-masque pas un tag existant du même digest. L’enregistrement du manifeste, des blobs, du tag et de la décision est atomique.
+masque pas un tag existant du même digest. L’enregistrement du manifeste, des blobs, du tag et de la décision est
+atomique.
 
 ## Lister les tâches
 
@@ -110,7 +113,8 @@ ou renvoie la même tâche avec l’état `pending` et un `review_team_prefix` v
 Le refus d'un transfert exige un motif non vide de
 512 caractères au maximum. Le refus d'une publication exige `reason_code` parmi `invalid_metadata`, `quality`,
 `policy_violation`, `copyright`, `malware` et `custom`. Un motif personnalisé est limité à 505 caractères.
-L'approbation enregistre les métadonnées de version du moteur avant d'exposer les fichiers ; le refus supprime les fichiers masqués.
+L'approbation enregistre les métadonnées de version du moteur avant d'exposer les fichiers ; le refus supprime les
+fichiers masqués.
 
 DELETE /api/reviews/{id} permet uniquement au demandeur d'annuler un transfert encore en attente. Une publication ne
 peut pas être annulée par cette route. Une comparaison et mise à jour sur l'état en attente garantit qu'une décision

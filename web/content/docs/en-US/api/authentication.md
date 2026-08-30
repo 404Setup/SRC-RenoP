@@ -64,7 +64,8 @@ Account-security routes require the current browser session and return `Cache-Co
 - **Read state**: `GET /api/auth/profile/security`
 - **Set email**: `PUT /api/auth/profile/email`
 - **Enable or disable password login**: `PUT /api/auth/profile/password-login`
-- Password login can be disabled only while Passkey or GitHub remains linked. Enabling it requires a configured password.
+- Password login can be disabled only while Passkey or GitHub remains linked. Enabling it requires a configured
+  password.
 
 ### Recovery codes
 

@@ -102,9 +102,8 @@
     position: relative;
     overflow: hidden;
     padding: 1.45rem 1.5rem;
-    background:
-        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--link-hover-color) 16%, transparent), transparent 36%),
-        var(--card-bg);
+    background: radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--link-hover-color) 16%, transparent), transparent 36%),
+    var(--card-bg);
 }
 
 .cargo-page-hero::after {
@@ -999,9 +998,9 @@ html.dark .cargo-dep-badge.is-target {
     pointer-events: none;
     z-index: 0;
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-                width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.18s ease;
+    height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.18s ease;
 }
 
 .cargo-version-row {
@@ -1009,9 +1008,9 @@ html.dark .cargo-dep-badge.is-target {
     z-index: 1;
     cursor: pointer;
     transition: background 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .cargo-version-row:hover:not(.is-selected) {

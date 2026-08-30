@@ -32,11 +32,11 @@ credentials, paths, queries, or fragments. Put credentials only in `username` an
 
 ## Routing behavior
 
-| Selector | Result |
-|:---------|:-------|
-| `""` | Inherit the global `proxy.selected` value |
-| `direct` | Bypass every proxy |
-| A proxy name | Use that exact configured proxy |
+| Selector     | Result                                    |
+|:-------------|:------------------------------------------|
+| `""`         | Inherit the global `proxy.selected` value |
+| `direct`     | Bypass every proxy                        |
+| A proxy name | Use that exact configured proxy           |
 
 Changing the selected proxy or credentials invalidates the relevant pooled clients. An unknown selector is rejected
 instead of silently falling back to direct access.

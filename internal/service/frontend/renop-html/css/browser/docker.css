@@ -100,9 +100,8 @@
     position: relative;
     overflow: hidden;
     padding: 1.45rem 1.65rem;
-    background:
-        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--link-hover-color) 16%, transparent), transparent 36%),
-        var(--card-bg);
+    background: radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--link-hover-color) 16%, transparent), transparent 36%),
+    var(--card-bg);
 }
 
 .docker-page-hero::after {
@@ -347,7 +346,7 @@
     white-space: nowrap;
     pointer-events: none;
     animation: dockerToastPopLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-               dockerToastFadeOut 0.2s ease-out 1.4s forwards;
+    dockerToastFadeOut 0.2s ease-out 1.4s forwards;
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
     font-family: var(--font-sans, sans-serif);
@@ -368,7 +367,7 @@
     white-space: nowrap;
     pointer-events: none;
     animation: dockerToastPopTop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-               dockerToastFadeOut 0.2s ease-out 1.4s forwards;
+    dockerToastFadeOut 0.2s ease-out 1.4s forwards;
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
     font-family: var(--font-sans, sans-serif);

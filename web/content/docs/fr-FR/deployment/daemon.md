@@ -30,13 +30,13 @@ commande depuis le répertoire définitif, par exemple `/opt/renop` ou `C:\Progr
 
 ## Plateformes
 
-| Système | Gestionnaire | Comportement |
-|:--------|:-------------|:-------------|
-| **Windows** | SCM | Service `RenoP`, démarrage automatique, visible dans `services.msc` |
-| **Linux (systemd)** | systemd | Crée `/etc/systemd/system/renop.service` et active le service |
-| **Linux (OpenRC)** | OpenRC | Crée `/etc/init.d/renop` et l’ajoute au niveau par défaut |
-| **macOS** | launchd | Crée et charge `/Library/LaunchDaemons/one.pkg.renop.plist` |
-| **BSD** | rc.d | Génère le script de service rc.d adapté |
+| Système             | Gestionnaire | Comportement                                                        |
+|:--------------------|:-------------|:--------------------------------------------------------------------|
+| **Windows**         | SCM          | Service `RenoP`, démarrage automatique, visible dans `services.msc` |
+| **Linux (systemd)** | systemd      | Crée `/etc/systemd/system/renop.service` et active le service       |
+| **Linux (OpenRC)**  | OpenRC       | Crée `/etc/init.d/renop` et l’ajoute au niveau par défaut           |
+| **macOS**           | launchd      | Crée et charge `/Library/LaunchDaemons/one.pkg.renop.plist`         |
+| **BSD**             | rc.d         | Génère le script de service rc.d adapté                             |
 
 L’installation et la suppression exigent les privilèges système. Déplacez ou remplacez le binaire uniquement selon la
 procédure de mise à jour, afin de conserver le chemin enregistré.

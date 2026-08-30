@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 import {el} from '@renop/ui/dom';
@@ -116,7 +120,12 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
     let unlimited = Boolean(status.unlimited);
     let period = status.period || 'month';
     const fileInput = el('input', {
-        class: 'profile-input', type: 'number', min: '0', max: '10000000', step: '1', value: String(status.file_limit ?? 600)
+        class: 'profile-input',
+        type: 'number',
+        min: '0',
+        max: '10000000',
+        step: '1',
+        value: String(status.file_limit ?? 600)
     });
     const byteInput = el('input', {
         class: 'profile-input', type: 'number', min: '0', max: String(1 << 30), step: '1',
@@ -130,7 +139,9 @@ export async function openPublicationQuotaDialog({ownerType, ownerKey, onSaved =
         {value: 'day', label: periodLabel('day')},
         {value: 'week', label: periodLabel('week')},
         {value: 'month', label: periodLabel('month')},
-    ], period, value => { period = value; });
+    ], period, value => {
+        period = value;
+    });
     const fields = el('div', {class: 'publication-quota-form-fields'},
         el('label', {}, el('span', {}, t('publicationQuota.filesLimit')), fileInput),
         el('label', {}, el('span', {}, t('publicationQuota.storageLimitMiB')), byteInput),

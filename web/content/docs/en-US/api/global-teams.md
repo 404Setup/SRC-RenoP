@@ -64,7 +64,8 @@ seven-day, one-time message-center invitations. System administrators add valid 
 
 PUT /api/super-teams/{prefix}/members/{username} changes a role. DELETE
 /api/super-teams/{prefix}/members/{username} removes a member or lets the caller leave. POST
-/api/super-teams/invitations/{id}/{decision} accepts `accept` or `reject`; a concurrent or repeated response cannot apply
+/api/super-teams/invitations/{id}/{decision} accepts `accept` or `reject`; a concurrent or repeated response cannot
+apply
 the invitation twice.
 
 ## API-token boundaries

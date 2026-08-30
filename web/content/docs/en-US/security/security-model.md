@@ -12,16 +12,16 @@ target package or domain team. No credential preserves authority after the ownin
 
 ## Account and system roles
 
-| Role or permission | Effect |
-|:-------------------|:-------|
-| Anonymous | Read `PUBLIC` content and exact known paths in `HIDDEN` repositories |
-| `base` | Authenticated account without implicit repository writes |
-| `canview:{repo}` / `canview:*` | Read the named repository or every repository, including private content |
-| `canmoderate:{repo}` / `canmoderate:*` | Inspect and decide queued content for the named repository or every repository |
-| `canupdate:{repo}` / `canupdate:*` | Publish to the named repository or every repository, subject to package/domain policy |
-| `showing` | Legacy compatibility permission to discover hidden repositories in the browser catalog |
-| `allview` / `proview` | Legacy global private-read aliases |
-| `manager` / `admin` | System super-administrator; users, repositories, settings, audit, updates, and all package teams |
+| Role or permission                     | Effect                                                                                           |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------------|
+| Anonymous                              | Read `PUBLIC` content and exact known paths in `HIDDEN` repositories                             |
+| `base`                                 | Authenticated account without implicit repository writes                                         |
+| `canview:{repo}` / `canview:*`         | Read the named repository or every repository, including private content                         |
+| `canmoderate:{repo}` / `canmoderate:*` | Inspect and decide queued content for the named repository or every repository                   |
+| `canupdate:{repo}` / `canupdate:*`     | Publish to the named repository or every repository, subject to package/domain policy            |
+| `showing`                              | Legacy compatibility permission to discover hidden repositories in the browser catalog           |
+| `allview` / `proview`                  | Legacy global private-read aliases                                                               |
+| `manager` / `admin`                    | System super-administrator; users, repositories, settings, audit, updates, and all package teams |
 
 System administrator authority is global. Package-team L0-L4 levels are separate and remain the normal authority for
 package/domain collaboration. Administrator operations are recorded and do not silently create displayed team members.
@@ -32,7 +32,8 @@ configuration, or system settings access.
 
 - **Repository visibility** controls discovery and the base read boundary: `PUBLIC`, permission-gated discovery for
   `HIDDEN`, or authorized `PRIVATE`.
-- **Repository permissions** grant broad read/write ability but do not create an npm/Cargo/Docker package or verify a Maven
+- **Repository permissions** grant broad read/write ability but do not create an npm/Cargo/Docker package or verify a
+  Maven
   domain automatically.
 - **npm/Cargo/Docker teams** use L0 read, L1 publish, L2 lifecycle/metadata, L3 member management, and L4 ownership.
 - **Maven teams** attach to a verified global domain and apply in every Maven repository.
@@ -54,7 +55,8 @@ targets are always intersected with current account authorization.
 - Passwords and recovery codes use salted one-way verification; API Token plaintext is never persisted.
 - Sessions expire after inactivity and can be revoked per device. Recovery revokes all existing sessions atomically.
 - Rate limits, progressive IP bans, active-request bounds, and trusted-proxy validation protect network boundaries.
-- Uploads, archive extraction, mirrors, and update packages use bounded streaming, path validation, hashes, and temporary
+- Uploads, archive extraction, mirrors, and update packages use bounded streaming, path validation, hashes, and
+  temporary
   storage. Javadoc and Cargodoc run in sandboxed viewers.
 - Audit and durable messages record security-relevant outcomes without exposing operator identity where product policy
   requires neutral notifications.

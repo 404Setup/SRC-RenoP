@@ -212,22 +212,22 @@ function openCreateDomainDialog(onCreated) {
 function domainCard(repository, domain, onSelect) {
     const status = domain.verified ? 'verified' : 'pending';
     const card = el('button', {
-        type: 'button', class: `maven-domain-card is-${status}`,
-        onclick: () => {
-            if (typeof onSelect === 'function') onSelect(domain);
-            else activeNavigate?.(`/${encodePathSegment(repository)}/domains/${encodePathSegment(domain.domain)}`);
-        }
-    },
-    el('span', {class: 'maven-domain-card-icon'}, createIcon(domain.verified ? 'success' : 'clock')),
-    el('span', {class: 'maven-domain-card-main'},
-        el('strong', {}, domain.domain),
-        el('span', {}, domain.verified ? t('maven.verified') : t('maven.pendingVerification'))
-    ),
-    el('span', {class: 'maven-domain-card-meta'},
-        el('span', {class: `maven-status-badge is-${status}`}, domain.verified ? t('maven.verified') : t('maven.pending')),
-        domain.member ? el('span', {class: 'maven-permission-badge'}, permissionLabel(domain.permission_level)) : null,
-        el('span', {class: 'maven-artifact-count'}, t('maven.artifactCount', {count: Number(domain.artifact_count) || 0}))
-    ));
+            type: 'button', class: `maven-domain-card is-${status}`,
+            onclick: () => {
+                if (typeof onSelect === 'function') onSelect(domain);
+                else activeNavigate?.(`/${encodePathSegment(repository)}/domains/${encodePathSegment(domain.domain)}`);
+            }
+        },
+        el('span', {class: 'maven-domain-card-icon'}, createIcon(domain.verified ? 'success' : 'clock')),
+        el('span', {class: 'maven-domain-card-main'},
+            el('strong', {}, domain.domain),
+            el('span', {}, domain.verified ? t('maven.verified') : t('maven.pendingVerification'))
+        ),
+        el('span', {class: 'maven-domain-card-meta'},
+            el('span', {class: `maven-status-badge is-${status}`}, domain.verified ? t('maven.verified') : t('maven.pending')),
+            domain.member ? el('span', {class: 'maven-permission-badge'}, permissionLabel(domain.permission_level)) : null,
+            el('span', {class: 'maven-artifact-count'}, t('maven.artifactCount', {count: Number(domain.artifact_count) || 0}))
+        ));
     return card;
 }
 
@@ -240,20 +240,20 @@ function domainCard(repository, domain, onSelect) {
 function artifactCard(repository, artifact) {
     const coordinate = `${artifact.group_id}:${artifact.artifact_id}`;
     return el('button', {
-        type: 'button', class: 'maven-artifact-card',
-        onclick: () => activeNavigate?.(`/${encodePathSegment(repository)}/packages/${encodePathSegment(artifact.group_id)}/${encodePathSegment(artifact.artifact_id)}`)
-    },
-    el('span', {class: 'maven-artifact-icon'}, createIcon('filePackage')),
-    el('span', {class: 'maven-artifact-main'},
-        el('strong', {title: coordinate}, coordinate),
-        el('span', {}, artifact.description || t('maven.noDescription'))
-    ),
-    el('span', {class: 'maven-artifact-meta'},
-        artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
-        artifact.latest_version ? el('code', {}, artifact.latest_version) : null,
-        el('span', {}, t('maven.versionCount', {count: Number(artifact.version_count) || 0})),
-        Number(artifact.total_size) > 0 ? el('span', {}, formatBytes(Number(artifact.total_size))) : null
-    ));
+            type: 'button', class: 'maven-artifact-card',
+            onclick: () => activeNavigate?.(`/${encodePathSegment(repository)}/packages/${encodePathSegment(artifact.group_id)}/${encodePathSegment(artifact.artifact_id)}`)
+        },
+        el('span', {class: 'maven-artifact-icon'}, createIcon('filePackage')),
+        el('span', {class: 'maven-artifact-main'},
+            el('strong', {title: coordinate}, coordinate),
+            el('span', {}, artifact.description || t('maven.noDescription'))
+        ),
+        el('span', {class: 'maven-artifact-meta'},
+            artifact.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
+            artifact.latest_version ? el('code', {}, artifact.latest_version) : null,
+            el('span', {}, t('maven.versionCount', {count: Number(artifact.version_count) || 0})),
+            Number(artifact.total_size) > 0 ? el('span', {}, formatBytes(Number(artifact.total_size))) : null
+        ));
 }
 
 /**
@@ -340,10 +340,17 @@ function artifactInformationSection(details, repository) {
         {label: t('maven.groupId'), value: artifact.group_id, code: true},
         {label: t('maven.artifactId'), value: artifact.artifact_id, code: true},
         {label: t('superTeam.projectOwner'), value: artifact.super_team_prefix || null, code: true},
-        {label: t('maven.latestVersion'), value: artifact.latest_version || t('common.unknown'), code: Boolean(artifact.latest_version)},
+        {
+            label: t('maven.latestVersion'),
+            value: artifact.latest_version || t('common.unknown'),
+            code: Boolean(artifact.latest_version)
+        },
         {label: t('maven.versionCountLabel'), value: Number(artifact.version_count) || 0},
         {label: t('maven.fileCount'), value: Number(details.file_count) || 0},
-        {label: t('maven.totalSize'), value: formatBytes(Number(details.total_file_size) || Number(artifact.total_size) || 0)},
+        {
+            label: t('maven.totalSize'),
+            value: formatBytes(Number(details.total_file_size) || Number(artifact.total_size) || 0)
+        },
         {label: t('maven.signedFileCount'), value: Number(details.signed_file_count) || 0},
         {label: t('maven.createdAt'), value: formatDate(artifact.created_at)},
         {label: t('maven.lastUpdated'), value: formatDate(artifact.updated_at)},
@@ -634,12 +641,13 @@ function teamPanel(details, refresh) {
                 String(memberLevel),
                 async value => {
                     const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {
-                        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({level: Number(value)})
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({level: Number(value)})
                     });
                     if (!response.ok) {
                         showAlert(await responseErrorMessage(response, 'maven.updateMemberFailed'), 'error');
-                    }
-                    else await refresh();
+                    } else await refresh();
                 }
             );
             selector.classList.add('maven-level-select');
@@ -655,8 +663,7 @@ function teamPanel(details, refresh) {
                     const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members/${encodeURIComponent(member.user_id || member.username)}`, {method: 'DELETE'});
                     if (!response.ok) {
                         showAlert(await responseErrorMessage(response, 'maven.removeMemberFailed'), 'error');
-                    }
-                    else await refresh();
+                    } else await refresh();
                 }
             }, createIcon('delete')));
         }
@@ -671,7 +678,9 @@ function teamPanel(details, refresh) {
         const selector = makeCustomSelect(
             [0, 1, 2, 3].map(value => ({value: String(value), label: permissionLabel(value)}))
                 .concat(canTransfer ? [{value: '4', label: permissionLabel(4)}] : []),
-            '1', value => { inviteLevel = Number(value); }
+            '1', value => {
+                inviteLevel = Number(value);
+            }
         );
         const submit = el('button', {type: 'submit', class: 'pill-btn pill-btn--primary'}, t('maven.invite'));
         invite = el('form', {
@@ -686,12 +695,13 @@ function teamPanel(details, refresh) {
                 submit.disabled = true;
                 try {
                     const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(details.domain.domain)}/members`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({users, level: inviteLevel})
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({users, level: inviteLevel})
                     });
                     if (!response.ok) {
                         showAlert(await responseErrorMessage(response, 'maven.inviteFailed'), 'error');
-                    }
-                    else {
+                    } else {
                         input.value = '';
                         showAlert(t('maven.inviteSent'), 'success');
                         await refresh();
@@ -957,8 +967,7 @@ async function renderManagedDomain(container, domainName) {
                         const verifyResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}/verify/force`, {method: 'POST'});
                         if (!verifyResponse.ok) {
                             showAlert(await responseErrorMessage(verifyResponse, 'maven.forceVerifyFailed'), 'error');
-                        }
-                        else {
+                        } else {
                             showAlert(t('maven.forceVerifySuccess'), 'success');
                             await refresh();
                         }
@@ -973,8 +982,7 @@ async function renderManagedDomain(container, domainName) {
                     const deleteResponse = await apiRequest(`/api/maven/domains/${encodeURIComponent(domain.domain)}`, {method: 'DELETE'});
                     if (!deleteResponse.ok) {
                         showAlert(await responseErrorMessage(deleteResponse, 'maven.deleteDomainFailed'), 'error');
-                    }
-                    else navigateMavenDomainCenter();
+                    } else navigateMavenDomainCenter();
                 }
             }, createIcon('delete'), el('span', {}, t('maven.deleteDomain'))));
         }
@@ -1122,14 +1130,18 @@ function openDescriptionEditor(container, repository, artifact, sequence) {
                     const button = event.currentTarget;
                     await runButtonAction(button, async () => {
                         try {
-                            const query = new URLSearchParams({group: artifact.group_id, artifact: artifact.artifact_id});
+                            const query = new URLSearchParams({
+                                group: artifact.group_id,
+                                artifact: artifact.artifact_id
+                            });
                             const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`, {
-                                method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({description: textarea.value.trim()})
+                                method: 'PUT',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({description: textarea.value.trim()})
                             });
                             if (!response.ok) {
                                 showAlert(await responseErrorMessage(response, 'maven.updateDescriptionFailed'), 'error');
-                            }
-                            else {
+                            } else {
                                 dialog.close(true);
                                 await renderArtifact(container, repository, artifact.group_id, artifact.artifact_id, sequence);
                             }
@@ -1165,7 +1177,10 @@ function openArtifactReadmeEditor(container, repository, artifact, sequence) {
                 text: t('common.save'), className: 'action-btn primary-btn', onClick: async (event, dialog) => {
                     await runButtonAction(event.currentTarget, async () => {
                         try {
-                            const query = new URLSearchParams({group: artifact.group_id, artifact: artifact.artifact_id});
+                            const query = new URLSearchParams({
+                                group: artifact.group_id,
+                                artifact: artifact.artifact_id
+                            });
                             const response = await apiRequest(`/api/maven/repositories/${encodeURIComponent(repository)}/package?${query}`, {
                                 method: 'PUT', headers: {'Content-Type': 'application/json'},
                                 body: JSON.stringify({readme: textarea.value.trim()})

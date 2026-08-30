@@ -3,6 +3,8 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
  *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
@@ -412,7 +414,7 @@
     color: #b91c1c;
     cursor: pointer;
     transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease,
-        transform 0.16s ease, box-shadow 0.16s ease;
+    transform 0.16s ease, box-shadow 0.16s ease;
 }
 
 .super-team-member-controls .icon-btn.is-danger:hover,

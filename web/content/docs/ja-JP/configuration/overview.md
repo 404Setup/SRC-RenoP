@@ -12,11 +12,11 @@ RenoP は作業ディレクトリの `config.yaml` を読み、`RENOP_CONFIG` �
 
 ## 設定ファイル
 
-| ファイル | 上書き | 用途 |
-|:---------|:-------|:-----|
-| `config.yaml` | `RENOP_CONFIG` | サーバー、DB、preview、proxy、frontend、audit、updater |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | engine、visibility、mirror、Maven policy、S3 |
-| `index.json` | `RENOP_INDEX` | ストレージから再構築できるファイル索引 snapshot |
+| ファイル            | 上書き               | 用途                                                   |
+|:--------------------|:---------------------|:-------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | サーバー、DB、preview、proxy、frontend、audit、updater |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | engine、visibility、mirror、Maven policy、S3           |
+| `index.json`        | `RENOP_INDEX`        | ストレージから再構築できるファイル索引 snapshot        |
 
 アカウント、API Token、session、team、audit、message は DB に保存し、YAML では設定しません。資格情報を含む
 場合があるため、設定ファイルはサービスアカウントだけが読めるようにします。

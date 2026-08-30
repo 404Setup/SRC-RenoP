@@ -12,11 +12,11 @@ administrator UI use the same validated structures and private-file permissions.
 
 ## Configuration files
 
-| File | Override | Purpose |
-|:-----|:---------|:--------|
-| `config.yaml` | `RENOP_CONFIG` | Server, database, previews, proxy, frontend, audit, and updater |
-| `repositories.yaml` | `RENOP_REPOSITORIES` | Repository engines, visibility, mirrors, Maven policy, and S3 |
-| `index.json` | `RENOP_INDEX` | Persisted file-index snapshot rebuilt from storage when required |
+| File                | Override             | Purpose                                                          |
+|:--------------------|:---------------------|:-----------------------------------------------------------------|
+| `config.yaml`       | `RENOP_CONFIG`       | Server, database, previews, proxy, frontend, audit, and updater  |
+| `repositories.yaml` | `RENOP_REPOSITORIES` | Repository engines, visibility, mirrors, Maven policy, and S3    |
+| `index.json`        | `RENOP_INDEX`        | Persisted file-index snapshot rebuilt from storage when required |
 
 Accounts, API tokens, sessions, teams, audit logs, and messages are database records. They are not configured in YAML.
 Keep configuration and repository files readable only by the service account because they may contain credentials.

@@ -46,5 +46,6 @@ description: Gestion des clés publiques OpenPGP et suivi des validations de sig
 ## Lister les publications en quarantaine
 
 - **Chemin** : `GET /api/auth/profile/gpg/releases`
-- **Usage** : liste les artefacts conservés dans `.renop.tmp.gpg` en attente de leur signature détachée, de la validation
+- **Usage** : liste les artefacts conservés dans `.renop.tmp.gpg` en attente de leur signature détachée, de la
+  validation
   de la clé ou de la publication finale.

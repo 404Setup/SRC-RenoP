@@ -212,7 +212,8 @@ export function setLanguage(lang) {
 }
 
 /** Closes the language modal (wired in `initI18n`). */
-let closeLanguageModal = () => {};
+let closeLanguageModal = () => {
+};
 
 /**
  * Rebuild language-selection cards inside `#language-grid`.

@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 package maven
@@ -113,15 +117,15 @@ func TestEnrichMavenArtifactDetailsProjectsFilesAndIntegrity(t *testing.T) {
 
 func TestMavenProjectMetadataCapsPublishedCollections(t *testing.T) {
 	project := &mavenPOMProject{}
-	for index := 0; index < maxMavenProjectDependencies+7; index++ {
+	for index := range maxMavenProjectDependencies + 7 {
 		project.Dependencies = append(project.Dependencies, mavenPOMDependency{
 			GroupID: "com.example", ArtifactID: fmt.Sprintf("dependency-%d", index),
 		})
 	}
-	for index := 0; index < maxMavenProjectLicenses+3; index++ {
+	for index := range maxMavenProjectLicenses + 3 {
 		project.Licenses = append(project.Licenses, mavenPOMLicense{Name: fmt.Sprintf("license-%d", index)})
 	}
-	for index := 0; index < maxMavenProjectDevelopers+3; index++ {
+	for index := range maxMavenProjectDevelopers + 3 {
 		project.Developers = append(project.Developers, mavenPOMDeveloper{Name: fmt.Sprintf("developer-%d", index)})
 	}
 

@@ -38,17 +38,17 @@ repositories:
 
 ## Поля репозитория
 
-| Поле | По умолчанию | Описание |
-|:-----|:-------------|:---------|
-| `name` | Обязательно | Неизменяемый slug и префикс URL |
-| `format` | `maven` | `maven`, `maven-classic`, `files`, `npm`, `cargo` или `docker` |
-| `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` или `PRIVATE` |
-| `allow_redeployment` | `false` | Повтор Maven или замена files/Docker, если поддерживается |
-| `require_gpg_signature` | `false` | Проверка отделённой OpenPGP подписи для Maven |
-| `publication_review` | `off` | Режим проверки Maven/npm/Cargo/Docker: `off`, `new_packages` или `every_version` |
-| `download_statistics` | Зависит от движка | Включено для Maven/npm/Cargo/Docker; для `files` включается явно |
-| `mirrors` | `[]` | Упорядоченные upstream definitions |
-| `s3` | отсутствует | Отдельное S3-хранилище репозитория |
+| Поле                    | По умолчанию      | Описание                                                                         |
+|:------------------------|:------------------|:---------------------------------------------------------------------------------|
+| `name`                  | Обязательно       | Неизменяемый slug и префикс URL                                                  |
+| `format`                | `maven`           | `maven`, `maven-classic`, `files`, `npm`, `cargo` или `docker`                   |
+| `visibility`            | `PUBLIC`          | `PUBLIC`, `HIDDEN` или `PRIVATE`                                                 |
+| `allow_redeployment`    | `false`           | Повтор Maven или замена files/Docker, если поддерживается                        |
+| `require_gpg_signature` | `false`           | Проверка отделённой OpenPGP подписи для Maven                                    |
+| `publication_review`    | `off`             | Режим проверки Maven/npm/Cargo/Docker: `off`, `new_packages` или `every_version` |
+| `download_statistics`   | Зависит от движка | Включено для Maven/npm/Cargo/Docker; для `files` включается явно                 |
+| `mirrors`               | `[]`              | Упорядоченные upstream definitions                                               |
+| `s3`                    | отсутствует       | Отдельное S3-хранилище репозитория                                               |
 
 Для npm и Docker режим `new_packages` проверяет явный запрос на создание до резервирования имени, а `every_version`
 также проверяет каждую следующую версию или manifest. У Maven и Cargo нет этапа создания пустого пакета, поэтому их
@@ -91,17 +91,17 @@ mirrors:
     deny_artifacts: []
 ```
 
-| Поле | По умолчанию | Описание |
-|:-----|:-------------|:---------|
-| `name` | Обязательно | Уникальное имя в репозитории |
-| `url` | Обязательно | Базовый upstream URL |
-| `persist` | `true` | Сохранять успешные ответы |
-| `cache_ttl_secs` | `86400` | Срок положительного cache |
-| `negative_cache` | `true` | Cache поддерживаемых upstream miss |
-| `timeout_secs` | `30` | Timeout одного запроса |
-| `proxy` | `""` | Глобальный route, `direct` или именованный proxy |
-| `allow_artifacts` | `[]` | Правила разрешения с учётом формата |
-| `deny_artifacts` | `[]` | Приоритетные правила запрета |
+| Поле              | По умолчанию | Описание                                         |
+|:------------------|:-------------|:-------------------------------------------------|
+| `name`            | Обязательно  | Уникальное имя в репозитории                     |
+| `url`             | Обязательно  | Базовый upstream URL                             |
+| `persist`         | `true`       | Сохранять успешные ответы                        |
+| `cache_ttl_secs`  | `86400`      | Срок положительного cache                        |
+| `negative_cache`  | `true`       | Cache поддерживаемых upstream miss               |
+| `timeout_secs`    | `30`         | Timeout одного запроса                           |
+| `proxy`           | `""`         | Глобальный route, `direct` или именованный proxy |
+| `allow_artifacts` | `[]`         | Правила разрешения с учётом формата              |
+| `deny_artifacts`  | `[]`         | Приоритетные правила запрета                     |
 
 Credentials задаются структурированными полями authorization и не встраиваются в `url`.
 

@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 .npm-repository-view {
@@ -55,13 +59,23 @@
 }
 
 @keyframes npmRouteProgress {
-    from { transform: scaleX(0.15); }
-    to { transform: scaleX(0.82); }
+    from {
+        transform: scaleX(0.15);
+    }
+    to {
+        transform: scaleX(0.82);
+    }
 }
 
 @keyframes npmSectionIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .npm-page-hero,
@@ -76,9 +90,8 @@
     position: relative;
     overflow: hidden;
     padding: 1.45rem 1.6rem;
-    background:
-        radial-gradient(circle at 93% 12%, color-mix(in srgb, #cb3837 8%, transparent), transparent 38%),
-        var(--card-bg);
+    background: radial-gradient(circle at 93% 12%, color-mix(in srgb, #cb3837 8%, transparent), transparent 38%),
+    var(--card-bg);
 }
 
 .npm-page-section {
@@ -538,7 +551,7 @@
     color: var(--text-muted);
     box-shadow: 0 3px 10px -7px rgba(15, 23, 42, 0.8);
     transition: transform 0.16s ease, box-shadow 0.16s ease,
-        border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+    border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
 }
 
 .npm-metadata-copy:hover,

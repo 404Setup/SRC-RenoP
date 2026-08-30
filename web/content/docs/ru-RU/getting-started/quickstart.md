@@ -27,11 +27,11 @@ $env:RENOP_DEFAULT_ADMIN_PASSWORD='your-admin-password'
 
 Начальный `repositories.yaml` содержит три совместимых Maven-репозитория:
 
-| Путь | Видимость | Политика |
-|:-----|:----------|:---------|
-| `/releases` | `PUBLIC` | Maven, redeployment запрещён |
-| `/snapshots` | `PUBLIC` | Maven, redeployment разрешён |
-| `/private` | `PRIVATE` | Maven, требуется вход |
+| Путь         | Видимость | Политика                     |
+|:-------------|:----------|:-----------------------------|
+| `/releases`  | `PUBLIC`  | Maven, redeployment запрещён |
+| `/snapshots` | `PUBLIC`  | Maven, redeployment разрешён |
+| `/private`   | `PRIVATE` | Maven, требуется вход        |
 
 npm, Cargo, Docker и `files` создаются явно в управлении. Docker images и npm packages резервируются на странице
 репозитория до push. Cargo names создаются после upstream check. Maven требует проверенный domain из меню аккаунта.
@@ -48,11 +48,11 @@ curl -s http://localhost:3000/api/status/health
 
 ## Важные переменные
 
-| Переменная | По умолчанию | Назначение |
-|:-----------|:-------------|:-----------|
-| `RENOP_CONFIG` | `config.yaml` | Путь основной конфигурации |
-| `RENOP_REPOSITORIES` | `repositories.yaml` | Путь настройки репозиториев |
-| `RENOP_INDEX` | `index.json` | Путь snapshot файлового индекса |
+| Переменная                     | По умолчанию          | Назначение                                 |
+|:-------------------------------|:----------------------|:-------------------------------------------|
+| `RENOP_CONFIG`                 | `config.yaml`         | Путь основной конфигурации                 |
+| `RENOP_REPOSITORIES`           | `repositories.yaml`   | Путь настройки репозиториев                |
+| `RENOP_INDEX`                  | `index.json`          | Путь snapshot файлового индекса            |
 | `RENOP_DEFAULT_ADMIN_PASSWORD` | Генерируется один раз | Начальный пароль, если `admin` отсутствует |
 
 Аккаунты, sessions, teams, API Token, audit и messages находятся в базе и не имеют YAML path variables.

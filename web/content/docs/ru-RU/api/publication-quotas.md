@@ -52,5 +52,7 @@ PUT /api/settings/publication-quota
 ## Применение
 
 При исчерпании квоты возвращается `429 Too Many Requests`. Заголовок `X-Renop-Error-Code` содержит
-`publication_file_quota`, `publication_byte_quota` или `publication_count_quota`. Проверка выполняется после аутентификации,
-проверки прав, резервирования пакета, привязки пространства имён и проверки домена Maven и не выдаёт дополнительных прав.
+`publication_file_quota`, `publication_byte_quota` или `publication_count_quota`. Проверка выполняется после
+аутентификации,
+проверки прав, резервирования пакета, привязки пространства имён и проверки домена Maven и не выдаёт дополнительных
+прав.

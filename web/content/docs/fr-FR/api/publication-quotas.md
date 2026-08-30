@@ -20,7 +20,8 @@ consommation. Un objet vide restaure toutes les valeurs globales.
 ## Propriété
 
 Un paquet personnel consomme le quota du compte qui publie. Un paquet ou domaine Maven lié à une équipe globale consomme
-uniquement le quota de cette équipe. Un transfert ne modifie que les publications futures et ne déplace pas l'historique.
+uniquement le quota de cette équipe. Un transfert ne modifie que les publications futures et ne déplace pas
+l'historique.
 Les téléchargements et catalogues provenant d'un miroir ne consomment aucun quota.
 
 ## Comptabilisation
@@ -52,5 +53,6 @@ un autre compte, modifier les règles, activer `unlimited` ou changer les valeur
 ## Application
 
 Un quota épuisé renvoie `429 Too Many Requests`. `X-Renop-Error-Code` distingue `publication_file_quota`,
-`publication_byte_quota` et `publication_count_quota`. Les quotas s'appliquent après l'authentification, les permissions,
+`publication_byte_quota` et `publication_count_quota`. Les quotas s'appliquent après l'authentification, les
+permissions,
 la réservation du paquet, la liaison d'espace de noms et la vérification Maven ; ils n'accordent aucun droit.

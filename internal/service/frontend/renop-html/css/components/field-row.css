@@ -284,7 +284,7 @@ html.dark .password-strength[data-level="4"] .password-strength-seg:nth-child(-n
     border-color: var(--link-hover-color);
     background-color: var(--bg-color);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--link-hover-color) 20%, transparent),
-                0 4px 12px rgba(0, 0, 0, 0.08);
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .json-input-textarea::placeholder {

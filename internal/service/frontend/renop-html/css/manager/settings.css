@@ -1035,6 +1035,7 @@ input[type="number"].cfg-input {
     .cfg-dsn-container {
         transition: none !important;
     }
+
     .cfg-field-row--entering,
     .cfg-field-row--leaving {
         animation: none !important;

@@ -11,7 +11,8 @@ Créez un dépôt Maven, puis créez et vérifiez le domaine inversé de l’art
 son équipe L0-L4 sont globaux. La visibilité contrôle la lecture ; la publication exige écriture sur le dépôt et niveau
 de publication du domaine.
 
-Pour l’automatisation, préférez un API Token expirant avec `repository:read` et/ou `repository:publish`. Le nom du compte
+Pour l’automatisation, préférez un API Token expirant avec `repository:read` et/ou `repository:publish`. Le nom du
+compte
 est l’utilisateur Basic et le Token son mot de passe.
 
 ## Maven
@@ -113,7 +114,8 @@ Stockez `renopUser` et `renopToken` dans les propriétés utilisateur Gradle ou 
 
 ## Aperçu Javadoc
 
-Avec un `*-javadoc.jar` valide et l’aperçu activé, RenoP extrait sous limites de chemin et taille dans un viewer sandboxé.
+Avec un `*-javadoc.jar` valide et l’aperçu activé, RenoP extrait sous limites de chemin et taille dans un viewer
+sandboxé.
 
 URL : `https://packages.example.com/javadoc/{repo}/{group}/{artifact}/{version}/index.html`
 

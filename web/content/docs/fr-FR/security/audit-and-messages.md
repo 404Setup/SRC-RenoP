@@ -23,7 +23,8 @@ traduction de chaque action dans chaque langue.
 - vérification et équipes Maven, cycles d’équipes npm/Cargo/Docker ;
 - uploads, suppressions, quarantaine/publication GPG et mutations de paquets.
 
-Une entrée contient sujet, opérateur si nécessaire, méthode, ID public de session, IP, date et détail borné. Rétention et
+Une entrée contient sujet, opérateur si nécessaire, méthode, ID public de session, IP, date et détail borné. Rétention
+et
 nombre maximal sont globaux. Seuls les utilisateurs autorisés lisent ou effacent ces données.
 
 ## Centre de messages

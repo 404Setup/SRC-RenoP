@@ -59,7 +59,8 @@ archive を公開する前に、不変 version を両方の metadata に追加�
 審査対象外です。
 
 Docker の T2 作成も npm と同じ順序で team 段階と任意の repository 段階を通ります。最終承認時に local/upstream
-競合、repository 権限、現在の team membership を再確認して image を予約します。`new_packages` では後続 manifest は通常どおり公開されます。
+競合、repository 権限、現在の team membership を再確認して image を予約します。`new_packages` では後続 manifest
+は通常どおり公開されます。
 `every_version` では正確な manifest bytes を上限付き virtual file として保持し、承認前は reference と tag を
 catalog に書き込みません。同じ digest の既存 tag は影響を受けず、manifest、blob link、tag、decision は原子的に
 記録されます。mirror import は審査対象外です。

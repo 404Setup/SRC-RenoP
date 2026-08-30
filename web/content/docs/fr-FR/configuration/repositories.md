@@ -38,17 +38,17 @@ repositories:
 
 ## Champs du dépôt
 
-| Champ | Défaut | Description |
-|:------|:-------|:------------|
-| `name` | Requis | Slug immuable et préfixe URL |
-| `format` | `maven` | `maven`, `maven-classic`, `files`, `npm`, `cargo` ou `docker` |
-| `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` ou `PRIVATE` |
-| `allow_redeployment` | `false` | Redéploiement Maven ou remplacement files/Docker si pris en charge |
-| `require_gpg_signature` | `false` | Validation OpenPGP détachée obligatoire pour Maven |
-| `publication_review` | `off` | Examen Maven/npm/Cargo/Docker : `off`, `new_packages` ou `every_version` |
-| `download_statistics` | Selon le moteur | Activé pour Maven/npm/Cargo/Docker ; `files` doit être activé explicitement |
-| `mirrors` | `[]` | Miroirs ordonnés |
-| `s3` | absent | Stockage S3 propre au dépôt |
+| Champ                   | Défaut          | Description                                                                 |
+|:------------------------|:----------------|:----------------------------------------------------------------------------|
+| `name`                  | Requis          | Slug immuable et préfixe URL                                                |
+| `format`                | `maven`         | `maven`, `maven-classic`, `files`, `npm`, `cargo` ou `docker`               |
+| `visibility`            | `PUBLIC`        | `PUBLIC`, `HIDDEN` ou `PRIVATE`                                             |
+| `allow_redeployment`    | `false`         | Redéploiement Maven ou remplacement files/Docker si pris en charge          |
+| `require_gpg_signature` | `false`         | Validation OpenPGP détachée obligatoire pour Maven                          |
+| `publication_review`    | `off`           | Examen Maven/npm/Cargo/Docker : `off`, `new_packages` ou `every_version`    |
+| `download_statistics`   | Selon le moteur | Activé pour Maven/npm/Cargo/Docker ; `files` doit être activé explicitement |
+| `mirrors`               | `[]`            | Miroirs ordonnés                                                            |
+| `s3`                    | absent          | Stockage S3 propre au dépôt                                                 |
 
 Pour npm et Docker, `new_packages` examine la demande de création explicite avant de réserver le nom ;
 `every_version` examine aussi chaque version ou manifeste ultérieur. Maven et Cargo ne créent pas de paquet vide : leur
@@ -91,17 +91,17 @@ mirrors:
     deny_artifacts: []
 ```
 
-| Champ | Défaut | Description |
-|:------|:-------|:------------|
-| `name` | Requis | Nom unique dans le dépôt |
-| `url` | Requis | URL de base amont |
-| `persist` | `true` | Stocker les réponses réussies |
-| `cache_ttl_secs` | `86400` | Durée du cache positif |
-| `negative_cache` | `true` | Mettre en cache les absences prises en charge |
-| `timeout_secs` | `30` | Délai d’une requête amont |
-| `proxy` | `""` | Route globale, `direct` ou proxy nommé |
-| `allow_artifacts` | `[]` | Règles d’autorisation selon le format |
-| `deny_artifacts` | `[]` | Règles de refus prioritaires |
+| Champ             | Défaut  | Description                                   |
+|:------------------|:--------|:----------------------------------------------|
+| `name`            | Requis  | Nom unique dans le dépôt                      |
+| `url`             | Requis  | URL de base amont                             |
+| `persist`         | `true`  | Stocker les réponses réussies                 |
+| `cache_ttl_secs`  | `86400` | Durée du cache positif                        |
+| `negative_cache`  | `true`  | Mettre en cache les absences prises en charge |
+| `timeout_secs`    | `30`    | Délai d’une requête amont                     |
+| `proxy`           | `""`    | Route globale, `direct` ou proxy nommé        |
+| `allow_artifacts` | `[]`    | Règles d’autorisation selon le format         |
+| `deny_artifacts`  | `[]`    | Règles de refus prioritaires                  |
 
 Les identifiants utilisent les champs structurés d’autorisation et ne doivent jamais être inclus dans `url`.
 

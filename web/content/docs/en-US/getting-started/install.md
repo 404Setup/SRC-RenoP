@@ -31,7 +31,8 @@ RenoP offers tiered x86-64 builds targeting specific CPU instruction sets:
 
 ## Verification & Execution
 
-Every target in the channel `info.json` includes a SHA-256 digest. Verify the downloaded `.br` package before decompression:
+Every target in the channel `info.json` includes a SHA-256 digest. Verify the downloaded `.br` package before
+decompression:
 
 ```bash
 # Linux

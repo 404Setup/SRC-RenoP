@@ -1183,28 +1183,93 @@ ul#file-list a.file-item-link:hover {
     border-color: color-mix(in srgb, #94a3b8 24%, transparent);
 }
 
-.file-type-badge--nupkg { color: #004880; }
-.file-type-badge--whl { color: #3776ab; }
-.file-type-badge--gem { color: #cc342d; }
-.file-type-badge--vsix { color: #007acc; }
-.file-type-badge--crx { color: #4285f4; }
-.file-type-badge--phar { color: #777bb4; }
-.file-type-badge--mlmodel { color: #d97706; }
-.file-type-badge--parquet { color: #0284c7; }
-.file-type-badge--avro { color: #0b5ea9; }
-.file-type-badge--pickle { color: #3776ab; }
-.file-type-badge--subtitle { color: #8b5cf6; }
-.file-type-badge--plist { color: #64748b; }
-.file-type-badge--calendar { color: #dc2626; }
-.file-type-badge--email { color: #0284c7; }
-.file-type-badge--tsconfig { color: #3178c6; }
-.file-type-badge--eslint { color: #4b32c3; }
-.file-type-badge--prettier { color: #ca8a04; }
-.file-type-badge--vite { color: #646cff; }
-.file-type-badge--webpack { color: #0ea5e9; }
-.file-type-badge--justfile { color: #b45309; }
-.file-type-badge--procfile { color: #6762a6; }
-.file-type-badge--github { color: #64748b; }
+.file-type-badge--nupkg {
+    color: #004880;
+}
+
+.file-type-badge--whl {
+    color: #3776ab;
+}
+
+.file-type-badge--gem {
+    color: #cc342d;
+}
+
+.file-type-badge--vsix {
+    color: #007acc;
+}
+
+.file-type-badge--crx {
+    color: #4285f4;
+}
+
+.file-type-badge--phar {
+    color: #777bb4;
+}
+
+.file-type-badge--mlmodel {
+    color: #d97706;
+}
+
+.file-type-badge--parquet {
+    color: #0284c7;
+}
+
+.file-type-badge--avro {
+    color: #0b5ea9;
+}
+
+.file-type-badge--pickle {
+    color: #3776ab;
+}
+
+.file-type-badge--subtitle {
+    color: #8b5cf6;
+}
+
+.file-type-badge--plist {
+    color: #64748b;
+}
+
+.file-type-badge--calendar {
+    color: #dc2626;
+}
+
+.file-type-badge--email {
+    color: #0284c7;
+}
+
+.file-type-badge--tsconfig {
+    color: #3178c6;
+}
+
+.file-type-badge--eslint {
+    color: #4b32c3;
+}
+
+.file-type-badge--prettier {
+    color: #ca8a04;
+}
+
+.file-type-badge--vite {
+    color: #646cff;
+}
+
+.file-type-badge--webpack {
+    color: #0ea5e9;
+}
+
+.file-type-badge--justfile {
+    color: #b45309;
+}
+
+.file-type-badge--procfile {
+    color: #6762a6;
+}
+
+.file-type-badge--github {
+    color: #64748b;
+}
 
 .file-type-badge--generic {
     color: var(--text-color);
@@ -1303,8 +1368,8 @@ ul#file-list a.file-item-link:hover {
 }
 
 .file-action-btn--signature {
-	color: #0f9f6e;
-	opacity: 0.9;
+    color: #0f9f6e;
+    opacity: 0.9;
 }
 
 .file-action-btn--preview:active,

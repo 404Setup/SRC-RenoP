@@ -29,7 +29,8 @@ Utilisez HTTPS en production. `config.json` annonce les routes de téléchargeme
 ## Authentification
 
 Créez un API Token dédié et expirant. La première publication utilise en général `repository:read`,
-`repository:publish` et `package:create`. Ajoutez `package:lifecycle` pour archive/yank ou `team:manage` pour les membres.
+`repository:publish` et `package:create`. Ajoutez `package:lifecycle` pour archive/yank ou `team:manage` pour les
+membres.
 
 ```bash
 cargo login --registry renop
@@ -67,7 +68,8 @@ exigent le niveau de publication de l’équipe.
 
 Lorsque l’examen des publications est activé, `cargo publish` renvoie `202 Accepted` après le stockage de l’archive.
 Le crate reste absent de l’index sparse et du catalogue public jusqu’à son approbation par un modérateur du dépôt ou un
-administrateur système. Avec `new_packages`, cette règle s’applique jusqu’à la première version visible. Les crates issus
+administrateur système. Avec `new_packages`, cette règle s’applique jusqu’à la première version visible. Les crates
+issus
 d’un miroir ne sont pas soumis à cet examen.
 
 ### Rechercher, yank et unyank

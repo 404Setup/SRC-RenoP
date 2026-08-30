@@ -1,7 +1,11 @@
 /*
  * Copyright (c) 2026 404Setup. All rights reserved.
  *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+ *
+ * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
 // Package review exposes independent, single-decision review workflows.
@@ -10,6 +14,7 @@ package review
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 	"time"
@@ -217,7 +222,7 @@ func listTasks(c fiber.Ctx, state *core.AppState) error {
 		return reviewError(c, fiber.ErrBadRequest)
 	}
 	types := make([]string, 0, 5)
-	for _, value := range strings.Split(c.Query("types"), ",") {
+	for value := range strings.SplitSeq(c.Query("types"), ",") {
 		if value = strings.ToLower(strings.TrimSpace(value)); value != "" {
 			if !validReviewResourceType(value) {
 				return reviewError(c, fiber.ErrBadRequest)
@@ -454,9 +459,7 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 			return nil, errors.Join(core.ErrReviewResourceConflict, err)
 		}
 		previousTags := make(map[string]string, len(previousDetails.DistTags))
-		for tag, version := range previousDetails.DistTags {
-			previousTags[tag] = version
-		}
+		maps.Copy(previousTags, previousDetails.DistTags)
 		if err := npm.ApprovePublicationReview(state, current); err != nil {
 			return nil, err
 		}

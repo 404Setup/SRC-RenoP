@@ -8,7 +8,8 @@ description: Notifications, compteurs, actions de workflow et annonces administr
 # API du centre de messages
 
 Toutes les routes exigent une authentification. Les réponses utilisent protobuf par défaut et ne sont jamais mises en
-cache. Un API Token requiert `messages:read`; la composition exige aussi `admin:notifications` et le rôle administrateur.
+cache. Un API Token requiert `messages:read`; la composition exige aussi `admin:notifications` et le rôle
+administrateur.
 
 ## Lister ou effacer les messages
 
@@ -76,4 +77,5 @@ cache. Un API Token requiert `messages:read`; la composition exige aussi `admin:
 Les invitations et résultats système sont créés par leur service. Une exclusion d’équipe indique le dépôt et le paquet
 ou domaine Maven, mais ne révèle volontairement pas le membre ayant effectué l’action.
 Les tâches d’examen envoient des messages `review_pending` dédupliqués aux examinateurs autorisés. La première décision
-supprime toutes les autres copies et envoie au demandeur un seul `review_result` localisé, sans identité de l’examinateur.
+supprime toutes les autres copies et envoie au demandeur un seul `review_result` localisé, sans identité de
+l’examinateur.
