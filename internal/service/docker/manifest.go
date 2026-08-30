@@ -19,6 +19,15 @@ import (
 	"github.com/goccy/go-json"
 )
 
+// MaxManifestSize bounds local, mirrored, and persisted OCI manifest JSON.
+const MaxManifestSize = 4 << 20
+
+// ErrManifestTooLarge indicates that manifest JSON exceeds MaxManifestSize.
+var ErrManifestTooLarge = errors.New("manifest exceeds the size limit")
+
+// ErrManifestDigestMismatch indicates that manifest JSON does not match its declared digest.
+var ErrManifestDigestMismatch = errors.New("manifest digest does not match its content")
+
 // ParsedManifest holds extracted metadata and raw payload of an OCI or Docker v2 manifest.
 type ParsedManifest struct {
 	Digest       string       `json:"digest"`
@@ -42,6 +51,9 @@ func CalculateDigest(data []byte) string {
 func ParseManifest(data []byte, headerContentType string) (*ParsedManifest, error) {
 	if len(data) == 0 {
 		return nil, errors.New("empty manifest body")
+	}
+	if len(data) > MaxManifestSize {
+		return nil, ErrManifestTooLarge
 	}
 
 	digest := CalculateDigest(data)

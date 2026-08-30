@@ -64,6 +64,10 @@ rendered through the shared element and URL allowlist.
 - **Upload Manifest**: `PUT /v2/:name/manifests/:reference` (pre-created image and L1 or higher required)
 - **Delete Manifest**: `DELETE /v2/:name/manifests/:reference`
 
+Manifest JSON is limited to 4 MiB. The same limit applies to local uploads, mirrored responses, and persisted Disk/S3
+objects; oversized content is rejected before parsing or caching.
+The declared SHA-256 digest must also match the exact JSON bytes before persistence or delivery.
+
 ---
 
 ## Blob Layer Operations

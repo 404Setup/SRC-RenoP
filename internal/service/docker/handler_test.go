@@ -1170,3 +1170,18 @@ func TestDockerMultiTagSameManifestLifecycle(t *testing.T) {
 		t.Fatalf("expected 404 Not Found after manifest deletion, got %d", getGoneResp.StatusCode)
 	}
 }
+
+func TestReadManifestRequestRejectsKnownAndUnknownOversizedBodies(t *testing.T) {
+	small := []byte(`{"schemaVersion":2}`)
+	body, err := readManifestBody(bytes.NewReader(small), int64(len(small)))
+	if err != nil || !bytes.Equal(body, small) {
+		t.Fatalf("small manifest body = %q, err = %v", body, err)
+	}
+	oversized := bytes.Repeat([]byte{'x'}, MaxManifestSize+1)
+	if _, err := readManifestBody(bytes.NewReader([]byte("ignored")), int64(len(oversized))); !errors.Is(err, ErrManifestTooLarge) {
+		t.Fatalf("known oversized manifest error = %v", err)
+	}
+	if _, err := readManifestBody(bytes.NewReader(oversized), -1); !errors.Is(err, ErrManifestTooLarge) {
+		t.Fatalf("streamed oversized manifest error = %v", err)
+	}
+}

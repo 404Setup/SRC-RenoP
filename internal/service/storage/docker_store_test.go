@@ -11,14 +11,18 @@
 package storage
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"renop/internal/core"
+	"renop/internal/service/docker"
 	"renop/internal/service/index"
 )
 
@@ -137,6 +141,34 @@ func TestDockerStoreDiskOperations(t *testing.T) {
 	_, foundAfterDelete, _ := store.OpenManifest(repoName, imageName, manifestDigest)
 	if foundAfterDelete {
 		t.Fatal("expected manifest to be deleted")
+	}
+
+	oversized := bytes.Repeat([]byte{'x'}, docker.MaxManifestSize+1)
+	if err := store.PutManifest(state, repoName, imageName, manifestDigest, oversized); !errors.Is(err, docker.ErrManifestTooLarge) {
+		t.Fatalf("oversized PutManifest error = %v", err)
+	}
+	if _, err := readDockerManifest(bytes.NewReader(oversized), -1); !errors.Is(err, docker.ErrManifestTooLarge) {
+		t.Fatalf("unknown-size oversized manifest error = %v", err)
+	}
+	wrongManifestDigest := "sha256:" + strings.Repeat("0", 64)
+	if err := store.PutManifest(state, repoName, imageName, wrongManifestDigest, manifestData); !errors.Is(err, docker.ErrManifestDigestMismatch) {
+		t.Fatalf("mismatched PutManifest error = %v", err)
+	}
+	manifestPath := store.(*dockerStore).manifestPath(repoName, imageName, manifestDigest)
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create oversized manifest directory: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, oversized, 0o644); err != nil {
+		t.Fatalf("write oversized manifest fixture: %v", err)
+	}
+	if _, _, err := store.OpenManifest(repoName, imageName, manifestDigest); !errors.Is(err, docker.ErrManifestTooLarge) {
+		t.Fatalf("oversized OpenManifest error = %v", err)
+	}
+	if err := os.WriteFile(manifestPath, []byte(`{"schemaVersion":1}`), 0o644); err != nil {
+		t.Fatalf("write mismatched manifest fixture: %v", err)
+	}
+	if _, _, err := store.OpenManifest(repoName, imageName, manifestDigest); !errors.Is(err, docker.ErrManifestDigestMismatch) {
+		t.Fatalf("mismatched OpenManifest error = %v", err)
 	}
 }
 

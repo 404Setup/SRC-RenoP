@@ -11,12 +11,14 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -206,6 +208,42 @@ func TestUpstreamMirrorProxyLifecycle(t *testing.T) {
 
 	if tokenHitCount != 3 {
 		t.Fatalf("expected one token exchange per probed image and cache reuse for pulls, got %d", tokenHitCount)
+	}
+}
+
+func TestFetchUpstreamManifestRejectsOversizedBodies(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", MediaTypeDockerManifest2)
+		if strings.HasSuffix(request.URL.Path, "/declared") {
+			writer.Header().Set("Content-Length", fmt.Sprint(MaxManifestSize+1))
+			writer.WriteHeader(http.StatusOK)
+			return
+		}
+		if strings.HasSuffix(request.URL.Path, "/mismatch") {
+			writer.Header().Set(DockerDigestHeader, "sha256:"+strings.Repeat("0", 64))
+			writer.WriteHeader(http.StatusOK)
+			_, _ = writer.Write([]byte(`{"schemaVersion":2}`))
+			return
+		}
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write(bytes.Repeat([]byte{'x'}, MaxManifestSize+1))
+	}))
+	t.Cleanup(upstream.Close)
+	repo := &config.Repository{
+		Name: "oversized", Format: config.RepositoryFormatDocker,
+		Mirrors: []config.Mirror{{Name: upstream.URL, URL: upstream.URL}},
+	}
+	for _, reference := range []string{"declared", "streamed"} {
+		_, _, _, err := FetchUpstreamManifest(
+			context.Background(), core.NewAppState(), repo, "library/app", reference)
+		if !errors.Is(err, ErrManifestTooLarge) {
+			t.Fatalf("%s oversized manifest error = %v", reference, err)
+		}
+	}
+	_, _, _, err := FetchUpstreamManifest(
+		context.Background(), core.NewAppState(), repo, "library/app", "mismatch")
+	if !errors.Is(err, ErrManifestDigestMismatch) {
+		t.Fatalf("mismatched manifest digest error = %v", err)
 	}
 }
 

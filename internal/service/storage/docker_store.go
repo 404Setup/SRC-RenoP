@@ -294,7 +294,7 @@ func (s *dockerStore) DeleteBlob(state *core.AppState, repository, digest string
 func (s *dockerStore) OpenManifest(repository, imageName, digest string) ([]byte, bool, error) {
 	path := s.manifestPath(repository, imageName, digest)
 	if IsS3Enabled(path) {
-		reader, _, err := DownloadFromS3(utils.GetS3Key(path))
+		reader, info, err := DownloadFromS3(utils.GetS3Key(path))
 		if err != nil {
 			if isS3NotFound(err) {
 				return nil, false, nil
@@ -302,24 +302,59 @@ func (s *dockerStore) OpenManifest(repository, imageName, digest string) ([]byte
 			return nil, false, err
 		}
 		defer reader.Close()
-		data, err := io.ReadAll(reader)
+		data, err := readDockerManifest(reader, info.Size)
 		if err != nil {
 			return nil, false, err
+		}
+		if docker.CalculateDigest(data) != strings.TrimSpace(digest) {
+			return nil, false, docker.ErrManifestDigestMismatch
 		}
 		return data, true, nil
 	}
 
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, false, nil
 		}
 		return nil, false, err
 	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return nil, false, err
+	}
+	data, err := readDockerManifest(file, info.Size())
+	if err != nil {
+		return nil, false, err
+	}
+	if docker.CalculateDigest(data) != strings.TrimSpace(digest) {
+		return nil, false, docker.ErrManifestDigestMismatch
+	}
 	return data, true, nil
 }
 
+func readDockerManifest(reader io.Reader, size int64) ([]byte, error) {
+	if size > docker.MaxManifestSize {
+		return nil, docker.ErrManifestTooLarge
+	}
+	data, err := io.ReadAll(io.LimitReader(reader, docker.MaxManifestSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > docker.MaxManifestSize {
+		return nil, docker.ErrManifestTooLarge
+	}
+	return data, nil
+}
+
 func (s *dockerStore) PutManifest(state *core.AppState, repository, imageName, digest string, data []byte) error {
+	if len(data) > docker.MaxManifestSize {
+		return docker.ErrManifestTooLarge
+	}
+	if docker.CalculateDigest(data) != strings.TrimSpace(digest) {
+		return docker.ErrManifestDigestMismatch
+	}
 	path := s.manifestPath(repository, imageName, digest)
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err

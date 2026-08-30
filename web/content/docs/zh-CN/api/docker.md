@@ -61,6 +61,10 @@ Distribution 接口继续使用规范要求的 `errors` 结构。
 - **发布**：`PUT /v2/:name/manifests/:reference`（要求镜像已创建且权限不低于 L1）
 - **删除**：`DELETE /v2/:name/manifests/:reference`
 
+Manifest JSON 上限为 4 MiB。本地上传、镜像源响应以及已持久化的 Disk/S3 对象使用同一限制；超限内容会在解析或
+缓存前被拒绝。
+持久化或返回前，系统还会验证声明的 SHA-256 摘要与 JSON 原始字节完全一致。
+
 ---
 
 ## Blob 操作

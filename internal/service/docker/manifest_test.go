@@ -11,6 +11,8 @@
 package docker
 
 import (
+	"bytes"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -159,6 +161,10 @@ func TestParseManifestErrors(t *testing.T) {
 
 	if _, err := ParseManifest([]byte(`{"schemaVersion": 2, "mediaType": `), ""); err == nil {
 		t.Fatal("expected error on truncated JSON")
+	}
+
+	if _, err := ParseManifest(bytes.Repeat([]byte{'x'}, MaxManifestSize+1), ""); !errors.Is(err, ErrManifestTooLarge) {
+		t.Fatalf("expected manifest size error, got %v", err)
 	}
 }
 

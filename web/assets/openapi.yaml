@@ -7433,7 +7433,7 @@ paths:
     get:
       tags: [docker]
       summary: Pull image manifest
-      description: Returns the manifest for the given tag or digest. Supports all standard OCI and Docker manifest media types.
+      description: Returns the manifest for the given tag or digest. Supports all standard OCI and Docker manifest media types. Local, mirrored, and Disk/S3 manifest JSON is limited to 4 MiB and its declared SHA-256 digest must match the exact bytes before parsing, caching, or delivery.
       operationId: getDockerManifest
       security:
         - {}
@@ -7498,7 +7498,7 @@ paths:
     put:
       tags: [docker]
       summary: Push image manifest
-      description: Stores or updates the manifest for the given reference. The target image must already exist and the caller requires L1 or higher. Under `every_version`, the bounded manifest remains outside the registry catalog until approval.
+      description: Stores or updates up to 4 MiB of manifest JSON for the given reference after verifying its SHA-256 content identity. The target image must already exist and the caller requires L1 or higher. Under `every_version`, the bounded manifest remains outside the registry catalog until approval.
       operationId: putDockerManifest
       security:
         - basicAuth: []
@@ -7547,6 +7547,12 @@ paths:
                 type: string
         "400":
           description: Invalid manifest.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OciErrorList"
+        "413":
+          description: Manifest JSON exceeds 4 MiB.
           content:
             application/json:
               schema:

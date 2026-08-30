@@ -135,6 +135,7 @@ func FetchUpstreamManifest(
 		return nil, "", "", errors.New("no mirrors configured")
 	}
 
+	var validationErr error
 	for _, mirror := range repo.Mirrors {
 		if allowed, _ := mirror.IsArtifactAllowedFor(config.RepositoryFormatDocker, imageName); !allowed {
 			continue
@@ -144,6 +145,12 @@ func FetchUpstreamManifest(
 		if err == nil && len(data) > 0 {
 			return data, mediaType, digest, nil
 		}
+		if errors.Is(err, ErrManifestTooLarge) || errors.Is(err, ErrManifestDigestMismatch) {
+			validationErr = err
+		}
+	}
+	if validationErr != nil {
+		return nil, "", "", validationErr
 	}
 
 	return nil, "", "", errors.New("manifest not found on any mirror")
@@ -177,16 +184,25 @@ func fetchMirrorManifestSingle(
 	if resp.StatusCode != http.StatusOK {
 		return nil, "", "", fmt.Errorf("upstream returned status %d", resp.StatusCode)
 	}
+	if resp.ContentLength > MaxManifestSize {
+		return nil, "", "", ErrManifestTooLarge
+	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, MaxManifestSize+1))
 	if err != nil {
 		return nil, "", "", err
+	}
+	if len(body) > MaxManifestSize {
+		return nil, "", "", ErrManifestTooLarge
 	}
 
 	mediaType := resp.Header.Get("Content-Type")
 	digest := resp.Header.Get(DockerDigestHeader)
+	calculatedDigest := CalculateDigest(body)
 	if digest == "" {
-		digest = CalculateDigest(body)
+		digest = calculatedDigest
+	} else if digest != calculatedDigest {
+		return nil, "", "", ErrManifestDigestMismatch
 	}
 
 	return body, mediaType, digest, nil

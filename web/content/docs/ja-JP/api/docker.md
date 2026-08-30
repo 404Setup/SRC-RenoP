@@ -63,6 +63,10 @@ API が暗黙にイメージを作ることはありません。非公開イメ�
 - **公開**: `PUT /v2/:name/manifests/:reference`（作成済みイメージと L1 以上が必要）
 - **削除**: `DELETE /v2/:name/manifests/:reference`
 
+manifest JSON の上限は 4 MiB です。local upload、mirror response、永続化済み Disk/S3 object に同じ上限を適用し、
+超過した内容は parse や cache の前に拒否します。
+永続化または配信の前に、宣言された SHA-256 digest と JSON bytes が正確に一致することも検証します。
+
 ---
 
 ## blob 操作

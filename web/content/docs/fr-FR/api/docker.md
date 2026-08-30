@@ -63,6 +63,10 @@ avec la liste commune d’éléments et d’URL autorisés.
 - **Publier** : `PUT /v2/:name/manifests/:reference` (image créée et niveau L1 minimum)
 - **Supprimer** : `DELETE /v2/:name/manifests/:reference`
 
+Le JSON d’un manifeste est limité à 4 Mio. La même limite s’applique aux envois locaux, aux réponses miroir et aux
+objets Disk/S3 persistés ; tout contenu trop volumineux est refusé avant analyse ou mise en cache.
+Le digest SHA-256 déclaré doit également correspondre exactement aux octets JSON avant persistance ou diffusion.
+
 ---
 
 ## Blobs

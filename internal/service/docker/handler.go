@@ -38,6 +38,34 @@ type Handler struct {
 	Store Store
 }
 
+func readManifestRequest(c fiber.Ctx) ([]byte, error) {
+	if contentLength := c.Request().Header.ContentLength(); contentLength > MaxManifestSize {
+		return nil, ErrManifestTooLarge
+	}
+	if stream := c.Request().BodyStream(); stream != nil {
+		return readManifestBody(stream, int64(c.Request().Header.ContentLength()))
+	}
+	body := c.Body()
+	if len(body) > MaxManifestSize {
+		return nil, ErrManifestTooLarge
+	}
+	return body, nil
+}
+
+func readManifestBody(reader io.Reader, contentLength int64) ([]byte, error) {
+	if contentLength > MaxManifestSize {
+		return nil, ErrManifestTooLarge
+	}
+	body, err := io.ReadAll(io.LimitReader(reader, MaxManifestSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(body) > MaxManifestSize {
+		return nil, ErrManifestTooLarge
+	}
+	return body, nil
+}
+
 func referencedBlobDigests(manifest *ParsedManifest) []string {
 	if manifest == nil || manifest.IsIndex {
 		return nil
@@ -334,6 +362,10 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 				return RespondError(c, fiber.StatusNotFound, ErrCodeManifestUnknown, "manifest not found", map[string]string{"reference": reference})
 			}
 			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(c.Context(), state, repo, imageName, reference)
+			if errors.Is(uErr, ErrManifestTooLarge) || errors.Is(uErr, ErrManifestDigestMismatch) {
+				return RespondError(c, fiber.StatusBadGateway, ErrCodeManifestInvalid,
+					"upstream manifest failed validation", nil)
+			}
 			if uErr == nil && len(upstreamData) > 0 {
 				parsed, parseErr := ParseManifest(upstreamData, uMediaType)
 				if parseErr != nil {
@@ -397,6 +429,10 @@ func (h *Handler) HandleGetManifest(c fiber.Ctx, state *core.AppState) error {
 		}
 		if !ok {
 			upstreamData, uMediaType, uDigest, uErr := FetchUpstreamManifest(c.Context(), state, repo, imageName, digest)
+			if errors.Is(uErr, ErrManifestTooLarge) || errors.Is(uErr, ErrManifestDigestMismatch) {
+				return RespondError(c, fiber.StatusBadGateway, ErrCodeManifestInvalid,
+					"upstream manifest failed validation", nil)
+			}
 			if uErr == nil && len(upstreamData) > 0 {
 				rawJSON = upstreamData
 				mediaType = uMediaType
@@ -450,7 +486,14 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 		return nil
 	}
 
-	body := c.Body()
+	body, bodyErr := readManifestRequest(c)
+	if errors.Is(bodyErr, ErrManifestTooLarge) {
+		return RespondError(c, fiber.StatusRequestEntityTooLarge, ErrCodeManifestInvalid,
+			"manifest exceeds the size limit", nil)
+	}
+	if bodyErr != nil {
+		return RespondError(c, fiber.StatusBadRequest, ErrCodeManifestInvalid, "failed to read manifest", nil)
+	}
 	if len(body) == 0 {
 		return RespondError(c, fiber.StatusBadRequest, ErrCodeManifestInvalid, "empty manifest", nil)
 	}
@@ -458,6 +501,10 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 	contentType := c.Get(fiber.HeaderContentType)
 	parsed, err := ParseManifest(body, contentType)
 	if err != nil {
+		if errors.Is(err, ErrManifestTooLarge) {
+			return RespondError(c, fiber.StatusRequestEntityTooLarge, ErrCodeManifestInvalid,
+				"manifest exceeds the size limit", nil)
+		}
 		return RespondError(c, fiber.StatusBadRequest, ErrCodeManifestInvalid, err.Error(), nil)
 	}
 
