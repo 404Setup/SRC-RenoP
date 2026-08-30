@@ -222,7 +222,9 @@
   filters and pagination keep large domain registries bounded.
   The signed-in account menu owns profile navigation, messages, logout, Maven domains, global teams, reviews,
   administrator pages, and the standalone administrator notification composer; the settings UI groups the server,
-  outbound-proxy, and storage APIs under one Service domain. Administrators can configure a write-only GitHub OAuth
+  outbound-proxy, and storage APIs under one Service domain. Pure MySQL, PostgreSQL, and native ClickHouse DSN
+  parsing/formatting lives in `js/settings/database-dsn.js`, including encoded credentials and IPv6 authority handling,
+  so database connection editing remains independently testable. Administrators can configure a write-only GitHub OAuth
   secret there; GitHub login and
   profile linking request account/organization read access, persist immutable provider IDs without access tokens, and
   allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
