@@ -17,6 +17,7 @@ RenoP は credential type、API Token capability、account role、repository vis
 | Anonymous | `PUBLIC` と `HIDDEN` の既知 exact path を読む |
 | `base` | 暗黙 repository write のない認証 account |
 | `canview:{repo}` / `canview:*` | 指定または全 repository を private 含め read |
+| `canmoderate:{repo}` / `canmoderate:*` | 指定または全 repository の保留中 content を審査 |
 | `canupdate:{repo}` / `canupdate:*` | package/domain policy の範囲で publish |
 | `showing` | 旧バージョンとの互換用権限。非表示リポジトリを一覧に表示する |
 | `allview` / `proview` | legacy global private-read alias |
@@ -24,6 +25,8 @@ RenoP は credential type、API Token capability、account role、repository vis
 
 system admin は global です。package team L0-L4 は通常 collaboration の権限として分離します。admin operation
 は audit され、表示 team member を暗黙作成しません。
+moderator permission は審査に必要な private visibility を含みますが、publish、user 管理、repository 設定、
+system settings の変更は許可しません。
 
 ## Repository / team layer
 

@@ -511,6 +511,16 @@ html.dark #tokens-table th {
     color: #f59e0b !important;
 }
 
+.permission-badge.badge-moderator {
+    background-color: rgba(124, 58, 237, 0.08) !important;
+    border: 1px solid rgba(124, 58, 237, 0.18) !important;
+    color: #7c3aed !important;
+}
+
+html.dark .permission-badge.badge-moderator {
+    color: #c4b5fd !important;
+}
+
 .permission-badge.badge-none {
     background-color: rgba(107, 114, 128, 0.08) !important;
     border: 1px solid rgba(107, 114, 128, 0.18) !important;
@@ -949,6 +959,16 @@ renop-roles-group,
 
 .role-chip--update.is-checked .role-chip-check {
     background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.role-chip--moderator.is-checked {
+    background: color-mix(in srgb, #7c3aed 9%, var(--card-bg));
+    border-color: color-mix(in srgb, #7c3aed 40%, var(--border-color));
+    box-shadow: 0 0 0 1px color-mix(in srgb, #7c3aed 18%, transparent);
+}
+
+.role-chip--moderator.is-checked .role-chip-check {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
 }
 
 .role-chip--system.is-checked {

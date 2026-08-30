@@ -17,7 +17,7 @@ import {
 
 const userPermissionPanelId = 'user-permissions-grid';
 const userPermissionCountId = 'user-permissions-count';
-const basePermissions = ['admin', 'base', 'showing', 'allview', 'canview:*', 'canupdate:*'];
+const basePermissions = ['admin', 'base', 'showing', 'allview', 'canview:*', 'canmoderate:*', 'canupdate:*'];
 let permissionLoadSequence = 0;
 
 /**
@@ -32,6 +32,7 @@ function permissionMeta(permission) {
         showing: {title: t('users.roleShowingTitle'), desc: t('users.roleShowingDesc'), tone: 'system'},
         allview: {title: t('users.roleAllviewTitle'), desc: t('users.roleAllviewDesc'), tone: 'view'},
         'canview:*': {title: t('users.roleCanviewAllTitle'), desc: t('users.roleCanviewAllDesc'), tone: 'view'},
+        'canmoderate:*': {title: t('users.roleModeratorAllTitle'), desc: t('users.roleModeratorAllDesc'), tone: 'moderator'},
         'canupdate:*': {title: t('users.roleCanupdateAllTitle'), desc: t('users.roleCanupdateAllDesc'), tone: 'update'},
     };
     return metadata[permission] || {title: permission, tone: 'system'};

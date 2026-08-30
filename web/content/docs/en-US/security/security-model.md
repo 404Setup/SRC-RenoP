@@ -17,6 +17,7 @@ target package or domain team. No credential preserves authority after the ownin
 | Anonymous | Read `PUBLIC` content and exact known paths in `HIDDEN` repositories |
 | `base` | Authenticated account without implicit repository writes |
 | `canview:{repo}` / `canview:*` | Read the named repository or every repository, including private content |
+| `canmoderate:{repo}` / `canmoderate:*` | Inspect and decide queued content for the named repository or every repository |
 | `canupdate:{repo}` / `canupdate:*` | Publish to the named repository or every repository, subject to package/domain policy |
 | `showing` | Legacy compatibility permission to discover hidden repositories in the browser catalog |
 | `allview` / `proview` | Legacy global private-read aliases |
@@ -24,6 +25,8 @@ target package or domain team. No credential preserves authority after the ownin
 
 System administrator authority is global. Package-team L0-L4 levels are separate and remain the normal authority for
 package/domain collaboration. Administrator operations are recorded and do not silently create displayed team members.
+Moderator permissions include private review visibility, but do not grant publication, user management, repository
+configuration, or system settings access.
 
 ## Repository and team layers
 

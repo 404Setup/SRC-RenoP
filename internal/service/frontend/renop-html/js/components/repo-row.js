@@ -69,7 +69,15 @@ export class RenopRepoRow extends HTMLElement {
             compact: true
         });
 
+        const moderatorChip = createRoleChip(`canmoderate:${repoName}`, {
+            title: t('users.roleModerate'),
+            code: `canmoderate:${repoName}`,
+            tone: 'moderator',
+            compact: true
+        });
+
         actions.appendChild(viewChip);
+        actions.appendChild(moderatorChip);
         actions.appendChild(updateChip);
 
         this.appendChild(info);

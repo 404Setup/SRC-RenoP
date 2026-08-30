@@ -367,7 +367,8 @@ components:
           type: array
           items:
             type: string
-          example: ["manager", "canview:*", "canupdate:*"]
+          description: Repository view, moderation, deployment, and system roles. `canmoderate` never grants settings access.
+          example: ["manager", "canview:*", "canmoderate:releases", "canupdate:*"]
 
     APITokenScope:
       type: string

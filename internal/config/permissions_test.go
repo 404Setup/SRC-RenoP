@@ -314,6 +314,39 @@ func TestCheckUpdatePermission(t *testing.T) {
 	}
 }
 
+func TestCheckModeratePermissionIsRepositoryScoped(t *testing.T) {
+	moderator := createUserWithRoles([]string{"canmoderate:releases"})
+	if !moderator.CheckModeratePermission("releases") {
+		t.Fatal("repository moderator could not moderate the assigned repository")
+	}
+	if moderator.CheckModeratePermission("snapshots") {
+		t.Fatal("repository moderator could moderate an unassigned repository")
+	}
+	if moderator.IsManager() || moderator.CheckUpdatePermission("releases") {
+		t.Fatal("repository moderator inherited system or deployment permission")
+	}
+	if !moderator.CheckReadPermission("releases", "private/package", "PRIVATE", false) {
+		t.Fatal("repository moderator could not inspect private review content")
+	}
+	if moderator.CheckReadPermission("snapshots", "private/package", "PRIVATE", false) {
+		t.Fatal("repository moderator could inspect another private repository")
+	}
+
+	globalModerator := createUserWithRoles([]string{"canmoderate:*"})
+	if !globalModerator.CheckModeratePermission("releases") ||
+		!globalModerator.CheckModeratePermission("snapshots") {
+		t.Fatal("global moderator did not cover every repository")
+	}
+	if globalModerator.IsManager() || globalModerator.CheckUpdatePermission("releases") {
+		t.Fatal("global moderator inherited system or deployment permission")
+	}
+
+	manager := createUserWithRoles([]string{"manager"})
+	if !manager.CheckModeratePermission("releases") {
+		t.Fatal("system manager did not inherit moderation permission")
+	}
+}
+
 func TestGetCacheConfigNoMirrors(t *testing.T) {
 	repo := Repository{
 		Name:              "test",

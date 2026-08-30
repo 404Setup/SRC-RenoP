@@ -148,13 +148,18 @@ profile page.
 
 Every account carries a set of permission strings. Built-in shortcuts:
 
-| Permission         | Meaning                               |
-|--------------------|---------------------------------------|
-| `manager`          | Full administrative access            |
-| `canview:*`        | Read access to all repositories       |
-| `canupdate:*`      | Write access to all repositories      |
-| `canview:<repo>`   | Read access to a specific repository  |
-| `canupdate:<repo>` | Write access to a specific repository |
+| Permission           | Meaning                                         |
+|----------------------|-------------------------------------------------|
+| `manager`            | Full administrative access                      |
+| `canview:*`          | Read access to all repositories                 |
+| `canmoderate:*`      | Review queued content in all repositories       |
+| `canupdate:*`        | Write access to all repositories                |
+| `canview:<repo>`     | Read access to a specific repository            |
+| `canmoderate:<repo>` | Review queued content in a specific repository |
+| `canupdate:<repo>`   | Write access to a specific repository           |
+
+Moderators can inspect private review content in their assigned repositories, but cannot deploy packages, edit users,
+or modify repositories and system settings unless another permission grants that authority.
 
 API tokens are named, optionally expiring 256-bit credentials. Their fine-grained scopes are always intersected with
 the owning account's live roles, repository permissions, and package-team membership. Secrets are displayed once,

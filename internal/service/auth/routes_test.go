@@ -131,6 +131,25 @@ func TestCreateSessionDetailsWriteUser(t *testing.T) {
 	assert.True(t, hasReadPrivate, "session should expose route:read for canview:private")
 }
 
+func TestCreateSessionDetailsModeratorDoesNotGainManagement(t *testing.T) {
+	user := buildSynthUser(&core.AccessToken{
+		Name: "moderator", Permissions: []string{"base", "canmoderate:releases"},
+	})
+	assert.True(t, user.CheckModeratePermission("releases"))
+	assert.True(t, user.CheckReadPermission("releases", "private/package", "PRIVATE", false))
+	assert.False(t, user.CheckModeratePermission("snapshots"))
+	assert.False(t, user.CheckUpdatePermission("releases"))
+	assert.False(t, user.IsManager())
+
+	details := CreateSessionDetails(user, "moderator-session")
+	roleIDs := make([]string, 0, len(details.Permissions))
+	for _, permission := range details.Permissions {
+		roleIDs = append(roleIDs, permission.Identifier)
+	}
+	assert.Contains(t, roleIDs, "canmoderate:releases")
+	assert.NotContains(t, roleIDs, "access-token:manager")
+}
+
 func TestCreateSessionDetailsManagerHasFullWriteRoute(t *testing.T) {
 	token := &core.AccessToken{
 		Name:        "admin",

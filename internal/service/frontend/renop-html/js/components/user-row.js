@@ -291,6 +291,8 @@ export function createUserRow(token, options = {}) {
             let type = 'none';
             if (perm.toLowerCase().includes('admin') || perm.toLowerCase().includes('manager')) {
                 type = 'admin';
+            } else if (perm.toLowerCase().includes('moderate')) {
+                type = 'moderator';
             } else if (perm.toLowerCase().includes('view')) {
                 type = 'view';
             } else if (perm.toLowerCase().includes('update')) {

@@ -207,4 +207,9 @@ export default Object.freeze({
     "dashboard.restartFailed": "Fehler beim Neustarten des Dienstes: {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "Token-Widerruf",
+    "users.roleModeratorAllTitle": "Alle Repositories moderieren",
+    "users.roleModeratorAllDesc": "Ausstehende Pakete und Versionen in allen Repositories prüfen, ohne Systemeinstellungen zu ändern",
+    "users.roleModerate": "Moderieren",
+    "users.tagModeratorAll": "Alle Repositories moderieren",
+    "users.tagModeratorRepo": "Moderieren: {repo}",
 });

@@ -33,9 +33,31 @@ test('user editor uses semantic account fields and a responsive permission layou
 
     assert.match(permissions, /Object\.keys\(data\.repositories \|\| \{\}\)\.sort/);
     assert.match(permissions, /sequence !== permissionLoadSequence/);
+    assert.match(permissions, /'canmoderate:\*'/);
+    const repoRow = readFileSync(join(frontendRoot, 'js/components/repo-row.js'), 'utf8');
+    assert.match(repoRow, /canmoderate:\$\{repoName\}/);
+    assert.match(repoRow, /users\.roleModerate/);
+    assert.match(styles, /\.role-chip--moderator\.is-checked/);
+    assert.match(styles, /\.permission-badge\.badge-moderator/);
     assert.match(styles, /\.user-editor-body\s*\{[^}]*grid-template-columns:/s);
     assert.match(styles, /@media \(max-width: 780px\)[\s\S]*?\.user-editor-body\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
     assert.match(styles, /max-height: calc\(100dvh/);
+});
+
+test('moderator permission labels are complete in every locale', async () => {
+    const localeRoot = join(frontendRoot, 'js/i18n');
+    const keys = [
+        'users.roleModeratorAllTitle',
+        'users.roleModeratorAllDesc',
+        'users.roleModerate',
+        'users.tagModeratorAll',
+        'users.tagModeratorRepo',
+    ];
+    for (const locale of readdirSync(localeRoot, {withFileTypes: true}).filter(entry => entry.isDirectory())) {
+        const module = await import(pathToFileURL(join(localeRoot, locale.name, 'management.js')).href);
+        for (const key of keys) assert.equal(typeof module.default[key], 'string', `${locale.name} ${key}`);
+        assert.ok(module.default['users.tagModeratorRepo'].includes('{repo}'), `${locale.name} moderator placeholder`);
+    }
 });
 
 test('user management locales describe account passwords rather than security tokens', async () => {

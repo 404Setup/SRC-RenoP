@@ -19,6 +19,7 @@ import (
 func (u *User) initPermissions() {
 	u.once.Do(func() {
 		u.updateRepos = make(map[string]bool)
+		u.moderateRepos = make(map[string]bool)
 		u.viewRepos = make(map[string]bool)
 		for _, r := range u.Roles {
 			if r == "manager" {
@@ -35,6 +36,10 @@ func (u *User) initPermissions() {
 				u.canUpdateAll = true
 			} else if len(r) > 10 && r[:10] == "canupdate:" {
 				u.updateRepos[r[10:]] = true
+			} else if r == "canmoderate:*" {
+				u.canModerateAll = true
+			} else if len(r) > 12 && r[:12] == "canmoderate:" {
+				u.moderateRepos[r[12:]] = true
 			} else if r == "canview:*" {
 				u.canViewAll = true
 			} else if len(r) > 8 && r[:8] == "canview:" {
@@ -76,7 +81,7 @@ func (u *User) CheckReadPermission(repoName string, path string, repoVisibility 
 		return true
 	}
 
-	if u.canUpdateAll || u.updateRepos[repoName] {
+	if u.canUpdateAll || u.updateRepos[repoName] || u.canModerateAll || u.moderateRepos[repoName] {
 		return true
 	}
 
@@ -96,6 +101,12 @@ func (u *User) CheckReadPermission(repoName string, path string, repoVisibility 
 	}
 
 	return false
+}
+
+// CheckModeratePermission reports whether the account may review content in one repository.
+func (u *User) CheckModeratePermission(repoName string) bool {
+	u.initPermissions()
+	return u.isAdmin || u.canModerateAll || u.moderateRepos[repoName]
 }
 
 func (u *User) CheckUpdatePermission(repoName string) bool {

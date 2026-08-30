@@ -65,6 +65,8 @@
   scopes remain authentication-only compatibility. Team targets also accept bounded `global/<prefix>` restrictions.
   Token secrets are owner-managed from a browser session; administrators cannot mint credentials for another user.
   Browser session secrets are cookie-only, while Basic/password credentials are restricted to package protocols.
+  Repository-scoped `canmoderate:<name>` and global `canmoderate:*` roles grant private review visibility without
+  repository writes or system-manager authority; `manager` remains the only global configuration bypass.
   Authentication-result invalidation is scoped to the changed account or revoked API token so unrelated hot entries
   remain available; validity-changing operations also remove bounded negative credential results.
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
@@ -180,8 +182,9 @@
   disconnects update the visible state immediately and retain the server-side alternate-login invariant.
   Administrator account creation and editing use the responsive two-column `js/users/modal.js` dialog, with account
   identity and password semantics separated from the asynchronously loaded repository permission editor in
-  `js/users/permissions.js`; narrow viewports stack both sections without allowing the modal to exceed the dynamic
-  viewport. The legacy protobuf `secret` field remains a transport-only compatibility detail and is not exposed as
+  `js/users/permissions.js`. Per-repository view, moderate, and deploy chips map to distinct permissions; moderator
+  roles never expose manager-only tabs. Narrow viewports stack both sections without allowing the modal to exceed the
+  dynamic viewport. The legacy protobuf `secret` field remains a transport-only compatibility detail and is not exposed as
   account-token terminology in the interface.
   Private email, password-login policy, and one-time recovery-code controls are isolated in
   `js/account-security.js` inside a default-collapsed, width-contained security card, while the public four-code reset

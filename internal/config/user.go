@@ -26,15 +26,17 @@ type User struct {
 	ReadPermissions  []string `json:"read_permissions" yaml:"read_permissions"`
 	WritePermissions []string `json:"write_permissions" yaml:"write_permissions"`
 
-	once         sync.Once       `json:"-" yaml:"-"`
-	isAdmin      bool            `json:"-" yaml:"-"`
-	isAllView    bool            `json:"-" yaml:"-"`
-	isShowing    bool            `json:"-" yaml:"-"`
-	canUpdateAll bool            `json:"-" yaml:"-"`
-	updateRepos  map[string]bool `json:"-" yaml:"-"`
-	canViewAll   bool            `json:"-" yaml:"-"`
-	viewRepos    map[string]bool `json:"-" yaml:"-"`
-	isManager    bool            `json:"-"  yaml:"-"`
+	once           sync.Once       `json:"-" yaml:"-"`
+	isAdmin        bool            `json:"-" yaml:"-"`
+	isAllView      bool            `json:"-" yaml:"-"`
+	isShowing      bool            `json:"-" yaml:"-"`
+	canUpdateAll   bool            `json:"-" yaml:"-"`
+	updateRepos    map[string]bool `json:"-" yaml:"-"`
+	canModerateAll bool            `json:"-" yaml:"-"`
+	moderateRepos  map[string]bool `json:"-" yaml:"-"`
+	canViewAll     bool            `json:"-" yaml:"-"`
+	viewRepos      map[string]bool `json:"-" yaml:"-"`
+	isManager      bool            `json:"-"  yaml:"-"`
 }
 
 func (u *User) IsManager() bool {

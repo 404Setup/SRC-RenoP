@@ -207,4 +207,9 @@ export default Object.freeze({
     "dashboard.restartFailed": "重启服务失败: {error}",
     "sessions.methodGithub": "GitHub",
     "audit.action.TOKEN_REVOKE": "撤销 Token",
+    "users.roleModeratorAllTitle": "所有存储库版主",
+    "users.roleModeratorAllDesc": "审核所有存储库中待处理的软件包和版本，但不能修改系统设置",
+    "users.roleModerate": "版主",
+    "users.tagModeratorAll": "所有存储库版主",
+    "users.tagModeratorRepo": "{repo} 版主",
 });

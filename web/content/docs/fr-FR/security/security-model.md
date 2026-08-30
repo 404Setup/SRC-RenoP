@@ -17,6 +17,7 @@ Aucun identifiant ne conserve un droit perdu par son compte.
 | Anonyme | Lit `PUBLIC` et les chemins exacts connus de `HIDDEN` |
 | `base` | Compte authentifié sans écriture implicite |
 | `canview:{repo}` / `canview:*` | Lit le dépôt nommé ou tous, y compris privés |
+| `canmoderate:{repo}` / `canmoderate:*` | Examine et décide le contenu en attente du dépôt nommé ou de tous les dépôts |
 | `canupdate:{repo}` / `canupdate:*` | Publie dans le dépôt, sous réserve de la politique paquet/domaine |
 | `showing` | Droit historique permettant de découvrir les dépôts cachés dans le catalogue |
 | `allview` / `proview` | Alias historiques de lecture privée globale |
@@ -24,6 +25,8 @@ Aucun identifiant ne conserve un droit perdu par son compte.
 
 L’administration système est globale. Les niveaux L0-L4 restent l’autorité normale de collaboration. Une opération
 administrateur est auditée et n’ajoute pas silencieusement un membre affiché.
+La modération inclut la visibilité privée nécessaire à l’examen, sans autoriser publication, gestion des utilisateurs,
+configuration des dépôts ni paramètres système.
 
 ## Couches dépôt et équipe
 

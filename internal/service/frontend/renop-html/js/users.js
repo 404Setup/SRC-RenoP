@@ -221,6 +221,7 @@ export function formatPermissionTag(perm) {
     if (upper === 'ALLVIEW') return t('users.tagAllview');
 
     if (upper === 'CANVIEW:*' || upper === 'ROUTE:READ' || upper === 'READ') return t('users.tagCanviewAll');
+    if (upper === 'CANMODERATE:*') return t('users.tagModeratorAll');
     if (upper === 'CANUPDATE:*' || upper === 'ROUTE:WRITE' || upper === 'WRITE') return t('users.tagCanupdateAll');
 
     if (upper.startsWith('CANVIEW:')) {
@@ -233,6 +234,11 @@ export function formatPermissionTag(perm) {
         const target = p.substring(10).trim();
         const repoName = target.includes(':') ? target.split(':').slice(1).join(':') : target;
         return t('users.tagCanupdateRepo', {repo: repoName});
+    }
+
+    if (upper.startsWith('CANMODERATE:')) {
+        const repoName = p.substring(12).trim();
+        return t('users.tagModeratorRepo', {repo: repoName});
     }
 
     return p;

@@ -212,7 +212,7 @@ func TestUpsertToken(t *testing.T) {
 
 	updatedNickname := "Updated Nickname"
 	payload2 := core.CreateAccessTokenRequest{
-		Permissions: []string{"base", "showing"},
+		Permissions: []string{"base", "showing", "canmoderate:cargo"},
 		Nickname:    &updatedNickname,
 	}
 	body2, _ := json.Marshal(payload2)
@@ -225,6 +225,11 @@ func TestUpsertToken(t *testing.T) {
 
 	allTokens := state.GetAllTokens()
 	assert.Equal(t, 1, len(allTokens))
+	moderator := &config.User{Roles: state.GetTokenByName("instan").Permissions}
+	assert.True(t, moderator.CheckModeratePermission("cargo"))
+	assert.False(t, moderator.CheckUpdatePermission("cargo"))
+	assert.False(t, moderator.IsManager())
+	assert.False(t, RequireManager(moderator))
 	profile, err = db.GetUserProfile("instan")
 	require.NoError(t, err)
 	assert.Equal(t, updatedNickname, profile.Nickname)
@@ -232,7 +237,7 @@ func TestUpsertToken(t *testing.T) {
 	newName := "instan2"
 	payload3 := core.CreateAccessTokenRequest{
 		NewName:     &newName,
-		Permissions: []string{"base", "showing"},
+		Permissions: []string{"base", "showing", "canmoderate:cargo"},
 	}
 	body3, _ := json.Marshal(payload3)
 	req3 := httptest.NewRequest(http.MethodPut, "/tokens/instan", bytes.NewReader(body3))
