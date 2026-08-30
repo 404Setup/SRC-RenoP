@@ -221,7 +221,9 @@
   The account menu opens the routed `/account/maven-domains` subpage, whose server-backed multi-select permission/source
   filters and pagination keep large domain registries bounded.
   The signed-in account menu owns profile navigation, messages, logout, Maven domains, global teams, reviews,
-  administrator pages, and the standalone administrator notification composer; the settings UI groups the server,
+  administrator pages, and the standalone administrator notification composer. `js/messages.js` is limited to the
+  user message center and unread polling; `js/notification-composer.js` independently owns manager gating, recipient
+  suggestions, broadcast/severity controls, and typed delivery. The settings UI groups the server,
   outbound-proxy, and storage APIs under one Service domain. Pure MySQL, PostgreSQL, and native ClickHouse DSN
   parsing/formatting lives in `js/settings/database-dsn.js`, including encoded credentials and IPv6 authority handling,
   so database connection editing remains independently testable. Administrators can configure a write-only GitHub OAuth

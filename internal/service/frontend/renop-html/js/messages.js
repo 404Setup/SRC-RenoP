@@ -9,25 +9,20 @@
  */
 
 import {el} from '@renop/ui/dom';
-import {makeCustomSelect} from '@renop/ui/custom-select';
 import {morphElementHeight, prefersReducedMotion} from '@renop/ui/height-anim';
 import {openModalWithAnim} from '@renop/ui/modal';
-import {createToggle} from '@renop/ui/toggle';
 import {fetchProto, postProto, sendProto} from './api.js';
 import {closeModalWithAnim} from './app-ui.js';
-import {cachedIsLoggedIn, cachedIsManager, logout} from './auth.js';
+import {cachedIsLoggedIn, logout} from './auth.js';
 import {showAlert, showConfirm} from './alert.js';
 import {t} from './i18n.js';
 import {createUserIdentity} from './components.js';
 import {
     ClearMessagesResponse,
     MarkAllReadResponse,
-    SendNotificationRequest,
-    SendNotificationResponse,
     StatusOk,
     UnreadCountResponse,
-    UserMessageList,
-    UserSearchResponse
+    UserMessageList
 } from './proto/index.js';
 import {timestampMilliseconds} from './time.js';
 import {localizedResponseError} from './response-errors.js';
@@ -40,15 +35,6 @@ let unreadCount = 0;
 let pollTimer = 0;
 let initialized = false;
 let loading = false;
-let severitySelect = null;
-let recipientSuggestions = [];
-let activeRecipientSuggestion = -1;
-let recipientSuggestionTimer = 0;
-let recipientSuggestionVersion = 0;
-let notificationSending = false;
-let notificationCompletionTimer = 0;
-let broadcastToggle = null;
-let composerOpen = false;
 let clearingMessages = false;
 let messageDialogHeightAnimation = null;
 let messageDialogHeightGeneration = 0;
@@ -101,22 +87,12 @@ export function initMessageCenter() {
     document.getElementById('message-center-backdrop')?.addEventListener('click', closeMessageCenter);
     document.getElementById('message-mark-all-read')?.addEventListener('click', markAllRead);
     document.getElementById('message-clear-all')?.addEventListener('click', clearAllMessages);
-    document.getElementById('message-compose-close')?.addEventListener('click', closeNotificationComposer);
-    document.getElementById('message-compose-backdrop')?.addEventListener('click', closeNotificationComposer);
-    document.getElementById('message-compose-cancel')?.addEventListener('click', closeNotificationComposer);
-    document.getElementById('message-compose-form')?.addEventListener('submit', submitNotification);
-    document.getElementById('message-compose-recipients')?.addEventListener('input', handleRecipientInput);
-    document.getElementById('message-compose-recipients')?.addEventListener('keydown', handleRecipientKeydown);
-    document.getElementById('message-recipient-suggestions')?.addEventListener('click', handleRecipientSuggestionClick);
     document.getElementById('message-center-list')?.addEventListener('click', handleMessageListClick);
     const loadMore = document.getElementById('message-load-more');
     bindLoadMoreButton(loadMore);
     syncLoadMoreButton(loadMore);
-    document.addEventListener('click', handleRecipientDocumentClick);
     window.addEventListener('authChanged', handleAuthChanged);
     window.addEventListener('languageChanged', handleLanguageChanged);
-    initializeSeveritySelect();
-    initializeBroadcastToggle();
     if (cachedIsLoggedIn) {
         startPolling();
     }
@@ -130,7 +106,6 @@ export async function openMessageCenter() {
     const modal = document.getElementById('message-center-modal');
     if (!modal || !cachedIsLoggedIn) return;
     openModalWithAnim(modal);
-    updateComposerVisibility();
     await fetchMessages(true);
 }
 
@@ -141,43 +116,6 @@ export async function openMessageCenter() {
 function closeMessageCenter() {
     const modal = document.getElementById('message-center-modal');
     if (modal) closeModalWithAnim(modal);
-}
-
-/**
- * Open the administrator notification composer as an independent feature.
- * @returns {void}
- */
-export function openNotificationComposer() {
-    if (!cachedIsManager || notificationSending) return;
-    const modal = document.getElementById('message-compose-modal');
-    if (!modal) return;
-    composerOpen = true;
-    setNotificationSubmitState('idle');
-    openModalWithAnim(modal);
-    window.requestAnimationFrame(() => document.getElementById('message-compose-recipients')?.focus());
-}
-
-/**
- * Close and reset the independent administrator notification composer.
- * @param {Event} [event] - User close event; blocked while a send is active.
- * @returns {void}
- */
-function closeNotificationComposer(event) {
-    if (notificationSending && event?.type) return;
-    composerOpen = false;
-    if (notificationCompletionTimer) {
-        window.clearTimeout(notificationCompletionTimer);
-        notificationCompletionTimer = 0;
-    }
-    hideRecipientSuggestions();
-    const modal = document.getElementById('message-compose-modal');
-    if (modal) closeModalWithAnim(modal);
-    const form = document.getElementById('message-compose-form');
-    form?.reset();
-    severitySelect?.setValue('info');
-    if (broadcastToggle) broadcastToggle.checked = false;
-    handleBroadcastChange();
-    setNotificationSubmitState('idle');
 }
 
 /**
@@ -405,10 +343,14 @@ function buildMessageCard(message) {
  */
 function messageSeverityLabel(severity) {
     switch (severity) {
-        case 'success': return t('messages.severitySuccess');
-        case 'warning': return t('messages.severityWarning');
-        case 'error': return t('messages.severityError');
-        default: return t('messages.severityInfo');
+        case 'success':
+            return t('messages.severitySuccess');
+        case 'warning':
+            return t('messages.severityWarning');
+        case 'error':
+            return t('messages.severityError');
+        default:
+            return t('messages.severityInfo');
     }
 }
 
@@ -629,6 +571,7 @@ async function deleteMessage(message) {
         showAlert(t('messages.deleteFailed'), 'error');
     }
 }
+
 /**
  * Collapse and fade a message before removing it from local state.
  * @param {string} messageID - Server-owned message identifier.
@@ -1034,7 +977,6 @@ function handleAuthChanged(event) {
         setUnreadCount(0);
         closeMessageCenter();
     }
-    updateComposerVisibility();
 }
 
 /**
@@ -1042,368 +984,5 @@ function handleAuthChanged(event) {
  * @returns {void}
  */
 function handleLanguageChanged() {
-    refreshSeveritySelect();
-    syncBroadcastToggleLabel();
     renderMessages();
-}
-
-/**
- * Mount the shared custom-select control used by the notification composer.
- * @returns {void}
- */
-function initializeSeveritySelect() {
-    const host = document.getElementById('message-compose-severity');
-    if (!host || severitySelect) return;
-    severitySelect = makeCustomSelect(severitySelectOptions(), 'info');
-    host.replaceChildren(severitySelect);
-}
-
-/**
- * Build localized options for the severity custom select.
- * @returns {Array<{value: string, label: string}>} Severity options.
- */
-function severitySelectOptions() {
-    return [
-        {value: 'info', label: t('messages.severityInfo')},
-        {value: 'success', label: t('messages.severitySuccess')},
-        {value: 'warning', label: t('messages.severityWarning')},
-        {value: 'error', label: t('messages.severityError')}
-    ];
-}
-
-/**
- * Refresh severity labels after a locale change without losing selection.
- * @returns {void}
- */
-function refreshSeveritySelect() {
-    if (severitySelect) severitySelect.setOptions(severitySelectOptions(), 'info');
-}
-
-/**
- * Mount the shared switch control used for broadcast notifications.
- * @returns {void}
- */
-function initializeBroadcastToggle() {
-    const host = document.getElementById('message-compose-all');
-    if (!host || broadcastToggle) return;
-    broadcastToggle = createToggle(false, handleBroadcastToggleChange);
-    broadcastToggle.classList.add('message-compose-all-control');
-    host.replaceChildren(broadcastToggle);
-    syncBroadcastToggleLabel();
-}
-
-/**
- * Apply a broadcast switch change to the recipient input.
- * @param {boolean} checked - Current switch state.
- * @returns {void}
- */
-function handleBroadcastToggleChange(checked) {
-    if (broadcastToggle && broadcastToggle.checked !== checked) {
-        broadcastToggle.checked = checked;
-    }
-    handleBroadcastChange();
-}
-
-/**
- * Keep the switch's native checkbox label synchronized with the active locale.
- * @returns {void}
- */
-function syncBroadcastToggleLabel() {
-    const input = broadcastToggle?.querySelector('input[type="checkbox"]');
-    if (input) input.setAttribute('aria-label', t('messages.sendAll'));
-}
-
-/**
- * Close the independent composer when manager access is lost.
- * @returns {void}
- */
-function updateComposerVisibility() {
-    if (!cachedIsManager && composerOpen) closeNotificationComposer();
-}
-
-/**
- * Disable explicit recipients while broadcast delivery is selected.
- * @returns {void}
- */
-function handleBroadcastChange() {
-    const recipients = document.getElementById('message-compose-recipients');
-    if (!recipients) return;
-    recipients.disabled = Boolean(broadcastToggle?.checked);
-    if (recipients.disabled) hideRecipientSuggestions();
-}
-
-/**
- * Debounce manager-only recipient prefix searches as the current token changes.
- * @returns {void}
- */
-function handleRecipientInput() {
-    hideRecipientSuggestions();
-    const input = document.getElementById('message-compose-recipients');
-    if (!cachedIsManager || !input || input.disabled || !currentRecipientQuery(input)) return;
-    recipientSuggestionTimer = window.setTimeout(fetchRecipientSuggestions, 160);
-}
-
-/**
- * Resolve the token currently being typed at the input caret.
- * @param {HTMLInputElement} input - Recipient text field.
- * @returns {string} Lowercase username prefix.
- */
-function currentRecipientQuery(input) {
-    const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
-    let start = caret;
-    while (start > 0 && !isRecipientSeparator(input.value[start - 1])) start--;
-    return input.value.slice(start, caret).trim().toLowerCase();
-}
-
-/**
- * Identify separators accepted by the notification recipient parser.
- * @param {string} character - One input character.
- * @returns {boolean} Whether the character separates usernames.
- */
-function isRecipientSeparator(character) {
-    return character === ',' || /\s/u.test(character);
-}
-
-/**
- * Fetch a bounded username prefix page and discard stale responses.
- * @returns {Promise<void>}
- */
-async function fetchRecipientSuggestions() {
-    recipientSuggestionTimer = 0;
-    const input = document.getElementById('message-compose-recipients');
-    const query = input ? currentRecipientQuery(input) : '';
-    if (!cachedIsManager || !input || input.disabled || !query) return;
-    const version = recipientSuggestionVersion;
-    try {
-        const {response, data: payload} = await fetchProto(`/api/messages/admin/users?q=${encodeURIComponent(query)}`, UserSearchResponse);
-        if (!response.ok) throw await localizedResponseError(response, 'messages.loadFailed');
-        if (version !== recipientSuggestionVersion || query !== currentRecipientQuery(input)) return;
-        renderRecipientSuggestions(Array.isArray(payload?.users) ? payload.users : []);
-    } catch (error) {
-        if (version !== recipientSuggestionVersion) return;
-        console.error('Failed to suggest notification recipients', error);
-        hideRecipientSuggestions();
-    }
-}
-
-
-/**
- * Render username suggestions using the application's dropdown item style.
- * @param {Array<string>} users - Suggested usernames.
- * @returns {void}
- */
-function renderRecipientSuggestions(users) {
-    const dropdown = document.getElementById('message-recipient-suggestions');
-    const input = document.getElementById('message-compose-recipients');
-    if (!dropdown || !input) return;
-    recipientSuggestions = [];
-    dropdown.innerHTML = '';
-    for (const rawUser of users) {
-        const username = String(rawUser || '');
-        if (!username) continue;
-        recipientSuggestions.push(username);
-        dropdown.appendChild(el('button', {
-            type: 'button',
-            class: 'custom-select-dropdown-item message-recipient-suggestion',
-            role: 'option',
-            'aria-selected': 'false',
-            'data-recipient-suggestion': username
-        }, el('span', {class: 'custom-select-item-text'}, username)));
-    }
-    activeRecipientSuggestion = -1;
-    const visible = recipientSuggestions.length > 0;
-    dropdown.style.display = visible ? 'block' : 'none';
-    input.setAttribute('aria-expanded', String(visible));
-}
-
-/**
- * Navigate or accept the visible recipient suggestion list from the keyboard.
- * @param {KeyboardEvent} event - Recipient input key event.
- * @returns {void}
- */
-function handleRecipientKeydown(event) {
-    const dropdown = document.getElementById('message-recipient-suggestions');
-    if (!dropdown || dropdown.style.display !== 'block' || recipientSuggestions.length === 0) return;
-    if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setActiveRecipientSuggestion(activeRecipientSuggestion + 1);
-    } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        const previousIndex = activeRecipientSuggestion < 0 ? recipientSuggestions.length - 1 : activeRecipientSuggestion - 1;
-        setActiveRecipientSuggestion(previousIndex);
-    } else if (event.key === 'Enter') {
-        event.preventDefault();
-        const selectedIndex = activeRecipientSuggestion < 0 ? 0 : activeRecipientSuggestion;
-        insertRecipientSuggestion(recipientSuggestions[selectedIndex]);
-    } else if (event.key === 'Escape') {
-        event.preventDefault();
-        hideRecipientSuggestions();
-    }
-}
-
-/**
- * Move the active option with wraparound and keep it visible.
- * @param {number} requestedIndex - Unbounded next option index.
- * @returns {void}
- */
-function setActiveRecipientSuggestion(requestedIndex) {
-    if (recipientSuggestions.length === 0) return;
-    activeRecipientSuggestion = (requestedIndex + recipientSuggestions.length) % recipientSuggestions.length;
-    const items = document.querySelectorAll('[data-recipient-suggestion]');
-    let index = 0;
-    for (const item of items) {
-        const selected = index === activeRecipientSuggestion;
-        item.classList.toggle('is-selected', selected);
-        item.setAttribute('aria-selected', String(selected));
-        if (selected) item.scrollIntoView({block: 'nearest'});
-        index++;
-    }
-}
-
-/**
- * Accept a clicked username suggestion.
- * @param {MouseEvent} event - Suggestion list click event.
- * @returns {void}
- */
-function handleRecipientSuggestionClick(event) {
-    const item = event.target.closest('[data-recipient-suggestion]');
-    if (item) insertRecipientSuggestion(item.dataset.recipientSuggestion || '');
-}
-
-/**
- * Replace only the username token at the caret and retain other recipients.
- * @param {string} username - Selected server-returned username.
- * @returns {void}
- */
-function insertRecipientSuggestion(username) {
-    const input = document.getElementById('message-compose-recipients');
-    if (!input || !username) return;
-    const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
-    let start = caret;
-    let end = caret;
-    while (start > 0 && !isRecipientSeparator(input.value[start - 1])) start--;
-    while (end < input.value.length && !isRecipientSeparator(input.value[end])) end++;
-    const prefix = input.value.slice(0, start).replace(/[\s,]+$/u, '');
-    const suffix = input.value.slice(end).replace(/^[\s,]+/u, '');
-    let value = prefix ? `${prefix}, ${username}` : username;
-    const nextCaret = value.length + 2;
-    value += suffix ? `, ${suffix}` : ', ';
-    input.value = value.slice(0, input.maxLength);
-    input.focus();
-    input.setSelectionRange(Math.min(nextCaret, input.value.length), Math.min(nextCaret, input.value.length));
-    hideRecipientSuggestions();
-}
-
-/**
- * Hide autocomplete when a click lands outside its input and menu.
- * @param {MouseEvent} event - Document click event.
- * @returns {void}
- */
-function handleRecipientDocumentClick(event) {
-    const wrapper = document.querySelector('.message-recipient-input-wrap');
-    if (wrapper && !wrapper.contains(event.target)) hideRecipientSuggestions();
-}
-
-/**
- * Clear pending autocomplete work and reset combobox accessibility state.
- * @returns {void}
- */
-function hideRecipientSuggestions() {
-    if (recipientSuggestionTimer) window.clearTimeout(recipientSuggestionTimer);
-    recipientSuggestionTimer = 0;
-    recipientSuggestionVersion++;
-    recipientSuggestions = [];
-    activeRecipientSuggestion = -1;
-    const dropdown = document.getElementById('message-recipient-suggestions');
-    const input = document.getElementById('message-compose-recipients');
-    if (dropdown) {
-        dropdown.style.display = 'none';
-        dropdown.innerHTML = '';
-    }
-    if (input) input.setAttribute('aria-expanded', 'false');
-}
-
-/**
- * Parse the same comma-or-whitespace recipient syntax accepted by the server.
- * @param {string} value - Raw recipient field value.
- * @returns {Array<string>} Non-empty recipient names.
- */
-function parseRecipientNames(value) {
-    const recipients = [];
-    for (const candidate of value.split(/[\s,]+/u)) {
-        if (candidate) recipients.push(candidate);
-    }
-    return recipients;
-}
-
-/**
- * Apply visible busy and success feedback to the send action.
- * @param {'idle'|'sending'|'success'} state - Current submission state.
- * @returns {void}
- */
-function setNotificationSubmitState(state) {
-    const submit = document.getElementById('message-compose-submit');
-    const cancel = document.getElementById('message-compose-cancel');
-    const close = document.getElementById('message-compose-close');
-    const form = document.getElementById('message-compose-form');
-    const sending = state === 'sending';
-    if (submit) {
-        submit.disabled = sending;
-        submit.classList.toggle('is-sending', sending);
-        submit.classList.toggle('is-success', state === 'success');
-        submit.setAttribute('aria-busy', String(sending));
-    }
-    if (cancel) cancel.disabled = sending;
-    if (close) close.disabled = sending;
-    broadcastToggle?.toggleAttribute('disabled', sending);
-    if (form) form.classList.toggle('is-sent', state === 'success');
-}
-
-/**
- * Finish the success animation before resetting and closing the composer.
- * @returns {void}
- */
-function completeSuccessfulNotification() {
-    notificationCompletionTimer = 0;
-    closeNotificationComposer();
-}
-
-/**
- * Submit a plain-text administrator notification.
- * @param {SubmitEvent} event - Compose form submission.
- * @returns {Promise<void>}
- */
-async function submitNotification(event) {
-    event.preventDefault();
-    if (!cachedIsManager || notificationSending) return;
-    const all = Boolean(broadcastToggle?.checked);
-    const recipientsText = document.getElementById('message-compose-recipients')?.value || '';
-    const recipients = parseRecipientNames(recipientsText);
-    const severity = severitySelect?.getValue() || 'info';
-    const title = document.getElementById('message-compose-title')?.value.trim() || '';
-    const body = document.getElementById('message-compose-body')?.value.trim() || '';
-    if ((!all && recipients.length === 0) || !title || !body) {
-        showAlert(t('messages.invalidNotification'), 'error');
-        return;
-    }
-    notificationSending = true;
-    setNotificationSubmitState('sending');
-    try {
-        const {response, data: payload} = await postProto(
-            '/api/messages/admin',
-            SendNotificationRequest,
-            {all, recipients, severity, title, body},
-            SendNotificationResponse
-        );
-        if (!response.ok) throw await localizedResponseError(response, 'messages.sendFailed');
-        notificationSending = false;
-        setNotificationSubmitState('success');
-        showAlert(t('messages.sent', {count: Number(payload?.sent) || 0}), 'success');
-        notificationCompletionTimer = window.setTimeout(completeSuccessfulNotification, 650);
-    } catch (error) {
-        notificationSending = false;
-        setNotificationSubmitState('idle');
-        console.error('Failed to send notification', error);
-        showAlert(t('messages.sendFailed'), 'error');
-    }
 }

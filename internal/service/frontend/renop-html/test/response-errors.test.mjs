@@ -22,6 +22,7 @@ const userFacingModules = [
     'js/maven-messages.js',
     'js/npm-messages.js',
     'js/messages.js',
+    'js/notification-composer.js',
     'js/profile.js',
     'js/publication-quota.js',
     'js/repositories.js',

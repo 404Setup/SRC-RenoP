@@ -26,7 +26,8 @@ import {loadDirectory} from './browser.js';
 import {loadMavenDomainCenterPage, mavenDomainRouteFromPath, openMavenDomainCenter} from './browser/maven.js';
 import {loadSuperTeamCenterPage, openSuperTeamCenter, superTeamRouteFromPath} from './super-teams.js';
 import {loadReviewCenterPage, openReviewCenter, reviewRouteFromPath} from './reviews.js';
-import {initMessageCenter, openMessageCenter, openNotificationComposer} from './messages.js';
+import {initMessageCenter, openMessageCenter} from './messages.js';
+import {initNotificationComposer, openNotificationComposer} from './notification-composer.js';
 import './cargo-messages.js';
 import './docker-messages.js';
 import './maven-messages.js';
@@ -448,6 +449,7 @@ export function updateCopyrightFooter() {
 async function initializeApplication() {
     initTheme();
     initMessageCenter();
+    initNotificationComposer();
 
     document.querySelectorAll('.snippet-tabs').forEach(enableDragToScroll);
     document.querySelectorAll('.snippet-content').forEach(enableDragToScroll);
