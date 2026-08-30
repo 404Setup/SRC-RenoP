@@ -63,6 +63,7 @@ type limitOverrideRequest struct {
 func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base := router.Group("/super-teams")
 	base.Get("/limits", func(c fiber.Ctx) error { return getOwnLimits(c, state) })
+	base.Get("/eligible", func(c fiber.Ctx) error { return listEligibleTeams(c, state) })
 	base.Get("/users/:username/limits", func(c fiber.Ctx) error { return getUserLimits(c, state) })
 	base.Put("/users/:username/limits", func(c fiber.Ctx) error { return putUserLimits(c, state) })
 	base.Post("/invitations/:id/:decision", func(c fiber.Ctx) error { return respondInvitation(c, state) })
@@ -117,6 +118,8 @@ func apiError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusConflict, "create_limit"
 	case errors.Is(err, core.ErrSuperTeamJoinLimit):
 		status, code = fiber.StatusConflict, "join_limit"
+	case errors.Is(err, core.ErrSuperTeamNotEmpty):
+		status, code = fiber.StatusConflict, "team_not_empty"
 	case errors.Is(err, core.ErrDatabaseUnavailable):
 		status, code = fiber.StatusServiceUnavailable, "service_unavailable"
 	}
@@ -161,6 +164,28 @@ func listTeams(c fiber.Ctx, state *core.AppState) error {
 	return c.JSON(fiber.Map{
 		"teams": teams, "total": total, "limit": limit, "offset": offset, "administrator": user.IsManager(),
 	})
+}
+
+func listEligibleTeams(c fiber.Ctx, state *core.AppState) error {
+	user, err := authenticated(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	limit, offset, err := parsePage(c)
+	if err != nil {
+		return apiError(c, err)
+	}
+	minimumRole, err := strconv.Atoi(c.Query("minimum_role", strconv.Itoa(core.SuperTeamRoleManage)))
+	if err != nil || minimumRole < core.SuperTeamRoleManage || minimumRole > core.SuperTeamRoleOwner {
+		return apiError(c, fiber.ErrBadRequest)
+	}
+	teams, total, err := state.GetDB().ListManageableSuperTeams(
+		user.Username, minimumRole, limit, offset)
+	if err != nil {
+		return apiError(c, err)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"teams": teams, "total": total, "limit": limit, "offset": offset})
 }
 
 func createTeam(c fiber.Ctx, state *core.AppState) error {

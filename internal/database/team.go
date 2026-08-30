@@ -21,18 +21,19 @@ import (
 )
 
 type teamRemovalSpec struct {
-	format           string
-	table            string
-	resourceColumn   string
-	manageLevel      int
-	ownerLevel       int
-	invalidBatch     error
-	invalidName      error
-	resourceNotFound error
-	permissionDenied error
-	ownerCannotLeave error
-	lastOwner        error
-	lock             func(*Tx, string, string) error
+	format              string
+	table               string
+	resourceColumn      string
+	manageLevel         int
+	ownerLevel          int
+	invalidBatch        error
+	invalidName         error
+	resourceNotFound    error
+	permissionDenied    error
+	ownerCannotLeave    error
+	lastOwner           error
+	lock                func(*Tx, string, string) error
+	effectivePermission func(*Tx, string, string, string) (int, bool, error)
 }
 
 func (db *DB) removeTeamMembers(repository, resource, actor string, usernames []string, sanitizeUsername func(string) string, spec *teamRemovalSpec) error {
@@ -80,11 +81,25 @@ func (db *DB) removeTeamMembers(repository, resource, actor string, usernames []
 	predicate := "repository = ? AND " + spec.resourceColumn + " = ?"
 	if actor != "" {
 		var actorLevel int
-		if err := tx.QueryRow("SELECT permission_level FROM "+spec.table+" WHERE "+predicate+" AND user_id = ?",
-			repository, resource, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
-			return spec.permissionDenied
-		} else if err != nil {
-			return fmt.Errorf("inspect %s removal actor: %w", spec.format, err)
+		if spec.effectivePermission != nil {
+			level, member, permissionErr := spec.effectivePermission(tx, repository, resource, actorID)
+			if errors.Is(permissionErr, spec.resourceNotFound) {
+				return spec.resourceNotFound
+			}
+			if permissionErr != nil {
+				return fmt.Errorf("inspect %s effective removal permission: %w", spec.format, permissionErr)
+			}
+			if !member {
+				return spec.permissionDenied
+			}
+			actorLevel = level
+		} else {
+			if err := tx.QueryRow("SELECT permission_level FROM "+spec.table+" WHERE "+predicate+" AND user_id = ?",
+				repository, resource, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
+				return spec.permissionDenied
+			} else if err != nil {
+				return fmt.Errorf("inspect %s removal actor: %w", spec.format, err)
+			}
 		}
 		for _, username := range unique {
 			if username != actor && actorLevel < spec.manageLevel {

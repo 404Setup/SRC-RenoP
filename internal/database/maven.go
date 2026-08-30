@@ -36,6 +36,46 @@ func sanitizeMavenUsername(value string) string {
 	return SanitizeInputString(strings.ToLower(strings.TrimSpace(value)), 255)
 }
 
+const mavenDomainSelectPrefix = `d.repository, d.domain, d.verification_type, d.verification_host,
+	d.verification_code, d.super_team_prefix, d.verified, d.created_at, d.verified_at, d.last_check_at,
+	COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
+	COALESCE(stm.role_level, 0), CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END,`
+
+const mavenDomainSelectSuffix = `,
+	(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
+	(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)`
+
+const mavenDomainSelectColumns = mavenDomainSelectPrefix + `
+	(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain)` + mavenDomainSelectSuffix
+
+const mavenRepositoryDomainSelectColumns = mavenDomainSelectPrefix + `
+	catalog.artifact_count` + mavenDomainSelectSuffix
+
+const mavenGlobalPermissionSQL = `CASE WHEN stm.user_id IS NULL THEN -1
+	WHEN stm.role_level = 1 THEN 0 WHEN stm.role_level = 2 THEN 2 ELSE stm.role_level END`
+
+const mavenEffectivePermissionSQL = `CASE WHEN COALESCE(m.permission_level, -1) >= (` + mavenGlobalPermissionSQL + `)
+	THEN COALESCE(m.permission_level, -1) ELSE (` + mavenGlobalPermissionSQL + `) END`
+
+type mavenDomainScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanMavenDomain(scanner mavenDomainScanner) (*core.MavenDomain, error) {
+	domain := &core.MavenDomain{}
+	var verified, explicitLevel, explicitMember, superRole, superMember int
+	if err := scanner.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
+		&domain.VerificationHost, &domain.VerificationCode, &domain.SuperTeamPrefix, &verified,
+		&domain.CreatedAt, &domain.VerifiedAt, &domain.LastCheckAt, &explicitLevel, &explicitMember,
+		&superRole, &superMember, &domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
+		return nil, err
+	}
+	domain.Verified = verified != 0
+	domain.PermissionLevel, domain.Member = effectiveBoundPermission(
+		explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	return domain, nil
+}
+
 // EnsureMirroredMavenDomain records an unverified namespace discovered through an upstream mirror.
 func (db *DB) EnsureMirroredMavenDomain(domain string, createdAt int64) error {
 	if db == nil || db.SQLDB == nil {
@@ -169,6 +209,11 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	domain.VerificationType = SanitizeInputString(strings.ToLower(strings.TrimSpace(domain.VerificationType)), 16)
 	domain.VerificationHost = SanitizeInputString(strings.ToLower(strings.TrimSpace(domain.VerificationHost)), 253)
 	domain.VerificationCode = SanitizeInputString(strings.TrimSpace(domain.VerificationCode), 128)
+	var bindingErr error
+	domain.SuperTeamPrefix, bindingErr = normalizeOptionalSuperTeamPrefix(domain.SuperTeamPrefix)
+	if bindingErr != nil {
+		return bindingErr
+	}
 	owner = sanitizeMavenUsername(owner)
 	if domain.Domain == "" || domain.VerificationHost == "" || domain.VerificationCode == "" || owner == "" {
 		return errors.New("maven domain is invalid")
@@ -182,6 +227,9 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 		return fmt.Errorf("begin Maven domain creation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := requireSuperTeamRoleTx(tx, domain.SuperTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
+		return err
+	}
 	var existingType string
 	var existingVerified int
 	mirroredReservation := false
@@ -208,9 +256,9 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 	}
 	if mirroredReservation {
 		result, err := tx.Exec(`UPDATE maven_domains SET verification_type = ?, verification_host = ?,
-			verification_code = ?, verified = ?, created_at = ?, verified_at = ?, last_check_at = 0
+			verification_code = ?, super_team_prefix = ?, verified = ?, created_at = ?, verified_at = ?, last_check_at = 0
 			WHERE repository = ? AND domain = ? AND verification_type = ? AND verified = 0`,
-			domain.VerificationType, domain.VerificationHost, domain.VerificationCode, verified,
+			domain.VerificationType, domain.VerificationHost, domain.VerificationCode, domain.SuperTeamPrefix, verified,
 			domain.CreatedAt, domain.VerifiedAt, domain.Repository, domain.Domain, core.MavenVerificationMirror)
 		if err != nil {
 			return fmt.Errorf("claim mirrored Maven domain: %w", err)
@@ -223,9 +271,10 @@ func (db *DB) CreateMavenDomain(domain *core.MavenDomain, owner string) error {
 			return core.ErrMavenDomainExists
 		}
 	} else if _, err := tx.Exec(`INSERT INTO maven_domains
-		(repository, domain, verification_type, verification_host, verification_code, verified, created_at, verified_at, last_check_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`, domain.Repository, domain.Domain,
-		domain.VerificationType, domain.VerificationHost, domain.VerificationCode, verified,
+		(repository, domain, verification_type, verification_host, verification_code, super_team_prefix,
+		verified, created_at, verified_at, last_check_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`, domain.Repository, domain.Domain,
+		domain.VerificationType, domain.VerificationHost, domain.VerificationCode, domain.SuperTeamPrefix, verified,
 		domain.CreatedAt, domain.VerifiedAt); err != nil {
 		return fmt.Errorf("create Maven domain: %w", err)
 	}
@@ -254,36 +303,26 @@ func (db *DB) ListMavenDomains(username string, includeAll bool) ([]*core.MavenD
 			return nil, err
 		}
 	}
-	query := `SELECT d.repository, d.domain, d.verification_type, d.verification_host,
-		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
-		COALESCE(m.permission_level, 0),
-		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain),
-		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
-		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)
+	query := `SELECT ` + mavenDomainSelectColumns + `
 		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
-		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ?`
+		AND m.domain = d.domain AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = d.super_team_prefix AND stm.user_id = ?
+		WHERE d.repository = ?`
 	if !includeAll {
-		query += ` AND (d.verified = 1 OR m.user_id IS NOT NULL)`
+		query += ` AND (d.verified = 1 OR m.user_id IS NOT NULL OR stm.user_id IS NOT NULL)`
 	}
 	query += ` ORDER BY d.domain`
-	rows, err := db.Query(query, userID, globalMavenRepository)
+	rows, err := db.Query(query, userID, userID, globalMavenRepository)
 	if err != nil {
 		return nil, fmt.Errorf("list Maven domains: %w", err)
 	}
 	defer rows.Close()
 	domains := make([]*core.MavenDomain, 0)
 	for rows.Next() {
-		domain := &core.MavenDomain{}
-		var verified, member int
-		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
-			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
-			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member,
-			&domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
-			return nil, fmt.Errorf("scan Maven domain: %w", err)
+		domain, scanErr := scanMavenDomain(rows)
+		if scanErr != nil {
+			return nil, fmt.Errorf("scan Maven domain: %w", scanErr)
 		}
-		domain.Verified = verified != 0
-		domain.Member = member != 0
 		domains = append(domains, domain)
 	}
 	if err := rows.Err(); err != nil {
@@ -315,9 +354,9 @@ func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*c
 		userID = resolved
 	}
 	where := []string{"d.repository = ?"}
-	args := []any{userID, globalMavenRepository}
+	args := []any{userID, userID, globalMavenRepository}
 	if !options.Administrator {
-		where = append(where, "m.user_id IS NOT NULL")
+		where = append(where, "(m.user_id IS NOT NULL OR stm.user_id IS NOT NULL)")
 	}
 	if options.Filtered {
 		filters := make([]string, 0, len(options.PermissionLevels)+2)
@@ -325,7 +364,7 @@ func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*c
 			if level < core.MavenPermissionRead || level > core.MavenPermissionOwner {
 				continue
 			}
-			filters = append(filters, "m.permission_level = ?")
+			filters = append(filters, mavenEffectivePermissionSQL+" = ?")
 			args = append(args, level)
 		}
 		if options.IncludeUnverified {
@@ -341,17 +380,14 @@ func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*c
 		where = append(where, "("+strings.Join(filters, " OR ")+")")
 	}
 	from := ` FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
-		AND m.domain = d.domain AND m.user_id = ? WHERE ` + strings.Join(where, " AND ")
+		AND m.domain = d.domain AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = d.super_team_prefix AND stm.user_id = ?
+		WHERE ` + strings.Join(where, " AND ")
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*)`+from, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count managed Maven domains: %w", err)
 	}
-	query := `SELECT d.repository, d.domain, d.verification_type, d.verification_host,
-		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
-		COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain),
-		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
-		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)` +
+	query := `SELECT ` + mavenDomainSelectColumns +
 		from + ` ORDER BY d.domain LIMIT ? OFFSET ?`
 	pageArgs := append(append([]any(nil), args...), options.Limit, options.Offset)
 	rows, err := db.Query(query, pageArgs...)
@@ -361,16 +397,10 @@ func (db *DB) ListManagedMavenDomains(options core.MavenDomainListOptions) ([]*c
 	defer rows.Close()
 	domains := make([]*core.MavenDomain, 0, min(total, options.Limit))
 	for rows.Next() {
-		domain := &core.MavenDomain{}
-		var verified, member int
-		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
-			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
-			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member,
-			&domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
-			return nil, 0, fmt.Errorf("scan managed Maven domain: %w", err)
+		domain, scanErr := scanMavenDomain(rows)
+		if scanErr != nil {
+			return nil, 0, fmt.Errorf("scan managed Maven domain: %w", scanErr)
 		}
-		domain.Verified = verified != 0
-		domain.Member = member != 0
 		domains = append(domains, domain)
 	}
 	if err := rows.Err(); err != nil {
@@ -397,35 +427,26 @@ func (db *DB) ListMavenRepositoryDomains(repository, username string) ([]*core.M
 			return nil, err
 		}
 	}
-	rows, err := db.Query(`SELECT d.repository, d.domain, d.verification_type, d.verification_host,
-		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
-		COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		catalog.artifact_count,
-		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
-		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)
+	rows, err := db.Query(`SELECT `+mavenRepositoryDomainSelectColumns+`
 		FROM maven_domains d JOIN (
 			SELECT domain, COUNT(*) AS artifact_count FROM maven_artifacts
 			WHERE repository = ? GROUP BY domain
 		) catalog ON catalog.domain = d.domain
 		LEFT JOIN maven_domain_members m ON m.repository = d.repository
 		AND m.domain = d.domain AND m.user_id = ?
-		WHERE d.repository = ? AND d.verified = 1 ORDER BY d.domain`, repository, userID, globalMavenRepository)
+		LEFT JOIN super_team_members stm ON stm.team_prefix = d.super_team_prefix AND stm.user_id = ?
+		WHERE d.repository = ? AND d.verified = 1 ORDER BY d.domain`,
+		repository, userID, userID, globalMavenRepository)
 	if err != nil {
 		return nil, fmt.Errorf("list Maven repository domains: %w", err)
 	}
 	defer rows.Close()
 	domains := make([]*core.MavenDomain, 0)
 	for rows.Next() {
-		domain := &core.MavenDomain{}
-		var verified, member int
-		if err := rows.Scan(&domain.Repository, &domain.Domain, &domain.VerificationType,
-			&domain.VerificationHost, &domain.VerificationCode, &verified, &domain.CreatedAt,
-			&domain.VerifiedAt, &domain.LastCheckAt, &domain.PermissionLevel, &member,
-			&domain.ArtifactCount, &domain.RepositoryCount, &domain.MemberCount); err != nil {
-			return nil, fmt.Errorf("scan Maven repository domain: %w", err)
+		domain, scanErr := scanMavenDomain(rows)
+		if scanErr != nil {
+			return nil, fmt.Errorf("scan Maven repository domain: %w", scanErr)
 		}
-		domain.Verified = verified != 0
-		domain.Member = member != 0
 		domains = append(domains, domain)
 	}
 	if err := rows.Err(); err != nil {
@@ -452,7 +473,7 @@ func (db *DB) SearchMavenRepositoryDomains(repository, query string, limit int) 
 		)`, globalMavenRepository, pattern, repository).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count Maven repository domain search: %w", err)
 	}
-	rows, err := db.Query(`SELECT d.domain, d.verified_at, COUNT(a.artifact_id)
+	rows, err := db.Query(`SELECT d.domain, d.super_team_prefix, d.verified_at, COUNT(a.artifact_id)
 		FROM maven_domains d JOIN maven_artifacts a ON a.domain = d.domain AND a.repository = ?
 		WHERE d.repository = ? AND d.verified = 1 AND LOWER(d.domain) LIKE ?
 		GROUP BY d.domain, d.verified_at ORDER BY d.domain LIMIT ?`, repository, globalMavenRepository, pattern, limit)
@@ -463,7 +484,7 @@ func (db *DB) SearchMavenRepositoryDomains(repository, query string, limit int) 
 	domains := make([]*core.MavenDomain, 0, min(limit, total))
 	for rows.Next() {
 		domain := &core.MavenDomain{Repository: globalMavenRepository, Verified: true}
-		if err := rows.Scan(&domain.Domain, &domain.VerifiedAt, &domain.ArtifactCount); err != nil {
+		if err := rows.Scan(&domain.Domain, &domain.SuperTeamPrefix, &domain.VerifiedAt, &domain.ArtifactCount); err != nil {
 			return nil, 0, fmt.Errorf("scan Maven repository domain search: %w", err)
 		}
 		domains = append(domains, domain)
@@ -489,30 +510,19 @@ func (db *DB) GetMavenDomainDetails(domain, username string) (*core.MavenDomainD
 			return nil, err
 		}
 	}
-	result := &core.MavenDomainDetails{Domain: &core.MavenDomain{}}
-	var verified, member int
-	err := db.QueryRow(`SELECT d.repository, d.domain, d.verification_type, d.verification_host,
-		d.verification_code, d.verified, d.created_at, d.verified_at, d.last_check_at,
-		COALESCE(m.permission_level, 0),
-		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
-		(SELECT COUNT(*) FROM maven_artifacts a WHERE a.domain = d.domain),
-		(SELECT COUNT(DISTINCT a.repository) FROM maven_artifacts a WHERE a.domain = d.domain),
-		(SELECT COUNT(*) FROM maven_domain_members dm WHERE dm.repository = d.repository AND dm.domain = d.domain)
+	result := &core.MavenDomainDetails{}
+	domainRecord, err := scanMavenDomain(db.QueryRow(`SELECT `+mavenDomainSelectColumns+`
 		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
-		AND m.domain = d.domain AND m.user_id = ? WHERE d.repository = ? AND d.domain = ?`,
-		userID, globalMavenRepository, domain).Scan(&result.Domain.Repository, &result.Domain.Domain,
-		&result.Domain.VerificationType, &result.Domain.VerificationHost, &result.Domain.VerificationCode,
-		&verified, &result.Domain.CreatedAt, &result.Domain.VerifiedAt, &result.Domain.LastCheckAt,
-		&result.Domain.PermissionLevel, &member, &result.Domain.ArtifactCount,
-		&result.Domain.RepositoryCount, &result.Domain.MemberCount)
+		AND m.domain = d.domain AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = d.super_team_prefix AND stm.user_id = ?
+		WHERE d.repository = ? AND d.domain = ?`, userID, userID, globalMavenRepository, domain))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrMavenDomainNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("load Maven domain: %w", err)
 	}
-	result.Domain.Verified = verified != 0
-	result.Domain.Member = member != 0
+	result.Domain = domainRecord
 	rows, err := db.Query(`SELECT COALESCE(user_id, ''), username, permission_level, added_at FROM maven_domain_members
 		WHERE repository = ? AND domain = ? ORDER BY permission_level DESC, username`, globalMavenRepository, domain)
 	if err != nil {
@@ -554,14 +564,9 @@ func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrato
 		}
 		defer tx.Rollback()
 		if !administrator {
-			var memberCount int
-			if err := tx.QueryRow(`SELECT COUNT(*) FROM maven_domain_members WHERE repository = ? AND domain = ?
-				AND user_id = ? AND permission_level = ?`, globalMavenRepository, domain, actorID,
-				core.MavenPermissionOwner).Scan(&memberCount); err != nil {
-				return fmt.Errorf("inspect ClickHouse Maven verification owner: %w", err)
-			}
-			if memberCount == 0 {
-				return core.ErrMavenPermissionDenied
+			if err := requireMavenMemberPermission(
+				tx, domain, actorID, core.MavenPermissionOwner); err != nil {
+				return err
 			}
 		}
 		result, err := tx.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
@@ -592,10 +597,13 @@ func (db *DB) ReserveMavenVerificationAttempt(domain, actor string, administrato
 			return core.ErrMavenPermissionDenied
 		}
 		updateResult, err = db.Exec(`UPDATE maven_domains SET last_check_at = ? WHERE repository = ? AND domain = ?
-			AND verified = 0 AND last_check_at <= ? AND EXISTS (
+			AND verified = 0 AND last_check_at <= ? AND (EXISTS (
 				SELECT 1 FROM maven_domain_members m WHERE m.repository = maven_domains.repository
 				AND m.domain = maven_domains.domain AND m.user_id = ? AND m.permission_level = ?
-			)`, checkedAt, globalMavenRepository, domain, minimumPrevious, actorID, core.MavenPermissionOwner)
+			) OR EXISTS (SELECT 1 FROM super_team_members stm
+				WHERE stm.team_prefix = maven_domains.super_team_prefix AND stm.user_id = ? AND stm.role_level = ?
+			))`, checkedAt, globalMavenRepository, domain, minimumPrevious, actorID, core.MavenPermissionOwner,
+			actorID, core.SuperTeamRoleOwner)
 	}
 	if err != nil {
 		return fmt.Errorf("reserve Maven verification attempt: %w", err)
@@ -691,13 +699,25 @@ func (db *DB) HasMavenMembership(username string) (bool, error) {
 		return false, err
 	}
 	var exists int
-	err = db.QueryRow(`SELECT 1 FROM maven_domain_members WHERE repository = ? AND user_id = ? LIMIT 1`,
-		globalMavenRepository, userID).Scan(&exists)
+	err = db.QueryRow(`SELECT 1 FROM maven_domains d
+		LEFT JOIN maven_domain_members m ON m.repository = d.repository AND m.domain = d.domain AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = d.super_team_prefix AND stm.user_id = ?
+		WHERE d.repository = ? AND (m.user_id IS NOT NULL OR stm.user_id IS NOT NULL) LIMIT 1`,
+		userID, userID, globalMavenRepository).Scan(&exists)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false, fmt.Errorf("inspect Maven membership: %w", err)
+	}
+	if err == nil && exists != 0 {
+		return true, nil
+	}
+	err = db.QueryRow(`SELECT 1 FROM maven_artifacts a JOIN super_team_members stm
+		ON stm.team_prefix = a.super_team_prefix AND stm.user_id = ?
+		WHERE a.super_team_prefix != '' LIMIT 1`, userID).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("inspect Maven membership: %w", err)
+		return false, fmt.Errorf("inspect Maven artifact global-team membership: %w", err)
 	}
 	return true, nil
 }
@@ -727,6 +747,13 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 	publisher := sanitizeMavenUsername(version.Publisher)
 	description := SanitizeInputString(strings.TrimSpace(artifact.Description), 4000)
 	readme := sanitizePackageReadme(artifact.Readme)
+	superTeamPrefix, bindingErr := normalizeOptionalSuperTeamPrefix(artifact.SuperTeamPrefix)
+	if bindingErr != nil {
+		return bindingErr
+	}
+	if mirrored {
+		superTeamPrefix = ""
+	}
 	if repository == "" || domain == "" || groupID == "" || artifactID == "" || versionName == "" {
 		return errors.New("maven publication metadata is invalid")
 	}
@@ -748,6 +775,15 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		return fmt.Errorf("begin Maven publication: %w", err)
 	}
 	defer tx.Rollback()
+	if superTeamPrefix != "" {
+		publisherID, identityErr := userIDForUsernameTx(tx, publisher)
+		if identityErr != nil {
+			return core.ErrSuperTeamBindingPermission
+		}
+		if err := requireSuperTeamRoleTx(tx, superTeamPrefix, publisherID, core.SuperTeamRoleManage); err != nil {
+			return err
+		}
+	}
 	if !mirrored {
 		var verified int
 		if err := tx.QueryRow(`SELECT verified FROM maven_domains WHERE repository = ? AND domain = ?`,
@@ -765,9 +801,10 @@ func (db *DB) recordMavenPublication(artifact *core.MavenArtifact, version *core
 		repository, groupID, artifactID).Scan(&latestVersion)
 	if errors.Is(err, sql.ErrNoRows) {
 		if _, err := tx.Exec(`INSERT INTO maven_artifacts
-			(repository, domain, group_id, artifact_id, description, readme, publisher, latest_version, mirrored, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, repository, domain, groupID, artifactID,
-			description, readme, publisher, versionName, mirroredValue, createdAt, updatedAt); err != nil {
+			(repository, domain, group_id, artifact_id, description, readme, publisher, latest_version,
+			super_team_prefix, mirrored, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, repository, domain, groupID, artifactID,
+			description, readme, publisher, versionName, superTeamPrefix, mirroredValue, createdAt, updatedAt); err != nil {
 			return fmt.Errorf("create Maven artifact: %w", err)
 		}
 	} else if err != nil {
@@ -862,7 +899,7 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
-		mirrored, created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id LIMIT ? OFFSET ?`,
+		super_team_prefix, mirrored, created_at, updated_at FROM maven_artifacts`+where+` ORDER BY group_id, artifact_id LIMIT ? OFFSET ?`,
 		append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list Maven artifacts: %w", err)
@@ -874,7 +911,7 @@ func (db *DB) ListMavenArtifacts(repository, domain, query string, limit, offset
 		var mirrored int
 		if err := rows.Scan(&artifact.Repository, &artifact.Domain, &artifact.GroupID, &artifact.ArtifactID,
 			&artifact.Description, &artifact.Publisher, &artifact.LatestVersion, &artifact.VersionCount,
-			&artifact.TotalSize, &mirrored, &artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
+			&artifact.TotalSize, &artifact.SuperTeamPrefix, &mirrored, &artifact.CreatedAt, &artifact.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan Maven artifact: %w", err)
 		}
 		artifact.Mirrored = mirrored != 0
@@ -901,11 +938,12 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id),
 		COALESCE((SELECT SUM(v.size) FROM maven_versions v WHERE v.repository = maven_artifacts.repository
 		AND v.group_id = maven_artifacts.group_id AND v.artifact_id = maven_artifacts.artifact_id), 0),
-		mirrored, created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+		super_team_prefix, mirrored, created_at, updated_at FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
 		repository, groupID, artifactID).Scan(&result.Artifact.Repository, &result.Artifact.Domain,
 		&result.Artifact.GroupID, &result.Artifact.ArtifactID, &result.Artifact.Description,
 		&result.Artifact.Readme, &result.Artifact.Publisher, &result.Artifact.LatestVersion, &result.Artifact.VersionCount,
-		&result.Artifact.TotalSize, &mirrored, &result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
+		&result.Artifact.TotalSize, &result.Artifact.SuperTeamPrefix, &mirrored,
+		&result.Artifact.CreatedAt, &result.Artifact.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, core.ErrMavenArtifactNotFound
 	}
@@ -937,6 +975,45 @@ func (db *DB) GetMavenArtifactDetails(repository, groupID, artifactID string) (*
 		return -utils.CompareVersions(left.Version, right.Version)
 	})
 	return result, nil
+}
+
+// GetMavenArtifactTeamAccess returns effective global-team permission for one bound artifact.
+func (db *DB) GetMavenArtifactTeamAccess(repository, groupID, artifactID, username string) (
+	superTeamPrefix string, member bool, level int, err error,
+) {
+	if db == nil || db.SQLDB == nil {
+		return "", false, 0, core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	groupID = sanitizeMavenDomain(groupID)
+	artifactID = SanitizeInputString(strings.TrimSpace(artifactID), 255)
+	username = sanitizeMavenUsername(username)
+	userID := ""
+	if username != "" && username != "guest" {
+		userID, err = db.userIDForUsername(username)
+		if errors.Is(err, core.ErrUserProfileNotFound) {
+			err = nil
+			userID = ""
+		}
+		if err != nil {
+			return "", false, 0, err
+		}
+	}
+	var role, memberValue int
+	err = db.QueryRow(`SELECT a.super_team_prefix, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+		FROM maven_artifacts a LEFT JOIN super_team_members stm
+		ON stm.team_prefix = a.super_team_prefix AND stm.user_id = ?
+		WHERE a.repository = ? AND a.group_id = ? AND a.artifact_id = ?`,
+		userID, repository, groupID, artifactID).Scan(&superTeamPrefix, &role, &memberValue)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, 0, core.ErrMavenArtifactNotFound
+	}
+	if err != nil {
+		return "", false, 0, fmt.Errorf("inspect Maven artifact global team: %w", err)
+	}
+	level, member = effectiveBoundPermission(0, false, role, memberValue != 0)
+	return superTeamPrefix, member, level, nil
 }
 
 // UpdateMavenArtifactDescription updates the short catalog description.

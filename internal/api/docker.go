@@ -121,8 +121,9 @@ func ListDockerImagesAPI(c fiber.Ctx, state *core.AppState) error {
 }
 
 type createDockerImageRequest struct {
-	Image   string `json:"image"`
-	Private bool   `json:"private"`
+	Image           string `json:"image"`
+	SuperTeamPrefix string `json:"super_team_prefix"`
+	Private         bool   `json:"private"`
 }
 
 // CreateDockerImageAPI handles POST /api/docker/repositories/:repo_name/images.
@@ -154,6 +155,29 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 	if !valid {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid Docker image name")
 	}
+	teamPrefix := strings.ToLower(strings.TrimSpace(request.SuperTeamPrefix))
+	if teamPrefix != "" {
+		var teamPrefixValid bool
+		teamPrefix, teamPrefixValid = core.NormalizeSuperTeamPrefix(teamPrefix)
+		if !teamPrefixValid {
+			return dockerAPIError(c, fiber.StatusBadRequest, "super_team_mismatch", "Invalid global team prefix")
+		}
+	}
+	requiredPrefix, namespaced := core.DockerImageSuperTeamPrefix(imageName)
+	if strings.Contains(imageName, "/") && !namespaced {
+		return dockerAPIError(c, fiber.StatusBadRequest, "super_team_mismatch", "Invalid global team namespace")
+	}
+	if namespaced && teamPrefix == "" {
+		return dockerAPIError(c, fiber.StatusBadRequest, "super_team_required", "Namespaced images require a global team")
+	}
+	if namespaced && teamPrefix != requiredPrefix {
+		return dockerAPIError(c, fiber.StatusBadRequest, "super_team_mismatch", "Image namespace must match the global team")
+	}
+	if teamPrefix != "" && !auth.CurrentCredentialHasScopeTarget(
+		c, core.APITokenScopeTeamManage, "global/"+teamPrefix) {
+		c.Set("X-Renop-Required-Scope", core.APITokenScopeTeamManage)
+		return dockerAPIError(c, fiber.StatusForbidden, "super_team_permission", "API token cannot use this global team")
+	}
 	db := state.GetDB()
 	if db == nil {
 		return c.Status(fiber.StatusServiceUnavailable).SendString("Database unavailable")
@@ -176,15 +200,26 @@ func CreateDockerImageAPI(c fiber.Ctx, state *core.AppState) error {
 			return c.Status(fiber.StatusConflict).SendString("Docker image name is already in use by an upstream mirror")
 		}
 	}
-	image, err := db.CreateDockerImage(repoName, imageName, user.Username, request.Private, time.Now().UnixMilli())
+	image, err := db.CreateDockerImageForTeam(
+		repoName, imageName, user.Username, teamPrefix, request.Private, time.Now().UnixMilli())
 	if errors.Is(err, core.ErrDockerImageExists) {
 		return c.Status(fiber.StatusConflict).SendString("Docker image already exists")
+	}
+	if errors.Is(err, core.ErrSuperTeamBindingRequired) {
+		return dockerAPIError(c, fiber.StatusBadRequest, "super_team_required", err.Error())
+	}
+	if errors.Is(err, core.ErrSuperTeamBindingMismatch) {
+		return dockerAPIError(c, fiber.StatusBadRequest, "super_team_mismatch", err.Error())
+	}
+	if errors.Is(err, core.ErrSuperTeamBindingPermission) {
+		return dockerAPIError(c, fiber.StatusForbidden, "super_team_permission", err.Error())
 	}
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to create Docker image")
 	}
-	logDockerAudit(c, state, audit.ActionDockerImageCreate, fmt.Sprintf("Repository: %s, image: %s, private: %t",
-		repoName, imageName, request.Private))
+	logDockerAudit(c, state, audit.ActionDockerImageCreate,
+		fmt.Sprintf("Repository: %s, image: %s, private: %t, global team: %s",
+			repoName, imageName, request.Private, teamPrefix))
 	return c.Status(fiber.StatusCreated).JSON(image)
 }
 

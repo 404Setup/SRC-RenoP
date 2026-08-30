@@ -34,6 +34,7 @@ type DockerRepositoryImage struct {
 	Private         bool   `json:"private"`
 	PushEnabled     bool   `json:"push_enabled"`
 	Mirrored        bool   `json:"mirrored"`
+	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
 	PermissionLevel int    `json:"permission_level,omitempty"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`

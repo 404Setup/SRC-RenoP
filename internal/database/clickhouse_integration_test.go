@@ -314,3 +314,48 @@ func TestClickHouseNativeDriverContract(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, results, 6)
 }
+
+func TestClickHouseNativeSchemaCopyMigrationPreservesRows(t *testing.T) {
+	baseDSN := os.Getenv("RENOP_TEST_CLICKHOUSE_DSN")
+	if baseDSN == "" {
+		t.Skip("RENOP_TEST_CLICKHOUSE_DSN is not configured")
+	}
+	parsed, err := url.Parse(baseDSN)
+	require.NoError(t, err)
+	adminOptions, err := clickhouse.ParseDSN(baseDSN)
+	require.NoError(t, err)
+	adminOptions.Auth.Database = "default"
+	admin, err := clickhouse.Open(adminOptions)
+	require.NoError(t, err)
+	databaseName := fmt.Sprintf("renop_schema_migration_%d", time.Now().UnixNano())
+	require.NoError(t, admin.Exec(context.Background(), "CREATE DATABASE `"+databaseName+"`"))
+	t.Cleanup(func() {
+		require.NoError(t, admin.Exec(context.Background(), "DROP DATABASE IF EXISTS `"+databaseName+"`"))
+		require.NoError(t, admin.Close())
+	})
+	legacyTable := "`" + databaseName + "`.`docker_images`"
+	require.NoError(t, admin.Exec(context.Background(), `CREATE TABLE `+legacyTable+` (
+		repository String, image_name String, description String DEFAULT '', publisher String DEFAULT '',
+		pull_count Int64 DEFAULT 0, private Int64 DEFAULT 0, push_enabled Int64 DEFAULT 1,
+		created_at Int64, updated_at Int64,
+		_renop_key String MATERIALIZED concat(repository, '/', image_name)
+	) ENGINE = EmbeddedRocksDB PRIMARY KEY _renop_key SETTINGS optimize_for_bulk_insert = 0`))
+	require.NoError(t, admin.Exec(context.Background(), `INSERT INTO `+legacyTable+`
+		(repository, image_name, description, publisher, created_at, updated_at)
+		VALUES ('containers', 'legacy', 'preserved', 'alice', 100, 100)`))
+	parsed.Path = "/" + databaseName
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "clickhouse", Dsn: parsed.String(), MaxOpenConns: 4, MaxIdleConns: 2,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	var description, binding string
+	require.NoError(t, db.QueryRow(`SELECT description, super_team_prefix FROM docker_images
+		WHERE repository = ? AND image_name = ?`, "containers", "legacy").Scan(&description, &binding))
+	assert.Equal(t, "preserved", description)
+	assert.Empty(t, binding)
+	var migrationTables int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM system.tables
+		WHERE database = ? AND startsWith(name, '_renop_schema_')`, databaseName).Scan(&migrationTables))
+	assert.Zero(t, migrationTables)
+}

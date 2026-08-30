@@ -169,6 +169,45 @@ func setupNPMTestApp(t *testing.T) (*fiber.App, *core.AppState, *memoryStore) {
 	return app, state, store
 }
 
+func TestNPMPackageCreationRequiresMatchingGlobalTeamScope(t *testing.T) {
+	_, state, store := setupNPMTestApp(t)
+	db := state.GetDB()
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
+		Prefix: "platform", Name: "Platform", CreatedAt: now,
+	}, "alice", 5, 10))
+	app := fiber.New(fiber.Config{JSONEncoder: json.Marshal, JSONDecoder: json.Unmarshal})
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", &config.User{Username: "alice", Roles: []string{"base", "canupdate:npm"}})
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state, store)
+	create := func(body string) *http.Response {
+		request := httptest.NewRequest(http.MethodPost, "/api/npm/repositories/npm/packages", bytes.NewBufferString(body))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		return response
+	}
+	response := create(`{"name":"@platform/tool","private":true}`)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.Equal(t, "super_team_required", response.Header.Get(npmAPIErrorCodeHeader))
+	require.NoError(t, response.Body.Close())
+	response = create(`{"name":"@platform/tool","super_team_prefix":"other","private":true}`)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.Equal(t, "super_team_mismatch", response.Header.Get(npmAPIErrorCodeHeader))
+	require.NoError(t, response.Body.Close())
+	response = create(`{"name":"@platform/tool","super_team_prefix":"platform","private":true}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	var pkg core.NPMPackage
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&pkg))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, "platform", pkg.SuperTeamPrefix)
+	response = create(`{"name":"standalone"}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+}
+
 func TestNPMRegistryPublishInstallTagsAndDeprecation(t *testing.T) {
 	app, state, store := setupNPMTestApp(t)
 	tarball := npmTestTarball(t, "demo", "1.0.0")

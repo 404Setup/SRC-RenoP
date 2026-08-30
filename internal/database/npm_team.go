@@ -17,18 +17,19 @@ import (
 )
 
 var npmTeamRemovalSpec = &teamRemovalSpec{
-	format:           "npm",
-	table:            "npm_members",
-	resourceColumn:   "package_name",
-	manageLevel:      core.NPMPermissionTeam,
-	ownerLevel:       core.NPMPermissionOwner,
-	invalidBatch:     errors.New("npm member removal batch is invalid"),
-	invalidName:      errors.New("npm member name is invalid"),
-	resourceNotFound: core.ErrNPMPackageNotFound,
-	permissionDenied: core.ErrNPMPermissionDenied,
-	ownerCannotLeave: core.ErrNPMOwnerCannotLeave,
-	lastOwner:        core.ErrNPMLastFullMember,
-	lock:             lockNPMPackage,
+	format:              "npm",
+	table:               "npm_members",
+	resourceColumn:      "package_name",
+	manageLevel:         core.NPMPermissionTeam,
+	ownerLevel:          core.NPMPermissionOwner,
+	invalidBatch:        errors.New("npm member removal batch is invalid"),
+	invalidName:         errors.New("npm member name is invalid"),
+	resourceNotFound:    core.ErrNPMPackageNotFound,
+	permissionDenied:    core.ErrNPMPermissionDenied,
+	ownerCannotLeave:    core.ErrNPMOwnerCannotLeave,
+	lastOwner:           core.ErrNPMLastFullMember,
+	lock:                lockNPMPackage,
+	effectivePermission: npmEffectivePermissionTx,
 }
 
 // ListNPMMembers returns one package team ordered by permission and username.
@@ -146,14 +147,13 @@ func (db *DB) CreateNPMInvitations(invitations []*core.NPMInvitation, messages [
 	if err := lockNPMPackage(tx, first.Repository, first.Package); err != nil {
 		return err
 	}
-	var inviterLevel int
-	if err := tx.QueryRow(`SELECT permission_level FROM npm_members
-		WHERE repository = ? AND package_name = ? AND user_id = ?`,
-		first.Repository, first.Package, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) ||
-		inviterLevel < core.NPMPermissionTeam {
+	inviterLevel, inviterMember, permissionErr := npmEffectivePermissionTx(
+		tx, first.Repository, first.Package, inviterID)
+	if permissionErr != nil {
+		return permissionErr
+	}
+	if !inviterMember || inviterLevel < core.NPMPermissionTeam {
 		return core.ErrNPMPermissionDenied
-	} else if err != nil {
-		return fmt.Errorf("inspect npm inviter permission: %w", err)
 	}
 	for index, invitation := range invitations {
 		message := messages[index]
@@ -255,14 +255,10 @@ func (db *DB) RespondNPMInvitation(id, recipient, repository string, accept bool
 		if identityErr != nil {
 			return core.ErrNPMInvitationInvalid
 		}
-		var inviterLevel int
-		if err := tx.QueryRow(`SELECT permission_level FROM npm_members
-			WHERE repository = ? AND package_name = ? AND user_id = ?`,
-			invitation.Repository, invitation.Package, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) ||
-			inviterLevel < core.NPMPermissionTeam {
+		inviterLevel, inviterMember, permissionErr := npmEffectivePermissionTx(
+			tx, invitation.Repository, invitation.Package, inviterID)
+		if permissionErr != nil || !inviterMember || inviterLevel < core.NPMPermissionTeam {
 			return core.ErrNPMInvitationInvalid
-		} else if err != nil {
-			return fmt.Errorf("validate npm inviter: %w", err)
 		}
 		if invitation.Level == core.NPMPermissionOwner && inviterLevel < core.NPMPermissionOwner {
 			return core.ErrNPMInvitationInvalid
@@ -430,9 +426,9 @@ func (db *DB) SetNPMMemberLevel(repository, packageName, actor, username string,
 	}
 	actorLevel := 0
 	if actor != "" {
-		if err := tx.QueryRow(`SELECT permission_level FROM npm_members WHERE repository = ?
-			AND package_name = ? AND user_id = ?`, repository, packageName, actorID).Scan(&actorLevel); err != nil ||
-			actorLevel < core.NPMPermissionTeam {
+		var actorMember bool
+		actorLevel, actorMember, err = npmEffectivePermissionTx(tx, repository, packageName, actorID)
+		if err != nil || !actorMember || actorLevel < core.NPMPermissionTeam {
 			return core.ErrNPMPermissionDenied
 		}
 	}

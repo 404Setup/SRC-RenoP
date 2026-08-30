@@ -20,6 +20,16 @@ Il doit toujours rester un propriétaire T4. T3 ne peut ni modifier ni accorder 
 toutes les équipes sans les rejoindre, mais l’ajout respecte toujours la limite du compte cible. S’ajouter soi-même ne
 produit pas de message redondant.
 
+## Liaisons de projets et de domaines
+
+GET /api/super-teams/eligible renvoie uniquement les équipes où l’appelant dispose au moins du niveau T3. Une image
+Docker avec une barre oblique doit sélectionner l’équipe correspondant au premier segment. Un paquet npm avec portée
+doit sélectionner l’équipe correspondant à la portée sans `@`. Les noms sans préfixe peuvent rester personnels.
+
+La même liaison s’applique aux crates Cargo, aux artefacts Maven et aux domaines de publication Maven. L’accès effectif
+est le niveau le plus élevé entre l’autorisation explicite et le rôle d’équipe mappé. Les membres ne sont jamais copiés
+dans les tables de membres des paquets. Une équipe liée ne peut être supprimée avant le transfert de toutes ses ressources.
+
 ## Limites
 
 `super_teams.create_limit` et `super_teams.join_limit` valent respectivement cinq et vingt par défaut. Une équipe

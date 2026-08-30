@@ -108,6 +108,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	}); err != nil {
 		return results, err
 	}
+	globalTeamPrefix := "dbcheck-" + suffix
 	if err := run("global teams", func() error {
 		memberUsername := "dbmember-" + suffix
 		if err := db.SaveToken(&core.AccessToken{
@@ -116,7 +117,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return err
 		}
 		team := &core.SuperTeam{
-			Prefix: "dbcheck-" + suffix, Name: "Driver Check Team", Description: "Database contract",
+			Prefix: globalTeamPrefix, Name: "Driver Check Team", Description: "Database contract",
 			CreatedAt: now,
 		}
 		if err := db.CreateSuperTeam(team, username, 5, 20); err != nil {
@@ -177,12 +178,15 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}, username); err != nil {
 			return err
 		}
-		if _, err := db.CreateDockerImage(dockerRepository, "team/demo", username, false, now); err != nil {
+		dockerImage := globalTeamPrefix + "/demo"
+		if _, err := db.CreateDockerImageForTeam(
+			dockerRepository, dockerImage, username, globalTeamPrefix, false, now); err != nil {
 			return err
 		}
 		domain := &core.MavenDomain{
 			Domain: "io.renop." + suffix, VerificationType: core.MavenVerificationDNS,
-			VerificationHost: "example.test", VerificationCode: "driver-check-" + suffix, CreatedAt: now,
+			VerificationHost: "example.test", VerificationCode: "driver-check-" + suffix,
+			SuperTeamPrefix: globalTeamPrefix, CreatedAt: now,
 		}
 		if err := db.CreateMavenDomain(domain, username); err != nil {
 			return err
@@ -192,22 +196,24 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}
 		if err := db.RecordMavenPublication(&core.MavenArtifact{
 			Repository: mavenRepository, Domain: domain.Domain, GroupID: domain.Domain, ArtifactID: "demo",
-			CreatedAt: now, UpdatedAt: now,
+			SuperTeamPrefix: globalTeamPrefix, CreatedAt: now, UpdatedAt: now,
 		}, &core.MavenVersion{
 			Repository: mavenRepository, GroupID: domain.Domain, ArtifactID: "demo", Version: "1.0.0",
 			Publisher: username, CreatedAt: now,
 		}); err != nil {
 			return err
 		}
-		if _, err := db.CreateNPMPackage(npmRepository, "@team/demo", username, true, now); err != nil {
+		npmPackage := "@" + globalTeamPrefix + "/demo"
+		if _, err := db.CreateNPMPackageForTeam(
+			npmRepository, npmPackage, username, globalTeamPrefix, true, now); err != nil {
 			return err
 		}
 		return db.RecordNPMPublication(&core.NPMPackage{
-			Repository: npmRepository, Name: "@team/demo", Description: "Driver check", UpdatedAt: now,
+			Repository: npmRepository, Name: npmPackage, Description: "Driver check", UpdatedAt: now,
 		}, &core.NPMVersion{
-			Repository: npmRepository, Package: "@team/demo", Version: "1.0.0",
-			ManifestJSON: `{"name":"@team/demo","version":"1.0.0"}`, Publisher: username,
-			TarballPath: "@team/demo/-/demo-1.0.0.tgz", CreatedAt: now,
+			Repository: npmRepository, Package: npmPackage, Version: "1.0.0",
+			ManifestJSON: `{"name":"` + npmPackage + `","version":"1.0.0"}`, Publisher: username,
+			TarballPath: npmPackage + "/-/demo-1.0.0.tgz", CreatedAt: now,
 		}, map[string]string{"latest": "1.0.0"}, username)
 	}); err != nil {
 		return results, err
@@ -215,7 +221,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	if err := run("download statistics", func() error {
 		if err := db.BatchIncrementDownloadStatistics([]*core.DownloadStatisticDelta{{
 			Username: username, Repository: dockerRepository, Format: config.RepositoryFormatDocker,
-			Package: "team/demo", Version: "latest", Count: 2, Bytes: 256, UpdatedAt: now,
+			Package: globalTeamPrefix + "/demo", Version: "latest", Count: 2, Bytes: 256, UpdatedAt: now,
 		}}); err != nil {
 			return err
 		}

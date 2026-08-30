@@ -335,6 +335,41 @@ func TestManagedMavenDomainListFiltersAndPaginates(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 }
 
+func TestMavenDomainCreationBindsGlobalTeamPermissions(t *testing.T) {
+	state, currentUser := newMavenRouteState(t)
+	db := state.GetDB()
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
+		Prefix: "platform", Name: "Platform", CreatedAt: now,
+	}, "alice", 5, 10))
+	require.NoError(t, db.ForceAddSuperTeamMembers("platform", "admin", []string{"bob"},
+		core.SuperTeamRoleWrite, 5, 10, now+1))
+	app := fiber.New()
+	app.Use(func(c fiber.Ctx) error {
+		c.Locals("user", currentUser)
+		return c.Next()
+	})
+	SetupRoutes(app.Group("/api"), state)
+	response := mavenRequest(t, app, http.MethodPost, "/api/maven/domains",
+		`{"domain":"com.platform","super_team_prefix":"platform"}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	var created core.MavenDomain
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&created))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, "platform", created.SuperTeamPrefix)
+
+	*currentUser = config.User{Username: "bob", Roles: []string{"base"}}
+	response = mavenRequest(t, app, http.MethodGet, "/api/maven/domains/com.platform", "")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var details core.MavenDomainDetails
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&details))
+	require.NoError(t, response.Body.Close())
+	require.NotNil(t, details.Domain)
+	assert.True(t, details.Domain.Member)
+	assert.Equal(t, core.MavenPermissionVersion, details.Domain.PermissionLevel)
+	assert.Equal(t, "platform", details.Domain.SuperTeamPrefix)
+}
+
 func TestGitHubOAuthPrincipalAutoVerifiesMavenDomain(t *testing.T) {
 	state, currentUser := newMavenRouteState(t)
 	profile, err := state.GetDB().GetUserProfile("alice")

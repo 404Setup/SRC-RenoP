@@ -17,6 +17,7 @@ import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createMetaGrid, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {dockerResponseError} from '../docker-errors.js';
 import {t} from '../i18n.js';
+import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -416,6 +417,7 @@ function openCreateImageDialog(repoName) {
         placeholder: t('docker.imageNamePlaceholder')
     });
     const privateInput = el('input', {type: 'checkbox'});
+    const teamBinding = createSuperTeamBindingField();
     const privateOption = el('label', {class: 'docker-create-private-option'},
         privateInput,
         el('span', {class: 'docker-create-private-copy'},
@@ -432,6 +434,10 @@ function openCreateImageDialog(repoName) {
                 imageInput,
                 el('small', {}, t('docker.imageNameHint'))
             ),
+            el('label', {class: 'docker-create-image-field'},
+                el('span', {}, t('superTeam.projectOwner')), teamBinding.element,
+                el('small', {}, t('superTeam.bindingHint'))
+            ),
             privateOption
         ),
         footer: [
@@ -447,15 +453,16 @@ function openCreateImageDialog(repoName) {
                     const button = event.currentTarget;
                     await runButtonAction(button, async () => {
                         try {
+                            await teamBinding.ready;
                             const response = await apiRequest(`/api/docker/repositories/${encodeURIComponent(repoName)}/images`, {
                                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({image: imageName, private: privateInput.checked})
+                                body: JSON.stringify({image: imageName, private: privateInput.checked,
+                                    super_team_prefix: teamBinding.value()})
                             });
                             if (!response.ok) {
-                                const key = response.status === 409 ? 'docker.imageAlreadyExists' :
-                                    (response.status === 400 ? 'docker.invalidImageName' :
-                                        (response.status === 503 ? 'docker.imageNameCheckFailed' : 'docker.createImageFailed'));
-                                showAlert(t(key), 'error');
+                                showAlert(dockerResponseError(response,
+                                    response.status === 409 ? 'docker.imageAlreadyExists' :
+                                        (response.status === 503 ? 'docker.imageNameCheckFailed' : 'docker.createImageFailed')), 'error');
                                 return;
                             }
                             const image = await response.json();
@@ -685,6 +692,11 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
         if (image.private) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip is-private'},
                 createIcon('ssl', {class: 'icon-svg'}), el('span', {}, t('docker.private'))));
+        }
+        if (image.super_team_prefix) {
+            metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
+                createIcon('identity', {class: 'icon-svg'}),
+                el('span', {}, `${t('superTeam.projectOwner')}: ${image.super_team_prefix}`)));
         }
         if (image.mirrored === true) {
             metaRow.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));

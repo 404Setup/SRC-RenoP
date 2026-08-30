@@ -46,6 +46,7 @@ type NPMPackage struct {
 	Archived        bool   `json:"archived"`
 	Mirrored        bool   `json:"mirrored"`
 	PublishEnabled  bool   `json:"publish_enabled"`
+	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
 	PermissionLevel int    `json:"permission_level,omitempty"`
 	Revision        int64  `json:"-"`
 	CreatedAt       int64  `json:"created_at"`

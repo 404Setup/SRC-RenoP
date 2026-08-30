@@ -339,6 +339,7 @@ func TestRequiredAPITokenScopeMatchesEndpointCapability(t *testing.T) {
 		{http.MethodGet, "/api/statistics/users/alice", core.APITokenScopeStatisticsRead},
 		{http.MethodGet, "/api/statistics/system/repositories", core.APITokenScopeAdminStatistics},
 		{http.MethodGet, "/api/super-teams", core.APITokenScopeTeamManage},
+		{http.MethodGet, "/api/super-teams/eligible", core.APITokenScopeTeamManage},
 		{http.MethodPost, "/api/super-teams", core.APITokenScopeTeamManage},
 		{http.MethodGet, "/api/super-teams/platform", core.APITokenScopeTeamManage},
 		{http.MethodGet, "/api/super-teams/limits", core.APITokenScopeAccountRead},

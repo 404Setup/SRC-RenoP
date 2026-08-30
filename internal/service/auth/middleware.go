@@ -516,6 +516,9 @@ func superTeamAPITokenRequirement(c fiber.Ctx) apiTokenRequirement {
 	if path == "/api/super-teams/limits" {
 		return requireAPITokenScope(APITokenScopeAccountRead)
 	}
+	if path == "/api/super-teams/eligible" {
+		return requireAPITokenScope(APITokenScopeTeamManage)
+	}
 	if strings.HasPrefix(path, "/api/super-teams/users/") {
 		return requireAPITokenScope(APITokenScopeAdminUsers)
 	}

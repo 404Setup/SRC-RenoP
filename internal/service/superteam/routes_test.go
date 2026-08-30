@@ -100,6 +100,22 @@ func TestSuperTeamRoutesLifecycleInvitationAndVisibility(t *testing.T) {
 	decodeSuperTeamResponse(t, response, &created)
 	assert.Equal(t, "platform", created.Prefix)
 	assert.Equal(t, core.SuperTeamRoleOwner, created.RoleLevel)
+	response = superTeamRequest(t, app, http.MethodGet,
+		"/api/super-teams/eligible?minimum_role=3&limit=10&offset=0", "alice", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var eligible struct {
+		Teams []core.SuperTeam `json:"teams"`
+		Total int              `json:"total"`
+	}
+	decodeSuperTeamResponse(t, response, &eligible)
+	require.Len(t, eligible.Teams, 1)
+	assert.Equal(t, 1, eligible.Total)
+	response = superTeamRequest(t, app, http.MethodGet,
+		"/api/super-teams/eligible?minimum_role=3&limit=10&offset=0", "bob", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	decodeSuperTeamResponse(t, response, &eligible)
+	assert.Empty(t, eligible.Teams)
+	assert.Zero(t, eligible.Total)
 
 	response = superTeamRequest(t, app, http.MethodPost, "/api/super-teams", "alice", map[string]any{
 		"prefix": "second", "name": "Second", "description": "",

@@ -37,7 +37,8 @@ const (
 )
 
 type createDomainRequest struct {
-	Domain string `json:"domain"`
+	Domain          string `json:"domain"`
+	SuperTeamPrefix string `json:"super_team_prefix"`
 }
 
 type updateArtifactRequest struct {
@@ -116,6 +117,15 @@ func authenticated(c fiber.Ctx) (*config.User, error) {
 
 func apiError(c fiber.Ctx, err error) error {
 	switch {
+	case errors.Is(err, core.ErrSuperTeamBindingRequired):
+		c.Set("X-Renop-Error-Code", "super_team_required")
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	case errors.Is(err, core.ErrSuperTeamBindingMismatch):
+		c.Set("X-Renop-Error-Code", "super_team_mismatch")
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	case errors.Is(err, core.ErrSuperTeamBindingPermission):
+		c.Set("X-Renop-Error-Code", "super_team_permission")
+		return c.Status(fiber.StatusForbidden).SendString(err.Error())
 	case errors.Is(err, fiber.ErrBadRequest):
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid Maven request")
 	case errors.Is(err, core.ErrUserProfileNotFound):
@@ -324,8 +334,21 @@ func createDomain(c fiber.Ctx, state *core.AppState) error {
 	now := time.Now().UnixMilli()
 	record := &core.MavenDomain{
 		Domain: domain, VerificationType: verificationType,
-		VerificationHost: verificationHost, VerificationCode: code, CreatedAt: now,
+		VerificationHost: verificationHost, VerificationCode: code,
+		SuperTeamPrefix: strings.ToLower(strings.TrimSpace(request.SuperTeamPrefix)), CreatedAt: now,
 		PermissionLevel: core.MavenPermissionOwner, Member: true,
+	}
+	if record.SuperTeamPrefix != "" {
+		var bindingValid bool
+		record.SuperTeamPrefix, bindingValid = core.NormalizeSuperTeamPrefix(record.SuperTeamPrefix)
+		if !bindingValid {
+			return apiError(c, core.ErrSuperTeamBindingMismatch)
+		}
+	}
+	if record.SuperTeamPrefix != "" && !auth.CurrentCredentialHasScopeTarget(
+		c, core.APITokenScopeTeamManage, "global/"+record.SuperTeamPrefix) {
+		c.Set("X-Renop-Required-Scope", core.APITokenScopeTeamManage)
+		return apiError(c, core.ErrSuperTeamBindingPermission)
 	}
 	if verificationType == core.MavenVerificationGitHub {
 		authorized, authErr := state.GetDB().HasRecentGitHubPrincipal(user.Username, verificationHost,
@@ -532,7 +555,8 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 	}
 	user := auth.GetUser(c)
 	if user != nil && !strings.EqualFold(user.Username, "guest") {
-		if domain, authErr := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionRead, true); authErr == nil {
+		if domain, authErr := AuthorizeArtifact(
+			state, user, repo, groupID, artifactID, core.MavenPermissionRead, true); authErr == nil {
 			details.Artifact.PermissionLevel = domain.PermissionLevel
 			details.Administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
 		}
@@ -551,7 +575,8 @@ func updateArtifact(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, err)
 	}
 	groupID, artifactID := strings.TrimSpace(c.Query("group")), strings.TrimSpace(c.Query("artifact"))
-	if _, err := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionVersion, true); err != nil {
+	if _, err := AuthorizeArtifact(
+		state, user, repo, groupID, artifactID, core.MavenPermissionVersion, true); err != nil {
 		return apiError(c, err)
 	}
 	var request updateArtifactRequest
@@ -589,7 +614,8 @@ func deleteVersion(c fiber.Ctx, state *core.AppState) error {
 	if groupID == "" || artifactID == "" || version == "" {
 		return apiError(c, fiber.ErrBadRequest)
 	}
-	if _, err := AuthorizeGroup(state, user, repo, groupID, core.MavenPermissionVersion, true); err != nil {
+	if _, err := AuthorizeArtifact(
+		state, user, repo, groupID, artifactID, core.MavenPermissionVersion, true); err != nil {
 		return apiError(c, err)
 	}
 	if err := storage.RemoveMavenVersion(state, repo.Name, groupID, artifactID, version); err != nil {

@@ -455,6 +455,27 @@
     font-weight: 450;
 }
 
+.super-team-binding-select {
+    display: block;
+    min-width: 0;
+}
+
+.super-team-binding-select .custom-select {
+    width: 100%;
+    min-width: 0;
+}
+
+.super-team-binding-loading {
+    display: flex;
+    align-items: center;
+    min-height: 2.45rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.65rem;
+    color: var(--muted-text);
+    font-size: 0.76rem;
+}
+
 .super-team-description-input {
     min-height: 5.5rem;
     resize: vertical;

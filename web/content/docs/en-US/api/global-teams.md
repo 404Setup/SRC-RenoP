@@ -20,6 +20,16 @@ At least one T4 owner must remain. T3 cannot modify another T3 or T4, and cannot
 administrators can manage every team without joining it, but account membership limits still apply when they add a
 member. Adding the administrator's own account does not generate a redundant message.
 
+## Package and domain bindings
+
+GET /api/super-teams/eligible returns only teams where the caller has at least T3. Docker images whose names contain a
+slash must select the team matching the first path component. Scoped npm packages must select the team matching their
+scope without the leading `@`. Unprefixed Docker images and unscoped npm packages may remain personally owned.
+
+The same binding is available to Cargo crates, Maven artifacts, and Maven publishing domains. Effective access is the
+higher of the explicit package permission and the mapped team role. Team members are never copied into package member
+tables. A bound team cannot be deleted until every project and publishing domain has been transferred or removed.
+
 ## Limits
 
 Global defaults are stored in `super_teams.create_limit` and `super_teams.join_limit`. The defaults are five created

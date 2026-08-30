@@ -20,7 +20,10 @@ import (
 )
 
 const npmPackageColumns = `repository, package_name, description, publisher, latest_version,
-	private, archived, mirrored, publish_enabled, revision, created_at, updated_at`
+	super_team_prefix, private, archived, mirrored, publish_enabled, revision, created_at, updated_at`
+
+const npmPackageColumnsQualified = `p.repository, p.package_name, p.description, p.publisher, p.latest_version,
+	p.super_team_prefix, p.private, p.archived, p.mirrored, p.publish_enabled, p.revision, p.created_at, p.updated_at`
 
 const (
 	maxNPMVersionsPerPackage = 5000
@@ -46,7 +49,7 @@ func scanNPMPackage(scanner npmPackageScanner) (*core.NPMPackage, error) {
 	var privateValue, archived, mirrored, publishEnabled int
 	if err := scanner.Scan(
 		&result.Repository, &result.Name, &result.Description, &result.Publisher, &result.LatestVersion,
-		&privateValue, &archived, &mirrored, &publishEnabled, &result.Revision,
+		&result.SuperTeamPrefix, &privateValue, &archived, &mirrored, &publishEnabled, &result.Revision,
 		&result.CreatedAt, &result.UpdatedAt,
 	); err != nil {
 		return nil, err
@@ -60,11 +63,41 @@ func scanNPMPackage(scanner npmPackageScanner) (*core.NPMPackage, error) {
 
 // CreateNPMPackage reserves a package and assigns its initial L4 owner.
 func (db *DB) CreateNPMPackage(repository, packageName, owner string, private bool, createdAt int64) (*core.NPMPackage, error) {
+	return db.createNPMPackage(repository, packageName, owner, "", private, createdAt, false)
+}
+
+// CreateNPMPackageForTeam reserves a package with an optional global-team binding.
+func (db *DB) CreateNPMPackageForTeam(repository, packageName, owner, superTeamPrefix string,
+	private bool, createdAt int64,
+) (*core.NPMPackage, error) {
+	return db.createNPMPackage(repository, packageName, owner, superTeamPrefix, private, createdAt, true)
+}
+
+func (db *DB) createNPMPackage(repository, packageName, owner, superTeamPrefix string,
+	private bool, createdAt int64, enforceNamespace bool,
+) (*core.NPMPackage, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, packageName = sanitizeNPMKey(repository, packageName)
 	owner = sanitizeNPMUsername(owner)
+	var err error
+	superTeamPrefix, err = normalizeOptionalSuperTeamPrefix(superTeamPrefix)
+	if err != nil {
+		return nil, err
+	}
+	if enforceNamespace {
+		requiredPrefix, scoped := core.NPMPackageSuperTeamPrefix(packageName)
+		if strings.HasPrefix(packageName, "@") && !scoped {
+			return nil, core.ErrSuperTeamBindingMismatch
+		}
+		if scoped && superTeamPrefix == "" {
+			return nil, core.ErrSuperTeamBindingRequired
+		}
+		if scoped && requiredPrefix != superTeamPrefix {
+			return nil, core.ErrSuperTeamBindingMismatch
+		}
+	}
 	if repository == "" || packageName == "" || owner == "" || owner == "guest" || createdAt <= 0 {
 		return nil, core.ErrNPMPermissionDenied
 	}
@@ -77,6 +110,9 @@ func (db *DB) CreateNPMPackage(repository, packageName, owner string, private bo
 		return nil, fmt.Errorf("begin npm package creation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
+		return nil, err
+	}
 	var exists int
 	if err := tx.QueryRow(`SELECT 1 FROM npm_packages WHERE repository = ? AND package_name = ?`,
 		repository, packageName).Scan(&exists); err == nil {
@@ -85,10 +121,10 @@ func (db *DB) CreateNPMPackage(repository, packageName, owner string, private bo
 		return nil, fmt.Errorf("inspect npm package creation: %w", err)
 	}
 	if _, err := tx.Exec(`INSERT INTO npm_packages
-		(repository, package_name, description, publisher, latest_version, private, archived,
+		(repository, package_name, description, publisher, latest_version, super_team_prefix, private, archived,
 		mirrored, publish_enabled, revision, created_at, updated_at)
-		VALUES (?, ?, '', ?, '', ?, 0, 0, 1, 1, ?, ?)`,
-		repository, packageName, owner, boolInt(private), createdAt, createdAt); err != nil {
+		VALUES (?, ?, '', ?, '', ?, ?, 0, 0, 1, 1, ?, ?)`,
+		repository, packageName, owner, superTeamPrefix, boolInt(private), createdAt, createdAt); err != nil {
 		return nil, fmt.Errorf("create npm package: %w", err)
 	}
 	if _, err := tx.Exec(`INSERT INTO npm_members
@@ -101,7 +137,8 @@ func (db *DB) CreateNPMPackage(repository, packageName, owner string, private bo
 	}
 	return &core.NPMPackage{
 		Repository: repository, Name: packageName, Publisher: owner, Private: private,
-		PublishEnabled: true, PermissionLevel: core.NPMPermissionOwner, Revision: 1,
+		SuperTeamPrefix: superTeamPrefix,
+		PublishEnabled:  true, PermissionLevel: core.NPMPermissionOwner, Revision: 1,
 		CreatedAt: createdAt, UpdatedAt: createdAt,
 	}, nil
 }
@@ -156,20 +193,23 @@ func (db *DB) GetNPMPackageAccess(repository, packageName, username string) (
 			return false, false, false, false, 0, err
 		}
 	}
-	var privateValue, publishEnabledValue, memberValue int
+	var privateValue, publishEnabledValue, explicitLevel, explicitMember, superRole, superMember int
 	err = db.QueryRow(`SELECT p.private, p.publish_enabled, COALESCE(m.permission_level, 0),
-		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
 		FROM npm_packages p LEFT JOIN npm_members m ON m.repository = p.repository
 		AND m.package_name = p.package_name AND m.user_id = ?
-		WHERE p.repository = ? AND p.package_name = ?`, userID, repository, packageName).Scan(
-		&privateValue, &publishEnabledValue, &level, &memberValue)
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE p.repository = ? AND p.package_name = ?`, userID, userID, repository, packageName).Scan(
+		&privateValue, &publishEnabledValue, &explicitLevel, &explicitMember, &superRole, &superMember)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, false, false, false, 0, nil
 	}
 	if err != nil {
 		return false, false, false, false, 0, fmt.Errorf("inspect npm package access: %w", err)
 	}
-	return true, privateValue != 0, publishEnabledValue != 0, memberValue != 0, level, nil
+	level, member = effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	return true, privateValue != 0, publishEnabledValue != 0, member, level, nil
 }
 
 // HasNPMMembership reports whether an account belongs to any package in a repository.
@@ -187,8 +227,11 @@ func (db *DB) HasNPMMembership(repository, username string) (bool, error) {
 		return false, err
 	}
 	var exists int
-	err = db.QueryRow(`SELECT 1 FROM npm_members WHERE repository = ? AND user_id = ? LIMIT 1`,
-		repository, userID).Scan(&exists)
+	err = db.QueryRow(`SELECT 1 FROM npm_packages p
+		LEFT JOIN npm_members m ON m.repository = p.repository AND m.package_name = p.package_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE p.repository = ? AND (m.user_id IS NOT NULL OR stm.user_id IS NOT NULL) LIMIT 1`,
+		userID, userID, repository).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -239,23 +282,29 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 	}
 	if !administrator {
 		where += ` AND (p.private = 0 OR EXISTS (SELECT 1 FROM npm_members visible
-			WHERE visible.repository = p.repository AND visible.package_name = p.package_name AND visible.user_id = ?))`
+			WHERE visible.repository = p.repository AND visible.package_name = p.package_name AND visible.user_id = ?)
+			OR EXISTS (SELECT 1 FROM super_team_members visible_team
+			WHERE visible_team.team_prefix = p.super_team_prefix AND visible_team.user_id = ?))`
+		args = append(args, userID)
 		args = append(args, userID)
 	}
 	var total int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM npm_packages p WHERE `+where, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count npm packages: %w", err)
 	}
-	queryArgs := make([]any, 0, len(args)+4)
-	queryArgs = append(queryArgs, userID)
+	queryArgs := make([]any, 0, len(args)+5)
+	queryArgs = append(queryArgs, userID, userID)
 	queryArgs = append(queryArgs, args...)
 	queryArgs = append(queryArgs, search, limit, offset)
-	rows, err := db.Query(`SELECT `+strings.ReplaceAll(npmPackageColumns, "repository", "p.repository")+`,
+	rows, err := db.Query(`SELECT `+npmPackageColumnsQualified+`,
 		(SELECT COUNT(*) FROM npm_versions v WHERE v.repository = p.repository
 			AND v.package_name = p.package_name AND v.unpublished = 0),
-		COALESCE((SELECT permission_level FROM npm_members own WHERE own.repository = p.repository
-			AND own.package_name = p.package_name AND own.user_id = ?), 0)
-		FROM npm_packages p WHERE `+where+`
+		COALESCE(own.permission_level, 0), CASE WHEN own.user_id IS NULL THEN 0 ELSE 1 END,
+		COALESCE(stm.role_level, 0)
+		FROM npm_packages p LEFT JOIN npm_members own ON own.repository = p.repository
+			AND own.package_name = p.package_name AND own.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE `+where+`
 		ORDER BY CASE WHEN p.package_name = ? THEN 0 ELSE 1 END, p.package_name LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list npm packages: %w", err)
@@ -263,11 +312,11 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 	packages := make([]*core.NPMPackage, 0, limit)
 	for rows.Next() {
 		pkg := &core.NPMPackage{}
-		var privateValue, archived, mirrored, publishEnabled int
+		var privateValue, archived, mirrored, publishEnabled, explicitLevel, explicitMember, superRole int
 		if err := rows.Scan(
 			&pkg.Repository, &pkg.Name, &pkg.Description, &pkg.Publisher, &pkg.LatestVersion,
-			&privateValue, &archived, &mirrored, &publishEnabled, &pkg.Revision,
-			&pkg.CreatedAt, &pkg.UpdatedAt, &pkg.VersionCount, &pkg.PermissionLevel,
+			&pkg.SuperTeamPrefix, &privateValue, &archived, &mirrored, &publishEnabled, &pkg.Revision,
+			&pkg.CreatedAt, &pkg.UpdatedAt, &pkg.VersionCount, &explicitLevel, &explicitMember, &superRole,
 		); err != nil {
 			_ = rows.Close()
 			return nil, 0, fmt.Errorf("scan npm package: %w", err)
@@ -276,6 +325,7 @@ func (db *DB) queryNPMPackages(repository, username, search string, administrato
 		pkg.Archived = archived != 0
 		pkg.Mirrored = mirrored != 0
 		pkg.PublishEnabled = publishEnabled != 0
+		pkg.PermissionLevel, _ = effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superRole > 0)
 		packages = append(packages, pkg)
 	}
 	if err := rows.Err(); err != nil {
@@ -354,13 +404,20 @@ func (db *DB) GetNPMPackageDetails(repository, packageName, username string) (*c
 			return nil, identityErr
 		}
 		if userID != "" {
-			permissionErr := db.QueryRow(`SELECT permission_level FROM npm_members
-				WHERE repository = ? AND package_name = ? AND user_id = ?`,
-				pkg.Repository, pkg.Name, userID).Scan(&pkg.PermissionLevel)
-			if permissionErr != nil && !errors.Is(permissionErr, sql.ErrNoRows) {
+			var explicitLevel, explicitMember, superRole, superMember int
+			permissionErr := db.QueryRow(`SELECT COALESCE(m.permission_level, 0),
+				CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+				CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+				FROM npm_packages p LEFT JOIN npm_members m ON m.repository = p.repository
+				AND m.package_name = p.package_name AND m.user_id = ?
+				LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+				WHERE p.repository = ? AND p.package_name = ?`, userID, userID, pkg.Repository, pkg.Name).Scan(
+				&explicitLevel, &explicitMember, &superRole, &superMember)
+			if permissionErr != nil {
 				return nil, fmt.Errorf("get npm package permission: %w", permissionErr)
 			}
-			member = permissionErr == nil
+			pkg.PermissionLevel, member = effectiveBoundPermission(
+				explicitLevel, explicitMember != 0, superRole, superMember != 0)
 		}
 	}
 	versionRows, err := db.Query(`SELECT version, manifest_json, publisher, tarball_path, shasum,
@@ -514,13 +571,12 @@ func (db *DB) RecordNPMPublication(pkg *core.NPMPackage, version *core.NPMVersio
 	if mirrored != 0 || publishEnabled == 0 {
 		return core.ErrNPMPackageMirrored
 	}
-	var level int
-	if err := tx.QueryRow(`SELECT permission_level FROM npm_members
-		WHERE repository = ? AND package_name = ? AND user_id = ?`,
-		repository, packageName, userID).Scan(&level); errors.Is(err, sql.ErrNoRows) || level < core.NPMPermissionPublish {
+	level, member, permissionErr := npmEffectivePermissionTx(tx, repository, packageName, userID)
+	if permissionErr != nil {
+		return permissionErr
+	}
+	if !member || level < core.NPMPermissionPublish {
 		return core.ErrNPMPermissionDenied
-	} else if err != nil {
-		return fmt.Errorf("inspect npm publication permission: %w", err)
 	}
 	var existing int
 	if err := tx.QueryRow(`SELECT 1 FROM npm_versions WHERE repository = ? AND package_name = ? AND version = ?`,
@@ -713,6 +769,26 @@ func (db *DB) UpdateNPMTarballSize(repository, tarballPath string, size int64) e
 	return nil
 }
 
+func npmEffectivePermissionTx(tx *Tx, repository, packageName, userID string) (int, bool, error) {
+	var explicitLevel, explicitMember, superRole, superMember int
+	err := tx.QueryRow(`SELECT COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+		FROM npm_packages p LEFT JOIN npm_members m ON m.repository = p.repository
+		AND m.package_name = p.package_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE p.repository = ? AND p.package_name = ?`, userID, userID, repository, packageName).Scan(
+		&explicitLevel, &explicitMember, &superRole, &superMember)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, false, core.ErrNPMPackageNotFound
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("inspect npm package permission: %w", err)
+	}
+	level, member := effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	return level, member, nil
+}
+
 func requireNPMPermissionTx(tx *Tx, repository, packageName, actor string, required int) error {
 	actor = sanitizeNPMUsername(actor)
 	if actor == "" {
@@ -725,15 +801,15 @@ func requireNPMPermissionTx(tx *Tx, repository, packageName, actor string, requi
 	if err := tx.QueryRow(`SELECT user_id FROM user_profiles WHERE username = ?`, actor).Scan(&userID); err != nil {
 		return core.ErrNPMPermissionDenied
 	}
-	var level int
-	err := tx.QueryRow(`SELECT permission_level FROM npm_members
-		WHERE repository = ? AND package_name = ? AND user_id = ?`,
-		repository, packageName, userID).Scan(&level)
-	if errors.Is(err, sql.ErrNoRows) || level < required {
+	level, member, err := npmEffectivePermissionTx(tx, repository, packageName, userID)
+	if errors.Is(err, core.ErrNPMPackageNotFound) {
 		return core.ErrNPMPermissionDenied
 	}
 	if err != nil {
 		return fmt.Errorf("inspect npm package permission: %w", err)
+	}
+	if !member || level < required {
+		return core.ErrNPMPermissionDenied
 	}
 	return nil
 }

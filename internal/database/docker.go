@@ -21,18 +21,19 @@ import (
 )
 
 var dockerTeamRemovalSpec = &teamRemovalSpec{
-	format:           "Docker",
-	table:            "docker_members",
-	resourceColumn:   "image_name",
-	manageLevel:      core.DockerPermissionTeam,
-	ownerLevel:       core.DockerPermissionOwner,
-	invalidBatch:     errors.New("docker member removal batch is invalid"),
-	invalidName:      errors.New("docker member name is invalid"),
-	resourceNotFound: core.ErrDockerImageNotFound,
-	permissionDenied: core.ErrDockerPermissionDenied,
-	ownerCannotLeave: core.ErrDockerOwnerCannotLeave,
-	lastOwner:        core.ErrDockerLastFullMember,
-	lock:             lockDockerImageTeam,
+	format:              "Docker",
+	table:               "docker_members",
+	resourceColumn:      "image_name",
+	manageLevel:         core.DockerPermissionTeam,
+	ownerLevel:          core.DockerPermissionOwner,
+	invalidBatch:        errors.New("docker member removal batch is invalid"),
+	invalidName:         errors.New("docker member name is invalid"),
+	resourceNotFound:    core.ErrDockerImageNotFound,
+	permissionDenied:    core.ErrDockerPermissionDenied,
+	ownerCannotLeave:    core.ErrDockerOwnerCannotLeave,
+	lastOwner:           core.ErrDockerLastFullMember,
+	lock:                lockDockerImageTeam,
+	effectivePermission: dockerEffectivePermissionTx,
 }
 
 func sanitizeDockerKey(repository, imageName string) (string, string) {
@@ -64,11 +65,41 @@ func boundDockerImageDescription(image *core.DockerRepositoryImage, catalog bool
 
 // CreateDockerImage reserves an empty image and assigns its initial L4 owner.
 func (db *DB) CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*core.DockerRepositoryImage, error) {
+	return db.createDockerImage(repository, imageName, owner, "", private, createdAt, false)
+}
+
+// CreateDockerImageForTeam reserves an image with an optional global-team binding.
+func (db *DB) CreateDockerImageForTeam(repository, imageName, owner, superTeamPrefix string,
+	private bool, createdAt int64,
+) (*core.DockerRepositoryImage, error) {
+	return db.createDockerImage(repository, imageName, owner, superTeamPrefix, private, createdAt, true)
+}
+
+func (db *DB) createDockerImage(repository, imageName, owner, superTeamPrefix string,
+	private bool, createdAt int64, enforceNamespace bool,
+) (*core.DockerRepositoryImage, error) {
 	if db == nil || db.SQLDB == nil {
 		return nil, core.ErrDatabaseUnavailable
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	owner = sanitizeDockerUsername(owner)
+	var err error
+	superTeamPrefix, err = normalizeOptionalSuperTeamPrefix(superTeamPrefix)
+	if err != nil {
+		return nil, err
+	}
+	if enforceNamespace {
+		requiredPrefix, namespaced := core.DockerImageSuperTeamPrefix(imageName)
+		if strings.Contains(imageName, "/") && !namespaced {
+			return nil, core.ErrSuperTeamBindingMismatch
+		}
+		if namespaced && superTeamPrefix == "" {
+			return nil, core.ErrSuperTeamBindingRequired
+		}
+		if namespaced && requiredPrefix != superTeamPrefix {
+			return nil, core.ErrSuperTeamBindingMismatch
+		}
+	}
 	if repository == "" || imageName == "" || owner == "" || owner == "guest" || createdAt <= 0 {
 		return nil, core.ErrDockerInvalidName
 	}
@@ -81,6 +112,9 @@ func (db *DB) CreateDockerImage(repository, imageName, owner string, private boo
 		return nil, fmt.Errorf("begin Docker image creation: %w", err)
 	}
 	defer tx.Rollback()
+	if err := requireSuperTeamRoleTx(tx, superTeamPrefix, ownerID, core.SuperTeamRoleManage); err != nil {
+		return nil, err
+	}
 	var existing int
 	if err := tx.QueryRow(`SELECT 1 FROM docker_images WHERE repository = ? AND image_name = ?`,
 		repository, imageName).Scan(&existing); err == nil {
@@ -93,8 +127,9 @@ func (db *DB) CreateDockerImage(repository, imageName, owner string, private boo
 		privateValue = 1
 	}
 	if _, err := tx.Exec(`INSERT INTO docker_images
-		(repository, image_name, description, publisher, pull_count, private, push_enabled, created_at, updated_at)
-		VALUES (?, ?, '', ?, 0, ?, 1, ?, ?)`, repository, imageName, owner, privateValue, createdAt, createdAt); err != nil {
+		(repository, image_name, description, publisher, pull_count, super_team_prefix, private, push_enabled, created_at, updated_at)
+		VALUES (?, ?, '', ?, 0, ?, ?, 1, ?, ?)`, repository, imageName, owner, superTeamPrefix,
+		privateValue, createdAt, createdAt); err != nil {
 		return nil, fmt.Errorf("create Docker image: %w", err)
 	}
 	if _, err := tx.Exec(`INSERT INTO docker_members
@@ -107,6 +142,7 @@ func (db *DB) CreateDockerImage(repository, imageName, owner string, private boo
 	}
 	return &core.DockerRepositoryImage{
 		Repository: repository, ImageName: imageName, Publisher: owner, Private: private, PushEnabled: true,
+		SuperTeamPrefix: superTeamPrefix,
 		PermissionLevel: core.DockerPermissionOwner, CreatedAt: createdAt, UpdatedAt: createdAt,
 	}, nil
 }
@@ -118,20 +154,34 @@ func (db *DB) GetDockerImageAccess(repository, imageName, username string) (exis
 	}
 	repository, imageName = sanitizeDockerKey(repository, imageName)
 	username = sanitizeDockerUsername(username)
-	var privateValue, pushEnabledValue, memberValue int
+	userID := ""
+	if username != "" && username != "guest" {
+		userID, err = db.userIDForUsername(username)
+		if errors.Is(err, core.ErrUserProfileNotFound) {
+			err = nil
+			userID = ""
+		}
+		if err != nil {
+			return false, false, false, false, 0, err
+		}
+	}
+	var privateValue, pushEnabledValue, explicitLevel, explicitMember, superRole, superMember int
 	err = db.QueryRow(`SELECT i.private, i.push_enabled, COALESCE(m.permission_level, 0),
-		CASE WHEN m.username IS NULL THEN 0 ELSE 1 END
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
 		FROM docker_images i LEFT JOIN docker_members m ON m.repository = i.repository
-		AND m.image_name = i.image_name AND m.username = ?
-		WHERE i.repository = ? AND i.image_name = ?`, username, repository, imageName).Scan(
-		&privateValue, &pushEnabledValue, &level, &memberValue)
+		AND m.image_name = i.image_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = i.super_team_prefix AND stm.user_id = ?
+		WHERE i.repository = ? AND i.image_name = ?`, userID, userID, repository, imageName).Scan(
+		&privateValue, &pushEnabledValue, &explicitLevel, &explicitMember, &superRole, &superMember)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, false, false, false, 0, nil
 	}
 	if err != nil {
 		return false, false, false, false, 0, fmt.Errorf("inspect Docker image access: %w", err)
 	}
-	return true, privateValue != 0, pushEnabledValue != 0, memberValue != 0, level, nil
+	level, member = effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	return true, privateValue != 0, pushEnabledValue != 0, member, level, nil
 }
 
 func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerRepositoryImage, error) {
@@ -142,10 +192,11 @@ func (db *DB) GetDockerImage(repository, imageName string) (*core.DockerReposito
 	img := &core.DockerRepositoryImage{}
 	var privateValue, pushEnabledValue int
 	err := db.QueryRow(
-		`SELECT repository, image_name, SUBSTR(description, 1, 524288), publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ? AND image_name = ?`,
+		`SELECT repository, image_name, SUBSTR(description, 1, 524288), publisher, pull_count, super_team_prefix,
+		private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ? AND image_name = ?`,
 		repository, imageName,
 	).Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount,
-		&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt)
+		&img.SuperTeamPrefix, &privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -245,7 +296,8 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 		limit = 50
 	}
 
-	query := `SELECT repository, image_name, SUBSTR(description, 1, 4000), publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ?`
+	query := `SELECT repository, image_name, SUBSTR(description, 1, 4000), publisher, pull_count,
+		super_team_prefix, private, push_enabled, created_at, updated_at FROM docker_images WHERE repository = ?`
 	args := []any{repository}
 	if last != "" {
 		query += ` AND image_name > ?`
@@ -265,7 +317,7 @@ func (db *DB) ListDockerImages(repository, last string, limit int) ([]*core.Dock
 		img := &core.DockerRepositoryImage{}
 		var privateValue, pushEnabledValue int
 		if err := rows.Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount,
-			&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
+			&img.SuperTeamPrefix, &privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan Docker image: %w", err)
 		}
 		setDockerImageFlags(img, privateValue, pushEnabledValue)
@@ -331,7 +383,8 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 	}
 
 	rows, err := db.Query(
-		`SELECT repository, image_name, SUBSTR(description, 1, 4000), publisher, pull_count, private, push_enabled, created_at, updated_at FROM docker_images WHERE `+where+
+		`SELECT repository, image_name, SUBSTR(description, 1, 4000), publisher, pull_count,
+			super_team_prefix, private, push_enabled, created_at, updated_at FROM docker_images WHERE `+where+
 			` ORDER BY CASE WHEN image_name = ? THEN 0 ELSE 1 END, image_name LIMIT ? OFFSET ?`,
 		repository, pattern, pattern, query, limit, offset,
 	)
@@ -345,7 +398,7 @@ func (db *DB) SearchDockerImages(repository, query string, limit, offset int) ([
 		img := &core.DockerRepositoryImage{}
 		var privateValue, pushEnabledValue int
 		if err := rows.Scan(&img.Repository, &img.ImageName, &img.Description, &img.Publisher, &img.PullCount,
-			&privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
+			&img.SuperTeamPrefix, &privateValue, &pushEnabledValue, &img.CreatedAt, &img.UpdatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan Docker search result: %w", err)
 		}
 		setDockerImageFlags(img, privateValue, pushEnabledValue)
@@ -980,7 +1033,11 @@ func (db *DB) HasDockerMembership(repository, username string) (bool, error) {
 		return false, err
 	}
 	var exists int
-	err = db.QueryRow(`SELECT 1 FROM docker_members WHERE repository = ? AND user_id = ? LIMIT 1`, repository, userID).Scan(&exists)
+	err = db.QueryRow(`SELECT 1 FROM docker_images i
+		LEFT JOIN docker_members m ON m.repository = i.repository AND m.image_name = i.image_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = i.super_team_prefix AND stm.user_id = ?
+		WHERE i.repository = ? AND (m.user_id IS NOT NULL OR stm.user_id IS NOT NULL) LIMIT 1`,
+		userID, userID, repository).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -1006,21 +1063,25 @@ func (db *DB) GetDockerMemberLevel(repository, imageName, username string) (int,
 	if identityErr != nil {
 		return core.DockerPermissionRead, identityErr
 	}
-	var level int
-	err := db.QueryRow(
-		`SELECT permission_level FROM docker_members WHERE repository = ? AND image_name = ? AND user_id = ?`,
-		repository, imageName, userID,
-	).Scan(&level)
+	var publisher string
+	var explicitLevel, explicitMember, superRole, superMember int
+	err := db.QueryRow(`SELECT i.publisher, COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+		FROM docker_images i LEFT JOIN docker_members m ON m.repository = i.repository
+		AND m.image_name = i.image_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = i.super_team_prefix AND stm.user_id = ?
+		WHERE i.repository = ? AND i.image_name = ?`, userID, userID, repository, imageName).Scan(
+		&publisher, &explicitLevel, &explicitMember, &superRole, &superMember)
 	if errors.Is(err, sql.ErrNoRows) {
-		var pub string
-		_ = db.QueryRow(`SELECT publisher FROM docker_images WHERE repository = ? AND image_name = ?`, repository, imageName).Scan(&pub)
-		if pub != "" && pub == username {
-			return core.DockerPermissionFull, nil
-		}
 		return core.DockerPermissionRead, nil
 	}
 	if err != nil {
 		return core.DockerPermissionRead, fmt.Errorf("inspect Docker member level: %w", err)
+	}
+	level, member := effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	if !member && strings.EqualFold(publisher, username) {
+		return core.DockerPermissionFull, nil
 	}
 	return level, nil
 }
@@ -1131,11 +1192,11 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 	if err := lockDockerImageTeam(tx, first.Repository, first.ImageName); err != nil {
 		return err
 	}
-	var inviterLevel int
-	err = tx.QueryRow(`SELECT permission_level FROM docker_members
-		WHERE repository = ? AND image_name = ? AND user_id = ?`,
-		first.Repository, first.ImageName, inviterID).Scan(&inviterLevel)
-	if errors.Is(err, sql.ErrNoRows) {
+	inviterLevel, inviterMember, err := dockerEffectivePermissionTx(tx, first.Repository, first.ImageName, inviterID)
+	if err != nil {
+		return err
+	}
+	if !inviterMember {
 		var pub string
 		var createdAt int64
 		_ = tx.QueryRow(`SELECT publisher, created_at FROM docker_images WHERE repository = ? AND image_name = ?`, first.Repository, first.ImageName).Scan(&pub, &createdAt)
@@ -1151,8 +1212,6 @@ func (db *DB) CreateDockerInvitations(invitations []*core.DockerInvitation, mess
 		} else {
 			return core.ErrDockerPermissionDenied
 		}
-	} else if err != nil {
-		return fmt.Errorf("inspect Docker inviter permission: %w", err)
 	} else if inviterLevel < core.DockerPermissionTeam {
 		return core.ErrDockerPermissionDenied
 	}
@@ -1358,13 +1417,13 @@ func (db *DB) RespondDockerInvitation(id, recipient, repository string, accept b
 		if identityErr != nil {
 			return core.ErrDockerInvitationInvalid
 		}
-		var inviterLevel int
-		if err := tx.QueryRow(`SELECT permission_level FROM docker_members
-			WHERE repository = ? AND image_name = ? AND user_id = ?`,
-			invitation.Repository, invitation.ImageName, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.DockerPermissionTeam {
+		inviterLevel, inviterMember, permissionErr := dockerEffectivePermissionTx(
+			tx, invitation.Repository, invitation.ImageName, inviterID)
+		if permissionErr != nil {
+			return permissionErr
+		}
+		if !inviterMember || inviterLevel < core.DockerPermissionTeam {
 			return core.ErrDockerInvitationInvalid
-		} else if err != nil {
-			return fmt.Errorf("validate Docker inviter: %w", err)
 		}
 		if invitation.Level == core.DockerPermissionOwner && inviterLevel < core.DockerPermissionOwner {
 			return core.ErrDockerInvitationInvalid
@@ -1462,10 +1521,13 @@ func (db *DB) SetDockerMemberLevel(repository, imageName, actor, username string
 		if err := requireDockerMemberPermission(tx, repository, imageName, actorID, core.DockerPermissionTeam); err != nil {
 			return err
 		}
-		if err := tx.QueryRow(`SELECT permission_level FROM docker_members
-			WHERE repository = ? AND image_name = ? AND user_id = ?`,
-			repository, imageName, actorID).Scan(&actorLevel); err != nil {
-			return fmt.Errorf("inspect Docker actor permission: %w", err)
+		var actorMember bool
+		actorLevel, actorMember, err = dockerEffectivePermissionTx(tx, repository, imageName, actorID)
+		if err != nil {
+			return err
+		}
+		if !actorMember {
+			return core.ErrDockerPermissionDenied
 		}
 	}
 	var current int
@@ -1520,21 +1582,38 @@ func (db *DB) RemoveDockerMembers(repository, imageName, actor string, usernames
 	return db.removeTeamMembers(repository, imageName, actor, usernames, sanitizeDockerUsername, dockerTeamRemovalSpec)
 }
 
-func requireDockerMemberPermission(tx *Tx, repository, imageName, userID string, required int) error {
+func dockerEffectivePermissionTx(tx *Tx, repository, imageName, userID string) (int, bool, error) {
 	if tx == nil || userID == "" {
-		return core.ErrDockerPermissionDenied
+		return 0, false, core.ErrDockerPermissionDenied
 	}
-	var level int
-	err := tx.QueryRow(`SELECT permission_level FROM docker_members
-		WHERE repository = ? AND image_name = ? AND user_id = ?`,
-		repository, imageName, userID).Scan(&level)
+	var explicitLevel, explicitMember, superRole, superMember int
+	err := tx.QueryRow(`SELECT COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+		FROM docker_images i LEFT JOIN docker_members m ON m.repository = i.repository
+		AND m.image_name = i.image_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = i.super_team_prefix AND stm.user_id = ?
+		WHERE i.repository = ? AND i.image_name = ?`,
+		userID, userID, repository, imageName).Scan(&explicitLevel, &explicitMember, &superRole, &superMember)
 	if errors.Is(err, sql.ErrNoRows) {
-		return core.ErrDockerPermissionDenied
+		return 0, false, core.ErrDockerImageNotFound
 	}
 	if err != nil {
-		return fmt.Errorf("inspect Docker member permission: %w", err)
+		return 0, false, fmt.Errorf("inspect Docker member permission: %w", err)
 	}
-	if level < required {
+	level, member := effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	return level, member, nil
+}
+
+func requireDockerMemberPermission(tx *Tx, repository, imageName, userID string, required int) error {
+	level, member, err := dockerEffectivePermissionTx(tx, repository, imageName, userID)
+	if err != nil {
+		if errors.Is(err, core.ErrDockerImageNotFound) {
+			return core.ErrDockerPermissionDenied
+		}
+		return err
+	}
+	if !member || level < required {
 		return core.ErrDockerPermissionDenied
 	}
 	return nil

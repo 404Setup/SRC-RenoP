@@ -146,6 +146,7 @@ type StateDB interface {
 	SetSuperTeamLimitOverride(username string, createLimit, joinLimit *int, updatedAt int64) error
 	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error
 	ListSuperTeams(username string, administrator bool, limit, offset int) ([]*SuperTeam, int, error)
+	ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*SuperTeam, int, error)
 	GetSuperTeamDetails(prefix, username string, administrator bool) (*SuperTeamDetails, error)
 	UpdateSuperTeam(prefix, actor, name, description string, administrator bool, updatedAt int64) error
 	DeleteSuperTeam(prefix, actor string, administrator bool, actedAt int64) error
@@ -169,6 +170,7 @@ type StateDB interface {
 	RecordMavenMirrorPublication(artifact *MavenArtifact, version *MavenVersion) error
 	ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*MavenArtifact, int, error)
 	GetMavenArtifactDetails(repository, groupID, artifactID string) (*MavenArtifactDetails, error)
+	GetMavenArtifactTeamAccess(repository, groupID, artifactID, username string) (string, bool, int, error)
 	UpdateMavenArtifactDescription(repository, groupID, artifactID, description string) error
 	UpdateMavenArtifactReadme(repository, groupID, artifactID, readme string) error
 	DeleteMavenVersionMetadata(repository, groupID, artifactID, version string) error
@@ -201,6 +203,7 @@ type StateDB interface {
 	RemoveCargoMembers(repository, normalizedName, actor string, usernames []string) error
 	ForceAddCargoMembers(repository, normalizedName, crateName, actor string, usernames []string, level int) error
 	CreateNPMPackage(repository, packageName, owner string, private bool, createdAt int64) (*NPMPackage, error)
+	CreateNPMPackageForTeam(repository, packageName, owner, superTeamPrefix string, private bool, createdAt int64) (*NPMPackage, error)
 	GetNPMPackage(repository, packageName string) (*NPMPackage, error)
 	GetNPMPackageAccess(repository, packageName, username string) (exists, private, publishEnabled, member bool, level int, err error)
 	GetNPMPackageDetails(repository, packageName, username string) (*NPMPackageDetails, error)
@@ -229,6 +232,7 @@ type StateDB interface {
 	RemoveNPMMembers(repository, packageName, actor string, usernames []string) error
 	GetDockerImage(repository, imageName string) (*DockerRepositoryImage, error)
 	CreateDockerImage(repository, imageName, owner string, private bool, createdAt int64) (*DockerRepositoryImage, error)
+	CreateDockerImageForTeam(repository, imageName, owner, superTeamPrefix string, private bool, createdAt int64) (*DockerRepositoryImage, error)
 	GetDockerImageAccess(repository, imageName, username string) (exists, private, pushEnabled, member bool, level int, err error)
 	UpdateDockerImageDescription(repository, imageName, description string) error
 	ListDockerImages(repository, last string, limit int) ([]*DockerRepositoryImage, error)

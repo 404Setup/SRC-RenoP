@@ -23,26 +23,53 @@ import (
 )
 
 const cargoPackageColumns = `repository, normalized_name, package_name, description,
-	repository_url, homepage, documentation,
+	repository_url, homepage, documentation, super_team_prefix,
 	archived, admin_archived, mirrored, created_at, updated_at`
 
 var cargoTeamRemovalSpec = &teamRemovalSpec{
-	format:           "Cargo",
-	table:            "cargo_members",
-	resourceColumn:   "normalized_name",
-	manageLevel:      core.CargoPermissionManage,
-	ownerLevel:       core.CargoPermissionOwner,
-	invalidBatch:     errors.New("cargo member removal batch is invalid"),
-	invalidName:      errors.New("cargo member name is invalid"),
-	resourceNotFound: core.ErrCargoPackageNotFound,
-	permissionDenied: core.ErrCargoPermissionDenied,
-	ownerCannotLeave: core.ErrCargoOwnerCannotLeave,
-	lastOwner:        core.ErrCargoLastFullMember,
-	lock:             lockCargoPackageTeam,
+	format:              "Cargo",
+	table:               "cargo_members",
+	resourceColumn:      "normalized_name",
+	manageLevel:         core.CargoPermissionManage,
+	ownerLevel:          core.CargoPermissionOwner,
+	invalidBatch:        errors.New("cargo member removal batch is invalid"),
+	invalidName:         errors.New("cargo member name is invalid"),
+	resourceNotFound:    core.ErrCargoPackageNotFound,
+	permissionDenied:    core.ErrCargoPermissionDenied,
+	ownerCannotLeave:    core.ErrCargoOwnerCannotLeave,
+	lastOwner:           core.ErrCargoLastFullMember,
+	lock:                lockCargoPackageTeam,
+	effectivePermission: cargoEffectivePermissionTx,
 }
 
 type cargoPackageScanner interface {
 	Scan(dest ...any) error
+}
+
+func cargoEffectivePermission(queryRow func(string, ...any) row, repository, normalizedName, userID string) (
+	int, bool, error,
+) {
+	var explicitLevel, explicitMember, superRole, superMember int
+	err := queryRow(`SELECT COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+		FROM cargo_packages p LEFT JOIN cargo_members m ON m.repository = p.repository
+		AND m.normalized_name = p.normalized_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE p.repository = ? AND p.normalized_name = ?`, userID, userID, repository, normalizedName).Scan(
+		&explicitLevel, &explicitMember, &superRole, &superMember)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, false, core.ErrCargoPackageNotFound
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("inspect Cargo package permission: %w", err)
+	}
+	level, member := effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	return level, member, nil
+}
+
+func cargoEffectivePermissionTx(tx *Tx, repository, normalizedName, userID string) (int, bool, error) {
+	return cargoEffectivePermission(tx.QueryRow, repository, normalizedName, userID)
 }
 
 func scanCargoPackage(scanner cargoPackageScanner, includeReadme bool) (*core.CargoPackage, error) {
@@ -50,7 +77,7 @@ func scanCargoPackage(scanner cargoPackageScanner, includeReadme bool) (*core.Ca
 	var archived, adminArchived, mirrored int
 	destinations := []any{
 		&result.Repository, &result.NormalizedName, &result.Name, &result.Description,
-		&result.RepositoryURL, &result.Homepage, &result.Documentation,
+		&result.RepositoryURL, &result.Homepage, &result.Documentation, &result.SuperTeamPrefix,
 		&archived, &adminArchived, &mirrored, &result.CreatedAt, &result.UpdatedAt,
 	}
 	if includeReadme {
@@ -104,11 +131,13 @@ func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string
 		if identityErr != nil && !errors.Is(identityErr, core.ErrUserProfileNotFound) {
 			return nil, identityErr
 		}
-		err := db.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-			pkg.Repository, pkg.NormalizedName, userID).Scan(&pkg.PermissionLevel)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("get Cargo package permission: %w", err)
+		if userID != "" {
+			level, _, permissionErr := cargoEffectivePermission(
+				db.QueryRow, pkg.Repository, pkg.NormalizedName, userID)
+			if permissionErr != nil {
+				return nil, permissionErr
+			}
+			pkg.PermissionLevel = level
 		}
 	}
 
@@ -182,15 +211,19 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 		return nil, identityErr
 	}
 	query := `SELECT p.repository, p.normalized_name, p.package_name, p.description,
-		p.repository_url, p.homepage, p.documentation,
-		p.archived, p.admin_archived, p.mirrored, p.created_at, p.updated_at, COALESCE(m.permission_level, 0)
+		p.repository_url, p.homepage, p.documentation, p.super_team_prefix,
+		p.archived, p.admin_archived, p.mirrored, p.created_at, p.updated_at,
+		COALESCE(m.permission_level, 0), CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END,
+		COALESCE(stm.role_level, 0)
 		FROM cargo_packages p LEFT JOIN cargo_members m ON m.repository = p.repository
-		AND m.normalized_name = p.normalized_name AND m.user_id = ? WHERE p.repository = ?`
+		AND m.normalized_name = p.normalized_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE p.repository = ?`
 	if !administrator {
-		query += ` AND m.username IS NOT NULL`
+		query += ` AND (m.user_id IS NOT NULL OR stm.user_id IS NOT NULL)`
 	}
 	query += ` ORDER BY p.normalized_name`
-	rows, err := db.Query(query, userID, repository)
+	rows, err := db.Query(query, userID, userID, repository)
 	if err != nil {
 		return nil, fmt.Errorf("list Cargo packages: %w", err)
 	}
@@ -198,17 +231,19 @@ func (db *DB) ListCargoPackages(repository, username string, administrator bool)
 	packages := make([]*core.CargoPackage, 0)
 	for rows.Next() {
 		pkg := &core.CargoPackage{}
-		var archived, adminArchived, mirrored int
+		var archived, adminArchived, mirrored, explicitLevel, explicitMember, superRole int
 		if err := rows.Scan(
 			&pkg.Repository, &pkg.NormalizedName, &pkg.Name, &pkg.Description,
-			&pkg.RepositoryURL, &pkg.Homepage, &pkg.Documentation,
-			&archived, &adminArchived, &mirrored, &pkg.CreatedAt, &pkg.UpdatedAt, &pkg.PermissionLevel,
+			&pkg.RepositoryURL, &pkg.Homepage, &pkg.Documentation, &pkg.SuperTeamPrefix,
+			&archived, &adminArchived, &mirrored, &pkg.CreatedAt, &pkg.UpdatedAt,
+			&explicitLevel, &explicitMember, &superRole,
 		); err != nil {
 			return nil, fmt.Errorf("scan Cargo package list: %w", err)
 		}
 		pkg.Archived = archived != 0
 		pkg.AdminArchived = adminArchived != 0
 		pkg.Mirrored = mirrored != 0
+		pkg.PermissionLevel, _ = effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superRole > 0)
 		packages = append(packages, pkg)
 	}
 	if err := rows.Err(); err != nil {
@@ -314,8 +349,11 @@ func (db *DB) HasCargoMembership(repository, username string) (bool, error) {
 		return false, err
 	}
 	var exists int
-	err = db.QueryRow(`SELECT 1 FROM cargo_members WHERE repository = ? AND user_id = ? LIMIT 1`,
-		repository, userID).Scan(&exists)
+	err = db.QueryRow(`SELECT 1 FROM cargo_packages p
+		LEFT JOIN cargo_members m ON m.repository = p.repository AND m.normalized_name = p.normalized_name AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = p.super_team_prefix AND stm.user_id = ?
+		WHERE p.repository = ? AND (m.user_id IS NOT NULL OR stm.user_id IS NOT NULL) LIMIT 1`,
+		userID, userID, repository).Scan(&exists)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -386,13 +424,13 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 		if storedName != packageName {
 			return errors.New("cargo crate name collides with an existing package")
 		}
-		var level int
-		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-			repository, normalizedName, userID).Scan(&level); errors.Is(err, sql.ErrNoRows) || level < core.CargoPermissionPublish {
+		level, member, permissionErr := cargoEffectivePermission(
+			tx.QueryRow, repository, normalizedName, userID)
+		if permissionErr != nil {
+			return permissionErr
+		}
+		if !member || level < core.CargoPermissionPublish {
 			return core.ErrCargoPermissionDenied
-		} else if err != nil {
-			return fmt.Errorf("inspect Cargo package permission: %w", err)
 		}
 	}
 
@@ -784,13 +822,13 @@ func (db *DB) CreateCargoInvitations(invitations []*core.CargoInvitation, messag
 	if err := lockCargoPackageTeam(tx, first.Repository, first.NormalizedName); err != nil {
 		return err
 	}
-	var inviterLevel int
-	if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-		WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-		first.Repository, first.NormalizedName, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
+	inviterLevel, inviterMember, permissionErr := cargoEffectivePermissionTx(
+		tx, first.Repository, first.NormalizedName, inviterID)
+	if permissionErr != nil {
+		return permissionErr
+	}
+	if !inviterMember || inviterLevel < core.CargoPermissionManage {
 		return core.ErrCargoPermissionDenied
-	} else if err != nil {
-		return fmt.Errorf("inspect Cargo inviter permission: %w", err)
 	}
 	for i, invitation := range invitations {
 		message := messages[i]
@@ -986,13 +1024,10 @@ func (db *DB) RespondCargoInvitation(id, recipient, repository string, accept bo
 		if identityErr != nil {
 			return core.ErrCargoInvitationInvalid
 		}
-		var inviterLevel int
-		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-			invitation.Repository, invitation.NormalizedName, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.CargoPermissionManage {
+		inviterLevel, inviterMember, permissionErr := cargoEffectivePermissionTx(
+			tx, invitation.Repository, invitation.NormalizedName, inviterID)
+		if permissionErr != nil || !inviterMember || inviterLevel < core.CargoPermissionManage {
 			return core.ErrCargoInvitationInvalid
-		} else if err != nil {
-			return fmt.Errorf("validate Cargo inviter: %w", err)
 		}
 		if invitation.Level == core.CargoPermissionOwner && inviterLevel < core.CargoPermissionOwner {
 			return core.ErrCargoInvitationInvalid
@@ -1084,10 +1119,10 @@ func (db *DB) SetCargoMemberLevel(repository, normalizedName, actor, username st
 		if err := requireCargoMemberPermission(tx, repository, normalizedName, actorID, core.CargoPermissionManage); err != nil {
 			return err
 		}
-		if err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-			WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-			repository, normalizedName, actorID).Scan(&actorLevel); err != nil {
-			return fmt.Errorf("inspect Cargo actor permission: %w", err)
+		var actorMember bool
+		actorLevel, actorMember, err = cargoEffectivePermissionTx(tx, repository, normalizedName, actorID)
+		if err != nil || !actorMember {
+			return core.ErrCargoPermissionDenied
 		}
 	}
 	var current int
@@ -1142,15 +1177,15 @@ func requireCargoMemberPermission(tx *Tx, repository, normalizedName, userID str
 	if tx == nil || userID == "" {
 		return core.ErrCargoPermissionDenied
 	}
-	var level int
-	err := tx.QueryRow(`SELECT permission_level FROM cargo_members
-		WHERE repository = ? AND normalized_name = ? AND user_id = ?`,
-		repository, normalizedName, userID).Scan(&level)
-	if errors.Is(err, sql.ErrNoRows) || level < required {
+	level, member, err := cargoEffectivePermissionTx(tx, repository, normalizedName, userID)
+	if errors.Is(err, core.ErrCargoPackageNotFound) {
 		return core.ErrCargoPermissionDenied
 	}
 	if err != nil {
 		return fmt.Errorf("inspect Cargo member permission: %w", err)
+	}
+	if !member || level < required {
+		return core.ErrCargoPermissionDenied
 	}
 	return nil
 }

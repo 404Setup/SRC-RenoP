@@ -16,7 +16,8 @@
   as a raw RFC 7932 Brotli stream with `github.com/molecule-man/go-brrr`.
 - **`cmd/renop-dbtest/`**: Standalone destructive-on-isolated-data driver contract CLI. It requires
   `-confirm-isolated` and exercises account/session persistence, rollback, message deduplication, Cargo/Docker/Maven/npm
-  catalogs, global-team invitation/role mutations, and download statistics through the same database API used by the server.
+  catalogs, global-team invitation/role mutations, cross-engine team bindings, and download statistics through the same
+  database API used by the server.
 - **`scripts/build-target.ps1` & `scripts/compress-target.ps1`**: Isolated release workers coordinated by `build.ps1`.
   Up to four compilations run independently from up to eight Brotli packaging tasks; a completed compilation releases
   its build slot immediately and queues compression without delaying the next architecture. The parent preserves
@@ -28,7 +29,10 @@
   ClickHouse via `clickhouse.Open` from `clickhouse-go/v2`). ClickHouse uses mutable `EmbeddedRocksDB` tables with
   materialized collision-free composite keys, synchronous mutations, portable scan conversion, and a serialized
   row-level snapshot journal that restores interrupted multi-statement transactions at startup; it never uses
-  `clickhouse.OpenDB` or the `database/sql` compatibility API. Connection handling, transaction recovery, portable SQL
+  `clickhouse.OpenDB` or the `database/sql` compatibility API. Because `EmbeddedRocksDB` cannot add columns in place,
+  startup schema additions use a restart-recoverable server-side `INSERT SELECT` copy, row-count verification, atomic
+  table rename, and removable backup instead of buffering rows in RenoP. Connection handling, transaction recovery,
+  portable SQL
   parsing, scan conversion, schema declarations, and dialect translation remain isolated in focused `clickhouse*.go`
   modules. Bounded sharded read-through caches use randomized zero-allocation key hashing and coalesce concurrent
   token, session, and immutable-user lookup misses;
@@ -44,7 +48,9 @@
   when the optional `latest` dist-tag is absent, including automatic repair of older empty summary rows.
   Engine-independent global teams reserve an immutable prefix, store T1-T4 memberships and invitations exclusively by
   immutable user ID, preserve creator display after account deletion, and enforce global or per-account creation and
-  membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse.
+  membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. Cargo crates, Docker images, npm packages,
+  Maven artifacts, and Maven publishing domains use one optional indexed `super_team_prefix`; effective authorization
+  takes the higher of an explicit package permission and the live T1-T4 mapping without copying team members.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -82,12 +88,15 @@
   management. Client pushes cannot create images implicitly; administrators reserve public or private images through
   the frontend first. Local reservations are unique and cannot claim names exposed by an enabled upstream mirror;
   mirror-discovered images remain permanently pull-only. Image README content is editable by package managers and
-  bounded to 512 KiB at both the HTTP and database boundaries.
+  bounded to 512 KiB at both the HTTP and database boundaries. Local names containing `/` require a matching global
+  team prefix and T3/T4 membership at reservation time; unprefixed images may remain personally owned.
 - **`internal/service/npm/`**: npm-compatible per-repository registry with explicitly reserved public or scoped-private
   packages, immutable semantic versions, validated streaming tarball publication, dist-tags, deprecation/unpublish
   workflows, L0-L4 package teams, upstream packument/tarball mirrors, and full/abbreviated metadata negotiation.
   URL-encoded scoped metadata routes are decoded by the npm protocol before shared file-path sanitization. Mirrored
-  packages remain pull-only, while local publication requires both repository and package permission.
+  packages remain pull-only, while local publication requires both repository and package permission. Scoped local
+  packages require a matching global team prefix and T3/T4 membership at reservation time; unscoped packages may
+  remain personally owned.
 - **`internal/service/proxy/` & `internal/service/outboundproxy/`**: Outbound HTTP/HTTPS/SOCKS5 proxy management with
   client connection pooling and per-mirror routing.
 - **`internal/service/repositorygate/`**: Bounded striped read/write gates that serialize repository engine and storage
@@ -191,7 +200,9 @@
   The routed `/account/teams` center owns global-team pagination, immutable-prefix creation, responsive T1-T4 member
   controls, shared username suggestions, invitation actions, and embedded profile usage limits. System settings load
   global team defaults through a separate JSON domain without expanding the protobuf settings schema; all 12 frontend
-  locales include global-team UI, message, error, and audit text.
+  locales include global-team UI, message, error, and audit text. A shared T3+ selector binds Docker/npm creation and
+  Maven-domain creation to eligible teams; namespace validation and API-token `global/<prefix>` targets are rechecked
+  server-side before the transactional reservation.
   Maven artifact versions, npm package versions, and Docker image tags use `@renop/ui/pagination` for bounded
   previous/next pages, responsive summaries, height-morphed page changes, and page clamping after deletions; the
   shared pager intentionally avoids dense numbered-button rows on mobile.

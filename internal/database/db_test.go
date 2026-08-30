@@ -77,17 +77,20 @@ func TestSQLiteMigrationsAddPackageReadmeColumns(t *testing.T) {
 	for _, table := range []string{"cargo_packages", "maven_artifacts"} {
 		rows, queryErr := db.Query("PRAGMA table_info(" + table + ")")
 		require.NoError(t, queryErr)
-		found := false
+		foundReadme := false
+		foundBinding := false
 		for rows.Next() {
 			var position, notNull, primaryKey int
 			var name, columnType string
 			var defaultValue any
 			require.NoError(t, rows.Scan(&position, &name, &columnType, &notNull, &defaultValue, &primaryKey))
-			found = found || name == "readme"
+			foundReadme = foundReadme || name == "readme"
+			foundBinding = foundBinding || name == "super_team_prefix"
 		}
 		require.NoError(t, rows.Err())
 		require.NoError(t, rows.Close())
-		assert.Truef(t, found, "%s.readme migration was not applied", table)
+		assert.Truef(t, foundReadme, "%s.readme migration was not applied", table)
+		assert.Truef(t, foundBinding, "%s.super_team_prefix migration was not applied", table)
 	}
 }
 

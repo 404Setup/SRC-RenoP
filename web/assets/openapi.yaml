@@ -1509,6 +1509,10 @@ components:
         verification_code:
           type: string
           description: Present only for L3/L4 members and administrators.
+        super_team_prefix:
+          type: string
+          maxLength: 64
+          description: Optional global team whose mapped role participates in domain authorization.
         verified:
           type: boolean
         created_at:
@@ -1581,6 +1585,10 @@ components:
           type: string
         artifact_id:
           type: string
+        super_team_prefix:
+          type: string
+          maxLength: 64
+          description: Optional global-team project owner. Mapped members are not repeated in package member lists.
         description:
           type: string
           maxLength: 4000
@@ -1873,6 +1881,10 @@ components:
           type: string
           maxLength: 255
           example: team/service
+        super_team_prefix:
+          type: string
+          maxLength: 64
+          description: Optional global-team project owner. Namespaced images must match this prefix.
         description:
           type: string
           maxLength: 524288
@@ -1889,7 +1901,7 @@ components:
           format: int64
         private:
           type: boolean
-          description: Private images require an explicit L0-L4 image membership or administrator access.
+          description: Private images require an explicit L0-L4 member, a mapped global-team member, or administrator access.
         push_enabled:
           type: boolean
           description: False for mirror-discovered images, whose names cannot be reserved for local pushes.
@@ -1918,6 +1930,10 @@ components:
           type: string
           maxLength: 214
           example: "@example/library"
+        super_team_prefix:
+          type: string
+          maxLength: 64
+          description: Optional global-team project owner. Scoped packages must match this prefix.
         description:
           type: string
           maxLength: 4000
@@ -1930,7 +1946,7 @@ components:
           minimum: 0
         private:
           type: boolean
-          description: Private packages must be scoped and require explicit package membership or administrator access.
+          description: Private packages must be scoped and require mapped global-team, explicit package, or administrator access.
         archived:
           type: boolean
         mirrored:
@@ -3403,6 +3419,32 @@ paths:
         "409":
           description: Prefix already exists or the caller reached a creation/membership limit.
 
+  /api/super-teams/eligible:
+    get:
+      tags: [super-teams]
+      summary: List global teams eligible to own a resource
+      description: Returns only memberships at or above the requested role; administrator status does not bypass membership.
+      operationId: listEligibleSuperTeams
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - { name: minimum_role, in: query, schema: { type: integer, minimum: 3, maximum: 4, default: 3 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 12 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200":
+          description: Bounded eligible-team page.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams: { type: array, items: { $ref: "#/components/schemas/SuperTeam" } }
+                  total: { type: integer, minimum: 0 }
+                  limit: { type: integer }
+                  offset: { type: integer }
+
   /api/super-teams/{prefix}:
     parameters:
       - name: prefix
@@ -3668,6 +3710,10 @@ paths:
                 domain:
                   type: string
                   example: com.example
+                super_team_prefix:
+                  type: string
+                  maxLength: 64
+                  description: Optional T3/T4 global-team binding for this publishing domain.
       responses:
         "201":
           description: Domain created.
@@ -3677,6 +3723,8 @@ paths:
                 $ref: "#/components/schemas/MavenDomain"
         "400":
           $ref: "#/components/responses/PlainBadRequest"
+        "403":
+          description: The caller lacks T3/T4 membership in the selected global team.
         "409":
           description: Domain already exists in this RenoP instance.
 
@@ -6127,7 +6175,7 @@ paths:
     post:
       tags: [npm]
       summary: Reserve an npm package before publication
-      description: Creates an empty package and assigns the caller L4. npm publish cannot create packages implicitly.
+      description: Creates an empty package and assigns the caller L4. Scoped names require a matching global team where the caller has T3 or T4. npm publish cannot create packages implicitly.
       operationId: createNPMPackage
       security:
         - sessionCookie: []
@@ -6146,6 +6194,10 @@ paths:
                   type: string
                   maxLength: 214
                   example: "@example/library"
+                super_team_prefix:
+                  type: string
+                  maxLength: 64
+                  description: Required for scoped names; must match the scope without the leading at sign.
                 private:
                   type: boolean
                   default: false
@@ -6157,6 +6209,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NPMPackage"
+        "400":
+          description: Invalid package name, missing team, or scope/team mismatch.
+        "403":
+          description: Repository creation permission or T3/T4 membership is missing.
         "409":
           description: Package already exists.
     put:
@@ -6615,7 +6671,8 @@ paths:
       summary: Reserve a container image before push
       description: |
         Creates an empty public or private image and assigns the caller L4. Docker pushes cannot create images
-        implicitly. Names must be unique within the repository and cannot match an image exposed by an enabled mirror.
+        implicitly. Namespaced images require a matching global team where the caller has T3 or T4. Names must be
+        unique within the repository and cannot match an image exposed by an enabled mirror.
       operationId: createDockerImage
       security:
         - sessionCookie: []
@@ -6634,6 +6691,10 @@ paths:
                   type: string
                   maxLength: 255
                   example: team/service
+                super_team_prefix:
+                  type: string
+                  maxLength: 64
+                  description: Required for namespaced images and must match the first path component.
                 private:
                   type: boolean
                   default: false
@@ -6645,7 +6706,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/DockerRepositoryImage"
         "400":
-          description: Invalid lowercase Docker image name.
+          description: Invalid image name, missing team, or namespace/team mismatch.
+        "403":
+          description: Repository creation permission or T3/T4 membership is missing.
         "409":
           description: Image name is already occupied locally or by an enabled upstream mirror.
         "503":

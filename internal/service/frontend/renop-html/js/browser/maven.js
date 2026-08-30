@@ -17,6 +17,8 @@ import {cachedIsLoggedIn, cachedIsManager} from '../auth.js';
 import {showAlert, showConfirm} from '../alert.js';
 import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAction} from '../components.js';
 import {t} from '../i18n.js';
+import {createSuperTeamBindingField} from '../super-team-selector.js';
+import {SUPER_TEAM_ERROR_KEYS} from '../super-team-errors.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
@@ -148,13 +150,16 @@ function openCreateDomainDialog(onCreated) {
         placeholder: t('maven.domainPlaceholder')
     });
     const hint = el('p', {class: 'maven-dialog-hint'}, t('maven.domainCreateHint'));
+    const teamBinding = createSuperTeamBindingField();
     RenopDialog.show({
         id: 'maven-domain-create-dialog',
         maxWidth: '520px',
         icon: 'network',
         title: t('maven.createDomain'),
         subtitle: t('maven.createDomainSubtitle'),
-        body: el('div', {class: 'maven-dialog-form'}, input, hint),
+        body: el('div', {class: 'maven-dialog-form'}, input,
+            el('label', {}, el('span', {}, t('superTeam.domainOwner')), teamBinding.element,
+                el('small', {}, t('superTeam.bindingHint'))), hint),
         footer: [
             {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
             {
@@ -168,11 +173,15 @@ function openCreateDomainDialog(onCreated) {
                     const button = event.currentTarget;
                     await runButtonAction(button, async () => {
                         try {
+                            await teamBinding.ready;
                             const response = await apiRequest('/api/maven/domains', {
-                                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({domain})
+                                method: 'POST', headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({domain, super_team_prefix: teamBinding.value()})
                             });
                             if (!response.ok) {
-                                showAlert(await responseErrorMessage(response, 'maven.createDomainFailed'), 'error');
+                                const error = await localizedResponseError(
+                                    response, 'maven.createDomainFailed', {}, SUPER_TEAM_ERROR_KEYS);
+                                showAlert(caughtErrorMessage(error, 'maven.createDomainFailed'), 'error');
                                 return;
                             }
                             const created = await response.json();
@@ -291,6 +300,7 @@ function domainInformationSection(details, {repository = '', repositoryArtifactC
         : (domain.member ? permissionLabel(domain.permission_level) : t('maven.readOnlyAccess'));
     const facts = [
         {label: t('maven.domainScope'), value: t('maven.domainScopeGlobal')},
+        {label: t('superTeam.domainOwner'), value: domain.super_team_prefix || null, code: true},
         {label: t('maven.verificationMethod'), value: verificationMethodLabel(domain.verification_type)},
         {label: t('maven.verificationTarget'), value: domain.verification_host, code: true},
         {label: t('maven.domainStatus'), value: domain.verified ? t('maven.verified') : t('maven.pending')},
@@ -327,6 +337,7 @@ function artifactInformationSection(details, repository) {
         {label: t('maven.domainLabel'), value: artifact.domain, code: true},
         {label: t('maven.groupId'), value: artifact.group_id, code: true},
         {label: t('maven.artifactId'), value: artifact.artifact_id, code: true},
+        {label: t('superTeam.projectOwner'), value: artifact.super_team_prefix || null, code: true},
         {label: t('maven.latestVersion'), value: artifact.latest_version || t('common.unknown'), code: Boolean(artifact.latest_version)},
         {label: t('maven.versionCountLabel'), value: Number(artifact.version_count) || 0},
         {label: t('maven.fileCount'), value: Number(details.file_count) || 0},

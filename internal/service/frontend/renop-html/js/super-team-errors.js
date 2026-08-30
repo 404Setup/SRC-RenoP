@@ -16,7 +16,11 @@ export const SUPER_TEAM_ERROR_KEYS = Object.freeze({
     operation_failed: 'superTeam.operationFailed',
     permission_denied: 'superTeam.permissionDenied',
     service_unavailable: 'superTeam.serviceUnavailable',
+    super_team_mismatch: 'superTeam.bindingMismatch',
+    super_team_permission: 'superTeam.bindingPermission',
+    super_team_required: 'superTeam.bindingRequired',
     team_exists: 'superTeam.teamExists',
     team_not_found: 'superTeam.teamNotFound',
+    team_not_empty: 'superTeam.teamNotEmpty',
     user_not_found: 'superTeam.userNotFound',
 });

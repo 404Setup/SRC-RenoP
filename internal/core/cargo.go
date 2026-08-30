@@ -62,6 +62,7 @@ type CargoPackage struct {
 	Archived        bool   `json:"archived"`
 	AdminArchived   bool   `json:"admin_archived"`
 	Mirrored        bool   `json:"mirrored"`
+	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`
 	PermissionLevel int    `json:"permission_level,omitempty"`

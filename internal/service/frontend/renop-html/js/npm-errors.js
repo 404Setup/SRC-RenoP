@@ -23,6 +23,9 @@ const npmErrorKeys = Object.freeze({
     permission_denied: 'npm.permissionDenied',
     private_requires_scope: 'npm.privateRequiresScope',
     repository_not_found: 'npm.repositoryNotFound',
+    super_team_mismatch: 'superTeam.bindingMismatch',
+    super_team_permission: 'superTeam.bindingPermission',
+    super_team_required: 'superTeam.bindingRequired',
     user_not_found: 'npm.userNotFound'
 });
 

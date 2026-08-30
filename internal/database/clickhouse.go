@@ -128,18 +128,21 @@ func openClickHouse(cfg config.DatabaseConfig, dsn string) (*clickHouseBackend, 
 	if err != nil {
 		return nil, fmt.Errorf("open native ClickHouse connection: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := conn.Ping(ctx); err != nil {
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	if err := conn.Ping(pingCtx); err != nil {
+		pingCancel()
 		_ = conn.Close()
 		return nil, fmt.Errorf("ping native ClickHouse connection: %w", err)
 	}
-	if err := initializeClickHouseSchema(ctx, conn); err != nil {
+	pingCancel()
+	migrationCtx, migrationCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer migrationCancel()
+	if err := initializeClickHouseSchema(migrationCtx, conn, options.Auth.Database); err != nil {
 		_ = conn.Close()
 		return nil, err
 	}
 	backend := &clickHouseBackend{conn: conn, database: options.Auth.Database}
-	if err := backend.recoverTransactions(ctx); err != nil {
+	if err := backend.recoverTransactions(migrationCtx); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("recover ClickHouse transaction journal: %w", err)
 	}

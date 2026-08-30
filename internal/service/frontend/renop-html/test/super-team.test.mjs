@@ -60,3 +60,24 @@ test('global teams persist independently from package membership tables', () => 
     assert.match(database, /team_prefix, user_id, role_level/);
     assert.doesNotMatch(database, /INSERT INTO (?:npm|docker|cargo)_members/);
 });
+
+test('package and domain creation use one T3 global-team binding selector', () => {
+    const selector = source('js', 'super-team-selector.js');
+    const docker = source('js', 'browser', 'docker.js');
+    const npm = source('js', 'browser', 'npm.js');
+    const maven = source('js', 'browser', 'maven.js');
+    const schema = readFileSync(join(repoRoot, 'internal', 'database', 'dialect.go'), 'utf8');
+    const sqliteSchema = readFileSync(join(repoRoot, 'internal', 'database', 'dialect_sqlite.go'), 'utf8');
+    assert.match(selector, /super-teams\/eligible\?minimum_role=3/);
+    assert.match(selector, /makeCustomSelect/);
+    for (const script of [docker, npm, maven]) {
+        assert.match(script, /createSuperTeamBindingField/);
+        assert.match(script, /super_team_prefix/);
+    }
+    for (const table of ['npm_packages', 'maven_domains', 'maven_artifacts']) {
+        assert.match(schema, new RegExp(`${table}[\\s\\S]*?super_team_prefix`));
+    }
+    for (const table of ['cargo_packages', 'docker_images']) {
+        assert.match(sqliteSchema, new RegExp(`${table}[\\s\\S]*?super_team_prefix`));
+    }
+});

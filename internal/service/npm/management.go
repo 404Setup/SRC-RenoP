@@ -141,8 +141,9 @@ func packageDetailsAPI(c fiber.Ctx, state *core.AppState, repo *config.Repositor
 }
 
 type createPackageRequest struct {
-	Name    string `json:"name"`
-	Private bool   `json:"private"`
+	Name            string `json:"name"`
+	SuperTeamPrefix string `json:"super_team_prefix"`
+	Private         bool   `json:"private"`
 }
 
 func createPackageAPI(c fiber.Ctx, state *core.AppState) error {
@@ -168,16 +169,46 @@ func createPackageAPI(c fiber.Ctx, state *core.AppState) error {
 	if request.Private && !strings.HasPrefix(packageName, "@") {
 		return npmAPIError(c, fiber.StatusBadRequest, "private_requires_scope", "Private npm packages must be scoped")
 	}
-	pkg, err := state.GetDB().CreateNPMPackage(repo.Name, packageName, user.Username,
-		request.Private, time.Now().UnixMilli())
+	teamPrefix := strings.ToLower(strings.TrimSpace(request.SuperTeamPrefix))
+	if teamPrefix != "" {
+		var teamPrefixValid bool
+		teamPrefix, teamPrefixValid = core.NormalizeSuperTeamPrefix(teamPrefix)
+		if !teamPrefixValid {
+			return npmAPIError(c, fiber.StatusBadRequest, "super_team_mismatch", "Invalid global team prefix")
+		}
+	}
+	requiredPrefix, scoped := core.NPMPackageSuperTeamPrefix(packageName)
+	if scoped && teamPrefix == "" {
+		return npmAPIError(c, fiber.StatusBadRequest, "super_team_required", "Scoped npm packages require a global team")
+	}
+	if scoped && teamPrefix != requiredPrefix {
+		return npmAPIError(c, fiber.StatusBadRequest, "super_team_mismatch", "npm scope must match the global team")
+	}
+	if teamPrefix != "" && !auth.CurrentCredentialHasScopeTarget(
+		c, core.APITokenScopeTeamManage, "global/"+teamPrefix) {
+		c.Set("X-Renop-Required-Scope", core.APITokenScopeTeamManage)
+		return npmAPIError(c, fiber.StatusForbidden, "super_team_permission", "API token cannot use this global team")
+	}
+	pkg, err := state.GetDB().CreateNPMPackageForTeam(repo.Name, packageName, user.Username,
+		teamPrefix, request.Private, time.Now().UnixMilli())
 	if errors.Is(err, core.ErrNPMPackageExists) {
 		return npmAPIError(c, fiber.StatusConflict, "package_exists", "npm package already exists")
+	}
+	if errors.Is(err, core.ErrSuperTeamBindingRequired) {
+		return npmAPIError(c, fiber.StatusBadRequest, "super_team_required", err.Error())
+	}
+	if errors.Is(err, core.ErrSuperTeamBindingMismatch) {
+		return npmAPIError(c, fiber.StatusBadRequest, "super_team_mismatch", err.Error())
+	}
+	if errors.Is(err, core.ErrSuperTeamBindingPermission) {
+		return npmAPIError(c, fiber.StatusForbidden, "super_team_permission", err.Error())
 	}
 	if err != nil {
 		return npmAPIError(c, fiber.StatusInternalServerError, "internal_error", "Failed to create npm package")
 	}
 	logNPMAudit(c, state, audit.ActionNPMPackageCreate,
-		fmt.Sprintf("Repository: %s, package: %s, private: %t", repo.Name, packageName, request.Private))
+		fmt.Sprintf("Repository: %s, package: %s, private: %t, global team: %s",
+			repo.Name, packageName, request.Private, teamPrefix))
 	return c.Status(fiber.StatusCreated).JSON(pkg)
 }
 

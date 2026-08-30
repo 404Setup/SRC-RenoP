@@ -20,6 +20,7 @@ import {
     runButtonAction
 } from '../components.js';
 import {t} from '../i18n.js';
+import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {npmResponseError} from '../npm-errors.js';
 import {getRepositoryFormat} from '../repository-formats.js';
@@ -386,8 +387,11 @@ function showCreatePackageDialog() {
         type: 'text', maxlength: '214', autocomplete: 'off', placeholder: t('npm.packageNamePlaceholder'), required: true
     });
     const privateInput = el('input', {type: 'checkbox'});
+    const teamBinding = createSuperTeamBindingField();
     const body = el('div', {class: 'npm-dialog-fields'},
         el('label', {}, el('span', {}, t('npm.packageName')), name),
+        el('label', {}, el('span', {}, t('superTeam.projectOwner')), teamBinding.element,
+            el('small', {class: 'npm-dialog-hint'}, t('superTeam.bindingHint'))),
         el('label', {class: 'npm-check-row'}, privateInput, el('span', {}, t('npm.privatePackage'))),
         el('p', {class: 'npm-dialog-hint'}, t('npm.privateRequiresScope'))
     );
@@ -401,9 +405,11 @@ function showCreatePackageDialog() {
                 const submit = event.submitter;
                 if (submit) submit.disabled = true;
                 try {
+                    await teamBinding.ready;
                     const pkg = await npmRequest(npmAPI('packages'), {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({name: name.value.trim(), private: privateInput.checked})
+                        body: JSON.stringify({name: name.value.trim(), private: privateInput.checked,
+                            super_team_prefix: teamBinding.value()})
                     }, 'npm.createFailed');
                     dialog.close(true);
                     showAlert(t('npm.packageCreated'), 'success');
@@ -813,6 +819,7 @@ function renderPackage() {
         {label: t('npm.packageName'), value: pkg.name, code: true, wide: true},
         {label: t('npm.repository'), value: pkg.repository, code: true},
         {label: t('npm.scope'), value: scope || t('npm.unscoped'), code: Boolean(scope)},
+        {label: t('superTeam.projectOwner'), value: pkg.super_team_prefix || null, code: true},
         {label: t('npm.latestVersion'), value: pkg.latest_version || t('npm.noVersions'), code: true},
         {label: t('npm.versionCount'), value: pkg.version_count},
         {label: t('npm.distTagCount'), value: Object.keys(packageDetails.dist_tags || {}).length},

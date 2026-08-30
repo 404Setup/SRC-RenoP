@@ -53,6 +53,7 @@ type MavenDomain struct {
 	VerificationType string `json:"verification_type"`
 	VerificationHost string `json:"verification_host"`
 	VerificationCode string `json:"verification_code,omitempty"`
+	SuperTeamPrefix  string `json:"super_team_prefix,omitempty"`
 	CreatedAt        int64  `json:"created_at"`
 	VerifiedAt       int64  `json:"verified_at,omitempty"`
 	LastCheckAt      int64  `json:"last_check_at,omitempty"`
@@ -104,6 +105,7 @@ type MavenArtifact struct {
 	VersionCount    int    `json:"version_count"`
 	TotalSize       int64  `json:"total_size"`
 	Mirrored        bool   `json:"mirrored"`
+	SuperTeamPrefix string `json:"super_team_prefix,omitempty"`
 	CreatedAt       int64  `json:"created_at"`
 	UpdatedAt       int64  `json:"updated_at"`
 	PermissionLevel int    `json:"permission_level,omitempty"`

@@ -21,6 +21,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"renop/internal/config"
@@ -63,6 +64,7 @@ func setupTestAPIDockerApp(t *testing.T) (*fiber.App, *core.AppState) {
 	saveDockerAPITestAccount(t, db, "admin", "admin-test-token", []string{"admin"}, []string{
 		core.APITokenScopeRepositoryRead, core.APITokenScopeRepositoryPublish,
 		core.APITokenScopeRepositoryDelete, core.APITokenScopePackageManage,
+		core.APITokenScopeTeamManage,
 	})
 
 	state := core.NewAppState()
@@ -215,15 +217,62 @@ func TestCreateDockerImageRejectsLocalAndUpstreamNameConflicts(t *testing.T) {
 	require.Equal(t, http.StatusServiceUnavailable, create("broken"))
 }
 
+func TestCreateDockerImageRequiresMatchingGlobalTeamNamespace(t *testing.T) {
+	app, state := setupTestAPIDockerApp(t)
+	db := state.GetDB()
+	now := time.Now().UnixMilli()
+	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
+		Prefix: "platform", Name: "Platform", CreatedAt: now,
+	}, "admin", 5, 10))
+	saveDockerAPITestAccount(t, db, "bob", "bob-team-token", []string{"base", "canupdate:docker-pub"},
+		[]string{core.APITokenScopePackageManage, core.APITokenScopeTeamManage})
+	require.NoError(t, db.ForceAddSuperTeamMembers("platform", "admin", []string{"bob"},
+		core.SuperTeamRoleWrite, 5, 10, now+1))
+
+	create := func(secret, body string) *http.Response {
+		request := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
+			strings.NewReader(body))
+		request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		request.Header.Set(fiber.HeaderAuthorization, "Bearer "+secret)
+		response, err := app.Test(request)
+		require.NoError(t, err)
+		return response
+	}
+	response := create("admin-test-token", `{"image":"platform/api"}`)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.Equal(t, "super_team_required", response.Header.Get(dockerAPIErrorCodeHeader))
+	require.NoError(t, response.Body.Close())
+	response = create("admin-test-token", `{"image":"platform/api","super_team_prefix":"other"}`)
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.Equal(t, "super_team_mismatch", response.Header.Get(dockerAPIErrorCodeHeader))
+	require.NoError(t, response.Body.Close())
+	response = create("bob-team-token", `{"image":"platform/bob","super_team_prefix":"platform"}`)
+	require.Equal(t, http.StatusForbidden, response.StatusCode)
+	require.Equal(t, "super_team_permission", response.Header.Get(dockerAPIErrorCodeHeader))
+	require.NoError(t, response.Body.Close())
+	response = create("admin-test-token", `{"image":"platform/api","super_team_prefix":"platform"}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	var image core.DockerRepositoryImage
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&image))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, "platform", image.SuperTeamPrefix)
+	response = create("admin-test-token", `{"image":"standalone"}`)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+}
+
 func TestDockerRESTAPIs(t *testing.T) {
 	app, state := setupTestAPIDockerApp(t)
 	db := state.GetDB()
+	require.NoError(t, db.CreateSuperTeam(&core.SuperTeam{
+		Prefix: "private", Name: "Private images", CreatedAt: time.Now().UnixMilli(),
+	}, "admin", 5, 20))
 
 	saveDockerAPITestAccount(t, db, "bob", "bob-test-token", []string{"read"}, []string{
 		core.APITokenScopeRepositoryRead, core.APITokenScopePackageManage,
 	})
 	createReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
-		strings.NewReader(`{"image":"private/empty","private":true}`))
+		strings.NewReader(`{"image":"private/empty","super_team_prefix":"private","private":true}`))
 	createReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	createReq.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 	createResp, err := app.Test(createReq)
@@ -234,7 +283,7 @@ func TestDockerRESTAPIs(t *testing.T) {
 	require.NoError(t, createResp.Body.Close())
 	require.True(t, createdImage.Private)
 	duplicateReq := httptest.NewRequest(http.MethodPost, "/api/docker/repositories/docker-pub/images",
-		strings.NewReader(`{"image":"private/empty","private":false}`))
+		strings.NewReader(`{"image":"private/empty","super_team_prefix":"private","private":false}`))
 	duplicateReq.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	duplicateReq.Header.Set(fiber.HeaderAuthorization, "Bearer admin-test-token")
 	duplicateResp, err := app.Test(duplicateReq)

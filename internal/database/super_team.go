@@ -297,6 +297,48 @@ func (db *DB) ListSuperTeams(username string, administrator bool, limit, offset 
 	return teams, total, nil
 }
 
+// ListManageableSuperTeams returns teams where an account holds at least the requested T-level.
+func (db *DB) ListManageableSuperTeams(username string, minimumRole, limit, offset int) ([]*core.SuperTeam, int, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, 0, core.ErrDatabaseUnavailable
+	}
+	if minimumRole < core.SuperTeamRoleRead || minimumRole > core.SuperTeamRoleOwner ||
+		limit < 1 || limit > 100 || offset < 0 {
+		return nil, 0, errors.New("manageable global team page is invalid")
+	}
+	userID, err := db.userIDForExistingAccount(username)
+	if err != nil {
+		return nil, 0, core.ErrUserProfileNotFound
+	}
+	baseJoin := ` FROM super_teams t
+		LEFT JOIN user_profiles creator ON creator.user_id = t.created_by
+		JOIN super_team_members member ON member.team_prefix = t.prefix AND member.user_id = ?
+		LEFT JOIN (SELECT team_prefix, COUNT(*) AS member_count FROM super_team_members GROUP BY team_prefix) member_counts
+			ON member_counts.team_prefix = t.prefix WHERE member.role_level >= ?`
+	var total int
+	if err := db.QueryRow(`SELECT COUNT(*)`+baseJoin, userID, minimumRole).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count manageable global teams: %w", err)
+	}
+	rows, err := db.Query(`SELECT `+superTeamSelectColumns+baseJoin+`
+		ORDER BY t.prefix LIMIT ? OFFSET ?`, userID, minimumRole, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list manageable global teams: %w", err)
+	}
+	defer rows.Close()
+	teams := make([]*core.SuperTeam, 0, min(limit, total))
+	for rows.Next() {
+		team, scanErr := scanSuperTeam(rows)
+		if scanErr != nil {
+			return nil, 0, fmt.Errorf("scan manageable global team: %w", scanErr)
+		}
+		teams = append(teams, team)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate manageable global teams: %w", err)
+	}
+	return teams, total, nil
+}
+
 // GetSuperTeamDetails returns one visible global team and its members.
 func (db *DB) GetSuperTeamDetails(prefix, username string, administrator bool) (*core.SuperTeamDetails, error) {
 	if db == nil || db.SQLDB == nil {
@@ -424,6 +466,17 @@ func (db *DB) DeleteSuperTeam(prefix, actor string, administrator bool, actedAt 
 			return core.ErrSuperTeamPermissionDenied
 		} else if err != nil {
 			return fmt.Errorf("inspect global team deletion permission: %w", err)
+		}
+	}
+	for _, table := range []string{
+		"cargo_packages", "docker_images", "npm_packages", "maven_domains", "maven_artifacts",
+	} {
+		var bindings int
+		if err := tx.QueryRow("SELECT COUNT(*) FROM "+table+" WHERE super_team_prefix = ?", prefix).Scan(&bindings); err != nil {
+			return fmt.Errorf("count global team bindings in %s: %w", table, err)
+		}
+		if bindings > 0 {
+			return core.ErrSuperTeamNotEmpty
 		}
 	}
 	if err := cancelSuperTeamInvitations(tx, prefix, "", actedAt); err != nil {

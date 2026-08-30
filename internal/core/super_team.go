@@ -38,6 +38,10 @@ var (
 	ErrSuperTeamOwnerCannotLeave  = errors.New("global team T4 owner must retain another owner before leaving")
 	ErrSuperTeamCreateLimit       = errors.New("global team creation limit reached")
 	ErrSuperTeamJoinLimit         = errors.New("global team membership limit reached")
+	ErrSuperTeamBindingRequired   = errors.New("a global team is required for this package namespace")
+	ErrSuperTeamBindingMismatch   = errors.New("package namespace does not match the global team prefix")
+	ErrSuperTeamBindingPermission = errors.New("T3 or T4 global team permission is required")
+	ErrSuperTeamNotEmpty          = errors.New("global team still owns packages or publishing domains")
 )
 
 // SuperTeam is a global, engine-independent package publishing team.
@@ -135,4 +139,29 @@ func SuperTeamPackagePermission(role int) int {
 	default:
 		return -1
 	}
+}
+
+// DockerImageSuperTeamPrefix returns the required global-team prefix for a namespaced Docker image.
+func DockerImageSuperTeamPrefix(imageName string) (string, bool) {
+	imageName = strings.ToLower(strings.Trim(strings.TrimSpace(imageName), "/"))
+	separator := strings.IndexByte(imageName, '/')
+	if separator <= 0 {
+		return "", false
+	}
+	prefix, valid := NormalizeSuperTeamPrefix(imageName[:separator])
+	return prefix, valid
+}
+
+// NPMPackageSuperTeamPrefix returns the required global-team prefix for a scoped npm package.
+func NPMPackageSuperTeamPrefix(packageName string) (string, bool) {
+	packageName = strings.ToLower(strings.TrimSpace(packageName))
+	if !strings.HasPrefix(packageName, "@") {
+		return "", false
+	}
+	separator := strings.IndexByte(packageName, '/')
+	if separator <= 1 {
+		return "", false
+	}
+	prefix, valid := NormalizeSuperTeamPrefix(packageName[1:separator])
+	return prefix, valid
 }

@@ -440,6 +440,13 @@ function buildCargoVersionFactsSection() {
             )
         ];
 
+        if (packageRecord?.super_team_prefix) {
+            items.push(el('div', {class: 'cargo-fact-item'},
+                el('span', {class: 'cargo-fact-label'}, t('superTeam.projectOwner')),
+                el('code', {class: 'cargo-fact-value'}, packageRecord.super_team_prefix)
+            ));
+        }
+
         if (activeVersion?.checksum) {
             const cksum = String(activeVersion.checksum);
             const cksumEl = el('div', {class: 'cargo-fact-item cargo-fact-item--checksum'},

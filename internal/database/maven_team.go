@@ -104,12 +104,12 @@ func (db *DB) CreateMavenInvitations(invitations []*core.MavenInvitation, messag
 	if err := lockMavenDomain(tx, first.Domain); err != nil {
 		return err
 	}
-	var inviterLevel int
-	if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members
-		WHERE repository = ? AND domain = ? AND user_id = ?`, first.Repository, first.Domain, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.MavenPermissionManage {
+	inviterLevel, inviterMember, permissionErr := mavenDomainEffectivePermissionTx(tx, first.Domain, inviterID)
+	if permissionErr != nil {
+		return permissionErr
+	}
+	if !inviterMember || inviterLevel < core.MavenPermissionManage {
 		return core.ErrMavenPermissionDenied
-	} else if err != nil {
-		return fmt.Errorf("inspect Maven invitation sender: %w", err)
 	}
 	for i, invitation := range invitations {
 		message := messages[i]
@@ -284,13 +284,10 @@ func (db *DB) RespondMavenInvitation(id, recipient string, accept bool, actedAt 
 		if err != nil {
 			return core.ErrMavenInvitationInvalid
 		}
-		var inviterLevel int
-		if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members
-			WHERE repository = ? AND domain = ? AND user_id = ?`, invitation.Repository,
-			invitation.Domain, inviterID).Scan(&inviterLevel); errors.Is(err, sql.ErrNoRows) || inviterLevel < core.MavenPermissionManage {
+		inviterLevel, inviterMember, permissionErr := mavenDomainEffectivePermissionTx(
+			tx, invitation.Domain, inviterID)
+		if permissionErr != nil || !inviterMember || inviterLevel < core.MavenPermissionManage {
 			return core.ErrMavenInvitationInvalid
-		} else if err != nil {
-			return fmt.Errorf("validate Maven invitation sender: %w", err)
 		}
 		if invitation.Level == core.MavenPermissionOwner && inviterLevel < core.MavenPermissionOwner {
 			return core.ErrMavenInvitationInvalid
@@ -374,9 +371,10 @@ func (db *DB) SetMavenMemberLevel(domain, actor, username string, level int) err
 		if err := requireMavenMemberPermission(tx, domain, actorID, core.MavenPermissionManage); err != nil {
 			return err
 		}
-		if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-			globalMavenRepository, domain, actorID).Scan(&actorLevel); err != nil {
-			return fmt.Errorf("inspect Maven actor permission: %w", err)
+		var actorMember bool
+		actorLevel, actorMember, err = mavenDomainEffectivePermissionTx(tx, domain, actorID)
+		if err != nil || !actorMember {
+			return core.ErrMavenPermissionDenied
 		}
 	}
 	var current int
@@ -443,12 +441,9 @@ func (db *DB) RemoveMavenMember(domain, actor, username string) error {
 		return err
 	}
 	if actor != "" {
-		var actorLevel int
-		if err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members WHERE repository = ? AND domain = ? AND user_id = ?`,
-			globalMavenRepository, domain, actorID).Scan(&actorLevel); errors.Is(err, sql.ErrNoRows) {
+		actorLevel, actorMember, permissionErr := mavenDomainEffectivePermissionTx(tx, domain, actorID)
+		if permissionErr != nil || !actorMember {
 			return core.ErrMavenPermissionDenied
-		} else if err != nil {
-			return fmt.Errorf("inspect Maven removal actor: %w", err)
 		}
 		if username != actor && actorLevel < core.MavenPermissionManage {
 			return core.ErrMavenPermissionDenied
@@ -484,18 +479,39 @@ func (db *DB) RemoveMavenMember(domain, actor, username string) error {
 	return nil
 }
 
-func requireMavenMemberPermission(tx *Tx, domain, userID string, required int) error {
+func mavenDomainEffectivePermissionTx(tx *Tx, domain, userID string) (int, bool, error) {
 	if tx == nil || userID == "" {
-		return core.ErrMavenPermissionDenied
+		return 0, false, core.ErrMavenPermissionDenied
 	}
-	var level int
-	err := tx.QueryRow(`SELECT permission_level FROM maven_domain_members
-		WHERE repository = ? AND domain = ? AND user_id = ?`, globalMavenRepository, domain, userID).Scan(&level)
-	if errors.Is(err, sql.ErrNoRows) || level < required {
+	var explicitLevel, explicitMember, superRole, superMember int
+	err := tx.QueryRow(`SELECT COALESCE(m.permission_level, 0),
+		CASE WHEN m.user_id IS NULL THEN 0 ELSE 1 END, COALESCE(stm.role_level, 0),
+		CASE WHEN stm.user_id IS NULL THEN 0 ELSE 1 END
+		FROM maven_domains d LEFT JOIN maven_domain_members m ON m.repository = d.repository
+		AND m.domain = d.domain AND m.user_id = ?
+		LEFT JOIN super_team_members stm ON stm.team_prefix = d.super_team_prefix AND stm.user_id = ?
+		WHERE d.repository = ? AND d.domain = ?`, userID, userID, globalMavenRepository, domain).Scan(
+		&explicitLevel, &explicitMember, &superRole, &superMember)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, false, core.ErrMavenDomainNotFound
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("inspect Maven member permission: %w", err)
+	}
+	level, member := effectiveBoundPermission(explicitLevel, explicitMember != 0, superRole, superMember != 0)
+	return level, member, nil
+}
+
+func requireMavenMemberPermission(tx *Tx, domain, userID string, required int) error {
+	level, member, err := mavenDomainEffectivePermissionTx(tx, domain, userID)
+	if errors.Is(err, core.ErrMavenDomainNotFound) {
 		return core.ErrMavenPermissionDenied
 	}
 	if err != nil {
-		return fmt.Errorf("inspect Maven member permission: %w", err)
+		return err
+	}
+	if !member || level < required {
+		return core.ErrMavenPermissionDenied
 	}
 	return nil
 }

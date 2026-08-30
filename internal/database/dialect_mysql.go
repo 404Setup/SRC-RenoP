@@ -60,6 +60,11 @@ func initMySQLSuperTeamIndexes(db *sql.DB) error {
 		{Name: "idx_super_teams_creator", Query: "CREATE INDEX idx_super_teams_creator ON super_teams(created_by, prefix);"},
 		{Name: "idx_super_team_members_user", Query: "CREATE INDEX idx_super_team_members_user ON super_team_members(user_id, team_prefix);"},
 		{Name: "idx_super_team_invitations_recipient", Query: "CREATE INDEX idx_super_team_invitations_recipient ON super_team_invitations(recipient_id, expires_at);"},
+		{Name: "idx_cargo_packages_super_team", Query: "CREATE INDEX idx_cargo_packages_super_team ON cargo_packages(super_team_prefix, repository);"},
+		{Name: "idx_docker_images_super_team", Query: "CREATE INDEX idx_docker_images_super_team ON docker_images(super_team_prefix, repository);"},
+		{Name: "idx_npm_packages_super_team", Query: "CREATE INDEX idx_npm_packages_super_team ON npm_packages(super_team_prefix, repository);"},
+		{Name: "idx_maven_domains_super_team", Query: "CREATE INDEX idx_maven_domains_super_team ON maven_domains(super_team_prefix, domain);"},
+		{Name: "idx_maven_artifacts_super_team", Query: "CREATE INDEX idx_maven_artifacts_super_team ON maven_artifacts(super_team_prefix, repository);"},
 	}
 	for _, migration := range migrations {
 		if _, err := db.Exec(migration.Query); err != nil {
@@ -271,6 +276,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		repository_url VARCHAR(1024) NOT NULL DEFAULT '',
 		homepage VARCHAR(1024) NOT NULL DEFAULT '',
 		documentation VARCHAR(1024) NOT NULL DEFAULT '',
+		super_team_prefix VARCHAR(64) NOT NULL DEFAULT '',
 		archived TINYINT(1) NOT NULL DEFAULT 0,
 		admin_archived TINYINT(1) NOT NULL DEFAULT 0,
 		mirrored TINYINT(1) NOT NULL DEFAULT 0,
@@ -336,6 +342,7 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		description TEXT NOT NULL,
 		publisher VARCHAR(255) NOT NULL DEFAULT '',
 		pull_count BIGINT NOT NULL DEFAULT 0,
+		super_team_prefix VARCHAR(64) NOT NULL DEFAULT '',
 		private INT NOT NULL DEFAULT 0,
 		push_enabled INT NOT NULL DEFAULT 1,
 		created_at BIGINT NOT NULL,
@@ -501,9 +508,6 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 	if err := initSuperTeamTables(db); err != nil {
 		return err
 	}
-	if err := initMySQLSuperTeamIndexes(db); err != nil {
-		return err
-	}
 
 	for _, migration := range sharedColumnMigrations {
 		query := migration.Query
@@ -513,6 +517,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		if err := execIgnoreDuplicateColumn(db, query); err != nil {
 			return fmt.Errorf("failed to apply migration %s: %w", migration.Name, err)
 		}
+	}
+	if err := initMySQLSuperTeamIndexes(db); err != nil {
+		return err
 	}
 
 	return nil

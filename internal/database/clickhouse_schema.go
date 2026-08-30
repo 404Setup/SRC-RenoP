@@ -25,6 +25,10 @@ type clickHouseTableSchema struct {
 	columns    []string
 }
 
+func clickHouseIdentifier(value string) string {
+	return "`" + strings.ReplaceAll(value, "`", "``") + "`"
+}
+
 func clickHouseKeyExpression(columns []string) string {
 	parts := make([]string, 0, len(columns))
 	for _, column := range columns {
@@ -36,10 +40,30 @@ func clickHouseKeyExpression(columns []string) string {
 }
 
 func (schema clickHouseTableSchema) createQuery() string {
+	return schema.createQueryForName(schema.name)
+}
+
+func (schema clickHouseTableSchema) createQueryForName(name string) string {
 	columns := append([]string(nil), schema.columns...)
 	columns = append(columns, "`_renop_key` String MATERIALIZED "+clickHouseKeyExpression(schema.keyColumns))
 	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS `%s` (\n%s\n) ENGINE = EmbeddedRocksDB PRIMARY KEY _renop_key SETTINGS optimize_for_bulk_insert = 0",
-		schema.name, "\t"+strings.Join(columns, ",\n\t"))
+		strings.ReplaceAll(name, "`", "``"), "\t"+strings.Join(columns, ",\n\t"))
+}
+
+func (schema clickHouseTableSchema) dataColumns() ([]string, error) {
+	columns := make([]string, 0, len(schema.columns))
+	for _, definition := range schema.columns {
+		start := strings.IndexByte(definition, '`')
+		if start < 0 {
+			return nil, fmt.Errorf("ClickHouse column definition for %s is invalid", schema.name)
+		}
+		end := strings.IndexByte(definition[start+1:], '`')
+		if end < 0 {
+			return nil, fmt.Errorf("ClickHouse column definition for %s is invalid", schema.name)
+		}
+		columns = append(columns, definition[start+1:start+1+end])
+	}
+	return columns, nil
 }
 
 func clickHouseSchemas() []clickHouseTableSchema {
@@ -107,7 +131,8 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "cargo_packages", keyColumns: []string{"repository", "normalized_name"}, columns: []string{
 			"`repository` String", "`normalized_name` String", "`package_name` String", "`description` String DEFAULT ''",
 			"`readme` String DEFAULT ''", "`repository_url` String DEFAULT ''", "`homepage` String DEFAULT ''",
-			"`documentation` String DEFAULT ''", "`archived` Int64 DEFAULT 0", "`admin_archived` Int64 DEFAULT 0",
+			"`documentation` String DEFAULT ''", "`super_team_prefix` String DEFAULT ''",
+			"`archived` Int64 DEFAULT 0", "`admin_archived` Int64 DEFAULT 0",
 			"`mirrored` Int64 DEFAULT 0", "`created_at` Int64", "`updated_at` Int64",
 		}},
 		{name: "cargo_versions", keyColumns: []string{"repository", "normalized_name", "version"}, columns: []string{
@@ -127,7 +152,8 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		}},
 		{name: "docker_images", keyColumns: []string{"repository", "image_name"}, columns: []string{
 			"`repository` String", "`image_name` String", "`description` String DEFAULT ''", "`publisher` String DEFAULT ''",
-			"`pull_count` Int64 DEFAULT 0", "`private` Int64 DEFAULT 0", "`push_enabled` Int64 DEFAULT 1",
+			"`pull_count` Int64 DEFAULT 0", "`super_team_prefix` String DEFAULT ''",
+			"`private` Int64 DEFAULT 0", "`push_enabled` Int64 DEFAULT 1",
 			"`created_at` Int64", "`updated_at` Int64",
 		}},
 		{name: "docker_tags", keyColumns: []string{"repository", "image_name", "tag"}, columns: []string{
@@ -191,7 +217,8 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		}},
 		{name: "npm_packages", keyColumns: []string{"repository", "package_name"}, columns: []string{
 			"`repository` String", "`package_name` String", "`description` String", "`publisher` String",
-			"`latest_version` String", "`private` Int64 DEFAULT 0", "`archived` Int64 DEFAULT 0", "`mirrored` Int64 DEFAULT 0",
+			"`latest_version` String", "`super_team_prefix` String DEFAULT ''", "`private` Int64 DEFAULT 0",
+			"`archived` Int64 DEFAULT 0", "`mirrored` Int64 DEFAULT 0",
 			"`publish_enabled` Int64 DEFAULT 1", "`revision` Int64 DEFAULT 1", "`created_at` Int64", "`updated_at` Int64",
 		}},
 		{name: "npm_versions", keyColumns: []string{"repository", "package_name", "version"}, columns: []string{
@@ -212,7 +239,7 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		}},
 		{name: "maven_domains", keyColumns: []string{"repository", "domain"}, columns: []string{
 			"`repository` String", "`domain` String", "`verification_type` String", "`verification_host` String",
-			"`verification_code` String", "`verified` Int64 DEFAULT 0", "`created_at` Int64",
+			"`verification_code` String", "`super_team_prefix` String DEFAULT ''", "`verified` Int64 DEFAULT 0", "`created_at` Int64",
 			"`verified_at` Int64 DEFAULT 0", "`last_check_at` Int64 DEFAULT 0",
 		}},
 		{name: "maven_domain_members", keyColumns: []string{"repository", "domain", "user_id"}, columns: []string{
@@ -225,7 +252,8 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		}},
 		{name: "maven_artifacts", keyColumns: []string{"repository", "group_id", "artifact_id"}, columns: []string{
 			"`repository` String", "`domain` String", "`group_id` String", "`artifact_id` String", "`description` String",
-			"`readme` String", "`publisher` String", "`latest_version` String", "`mirrored` Int64 DEFAULT 0",
+			"`readme` String", "`publisher` String", "`latest_version` String", "`super_team_prefix` String DEFAULT ''",
+			"`mirrored` Int64 DEFAULT 0",
 			"`created_at` Int64", "`updated_at` Int64",
 		}},
 		{name: "maven_versions", keyColumns: []string{"repository", "group_id", "artifact_id", "version"}, columns: []string{
@@ -244,10 +272,165 @@ func clickHouseSchemas() []clickHouseTableSchema {
 	}
 }
 
-func initializeClickHouseSchema(ctx context.Context, conn chdriver.Conn) error {
+func clickHouseTableExists(ctx context.Context, conn chdriver.Conn, database, table string) (bool, error) {
+	var exists bool
+	if err := conn.QueryRow(ctx, `SELECT count() > 0 FROM system.tables WHERE database = ? AND name = ?`,
+		database, table).Scan(&exists); err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func clickHouseTableColumns(ctx context.Context, conn chdriver.Conn, database, table string) ([]string, error) {
+	rows, err := conn.Query(ctx, `SELECT name FROM system.columns WHERE database = ? AND table = ? ORDER BY position`,
+		database, table)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	columns := make([]string, 0)
+	for rows.Next() {
+		var column string
+		if err := rows.Scan(&column); err != nil {
+			return nil, err
+		}
+		if column != "_renop_key" {
+			columns = append(columns, column)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return columns, nil
+}
+
+func clickHouseSchemaComplete(current, expected []string) bool {
+	available := make(map[string]struct{}, len(current))
+	for _, column := range current {
+		available[column] = struct{}{}
+	}
+	for _, column := range expected {
+		if _, exists := available[column]; !exists {
+			return false
+		}
+	}
+	return true
+}
+
+func recoverClickHouseSchemaMigration(ctx context.Context, conn chdriver.Conn, database string,
+	schema clickHouseTableSchema, expected []string,
+) error {
+	temporary := "_renop_schema_" + schema.name + "_new"
+	backup := "_renop_schema_" + schema.name + "_backup"
+	sourceExists, err := clickHouseTableExists(ctx, conn, database, schema.name)
+	if err != nil {
+		return err
+	}
+	backupExists, err := clickHouseTableExists(ctx, conn, database, backup)
+	if err != nil {
+		return err
+	}
+	if !sourceExists && backupExists {
+		if err := conn.Exec(ctx, "RENAME TABLE "+clickHouseIdentifier(backup)+" TO "+clickHouseIdentifier(schema.name)); err != nil {
+			return fmt.Errorf("restore interrupted ClickHouse schema migration for %s: %w", schema.name, err)
+		}
+		sourceExists = true
+		backupExists = false
+	}
+	temporaryExists, err := clickHouseTableExists(ctx, conn, database, temporary)
+	if err != nil {
+		return err
+	}
+	if temporaryExists {
+		if err := conn.Exec(ctx, "DROP TABLE "+clickHouseIdentifier(temporary)); err != nil {
+			return fmt.Errorf("discard interrupted ClickHouse schema copy for %s: %w", schema.name, err)
+		}
+	}
+	if sourceExists && backupExists {
+		columns, columnErr := clickHouseTableColumns(ctx, conn, database, schema.name)
+		if columnErr != nil {
+			return columnErr
+		}
+		if !clickHouseSchemaComplete(columns, expected) {
+			return fmt.Errorf("ClickHouse schema migration for %s has two incomplete source tables", schema.name)
+		}
+		if err := conn.Exec(ctx, "DROP TABLE "+clickHouseIdentifier(backup)); err != nil {
+			return fmt.Errorf("remove completed ClickHouse schema backup for %s: %w", schema.name, err)
+		}
+	}
+	return nil
+}
+
+func migrateClickHouseTableSchema(ctx context.Context, conn chdriver.Conn, database string,
+	schema clickHouseTableSchema, expected []string,
+) error {
+	current, err := clickHouseTableColumns(ctx, conn, database, schema.name)
+	if err != nil {
+		return err
+	}
+	if clickHouseSchemaComplete(current, expected) {
+		return nil
+	}
+	expectedSet := make(map[string]struct{}, len(expected))
+	for _, column := range expected {
+		expectedSet[column] = struct{}{}
+	}
+	for _, column := range current {
+		if _, exists := expectedSet[column]; !exists {
+			return fmt.Errorf("ClickHouse table %s contains unsupported column %s", schema.name, column)
+		}
+	}
+	temporary := "_renop_schema_" + schema.name + "_new"
+	backup := "_renop_schema_" + schema.name + "_backup"
+	if err := conn.Exec(ctx, schema.createQueryForName(temporary)); err != nil {
+		return fmt.Errorf("create ClickHouse schema copy for %s: %w", schema.name, err)
+	}
+	quotedColumns := make([]string, len(current))
+	for index, column := range current {
+		quotedColumns[index] = clickHouseIdentifier(column)
+	}
+	if len(quotedColumns) > 0 {
+		columnList := strings.Join(quotedColumns, ", ")
+		if err := conn.Exec(ctx, "INSERT INTO "+clickHouseIdentifier(temporary)+" ("+columnList+") SELECT "+
+			columnList+" FROM "+clickHouseIdentifier(schema.name)); err != nil {
+			return fmt.Errorf("copy ClickHouse rows for %s: %w", schema.name, err)
+		}
+	}
+	var sourceCount, copiedCount uint64
+	if err := conn.QueryRow(ctx, "SELECT count() FROM "+clickHouseIdentifier(schema.name)).Scan(&sourceCount); err != nil {
+		return fmt.Errorf("count ClickHouse source rows for %s: %w", schema.name, err)
+	}
+	if err := conn.QueryRow(ctx, "SELECT count() FROM "+clickHouseIdentifier(temporary)).Scan(&copiedCount); err != nil {
+		return fmt.Errorf("count ClickHouse copied rows for %s: %w", schema.name, err)
+	}
+	if sourceCount != copiedCount {
+		return fmt.Errorf("ClickHouse schema copy for %s is incomplete: copied %d of %d rows",
+			schema.name, copiedCount, sourceCount)
+	}
+	if err := conn.Exec(ctx, "RENAME TABLE "+clickHouseIdentifier(schema.name)+" TO "+clickHouseIdentifier(backup)+", "+
+		clickHouseIdentifier(temporary)+" TO "+clickHouseIdentifier(schema.name)); err != nil {
+		return fmt.Errorf("activate ClickHouse schema migration for %s: %w", schema.name, err)
+	}
+	if err := conn.Exec(ctx, "DROP TABLE "+clickHouseIdentifier(backup)); err != nil {
+		return fmt.Errorf("remove ClickHouse schema backup for %s: %w", schema.name, err)
+	}
+	return nil
+}
+
+func initializeClickHouseSchema(ctx context.Context, conn chdriver.Conn, database string) error {
 	for _, schema := range clickHouseSchemas() {
+		expected, err := schema.dataColumns()
+		if err != nil {
+			return err
+		}
+		if err := recoverClickHouseSchemaMigration(ctx, conn, database, schema, expected); err != nil {
+			return fmt.Errorf("recover ClickHouse table %s: %w", schema.name, err)
+		}
 		if err := conn.Exec(ctx, schema.createQuery()); err != nil {
 			return fmt.Errorf("create ClickHouse table %s: %w", schema.name, err)
+		}
+		if err := migrateClickHouseTableSchema(ctx, conn, database, schema, expected); err != nil {
+			return fmt.Errorf("migrate ClickHouse table %s: %w", schema.name, err)
 		}
 	}
 	return nil

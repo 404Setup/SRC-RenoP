@@ -23,6 +23,9 @@ const dockerErrorKeys = Object.freeze({
     readme_too_large: 'docker.readmeTooLarge',
     repository_not_found: 'docker.repositoryNotFound',
     service_unavailable: 'docker.serviceUnavailable',
+    super_team_mismatch: 'superTeam.bindingMismatch',
+    super_team_permission: 'superTeam.bindingPermission',
+    super_team_required: 'superTeam.bindingRequired',
     user_not_found: 'docker.userNotFound'
 });
 

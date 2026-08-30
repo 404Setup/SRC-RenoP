@@ -342,7 +342,8 @@ Cargo-specific operations supported:
 Create an `npm` repository and reserve each local package from the web interface before publishing. RenoP validates
 the streamed tarball, stores immutable semantic versions, serves full or abbreviated packuments, and supports standard
 dist-tag, deprecation, unpublish, search, and audit requests. Scoped packages may be private; L0-L4 package teams control
-read, publish, lifecycle, team, and ownership operations. Upstream mirrors remain pull-only.
+read, publish, lifecycle, team, and ownership operations. A scoped local package must be created through the matching
+global-team identity; the creator needs T3 or T4. Upstream mirrors remain pull-only.
 
 ```bash
 npm config set registry http://localhost:3000/javascript/
@@ -354,6 +355,9 @@ npm install @example/library
 
 RenoP implements the [OCI Distribution Specification v1.1.0](https://github.com/opencontainers/distribution-spec)
 at `/v2/`. Authentication uses the Bearer token challenge flow.
+
+Local image names containing a slash reserve their first path component through a matching global team. The creator
+must select that team in the web interface and hold T3 or T4. Unprefixed image names remain available for personal use.
 
 ```bash
 docker login localhost:3000
@@ -435,6 +439,11 @@ Global teams are instance-wide collaboration identities with immutable 2–64 ch
 against immutable account identities, while the UI and API expose usernames. T1 provides read access, T2 maps to
 publication and version maintenance, T3 manages members, and T4 owns team configuration. T3 can manage T1/T2 members;
 only T4 or a system administrator can grant or manage T3/T4.
+
+Docker images and npm packages may use the team's immutable prefix at creation. Maven publishing domains may also be
+created for a team. Cargo crates and Maven artifacts retain a compatible team binding for approved transfers. Effective
+package access is the higher of the user's explicit package permission and mapped team role; mapped members never appear
+as duplicated package members. A team cannot be deleted while it owns a project or publishing domain.
 
 The account menu opens `/account/teams`. Creation and membership limits default to `super_teams.create_limit` and
 `super_teams.join_limit`; managers can set account-specific overrides through
