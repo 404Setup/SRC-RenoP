@@ -15,7 +15,7 @@ import {openModalWithAnim} from '@renop/ui/modal';
 import {createToggle} from '@renop/ui/toggle';
 import {fetchProto, postProto, sendProto} from './api.js';
 import {closeModalWithAnim} from './app-ui.js';
-import {cachedIsLoggedIn, cachedIsManager} from './auth.js';
+import {cachedIsLoggedIn, cachedIsManager, logout} from './auth.js';
 import {showAlert, showConfirm} from './alert.js';
 import {t} from './i18n.js';
 import {createUserIdentity} from './components.js';
@@ -52,6 +52,17 @@ let composerOpen = false;
 let clearingMessages = false;
 let messageDialogHeightAnimation = null;
 let messageDialogHeightGeneration = 0;
+
+/**
+ * End stale message polling after the server rejects the browser session.
+ * @param {Response|null|undefined} response - Message API response.
+ * @returns {Promise<boolean>} Whether the response ended message processing.
+ */
+async function stopForExpiredSession(response) {
+    if (response?.status !== 401) return false;
+    await logout('kicked');
+    return true;
+}
 
 /**
  * Register a trusted handler for one typed message action.
@@ -191,6 +202,7 @@ async function fetchMessages(reset, requestedCursor = '') {
         const cursor = reset ? '' : requestedCursor;
         const url = cursor ? `/api/messages?limit=30&cursor=${encodeURIComponent(cursor)}` : '/api/messages?limit=30';
         const {response, data: payload} = await fetchProto(url, UserMessageList);
+        if (await stopForExpiredSession(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'messages.loadFailed');
         const page = Array.isArray(payload?.messages) ? payload.messages : [];
         let firstAddedMessageID = '';
@@ -961,6 +973,7 @@ export async function refreshMessageUnreadCount() {
     if (!cachedIsLoggedIn) return;
     try {
         const {response, data: payload} = await fetchProto('/api/messages/unread-count', UnreadCountResponse);
+        if (await stopForExpiredSession(response)) return;
         if (!response.ok || !payload) return;
         setUnreadCount(Number(payload.unread_count) || 0);
     } catch (error) {

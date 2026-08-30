@@ -20,6 +20,7 @@ import {base64urlToBuffer, bufferToBase64url} from './fido-utils.js';
 import {getUserProfile, profileDisplayName} from './user-profiles.js';
 import {responseErrorMessage} from './response-errors.js';
 import {runButtonAction} from './components/button.js';
+import {requestProtectedRouteExit} from './protected-route.js';
 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
@@ -58,6 +59,7 @@ export function isManagerTab(tabId) {
 /** Set by main.js after switchTab is defined — avoids auth↔main import cycle. */
 let switchTabHandler = null;
 let navProfileLoadSequence = 0;
+let logoutPromise = null;
 
 /**
  * Apply a public profile identity to the compact navigation control.
@@ -372,7 +374,21 @@ export async function login(name, secret) {
  * @param {string} [reason] - Logout reason: 'expired' | 'kicked' | 'silent' | undefined (manual).
  * @returns {Promise<void>}
  */
-export async function logout(reason) {
+export function logout(reason) {
+    requestProtectedRouteExit(401);
+    if (logoutPromise) return logoutPromise;
+    logoutPromise = performLogout(reason).finally(() => {
+        logoutPromise = null;
+    });
+    return logoutPromise;
+}
+
+/**
+ * Complete one server and browser logout operation.
+ * @param {string} [reason] - Logout reason forwarded by the first caller.
+ * @returns {Promise<void>} Completion.
+ */
+async function performLogout(reason) {
     const wasLoggedIn = !!localStorage.getItem('username');
     try {
         await fetch('/api/auth/logout', {

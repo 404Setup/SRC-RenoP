@@ -42,6 +42,7 @@ import {
 } from './repository-formats.js';
 import {paginateRepositoryNames, sortedRepositoryNames} from './repository-list.js';
 import {responseErrorMessage} from './response-errors.js';
+import {exitProtectedRouteOnDenial} from './protected-route.js';
 
 let currentConfig = null;
 let initialReposMap = {};
@@ -120,8 +121,8 @@ export async function initRepositories() {
             currentConfig = {repositories: repos};
             initialReposMap = JSON.parse(JSON.stringify(repos));
             renderRepositories(document.getElementById('repositories-container'), currentConfig);
-        } else if (response.status === 401 || response.status === 403) {
-            logout('kicked');
+        } else if (exitProtectedRouteOnDenial(response)) {
+            if (response.status === 401) void logout('kicked');
         }
     } catch (e) {
         console.error('Failed to load repositories', e);
@@ -440,8 +441,8 @@ function buildRepoSection(container, data, repoKey, repo) {
                 const response = await fetch(`/api/settings/repositories/${encodeURIComponent(repoKey)}`, {
                     method: 'DELETE', headers
                 });
-                if (response.status === 401 || response.status === 403) {
-                    logout('kicked');
+                if (exitProtectedRouteOnDenial(response)) {
+                    if (response.status === 401) void logout('kicked');
                     return;
                 }
                 if (response.ok) {

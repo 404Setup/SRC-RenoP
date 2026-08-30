@@ -42,7 +42,7 @@ export function withCredentials(options = {}) {
 }
 
 /**
- * Clear local session state and force logout on authentication failures.
+ * Delegate authentication failures to the idempotent logout boundary.
  * @param {Response} response - Fetch response to inspect.
  * @param {{logoutOnForbidden?: boolean}} [policy={}] - Whether a 403 also proves the session is invalid; defaults to false.
  * @throws {Error} Always throws with message 'Unauthorized' on auth failure.
@@ -50,11 +50,7 @@ export function withCredentials(options = {}) {
 function handleAuthFailure(response, policy = {}) {
     const {logoutOnForbidden = false} = policy;
     if (response.status === 401 || (response.status === 403 && logoutOnForbidden)) {
-        localStorage.removeItem('session-token');
-        localStorage.removeItem('username');
-        document.cookie = 'renop_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'renop_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure';
-        logout('kicked');
+        void logout('kicked');
         throw new Error('Unauthorized');
     }
 }

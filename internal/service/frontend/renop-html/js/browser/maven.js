@@ -23,6 +23,7 @@ import {openSuperTeamTransferDialog} from '../reviews.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
+import {exitProtectedRouteOnDenial} from '../protected-route.js';
 import {decodePathSegment, encodePathSegment, formatBytes} from './utils.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {
@@ -856,6 +857,7 @@ async function renderDomainCenterList(container) {
     try {
         const response = await apiRequest(managedDomainListURL());
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        if (exitProtectedRouteOnDenial(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'maven.loadFailed');
         const payload = await response.json();
         const domains = Array.isArray(payload.domains) ? payload.domains : [];
@@ -893,6 +895,7 @@ async function renderDomainCenterList(container) {
         }
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        if (error?.message === 'Unauthorized') return;
         await replaceRepositoryView(existingResults || container,
             el('div', {class: 'maven-error'}, createIcon('alertCircle'),
                 el('span', {}, caughtErrorMessage(error, 'maven.loadFailed'))),
@@ -916,6 +919,7 @@ async function renderManagedDomain(container, domainName) {
     try {
         const response = await apiRequest(`/api/maven/domains/${encodeURIComponent(domainName)}`);
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        if (exitProtectedRouteOnDenial(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'maven.domainLoadFailed');
         const details = await response.json();
         const domain = details.domain;
@@ -998,6 +1002,7 @@ async function renderManagedDomain(container, domainName) {
         });
     } catch (error) {
         if (sequence !== domainCenterSequence || container !== domainCenterBody) return;
+        if (error?.message === 'Unauthorized') return;
         await replaceRepositoryView(container, [
             el('button', {type: 'button', class: 'maven-back-btn', onclick: () => navigateMavenDomainCenter()},
                 createIcon('chevronLeft'), el('span', {}, t('maven.backToDomains'))),

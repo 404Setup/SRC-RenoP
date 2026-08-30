@@ -41,6 +41,7 @@ import {initializeGitHubAuth} from './github-auth.js';
 import './password-recovery.js';
 import {initConfiguredFont} from './font.js';
 import {$} from '@renop/ui/jquery';
+import {protectedRouteDeniedEvent} from './protected-route.js';
 
 initI18n();
 initConfiguredFont();
@@ -253,14 +254,20 @@ function updateProfileMenuSelection(tabId) {
 
 /**
  * Reset the browser route and active application view to the home page.
+ * @param {{replace?: boolean}} [options={}] - Whether to replace the current history entry.
  * @returns {Promise<void>}
  */
-async function navigateHome() {
+async function navigateHome({replace = false} = {}) {
     if (window.location.pathname !== '/' || window.location.search || window.location.hash) {
-        window.history.pushState(null, '', '/');
+        if (replace) window.history.replaceState(null, '', '/');
+        else window.history.pushState(null, '', '/');
     }
     await switchTab('overview');
 }
+
+window.addEventListener(protectedRouteDeniedEvent, () => {
+    void navigateHome({replace: true});
+});
 
 /**
  * Activate a main app tab: update tab UI, show matching content, and run tab-specific init.
@@ -268,11 +275,12 @@ async function navigateHome() {
  * @returns {Promise<void>}
  */
 export async function switchTab(tabId) {
-    if (isManagerTab(tabId) && !cachedIsManager) tabId = 'overview';
-    if (isAccountTab(tabId) && !cachedIsLoggedIn) {
-        if (accountTabFromPath()) window.history.replaceState(null, '', '/');
+    const routedAccountTab = accountTabFromPath();
+    if (!cachedIsLoggedIn && (isAccountTab(tabId) || routedAccountTab)) {
+        if (routedAccountTab) window.history.replaceState(null, '', '/');
         tabId = 'overview';
     }
+    if (isManagerTab(tabId) && !cachedIsManager) tabId = 'overview';
     if (tabId === 'overview' && profileRouteFromPath(window.location.pathname)) {
         tabId = 'profile';
     }

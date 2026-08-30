@@ -23,6 +23,7 @@ import {openAuditLogsDialog} from './audit.js';
 import {morphElementHeight} from '@renop/ui/height-anim';
 import {formatTimestamp, timestampMilliseconds} from './time.js';
 import {responseErrorMessage} from './response-errors.js';
+import {exitProtectedRouteOnDenial} from './protected-route.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -623,8 +624,8 @@ export async function fetchTokens() {
 
             renderUsersPage();
             setupUsersSearch();
-        } else if (response.status === 401 || response.status === 403) {
-            logout('kicked');
+        } else if (exitProtectedRouteOnDenial(response)) {
+            if (response.status === 401) void logout('kicked');
         }
     } catch (e) {
         console.error('Failed to fetch tokens', e);

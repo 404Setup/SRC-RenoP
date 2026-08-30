@@ -17,6 +17,7 @@ import {t} from './i18n.js';
 import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
 import {RepositoryUserSuggestions} from './browser/user-suggestions.js';
 import {SUPER_TEAM_ERROR_KEYS} from './super-team-errors.js';
+import {exitProtectedRouteOnDenial} from './protected-route.js';
 
 const routeRoot = '/account/teams';
 const pageSize = 12;
@@ -280,6 +281,7 @@ async function loadList() {
             apiRequest(`/api/super-teams?limit=${pageSize}&offset=${listOffset}`),
             apiRequest('/api/super-teams/limits'),
         ]);
+        if (exitProtectedRouteOnDenial(teamsResponse) || exitProtectedRouteOnDenial(limitsResponse)) return;
         if (!teamsResponse.ok) throw await localizedResponseError(teamsResponse, 'superTeam.loadFailed', {}, SUPER_TEAM_ERROR_KEYS);
         if (!limitsResponse.ok) throw await localizedResponseError(limitsResponse, 'superTeam.loadFailed', {}, SUPER_TEAM_ERROR_KEYS);
         const [payload, limits] = await Promise.all([teamsResponse.json(), limitsResponse.json()]);
@@ -306,6 +308,7 @@ async function loadList() {
         await replaceContent(toolbar, list, pager(total));
     } catch (error) {
         if (generation !== loadGeneration) return;
+        if (error?.message === 'Unauthorized') return;
         console.error('Failed to load global teams', error);
         await replaceContent(el('div', {class: 'super-team-state is-error'},
             createIcon('warning'), el('span', {}, caughtErrorMessage(error, 'superTeam.loadFailed'))));
@@ -512,6 +515,7 @@ async function loadDetails(prefix) {
     await replaceContent(loadingState());
     try {
         const response = await apiRequest(`/api/super-teams/${encodeURIComponent(prefix)}`);
+        if (exitProtectedRouteOnDenial(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'superTeam.loadFailed', {}, SUPER_TEAM_ERROR_KEYS);
         const details = await response.json();
         if (generation !== loadGeneration) return;
@@ -556,6 +560,7 @@ async function loadDetails(prefix) {
         await replaceContent(hero, memberSection);
     } catch (error) {
         if (generation !== loadGeneration) return;
+        if (error?.message === 'Unauthorized') return;
         console.error('Failed to load global team', error);
         await replaceContent(el('div', {class: 'super-team-state is-error'},
             createIcon('warning'), el('span', {}, caughtErrorMessage(error, 'superTeam.loadFailed'))));

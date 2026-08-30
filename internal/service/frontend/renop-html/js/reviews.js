@@ -15,6 +15,7 @@ import {REVIEW_ERROR_KEYS} from './review-errors.js';
 import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
 import {createSuperTeamBindingField} from './super-team-selector.js';
 import {formatTimestamp} from './time.js';
+import {exitProtectedRouteOnDenial} from './protected-route.js';
 
 const routeRoot = '/account/reviews';
 const pageSize = 15;
@@ -547,6 +548,7 @@ async function loadTasks({refreshToolbar = false} = {}) {
     if (activeTypes.size > 0) query.set('types', [...activeTypes].join(','));
     try {
         const response = await requestReview(`/api/reviews?${query}`);
+        if (exitProtectedRouteOnDenial(response)) return;
         if (!response.ok) throw await localizedResponseError(response, 'review.loadFailed', {}, REVIEW_ERROR_KEYS);
         const payload = await response.json();
         if (generation !== loadGeneration) return;
@@ -564,6 +566,7 @@ async function loadTasks({refreshToolbar = false} = {}) {
         await replaceContent(list, pager(total));
     } catch (error) {
         if (generation !== loadGeneration) return;
+        if (error?.message === 'Unauthorized') return;
         await replaceContent(el('div', {class: 'review-state is-error'},
             createIcon('warning'), el('span', {}, caughtErrorMessage(error, 'review.loadFailed'))));
     }

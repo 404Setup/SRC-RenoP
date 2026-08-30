@@ -826,7 +826,7 @@ func TestSharedShellRoutingAvatarCodeAndSearchAnimations(t *testing.T) {
 		t.Fatal(err)
 	}
 	mainText := string(mainSource)
-	for _, required := range []string{"async function navigateHome()", "window.history.pushState(null, '', '/')", "await switchTab('overview')"} {
+	for _, required := range []string{"async function navigateHome({replace = false} = {})", "window.history.pushState(null, '', '/')", "window.history.replaceState(null, '', '/')", "await switchTab('overview')"} {
 		if !strings.Contains(mainText, required) {
 			t.Fatalf("home navigation is missing %q", required)
 		}
@@ -1085,23 +1085,26 @@ func TestIndexAndConditionalAssetsRetainCacheSafetyHeaders(t *testing.T) {
 	}
 }
 
-func TestUserProfileRouteServesSPAIndex(t *testing.T) {
+func TestRoutedPagesServeSPAIndex(t *testing.T) {
 	state := core.NewAppState()
 	state.Inner.Config.Store(config.DefaultConfig())
 	app := fiber.New()
 	SetupFrontendRoutes(app, state)
-	for _, path := range []string{"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker"} {
+	for _, path := range []string{
+		"/user/alice", "/user/alice/edit", "/user/alice/maven", "/user/alice/cargo", "/user/alice/docker", "/user/alice/npm",
+		"/account/reviews", "/account/teams", "/account/teams/core", "/account/maven-domains", "/account/maven-domains/com.example",
+	} {
 		response, err := app.Test(httptest.NewRequest(http.MethodGet, path, nil))
 		if err != nil {
 			t.Fatal(err)
 		}
 		if response.StatusCode != http.StatusOK {
 			_ = response.Body.Close()
-			t.Fatalf("profile route %s status = %d, want 200", path, response.StatusCode)
+			t.Fatalf("routed page %s status = %d, want 200", path, response.StatusCode)
 		}
 		if contentType := response.Header.Get(fiber.HeaderContentType); !strings.HasPrefix(contentType, "text/html") {
 			_ = response.Body.Close()
-			t.Fatalf("profile route %s Content-Type = %q, want text/html", path, contentType)
+			t.Fatalf("routed page %s Content-Type = %q, want text/html", path, contentType)
 		}
 		if err := response.Body.Close(); err != nil {
 			t.Fatal(err)

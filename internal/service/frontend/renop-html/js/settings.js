@@ -26,6 +26,7 @@ import {
     createToggleRow
 } from './components.js';
 import {logout} from './auth.js';
+import {exitProtectedRouteOnDenial} from './protected-route.js';
 import {restartApp} from './dashboard.js';
 import {
     caughtErrorMessage,
@@ -104,8 +105,8 @@ export async function initSettings() {
             if (targetDomain) {
                 await loadDomainSettings(targetDomain, 'none');
             }
-        } else if (response.status === 401 || response.status === 403) {
-            logout('kicked');
+        } else if (exitProtectedRouteOnDenial(response)) {
+            if (response.status === 401) void logout('kicked');
         }
     } catch (e) {
         console.error('Failed to load settings', e);
@@ -244,7 +245,8 @@ async function loadDomainSettings(domain, direction = 'next') {
             })));
             const denied = results.find(({result}) => result.response.status === 401 || result.response.status === 403);
             if (denied) {
-                logout('kicked');
+                exitProtectedRouteOnDenial(denied.result.response);
+                if (denied.result.response.status === 401) void logout('kicked');
                 return;
             }
             const failed = results.find(({result}) => !result.response.ok || !result.data);
@@ -291,8 +293,8 @@ async function loadDomainSettings(domain, direction = 'next') {
             }
             const saveBtn = document.getElementById('settings-save-btn');
             if (saveBtn) saveBtn.disabled = true;
-        } else if (response.status === 401 || response.status === 403) {
-            logout('kicked');
+        } else if (exitProtectedRouteOnDenial(response)) {
+            if (response.status === 401) void logout('kicked');
         }
     } catch (e) {
         console.error('Failed to load domain settings', e);

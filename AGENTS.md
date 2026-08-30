@@ -237,7 +237,11 @@
   remains an ordinary authorization result unless a caller explicitly opts into logout; concurrent permission failures
   therefore cannot clear a valid browser session or start a route-reset loop.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
-  loads. `js/reviews.js` owns the routed `/account/reviews` center, shared cross-engine transfer dialog, multi-type
+  loads. Protected account loaders signal the route boundary through `js/protected-route.js`; session expiry and
+  permission denial replace the current history entry exactly once before any logout-triggered tab refresh, while
+  explicit SPA routes bypass anonymous anomaly throttling without exempting their API calls. Valid authenticated 403
+  responses never increment credential-failure counters. `js/reviews.js` owns the routed `/account/reviews` center,
+  shared cross-engine transfer dialog, multi-type
   filtering, requester/reviewer views, pagination, and responsive height animation without using the message center.
   The same center downloads Maven review files with at most four adaptive workers, retries failures twice, assembles
   successful sets into a browser-side ZIP with a lazily loaded `fflate`, and falls back to direct critical-file

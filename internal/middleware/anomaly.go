@@ -185,14 +185,39 @@ func isVerifiedAuthenticatedRequest(c fiber.Ctx, state *core.AppState) bool {
 	return false
 }
 
-func isStaticFrontendPath(reqPath string) bool {
+func isFrontendShellOrAssetPath(reqPath string) bool {
 	cleaned := path.Clean(reqPath)
-	return cleaned == "/" ||
+	if cleaned == "/" ||
 		cleaned == "/index.html" ||
 		strings.HasPrefix(cleaned, "/assets/") ||
 		strings.HasPrefix(cleaned, "/js/") ||
 		strings.HasPrefix(cleaned, "/css/") ||
-		strings.HasPrefix(cleaned, "/svg/")
+		strings.HasPrefix(cleaned, "/svg/") {
+		return true
+	}
+	if strings.HasPrefix(cleaned, "/user/") {
+		remainder := strings.TrimPrefix(cleaned, "/user/")
+		separator := strings.IndexByte(remainder, '/')
+		if separator < 0 {
+			return remainder != ""
+		}
+		if separator == 0 || strings.Contains(remainder[separator+1:], "/") {
+			return false
+		}
+		section := remainder[separator+1:]
+		return section == "edit" || section == "maven" || section == "cargo" ||
+			section == "docker" || section == "npm"
+	}
+	if cleaned == "/account/reviews" || cleaned == "/account/teams" || cleaned == "/account/maven-domains" {
+		return true
+	}
+	for _, prefix := range [...]string{"/account/teams/", "/account/maven-domains/"} {
+		if strings.HasPrefix(cleaned, prefix) {
+			remainder := strings.TrimPrefix(cleaned, prefix)
+			return remainder != "" && !strings.Contains(remainder, "/")
+		}
+	}
+	return false
 }
 
 func AnomalyMiddleware(state *core.AppState) fiber.Handler {
@@ -213,7 +238,7 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 			defer state.Inner.ActiveRequests.Add(^uint64(0))
 		}
 
-		if (c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead) && isStaticFrontendPath(c.Path()) {
+		if (c.Method() == fiber.MethodGet || c.Method() == fiber.MethodHead) && isFrontendShellOrAssetPath(c.Path()) {
 			return c.Next()
 		}
 
@@ -224,7 +249,8 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 			return c.SendStatus(fiber.StatusForbidden)
 		}
 
-		if !isVerifiedAuthenticatedRequest(c, state) {
+		verifiedAuthentication := isVerifiedAuthenticatedRequest(c, state)
+		if !verifiedAuthentication {
 			limiter := GlobalIPLimiter.GetLimiter(ip)
 			if !limiter.Allow() {
 				c.Set(fiber.HeaderConnection, "close")
@@ -241,7 +267,7 @@ func AnomalyMiddleware(state *core.AppState) fiber.Handler {
 			}
 		}
 
-		if status == fiber.StatusUnauthorized || status == fiber.StatusForbidden {
+		if !verifiedAuthentication && (status == fiber.StatusUnauthorized || status == fiber.StatusForbidden) {
 			authHeader := c.Get(fiber.HeaderAuthorization, "")
 			cookie := c.Cookies("renop_session", "")
 			isAuthPath := strings.HasPrefix(c.Path(), "/api/auth/") || strings.HasPrefix(c.Path(), "/api/token/")

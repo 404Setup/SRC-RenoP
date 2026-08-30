@@ -18,6 +18,7 @@ import {formatTimestamp} from './time.js';
 import {refreshMessageUnreadCount} from './messages.js';
 import {updaterErrorMessage} from './updater-errors.js';
 import {responseErrorMessage} from './response-errors.js';
+import {exitProtectedRouteOnDenial} from './protected-route.js';
 
 let refreshInterval = null;
 let snapshotsInterval = null;
@@ -316,8 +317,8 @@ export async function fetchInstanceStatus() {
             }
 
             updateDebugMemoryTools(!!data.debug_mode);
-        } else if (response.status === 401 || response.status === 403) {
-            logout('kicked');
+        } else if (exitProtectedRouteOnDenial(response)) {
+            if (response.status === 401) void logout('kicked');
         }
     } catch (e) {
         console.error('Failed to fetch instance status', e);
