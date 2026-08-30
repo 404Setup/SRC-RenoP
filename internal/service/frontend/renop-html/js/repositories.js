@@ -89,10 +89,11 @@ function renderRepositoriesSkeleton() {
 export async function initRepositories() {
     renderRepositoriesSkeleton();
     try {
-        const [repositoriesResult, proxyResult, statisticsResponse] = await Promise.all([
+        const [repositoriesResult, proxyResult, statisticsResponse, reviewResponse] = await Promise.all([
             fetchProto('/api/settings/repositories', MavenRepositoriesResponse),
             fetchProto('/api/settings/domain/proxy', ProxyConfig),
-            apiRequest('/api/settings/repositories/download-statistics')
+            apiRequest('/api/settings/repositories/download-statistics'),
+            apiRequest('/api/settings/repositories/publication-reviews')
         ]);
         const {response, data} = repositoriesResult;
         if (proxyResult.response.ok && proxyResult.data) {
@@ -105,10 +106,16 @@ export async function initRepositories() {
                 const payload = await statisticsResponse.json();
                 statistics = payload?.repositories || {};
             }
+            let reviews = {};
+            if (reviewResponse.ok) {
+                const payload = await reviewResponse.json();
+                reviews = payload?.repositories || {};
+            }
             for (const [name, repository] of Object.entries(repos)) {
                 repository._download_statistics_enabled = typeof statistics[name] === 'boolean'
                     ? statistics[name]
                     : getRepositoryFormat(repository.format).protocol !== 'files';
+                repository._publication_review = typeof reviews[name] === 'string' ? reviews[name] : 'off';
             }
             currentConfig = {repositories: repos};
             initialReposMap = JSON.parse(JSON.stringify(repos));
@@ -327,6 +334,9 @@ function repositoryMigrationErrorMessage(response) {
     if (response.headers.get('X-Renop-Error-Code') === 'repository_migration_pending_gpg') {
         return t('repos.migrationPendingGpg');
     }
+    if (response.headers.get('X-Renop-Error-Code') === 'repository_migration_pending_review') {
+        return t('repos.migrationPendingReview');
+    }
     return t('repos.migrationFailed');
 }
 
@@ -519,6 +529,50 @@ function buildRepoSection(container, data, repoKey, repo) {
         saveRepoSettings(repoKey, repo);
     }
 
+    /**
+     * Persist the Maven publication-review policy independently from protobuf repository settings.
+     * @param {string} policy - `off`, `new_packages`, or `every_version`.
+     * @param {HTMLElement} control - Custom-select host.
+     * @returns {Promise<void>} Completion.
+     */
+    async function handlePublicationReviewChange(policy, control) {
+        const previous = repo._publication_review || 'off';
+        const button = control.querySelector('button');
+        control.setAttribute('aria-busy', 'true');
+        if (button) button.disabled = true;
+        try {
+            const response = await apiRequest(
+                `/api/settings/repositories/${encodeURIComponent(repoKey)}/publication-review`, {
+                    method: 'PUT', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({policy})
+                }
+            );
+            if (!response.ok) {
+                showAlert(await responseErrorMessage(response, 'repos.publicationReviewUpdateFailed'), 'error');
+                control.setValue(previous);
+                return;
+            }
+            repo._publication_review = policy;
+            if (policy !== 'off') {
+                repo.allow_redeployment = false;
+                if (redeploymentToggle) {
+                    redeploymentToggle.checked = false;
+                    redeploymentToggle.setAttribute('disabled', '');
+                }
+            } else if (redeploymentToggle) {
+                redeploymentToggle.removeAttribute('disabled');
+            }
+            showAlert(t('repos.publicationReviewSaved'), 'success');
+        } catch (error) {
+            console.error('Failed to update publication review policy', error);
+            control.setValue(previous);
+            showAlert(t('repos.publicationReviewUpdateFailed'), 'error');
+        } finally {
+            control.removeAttribute('aria-busy');
+            if (button) button.disabled = false;
+        }
+    }
+
     const visSelect = makeCustomSelect(
         visOptions,
         repo.visibility || 'PUBLIC',
@@ -534,13 +588,19 @@ function buildRepoSection(container, data, repoKey, repo) {
         fields.appendChild(makeFieldRow(t('repos.mavenLayout'), t('repos.mavenLayoutDesc'), layoutSelect));
     }
 
+    let redeploymentToggle = null;
     if (format.supportsRedeployment) {
-        fields.appendChild(makeToggleRow(
+        const redeploymentRow = makeToggleRow(
             t('repos.allowRedeploy'),
             t('repos.allowRedeployDesc'),
             repo.allow_redeployment === true,
             handleRedeploymentChange
-        ));
+        );
+        redeploymentToggle = redeploymentRow.querySelector('renop-toggle');
+        if (repo._publication_review && repo._publication_review !== 'off') {
+            redeploymentToggle?.setAttribute('disabled', '');
+        }
+        fields.appendChild(redeploymentRow);
     }
     if (format.supportsGpg) {
         fields.appendChild(makeToggleRow(
@@ -548,6 +608,19 @@ function buildRepoSection(container, data, repoKey, repo) {
             t('repos.requireGpgSignatureDesc'),
             repo.require_gpg_signature === true,
             handleGpgRequirementChange
+        ));
+    }
+    if (format.protocol === 'maven') {
+        let reviewSelect = null;
+        reviewSelect = makeCustomSelect([
+            {value: 'off', label: t('repos.publicationReviewOff')},
+            {value: 'new_packages', label: t('repos.publicationReviewNewPackages')},
+            {value: 'every_version', label: t('repos.publicationReviewEveryVersion')}
+        ], repo._publication_review || 'off', value => {
+            void handlePublicationReviewChange(value, reviewSelect);
+        });
+        fields.appendChild(makeFieldRow(
+            t('repos.publicationReview'), t('repos.publicationReviewDesc'), reviewSelect
         ));
     }
     fields.append(...buildDownloadStatisticsControls(repoKey, repo));

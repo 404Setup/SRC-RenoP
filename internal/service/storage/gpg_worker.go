@@ -618,10 +618,13 @@ func publishGPGRelease(state *core.AppState, release *core.GPGRelease) error {
 			return err
 		}
 	}
-	if repo.NormalizedFormat() == "maven" && MavenPublicationRecorder != nil {
-		if err := MavenPublicationRecorder(state, release.Repository, release.ArtifactPath, release.Uploader,
-			release.ArtifactSize, release.ArtifactModTime); err != nil {
-			log.Printf("failed to update Maven catalog for verified publication %s: %v", release.ArtifactPath, err)
+	if repo.NormalizedFormat() == "maven" && MavenPublicationProcessor != nil {
+		files, err := publicationReviewFilesForRelease(state, release)
+		if err != nil {
+			return err
+		}
+		if _, err := MavenPublicationProcessor(state, repo, release.Uploader, files); err != nil {
+			return fmt.Errorf("record verified Maven publication %s: %w", release.ArtifactPath, err)
 		}
 	}
 

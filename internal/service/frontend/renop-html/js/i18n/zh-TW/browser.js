@@ -51,6 +51,7 @@ export default Object.freeze({
     "browser.failedDelete": "刪除檔案失敗。",
     "browser.deleteSuccess": "已成功刪除 \"{name}\"",
     "browser.uploadedSuccess": "成功上傳 {name}",
+    "browser.uploadQueuedReview": "已上傳 {name}，正在等待審核",
     "browser.failedUpload": "上傳 {name} 失敗",
     "browser.failedGenPom": "產生 POM 失敗",
     "browser.fillPomFields": "請填寫所有 POM 欄位",

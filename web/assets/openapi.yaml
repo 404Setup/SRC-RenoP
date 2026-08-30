@@ -1501,7 +1501,7 @@ components:
       required: [id, kind, resource_type, resource_key, resource_name, review_team_prefix, requested_by, status, created_at]
       properties:
         id: { type: string, format: uuid }
-        kind: { type: string, enum: [super_team_transfer] }
+        kind: { type: string, enum: [super_team_transfer, publication] }
         resource_type:
           type: string
           enum: [docker_image, npm_package, cargo_package, maven_artifact, maven_domain]
@@ -1514,6 +1514,7 @@ components:
         resource_name:
           type: string
           maxLength: 512
+        resource_version: { type: string, maxLength: 255 }
         source_team_prefix: { type: string, maxLength: 64 }
         target_team_prefix: { type: string, maxLength: 64 }
         review_team_prefix: { type: string, maxLength: 64 }
@@ -1522,10 +1523,24 @@ components:
         decision_reason:
           type: string
           maxLength: 512
-          description: Present only for a user-entered rejection reason or an internal cancellation record.
+          description: Preset publication reasons use `preset:<code>`; custom reasons use `custom:<text>`; transfers retain their reason text.
         decided_by: { type: string }
         created_at: { type: integer, format: int64 }
+        updated_at: { type: integer, format: int64 }
         decided_at: { type: integer, format: int64 }
+        file_count: { type: integer, minimum: 0, maximum: 256 }
+        total_size: { type: integer, format: int64, minimum: 0 }
+
+    ReviewFile:
+      type: object
+      required: [id, path, name, size, critical, added_at]
+      properties:
+        id: { type: string, pattern: "^[a-f0-9]{64}$" }
+        path: { type: string, maxLength: 1024 }
+        name: { type: string }
+        size: { type: integer, format: int64, minimum: 0 }
+        critical: { type: boolean }
+        added_at: { type: integer, format: int64 }
 
     ReviewTaskPage:
       type: object
@@ -3739,10 +3754,11 @@ paths:
   /api/reviews:
     get:
       tags: [reviews]
-      summary: List ownership review tasks
+      summary: List review tasks
       description: >
-        Returns a bounded reviewer or requester page. Reviewer pages contain only tasks for teams where the caller is
-        currently T3 or T4. This route accepts a browser session only; Basic credentials and Bearer API tokens are denied.
+        Returns a bounded reviewer or requester page. Team transfers are visible to current T3/T4 team managers;
+        publication reviews are visible to repository-scoped moderators and system administrators. This route accepts
+        a browser session only; Basic credentials and Bearer API tokens are denied.
       operationId: listReviewTasks
       security:
         - sessionCookie: []
@@ -3810,9 +3826,9 @@ paths:
       tags: [reviews]
       summary: Decide one pending review
       description: >
-        A T3 or T4 manager of the reviewing team or a system administrator may approve or reject. A requester who has
-        reviewer authority may decide their own task.
-        Rejection requires a reason. A pending-state compare-and-set guarantees that only one decision is applied.
+        A T3/T4 manager decides team transfers. A repository moderator or system administrator decides publication
+        reviews after the five-second upload-settling window. Publication rejection uses a preset reason or a bounded
+        custom reason. A pending-state compare-and-set guarantees that only one decision is applied.
       operationId: decideReviewTask
       security:
         - sessionCookie: []
@@ -3829,8 +3845,12 @@ paths:
                 decision: { type: string, enum: [approved, rejected] }
                 reason:
                   type: string
-                  maxLength: 512
-                  description: Required and non-empty when `decision` is `rejected`; ignored for approval.
+                  maxLength: 505
+                  description: Required for a custom publication rejection or any transfer rejection; ignored for approval.
+                reason_code:
+                  type: string
+                  enum: [invalid_metadata, quality, policy_violation, copyright, malware, custom]
+                  description: Required for publication rejection. `custom` also requires `reason`.
       responses:
         "200":
           description: Review decided and approved ownership applied atomically when requested.
@@ -3840,13 +3860,60 @@ paths:
         "400": { description: Invalid decision or missing rejection reason. }
         "403": { description: The caller is not an eligible independent reviewer. }
         "404": { description: Review task not found. }
-        "409": { description: Another manager decided the task or the resource changed. }
+        "409": { description: Another reviewer decided the task, the resource changed, or files are still arriving. }
+
+  /api/reviews/{id}/files:
+    get:
+      tags: [reviews]
+      summary: List publication review files
+      description: Returns the bounded repository-relative file list to the requester, assigned repository moderator, or system administrator.
+      operationId: listReviewFiles
+      security:
+        - sessionCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Review file list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [task_id, files, total]
+                properties:
+                  task_id: { type: string, format: uuid }
+                  files:
+                    type: array
+                    maxItems: 256
+                    items: { $ref: "#/components/schemas/ReviewFile" }
+                  total: { type: integer, minimum: 0, maximum: 256 }
+        "403": { description: The caller cannot inspect this publication. }
+        "404": { description: Review task not found. }
+
+  /api/reviews/{id}/files/{file_id}:
+    get:
+      tags: [reviews]
+      summary: Download one hidden publication review file
+      operationId: downloadReviewFile
+      security:
+        - sessionCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: file_id, in: path, required: true, schema: { type: string, pattern: "^[a-f0-9]{64}$" } }
+      responses:
+        "200":
+          description: Hidden review file stream.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "403": { description: The caller cannot inspect this publication. }
+        "404": { description: Review task or file not found. }
 
   /api/reviews/{id}:
     delete:
       tags: [reviews]
       summary: Cancel a pending review request
-      description: Only the original requester may cancel a task, and only while it remains pending.
+      description: Only the original requester may cancel a pending ownership-transfer task. Publication reviews cannot be cancelled through this route.
       operationId: cancelReviewTask
       security:
         - sessionCookie: []
@@ -4789,6 +4856,7 @@ paths:
           $ref: "#/components/responses/PlainBadRequest"
         "403":
           $ref: "#/components/responses/PlainForbidden"
+        "409": { description: Repository has a pending publication review. }
     delete:
       tags: [settings]
       summary: Remove a repository from configuration
@@ -4813,6 +4881,7 @@ paths:
                 example: ""
         "403":
           $ref: "#/components/responses/PlainForbidden"
+        "409": { description: Repository has a pending publication review. }
 
   /api/settings/repositories/download-statistics:
     get:
@@ -4834,6 +4903,61 @@ paths:
                     type: object
                     additionalProperties:
                       type: boolean
+
+  /api/settings/repositories/publication-reviews:
+    get:
+      tags: [settings, reviews]
+      summary: Read repository publication-review policies
+      description: Maven repositories return `off`, `new_packages`, or `every_version`; other engines currently return `off`.
+      operationId: getRepositoryPublicationReviewSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Effective policy keyed by repository name.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repositories:
+                    type: object
+                    additionalProperties:
+                      type: string
+                      enum: [off, new_packages, every_version]
+
+  /api/settings/repositories/{name}/publication-review:
+    put:
+      tags: [settings, reviews]
+      summary: Configure Maven publication review
+      description: Enabling review disables Maven redeployment. Existing pending reviews remain actionable when the policy changes.
+      operationId: putRepositoryPublicationReviewSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [policy]
+              properties:
+                policy:
+                  type: string
+                  enum: [off, new_packages, every_version]
+      responses:
+        "200": { description: Effective repository policy. }
+        "400": { description: Invalid repository name or policy. }
+        "403": { description: Manager permission required. }
+        "404": { description: Repository not found. }
+        "409": { description: Repository engine does not support publication review, or a pending task prevents policy changes. }
 
   /api/settings/repositories/{name}/download-statistics:
     put:

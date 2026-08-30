@@ -23,14 +23,17 @@ import (
 	"renop/internal/service/docker"
 	"renop/internal/service/maven"
 	"renop/internal/service/npm"
+	"renop/internal/service/repositorygate"
+	"renop/internal/service/storage"
 	"renop/internal/utils"
 )
 
 const maxReviewRequestBytes = 16 << 10
 
 type decisionRequest struct {
-	Decision string `json:"decision"`
-	Reason   string `json:"reason"`
+	Decision   string `json:"decision"`
+	ReasonCode string `json:"reason_code"`
+	Reason     string `json:"reason"`
 }
 
 func reviewError(c fiber.Ctx, err error) error {
@@ -47,6 +50,14 @@ func reviewError(c fiber.Ctx, err error) error {
 		status, code = fiber.StatusConflict, "review_exists"
 	case errors.Is(err, core.ErrReviewTaskConflict):
 		status, code = fiber.StatusConflict, "review_decided"
+	case errors.Is(err, core.ErrReviewPublicationActive):
+		status, code = fiber.StatusConflict, "publication_active"
+	case errors.Is(err, core.ErrReviewPublicationSealed):
+		status, code = fiber.StatusConflict, "publication_sealed"
+	case errors.Is(err, core.ErrReviewFileNotFound):
+		status, code = fiber.StatusNotFound, "review_file_not_found"
+	case errors.Is(err, core.ErrReviewFileLimit):
+		status, code = fiber.StatusTooManyRequests, "review_limit"
 	case errors.Is(err, core.ErrReviewInvalidRequest):
 		status, code = fiber.StatusBadRequest, "invalid_request"
 	case errors.Is(err, core.ErrReviewPermissionDenied), errors.Is(err, core.ErrSuperTeamBindingPermission):
@@ -201,8 +212,17 @@ func listTasks(c fiber.Ctx, state *core.AppState) error {
 			types = append(types, value)
 		}
 	}
+	moderatedRepositories := make([]string, 0)
+	moderateAll := false
+	if !administrator {
+		user := auth.GetUser(c)
+		if user != nil {
+			moderateAll, moderatedRepositories = user.ModerationScope()
+		}
+	}
 	tasks, total, err := state.GetDB().ListReviewTasks(core.ReviewTaskListOptions{
 		Username: username, RequestedView: view == "requested", Administrator: administrator, ResourceTypes: types,
+		ModerateAll: moderateAll, ModeratedRepositories: moderatedRepositories,
 		Status: status, Limit: limit, Offset: offset,
 	})
 	if err != nil {
@@ -214,6 +234,152 @@ func listTasks(c fiber.Ctx, state *core.AppState) error {
 	})
 }
 
+func publicationDecisionReason(request decisionRequest) (string, bool) {
+	code := strings.ToLower(strings.TrimSpace(request.ReasonCode))
+	switch code {
+	case "malware", "policy_violation", "invalid_metadata", "copyright", "quality":
+		return "preset:" + code, true
+	case "custom":
+		reason, valid := core.NormalizeSuperTeamText(request.Reason, 505, false)
+		if !valid || reason == "" {
+			return "", false
+		}
+		return "custom:" + reason, true
+	default:
+		return "", false
+	}
+}
+
+func canInspectPublicationTask(c fiber.Ctx, state *core.AppState, task *core.ReviewTask) (bool, error) {
+	user := auth.GetUser(c)
+	if user == nil || task == nil || state == nil || state.GetDB() == nil {
+		return false, nil
+	}
+	if user.IsManager() || user.CheckModeratePermission(task.Repository) {
+		return true, nil
+	}
+	profile, err := state.GetDB().GetUserProfile(user.Username)
+	if err != nil {
+		return false, err
+	}
+	return profile.UserID == task.RequestedByID, nil
+}
+
+func reviewFiles(c fiber.Ctx, state *core.AppState) error {
+	if _, _, err := currentUser(c); err != nil {
+		return reviewError(c, err)
+	}
+	task, err := state.GetDB().GetReviewTask(c.Params("id"))
+	if err != nil {
+		return reviewError(c, err)
+	}
+	allowed, err := canInspectPublicationTask(c, state, task)
+	if err != nil {
+		return reviewError(c, err)
+	}
+	if task.Kind != core.ReviewKindPublication || !allowed {
+		return reviewError(c, core.ErrReviewPermissionDenied)
+	}
+	files, err := state.GetDB().ListReviewTaskFiles(task.ID)
+	if err != nil {
+		return reviewError(c, err)
+	}
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	return c.JSON(fiber.Map{"task_id": task.ID, "files": files, "total": len(files)})
+}
+
+func downloadReviewFile(c fiber.Ctx, state *core.AppState) error {
+	if _, _, err := currentUser(c); err != nil {
+		return reviewError(c, err)
+	}
+	task, err := state.GetDB().GetReviewTask(c.Params("id"))
+	if err != nil {
+		return reviewError(c, err)
+	}
+	allowed, err := canInspectPublicationTask(c, state, task)
+	if err != nil {
+		return reviewError(c, err)
+	}
+	if task.Kind != core.ReviewKindPublication || task.Status != core.ReviewStatusPending || !allowed {
+		return reviewError(c, core.ErrReviewPermissionDenied)
+	}
+	files, err := state.GetDB().ListReviewTaskFiles(task.ID)
+	if err != nil {
+		return reviewError(c, err)
+	}
+	fileID := strings.TrimSpace(c.Params("file_id"))
+	for _, file := range files {
+		if file != nil && file.ID == fileID {
+			c.Set(fiber.HeaderCacheControl, "private, no-store")
+			if err := storage.ServePublicationReviewFile(c, state, file); err != nil {
+				return reviewError(c, err)
+			}
+			return nil
+		}
+	}
+	return reviewError(c, core.ErrReviewFileNotFound)
+}
+
+func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
+	task *core.ReviewTask, request decisionRequest,
+) (*core.ReviewTask, error) {
+	user := auth.GetUser(c)
+	if user == nil || !user.CheckModeratePermission(task.Repository) {
+		return nil, core.ErrReviewPermissionDenied
+	}
+	decision := strings.ToLower(strings.TrimSpace(request.Decision))
+	reason := ""
+	if decision == core.ReviewStatusRejected {
+		var valid bool
+		reason, valid = publicationDecisionReason(request)
+		if !valid {
+			return nil, core.ErrReviewInvalidRequest
+		}
+	}
+	release := repositorygate.AcquireMutation(task.Repository)
+	defer release()
+	current, err := state.GetDB().GetReviewTask(task.ID)
+	if err != nil {
+		return nil, err
+	}
+	if current.Status != core.ReviewStatusPending {
+		return nil, core.ErrReviewTaskConflict
+	}
+	now := time.Now().UnixMilli()
+	if now-current.UpdatedAt < core.PublicationReviewSettleMillis {
+		return nil, core.ErrReviewPublicationActive
+	}
+	files, err := state.GetDB().ListReviewTaskFiles(current.ID)
+	if err != nil {
+		return nil, err
+	}
+	if decision == core.ReviewStatusRejected {
+		if err := storage.DeletePublicationReviewFiles(state, files); err != nil {
+			return nil, err
+		}
+		return state.GetDB().DecideReviewTask(current.ID, username, decision, reason, now)
+	}
+	if decision != core.ReviewStatusApproved {
+		return nil, core.ErrReviewInvalidRequest
+	}
+	switch current.ResourceType {
+	case core.ReviewResourceMavenArtifact:
+		if err := maven.ApprovePublicationReview(state, current); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, core.ErrReviewInvalidRequest
+	}
+	decided, err := state.GetDB().DecideReviewTask(current.ID, username, decision, "", now)
+	if err != nil {
+		return nil, errors.Join(err, maven.RemoveApprovedPublicationMetadata(state, current))
+	}
+	if err := storage.UnblockPublicationReviewFiles(state, files); err != nil {
+		return nil, err
+	}
+	return decided, nil
+}
+
 func decideTask(c fiber.Ctx, state *core.AppState) error {
 	username, _, err := currentUser(c)
 	if err != nil {
@@ -223,8 +389,17 @@ func decideTask(c fiber.Ctx, state *core.AppState) error {
 	if err := utils.ReadJSONLimited(c, &request, maxReviewRequestBytes); err != nil {
 		return reviewError(c, fiber.ErrBadRequest)
 	}
-	task, err := state.GetDB().DecideReviewTask(
-		c.Params("id"), username, request.Decision, request.Reason, time.Now().UnixMilli())
+	existing, err := state.GetDB().GetReviewTask(c.Params("id"))
+	if err != nil {
+		return reviewError(c, err)
+	}
+	var task *core.ReviewTask
+	if existing.Kind == core.ReviewKindPublication {
+		task, err = decidePublicationTask(c, state, username, existing, request)
+	} else {
+		task, err = state.GetDB().DecideReviewTask(
+			existing.ID, username, request.Decision, request.Reason, time.Now().UnixMilli())
+	}
 	if err != nil {
 		if task != nil && errors.Is(err, core.ErrReviewResourceConflict) {
 			c.Set("X-Renop-Error-Code", "resource_changed")
@@ -255,6 +430,8 @@ func SetupRoutes(router fiber.Router, state *core.AppState) {
 	base := router.Group("/reviews")
 	base.Get("", func(c fiber.Ctx) error { return listTasks(c, state) })
 	base.Post("/super-team-transfers", func(c fiber.Ctx) error { return createTransfer(c, state) })
+	base.Get("/:id/files", func(c fiber.Ctx) error { return reviewFiles(c, state) })
+	base.Get("/:id/files/:file_id", func(c fiber.Ctx) error { return downloadReviewFile(c, state) })
 	base.Post("/:id/decision", func(c fiber.Ctx) error { return decideTask(c, state) })
 	base.Delete("/:id", func(c fiber.Ctx) error { return cancelTask(c, state) })
 }

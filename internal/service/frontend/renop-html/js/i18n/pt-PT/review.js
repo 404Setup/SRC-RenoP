@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "Revisões", "review.title": "Revisões", "review.subtitle": "Reveja transferências de equipa fora das notificações.",
+    "review.nav": "Revisões", "review.title": "Revisões", "review.subtitle": "Reveja transferências de propriedade e publicações moderadas fora das notificações.",
     "review.noEligibleTeams": "Não existem equipas elegíveis.", "review.type.docker_image": "Imagem Docker",
     "review.type.npm_package": "Pacote npm", "review.type.cargo_package": "Crate Cargo",
     "review.type.maven_artifact": "Artefacto Maven", "review.type.maven_domain": "Domínio de publicação Maven",
@@ -25,5 +25,18 @@ export default Object.freeze({
     "review.alreadyPending": "Este recurso já tem uma transferência de propriedade pendente.", "review.notFound": "A revisão não foi encontrada.",
     "review.permissionDenied": "Não tem permissão para esta ação.", "review.serviceUnavailable": "Os dados de revisão estão temporariamente indisponíveis.",
     "review.transferRestricted": "Uma imagem Docker com espaço de nomes ou um pacote npm com âmbito não pode voltar à propriedade pessoal.",
+    "review.publicationVersion": "Versão {version}",
+    "review.approvePublicationConfirm": "Aprovar a versão {version} de {resource} para publicação?",
+    "review.rejectPublicationTitle": "Recusar publicação", "review.publicationApproved": "Publicação aprovada.",
+    "review.publicationRejected": "Publicação recusada.", "review.rejectPresetLabel": "Motivo da recusa",
+    "review.rejectPreset.invalid_metadata": "Metadados inválidos ou incompletos", "review.rejectPreset.quality": "Requisitos de qualidade não cumpridos",
+    "review.rejectPreset.policy_violation": "Violação da política do repositório", "review.rejectPreset.copyright": "Questão de direitos de autor ou licença",
+    "review.rejectPreset.malware": "Conteúdo malicioso ou inseguro", "review.rejectPreset.custom": "Motivo personalizado",
+    "review.downloadBundle": "Transferir ficheiros", "review.downloadFailed": "Não foi possível transferir os ficheiros da revisão.",
+    "review.noFiles": "Esta revisão não contém ficheiros transferíveis.",
+    "review.downloadPartial": "Não foi possível transferir {count} ficheiros; os ficheiros essenciais foram abertos separadamente.",
+    "review.publicationActive": "A publicação ainda está a receber ficheiros. Aguarde alguns segundos e tente novamente.",
+    "review.publicationSealed": "Esta versão revista está fechada e não aceita mais ficheiros.",
+    "review.fileNotFound": "O ficheiro da revisão não foi encontrado.", "review.limitReached": "Foi atingido o limite de revisões de publicação.",
     "audit.action.REVIEW_REQUEST": "Revisão pedida", "audit.action.REVIEW_DECISION": "Revisão decidida", "audit.action.REVIEW_CANCEL": "Pedido de revisão cancelado"
 });

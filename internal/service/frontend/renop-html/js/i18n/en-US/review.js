@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
     "review.nav": "Reviews", "review.title": "Reviews",
-    "review.subtitle": "Review team ownership transfers independently from notifications.",
+    "review.subtitle": "Review ownership transfers and moderated publications independently from notifications.",
     "review.noEligibleTeams": "No eligible teams are available.",
     "review.type.docker_image": "Docker image", "review.type.npm_package": "npm package",
     "review.type.cargo_package": "Cargo crate", "review.type.maven_artifact": "Maven artifact",
@@ -33,6 +33,19 @@ export default Object.freeze({
     "review.notFound": "The review was not found.", "review.permissionDenied": "You do not have permission to perform this review action.",
     "review.serviceUnavailable": "Review data is temporarily unavailable.",
     "review.transferRestricted": "A namespaced Docker image or scoped npm package cannot return to personal ownership.",
+    "review.publicationVersion": "Version {version}",
+    "review.approvePublicationConfirm": "Approve {resource} version {version} for publication?",
+    "review.rejectPublicationTitle": "Reject publication", "review.publicationApproved": "Publication approved.",
+    "review.publicationRejected": "Publication rejected.", "review.rejectPresetLabel": "Rejection reason",
+    "review.rejectPreset.invalid_metadata": "Invalid or incomplete metadata", "review.rejectPreset.quality": "Quality requirements not met",
+    "review.rejectPreset.policy_violation": "Repository policy violation", "review.rejectPreset.copyright": "Copyright or licensing concern",
+    "review.rejectPreset.malware": "Malicious or unsafe content", "review.rejectPreset.custom": "Custom reason",
+    "review.downloadBundle": "Download files", "review.downloadFailed": "Could not download the review files.",
+    "review.noFiles": "This review has no downloadable files.",
+    "review.downloadPartial": "{count} files could not be downloaded; critical files were opened separately.",
+    "review.publicationActive": "The publication is still receiving files. Wait a few seconds and try again.",
+    "review.publicationSealed": "This reviewed version is sealed and cannot receive more files.",
+    "review.fileNotFound": "The review file was not found.", "review.limitReached": "The publication review limit was reached.",
     "audit.action.REVIEW_REQUEST": "Review Requested", "audit.action.REVIEW_DECISION": "Review Decided",
     "audit.action.REVIEW_CANCEL": "Review Request Cancelled"
 });

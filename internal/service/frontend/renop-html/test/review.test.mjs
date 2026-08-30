@@ -71,15 +71,33 @@ test('review decisions are durable, administrator-aware, and compare-and-set', (
     const database = repositorySource('internal', 'database', 'review.go');
     const routes = repositorySource('internal', 'service', 'review', 'routes.go');
     assert.match(schema, /CREATE TABLE IF NOT EXISTS review_tasks/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS review_task_files/);
     assert.match(schema, /UNIQUE \(active_key\)/);
     assert.match(clickhouse, /name: "review_tasks"/);
     assert.doesNotMatch(database, /task\.RequestedByID == actorID/);
     assert.match(database, /options\.Administrator/);
-    assert.match(database, /reviewerAdministrator/);
+    assert.match(database, /reviewer\.IsManager\(\)/);
+    assert.match(database, /reviewer\.CheckModeratePermission\(task\.Repository\)/);
     assert.match(database, /requireSuperTeamRoleTx\([\s\S]*?SuperTeamRoleManage/);
     assert.match(database, /WHERE id = \? AND status = \?/);
     assert.match(routes, /CurrentCredentialKind\(c\) != "session"/);
     assert.doesNotMatch(routes, /service\/message|CreateMessage|SendMessage/);
+});
+
+test('publication reviews use bounded parallel downloads and preset rejection reasons', () => {
+    const reviews = frontendSource('js', 'reviews.js');
+    const chunked = frontendSource('js', 'chunked-upload.js');
+    const upload = frontendSource('js', 'browser', 'upload.js');
+    const storage = repositorySource('internal', 'service', 'storage', 'publication_review.go');
+    assert.match(reviews, /await import\('fflate'\)/);
+    assert.match(reviews, /Math\.min\(fileCount, slow \? 1 : hardware >= 4 \? 4 : 2\)/);
+    assert.match(reviews, /attempt < 3/);
+    assert.match(reviews, /triggerCriticalReviewDownloads/);
+    assert.match(reviews, /reason_code: reasonCode/);
+    assert.match(storage, /RestorePublicationReviewState/);
+    assert.match(storage, /ServePublicationReviewFile/);
+    assert.match(chunked, /X-RenoP-Review-ID/);
+    assert.match(upload, /browser\.uploadQueuedReview/);
 });
 
 test('review layouts remain bounded on narrow viewports', () => {

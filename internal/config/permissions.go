@@ -11,6 +11,7 @@
 package config
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/llxisdsh/pb"
@@ -107,6 +108,20 @@ func (u *User) CheckReadPermission(repoName string, path string, repoVisibility 
 func (u *User) CheckModeratePermission(repoName string) bool {
 	u.initPermissions()
 	return u.isAdmin || u.canModerateAll || u.moderateRepos[repoName]
+}
+
+// ModerationScope returns whether every repository is covered and otherwise the exact repository names.
+func (u *User) ModerationScope() (bool, []string) {
+	u.initPermissions()
+	if u.isAdmin || u.canModerateAll {
+		return true, nil
+	}
+	repositories := make([]string, 0, len(u.moderateRepos))
+	for repository := range u.moderateRepos {
+		repositories = append(repositories, repository)
+	}
+	slices.Sort(repositories)
+	return false, repositories
 }
 
 func (u *User) CheckUpdatePermission(repoName string) bool {

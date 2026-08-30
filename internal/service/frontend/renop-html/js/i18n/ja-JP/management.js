@@ -72,6 +72,7 @@ export default Object.freeze({
     "audit.action.LOG_CLEAR": "ログ消去",
     "audit.action.GPG_UPDATE": "GPG キー更新",
     "audit.action.UPLOAD_QUEUED_GPG": "GPG アップロード待機",
+    "audit.action.UPLOAD_QUEUED_REVIEW": "アップロードを審査待ちに登録",
     "audit.action.PROFILE_UPDATE": "プロフィール更新",
     "audit.action.MESSAGE_SEND": "通知送信",
     "audit.action.MAVEN_DOMAIN_CREATE": "Maven ドメイン作成",

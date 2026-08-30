@@ -20,6 +20,8 @@ const commonErrorCodeKeys = Object.freeze({
     GITHUB_LAST_LOGIN_METHOD: 'profile.githubOnlyLogin',
     MAVEN_USER_NOT_FOUND: 'maven.userNotFound',
     repository_migration_pending_gpg: 'repos.migrationPendingGpg',
+    repository_migration_pending_review: 'repos.migrationPendingReview',
+    repository_pending_review: 'repos.pendingReviewMutation',
 });
 const statusErrorKeys = Object.freeze({
     401: 'error.unauthorized',

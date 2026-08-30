@@ -395,6 +395,10 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	if err != nil {
 		sess.Abort()
 		statusCode, message := storage.GPGUploadErrorResponse(err)
+		if errors.Is(err, core.ErrReviewPublicationSealed) || errors.Is(err, core.ErrReviewFileLimit) ||
+			errors.Is(err, core.ErrReviewInvalidRequest) || errors.Is(err, core.ErrReviewPermissionDenied) {
+			statusCode, message = storage.PublicationReviewErrorResponse(err)
+		}
 		return jsonErr(c, statusCode, message)
 	}
 
@@ -410,7 +414,9 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	username, op, authMethod, sessionID, ip := audit.ExtractAuthDetails(c, state)
 	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", sess.RepoName, rel, fileSize)
 	action := audit.ActionUpload
-	if result.Pending {
+	if result.ReviewPending {
+		action = audit.ActionUploadQueuedReview
+	} else if result.Pending {
 		action = audit.ActionUploadQueuedGPG
 	}
 	audit.Log(state, &core.AuditLogEntry{
@@ -429,7 +435,12 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	if result.Pending {
 		statusCode = fiber.StatusAccepted
 		statusValue = "queued"
-		message = "Queued for GPG publication"
+		if result.ReviewPending {
+			message = "Queued for publication review"
+			c.Set("X-RenoP-Review-ID", result.ReviewID)
+		} else {
+			message = "Queued for GPG publication"
+		}
 	}
 	return protohttp.WriteStatus(c, statusCode, &pb.ChunkedUploadCompleteResponse{
 		Status:    statusValue,

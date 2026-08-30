@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "Revisiones", "review.title": "Revisiones", "review.subtitle": "Revisa transferencias de equipo fuera del sistema de notificaciones.",
+    "review.nav": "Revisiones", "review.title": "Revisiones", "review.subtitle": "Revisa transferencias de propiedad y publicaciones moderadas fuera del sistema de notificaciones.",
     "review.noEligibleTeams": "No hay equipos disponibles.", "review.type.docker_image": "Imagen Docker",
     "review.type.npm_package": "Paquete npm", "review.type.cargo_package": "Crate de Cargo",
     "review.type.maven_artifact": "Artefacto Maven", "review.type.maven_domain": "Dominio de publicación Maven",
@@ -25,5 +25,18 @@ export default Object.freeze({
     "review.alreadyPending": "Este recurso ya tiene una transferencia de propiedad pendiente.", "review.notFound": "No se encontró la revisión.",
     "review.permissionDenied": "No tienes permiso para esta acción.", "review.serviceUnavailable": "Los datos de revisión no están disponibles temporalmente.",
     "review.transferRestricted": "Una imagen Docker con espacio de nombres o un paquete npm con scope no puede volver a propiedad personal.",
+    "review.publicationVersion": "Versión {version}",
+    "review.approvePublicationConfirm": "¿Aprobar la versión {version} de {resource} para su publicación?",
+    "review.rejectPublicationTitle": "Rechazar publicación", "review.publicationApproved": "Publicación aprobada.",
+    "review.publicationRejected": "Publicación rechazada.", "review.rejectPresetLabel": "Motivo del rechazo",
+    "review.rejectPreset.invalid_metadata": "Metadatos no válidos o incompletos", "review.rejectPreset.quality": "No cumple los requisitos de calidad",
+    "review.rejectPreset.policy_violation": "Infracción de la política del repositorio", "review.rejectPreset.copyright": "Problema de derechos de autor o licencia",
+    "review.rejectPreset.malware": "Contenido malicioso o inseguro", "review.rejectPreset.custom": "Motivo personalizado",
+    "review.downloadBundle": "Descargar archivos", "review.downloadFailed": "No se pudieron descargar los archivos de revisión.",
+    "review.noFiles": "Esta revisión no contiene archivos descargables.",
+    "review.downloadPartial": "No se pudieron descargar {count} archivos; los archivos esenciales se abrieron por separado.",
+    "review.publicationActive": "La publicación todavía está recibiendo archivos. Espera unos segundos e inténtalo de nuevo.",
+    "review.publicationSealed": "Esta versión revisada está cerrada y no admite más archivos.",
+    "review.fileNotFound": "No se encontró el archivo de revisión.", "review.limitReached": "Se alcanzó el límite de revisiones de publicación.",
     "audit.action.REVIEW_REQUEST": "Revisión solicitada", "audit.action.REVIEW_DECISION": "Revisión resuelta", "audit.action.REVIEW_CANCEL": "Solicitud de revisión cancelada"
 });

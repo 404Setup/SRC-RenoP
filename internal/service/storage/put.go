@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -116,7 +115,6 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	}
 
 	exists := PathExistsForUpload(state, localFilePath)
-
 	if repo.NormalizedFormat() != config.RepositoryFormatFiles && !repo.AllowRedeployment &&
 		exists && !isMutableMavenMetadataPath(localFilePath) {
 		return c.Status(fiber.StatusConflict).SendString("Conflict")
@@ -214,7 +212,7 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	if user != nil && user.Username != "guest" {
 		username = user.Username
 	}
-	result, err := processUploadedFileLocked(c.Context(), state, repo, &PreparedUpload{
+	result, err := processUploadedFileWithReviewLocked(c.Context(), state, repo, &PreparedUpload{
 		LocalFilePath: localFilePath, TempPath: tmpPath, Username: username,
 		FileSize: fileSize, ModTime: modTime, Existed: exists,
 		GenerateChecksums: generateChecksums,
@@ -223,6 +221,10 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	})
 	if err != nil {
 		statusCode, message := GPGUploadErrorResponse(err)
+		if errors.Is(err, core.ErrReviewPublicationSealed) || errors.Is(err, core.ErrReviewFileLimit) ||
+			errors.Is(err, core.ErrReviewInvalidRequest) || errors.Is(err, core.ErrReviewPermissionDenied) {
+			statusCode, message = PublicationReviewErrorResponse(err)
+		}
 		return c.Status(statusCode).SendString(message)
 	}
 	keepTmp = true
@@ -239,7 +241,9 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	}
 	details := fmt.Sprintf("Repository: %s, File: %s, Size: %d bytes", repo.Name, filepath.ToSlash(relPath), fileSize)
 	action := audit.ActionUpload
-	if result.Pending {
+	if result.ReviewPending {
+		action = audit.ActionUploadQueuedReview
+	} else if result.Pending {
 		action = audit.ActionUploadQueuedGPG
 	}
 	audit.Log(state, &core.AuditLogEntry{
@@ -253,19 +257,14 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 	})
 
 	if result.Pending {
-		c.Set("X-RenoP-Release-ID", result.ReleaseID)
-		return c.Status(fiber.StatusAccepted).SendString("Queued for GPG publication")
-	}
-	if repo.NormalizedFormat() == config.RepositoryFormatMaven && MavenPublicationRecorder != nil {
-		cfg := state.Inner.Config.Load()
-		if cfg != nil {
-			relative, relErr := filepath.Rel(filepath.Join(cfg.StoragePath, repo.Name), localFilePath)
-			if relErr == nil {
-				if recordErr := MavenPublicationRecorder(state, repo.Name, filepath.ToSlash(relative), username, fileSize, modTime); recordErr != nil {
-					log.Printf("failed to update Maven publication catalog for %s: %v", filepath.ToSlash(relative), recordErr)
-				}
-			}
+		if result.ReleaseID != "" {
+			c.Set("X-RenoP-Release-ID", result.ReleaseID)
 		}
+		if result.ReviewID != "" {
+			c.Set("X-RenoP-Review-ID", result.ReviewID)
+			return c.Status(fiber.StatusAccepted).SendString("Queued for publication review")
+		}
+		return c.Status(fiber.StatusAccepted).SendString("Queued for GPG publication")
 	}
 	return c.Status(fiber.StatusCreated).SendString("")
 }

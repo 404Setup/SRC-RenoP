@@ -166,6 +166,7 @@ func TestRepositorySerializationUsesFormatSpecificFields(t *testing.T) {
 
 	mavenRepository := Repository{
 		Name: "releases", Format: RepositoryFormatMaven, Visibility: "PUBLIC",
+		PublicationReview: PublicationReviewEveryVersion,
 		Mirrors: []Mirror{{
 			Name: "central", URL: "https://repo1.maven.org/maven2/",
 			ArtifactURL: "https://unused.example/{crate}/{version}",
@@ -183,6 +184,9 @@ func TestRepositorySerializationUsesFormatSpecificFields(t *testing.T) {
 			text := string(encoded)
 			if !strings.Contains(text, "allow_redeployment") || !strings.Contains(text, "require_gpg_signature") {
 				t.Fatalf("Maven serialization omitted Maven policy fields: %s", text)
+			}
+			if !strings.Contains(text, "publication_review") {
+				t.Fatalf("Maven serialization omitted publication-review policy: %s", text)
 			}
 			if strings.Contains(text, "artifact_url") {
 				t.Fatalf("Maven serialization contains Cargo artifact URL field: %s", text)
@@ -252,7 +256,8 @@ func TestRepositoryFormatVariantsAndLegacyUpgradeDefaults(t *testing.T) {
 		t.Fatalf("file repository serialization has invalid publication policy fields: %s", text)
 	}
 	files.MavenRestore = &MavenRestoreSettings{
-		Format: RepositoryFormatMavenClassic, AllowRedeployment: true, RequireGPGSignature: true,
+		Format: RepositoryFormatMavenClassic, AllowRedeployment: false, RequireGPGSignature: true,
+		PublicationReview: PublicationReviewNewPackages,
 	}
 	restoreYAML, err := yaml.Marshal(&MavenSettings{Repositories: map[string]*Repository{"downloads": &files}})
 	if err != nil {
@@ -265,7 +270,8 @@ func TestRepositoryFormatVariantsAndLegacyUpgradeDefaults(t *testing.T) {
 	restoredFiles := restored.Repositories["downloads"]
 	if restoredFiles == nil || restoredFiles.MavenRestore == nil ||
 		restoredFiles.MavenRestore.Format != RepositoryFormatMavenClassic ||
-		!restoredFiles.MavenRestore.AllowRedeployment || !restoredFiles.MavenRestore.RequireGPGSignature {
+		restoredFiles.MavenRestore.AllowRedeployment || !restoredFiles.MavenRestore.RequireGPGSignature ||
+		restoredFiles.MavenRestore.PublicationReview != PublicationReviewNewPackages {
 		t.Fatalf("Maven restore policy did not survive YAML round trip: %#v", restoredFiles)
 	}
 
@@ -275,6 +281,20 @@ func TestRepositoryFormatVariantsAndLegacyUpgradeDefaults(t *testing.T) {
 	}
 	if allowed, _ := mirror.IsArtifactAllowedFor(RepositoryFormatFiles, "private/app.zip"); allowed {
 		t.Fatal("file mirror prefix rule allowed an unrelated path")
+	}
+}
+
+func TestRepositoryPublicationReviewPolicyValidation(t *testing.T) {
+	for name, payload := range map[string]string{
+		"unknown policy":     `{"repositories":{"releases":{"name":"releases","format":"maven","publication_review":"sometimes"}}}`,
+		"unsupported engine": `{"repositories":{"files":{"name":"files","format":"files","publication_review":"every_version"}}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			var settings MavenSettings
+			if err := json.Unmarshal([]byte(payload), &settings); err == nil {
+				t.Fatal("invalid publication-review configuration was accepted")
+			}
+		})
 	}
 }
 
@@ -402,7 +422,7 @@ func TestConfigDeepCopy(t *testing.T) {
 
 func TestFrontendFontConfigNormalizesLegacyAndInvalidValues(t *testing.T) {
 	for name, input := range map[string]string{
-		"legacy YAML": "title: RenoP\n",
+		"legacy YAML":    "title: RenoP\n",
 		"invalid preset": "font_preset: unsupported\nfont_url: '  https://fonts.example.test/ui.woff2  '\n",
 	} {
 		t.Run(name, func(t *testing.T) {

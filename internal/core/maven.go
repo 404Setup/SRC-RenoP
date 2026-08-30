@@ -120,6 +120,8 @@ type MavenVersion struct {
 	Publisher       string              `json:"publisher,omitempty"`
 	Size            int64               `json:"size"`
 	Mirrored        bool                `json:"mirrored"`
+	ReviewStatus    string              `json:"review_status,omitempty"`
+	ReviewID        string              `json:"review_id,omitempty"`
 	CreatedAt       int64               `json:"created_at"`
 	FileCount       int                 `json:"file_count,omitempty"`
 	TotalFileSize   int64               `json:"total_file_size,omitempty"`

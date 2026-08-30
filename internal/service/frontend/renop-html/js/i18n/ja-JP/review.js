@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "審査", "review.title": "審査", "review.subtitle": "通知とは別にチーム所有権の移管を審査します。",
+    "review.nav": "審査", "review.title": "審査", "review.subtitle": "所有権移管と審査対象の公開を通知とは別に処理します。",
     "review.noEligibleTeams": "選択できるチームがありません。", "review.type.docker_image": "Docker イメージ",
     "review.type.npm_package": "npm パッケージ", "review.type.cargo_package": "Cargo crate",
     "review.type.maven_artifact": "Maven アーティファクト", "review.type.maven_domain": "Maven 公開ドメイン",
@@ -25,5 +25,18 @@ export default Object.freeze({
     "review.alreadyPending": "このリソースには保留中の所有権移管があります。", "review.notFound": "審査が見つかりません。",
     "review.permissionDenied": "この審査操作を行う権限がありません。", "review.serviceUnavailable": "審査データを一時的に利用できません。",
     "review.transferRestricted": "名前空間付き Docker イメージまたはスコープ付き npm パッケージは個人所有へ戻せません。",
+    "review.publicationVersion": "バージョン {version}",
+    "review.approvePublicationConfirm": "{resource} のバージョン {version} の公開を承認しますか？",
+    "review.rejectPublicationTitle": "公開を拒否", "review.publicationApproved": "公開を承認しました。",
+    "review.publicationRejected": "公開を拒否しました。", "review.rejectPresetLabel": "拒否理由",
+    "review.rejectPreset.invalid_metadata": "メタデータが無効または不完全", "review.rejectPreset.quality": "品質要件を満たしていない",
+    "review.rejectPreset.policy_violation": "リポジトリポリシー違反", "review.rejectPreset.copyright": "著作権またはライセンス上の問題",
+    "review.rejectPreset.malware": "悪意のある、または安全でない内容", "review.rejectPreset.custom": "その他の理由",
+    "review.downloadBundle": "ファイルをダウンロード", "review.downloadFailed": "審査ファイルをダウンロードできませんでした。",
+    "review.noFiles": "この審査にはダウンロード可能なファイルがありません。",
+    "review.downloadPartial": "{count} 件のファイルをダウンロードできなかったため、重要なファイルを個別に開きました。",
+    "review.publicationActive": "公開ファイルをまだ受信しています。数秒待ってから再試行してください。",
+    "review.publicationSealed": "審査済みのこのバージョンは確定しており、ファイルを追加できません。",
+    "review.fileNotFound": "審査ファイルが見つかりません。", "review.limitReached": "公開審査の上限に達しました。",
     "audit.action.REVIEW_REQUEST": "審査を申請", "audit.action.REVIEW_DECISION": "審査を処理", "audit.action.REVIEW_CANCEL": "審査申請を取消"
 });

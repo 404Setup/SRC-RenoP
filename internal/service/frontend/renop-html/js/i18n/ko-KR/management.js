@@ -72,6 +72,7 @@ export default Object.freeze({
     "audit.action.LOG_CLEAR": "기록 지우기",
     "audit.action.GPG_UPDATE": "GPG 키 업데이트",
     "audit.action.UPLOAD_QUEUED_GPG": "GPG 업로드 대기",
+    "audit.action.UPLOAD_QUEUED_REVIEW": "업로드 검토 대기",
     "audit.action.PROFILE_UPDATE": "프로필 업데이트",
     "audit.action.MESSAGE_SEND": "알림 전송",
     "audit.action.MAVEN_DOMAIN_CREATE": "Maven 도메인 생성",

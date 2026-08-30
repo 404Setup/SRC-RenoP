@@ -221,5 +221,11 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsDesc": "Eliminar permanentemente todos os contadores guardados e pendentes deste repositório.",
     "repos.resetDownloadStatisticsConfirm": "Repor todas as estatísticas de transferências de {name}? Esta ação é irreversível.",
     "repos.resetDownloadStatisticsSuccess": "Estatísticas de transferências repostas",
-    "repos.resetDownloadStatisticsFailed": "Não foi possível repor as estatísticas de transferências"
+    "repos.resetDownloadStatisticsFailed": "Não foi possível repor as estatísticas de transferências",
+    "repos.publicationReview": "Revisão de publicação", "repos.publicationReviewDesc": "Reter novas publicações Maven até à revisão por um moderador do repositório ou administrador do sistema. A ativação também desativa a republicação.",
+    "repos.publicationReviewOff": "Desativada", "repos.publicationReviewNewPackages": "Apenas pacotes novos",
+    "repos.publicationReviewEveryVersion": "Todas as versões", "repos.publicationReviewSaved": "Definições de revisão guardadas",
+    "repos.publicationReviewUpdateFailed": "Não foi possível atualizar as definições de revisão",
+    "repos.migrationPendingReview": "Conclua as revisões de publicação pendentes antes de migrar este repositório.",
+    "repos.pendingReviewMutation": "Conclua as revisões de publicação pendentes antes de alterar ou eliminar este repositório."
 });

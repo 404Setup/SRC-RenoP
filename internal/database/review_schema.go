@@ -13,7 +13,7 @@ func initReviewTables(db *sql.DB, mysql bool) error {
 	if mysql {
 		unique = "UNIQUE KEY uq_review_tasks_active (active_key)"
 	}
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS review_tasks (
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS review_tasks (
 		id CHAR(36) PRIMARY KEY,
 		kind VARCHAR(64) NOT NULL,
 		resource_type VARCHAR(64) NOT NULL,
@@ -33,6 +33,17 @@ func initReviewTables(db *sql.DB, mysql bool) error {
 		decided_at BIGINT NOT NULL DEFAULT 0,
 		active_key CHAR(64) NULL,
 		` + unique + `
+	);`); err != nil {
+		return err
+	}
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS review_task_files (
+		task_id CHAR(36) NOT NULL,
+		file_id CHAR(64) NOT NULL,
+		path VARCHAR(1024) NOT NULL,
+		size BIGINT NOT NULL DEFAULT 0,
+		critical INT NOT NULL DEFAULT 0,
+		added_at BIGINT NOT NULL,
+		PRIMARY KEY (task_id, file_id)
 	);`)
 	return err
 }

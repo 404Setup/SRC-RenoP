@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -169,6 +170,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	cargoRepository := "cargo-" + suffix
 	dockerRepository := "docker-" + suffix
 	mavenRepository := "maven-" + suffix
+	mavenDomain := "io.renop." + suffix
 	npmRepository := "npm-" + suffix
 	if err := run("package catalogs", func() error {
 		if err := db.RecordCargoPublication(&core.CargoPackage{
@@ -185,7 +187,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			return err
 		}
 		domain := &core.MavenDomain{
-			Domain: "io.renop." + suffix, VerificationType: core.MavenVerificationDNS,
+			Domain: mavenDomain, VerificationType: core.MavenVerificationDNS,
 			VerificationHost: "example.test", VerificationCode: "driver-check-" + suffix,
 			SuperTeamPrefix: globalTeamPrefix, CreatedAt: now,
 		}
@@ -259,6 +261,45 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		image, err := db.GetDockerImage(dockerRepository, reviewImage)
 		if err != nil || image == nil || image.SuperTeamPrefix != globalTeamPrefix {
 			return errorsOrMissing(err, "review ownership transfer")
+		}
+		if err := db.SaveToken(&core.AccessToken{
+			Name: username, CreatedAt: time.Now().UTC().Format(time.RFC3339),
+			Permissions: []string{"base", "canmoderate:" + mavenRepository},
+		}); err != nil {
+			return err
+		}
+		publication, err := db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+			ResourceType: core.ReviewResourceMavenArtifact, Repository: mavenRepository,
+			ResourceKey: mavenDomain + ":reviewed", ResourceName: mavenDomain + ":reviewed",
+			Version: "1.0.0", RequestedBy: memberUsername, Policy: config.PublicationReviewEveryVersion,
+			CreatedAt: now + 8, Files: []*core.ReviewFile{{
+				Path: strings.ReplaceAll(mavenDomain, ".", "/") + "/reviewed/1.0.0/reviewed-1.0.0.jar",
+				Size: 128, Critical: true,
+			}},
+		})
+		if err != nil || publication == nil || !publication.Pending {
+			return errorsOrMissing(err, "publication review creation")
+		}
+		files, err := db.ListReviewTaskFiles(publication.TaskID)
+		if err != nil || len(files) != 1 || !files[0].Critical {
+			return errorsOrMissing(err, "publication review files")
+		}
+		moderatedTasks, moderatedTotal, err := db.ListReviewTasks(core.ReviewTaskListOptions{
+			Username: username, ModeratedRepositories: []string{mavenRepository},
+			ResourceTypes: []string{core.ReviewResourceMavenArtifact},
+			Status:        core.ReviewStatusPending, Limit: 10,
+		})
+		if err != nil || moderatedTotal != 1 || len(moderatedTasks) != 1 ||
+			moderatedTasks[0].ID != publication.TaskID {
+			return errorsOrMissing(err, "publication reviewer task listing")
+		}
+		if _, err := db.DecideReviewTask(publication.TaskID, username,
+			core.ReviewStatusApproved, "", now+core.PublicationReviewSettleMillis+20); err != nil {
+			return err
+		}
+		pending, err := db.IsPublicationReviewPathPending(mavenRepository, files[0].Path)
+		if err != nil || pending {
+			return errorsOrMissing(err, "publication review completion")
 		}
 		return nil
 	}); err != nil {

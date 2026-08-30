@@ -98,7 +98,7 @@ export function suggestConcurrency(fileSize, chunkCount) {
  *
  * @param {File|Blob} file
  * @param {ChunkedUploadOptions} options
- * @returns {Promise<{ok: boolean, status: number, body: any, responseText: string, errorCode?: string}>}
+ * @returns {Promise<{ok: boolean, status: number, body: any, responseText: string, errorCode?: string, reviewID?: string}>}
  */
 export async function uploadFileChunked(file, options = {}) {
     const purpose = options.purpose || 'storage';
@@ -387,6 +387,7 @@ export async function uploadFileChunked(file, options = {}) {
             status: completeResp.status,
             body,
             responseText: '',
+            reviewID: completeResp.headers.get('X-RenoP-Review-ID') || '',
         };
     } catch (err) {
         if (progressRaf) {
@@ -487,7 +488,7 @@ function putChunkWithProgress(uploadId, index, blob, headers, signal, onChunkPro
  * @param {File|Blob} file
  * @param {Record<string, string>} headers
  * @param {(loaded: number, total: number) => void} [onProgress]
- * @returns {Promise<{ok: boolean, status: number, responseText: string}>}
+ * @returns {Promise<{ok: boolean, status: number, responseText: string, reviewID?: string}>}
  */
 export function uploadFileSinglePut(targetPath, file, headers, onProgress) {
     return new Promise((resolve) => {
@@ -506,6 +507,7 @@ export function uploadFileSinglePut(targetPath, file, headers, onProgress) {
                 ok: xhr.status >= 200 && xhr.status < 300,
                 status: xhr.status,
                 responseText: xhr.responseText || '',
+                reviewID: xhr.getResponseHeader('X-RenoP-Review-ID') || '',
             });
         };
         xhr.onerror = () => {

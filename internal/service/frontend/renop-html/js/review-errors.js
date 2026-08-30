@@ -13,6 +13,10 @@ export const REVIEW_ERROR_KEYS = Object.freeze({
     review_failed: 'review.operationFailed',
     review_not_found: 'review.notFound',
     review_permission: 'review.permissionDenied',
+    publication_active: 'review.publicationActive',
+    publication_sealed: 'review.publicationSealed',
+    review_file_not_found: 'review.fileNotFound',
+    review_limit: 'review.limitReached',
     service_unavailable: 'review.serviceUnavailable',
     super_team_mismatch: 'superTeam.bindingMismatch',
     transfer_restricted: 'review.transferRestricted'

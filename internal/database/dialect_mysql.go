@@ -67,6 +67,7 @@ func initMySQLSuperTeamIndexes(db *sql.DB) error {
 		{Name: "idx_maven_artifacts_super_team", Query: "CREATE INDEX idx_maven_artifacts_super_team ON maven_artifacts(super_team_prefix, repository);"},
 		{Name: "idx_review_tasks_team", Query: "CREATE INDEX idx_review_tasks_team ON review_tasks(review_team_prefix, status, kind, created_at);"},
 		{Name: "idx_review_tasks_requester", Query: "CREATE INDEX idx_review_tasks_requester ON review_tasks(requested_by_id, status, created_at);"},
+		{Name: "idx_review_task_files_task", Query: "CREATE INDEX idx_review_task_files_task ON review_task_files(task_id, added_at);"},
 	}
 	for _, migration := range migrations {
 		if _, err := db.Exec(migration.Query); err != nil {

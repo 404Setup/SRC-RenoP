@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "审核", "review.title": "审核", "review.subtitle": "在通知系统之外独立审核团队所有权转让。",
+    "review.nav": "审核", "review.title": "审核", "review.subtitle": "在通知系统之外独立处理所有权转让与受管控发布。",
     "review.noEligibleTeams": "没有可选的团队。", "review.type.docker_image": "Docker 映像",
     "review.type.npm_package": "npm 包", "review.type.cargo_package": "Cargo crate",
     "review.type.maven_artifact": "Maven 制品", "review.type.maven_domain": "Maven 发布域",
@@ -25,6 +25,19 @@ export default Object.freeze({
     "review.alreadyPending": "该资源已有待处理的所有权转让。", "review.notFound": "未找到此审核。",
     "review.permissionDenied": "你没有执行此审核操作的权限。", "review.serviceUnavailable": "审核数据暂时不可用。",
     "review.transferRestricted": "使用命名空间的 Docker 映像或带作用域的 npm 包不能转回个人所有。",
+    "review.publicationVersion": "版本 {version}",
+    "review.approvePublicationConfirm": "批准发布 {resource} 的 {version} 版本？",
+    "review.rejectPublicationTitle": "拒绝发布", "review.publicationApproved": "已批准发布。",
+    "review.publicationRejected": "已拒绝发布。", "review.rejectPresetLabel": "拒绝原因",
+    "review.rejectPreset.invalid_metadata": "元数据无效或不完整", "review.rejectPreset.quality": "未达到质量要求",
+    "review.rejectPreset.policy_violation": "违反存储库策略", "review.rejectPreset.copyright": "版权或许可证问题",
+    "review.rejectPreset.malware": "恶意或不安全内容", "review.rejectPreset.custom": "自定义原因",
+    "review.downloadBundle": "下载文件", "review.downloadFailed": "无法下载审核文件。",
+    "review.noFiles": "此审核没有可下载的文件。",
+    "review.downloadPartial": "有 {count} 个文件下载失败，已分别打开关键文件。",
+    "review.publicationActive": "发布仍在接收文件，请等待几秒后重试。",
+    "review.publicationSealed": "该版本已经完成审核，不能继续添加文件。",
+    "review.fileNotFound": "找不到审核文件。", "review.limitReached": "待发布审核数量已达到上限。",
     "audit.action.REVIEW_REQUEST": "提交审核", "audit.action.REVIEW_DECISION": "处理审核",
     "audit.action.REVIEW_CANCEL": "取消审核申请"
 });

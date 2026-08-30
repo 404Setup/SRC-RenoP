@@ -221,5 +221,11 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsDesc": "Effacer définitivement tous les compteurs enregistrés et en attente de ce dépôt.",
     "repos.resetDownloadStatisticsConfirm": "Réinitialiser toutes les statistiques de téléchargement de {name} ? Cette action est irréversible.",
     "repos.resetDownloadStatisticsSuccess": "Statistiques de téléchargement réinitialisées",
-    "repos.resetDownloadStatisticsFailed": "Impossible de réinitialiser les statistiques de téléchargement"
+    "repos.resetDownloadStatisticsFailed": "Impossible de réinitialiser les statistiques de téléchargement",
+    "repos.publicationReview": "Examen des publications", "repos.publicationReviewDesc": "Retenir les nouvelles publications Maven jusqu’à leur examen par un modérateur du dépôt ou un administrateur système. L’activation désactive aussi le redéploiement.",
+    "repos.publicationReviewOff": "Désactivé", "repos.publicationReviewNewPackages": "Nouveaux paquets uniquement",
+    "repos.publicationReviewEveryVersion": "Chaque version", "repos.publicationReviewSaved": "Paramètres d’examen enregistrés",
+    "repos.publicationReviewUpdateFailed": "Impossible de modifier les paramètres d’examen",
+    "repos.migrationPendingReview": "Traitez les examens de publication en attente avant de migrer ce dépôt.",
+    "repos.pendingReviewMutation": "Traitez les examens de publication en attente avant de modifier ou supprimer ce dépôt."
 });

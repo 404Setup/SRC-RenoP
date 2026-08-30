@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "Проверки", "review.title": "Проверки", "review.subtitle": "Проверка передачи командам отдельно от уведомлений.",
+    "review.nav": "Проверки", "review.title": "Проверки", "review.subtitle": "Проверка передачи владения и модерируемых публикаций отдельно от уведомлений.",
     "review.noEligibleTeams": "Нет доступных команд.", "review.type.docker_image": "Образ Docker",
     "review.type.npm_package": "Пакет npm", "review.type.cargo_package": "Пакет Cargo",
     "review.type.maven_artifact": "Артефакт Maven", "review.type.maven_domain": "Домен публикации Maven",
@@ -25,5 +25,18 @@ export default Object.freeze({
     "review.alreadyPending": "Для этого ресурса уже ожидается передача владения.", "review.notFound": "Проверка не найдена.",
     "review.permissionDenied": "Недостаточно прав для этого действия.", "review.serviceUnavailable": "Данные проверок временно недоступны.",
     "review.transferRestricted": "Образ Docker с пространством имен или пакет npm с областью нельзя вернуть в личное владение.",
+    "review.publicationVersion": "Версия {version}",
+    "review.approvePublicationConfirm": "Одобрить публикацию версии {version} ресурса {resource}?",
+    "review.rejectPublicationTitle": "Отклонить публикацию", "review.publicationApproved": "Публикация одобрена.",
+    "review.publicationRejected": "Публикация отклонена.", "review.rejectPresetLabel": "Причина отклонения",
+    "review.rejectPreset.invalid_metadata": "Недопустимые или неполные метаданные", "review.rejectPreset.quality": "Требования к качеству не выполнены",
+    "review.rejectPreset.policy_violation": "Нарушение политики репозитория", "review.rejectPreset.copyright": "Проблема с авторскими правами или лицензией",
+    "review.rejectPreset.malware": "Вредоносное или небезопасное содержимое", "review.rejectPreset.custom": "Другая причина",
+    "review.downloadBundle": "Скачать файлы", "review.downloadFailed": "Не удалось скачать файлы для проверки.",
+    "review.noFiles": "В этой проверке нет файлов для скачивания.",
+    "review.downloadPartial": "Не удалось скачать файлов: {count}. Ключевые файлы открыты отдельно.",
+    "review.publicationActive": "Файлы публикации всё ещё поступают. Подождите несколько секунд и повторите попытку.",
+    "review.publicationSealed": "Эта проверенная версия закрыта для добавления файлов.",
+    "review.fileNotFound": "Файл проверки не найден.", "review.limitReached": "Достигнут предел ожидающих проверок публикации.",
     "audit.action.REVIEW_REQUEST": "Проверка запрошена", "audit.action.REVIEW_DECISION": "Проверка обработана", "audit.action.REVIEW_CANCEL": "Запрос проверки отменен"
 });

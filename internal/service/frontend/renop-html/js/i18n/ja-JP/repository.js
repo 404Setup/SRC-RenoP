@@ -221,5 +221,11 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsDesc": "このリポジトリの保存済みおよび書き込み待ちカウンターをすべて削除します。",
     "repos.resetDownloadStatisticsConfirm": "{name} の全ダウンロード統計をリセットしますか？この操作は元に戻せません。",
     "repos.resetDownloadStatisticsSuccess": "ダウンロード統計をリセットしました",
-    "repos.resetDownloadStatisticsFailed": "ダウンロード統計をリセットできませんでした"
+    "repos.resetDownloadStatisticsFailed": "ダウンロード統計をリセットできませんでした",
+    "repos.publicationReview": "公開審査", "repos.publicationReviewDesc": "新しい Maven 公開をリポジトリモデレーターまたはシステム管理者の審査まで保留します。有効にすると再デプロイも無効になります。",
+    "repos.publicationReviewOff": "無効", "repos.publicationReviewNewPackages": "新規パッケージのみ",
+    "repos.publicationReviewEveryVersion": "すべてのバージョン", "repos.publicationReviewSaved": "公開審査設定を保存しました",
+    "repos.publicationReviewUpdateFailed": "公開審査設定を更新できませんでした",
+    "repos.migrationPendingReview": "このリポジトリを移行する前に、保留中の公開審査を完了してください。",
+    "repos.pendingReviewMutation": "このリポジトリを変更または削除する前に、保留中の公開審査を完了してください。"
 });

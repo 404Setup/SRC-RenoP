@@ -180,6 +180,9 @@ function statusLabel(status) {
 
 /** @param {object} task - Review task. @returns {string} Localized transfer direction. */
 function directionLabel(task) {
+    if (task.kind === 'publication') {
+        return t('review.publicationVersion', {version: task.resource_version});
+    }
     return task.target_team_prefix
         ? t('review.directionIn', {team: task.target_team_prefix})
         : t('review.directionOut', {team: task.source_team_prefix});
@@ -192,34 +195,54 @@ function directionLabel(task) {
  * @param {string} [reason=''] - Optional decision reason.
  * @returns {Promise<void>} Completion.
  */
-async function submitDecision(task, decision, reason = '') {
+async function submitDecision(task, decision, reason = '', reasonCode = '') {
     const response = await requestReview(`/api/reviews/${encodeURIComponent(task.id)}/decision`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({decision, reason})
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({decision, reason, reason_code: reasonCode})
     });
     if (!response.ok) throw await localizedResponseError(response, 'review.operationFailed', {}, REVIEW_ERROR_KEYS);
-    showAlert(t(decision === 'approved' ? 'review.approved' : 'review.rejected'), 'success');
+    const publication = task.kind === 'publication';
+    const resultKey = publication
+        ? decision === 'approved' ? 'review.publicationApproved' : 'review.publicationRejected'
+        : decision === 'approved' ? 'review.approved' : 'review.rejected';
+    showAlert(t(resultKey), 'success');
     await loadTasks();
 }
 
 /** @param {object} task - Pending task. @returns {void} */
 function openRejectDialog(task) {
-    const reason = el('textarea', {class: 'profile-input', maxlength: '512', rows: '4'});
+    const reason = el('textarea', {class: 'profile-input', maxlength: task.kind === 'publication' ? '505' : '512', rows: '4'});
+    const publication = task.kind === 'publication';
+    let reasonCode = publication ? 'invalid_metadata' : '';
+    const reasonField = el('label', {class: 'review-reject-field'},
+        el('span', {}, t('review.rejectReason')), reason);
+    if (publication) reasonField.hidden = true;
+    const reasonSelect = publication ? makeCustomSelect([
+        'invalid_metadata', 'quality', 'policy_violation', 'copyright', 'malware', 'custom'
+    ].map(value => ({value, label: t(`review.rejectPreset.${value}`)})), reasonCode, value => {
+        reasonCode = value;
+        reasonField.hidden = value !== 'custom';
+        if (!reasonField.hidden) requestAnimationFrame(() => reason.focus());
+    }) : null;
     RenopDialog.show({
-        id: 'review-reject-dialog', maxWidth: '520px', icon: 'warning', title: t('review.rejectTitle'),
-        body: el('label', {class: 'review-reject-field'},
-            el('span', {}, t('review.rejectReason')), reason),
+        id: 'review-reject-dialog', maxWidth: '520px', icon: 'warning',
+        title: t(publication ? 'review.rejectPublicationTitle' : 'review.rejectTitle'),
+        body: el('div', {class: 'review-reject-form'},
+            publication ? el('label', {class: 'review-reject-field'},
+                el('span', {}, t('review.rejectPresetLabel')), reasonSelect) : null,
+            reasonField),
         footer: [
             {text: t('common.cancel'), className: 'action-btn', onClick: (event, dialog) => dialog.close(false)},
             {
                 text: t('review.reject'), className: 'action-btn danger-btn',
                 onClick: async (event, dialog) => runButtonAction(event.currentTarget, async () => {
-                    if (!reason.value.trim()) {
+                    if ((!publication || reasonCode === 'custom') && !reason.value.trim()) {
                         reason.focus();
                         showAlert(t('review.reasonRequired'), 'error');
                         return;
                     }
                     try {
-                        await submitDecision(task, 'rejected', reason.value.trim());
+                        await submitDecision(task, 'rejected', reason.value.trim(), reasonCode);
                         dialog.close(true);
                     } catch (error) {
                         showAlert(caughtErrorMessage(error, 'review.operationFailed'), 'error');
@@ -228,17 +251,159 @@ function openRejectDialog(task) {
             }
         ]
     });
-    requestAnimationFrame(() => reason.focus());
+    if (!publication) requestAnimationFrame(() => reason.focus());
+}
+
+/**
+ * Download one review file with two retries after the initial attempt.
+ * @param {object} task - Publication review task.
+ * @param {object} file - Review file metadata.
+ * @returns {Promise<Uint8Array>} File bytes.
+ */
+async function downloadReviewFile(task, file) {
+    const url = `/api/reviews/${encodeURIComponent(task.id)}/files/${encodeURIComponent(file.id)}`;
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            const response = await requestReview(url);
+            if (!response.ok) {
+                throw await localizedResponseError(response, 'review.downloadFailed', {}, REVIEW_ERROR_KEYS);
+            }
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            const expectedSize = Math.max(0, Number(file.size) || 0);
+            if (expectedSize > 0 && bytes.byteLength !== expectedSize) {
+                throw new Error(t('review.downloadFailed'));
+            }
+            return bytes;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+    throw lastError || new Error(t('review.downloadFailed'));
+}
+
+/**
+ * Select an adaptive bounded download concurrency.
+ * @param {number} fileCount - Number of files to fetch.
+ * @returns {number} Worker count between one and four.
+ */
+function reviewDownloadConcurrency(fileCount) {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const slow = connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType);
+    const hardware = Math.max(1, Number(navigator.hardwareConcurrency) || 2);
+    return Math.max(1, Math.min(fileCount, slow ? 1 : hardware >= 4 ? 4 : 2));
+}
+
+/**
+ * Fetch review files through a bounded cooperative worker pool.
+ * @param {object} task - Publication review task.
+ * @param {object[]} files - Review file metadata.
+ * @returns {Promise<{entries: Map<string, Uint8Array>, failed: object[]}>} Download result.
+ */
+async function fetchReviewFiles(task, files) {
+    const entries = new Map();
+    const failed = [];
+    let cursor = 0;
+    const worker = async () => {
+        while (cursor < files.length) {
+            const file = files[cursor];
+            cursor += 1;
+            try {
+                entries.set(file.path, await downloadReviewFile(task, file));
+            } catch {
+                failed.push(file);
+            }
+        }
+    };
+    await Promise.all(Array.from({length: reviewDownloadConcurrency(files.length)}, worker));
+    return {entries, failed};
+}
+
+/**
+ * Trigger a browser download for one generated blob.
+ * @param {Blob} blob - Download payload.
+ * @param {string} filename - Suggested filename.
+ * @returns {void}
+ */
+function saveReviewBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = el('a', {href: url, download: filename});
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+/**
+ * Fall back to direct browser downloads for critical files after bounded retries fail.
+ * @param {object} task - Publication review task.
+ * @param {object[]} files - Critical files.
+ * @returns {void}
+ */
+function triggerCriticalReviewDownloads(task, files) {
+    for (const file of files) {
+        const anchor = el('a', {
+            href: `/api/reviews/${encodeURIComponent(task.id)}/files/${encodeURIComponent(file.id)}`,
+            download: file.name || 'artifact'
+        });
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    }
+}
+
+/**
+ * Download all review files and assemble the standard repository layout as a ZIP archive.
+ * @param {object} task - Publication review task.
+ * @returns {Promise<void>} Completion.
+ */
+async function downloadPublicationBundle(task) {
+    const response = await requestReview(`/api/reviews/${encodeURIComponent(task.id)}/files`);
+    if (!response.ok) throw await localizedResponseError(response, 'review.downloadFailed', {}, REVIEW_ERROR_KEYS);
+    const payload = await response.json();
+    const files = Array.isArray(payload?.files) ? payload.files : [];
+    if (files.length === 0) throw new Error(t('review.noFiles'));
+    const {entries, failed} = await fetchReviewFiles(task, files);
+    if (failed.length > 0) {
+        const critical = files.filter(file => file.critical === true);
+        triggerCriticalReviewDownloads(task, critical.length > 0 ? critical : files.slice(0, 1));
+        throw new Error(t('review.downloadPartial', {count: failed.length}));
+    }
+    const archiveEntries = Object.fromEntries(entries);
+    const {zip} = await import('fflate');
+    const archive = await new Promise((resolve, reject) => {
+        zip(archiveEntries, {level: 6}, (error, data) => error ? reject(error) : resolve(data));
+    });
+    const safeName = String(task.resource_name || 'publication').replace(/[^a-zA-Z0-9._-]+/g, '-');
+    saveReviewBlob(new Blob([archive], {type: 'application/zip'}),
+        `${safeName}-${task.resource_version || 'review'}.zip`);
 }
 
 /** @param {object} task - Review task. @returns {HTMLElement} Task card. */
 function taskCard(task) {
     const actions = el('div', {class: 'review-card-actions'});
+    if (task.kind === 'publication' && task.status === 'pending') {
+        actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', onclick: event => {
+                void runButtonAction(event.currentTarget, async () => {
+                    try {
+                        await downloadPublicationBundle(task);
+                    } catch (error) {
+                        showAlert(caughtErrorMessage(error, 'review.downloadFailed'), 'error');
+                    }
+                });
+            }
+        }, createIcon('download'), el('span', {}, t('review.downloadBundle'))));
+    }
     if (task.status === 'pending' && activeView === 'reviewer') {
         actions.append(
             el('button', {
                 type: 'button', class: 'pill-btn pill-btn--primary pill-btn--sm', onclick: async event => {
-                    if (!await showConfirm(t('review.approveConfirm', {resource: task.resource_name}))) return;
+                    const confirmKey = task.kind === 'publication'
+                        ? 'review.approvePublicationConfirm' : 'review.approveConfirm';
+                    if (!await showConfirm(t(confirmKey, {
+                        resource: task.resource_name, version: task.resource_version
+                    }))) return;
                     await runButtonAction(event.currentTarget, async () => {
                         try {
                             await submitDecision(task, 'approved');
@@ -252,7 +417,7 @@ function taskCard(task) {
                 type: 'button', class: 'pill-btn pill-btn--danger pill-btn--sm', onclick: () => openRejectDialog(task)
             }, createIcon('close'), el('span', {}, t('review.reject')))
         );
-    } else if (task.status === 'pending' && activeView === 'requested') {
+    } else if (task.kind !== 'publication' && task.status === 'pending' && activeView === 'requested') {
         actions.appendChild(el('button', {
             type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm', onclick: async event => {
                 if (!await showConfirm(t('review.cancelConfirm'))) return;
@@ -272,7 +437,7 @@ function taskCard(task) {
         }, t('review.cancelRequest')));
     }
     return el('article', {class: 'review-card'},
-        el('div', {class: 'review-card-icon'}, createIcon('refresh')),
+        el('div', {class: 'review-card-icon'}, createIcon(task.kind === 'publication' ? 'filePackage' : 'refresh')),
         el('div', {class: 'review-card-main'},
             el('div', {class: 'review-card-heading'},
                 el('strong', {}, task.resource_name),
@@ -286,7 +451,11 @@ function taskCard(task) {
                 el('time', {}, formatTimestamp(task.created_at, {fallback: t('common.unknown')})),
                 task.decided_by ? el('span', {}, t('review.decidedBy', {name: task.decided_by})) : null,
                 task.status === 'rejected' && task.decision_reason
-                    ? el('span', {}, task.decision_reason) : null
+                    ? el('span', {}, task.decision_reason.startsWith('preset:')
+                        ? t(`review.rejectPreset.${task.decision_reason.slice(7)}`)
+                        : task.decision_reason.startsWith('custom:')
+                            ? task.decision_reason.slice(7)
+                            : task.decision_reason) : null
             )
         ),
         actions

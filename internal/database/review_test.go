@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 )
@@ -35,6 +36,92 @@ func setupReviewTeam(t *testing.T) (*core.SuperTeam, *database.DB, int64) {
 	require.NoError(t, db.ForceAddSuperTeamMembers("platform", "admin", []string{"charlie"},
 		core.SuperTeamRoleRead, 5, 10, now+2))
 	return team, db, now
+}
+
+func TestPublicationReviewFilesAreBoundedScopedAndSingleDecision(t *testing.T) {
+	_, db, now := setupReviewTeam(t)
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "moderator", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:releases"},
+	}))
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "outsider", CreatedAt: time.Now().Format(time.RFC3339), Permissions: []string{"base"},
+	}))
+	request := core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceMavenArtifact, Repository: "releases",
+		ResourceKey: "com.example:demo", ResourceName: "com.example:demo", Version: "1.0.0",
+		RequestedBy: "charlie", Policy: config.PublicationReviewEveryVersion, CreatedAt: now,
+		Files: []*core.ReviewFile{{Path: "com/example/demo/1.0.0/demo-1.0.0.jar", Size: 42, Critical: true}},
+	}
+	result, err := db.CreateOrUpdatePublicationReview(request)
+	require.NoError(t, err)
+	require.True(t, result.Pending)
+	require.NotEmpty(t, result.TaskID)
+
+	request.Files[0].Size = 84
+	request.Files[0].AddedAt = now + 100
+	repeated, err := db.CreateOrUpdatePublicationReview(request)
+	require.NoError(t, err)
+	assert.Equal(t, result.TaskID, repeated.TaskID)
+	task, err := db.GetReviewTask(result.TaskID)
+	require.NoError(t, err)
+	assert.Equal(t, "com.example:demo", task.ResourceKey)
+	assert.Equal(t, "1.0.0", task.ResourceVersion)
+	assert.Equal(t, 1, task.FileCount)
+	assert.EqualValues(t, 84, task.TotalSize)
+	assert.Equal(t, now+100, task.UpdatedAt)
+	files, err := db.ListReviewTaskFiles(task.ID)
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+	assert.True(t, files[0].Critical)
+	assert.Equal(t, "demo-1.0.0.jar", files[0].Name)
+	pending, err := db.IsPublicationReviewPathPending("releases", files[0].Path)
+	require.NoError(t, err)
+	assert.True(t, pending)
+
+	moderatorTasks, total, err := db.ListReviewTasks(core.ReviewTaskListOptions{
+		Username: "moderator", ModeratedRepositories: []string{"releases"},
+		Status: core.ReviewStatusPending, Limit: 10,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+	require.Len(t, moderatorTasks, 1)
+	assert.Equal(t, task.ID, moderatorTasks[0].ID)
+	_, err = db.DecideReviewTask(task.ID, "outsider", core.ReviewStatusApproved, "", now+6000)
+	require.ErrorIs(t, err, core.ErrReviewPermissionDenied)
+	_, err = db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+200)
+	require.ErrorIs(t, err, core.ErrReviewPublicationActive)
+	approved, err := db.DecideReviewTask(task.ID, "moderator", core.ReviewStatusApproved, "", now+6000)
+	require.NoError(t, err)
+	assert.Equal(t, core.ReviewStatusApproved, approved.Status)
+	pending, err = db.IsPublicationReviewPathPending("releases", files[0].Path)
+	require.NoError(t, err)
+	assert.False(t, pending)
+	_, err = db.CreateOrUpdatePublicationReview(request)
+	require.ErrorIs(t, err, core.ErrReviewPublicationSealed)
+	_, err = db.CancelReviewTask(task.ID, "charlie", now+7000)
+	require.ErrorIs(t, err, core.ErrReviewTaskConflict)
+
+	retainedRequest := request
+	retainedRequest.Version = "3.0.0"
+	retainedRequest.CreatedAt = now + 7001
+	retainedRequest.Files = []*core.ReviewFile{{Path: "com/example/demo/3.0.0/demo-3.0.0.jar", Size: 32}}
+	retained, err := db.CreateOrUpdatePublicationReview(retainedRequest)
+	require.NoError(t, err)
+	require.NoError(t, db.DeleteToken("charlie"))
+	retainedTask, err := db.GetReviewTask(retained.TaskID)
+	require.NoError(t, err)
+	assert.Equal(t, core.ReviewStatusPending, retainedTask.Status)
+	assert.Equal(t, "charlie", retainedTask.RequestedBy)
+
+	newPackageOnly := request
+	newPackageOnly.Version = "2.0.0"
+	newPackageOnly.Policy = config.PublicationReviewNewPackages
+	newPackageOnly.PackageExists = true
+	newPackageOnly.Files = []*core.ReviewFile{{Path: "com/example/demo/2.0.0/demo-2.0.0.jar", Size: 24}}
+	notPending, err := db.CreateOrUpdatePublicationReview(newPackageOnly)
+	require.NoError(t, err)
+	assert.False(t, notPending.Pending)
 }
 
 func TestSuperTeamTransferReviewIsSingleDecisionAndReversible(t *testing.T) {

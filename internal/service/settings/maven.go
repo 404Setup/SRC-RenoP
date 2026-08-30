@@ -68,6 +68,14 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 		}
 	}
 	creating := existing == nil
+	if existing != nil && state.GetDB() != nil {
+		if pending, pendingErr := state.GetDB().HasPendingPublicationReviews(repoName); pendingErr != nil {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository review state is unavailable")
+		} else if pending {
+			c.Set("X-Renop-Error-Code", "repository_pending_review")
+			return c.Status(fiber.StatusConflict).SendString("Repository has pending publication reviews")
+		}
+	}
 	if creating {
 		if !utils.IsValidRepositorySlug(repoName) {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid repository name")
@@ -92,6 +100,9 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	if existing != nil && existing.DownloadStatistics != nil {
 		enabled := *existing.DownloadStatistics
 		repo.DownloadStatistics = &enabled
+	}
+	if existing != nil {
+		repo.PublicationReview = existing.PublicationReviewPolicy()
 	}
 	requestedFormat := strings.ToLower(strings.TrimSpace(repo.Format))
 	if existing == nil && requestedFormat == "" {
@@ -120,6 +131,9 @@ func PutMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	if repo.Format == config.RepositoryFormatFiles {
 		repo.AllowRedeployment = true
 		repo.RequireGPGSignature = false
+	}
+	if repo.PublicationReviewPolicy() != config.PublicationReviewOff {
+		repo.AllowRedeployment = false
 	}
 	if repo.Mirrors == nil {
 		repo.Mirrors = []config.Mirror{}
@@ -228,22 +242,25 @@ func repositoryWithMigratedEngine(repo *config.Repository, target string) *confi
 	if target == config.RepositoryFormatFiles {
 		migrated.MavenRestore = &config.MavenRestoreSettings{
 			Format: repo.ConfiguredFormat(), AllowRedeployment: repo.AllowRedeployment,
-			RequireGPGSignature: repo.RequireGPGSignature,
+			RequireGPGSignature: repo.RequireGPGSignature, PublicationReview: repo.PublicationReviewPolicy(),
 		}
 		migrated.Format = config.RepositoryFormatFiles
 		migrated.AllowRedeployment = true
 		migrated.RequireGPGSignature = false
+		migrated.PublicationReview = config.PublicationReviewOff
 		return migrated
 	}
 	migrated.Format = config.RepositoryFormatMaven
 	migrated.AllowRedeployment = false
 	migrated.RequireGPGSignature = false
+	migrated.PublicationReview = config.PublicationReviewOff
 	if restore := repo.MavenRestore; restore != nil {
 		if restore.Format == config.RepositoryFormatMaven || restore.Format == config.RepositoryFormatMavenClassic {
 			migrated.Format = restore.Format
 		}
 		migrated.AllowRedeployment = restore.AllowRedeployment
 		migrated.RequireGPGSignature = restore.RequireGPGSignature
+		migrated.PublicationReview = restore.PublicationReview
 	}
 	migrated.MavenRestore = nil
 	return migrated
@@ -327,6 +344,11 @@ func MigrateRepositoryEngine(c fiber.Ctx, state *core.AppState) error {
 		return repositoryMigrationError(c, fiber.StatusServiceUnavailable, "repository_migration_unavailable", "Repository publication state is unavailable")
 	} else if pending {
 		return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_pending_gpg", "Repository has pending GPG publications")
+	}
+	if pending, err := state.GetDB().HasPendingPublicationReviews(repository); err != nil {
+		return repositoryMigrationError(c, fiber.StatusServiceUnavailable, "repository_migration_unavailable", "Repository review state is unavailable")
+	} else if pending {
+		return repositoryMigrationError(c, fiber.StatusConflict, "repository_migration_pending_review", "Repository has pending publication reviews")
 	}
 
 	original := current.DeepCopy()
@@ -420,6 +442,14 @@ func DeleteMavenRepository(c fiber.Ctx, state *core.AppState) error {
 	}
 	releaseMigration := repositorygate.AcquireMigration(repoName)
 	defer releaseMigration()
+	if db := state.GetDB(); db != nil {
+		if pending, err := db.HasPendingPublicationReviews(repoName); err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).SendString("Repository review state is unavailable")
+		} else if pending {
+			c.Set("X-Renop-Error-Code", "repository_pending_review")
+			return c.Status(fiber.StatusConflict).SendString("Repository has pending publication reviews")
+		}
+	}
 
 	var (
 		notFound         bool

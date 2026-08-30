@@ -78,5 +78,6 @@ export default {
     "maven.signedFiles": "{count} 個已簽署",
     "maven.fileSigned": "已使用 GPG 簽署",
     "maven.fileIntegrity": "完整性資訊",
-    "maven.filesTruncated": "僅顯示前 64 個主要檔案。"
+    "maven.filesTruncated": "僅顯示前 64 個主要檔案。",
+    "maven.reviewPending": "審核中"
 };

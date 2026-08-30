@@ -21,8 +21,12 @@ var MavenMutationAuthorizer func(state *core.AppState, user *config.User, repo *
 // MavenReadAuthorizer is wired by the Maven service for private-domain membership reads.
 var MavenReadAuthorizer func(state *core.AppState, user *config.User, repo *config.Repository, path string, isRoot bool) (bool, error)
 
-// MavenPublicationRecorder is wired by the Maven service to maintain its catalog after storage commits.
-var MavenPublicationRecorder func(state *core.AppState, repository, path, username string, size, modTime int64) error
+// MavenPublicationReviewCandidate classifies paths that may require pre-commit review hiding.
+var MavenPublicationReviewCandidate func(path string) bool
+
+// MavenPublicationProcessor records visible catalog metadata or creates one hidden publication review.
+var MavenPublicationProcessor func(state *core.AppState, repo *config.Repository, username string,
+	files []*core.ReviewFile) (*core.PublicationReviewResult, error)
 
 // MavenMirrorRecorder is wired by the Maven service to retain mirror provenance in its catalog.
 var MavenMirrorRecorder func(state *core.AppState, repository, path string, size, modTime int64) error

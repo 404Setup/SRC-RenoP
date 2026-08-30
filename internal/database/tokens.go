@@ -493,8 +493,8 @@ func (db *DB) DeleteToken(name string) error {
 	}
 	if _, err := tx.Exec(`UPDATE review_tasks SET status = ?, decision_reason = 'requester_deleted',
 		decided_by_id = ?, decided_by_name = ?, decided_at = ?, active_key = NULL
-		WHERE requested_by_id = ? AND status = ?`, core.ReviewStatusCancelled, userID, lowerName,
-		time.Now().UnixMilli(), userID, core.ReviewStatusPending); err != nil {
+		WHERE requested_by_id = ? AND status = ? AND kind = ?`, core.ReviewStatusCancelled, userID, lowerName,
+		time.Now().UnixMilli(), userID, core.ReviewStatusPending, core.ReviewKindSuperTeamTransfer); err != nil {
 		return fmt.Errorf("failed to cancel review requests for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM super_team_members WHERE user_id = ?`, userID); err != nil {

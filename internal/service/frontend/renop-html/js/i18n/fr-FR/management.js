@@ -72,6 +72,7 @@ export default Object.freeze({
     "audit.action.LOG_CLEAR": "Nettoyage des journaux",
     "audit.action.GPG_UPDATE": "Mise à jour de clé GPG",
     "audit.action.UPLOAD_QUEUED_GPG": "Téléversement GPG en attente",
+    "audit.action.UPLOAD_QUEUED_REVIEW": "Téléversement en attente d’examen",
     "audit.action.PROFILE_UPDATE": "Profil mis à jour",
     "audit.action.MESSAGE_SEND": "Notification envoyée",
     "audit.action.MAVEN_DOMAIN_CREATE": "Domaine Maven créé",

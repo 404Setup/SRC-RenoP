@@ -157,7 +157,14 @@ type StateDB interface {
 	RemoveSuperTeamMember(prefix, actor, target string, administrator bool, actedAt int64) error
 	CleanExpiredSuperTeamInvitations(now int64) error
 	CreateSuperTeamTransferReview(request SuperTeamTransferRequest, actor string, administrator bool, createdAt int64) (*ReviewTask, error)
+	CreateOrUpdatePublicationReview(request PublicationReviewRequest) (*PublicationReviewResult, error)
 	ListReviewTasks(options ReviewTaskListOptions) ([]*ReviewTask, int, error)
+	GetReviewTask(id string) (*ReviewTask, error)
+	ListReviewTaskFiles(id string) ([]*ReviewFile, error)
+	ListPendingPublicationReviewFiles() ([]*ReviewFile, error)
+	IsPublicationReviewPathPending(repository, path string) (bool, error)
+	HasPendingPublicationReviews(repository string) (bool, error)
+	ListPublicationReviews(repository, resourceType, resourceName string) ([]*ReviewTask, error)
 	DecideReviewTask(id, actor, decision, reason string, decidedAt int64) (*ReviewTask, error)
 	CancelReviewTask(id, actor string, cancelledAt int64) (*ReviewTask, error)
 	CreateMavenDomain(domain *MavenDomain, owner string) error
@@ -172,6 +179,7 @@ type StateDB interface {
 	HasMavenMembership(username string) (bool, error)
 	RecordMavenPublication(artifact *MavenArtifact, version *MavenVersion) error
 	RecordMavenMirrorPublication(artifact *MavenArtifact, version *MavenVersion) error
+	MavenArtifactExists(repository, groupID, artifactID string) (bool, error)
 	ListMavenArtifacts(repository, domain, query string, limit, offset int) ([]*MavenArtifact, int, error)
 	GetMavenArtifactDetails(repository, groupID, artifactID string) (*MavenArtifactDetails, error)
 	GetMavenArtifactTeamAccess(repository, groupID, artifactID, username string) (string, bool, int, error)

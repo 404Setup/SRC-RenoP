@@ -72,6 +72,7 @@ export default Object.freeze({
     "audit.action.LOG_CLEAR": "Protokoll löschen",
     "audit.action.GPG_UPDATE": "GPG-Schlüssel aktualisiert",
     "audit.action.UPLOAD_QUEUED_GPG": "GPG-Upload eingereiht",
+    "audit.action.UPLOAD_QUEUED_REVIEW": "Upload zur Prüfung eingereiht",
     "audit.action.PROFILE_UPDATE": "Profil aktualisiert",
     "audit.action.MESSAGE_SEND": "Benachrichtigung gesendet",
     "audit.action.MAVEN_DOMAIN_CREATE": "Maven-Domäne erstellt",

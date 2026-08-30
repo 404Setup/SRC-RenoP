@@ -1129,6 +1129,77 @@ func TestRepositoryDownloadStatisticsSettingsAndReset(t *testing.T) {
 	assert.Zero(t, count)
 }
 
+func TestMavenPublicationReviewSettingsDisableRedeployment(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = t.TempDir()
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"releases": {
+			Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC", AllowRedeployment: true,
+		},
+		"files": {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
+	}
+	app, state := setupSettingsTestApp(t, cfg)
+
+	request := httptest.NewRequest(http.MethodGet, "/repositories/publication-reviews", nil)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var policies struct {
+		Repositories map[string]string `json:"repositories"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&policies))
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, config.PublicationReviewOff, policies.Repositories["releases"])
+
+	request = httptest.NewRequest(http.MethodPut, "/repositories/releases/publication-review",
+		strings.NewReader(`{"policy":"every_version"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	releases := state.Inner.Config.Load().Maven.Repositories["releases"]
+	assert.Equal(t, config.PublicationReviewEveryVersion, releases.PublicationReviewPolicy())
+	assert.False(t, releases.AllowRedeployment)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "publication-review-settings.db"),
+		MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	state.Inner.DB = db
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "alice", CreatedAt: time.Now().Format(time.RFC3339)}))
+	_, err = db.CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceMavenArtifact, Repository: "releases",
+		ResourceKey: "com.example:demo", ResourceName: "com.example:demo", Version: "1.0.0",
+		RequestedBy: "alice", Policy: config.PublicationReviewEveryVersion, CreatedAt: time.Now().UnixMilli(),
+		Files: []*core.ReviewFile{{Path: "com/example/demo/1.0.0/demo-1.0.0.jar", Size: 8}},
+	})
+	require.NoError(t, err)
+	response = protoPUT(t, app, "/repositories/releases", &pb.Repository{
+		Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "HIDDEN", Mirrors: []*pb.Mirror{},
+	})
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "repository_pending_review", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
+	request = httptest.NewRequest(http.MethodPut, "/repositories/releases/publication-review",
+		strings.NewReader(`{"policy":"off"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	assert.Equal(t, "repository_pending_review", response.Header.Get("X-Renop-Error-Code"))
+	require.NoError(t, response.Body.Close())
+
+	request = httptest.NewRequest(http.MethodPut, "/repositories/files/publication-review",
+		strings.NewReader(`{"policy":"new_packages"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusConflict, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+}
+
 func TestRepositoryEngineMigrationPreservesEffectiveDownloadStatisticsDefault(t *testing.T) {
 	files := &config.Repository{Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"}
 	maven := repositoryWithMigratedEngine(files, config.RepositoryFormatMaven)
@@ -1297,7 +1368,8 @@ func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		repository: {
 			Name: repository, Format: config.RepositoryFormatMavenClassic, Visibility: "PUBLIC",
-			AllowRedeployment: true, RequireGPGSignature: true, Mirrors: []config.Mirror{},
+			AllowRedeployment: false, RequireGPGSignature: true,
+			PublicationReview: config.PublicationReviewNewPackages, Mirrors: []config.Mirror{},
 		},
 	}
 	app, state := setupSettingsTestApp(t, cfg)
@@ -1324,7 +1396,8 @@ func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
 		t.Fatalf("files migration did not preserve effective download statistics: %#v", filesRepo.DownloadStatistics)
 	}
 	if filesRepo.MavenRestore == nil || filesRepo.MavenRestore.Format != config.RepositoryFormatMavenClassic ||
-		!filesRepo.MavenRestore.AllowRedeployment || !filesRepo.MavenRestore.RequireGPGSignature {
+		filesRepo.MavenRestore.AllowRedeployment || !filesRepo.MavenRestore.RequireGPGSignature ||
+		filesRepo.MavenRestore.PublicationReview != config.PublicationReviewNewPackages {
 		t.Fatalf("Maven restore policy was not preserved: %#v", filesRepo.MavenRestore)
 	}
 	filesUpdate := protoPUT(t, app, "/repositories/"+repository, &pb.Repository{
@@ -1362,7 +1435,8 @@ func TestRepositoryEngineMigrationPreservesFilesAndMavenPolicy(t *testing.T) {
 	}
 	mavenRepo := state.Inner.Config.Load().Maven.Repositories[repository]
 	if mavenRepo.ConfiguredFormat() != config.RepositoryFormatMavenClassic ||
-		!mavenRepo.AllowRedeployment || !mavenRepo.RequireGPGSignature || mavenRepo.MavenRestore != nil {
+		mavenRepo.AllowRedeployment || !mavenRepo.RequireGPGSignature ||
+		mavenRepo.PublicationReviewPolicy() != config.PublicationReviewNewPackages || mavenRepo.MavenRestore != nil {
 		t.Fatalf("Maven policy was not restored: %#v", mavenRepo)
 	}
 	if !mavenRepo.DownloadStatisticsEnabled() {

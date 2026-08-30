@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "審核", "review.title": "審核", "review.subtitle": "在通知系統以外獨立審核團隊擁有權轉讓。",
+    "review.nav": "審核", "review.title": "審核", "review.subtitle": "在通知系統以外獨立處理擁有權轉讓與受管控發佈。",
     "review.noEligibleTeams": "沒有可選的團隊。", "review.type.docker_image": "Docker 映像",
     "review.type.npm_package": "npm 套件", "review.type.cargo_package": "Cargo crate",
     "review.type.maven_artifact": "Maven 製品", "review.type.maven_domain": "Maven 發佈域",
@@ -25,5 +25,18 @@ export default Object.freeze({
     "review.alreadyPending": "此資源已有待處理的擁有權轉讓。", "review.notFound": "找不到此審核。",
     "review.permissionDenied": "你沒有執行此審核操作的權限。", "review.serviceUnavailable": "審核資料暫時不可用。",
     "review.transferRestricted": "使用命名空間的 Docker 映像或帶作用域的 npm 套件不能轉回個人擁有。",
+    "review.publicationVersion": "版本 {version}",
+    "review.approvePublicationConfirm": "批准發佈 {resource} 的 {version} 版本？",
+    "review.rejectPublicationTitle": "拒絕發佈", "review.publicationApproved": "已批准發佈。",
+    "review.publicationRejected": "已拒絕發佈。", "review.rejectPresetLabel": "拒絕原因",
+    "review.rejectPreset.invalid_metadata": "中繼資料無效或不完整", "review.rejectPreset.quality": "未達到品質要求",
+    "review.rejectPreset.policy_violation": "違反儲存庫政策", "review.rejectPreset.copyright": "版權或授權問題",
+    "review.rejectPreset.malware": "惡意或不安全內容", "review.rejectPreset.custom": "自訂原因",
+    "review.downloadBundle": "下載檔案", "review.downloadFailed": "無法下載審核檔案。",
+    "review.noFiles": "此審核沒有可下載的檔案。",
+    "review.downloadPartial": "有 {count} 個檔案下載失敗，已分別開啟關鍵檔案。",
+    "review.publicationActive": "發佈仍在接收檔案，請等待數秒後再試。",
+    "review.publicationSealed": "該版本已完成審核，不能繼續加入檔案。",
+    "review.fileNotFound": "找不到審核檔案。", "review.limitReached": "待發佈審核數量已達上限。",
     "audit.action.REVIEW_REQUEST": "提交審核", "audit.action.REVIEW_DECISION": "處理審核", "audit.action.REVIEW_CANCEL": "取消審核申請"
 });

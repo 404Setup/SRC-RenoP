@@ -203,9 +203,15 @@ html.dark .review-status.is-pending {
 }
 
 .review-transfer-form,
+.review-reject-form,
 .review-reject-field {
     display: grid;
     gap: 0.7rem;
+    min-width: 0;
+}
+
+.review-reject-form .custom-select-wrapper {
+    width: 100%;
     min-width: 0;
 }
 

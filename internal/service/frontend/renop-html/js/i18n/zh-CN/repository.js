@@ -221,5 +221,11 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsDesc": "永久清除此存储库的全部已存储及待写入计数。",
     "repos.resetDownloadStatisticsConfirm": "重置 {name} 的全部下载统计？此操作无法撤销。",
     "repos.resetDownloadStatisticsSuccess": "下载统计已重置",
-    "repos.resetDownloadStatisticsFailed": "无法重置下载统计"
+    "repos.resetDownloadStatisticsFailed": "无法重置下载统计",
+    "repos.publicationReview": "发布审核", "repos.publicationReviewDesc": "新的 Maven 发布需由存储库版主或系统管理员审核后才可见。启用审核后也会关闭重新部署。",
+    "repos.publicationReviewOff": "关闭", "repos.publicationReviewNewPackages": "仅新建包",
+    "repos.publicationReviewEveryVersion": "每个版本", "repos.publicationReviewSaved": "发布审核设置已保存",
+    "repos.publicationReviewUpdateFailed": "无法更新发布审核设置",
+    "repos.migrationPendingReview": "请先处理待发布审核，再迁移此存储库。",
+    "repos.pendingReviewMutation": "请先处理待发布审核，再修改或删除此存储库。"
 });

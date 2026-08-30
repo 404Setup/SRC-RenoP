@@ -78,5 +78,6 @@ export default {
     "maven.signedFiles": "{count} signiert",
     "maven.fileSigned": "GPG-signiert",
     "maven.fileIntegrity": "Integritätsmetadaten",
-    "maven.filesTruncated": "Es werden nur die ersten 64 Primärdateien angezeigt."
+    "maven.filesTruncated": "Es werden nur die ersten 64 Primärdateien angezeigt.",
+    "maven.reviewPending": "Prüfung ausstehend"
 };

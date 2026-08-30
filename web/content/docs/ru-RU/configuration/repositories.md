@@ -20,6 +20,7 @@ repositories:
     visibility: PUBLIC
     allow_redeployment: false
     require_gpg_signature: true
+    publication_review: every_version
     download_statistics: true
     mirrors: []
   crates:
@@ -44,6 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` или `PRIVATE` |
 | `allow_redeployment` | `false` | Повтор Maven или замена files/Docker, если поддерживается |
 | `require_gpg_signature` | `false` | Проверка отделённой OpenPGP подписи для Maven |
+| `publication_review` | `off` | Режим проверки Maven: `off`, `new_packages` или `every_version` |
 | `download_statistics` | Зависит от движка | Включено для Maven/npm/Cargo/Docker; для `files` включается явно |
 | `mirrors` | `[]` | Упорядоченные upstream definitions |
 | `s3` | отсутствует | Отдельное S3-хранилище репозитория |
@@ -51,6 +53,10 @@ repositories:
 `maven-classic` меняет только компоновку интерфейса и сохраняет правила публикации Maven. `files` неструктурирован,
 не создаёт контрольные суммы и POM и не проверяет подписи. Миграция Maven ↔ `files` не перемещает объекты; возврат в
 Maven перестраивает каталог и восстанавливает сохранённую политику. Настройка статистики скачиваний также сохраняется.
+
+В этой версии проверка публикаций доступна только для Maven. При включении `allow_redeployment` принудительно становится
+`false`. Локальные файлы скрыты до одобрения модератором репозитория или системным администратором; зеркала не проверяются.
+Репозиторий с ожидающей задачей нельзя изменить, удалить или перевести на другой движок.
 
 Репозиторий `npm` требует резервирования до публикации, хранит неизменяемые SemVer и dist-tag, поддерживает scoped
 private packages, команды L0-L4 и зеркала по точному имени или правилу `@scope/*`.

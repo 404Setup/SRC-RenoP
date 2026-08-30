@@ -13,6 +13,9 @@ importers:
       '@renop/ui':
         specifier: workspace:*
         version: link:../../../../packages/renop-ui
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       marked:
         specifier: ^18.0.10
         version: 18.0.10

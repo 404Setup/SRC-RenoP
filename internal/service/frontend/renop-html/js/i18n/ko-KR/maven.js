@@ -78,5 +78,6 @@ export default {
     "maven.signedFiles": "서명됨 {count}개",
     "maven.fileSigned": "GPG 서명됨",
     "maven.fileIntegrity": "무결성 메타데이터",
-    "maven.filesTruncated": "주요 파일은 처음 64개만 표시됩니다."
+    "maven.filesTruncated": "주요 파일은 처음 64개만 표시됩니다.",
+    "maven.reviewPending": "검토 대기 중"
 };

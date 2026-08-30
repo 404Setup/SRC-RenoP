@@ -38,6 +38,12 @@ func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
 	router.Get("/repositories/download-statistics", func(c fiber.Ctx) error {
 		return getRepositoryDownloadStatistics(c, state)
 	})
+	router.Get("/repositories/publication-reviews", func(c fiber.Ctx) error {
+		return getRepositoryPublicationReviews(c, state)
+	})
+	router.Put("/repositories/:name/publication-review", func(c fiber.Ctx) error {
+		return putRepositoryPublicationReview(c, state)
+	})
 	router.Put("/repositories/:name/download-statistics", func(c fiber.Ctx) error {
 		return putRepositoryDownloadStatistics(c, state)
 	})

@@ -221,5 +221,11 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsDesc": "永久清除呢個儲存庫全部已儲存同待寫入計數。",
     "repos.resetDownloadStatisticsConfirm": "重設 {name} 嘅全部下載統計？呢個操作無法復原。",
     "repos.resetDownloadStatisticsSuccess": "下載統計已重設",
-    "repos.resetDownloadStatisticsFailed": "重設唔到下載統計"
+    "repos.resetDownloadStatisticsFailed": "重設唔到下載統計",
+    "repos.publicationReview": "發佈審核", "repos.publicationReviewDesc": "新嘅 Maven 發佈要等儲存庫版主或者系統管理員審核先會顯示。開啟審核亦會關閉重新部署。",
+    "repos.publicationReviewOff": "關閉", "repos.publicationReviewNewPackages": "淨係新建套件",
+    "repos.publicationReviewEveryVersion": "每個版本", "repos.publicationReviewSaved": "發佈審核設定已儲存",
+    "repos.publicationReviewUpdateFailed": "更新唔到發佈審核設定",
+    "repos.migrationPendingReview": "請先處理待發佈審核，再遷移呢個儲存庫。",
+    "repos.pendingReviewMutation": "請先處理待發佈審核，再改或者刪除呢個儲存庫。"
 });

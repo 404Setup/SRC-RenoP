@@ -331,6 +331,10 @@ func TestCheckModeratePermissionIsRepositoryScoped(t *testing.T) {
 	if moderator.CheckReadPermission("snapshots", "private/package", "PRIVATE", false) {
 		t.Fatal("repository moderator could inspect another private repository")
 	}
+	all, repositories := moderator.ModerationScope()
+	if all || len(repositories) != 1 || repositories[0] != "releases" {
+		t.Fatalf("repository moderation scope = all %v, repositories %v", all, repositories)
+	}
 
 	globalModerator := createUserWithRoles([]string{"canmoderate:*"})
 	if !globalModerator.CheckModeratePermission("releases") ||
@@ -339,6 +343,9 @@ func TestCheckModeratePermissionIsRepositoryScoped(t *testing.T) {
 	}
 	if globalModerator.IsManager() || globalModerator.CheckUpdatePermission("releases") {
 		t.Fatal("global moderator inherited system or deployment permission")
+	}
+	if all, repositories := globalModerator.ModerationScope(); !all || len(repositories) != 0 {
+		t.Fatalf("global moderation scope = all %v, repositories %v", all, repositories)
 	}
 
 	manager := createUserWithRoles([]string{"manager"})

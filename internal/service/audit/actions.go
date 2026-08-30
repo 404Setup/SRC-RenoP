@@ -15,6 +15,7 @@ const (
 	ActionLogout                = "LOGOUT"
 	ActionUpload                = "UPLOAD"
 	ActionUploadQueuedGPG       = "UPLOAD_QUEUED_GPG"
+	ActionUploadQueuedReview    = "UPLOAD_QUEUED_REVIEW"
 	ActionDelete                = "DELETE"
 	ActionPasswordUpdate        = "PASSWORD_UPDATE"
 	ActionFIDOUpdate            = "FIDO_UPDATE"
@@ -108,6 +109,7 @@ func KnownActions() []string {
 		ActionLogout,
 		ActionUpload,
 		ActionUploadQueuedGPG,
+		ActionUploadQueuedReview,
 		ActionDelete,
 		ActionPasswordUpdate,
 		ActionFIDOUpdate,

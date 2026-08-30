@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "Prüfungen", "review.title": "Prüfungen", "review.subtitle": "Teamübertragungen unabhängig von Benachrichtigungen prüfen.",
+    "review.nav": "Prüfungen", "review.title": "Prüfungen", "review.subtitle": "Eigentumsübertragungen und moderierte Veröffentlichungen unabhängig von Benachrichtigungen prüfen.",
     "review.noEligibleTeams": "Es sind keine geeigneten Teams verfügbar.", "review.type.docker_image": "Docker-Image",
     "review.type.npm_package": "npm-Paket", "review.type.cargo_package": "Cargo-Crate",
     "review.type.maven_artifact": "Maven-Artefakt", "review.type.maven_domain": "Maven-Veröffentlichungsdomain",
@@ -26,5 +26,18 @@ export default Object.freeze({
     "review.alreadyPending": "Für diese Ressource ist bereits eine Eigentumsübertragung ausstehend.", "review.notFound": "Die Prüfung wurde nicht gefunden.",
     "review.permissionDenied": "Sie dürfen diese Prüfung nicht bearbeiten.", "review.serviceUnavailable": "Prüfdaten sind vorübergehend nicht verfügbar.",
     "review.transferRestricted": "Ein Docker-Image mit Namensraum oder ein npm-Paket mit Scope kann nicht in persönlichen Besitz zurückgeführt werden.",
+    "review.publicationVersion": "Version {version}",
+    "review.approvePublicationConfirm": "Version {version} von {resource} zur Veröffentlichung freigeben?",
+    "review.rejectPublicationTitle": "Veröffentlichung ablehnen", "review.publicationApproved": "Veröffentlichung freigegeben.",
+    "review.publicationRejected": "Veröffentlichung abgelehnt.", "review.rejectPresetLabel": "Ablehnungsgrund",
+    "review.rejectPreset.invalid_metadata": "Ungültige oder unvollständige Metadaten", "review.rejectPreset.quality": "Qualitätsanforderungen nicht erfüllt",
+    "review.rejectPreset.policy_violation": "Verstoß gegen Repository-Richtlinien", "review.rejectPreset.copyright": "Urheberrechts- oder Lizenzproblem",
+    "review.rejectPreset.malware": "Schädlicher oder unsicherer Inhalt", "review.rejectPreset.custom": "Eigener Grund",
+    "review.downloadBundle": "Dateien herunterladen", "review.downloadFailed": "Die Prüfdateien konnten nicht heruntergeladen werden.",
+    "review.noFiles": "Diese Prüfung enthält keine herunterladbaren Dateien.",
+    "review.downloadPartial": "{count} Dateien konnten nicht heruntergeladen werden; wichtige Dateien wurden separat geöffnet.",
+    "review.publicationActive": "Die Veröffentlichung empfängt noch Dateien. Warten Sie einige Sekunden und versuchen Sie es erneut.",
+    "review.publicationSealed": "Diese geprüfte Version ist abgeschlossen und kann keine weiteren Dateien annehmen.",
+    "review.fileNotFound": "Die Prüfdatei wurde nicht gefunden.", "review.limitReached": "Das Limit für Veröffentlichungsprüfungen wurde erreicht.",
     "audit.action.REVIEW_REQUEST": "Prüfung beantragt", "audit.action.REVIEW_DECISION": "Prüfung entschieden", "audit.action.REVIEW_CANCEL": "Prüfantrag abgebrochen"
 });

@@ -64,8 +64,10 @@ type PreparedUpload struct {
 }
 
 type GPGUploadResult struct {
-	Pending   bool
-	ReleaseID string
+	Pending       bool
+	ReleaseID     string
+	ReviewPending bool
+	ReviewID      string
 }
 
 // GPGUploadLockPath makes a protected artifact, its detached signature, and
@@ -240,6 +242,9 @@ func unblockReleasePaths(state *core.AppState, release *core.GPGRelease) {
 		return
 	}
 	for _, path := range releaseBlockedPaths(state, release) {
+		if preservePublicationReviewBlock(state, path) {
+			continue
+		}
 		state.Inner.FileIndex.UnblockFile(path)
 		state.InvalidateFileCache(path)
 	}
@@ -457,7 +462,34 @@ func ProcessUploadedFile(ctx context.Context, state *core.AppState, repo *config
 	}
 	releaseMutation := repositorygate.AcquireMutation(repo.Name)
 	defer releaseMutation()
-	return processUploadedFileLocked(ctx, state, repo, upload)
+	return processUploadedFileWithReviewLocked(ctx, state, repo, upload)
+}
+
+func processUploadedFileWithReviewLocked(ctx context.Context, state *core.AppState, repo *config.Repository,
+	upload *PreparedUpload,
+) (GPGUploadResult, error) {
+	preparation, err := prepareMavenPublication(state, repo, upload.LocalFilePath)
+	if err != nil {
+		return GPGUploadResult{}, err
+	}
+	result, err := processUploadedFileLocked(ctx, state, repo, upload)
+	if err != nil {
+		abortMavenPublication(state, upload.LocalFilePath, preparation)
+		return GPGUploadResult{}, err
+	}
+	if result.Pending {
+		return result, nil
+	}
+	review, err := finishMavenPublication(state, repo, upload, preparation)
+	if err != nil {
+		return GPGUploadResult{}, err
+	}
+	if review != nil && review.Pending {
+		result.Pending = true
+		result.ReviewPending = true
+		result.ReviewID = review.TaskID
+	}
+	return result, nil
 }
 
 func processUploadedFileLocked(ctx context.Context, state *core.AppState, repo *config.Repository, upload *PreparedUpload) (GPGUploadResult, error) {

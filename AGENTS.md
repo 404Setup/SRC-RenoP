@@ -17,7 +17,8 @@
 - **`cmd/renop-dbtest/`**: Standalone destructive-on-isolated-data driver contract CLI. It requires
   `-confirm-isolated` and exercises account/session persistence, rollback, message deduplication, Cargo/Docker/Maven/npm
   catalogs, global-team invitation/role mutations, cross-engine team bindings, and download statistics through the same
-  database API used by the server.
+  database API used by the server. Its review phase also verifies repository-moderator listing, bounded publication
+  files, single-decision completion, and hidden-path release across every available driver.
 - **`scripts/build-target.ps1` & `scripts/compress-target.ps1`**: Isolated release workers coordinated by `build.ps1`.
   Up to four compilations run independently from up to eight Brotli packaging tasks; a completed compilation releases
   its build slot immediately and queues compression without delaying the next architecture. The parent preserves
@@ -53,6 +54,11 @@
   takes the higher of an explicit package permission and the live T1-T4 mapping without copying team members. Durable
   `review_tasks` preserve immutable request identities, bounded filters, source/target bindings, and a pending-state
   compare-and-set so ownership transfers and their decisions apply atomically across every database driver.
+  `review_task_files` attaches at most 256 repository-relative files to each moderated publication without storing
+  package bytes in the database; active publication keys merge Maven companions into one version task, enforce an
+  upload-settling interval, and preserve rejected or approved decision history. Shared task paging and transfer
+  decisions remain in `review.go`, while publication keys, file ownership, and hidden-path queries are isolated in
+  `review_publication.go`.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -110,7 +116,9 @@
   provides unstructured replaceable file storage and mirrors without checksum generation or signature processing.
   Browser navigation classifies indexed artifacts before format and authorization SPA branches, so a known file path
   never receives the SPA shell; Brotli, gzip, Zstandard, and the other supported compressed formats receive explicit
-  binary MIME types without HTTP content-encoding labels.
+  binary MIME types without HTTP content-encoding labels. Maven files awaiting publication review are committed but
+  blocked from every index insertion path; startup restores those blocks from the review database before watchers run,
+  and GPG-success cleanup retains the publication block until an approval exposes or a rejection deletes the files.
 - **`internal/service/packagestore/`**: Shared streaming package-blob boundary used by protocol modules for bounded
   staging, validation, atomic Disk/S3 commit, rollback, and deletion without importing storage implementations.
 - **`internal/service/message/`**: Durable user message-center API for workflow events, team invitations, and
@@ -127,8 +135,11 @@
   publishing domains share one stable resource model. An L4 owner or authorized administrator submits a request, a
   T3/T4 manager of the reviewing team or a system administrator decides it exactly once, and approval rechecks the
   requester's current L4 or administrator authority, target-team membership, and resource binding in the decision
-  transaction.
-  Namespaced Docker images and scoped npm packages cannot return to personal ownership.
+  transaction. Namespaced Docker images and scoped npm packages cannot return to personal ownership.
+  Maven publication reviews use repository-scoped moderators, a five-second last-file settling window, preset or
+  bounded custom rejection reasons, authorized hidden-file streaming, and a single decision gate. Approval records
+  catalog metadata before reindexing files; rejection removes the committed Disk/S3 objects. Repository configuration,
+  migration, and deletion are rejected while a publication review remains pending.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
@@ -204,6 +215,10 @@
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
   loads. `js/reviews.js` owns the routed `/account/reviews` center, shared cross-engine transfer dialog, multi-type
   filtering, requester/reviewer views, pagination, and responsive height animation without using the message center.
+  The same center downloads Maven review files with at most four adaptive workers, retries failures twice, assembles
+  successful sets into a browser-side ZIP with a lazily loaded `fflate`, and falls back to direct critical-file downloads rather than
+  emitting an incomplete archive. Maven repository settings expose `off`, new-package-only, and every-version review
+  policies through a separate JSON settings route so the legacy repository protobuf remains backward compatible.
   Modular i18n catalogs are split into common, auth/error, browser, management, messages/team, review, settings/updater,
   profile, repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads
   fragments in parallel and reports all missing/extra keys and placeholder drift against the English catalog during

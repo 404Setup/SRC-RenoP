@@ -727,6 +727,29 @@ func (db *DB) RecordMavenPublication(artifact *core.MavenArtifact, version *core
 	return db.recordMavenPublication(artifact, version, false)
 }
 
+// MavenArtifactExists reports whether a local or mirrored catalog package already exists.
+func (db *DB) MavenArtifactExists(repository, groupID, artifactID string) (bool, error) {
+	if db == nil || db.SQLDB == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	repository = sanitizeMavenRepository(repository)
+	groupID = sanitizeMavenDomain(groupID)
+	artifactID = SanitizeInputString(strings.TrimSpace(artifactID), 255)
+	if repository == "" || groupID == "" || artifactID == "" {
+		return false, errors.New("maven artifact key is invalid")
+	}
+	var exists int
+	err := db.QueryRow(`SELECT 1 FROM maven_artifacts WHERE repository = ? AND group_id = ? AND artifact_id = ?`,
+		repository, groupID, artifactID).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect Maven artifact: %w", err)
+	}
+	return exists != 0, nil
+}
+
 // RecordMavenMirrorPublication upserts catalog metadata for a version fetched from an upstream mirror.
 func (db *DB) RecordMavenMirrorPublication(artifact *core.MavenArtifact, version *core.MavenVersion) error {
 	return db.recordMavenPublication(artifact, version, true)

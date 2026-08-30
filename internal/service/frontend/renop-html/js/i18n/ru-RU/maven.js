@@ -78,5 +78,6 @@ export default {
     "maven.signedFiles": "Подписано: {count}",
     "maven.fileSigned": "Подписан GPG",
     "maven.fileIntegrity": "Метаданные целостности",
-    "maven.filesTruncated": "Показаны только первые 64 основных файла."
+    "maven.filesTruncated": "Показаны только первые 64 основных файла.",
+    "maven.reviewPending": "Ожидает проверки"
 };

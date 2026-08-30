@@ -183,6 +183,9 @@ func Initialize() (*core.AppState, BootstrapContext) {
 	if err := storage.RestoreGPGReleaseState(state); err != nil {
 		log.Fatalf("Failed to restore GPG publication queue: %v", err)
 	}
+	if err := storage.RestorePublicationReviewState(state); err != nil {
+		log.Fatalf("Failed to restore publication review state: %v", err)
+	}
 
 	state.Inner.FileCache = core.NewFileByteCache(int(cfg.Server.FileCacheSizeMb) << 20)
 

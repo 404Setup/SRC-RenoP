@@ -221,5 +221,11 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsDesc": "Permanently clear every stored and pending counter for this repository.",
     "repos.resetDownloadStatisticsConfirm": "Reset all download statistics for {name}? This cannot be undone.",
     "repos.resetDownloadStatisticsSuccess": "Download statistics reset",
-    "repos.resetDownloadStatisticsFailed": "Could not reset download statistics"
+    "repos.resetDownloadStatisticsFailed": "Could not reset download statistics",
+    "repos.publicationReview": "Publication review", "repos.publicationReviewDesc": "Hold new Maven publications for a repository moderator or system administrator. Enabling review also disables redeployment.",
+    "repos.publicationReviewOff": "Disabled", "repos.publicationReviewNewPackages": "New packages only",
+    "repos.publicationReviewEveryVersion": "Every version", "repos.publicationReviewSaved": "Publication review settings saved",
+    "repos.publicationReviewUpdateFailed": "Could not update publication review settings",
+    "repos.migrationPendingReview": "Resolve pending publication reviews before migrating this repository.",
+    "repos.pendingReviewMutation": "Resolve pending publication reviews before changing or deleting this repository."
 });

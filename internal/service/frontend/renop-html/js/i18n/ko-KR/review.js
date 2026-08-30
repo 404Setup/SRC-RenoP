@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "검토", "review.title": "검토", "review.subtitle": "알림과 별도로 팀 소유권 이전을 검토합니다.",
+    "review.nav": "검토", "review.title": "검토", "review.subtitle": "소유권 이전과 관리 대상 게시를 알림과 별도로 검토합니다.",
     "review.noEligibleTeams": "선택할 수 있는 팀이 없습니다.", "review.type.docker_image": "Docker 이미지",
     "review.type.npm_package": "npm 패키지", "review.type.cargo_package": "Cargo crate",
     "review.type.maven_artifact": "Maven 아티팩트", "review.type.maven_domain": "Maven 게시 도메인",
@@ -25,5 +25,18 @@ export default Object.freeze({
     "review.alreadyPending": "이 리소스에 대기 중인 소유권 이전이 있습니다.", "review.notFound": "검토를 찾을 수 없습니다.",
     "review.permissionDenied": "이 검토 작업을 수행할 권한이 없습니다.", "review.serviceUnavailable": "검토 데이터를 일시적으로 사용할 수 없습니다.",
     "review.transferRestricted": "네임스페이스 Docker 이미지 또는 범위 지정 npm 패키지는 개인 소유로 전환할 수 없습니다.",
+    "review.publicationVersion": "버전 {version}",
+    "review.approvePublicationConfirm": "{resource} 버전 {version}의 게시를 승인하시겠습니까?",
+    "review.rejectPublicationTitle": "게시 거부", "review.publicationApproved": "게시를 승인했습니다.",
+    "review.publicationRejected": "게시를 거부했습니다.", "review.rejectPresetLabel": "거부 사유",
+    "review.rejectPreset.invalid_metadata": "메타데이터가 잘못되었거나 불완전함", "review.rejectPreset.quality": "품질 요구 사항을 충족하지 않음",
+    "review.rejectPreset.policy_violation": "저장소 정책 위반", "review.rejectPreset.copyright": "저작권 또는 라이선스 문제",
+    "review.rejectPreset.malware": "악성 또는 안전하지 않은 콘텐츠", "review.rejectPreset.custom": "직접 입력",
+    "review.downloadBundle": "파일 다운로드", "review.downloadFailed": "검토 파일을 다운로드하지 못했습니다.",
+    "review.noFiles": "이 검토에는 다운로드할 파일이 없습니다.",
+    "review.downloadPartial": "파일 {count}개를 다운로드하지 못해 핵심 파일을 별도로 열었습니다.",
+    "review.publicationActive": "게시 파일을 아직 수신하고 있습니다. 잠시 후 다시 시도하세요.",
+    "review.publicationSealed": "검토가 끝난 이 버전에는 파일을 더 추가할 수 없습니다.",
+    "review.fileNotFound": "검토 파일을 찾을 수 없습니다.", "review.limitReached": "게시 검토 한도에 도달했습니다.",
     "audit.action.REVIEW_REQUEST": "검토 요청", "audit.action.REVIEW_DECISION": "검토 처리", "audit.action.REVIEW_CANCEL": "검토 요청 취소"
 });

@@ -431,6 +431,21 @@ paths, credentials, query strings, or fragments in key server URLs are rejected 
 
 ---
 
+## Publication Review
+
+Maven repositories can set `publication_review` to `off`, `new_packages`, or `every_version`. Review is disabled by
+default. Enabling it disables redeployment and keeps local files outside the public index until a repository-scoped
+moderator or system administrator approves them. Mirror downloads are never reviewed. When GPG signatures are required,
+signature verification completes before the version enters review.
+
+One durable task collects at most 256 files for a version, including checksum, signature, and Maven metadata companions.
+Reviewers wait for a five-second upload-settling interval, can download the complete file set from `/account/reviews`,
+and must select a preset or bounded custom reason when rejecting. Approval records the Maven catalog version and exposes
+the files; rejection deletes the hidden files. Pending review state is restored before file watchers start after a
+restart, and repositories with pending publications cannot be reconfigured, migrated, or deleted.
+
+---
+
 ## Outbound Proxy
 
 RenoP can route upstream mirror traffic through an HTTP, HTTPS, or SOCKS5 proxy. Define one or more named proxies under
@@ -612,7 +627,7 @@ prefer the HTTP status code over the body for programmatic handling.
 | `updater`  | `POST /api/updater/check`, `/api/updater/install`, `/api/updater/restart`           | Update management                   |
 | `messages` | `GET/POST/DELETE /api/messages/...`                                                 | User inbox and admin broadcast      |
 | `super-teams` | `GET/POST/PUT/DELETE /api/super-teams/...`                                      | Global teams, roles, invites, limits |
-| `reviews`  | `GET/POST/DELETE /api/reviews/...`                                                  | Independent ownership reviews       |
+| `reviews`  | `GET/POST/DELETE /api/reviews/...`                                                  | Ownership and publication reviews   |
 | `audit`    | `GET /api/profile/audit-logs`, `GET/DELETE /api/users/{username}/audit-logs`        | Activity log                        |
 | `debug`    | `GET /api/debug/memory/...`                                                         | pprof dumps (requires `debug_mode`) |
 

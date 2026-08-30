@@ -11,6 +11,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -26,6 +27,7 @@ type Repository struct {
 	Mirrors             []Mirror              `json:"mirrors" yaml:"mirrors"`
 	AllowRedeployment   bool                  `json:"allow_redeployment" yaml:"allow_redeployment"`
 	RequireGPGSignature bool                  `json:"require_gpg_signature" yaml:"require_gpg_signature"`
+	PublicationReview   string                `json:"publication_review,omitempty" yaml:"publication_review,omitempty"`
 	DownloadStatistics  *bool                 `json:"download_statistics,omitempty" yaml:"download_statistics,omitempty"`
 	S3                  *S3Config             `json:"s3,omitempty" yaml:"s3,omitempty"`
 	MavenRestore        *MavenRestoreSettings `json:"maven_restore,omitempty" yaml:"maven_restore,omitempty"`
@@ -36,6 +38,7 @@ type MavenRestoreSettings struct {
 	Format              string `json:"format" yaml:"format"`
 	AllowRedeployment   bool   `json:"allow_redeployment" yaml:"allow_redeployment"`
 	RequireGPGSignature bool   `json:"require_gpg_signature" yaml:"require_gpg_signature"`
+	PublicationReview   string `json:"publication_review,omitempty" yaml:"publication_review,omitempty"`
 }
 
 type repositorySerialization struct {
@@ -45,6 +48,7 @@ type repositorySerialization struct {
 	Mirrors             []Mirror              `json:"mirrors" yaml:"mirrors"`
 	AllowRedeployment   *bool                 `json:"allow_redeployment,omitempty" yaml:"allow_redeployment,omitempty"`
 	RequireGPGSignature *bool                 `json:"require_gpg_signature,omitempty" yaml:"require_gpg_signature,omitempty"`
+	PublicationReview   string                `json:"publication_review,omitempty" yaml:"publication_review,omitempty"`
 	DownloadStatistics  *bool                 `json:"download_statistics,omitempty" yaml:"download_statistics,omitempty"`
 	S3                  *S3Config             `json:"s3,omitempty" yaml:"s3,omitempty"`
 	MavenRestore        *MavenRestoreSettings `json:"maven_restore,omitempty" yaml:"maven_restore,omitempty"`
@@ -57,7 +61,37 @@ const (
 	RepositoryFormatCargo        = "cargo"
 	RepositoryFormatDocker       = "docker"
 	RepositoryFormatNPM          = "npm"
+
+	PublicationReviewOff          = "off"
+	PublicationReviewNewPackages  = "new_packages"
+	PublicationReviewEveryVersion = "every_version"
 )
+
+// NormalizePublicationReviewPolicy returns one supported publication-review policy.
+func NormalizePublicationReviewPolicy(value string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", PublicationReviewOff:
+		return PublicationReviewOff, true
+	case PublicationReviewNewPackages:
+		return PublicationReviewNewPackages, true
+	case PublicationReviewEveryVersion:
+		return PublicationReviewEveryVersion, true
+	default:
+		return "", false
+	}
+}
+
+// PublicationReviewPolicy returns the normalized review policy supported by this repository.
+func (r *Repository) PublicationReviewPolicy() string {
+	if r == nil || r.NormalizedFormat() != RepositoryFormatMaven {
+		return PublicationReviewOff
+	}
+	policy, valid := NormalizePublicationReviewPolicy(r.PublicationReview)
+	if !valid {
+		return PublicationReviewOff
+	}
+	return policy
+}
 
 // NormalizedFormat returns the protocol name while preserving the historical
 // empty value as Maven.
@@ -100,7 +134,7 @@ func (r Repository) serialization() repositorySerialization {
 	serialized := repositorySerialization{
 		Name: r.Name, Format: r.ConfiguredFormat(), Visibility: r.Visibility, S3: r.S3,
 		Mirrors: make([]Mirror, len(r.Mirrors)), MavenRestore: r.MavenRestore.DeepCopy(),
-		DownloadStatistics: cloneRepositoryBool(r.DownloadStatistics),
+		DownloadStatistics: cloneRepositoryBool(r.DownloadStatistics), PublicationReview: r.PublicationReviewPolicy(),
 	}
 	for i := range r.Mirrors {
 		serialized.Mirrors[i] = r.Mirrors[i].DeepCopy()
@@ -108,6 +142,7 @@ func (r Repository) serialization() repositorySerialization {
 	if r.NormalizedFormat() == RepositoryFormatCargo || r.NormalizedFormat() == RepositoryFormatDocker ||
 		r.NormalizedFormat() == RepositoryFormatNPM ||
 		r.NormalizedFormat() == RepositoryFormatFiles {
+		serialized.PublicationReview = ""
 		if r.NormalizedFormat() == RepositoryFormatDocker || r.NormalizedFormat() == RepositoryFormatFiles {
 			serialized.AllowRedeployment = &r.AllowRedeployment
 		}
@@ -267,6 +302,27 @@ type MavenSettings struct {
 	Repositories map[string]*Repository `json:"repositories" yaml:"repositories"`
 }
 
+func (m *MavenSettings) validatePublicationReviewPolicies() error {
+	for name, repo := range m.Repositories {
+		if repo == nil {
+			continue
+		}
+		policy, valid := NormalizePublicationReviewPolicy(repo.PublicationReview)
+		if !valid {
+			return fmt.Errorf("repository %q has an invalid publication review policy", name)
+		}
+		if policy != PublicationReviewOff && repo.NormalizedFormat() != RepositoryFormatMaven {
+			return fmt.Errorf("repository %q does not support publication review", name)
+		}
+		if restore := repo.MavenRestore; restore != nil {
+			if _, valid := NormalizePublicationReviewPolicy(restore.PublicationReview); !valid {
+				return fmt.Errorf("repository %q has an invalid Maven restore review policy", name)
+			}
+		}
+	}
+	return nil
+}
+
 func (m *MavenSettings) setDefaults() {
 	if m.Repositories == nil {
 		m.Repositories = make(map[string]*Repository)
@@ -284,6 +340,7 @@ func (m *MavenSettings) setDefaults() {
 		if repo != nil && repo.NormalizedFormat() == RepositoryFormatFiles {
 			repo.AllowRedeployment = true
 			repo.RequireGPGSignature = false
+			repo.PublicationReview = PublicationReviewOff
 			if repo.MavenRestore != nil {
 				restoredFormat := strings.ToLower(strings.TrimSpace(repo.MavenRestore.Format))
 				if restoredFormat != RepositoryFormatMaven && restoredFormat != RepositoryFormatMavenClassic {
@@ -294,6 +351,14 @@ func (m *MavenSettings) setDefaults() {
 			}
 		} else if repo != nil {
 			repo.MavenRestore = nil
+			policy, valid := NormalizePublicationReviewPolicy(repo.PublicationReview)
+			if !valid || repo.NormalizedFormat() != RepositoryFormatMaven {
+				policy = PublicationReviewOff
+			}
+			repo.PublicationReview = policy
+			if policy != PublicationReviewOff {
+				repo.AllowRedeployment = false
+			}
 		}
 	}
 	delete(m.Repositories, "snapshot")
@@ -305,6 +370,9 @@ func (m *MavenSettings) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
+	if err := m.validatePublicationReviewPolicies(); err != nil {
+		return err
+	}
 	m.setDefaults()
 	return nil
 }
@@ -313,6 +381,9 @@ func (m *MavenSettings) UnmarshalYAML(value *yaml.Node) error {
 	type alias MavenSettings
 	aux := (*alias)(m)
 	if err := value.Decode(aux); err != nil {
+		return err
+	}
+	if err := m.validatePublicationReviewPolicies(); err != nil {
 		return err
 	}
 	m.setDefaults()
@@ -355,7 +426,7 @@ func (m *MavenRestoreSettings) DeepCopy() *MavenRestoreSettings {
 	}
 	return &MavenRestoreSettings{
 		Format: strings.Clone(m.Format), AllowRedeployment: m.AllowRedeployment,
-		RequireGPGSignature: m.RequireGPGSignature,
+		RequireGPGSignature: m.RequireGPGSignature, PublicationReview: strings.Clone(m.PublicationReview),
 	}
 }
 
@@ -369,6 +440,7 @@ func (r *Repository) DeepCopy() *Repository {
 		Visibility:          strings.Clone(r.Visibility),
 		AllowRedeployment:   r.AllowRedeployment,
 		RequireGPGSignature: r.RequireGPGSignature,
+		PublicationReview:   strings.Clone(r.PublicationReview),
 		DownloadStatistics:  cloneRepositoryBool(r.DownloadStatistics),
 		S3:                  r.S3.DeepCopy(),
 		MavenRestore:        r.MavenRestore.DeepCopy(),

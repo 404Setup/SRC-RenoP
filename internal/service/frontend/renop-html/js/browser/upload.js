@@ -536,7 +536,7 @@ export function initUpload() {
                         }
                     };
 
-                    const markDone = () => {
+                    const markDone = (queuedForReview = false) => {
                         file._status = 'done';
                         file._progress = '100%';
                         if (entryDiv) {
@@ -545,7 +545,9 @@ export function initUpload() {
                             entryDiv.setAttribute('status', 'done');
                             entryDiv.setAttribute('progress', '100%');
                         }
-                        showAlert(t('browser.uploadedSuccess', {name: file.name}), 'success');
+                        showAlert(t(queuedForReview ? 'browser.uploadQueuedReview' : 'browser.uploadedSuccess', {
+                            name: file.name
+                        }), 'success');
                     };
 
                     const markError = () => {
@@ -559,6 +561,7 @@ export function initUpload() {
                     };
 
                     let ok = false;
+                    let queuedForReview = false;
                     if (shouldUseChunkedUpload(file)) {
                         const result = await uploadFileChunked(file, {
                             purpose: 'storage',
@@ -570,12 +573,14 @@ export function initUpload() {
                             onChunkProgress: applyChunkProgress,
                         });
                         ok = result.ok;
+                        queuedForReview = Boolean(result.reviewID);
                     } else {
 						const result = await uploadFileSinglePut(targetPath, file, fileHeaders, applyProgress);
                         ok = result.ok;
+                        queuedForReview = Boolean(result.reviewID);
                     }
 
-                    if (ok) markDone();
+                    if (ok) markDone(queuedForReview);
                     else markError();
 
                     completedFiles++;

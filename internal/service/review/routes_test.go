@@ -8,8 +8,10 @@ package review
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -22,10 +24,12 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	"renop/internal/service/index"
 )
 
 func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *string) {
 	t.Helper()
+	storagePath := t.TempDir()
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "reviews.db"), MaxOpenConns: 1, MaxIdleConns: 1,
 	})
@@ -48,6 +52,13 @@ func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *st
 	require.NoError(t, err)
 	state := core.NewAppState()
 	state.Inner.DB = db
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{
+		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
+	}
+	state.Inner.Config.Store(cfg)
+	state.Inner.FileIndex = index.NewFileIndexCustom(true)
 	current := &config.User{Username: "charlie", Roles: []string{"base"}}
 	credentialKind := "session"
 	app := fiber.New(fiber.Config{JSONEncoder: json.Marshal, JSONDecoder: json.Unmarshal})
@@ -170,6 +181,109 @@ func TestReviewRoutesRequireBrowserSession(t *testing.T) {
 		assert.Equal(t, "review_permission", response.Header.Get("X-Renop-Error-Code"), kind)
 		require.NoError(t, response.Body.Close())
 	}
+}
+
+func TestRepositoryModeratorListsDownloadsAndRejectsPublication(t *testing.T) {
+	app, state, current, _ := setupReviewApp(t)
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "bob", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:releases"},
+	}))
+	now := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 1000
+	relative := "com/example/demo/1.0.0/demo-1.0.0.jar"
+	absolute := filepath.Join(state.Inner.Config.Load().StoragePath, "releases", filepath.FromSlash(relative))
+	require.NoError(t, os.MkdirAll(filepath.Dir(absolute), 0755))
+	require.NoError(t, os.WriteFile(absolute, []byte("review artifact"), 0644))
+	state.Inner.FileIndex.InsertFile(absolute, index.FileInfo{Size: 15, ModTime: time.Now().UnixNano()})
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceMavenArtifact, Repository: "releases",
+		ResourceKey: "com.example:demo", ResourceName: "com.example:demo", Version: "1.0.0",
+		RequestedBy: "charlie", Policy: config.PublicationReviewEveryVersion, CreatedAt: now,
+		Files: []*core.ReviewFile{{Path: relative, Size: 15, Critical: true, AddedAt: now}},
+	})
+	require.NoError(t, err)
+	state.Inner.FileIndex.BlockFile(absolute)
+	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:releases"}}
+
+	response := reviewRequest(t, app, http.MethodGet,
+		"/api/reviews?view=reviewer&status=pending&types=maven_artifact&limit=10&offset=0", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var page struct {
+		Tasks []*core.ReviewTask `json:"tasks"`
+		Total int                `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&page))
+	require.NoError(t, response.Body.Close())
+	require.Equal(t, 1, page.Total)
+	require.Len(t, page.Tasks, 1)
+	assert.Equal(t, result.TaskID, page.Tasks[0].ID)
+
+	response = reviewRequest(t, app, http.MethodGet, "/api/reviews/"+result.TaskID+"/files", nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var filesPayload struct {
+		Files []*core.ReviewFile `json:"files"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&filesPayload))
+	require.NoError(t, response.Body.Close())
+	require.Len(t, filesPayload.Files, 1)
+	response = reviewRequest(t, app, http.MethodGet,
+		"/api/reviews/"+result.TaskID+"/files/"+filesPayload.Files[0].ID, nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, "review artifact", string(body))
+
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusRejected, ReasonCode: "custom"})
+	require.Equal(t, http.StatusBadRequest, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	_, err = os.Stat(absolute)
+	require.NoError(t, err)
+
+	response = reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusRejected, ReasonCode: "quality"})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	_, err = os.Stat(absolute)
+	require.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestRepositoryModeratorApprovalPublishesMavenCatalogBeforeFiles(t *testing.T) {
+	app, state, current, _ := setupReviewApp(t)
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "bob", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:releases"},
+	}))
+	now := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 1000
+	require.NoError(t, state.GetDB().CreateMavenDomain(&core.MavenDomain{
+		Domain: "org.example", VerificationType: core.MavenVerificationDNS,
+		VerificationHost: "example.org", VerificationCode: "review-code",
+		Verified: true, CreatedAt: now, VerifiedAt: now,
+	}, "alice"))
+	relative := "org/example/demo/1.0.0/demo-1.0.0.jar"
+	absolute := filepath.Join(state.Inner.Config.Load().StoragePath, "releases", filepath.FromSlash(relative))
+	require.NoError(t, os.MkdirAll(filepath.Dir(absolute), 0755))
+	require.NoError(t, os.WriteFile(absolute, []byte("approved artifact"), 0644))
+	result, err := state.GetDB().CreateOrUpdatePublicationReview(core.PublicationReviewRequest{
+		ResourceType: core.ReviewResourceMavenArtifact, Repository: "releases",
+		ResourceKey: "org.example:demo", ResourceName: "org.example:demo", Version: "1.0.0",
+		RequestedBy: "charlie", Policy: config.PublicationReviewEveryVersion, CreatedAt: now,
+		Files: []*core.ReviewFile{{Path: relative, Size: 17, Critical: true, AddedAt: now}},
+	})
+	require.NoError(t, err)
+	state.Inner.FileIndex.BlockFile(absolute)
+	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:releases"}}
+	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	details, err := state.GetDB().GetMavenArtifactDetails("releases", "org.example", "demo")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "1.0.0", details.Versions[0].Version)
+	assert.False(t, state.Inner.FileIndex.IsBlocked(absolute))
+	assert.True(t, state.Inner.FileIndex.HasFile(absolute))
 }
 
 func TestSystemAdministratorListsAndDecidesTeamReview(t *testing.T) {

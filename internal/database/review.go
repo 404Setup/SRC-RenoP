@@ -37,12 +37,23 @@ const reviewTaskProfileJoins = ` LEFT JOIN user_profiles requester ON requester.
 
 func scanReviewTask(scanner row) (*core.ReviewTask, error) {
 	task := &core.ReviewTask{}
-	if err := scanner.Scan(&task.ID, &task.Kind, &task.ResourceType, &task.Repository, &task.ResourceKey,
+	storedResourceKey := ""
+	if err := scanner.Scan(&task.ID, &task.Kind, &task.ResourceType, &task.Repository, &storedResourceKey,
 		&task.ResourceName, &task.SourceTeamPrefix, &task.TargetTeamPrefix, &task.ReviewTeamPrefix,
 		&task.RequestedBy, &task.RequestedByID, &task.Status, &task.DecisionReason,
 		&task.DecidedBy, &task.DecidedByID, &task.CreatedAt, &task.DecidedAt); err != nil {
 		return nil, err
 	}
+	task.ResourceKey = storedResourceKey
+	if task.Kind == core.ReviewKindPublication {
+		resourceKey, version, valid := decodePublicationReviewKey(storedResourceKey)
+		if !valid {
+			return nil, errors.New("publication review key is invalid")
+		}
+		task.ResourceKey = resourceKey
+		task.ResourceVersion = version
+	}
+	task.UpdatedAt = task.CreatedAt
 	return task, nil
 }
 
@@ -195,25 +206,25 @@ func requireTransferRequesterPermissionTx(tx *Tx, request core.SuperTeamTransfer
 	return nil
 }
 
-func reviewRequesterAdministratorTx(tx *Tx, userID, repository string) (bool, error) {
+func reviewUserTx(tx *Tx, userID string) (*config.User, error) {
 	var username string
 	if err := tx.QueryRow(`SELECT username FROM user_profiles WHERE user_id = ?`, userID).Scan(&username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return nil, core.ErrReviewPermissionDenied
 		}
-		return false, fmt.Errorf("load review requester profile: %w", err)
+		return nil, fmt.Errorf("load review account profile: %w", err)
 	}
 	var encoded string
 	if err := tx.QueryRow(`SELECT permissions_json FROM tokens WHERE name = ?`, username).Scan(&encoded); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return nil, core.ErrReviewPermissionDenied
 		}
-		return false, fmt.Errorf("load review requester permissions: %w", err)
+		return nil, fmt.Errorf("load review account permissions: %w", err)
 	}
 	permissions := make([]string, 0)
 	if encoded != "" {
 		if err := json.Unmarshal([]byte(encoded), &permissions); err != nil {
-			return false, fmt.Errorf("decode review requester permissions: %w", err)
+			return nil, fmt.Errorf("decode review account permissions: %w", err)
 		}
 	}
 	legacyManager := false
@@ -223,8 +234,21 @@ func reviewRequesterAdministratorTx(tx *Tx, userID, repository string) (bool, er
 			break
 		}
 	}
-	user := &config.User{Username: username, Roles: permissions}
-	return legacyManager || user.IsManager() || repository != "" && user.CheckUpdatePermission(repository), nil
+	if legacyManager {
+		permissions = append(permissions, "manager")
+	}
+	return &config.User{Username: username, Roles: permissions}, nil
+}
+
+func reviewRequesterAdministratorTx(tx *Tx, userID, repository string) (bool, error) {
+	user, err := reviewUserTx(tx, userID)
+	if err != nil {
+		if errors.Is(err, core.ErrReviewPermissionDenied) {
+			return false, nil
+		}
+		return false, err
+	}
+	return user.IsManager() || repository != "" && user.CheckUpdatePermission(repository), nil
 }
 
 func transferReviewActiveKey(request core.SuperTeamTransferRequest) string {
@@ -391,9 +415,39 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 		where = append(where, "r.requested_by_id = ?")
 		args = append(args, userID)
 	} else if !options.Administrator {
-		from += ` JOIN super_team_members reviewer ON reviewer.team_prefix = r.review_team_prefix
+		from += ` LEFT JOIN super_team_members reviewer ON reviewer.team_prefix = r.review_team_prefix
 			AND reviewer.user_id = ? AND reviewer.role_level >= ?`
 		args = append(args, userID, core.SuperTeamRoleManage)
+		reviewerClauses := []string{"(r.kind = ? AND reviewer.user_id IS NOT NULL)"}
+		args = append(args, core.ReviewKindSuperTeamTransfer)
+		moderated := make([]string, 0, len(options.ModeratedRepositories))
+		seenRepositories := make(map[string]struct{}, len(options.ModeratedRepositories))
+		for _, candidate := range options.ModeratedRepositories {
+			if len(moderated) >= 256 {
+				break
+			}
+			repository := sanitizeMavenRepository(candidate)
+			if repository == "" {
+				continue
+			}
+			if _, exists := seenRepositories[repository]; exists {
+				continue
+			}
+			seenRepositories[repository] = struct{}{}
+			moderated = append(moderated, repository)
+		}
+		if options.ModerateAll {
+			reviewerClauses = append(reviewerClauses, "r.kind = ?")
+			args = append(args, core.ReviewKindPublication)
+		} else if len(moderated) > 0 {
+			reviewerClauses = append(reviewerClauses, "(r.kind = ? AND r.repository IN ("+
+				strings.TrimSuffix(strings.Repeat("?,", len(moderated)), ",")+"))")
+			args = append(args, core.ReviewKindPublication)
+			for _, repository := range moderated {
+				args = append(args, repository)
+			}
+		}
+		where = append(where, "("+strings.Join(reviewerClauses, " OR ")+")")
 	}
 	if status != "all" {
 		where = append(where, "r.status = ?")
@@ -431,7 +485,78 @@ func (db *DB) ListReviewTasks(options core.ReviewTaskListOptions) ([]*core.Revie
 	if err := rows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("iterate review tasks: %w", err)
 	}
+	if err := db.hydrateReviewTaskSummaries(tasks); err != nil {
+		return nil, 0, err
+	}
 	return tasks, total, nil
+}
+
+func (db *DB) hydrateReviewTaskSummaries(tasks []*core.ReviewTask) error {
+	if len(tasks) == 0 {
+		return nil
+	}
+	byID := make(map[string]*core.ReviewTask, len(tasks))
+	ids := make([]any, 0, len(tasks))
+	for _, task := range tasks {
+		if task == nil || task.ID == "" {
+			continue
+		}
+		byID[task.ID] = task
+		ids = append(ids, task.ID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query := `SELECT task_id, COUNT(*), COALESCE(SUM(size), 0), COALESCE(MAX(added_at), 0)
+		FROM review_task_files WHERE task_id IN (` + strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",") + `)
+		GROUP BY task_id`
+	rows, err := db.Query(query, ids...)
+	if err != nil {
+		return fmt.Errorf("summarize review files: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var taskID string
+		var count int
+		var size, updatedAt int64
+		if err := rows.Scan(&taskID, &count, &size, &updatedAt); err != nil {
+			return fmt.Errorf("scan review file summary: %w", err)
+		}
+		if task := byID[taskID]; task != nil {
+			task.FileCount = count
+			task.TotalSize = size
+			if updatedAt > task.UpdatedAt {
+				task.UpdatedAt = updatedAt
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate review file summaries: %w", err)
+	}
+	return nil
+}
+
+// GetReviewTask returns one task with its bounded file summary.
+func (db *DB) GetReviewTask(id string) (*core.ReviewTask, error) {
+	if db == nil || db.SQLDB == nil {
+		return nil, core.ErrDatabaseUnavailable
+	}
+	id = SanitizeInputString(strings.TrimSpace(id), 64)
+	if id == "" {
+		return nil, core.ErrReviewTaskNotFound
+	}
+	task, err := scanReviewTask(db.QueryRow(`SELECT `+reviewTaskSelectColumns+`
+		FROM review_tasks r`+reviewTaskProfileJoins+` WHERE r.id = ?`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, core.ErrReviewTaskNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load review task: %w", err)
+	}
+	if err := db.hydrateReviewTaskSummaries([]*core.ReviewTask{task}); err != nil {
+		return nil, err
+	}
+	return task, nil
 }
 
 func loadReviewTaskTx(tx *Tx, id string) (*core.ReviewTask, error) {
@@ -574,11 +699,23 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 	if task.Status != core.ReviewStatusPending {
 		return nil, core.ErrReviewTaskConflict
 	}
-	reviewerAdministrator, err := reviewRequesterAdministratorTx(tx, actorID, "")
+	reviewer, err := reviewUserTx(tx, actorID)
 	if err != nil {
 		return nil, err
 	}
-	if !reviewerAdministrator {
+	if task.Kind == core.ReviewKindPublication {
+		if !reviewer.CheckModeratePermission(task.Repository) {
+			return nil, core.ErrReviewPermissionDenied
+		}
+		var updatedAt int64
+		if err := tx.QueryRow(`SELECT COALESCE(MAX(added_at), ?) FROM review_task_files WHERE task_id = ?`,
+			task.CreatedAt, task.ID).Scan(&updatedAt); err != nil {
+			return nil, fmt.Errorf("inspect publication review activity: %w", err)
+		}
+		if decidedAt-updatedAt < core.PublicationReviewSettleMillis {
+			return nil, core.ErrReviewPublicationActive
+		}
+	} else if !reviewer.IsManager() {
 		if err := requireSuperTeamRoleTx(tx, task.ReviewTeamPrefix, actorID, core.SuperTeamRoleManage); err != nil {
 			return nil, core.ErrReviewPermissionDenied
 		}
@@ -589,7 +726,7 @@ func (db *DB) DecideReviewTask(id, actor, decision, reason string, decidedAt int
 	task.DecisionReason = reason
 	status := decision
 	applyErr := error(nil)
-	if decision == core.ReviewStatusApproved {
+	if decision == core.ReviewStatusApproved && task.Kind == core.ReviewKindSuperTeamTransfer {
 		applyErr = applySuperTeamTransferTx(tx, task)
 		if applyErr != nil {
 			if !reviewResourceStateChanged(applyErr) {
@@ -642,6 +779,9 @@ func (db *DB) CancelReviewTask(id, actor string, cancelledAt int64) (*core.Revie
 	}
 	if task.Status != core.ReviewStatusPending {
 		return nil, core.ErrReviewTaskConflict
+	}
+	if task.Kind == core.ReviewKindPublication {
+		return nil, core.ErrReviewInvalidRequest
 	}
 	if task.RequestedByID != actorID {
 		return nil, core.ErrReviewPermissionDenied

@@ -20,6 +20,7 @@ repositories:
     visibility: PUBLIC
     allow_redeployment: false
     require_gpg_signature: true
+    publication_review: every_version
     download_statistics: true
     mirrors: []
   crates:
@@ -44,6 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN` 或 `PRIVATE` |
 | `allow_redeployment` | `false` | 在支持的引擎中允许 Maven 版本重发或 files/Docker 覆盖 |
 | `require_gpg_signature` | `false` | Maven 发布要求通过 OpenPGP 分离签名校验 |
+| `publication_review` | `off` | Maven 审核策略：`off`、`new_packages` 或 `every_version` |
 | `download_statistics` | 引擎默认值 | Maven/npm/Cargo/Docker 默认启用；`files` 需手动启用 |
 | `mirrors` | `[]` | 按顺序执行的上游镜像定义 |
 | `s3` | 省略 | 当前仓库独立的 S3 兼容存储 |
@@ -51,6 +53,9 @@ repositories:
 `maven-classic` 只改变前端布局，仍执行 Maven 发布规则。`files` 为非结构化存储，不生成校验文件、POM 或
 签名校验。Maven 可迁移到 `files` 并反向迁移，存储对象保持原位；切回 Maven 时重建目录并恢复保存的策略。
 迁移前生效的下载统计开关会保持不变。
+
+当前版本仅 Maven 支持发布审核。启用任意审核模式后，`allow_redeployment` 会强制设为 `false`。本地文件在
+存储库版主或系统管理员批准前保持隐藏，镜像内容不会进入审核。存在待审核发布时，不能修改、删除存储库或迁移引擎。
 
 `npm` 存储库要求先预留软件包再发布，保存不可变语义化版本与发布标签，支持作用域私有包、L0-L4 团队，
 并可按精确软件包名称或 `@scope/*` 规则使用镜像。

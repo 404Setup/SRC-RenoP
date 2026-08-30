@@ -71,6 +71,7 @@ export default Object.freeze({
     "audit.action.LOG_CLEAR": "Log Clear",
     "audit.action.GPG_UPDATE": "GPG Key Update",
     "audit.action.UPLOAD_QUEUED_GPG": "GPG Upload Queued",
+    "audit.action.UPLOAD_QUEUED_REVIEW": "Upload Queued for Review",
     "audit.action.PROFILE_UPDATE": "Profile Updated",
     "audit.action.MESSAGE_SEND": "Notification Sent",
     "audit.action.MAVEN_DOMAIN_CREATE": "Maven Domain Created",

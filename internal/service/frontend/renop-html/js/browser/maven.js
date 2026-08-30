@@ -1235,7 +1235,8 @@ function mavenVersionEntry(version, {
     sequence,
 }) {
     const actions = el('div', {class: 'maven-version-actions'});
-    if (canManageVersions) {
+    const pendingReview = version.review_status === 'pending';
+    if (canManageVersions && !pendingReview) {
         actions.appendChild(el('button', {
             type: 'button', class: 'maven-icon-btn is-danger', title: t('maven.deleteVersion'), onclick: async () => {
                 if (!(await showConfirm(t('maven.deleteVersionConfirm', {version: version.version})))) return;
@@ -1258,6 +1259,9 @@ function mavenVersionEntry(version, {
         el('div', {class: 'maven-version-main'}, el('code', {}, version.version),
             el('span', {}, formatDate(version.created_at))),
         el('div', {class: 'maven-version-meta'},
+            pendingReview
+                ? el('span', {class: 'review-status is-pending'}, t('maven.reviewPending'))
+                : null,
             version.mirrored ? createRepositoryMirrorBadge(t('common.fromMirror')) : null,
             version.publisher ? createUserIdentity(version.publisher) : null,
             Number(version.file_count) > 0

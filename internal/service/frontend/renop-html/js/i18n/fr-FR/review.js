@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 404Setup. All rights reserved. MPL-2.0. */
 export default Object.freeze({
-    "review.nav": "Examens", "review.title": "Examens", "review.subtitle": "Examinez les transferts d’équipe hors du système de notifications.",
+    "review.nav": "Examens", "review.title": "Examens", "review.subtitle": "Examinez les transferts de propriété et les publications modérées hors du système de notifications.",
     "review.noEligibleTeams": "Aucune équipe admissible n’est disponible.", "review.type.docker_image": "Image Docker",
     "review.type.npm_package": "Paquet npm", "review.type.cargo_package": "Crate Cargo",
     "review.type.maven_artifact": "Artefact Maven", "review.type.maven_domain": "Domaine de publication Maven",
@@ -25,5 +25,18 @@ export default Object.freeze({
     "review.alreadyPending": "Cette ressource a déjà un transfert de propriété en attente.", "review.notFound": "Examen introuvable.",
     "review.permissionDenied": "Vous ne pouvez pas effectuer cette action.", "review.serviceUnavailable": "Les données d’examen sont temporairement indisponibles.",
     "review.transferRestricted": "Une image Docker avec espace de noms ou un paquet npm avec portée ne peut pas redevenir personnel.",
+    "review.publicationVersion": "Version {version}",
+    "review.approvePublicationConfirm": "Approuver la version {version} de {resource} pour publication ?",
+    "review.rejectPublicationTitle": "Refuser la publication", "review.publicationApproved": "Publication approuvée.",
+    "review.publicationRejected": "Publication refusée.", "review.rejectPresetLabel": "Motif du refus",
+    "review.rejectPreset.invalid_metadata": "Métadonnées invalides ou incomplètes", "review.rejectPreset.quality": "Exigences de qualité non respectées",
+    "review.rejectPreset.policy_violation": "Non-respect de la politique du dépôt", "review.rejectPreset.copyright": "Problème de droit d’auteur ou de licence",
+    "review.rejectPreset.malware": "Contenu malveillant ou dangereux", "review.rejectPreset.custom": "Motif personnalisé",
+    "review.downloadBundle": "Télécharger les fichiers", "review.downloadFailed": "Impossible de télécharger les fichiers à examiner.",
+    "review.noFiles": "Cet examen ne contient aucun fichier téléchargeable.",
+    "review.downloadPartial": "{count} fichiers n’ont pas pu être téléchargés ; les fichiers essentiels ont été ouverts séparément.",
+    "review.publicationActive": "La publication reçoit encore des fichiers. Patientez quelques secondes, puis réessayez.",
+    "review.publicationSealed": "Cette version examinée est verrouillée et ne peut plus recevoir de fichiers.",
+    "review.fileNotFound": "Fichier d’examen introuvable.", "review.limitReached": "La limite d’examens de publication est atteinte.",
     "audit.action.REVIEW_REQUEST": "Examen demandé", "audit.action.REVIEW_DECISION": "Examen traité", "audit.action.REVIEW_CANCEL": "Demande d’examen annulée"
 });

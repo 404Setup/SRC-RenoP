@@ -52,7 +52,8 @@ func wireStorageHooks() {
 		return err
 	}
 	storage.MavenReadAuthorizer = CanReadRepository
-	storage.MavenPublicationRecorder = RecordPublishedPath
+	storage.MavenPublicationReviewCandidate = IsPublicationReviewCandidate
+	storage.MavenPublicationProcessor = ProcessPublishedFiles
 	storage.MavenMirrorRecorder = RecordMirroredPath
 }
 
@@ -559,6 +560,13 @@ func getArtifact(c fiber.Ctx, state *core.AppState) error {
 			state, user, repo, groupID, artifactID, core.MavenPermissionRead, true); authErr == nil {
 			details.Artifact.PermissionLevel = domain.PermissionLevel
 			details.Administrator = user.IsManager() || user.CheckUpdatePermission(repo.Name)
+			if err := AddPendingPublicationVersions(state, details); err != nil {
+				return apiError(c, err)
+			}
+		} else if user.CheckModeratePermission(repo.Name) {
+			if err := AddPendingPublicationVersions(state, details); err != nil {
+				return apiError(c, err)
+			}
 		}
 	}
 	c.Set(fiber.HeaderCacheControl, "no-store")

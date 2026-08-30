@@ -78,5 +78,6 @@ export default {
     "maven.signedFiles": "署名済み {count} 件",
     "maven.fileSigned": "GPG 署名済み",
     "maven.fileIntegrity": "整合性メタデータ",
-    "maven.filesTruncated": "主要ファイルは先頭 64 件のみ表示します。"
+    "maven.filesTruncated": "主要ファイルは先頭 64 件のみ表示します。",
+    "maven.reviewPending": "審査待ち"
 };

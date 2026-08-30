@@ -221,5 +221,11 @@ export default Object.freeze({
     "repos.resetDownloadStatisticsDesc": "Безвозвратно удалить все сохранённые и ожидающие записи счётчиков этого репозитория.",
     "repos.resetDownloadStatisticsConfirm": "Сбросить всю статистику скачиваний для {name}? Это действие нельзя отменить.",
     "repos.resetDownloadStatisticsSuccess": "Статистика скачиваний сброшена",
-    "repos.resetDownloadStatisticsFailed": "Не удалось сбросить статистику скачиваний"
+    "repos.resetDownloadStatisticsFailed": "Не удалось сбросить статистику скачиваний",
+    "repos.publicationReview": "Проверка публикаций", "repos.publicationReviewDesc": "Удерживать новые публикации Maven до проверки модератором репозитория или системным администратором. При включении повторное развертывание также отключается.",
+    "repos.publicationReviewOff": "Отключена", "repos.publicationReviewNewPackages": "Только новые пакеты",
+    "repos.publicationReviewEveryVersion": "Каждая версия", "repos.publicationReviewSaved": "Настройки проверки публикаций сохранены",
+    "repos.publicationReviewUpdateFailed": "Не удалось изменить настройки проверки публикаций",
+    "repos.migrationPendingReview": "Завершите ожидающие проверки публикаций перед переносом этого репозитория.",
+    "repos.pendingReviewMutation": "Завершите ожидающие проверки публикаций перед изменением или удалением этого репозитория."
 });

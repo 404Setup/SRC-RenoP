@@ -51,6 +51,7 @@ export default Object.freeze({
     "browser.failedDelete": "파일 삭제에 실패했습니다.",
     "browser.deleteSuccess": "\"{name}\" 파일을 성공적으로 삭제했습니다.",
     "browser.uploadedSuccess": "{name} 업로드 성공",
+    "browser.uploadQueuedReview": "{name}을 업로드했으며 검토를 기다리고 있습니다",
     "browser.failedUpload": "{name} 업로드 실패",
     "browser.failedGenPom": "POM 생성 실패",
     "browser.fillPomFields": "모든 POM 항목을 입력해 주세요",

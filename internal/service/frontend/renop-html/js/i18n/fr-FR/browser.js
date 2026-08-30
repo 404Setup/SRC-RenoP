@@ -51,6 +51,7 @@ export default Object.freeze({
     "browser.failedDelete": "Échec de la suppression du fichier.",
     "browser.deleteSuccess": "\"{name}\" a été supprimé avec succès.",
     "browser.uploadedSuccess": "{name} téléversé avec succès",
+    "browser.uploadQueuedReview": "{name} a été téléversé et attend son examen",
     "browser.failedUpload": "Échec du téléversement de {name}",
     "browser.failedGenPom": "Échec de la génération du POM",
     "browser.fillPomFields": "Veuillez remplir tous les champs du POM",
