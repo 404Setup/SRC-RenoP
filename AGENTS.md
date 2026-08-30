@@ -37,7 +37,8 @@
   table rename, and removable backup instead of buffering rows in RenoP. Connection handling, transaction recovery,
   portable SQL
   parsing, scan conversion, schema declarations, and dialect translation remain isolated in focused `clickhouse*.go`
-  modules. Bounded sharded read-through caches use randomized zero-allocation key hashing and coalesce concurrent
+  modules. SQLite shutdown checkpoints and exits WAL mode before closing pooled connections so Windows can release
+  sidecar files deterministically. Bounded sharded read-through caches use randomized zero-allocation key hashing and coalesce concurrent
   token, session, and immutable-user lookup misses;
   nickname-first profile batches query only uncached accounts, and commit-time invalidation prevents stale rename or
   creation results. Includes
@@ -62,6 +63,9 @@
   decisions remain in `review.go`, while publication keys, file ownership, and hidden-path queries are isolated in
   `review_publication.go`. Bounded `review_task_payloads` temporarily retain protocol metadata that must be committed
   atomically at approval; payloads are deleted in the same transaction as the final task decision.
+  Publication quota overrides, current-period usage, and expiring reservations are keyed by immutable account IDs or
+  global-team prefixes. Short serialized mutations prevent parallel publications from exceeding file, byte, or
+  publication limits on SQLite, PostgreSQL, MySQL, and native ClickHouse.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -166,11 +170,15 @@
   deduplicated notices to active T3/T4 team reviewers, repository moderators, and system administrators; one completed
   decision removes every remaining reviewer notice and sends the requester a result payload that never includes reviewer
   identity. Notification failures are recorded without rolling back an already durable task.
+- **`internal/service/publicationquota/`**: Shared daily, weekly, or monthly publication accounting for users and global
+  teams. Defaults are 600 files, 40 MiB, and 20 completed publications per month. Manager-only owner overrides may set
+  individual limits to zero or enable the hidden no-quota flag. Validated uploads use short-lived durable reservations;
+  team-bound packages and Maven domains consume only the owning team's quota, while mirrors never consume quota.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
   status snapshots, cache/session/global-team-invitation cleanup, index persistence, download-statistics flushing,
-  upload cleanup, and update checks.
+  publication-quota reservation and old-window cleanup, upload cleanup, and update checks.
   Event-driven workers such as audit persistence, GPG publication, token operations, and file watching remain
   dedicated and serial where ordering matters.
 - **`internal/service/statistics/`**: Application-scoped bounded download counter shared by Maven, npm, Cargo, Docker, and
@@ -278,6 +286,9 @@
   repository-loader error before refresh.
   `js/review-messages.js` localizes pending and result notifications from stable payload fields. Review list and decision
   responses redact `decided_by` for requesters and non-system moderators; only system administrators receive it.
+  `js/publication-quota.js` renders the same responsive usage component in the own-profile editor, administrator user
+  actions, and global-team details. System settings provide global defaults; only system administrators receive the
+  owner editor and no-quota control. Every protocol maps stable quota errors without exposing backend text.
   npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
   visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
   failures are localized through stable codes in `js/npm-errors.js`. npm integrity/action panels and Maven version-file

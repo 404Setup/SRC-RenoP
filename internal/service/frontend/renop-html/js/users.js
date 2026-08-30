@@ -24,6 +24,7 @@ import {morphElementHeight} from '@renop/ui/height-anim';
 import {formatTimestamp, timestampMilliseconds} from './time.js';
 import {responseErrorMessage} from './response-errors.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
+import {openPublicationQuotaDialog} from './publication-quota.js';
 
 let previousStats = {total: -1, admin: -1, key: -1};
 let allTokens = [];
@@ -403,6 +404,7 @@ function createUserRowElement(token) {
         onSessions: (tok) => openSessionsDialog({mode: 'admin', username: tok.name}),
         onFido: (tok) => openUserFidoDialog(tok.name),
         onAuditLogs: (tok) => openAuditLogsDialog({mode: 'user', username: tok.name}),
+        onQuota: (tok) => openPublicationQuotaDialog({ownerType: 'user', ownerKey: tok.name}),
     });
 }
 

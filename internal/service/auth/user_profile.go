@@ -30,19 +30,20 @@ type userProfileUpdateRequest struct {
 }
 
 type userProfileResponse struct {
-	UserID                       string                     `json:"user_id"`
-	Username                     string                     `json:"username"`
-	Nickname                     string                     `json:"nickname"`
-	CreatedAt                    string                     `json:"created_at"`
-	OwnProfile                   bool                       `json:"own_profile"`
-	UsernameChangesRemaining     int                        `json:"username_changes_remaining"`
-	UsernameChangeWindowResetsAt int64                      `json:"username_change_window_resets_at,omitempty"`
-	MavenDomainCount             int                        `json:"maven_domain_count"`
-	CargoPackageCount            int                        `json:"cargo_package_count"`
-	DockerImageCount             int                        `json:"docker_image_count"`
-	NPMPackageCount              int                        `json:"npm_package_count"`
-	GitHub                       *githubProfileStatus       `json:"github,omitempty"`
-	SuperTeamLimits              *core.SuperTeamLimitStatus `json:"super_team_limits,omitempty"`
+	UserID                       string                       `json:"user_id"`
+	Username                     string                       `json:"username"`
+	Nickname                     string                       `json:"nickname"`
+	CreatedAt                    string                       `json:"created_at"`
+	OwnProfile                   bool                         `json:"own_profile"`
+	UsernameChangesRemaining     int                          `json:"username_changes_remaining"`
+	UsernameChangeWindowResetsAt int64                        `json:"username_change_window_resets_at,omitempty"`
+	MavenDomainCount             int                          `json:"maven_domain_count"`
+	CargoPackageCount            int                          `json:"cargo_package_count"`
+	DockerImageCount             int                          `json:"docker_image_count"`
+	NPMPackageCount              int                          `json:"npm_package_count"`
+	GitHub                       *githubProfileStatus         `json:"github,omitempty"`
+	SuperTeamLimits              *core.SuperTeamLimitStatus   `json:"super_team_limits,omitempty"`
+	PublicationQuota             *core.PublicationQuotaStatus `json:"publication_quota,omitempty"`
 }
 
 func publicUserProfile(c fiber.Ctx, state *core.AppState) error {
@@ -318,6 +319,10 @@ func updateOwnUserProfile(c fiber.Ctx, state *core.AppState, opChan chan<- token
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("Profile updated but team limits could not be loaded")
 	}
+	response.PublicationQuota, err = profilePublicationQuotaStatus(state, updated.Username, changedAt)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Profile updated but publication quota could not be loaded")
+	}
 	return c.JSON(response)
 }
 
@@ -338,7 +343,21 @@ func profileResponseWithConnections(state *core.AppState, profile *core.UserProf
 	if err != nil {
 		return userProfileResponse{}, err
 	}
+	response.PublicationQuota, err = profilePublicationQuotaStatus(state, profile.Username, now)
+	if err != nil {
+		return userProfileResponse{}, err
+	}
 	return response, nil
+}
+
+func profilePublicationQuotaStatus(state *core.AppState, username string, now int64) (*core.PublicationQuotaStatus, error) {
+	quota := state.Inner.Config.Load().PublicationQuota
+	return state.GetDB().GetPublicationQuotaStatus(core.PublicationQuotaSubject{
+		OwnerType: core.PublicationQuotaOwnerUser, OwnerKey: username,
+	}, core.PublicationQuotaLimits{
+		FileLimit: quota.FileLimit, ByteLimit: quota.ByteLimit,
+		PublicationLimit: quota.PublicationLimit, Period: quota.Period,
+	}, now)
 }
 
 func profileResponse(profile *core.UserProfile, own bool, now int64) userProfileResponse {

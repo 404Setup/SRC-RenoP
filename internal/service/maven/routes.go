@@ -51,6 +51,23 @@ func wireStorageHooks() {
 		_, err := AuthorizeMutation(state, user, repo, path, requiredLevel)
 		return err
 	}
+	storage.MavenPublicationQuotaOwner = func(state *core.AppState, username string, repo *config.Repository, path string) (string, error) {
+		domain, err := AuthorizeMutation(state, &config.User{Username: username}, repo, path, core.MavenPermissionPublish)
+		if err != nil {
+			return "", err
+		}
+		if coordinate, valid := ParseArtifactPath(path); valid {
+			prefix, _, _, accessErr := state.GetDB().GetMavenArtifactTeamAccess(
+				repo.Name, coordinate.GroupID, coordinate.ArtifactID, username)
+			if accessErr == nil && prefix != "" {
+				return prefix, nil
+			}
+			if accessErr != nil && !errors.Is(accessErr, core.ErrMavenArtifactNotFound) {
+				return "", accessErr
+			}
+		}
+		return domain.SuperTeamPrefix, nil
+	}
 	storage.MavenReadAuthorizer = CanReadRepository
 	storage.MavenPublicationReviewCandidate = IsPublicationReviewCandidate
 	storage.MavenPublicationProcessor = ProcessPublishedFiles

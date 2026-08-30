@@ -30,6 +30,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/publicationquota"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
@@ -384,6 +385,32 @@ func publish(c fiber.Ctx, state *core.AppState, repo *config.Repository, store S
 	if reviewRequired {
 		state.Inner.FileIndex.BlockFile(targetPath)
 		state.InvalidateFileCache(targetPath)
+	}
+	quotaPackage, err := state.GetDB().GetNPMPackage(repo.Name, packageName)
+	if err != nil || quotaPackage == nil {
+		if reviewRequired {
+			state.Inner.FileIndex.UnblockFile(targetPath)
+			state.InvalidateFileCache(targetPath)
+		}
+		return npmError(c, fiber.StatusServiceUnavailable, "database unavailable", "npm metadata is unavailable")
+	}
+	quota, err := publicationquota.Reserve(state, user.Username, quotaPackage.SuperTeamPrefix,
+		core.PublicationQuotaDelta{Files: 1, Bytes: size, Publications: 1})
+	if err != nil {
+		if reviewRequired {
+			state.Inner.FileIndex.UnblockFile(targetPath)
+			state.InvalidateFileCache(targetPath)
+		}
+		c.Set("X-Renop-Error-Code", publicationquota.ErrorCode(err))
+		return npmError(c, fiber.StatusTooManyRequests, publicationquota.ErrorCode(err), "npm publication quota exceeded")
+	}
+	defer quota.Release()
+	if err := quota.Commit(); err != nil {
+		if reviewRequired {
+			state.Inner.FileIndex.UnblockFile(targetPath)
+			state.InvalidateFileCache(targetPath)
+		}
+		return npmError(c, fiber.StatusServiceUnavailable, "publication quota unavailable", "npm publication quota is unavailable")
 	}
 	if err := staged.Commit(state); err != nil {
 		if reviewRequired {

@@ -215,6 +215,20 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "user_super_team_limits", keyColumns: []string{"user_id"}, columns: []string{
 			"`user_id` String", "`create_limit` Int64 DEFAULT -1", "`join_limit` Int64 DEFAULT -1", "`updated_at` Int64",
 		}},
+		{name: "publication_quota_overrides", keyColumns: []string{"owner_type", "owner_key"}, columns: []string{
+			"`owner_type` String", "`owner_key` String", "`file_limit` Int64 DEFAULT -1",
+			"`byte_limit` Int64 DEFAULT -1", "`publication_limit` Int64 DEFAULT -1", "`quota_period` String DEFAULT ''",
+			"`unlimited` Int64 DEFAULT -1", "`updated_at` Int64",
+		}},
+		{name: "publication_quota_usage", keyColumns: []string{"owner_type", "owner_key", "period_start"}, columns: []string{
+			"`owner_type` String", "`owner_key` String", "`period_start` Int64", "`files_used` Int64 DEFAULT 0",
+			"`bytes_used` Int64 DEFAULT 0", "`publications_used` Int64 DEFAULT 0", "`updated_at` Int64",
+		}},
+		{name: "publication_quota_reservations", keyColumns: []string{"id"}, columns: []string{
+			"`id` String", "`owner_type` String", "`owner_key` String", "`period_start` Int64",
+			"`files_reserved` Int64", "`bytes_reserved` Int64", "`publications_reserved` Int64",
+			"`expires_at` Int64", "`created_at` Int64",
+		}},
 		{name: "review_tasks", keyColumns: []string{"id"}, columns: []string{
 			"`id` String", "`kind` String", "`resource_type` String", "`repository` String DEFAULT ''",
 			"`resource_key` String", "`resource_name` String", "`source_team_prefix` String DEFAULT ''",

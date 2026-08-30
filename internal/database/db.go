@@ -381,6 +381,7 @@ func (db *DB) Close() error {
 	}
 	if db.Dialect != nil && strings.HasPrefix(db.Dialect.Name(), "sqlite") {
 		_, _ = db.SQLDB.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+		_, _ = db.SQLDB.Exec("PRAGMA journal_mode=DELETE;")
 	}
 	return db.SQLDB.Close()
 }

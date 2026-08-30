@@ -143,6 +143,12 @@ type StateDB interface {
 	DeleteUserMessage(id, username string) (bool, error)
 	DeleteUserMessages(username string) (int64, error)
 	DeleteMessagesByDedupeKey(dedupeKey string) (int64, error)
+	GetPublicationQuotaStatus(subject PublicationQuotaSubject, defaults PublicationQuotaLimits, now int64) (*PublicationQuotaStatus, error)
+	SetPublicationQuotaOverride(subject PublicationQuotaSubject, override PublicationQuotaOverride, updatedAt int64) error
+	ReservePublicationQuota(subject PublicationQuotaSubject, defaults PublicationQuotaLimits, delta PublicationQuotaDelta, now, expiresAt int64) (*PublicationQuotaReservation, error)
+	CommitPublicationQuotaReservation(id string, committedAt int64) error
+	ReleasePublicationQuotaReservation(id string) error
+	CleanExpiredPublicationQuotaReservations(now int64) error
 	GetSuperTeamLimitStatus(username string, globalCreateLimit, globalJoinLimit int) (*SuperTeamLimitStatus, error)
 	SetSuperTeamLimitOverride(username string, createLimit, joinLimit *int, updatedAt int64) error
 	CreateSuperTeam(team *SuperTeam, owner string, globalCreateLimit, globalJoinLimit int) error

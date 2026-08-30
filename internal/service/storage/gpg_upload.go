@@ -472,6 +472,16 @@ func processUploadedFileWithReviewLocked(ctx context.Context, state *core.AppSta
 	if err != nil {
 		return GPGUploadResult{}, err
 	}
+	quota, err := reserveUploadedFileQuota(state, repo, upload)
+	if err != nil {
+		abortMavenPublication(state, upload.LocalFilePath, preparation)
+		return GPGUploadResult{}, err
+	}
+	defer quota.Release()
+	if err := quota.Commit(); err != nil {
+		abortMavenPublication(state, upload.LocalFilePath, preparation)
+		return GPGUploadResult{}, err
+	}
 	result, err := processUploadedFileLocked(ctx, state, repo, upload)
 	if err != nil {
 		abortMavenPublication(state, upload.LocalFilePath, preparation)
@@ -607,6 +617,9 @@ func GPGUploadErrorResponse(err error) (int, string) {
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, ErrGPGPendingLimit):
 		return http.StatusTooManyRequests, err.Error()
+	case errors.Is(err, core.ErrPublicationFileLimit), errors.Is(err, core.ErrPublicationByteLimit),
+		errors.Is(err, core.ErrPublicationCountLimit):
+		return http.StatusTooManyRequests, "Publication quota exceeded"
 	case errors.Is(err, core.ErrDatabaseUnavailable):
 		return http.StatusServiceUnavailable, "GPG publication database is unavailable"
 	case errors.Is(err, ErrGPGUploaderRequired):

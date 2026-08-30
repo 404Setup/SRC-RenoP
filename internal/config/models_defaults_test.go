@@ -30,6 +30,20 @@ func TestDefaultSuperTeamConfigAndDeepCopy(t *testing.T) {
 	}
 }
 
+func TestDefaultPublicationQuotaConfigAndDeepCopy(t *testing.T) {
+	t.Parallel()
+	cfg := DefaultConfig()
+	if cfg.PublicationQuota.FileLimit != 600 || cfg.PublicationQuota.ByteLimit != 40<<20 ||
+		cfg.PublicationQuota.PublicationLimit != 20 || cfg.PublicationQuota.Period != "month" {
+		t.Fatalf("unexpected publication quota defaults: %+v", cfg.PublicationQuota)
+	}
+	copy := cfg.DeepCopy()
+	copy.PublicationQuota.FileLimit = 10
+	if cfg.PublicationQuota.FileLimit != 600 {
+		t.Fatal("publication quota config was not copied independently")
+	}
+}
+
 func TestMirrorDefaultsJson(t *testing.T) {
 	var m Mirror
 	err := json.Unmarshal([]byte(`{}`), &m)

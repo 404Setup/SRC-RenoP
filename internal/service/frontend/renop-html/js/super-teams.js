@@ -18,6 +18,7 @@ import {caughtErrorMessage, localizedResponseError} from './response-errors.js';
 import {RepositoryUserSuggestions} from './browser/user-suggestions.js';
 import {SUPER_TEAM_ERROR_KEYS} from './super-team-errors.js';
 import {exitProtectedRouteOnDenial} from './protected-route.js';
+import {createPublicationQuotaPanel, openPublicationQuotaDialog} from './publication-quota.js';
 
 const routeRoot = '/account/teams';
 const pageSize = 12;
@@ -514,10 +515,15 @@ async function loadDetails(prefix) {
     userSuggestions.detach();
     await replaceContent(loadingState());
     try {
-        const response = await apiRequest(`/api/super-teams/${encodeURIComponent(prefix)}`);
-        if (exitProtectedRouteOnDenial(response)) return;
+        const [response, quotaResponse] = await Promise.all([
+            apiRequest(`/api/super-teams/${encodeURIComponent(prefix)}`),
+            apiRequest(`/api/publication-quota/super-teams/${encodeURIComponent(prefix)}`),
+        ]);
+        if (exitProtectedRouteOnDenial(response) || exitProtectedRouteOnDenial(quotaResponse)) return;
         if (!response.ok) throw await localizedResponseError(response, 'superTeam.loadFailed', {}, SUPER_TEAM_ERROR_KEYS);
+        if (!quotaResponse.ok) throw await localizedResponseError(quotaResponse, 'publicationQuota.loadFailed');
         const details = await response.json();
+        const quotaStatus = await quotaResponse.json();
         if (generation !== loadGeneration) return;
         const team = details.team || {};
         const actorLevel = Number(team.role_level) || 0;
@@ -557,7 +563,14 @@ async function loadDetails(prefix) {
                 el('p', {}, t('superTeam.membersHint')))),
             el('div', {class: 'super-team-member-list'}, ...members.map(member => memberRow(details, member)))
         );
-        await replaceContent(hero, memberSection);
+        const quotaPanel = createPublicationQuotaPanel(quotaStatus, {
+            editable: Boolean(details.administrator),
+            onEdit: () => void openPublicationQuotaDialog({
+                ownerType: 'super_team', ownerKey: team.prefix || prefix,
+                onSaved: () => void loadDetails(prefix),
+            }),
+        });
+        await replaceContent(hero, quotaPanel, memberSection);
     } catch (error) {
         if (generation !== loadGeneration) return;
         if (error?.message === 'Unauthorized') return;

@@ -24,6 +24,7 @@ type ParsedManifest struct {
 	Digest       string       `json:"digest"`
 	MediaType    string       `json:"media_type"`
 	ConfigDigest string       `json:"config_digest"`
+	ConfigSize   int64        `json:"config_size"`
 	Size         int64        `json:"size"`
 	Layers       []Descriptor `json:"layers,omitempty"`
 	Manifests    []Descriptor `json:"manifests,omitempty"`
@@ -95,6 +96,7 @@ func ParseManifest(data []byte, headerContentType string) (*ParsedManifest, erro
 		Digest:       digest,
 		MediaType:    mediaType,
 		ConfigDigest: configDigest,
+		ConfigSize:   single.Config.Size,
 		Size:         size,
 		Layers:       single.Layers,
 		IsIndex:      false,

@@ -1034,6 +1034,20 @@ func TestAssetsHashStableAndNonEmpty(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentRemainsValidYAML(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "assets", "openapi.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document yaml.Node
+	if err := yaml.Unmarshal(source, &document); err != nil {
+		t.Fatalf("parse OpenAPI YAML: %v", err)
+	}
+	if document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+		t.Fatal("OpenAPI document root is not a mapping")
+	}
+}
+
 func TestIndexAndConditionalAssetsRetainCacheSafetyHeaders(t *testing.T) {
 	state := core.NewAppState()
 	cfg := config.DefaultConfig()

@@ -37,6 +37,7 @@ import (
 	"renop/internal/service/gpg"
 	"renop/internal/service/index"
 	"renop/internal/service/javadocs"
+	"renop/internal/service/publicationquota"
 	"renop/internal/service/repositorygate"
 	"renop/internal/service/status"
 	"renop/internal/utils"
@@ -220,6 +221,10 @@ func HandlePut(c fiber.Ctx, state *core.AppState, repo *config.Repository, local
 		Digests:           digests,
 	})
 	if err != nil {
+		if errors.Is(err, core.ErrPublicationFileLimit) || errors.Is(err, core.ErrPublicationByteLimit) ||
+			errors.Is(err, core.ErrPublicationCountLimit) {
+			c.Set("X-Renop-Error-Code", publicationquota.ErrorCode(err))
+		}
 		statusCode, message := GPGUploadErrorResponse(err)
 		if errors.Is(err, core.ErrReviewPublicationSealed) || errors.Is(err, core.ErrReviewFileLimit) ||
 			errors.Is(err, core.ErrReviewInvalidRequest) || errors.Is(err, core.ErrReviewPermissionDenied) {

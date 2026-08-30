@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ */
+
+.publication-quota-panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--card-bg);
+    min-width: 0;
+}
+
+.publication-quota-header,
+.publication-quota-header-actions,
+.publication-quota-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .8rem;
+}
+
+.publication-quota-header h3,
+.publication-quota-header p {
+    margin: 0;
+}
+
+.publication-quota-header h3 {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: 1rem;
+}
+
+.publication-quota-header p,
+.publication-quota-toggle-row small,
+.publication-quota-inherited {
+    color: var(--muted);
+}
+
+.publication-quota-header p {
+    margin-top: .25rem;
+    font-size: .82rem;
+}
+
+.publication-quota-badge {
+    padding: .3rem .65rem;
+    border-radius: 999px;
+    background: var(--item-hover-bg);
+    color: var(--muted);
+    font-size: .76rem;
+    white-space: nowrap;
+}
+
+.publication-quota-badge.is-unlimited {
+    color: var(--success-color);
+}
+
+.publication-quota-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+}
+
+.publication-quota-metric {
+    display: grid;
+    gap: .35rem;
+    min-width: 0;
+}
+
+.publication-quota-metric-label {
+    color: var(--muted);
+    font-size: .78rem;
+}
+
+.publication-quota-metric strong {
+    overflow-wrap: anywhere;
+}
+
+.publication-quota-track {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--item-hover-bg);
+}
+
+.publication-quota-track > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--text-color) 55%, transparent);
+}
+
+.publication-quota-unlimited {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    color: var(--success-color);
+}
+
+.publication-quota-form,
+.publication-quota-form-fields {
+    display: grid;
+    gap: 1rem;
+}
+
+.publication-quota-form-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.publication-quota-form-fields > label,
+.publication-quota-toggle-row > span {
+    display: grid;
+    gap: .4rem;
+    min-width: 0;
+}
+
+.publication-quota-toggle-row small {
+    font-size: .78rem;
+}
+
+.publication-quota-form-fields .custom-select-wrapper.is-disabled {
+    opacity: .55;
+    pointer-events: none;
+}
+
+@media (max-width: 680px) {
+    .publication-quota-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .publication-quota-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .publication-quota-grid,
+    .publication-quota-form-fields {
+        grid-template-columns: 1fr;
+    }
+}

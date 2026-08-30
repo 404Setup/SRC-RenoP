@@ -537,6 +537,30 @@ func superTeamAPITokenRequirement(c fiber.Ctx) apiTokenRequirement {
 	return requireAPITokenScope(APITokenScopeTeamManage)
 }
 
+func publicationQuotaAPITokenRequirement(c fiber.Ctx) apiTokenRequirement {
+	path, method := c.Path(), c.Method()
+	if path == "/api/publication-quota" || path == "/api/publication-quota/" {
+		return requireAPITokenScope(APITokenScopeAccountRead)
+	}
+	if strings.HasPrefix(path, "/api/publication-quota/users/") {
+		if method == fiber.MethodGet || method == fiber.MethodHead {
+			return requireAPITokenScope(APITokenScopeAccountRead, APITokenScopeAdminUsers)
+		}
+		return requireAPITokenScope(APITokenScopeAdminUsers)
+	}
+	if strings.HasPrefix(path, "/api/publication-quota/super-teams/") {
+		if method != fiber.MethodGet && method != fiber.MethodHead {
+			return requireAPITokenScope(APITokenScopeAdminSettings)
+		}
+		prefix := strings.TrimPrefix(path, "/api/publication-quota/super-teams/")
+		if normalized, valid := core.NormalizeSuperTeamPrefix(prefix); valid {
+			return requireAPITokenTarget(APITokenScopeTeamManage, "global/"+normalized)
+		}
+		return requireAPITokenScope(APITokenScopeTeamManage)
+	}
+	return requireAPITokenScope(APITokenScopeAccountRead)
+}
+
 func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequirement {
 	path := c.Path()
 	method := c.Method()
@@ -604,6 +628,8 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 		return requireAPITokenScope(APITokenScopeStatisticsRead)
 	case strings.HasPrefix(path, "/api/super-teams"):
 		return superTeamAPITokenRequirement(c)
+	case strings.HasPrefix(path, "/api/publication-quota"):
+		return publicationQuotaAPITokenRequirement(c)
 	case strings.HasPrefix(path, "/api/reviews"):
 		return requireAPITokenScope(APITokenScopeTeamManage)
 	case strings.HasPrefix(path, "/api/maven"):

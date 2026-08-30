@@ -32,7 +32,7 @@ info:
     Docker Distribution API errors follow `{"errors":[{"code":"...","message":"...","detail":"..."}]}`.
     Cargo errors follow `{"errors":[{"detail":"..."}]}`.
     npm protocol errors follow `{"error":"...","reason":"..."}`; npm browser-management errors expose
-    a stable `X-Renop-Error-Code` header. Global-team management uses the same stable error header.
+    a stable `X-Renop-Error-Code` header. Global-team and publication-quota management use the same stable error header.
     Always prefer the HTTP status code for programmatic handling.
 
   license:
@@ -51,7 +51,7 @@ x-tagGroups:
   - name: Docker / OCI Registry
     tags: [docker]
   - name: Global Collaboration
-    tags: [super-teams]
+    tags: [super-teams, publication-quotas]
   - name: Administration
     tags: [settings, messages, audit]
   - name: Operations
@@ -94,6 +94,8 @@ tags:
     description: OCI Distribution Specification v1.1.0 and Docker Registry v2, mounted at `/v2/`; browser-management failures use `X-Renop-Error-Code` for localized presentation.
   - name: super-teams
     description: Engine-independent global teams, immutable namespace prefixes, T1-T4 membership, invitations, and account limits.
+  - name: publication-quotas
+    description: Periodic file, byte, and completed-publication limits for accounts and global teams.
   - name: reviews
     description: Session-only, independently paginated review tasks with single-decision ownership transfers.
 
@@ -599,6 +601,10 @@ components:
         npm_package_count:
           type: integer
           minimum: 0
+        publication_quota:
+          allOf:
+            - $ref: "#/components/schemas/PublicationQuotaStatus"
+          description: Present only on the authenticated account's own singular profile response.
 
     UserPackageMembership:
       type: object
@@ -1495,6 +1501,51 @@ components:
       properties:
         create_limit: { type: integer, minimum: 1, maximum: 1000, default: 5 }
         join_limit: { type: integer, minimum: 1, maximum: 1000, default: 20 }
+
+    PublicationQuotaConfig:
+      type: object
+      required: [file_limit, byte_limit, publication_limit, period]
+      properties:
+        file_limit: { type: integer, format: int64, minimum: 1, maximum: 10000000, default: 600 }
+        byte_limit: { type: integer, format: int64, minimum: 1, maximum: 1125899906842624, default: 41943040 }
+        publication_limit: { type: integer, format: int64, minimum: 1, maximum: 1000000, default: 20 }
+        period: { type: string, enum: [day, week, month], default: month }
+
+    PublicationQuotaOverride:
+      type: object
+      description: Omit every field to restore global defaults. Individual limits may be zero to prevent publication.
+      properties:
+        file_limit: { type: integer, format: int64, minimum: 0, maximum: 10000000, nullable: true }
+        byte_limit: { type: integer, format: int64, minimum: 0, maximum: 1125899906842624, nullable: true }
+        publication_limit: { type: integer, format: int64, minimum: 0, maximum: 1000000, nullable: true }
+        period: { type: string, enum: [day, week, month], nullable: true }
+        unlimited:
+          type: boolean
+          nullable: true
+          description: Manager-only no-quota override.
+
+    PublicationQuotaStatus:
+      type: object
+      required: [owner_type, owner_key, file_limit, byte_limit, publication_limit, period, period_start,
+        period_end, files_used, bytes_used, publications_used, files_reserved, bytes_reserved,
+        publications_reserved, inherited, unlimited]
+      properties:
+        owner_type: { type: string, enum: [user, super_team] }
+        owner_key: { type: string }
+        file_limit: { type: integer, format: int64, minimum: 0 }
+        byte_limit: { type: integer, format: int64, minimum: 0 }
+        publication_limit: { type: integer, format: int64, minimum: 0 }
+        period: { type: string, enum: [day, week, month] }
+        period_start: { type: integer, format: int64 }
+        period_end: { type: integer, format: int64 }
+        files_used: { type: integer, format: int64, minimum: 0 }
+        bytes_used: { type: integer, format: int64, minimum: 0 }
+        publications_used: { type: integer, format: int64, minimum: 0 }
+        files_reserved: { type: integer, format: int64, minimum: 0 }
+        bytes_reserved: { type: integer, format: int64, minimum: 0 }
+        publications_reserved: { type: integer, format: int64, minimum: 0 }
+        inherited: { type: boolean }
+        unlimited: { type: boolean }
 
     ReviewTask:
       type: object
@@ -3758,6 +3809,140 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SuperTeamConfig" }
+
+  /api/publication-quota:
+    get:
+      tags: [publication-quotas]
+      summary: Get the current account publication quota
+      operationId: getOwnPublicationQuota
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Effective account quota and current-period usage.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationQuotaStatus" }
+        "401": { $ref: "#/components/responses/PlainUnauthorized" }
+
+  /api/publication-quota/users/{username}:
+    parameters:
+      - { name: username, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [publication-quotas]
+      summary: Get an account publication quota
+      description: The account itself or a system manager may read this status.
+      operationId: getUserPublicationQuota
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Effective quota and current-period usage.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationQuotaStatus" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
+    put:
+      tags: [publication-quotas]
+      summary: Override an account publication quota
+      description: Manager-only. An empty object restores global defaults.
+      operationId: putUserPublicationQuota
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicationQuotaOverride" }
+      responses:
+        "200":
+          description: Updated effective quota.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationQuotaStatus" }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+
+  /api/publication-quota/super-teams/{prefix}:
+    parameters:
+      - { name: prefix, in: path, required: true, schema: { type: string, minLength: 2, maxLength: 64 } }
+    get:
+      tags: [publication-quotas, super-teams]
+      summary: Get a global-team publication quota
+      description: Team members and system managers may read this status.
+      operationId: getSuperTeamPublicationQuota
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Effective quota and current-period usage.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationQuotaStatus" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+        "404": { $ref: "#/components/responses/PlainNotFound" }
+    put:
+      tags: [publication-quotas, super-teams]
+      summary: Override a global-team publication quota
+      description: Manager-only. An empty object restores global defaults.
+      operationId: putSuperTeamPublicationQuota
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicationQuotaOverride" }
+      responses:
+        "200":
+          description: Updated effective quota.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationQuotaStatus" }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+
+  /api/settings/publication-quota:
+    get:
+      tags: [settings, publication-quotas]
+      summary: Get global publication quota defaults
+      operationId: getPublicationQuotaSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Global defaults.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationQuotaConfig" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
+    put:
+      tags: [settings, publication-quotas]
+      summary: Update global publication quota defaults
+      operationId: putPublicationQuotaSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicationQuotaConfig" }
+      responses:
+        "200":
+          description: Updated global defaults.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationQuotaConfig" }
+        "400": { $ref: "#/components/responses/PlainBadRequest" }
+        "403": { $ref: "#/components/responses/PlainForbidden" }
 
   # ========== Independent reviews ==========
   /api/reviews:

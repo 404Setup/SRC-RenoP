@@ -28,6 +28,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/publicationquota"
 	"renop/internal/service/status"
 	"renop/internal/utils"
 )
@@ -315,6 +316,29 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	if reviewRequired {
 		state.Inner.FileIndex.BlockFile(cratePath)
 		state.InvalidateFileCache(cratePath)
+	}
+	quotaTeamPrefix := ""
+	if packageRecord != nil {
+		quotaTeamPrefix = packageRecord.SuperTeamPrefix
+	}
+	quota, err := publicationquota.Reserve(state, user.Username, quotaTeamPrefix, core.PublicationQuotaDelta{
+		Files: 1, Bytes: crateLength, Publications: 1,
+	})
+	if err != nil {
+		if reviewRequired {
+			state.Inner.FileIndex.UnblockFile(cratePath)
+			state.InvalidateFileCache(cratePath)
+		}
+		c.Set("X-Renop-Error-Code", publicationquota.ErrorCode(err))
+		return errorResponse(c, fiber.StatusTooManyRequests, "Cargo publication quota exceeded")
+	}
+	defer quota.Release()
+	if err := quota.Commit(); err != nil {
+		if reviewRequired {
+			state.Inner.FileIndex.UnblockFile(cratePath)
+			state.InvalidateFileCache(cratePath)
+		}
+		return errorResponse(c, fiber.StatusServiceUnavailable, "Cargo publication quota is unavailable")
 	}
 
 	if err := crateStage.Commit(state); err != nil {

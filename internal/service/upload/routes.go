@@ -29,6 +29,7 @@ import (
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
 	"renop/internal/service/gpg"
+	"renop/internal/service/publicationquota"
 	"renop/internal/service/status"
 	"renop/internal/service/storage"
 	"renop/internal/service/updater"
@@ -394,6 +395,10 @@ func completeStorage(c fiber.Ctx, state *core.AppState, sess *Session) error {
 	})
 	if err != nil {
 		sess.Abort()
+		if errors.Is(err, core.ErrPublicationFileLimit) || errors.Is(err, core.ErrPublicationByteLimit) ||
+			errors.Is(err, core.ErrPublicationCountLimit) {
+			c.Set("X-Renop-Error-Code", publicationquota.ErrorCode(err))
+		}
 		statusCode, message := storage.GPGUploadErrorResponse(err)
 		if errors.Is(err, core.ErrReviewPublicationSealed) || errors.Is(err, core.ErrReviewFileLimit) ||
 			errors.Is(err, core.ErrReviewInvalidRequest) || errors.Is(err, core.ErrReviewPermissionDenied) {

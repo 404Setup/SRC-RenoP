@@ -23,6 +23,7 @@ const userFacingModules = [
     'js/npm-messages.js',
     'js/messages.js',
     'js/profile.js',
+    'js/publication-quota.js',
     'js/repositories.js',
     'js/reviews.js',
     'js/sessions.js',

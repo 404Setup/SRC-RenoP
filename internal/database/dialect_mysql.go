@@ -68,6 +68,9 @@ func initMySQLSuperTeamIndexes(db *sql.DB) error {
 		{Name: "idx_review_tasks_team", Query: "CREATE INDEX idx_review_tasks_team ON review_tasks(review_team_prefix, status, kind, created_at);"},
 		{Name: "idx_review_tasks_requester", Query: "CREATE INDEX idx_review_tasks_requester ON review_tasks(requested_by_id, status, created_at);"},
 		{Name: "idx_review_task_files_task", Query: "CREATE INDEX idx_review_task_files_task ON review_task_files(task_id, added_at);"},
+		{Name: "idx_publication_quota_reservation_owner", Query: "CREATE INDEX idx_publication_quota_reservation_owner ON publication_quota_reservations(owner_type, owner_key, period_start, expires_at);"},
+		{Name: "idx_publication_quota_reservation_expiry", Query: "CREATE INDEX idx_publication_quota_reservation_expiry ON publication_quota_reservations(expires_at);"},
+		{Name: "idx_publication_quota_usage_window", Query: "CREATE INDEX idx_publication_quota_usage_window ON publication_quota_usage(period_start);"},
 	}
 	for _, migration := range migrations {
 		if _, err := db.Exec(migration.Query); err != nil {
@@ -509,6 +512,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if err := initSuperTeamTables(db); err != nil {
+		return err
+	}
+	if err := initPublicationQuotaTables(db); err != nil {
 		return err
 	}
 	if err := initReviewTables(db, true); err != nil {

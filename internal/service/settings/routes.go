@@ -24,6 +24,8 @@ func SetupSettingsRoutes(router fiber.Router, state *core.AppState) {
 	router.Put("/github-oauth", func(c fiber.Ctx) error { return putGitHubOAuthSettings(c, state) })
 	router.Get("/super-teams", func(c fiber.Ctx) error { return getSuperTeamSettings(c, state) })
 	router.Put("/super-teams", func(c fiber.Ctx) error { return putSuperTeamSettings(c, state) })
+	router.Get("/publication-quota", func(c fiber.Ctx) error { return getPublicationQuotaSettings(c, state) })
+	router.Put("/publication-quota", func(c fiber.Ctx) error { return putPublicationQuotaSettings(c, state) })
 	router.Post("/index/rebuild", func(c fiber.Ctx) error { return RebuildIndex(c, state) })
 	router.Get("/domains", func(c fiber.Ctx) error { return GetDomains(c) })
 	router.Get("/domain/:name", func(c fiber.Ctx) error { return GetDomainSettings(c, state) })

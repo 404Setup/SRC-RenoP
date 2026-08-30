@@ -144,6 +144,7 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.Equal(t, 1, publicProfile.NPMPackageCount)
 	require.Nil(t, publicProfile.GitHub)
 	require.Nil(t, publicProfile.SuperTeamLimits)
+	require.Nil(t, publicProfile.PublicationQuota)
 	require.NoError(t, response.Body.Close())
 
 	response = profileRequest(t, app, http.MethodGet, "/users/alice/profile", "")
@@ -161,6 +162,9 @@ func TestUserProfileRoutesValidateAndRateLimitRenames(t *testing.T) {
 	require.NotNil(t, ownProfile.SuperTeamLimits)
 	require.Equal(t, cfg.SuperTeams.CreateLimit, ownProfile.SuperTeamLimits.CreateLimit)
 	require.Equal(t, cfg.SuperTeams.JoinLimit, ownProfile.SuperTeamLimits.JoinLimit)
+	require.NotNil(t, ownProfile.PublicationQuota)
+	require.Equal(t, cfg.PublicationQuota.FileLimit, ownProfile.PublicationQuota.FileLimit)
+	require.Equal(t, cfg.PublicationQuota.ByteLimit, ownProfile.PublicationQuota.ByteLimit)
 	response = profileRequest(t, app, http.MethodGet, "/users/bobby/memberships?format=cargo", "")
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var membershipResponse struct {

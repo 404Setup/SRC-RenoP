@@ -33,6 +33,7 @@ import {renderGitHubConnection} from './github-auth.js';
 import {refreshAccountSecurity} from './account-security.js';
 import {refreshAPITokenSummary} from './api-tokens.js';
 import {renderProfileSuperTeamLimits} from './super-teams.js';
+import {renderProfilePublicationQuota} from './publication-quota.js';
 import {
 	caughtErrorMessage,
 	LocalizedResponseError,
@@ -1040,6 +1041,7 @@ function showProfileEdit(profile) {
     updateProfileEditHeading(profile);
     buildProfileIdentityEditor(profile);
     renderProfileSuperTeamLimits(profile.super_team_limits);
+    renderProfilePublicationQuota(profile.publication_quota);
     editView.querySelectorAll('details.profile-collapsible-card').forEach(card => {
         resetProfileDisclosure(card);
         wireProfileDisclosure(card);

@@ -480,6 +480,47 @@ func TestDockerRegistryFullLifecycle(t *testing.T) {
 	}
 }
 
+func TestDockerManifestEnforcesPublicationQuotaBeforeStorageCommit(t *testing.T) {
+	app, state, store := setupTestDockerApp(t)
+	createTestDockerImage(t, state, "docker-local", "quota-app", false)
+	next := state.Inner.Config.Load().DeepCopy()
+	next.PublicationQuota = config.PublicationQuotaConfig{
+		FileLimit: 1, ByteLimit: 1 << 20, PublicationLimit: 10, Period: core.PublicationQuotaPeriodMonth,
+	}
+	state.Inner.Config.Store(next)
+	tokenRequest := httptest.NewRequest(http.MethodGet,
+		"/v2/token?service=127.0.0.1:8080&scope=repository:docker-local/quota-app:pull,push", nil)
+	tokenRequest.SetBasicAuth("admin", "admin-secret-token")
+	tokenResponse, err := app.Test(tokenRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var token TokenResponse
+	if err := json.NewDecoder(tokenResponse.Body).Decode(&token); err != nil {
+		t.Fatal(err)
+	}
+	_ = tokenResponse.Body.Close()
+
+	manifest := []byte(`{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","config":{"mediaType":"application/vnd.oci.image.config.v1+json","size":2,"digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"layers":[]}`)
+	request := httptest.NewRequest(http.MethodPut, "/v2/docker-local/quota-app/manifests/latest", bytes.NewReader(manifest))
+	request.Header.Set(fiber.HeaderContentType, MediaTypeOCIManifest1)
+	request.Header.Set(fiber.HeaderAuthorization, "Bearer "+token.Token)
+	response, err := app.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != fiber.StatusTooManyRequests {
+		t.Fatalf("manifest quota status = %d, want %d", response.StatusCode, fiber.StatusTooManyRequests)
+	}
+	if code := response.Header.Get("X-Renop-Error-Code"); code != "publication_file_quota" {
+		t.Fatalf("manifest quota code = %q", code)
+	}
+	if memoryStore, ok := store.(*memoryDockerStore); !ok || len(memoryStore.manifests) != 0 {
+		t.Fatal("quota-rejected manifest reached storage")
+	}
+}
+
 func TestDockerPublicationReviewDefersManifestAndTags(t *testing.T) {
 	app, state, store := setupTestDockerApp(t)
 	createTestDockerImage(t, state, "docker-local", "reviewed-app", false)

@@ -63,6 +63,7 @@ Basic Auth не позволяет обращаться к API управлен�
 - [API Docker / OCI](./docker.md)
 - [API реестра npm](./npm.md)
 - [API глобальных команд](./global-teams.md)
+- [API квот публикаций](./publication-quotas.md)
 - [API проверок](./reviews.md)
 - [API центра сообщений](./messages.md)
 - [API хранилища и загрузки](./storage.md)

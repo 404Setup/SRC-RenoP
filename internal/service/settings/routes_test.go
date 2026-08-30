@@ -90,6 +90,35 @@ func TestSuperTeamGlobalLimitsPersist(t *testing.T) {
 	response.Body.Close()
 }
 
+func TestPublicationQuotaDefaultsPersist(t *testing.T) {
+	cfg := config.DefaultConfig()
+	app, state := setupSettingsTestApp(t, cfg)
+	request := httptest.NewRequest(http.MethodPut, "/publication-quota",
+		strings.NewReader(`{"file_limit":900,"byte_limit":67108864,"publication_limit":30,"period":"week"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	response.Body.Close()
+	quota := state.Inner.Config.Load().PublicationQuota
+	assert.EqualValues(t, 900, quota.FileLimit)
+	assert.EqualValues(t, 64<<20, quota.ByteLimit)
+	assert.EqualValues(t, 30, quota.PublicationLimit)
+	assert.Equal(t, "week", quota.Period)
+	configBytes, err := os.ReadFile(os.Getenv("RENOP_CONFIG"))
+	require.NoError(t, err)
+	assert.Contains(t, string(configBytes), "publication_quota:")
+	assert.Contains(t, string(configBytes), "file_limit: 900")
+
+	request = httptest.NewRequest(http.MethodPut, "/publication-quota",
+		strings.NewReader(`{"file_limit":0,"byte_limit":1,"publication_limit":1,"period":"day"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	response.Body.Close()
+}
+
 func protoBody(t *testing.T, m proto.Message) *bytes.Buffer {
 	t.Helper()
 	data, err := proto.Marshal(m)
@@ -793,10 +822,11 @@ func TestGetDomainsProtobuf(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected GET 200, got %d", resp.StatusCode)
 	}
-	if len(got.Domains) != 8 || !slices.Contains(got.Domains, "proxy") ||
+	if len(got.Domains) != 9 || !slices.Contains(got.Domains, "proxy") ||
 		!slices.Contains(got.Domains, "github_oauth") || !slices.Contains(got.Domains, "super_teams") ||
+		!slices.Contains(got.Domains, "publication_quota") ||
 		slices.Contains(got.Domains, "gpg") {
-		t.Fatalf("expected 8 domains including proxy, GitHub OAuth, and global teams while excluding gpg, got %v", got.Domains)
+		t.Fatalf("expected 9 domains including proxy, GitHub OAuth, global teams, and publication quotas while excluding gpg, got %v", got.Domains)
 	}
 }
 

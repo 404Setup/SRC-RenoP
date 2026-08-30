@@ -34,7 +34,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 7)
+	results := make([]DriverCheckResult, 0, 8)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -176,6 +176,44 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		memberTeams, memberTotal, err := db.ListSuperTeams(memberUsername, false, 10, 0)
 		if err != nil || memberTotal != 0 || len(memberTeams) != 0 {
 			return errorsOrMissing(err, "global team removal visibility")
+		}
+		return nil
+	}); err != nil {
+		return results, err
+	}
+	if err := run("publication quotas", func() error {
+		limits := core.PublicationQuotaLimits{
+			FileLimit: 3, ByteLimit: 1024, PublicationLimit: 2, Period: core.PublicationQuotaPeriodMonth,
+		}
+		subject := core.PublicationQuotaSubject{OwnerType: core.PublicationQuotaOwnerUser, OwnerKey: username}
+		reservation, err := db.ReservePublicationQuota(subject, limits,
+			core.PublicationQuotaDelta{Files: 2, Bytes: 512, Publications: 1}, now, now+60_000)
+		if err != nil || reservation == nil || reservation.ID == "" {
+			return errorsOrMissing(err, "publication quota reservation")
+		}
+		if err := db.CommitPublicationQuotaReservation(reservation.ID, now+1); err != nil {
+			return err
+		}
+		status, err := db.GetPublicationQuotaStatus(subject, limits, now+2)
+		if err != nil || status == nil || status.FilesUsed != 2 || status.BytesUsed != 512 ||
+			status.PublicationsUsed != 1 {
+			return errorsOrMissing(err, "publication quota usage")
+		}
+		if _, err := db.ReservePublicationQuota(subject, limits,
+			core.PublicationQuotaDelta{Files: 2}, now+3, now+60_000); !errors.Is(err, core.ErrPublicationFileLimit) {
+			return errorsOrMissing(err, "publication quota enforcement")
+		}
+		unlimited := true
+		if err := db.SetPublicationQuotaOverride(core.PublicationQuotaSubject{
+			OwnerType: core.PublicationQuotaOwnerSuperTeam, OwnerKey: globalTeamPrefix,
+		}, core.PublicationQuotaOverride{Unlimited: &unlimited}, now+4); err != nil {
+			return err
+		}
+		teamReservation, err := db.ReservePublicationQuota(core.PublicationQuotaSubject{
+			OwnerType: core.PublicationQuotaOwnerSuperTeam, OwnerKey: globalTeamPrefix,
+		}, limits, core.PublicationQuotaDelta{Files: 100, Bytes: 1 << 30, Publications: 100}, now+5, now+60_000)
+		if err != nil || teamReservation == nil || !teamReservation.Unlimited {
+			return errorsOrMissing(err, "unlimited global team quota")
 		}
 		return nil
 	}); err != nil {

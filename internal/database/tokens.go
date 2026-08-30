@@ -503,6 +503,14 @@ func (db *DB) DeleteToken(name string) error {
 	if _, err := tx.Exec(`DELETE FROM user_super_team_limits WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete global team limits for token (%s): %w", lowerName, err)
 	}
+	for _, table := range []string{
+		"publication_quota_reservations", "publication_quota_usage", "publication_quota_overrides",
+	} {
+		if _, err := tx.Exec(`DELETE FROM `+table+` WHERE owner_type = ? AND owner_key = ?`,
+			core.PublicationQuotaOwnerUser, userID); err != nil {
+			return fmt.Errorf("failed to delete publication quota state from %s for token (%s): %w", table, lowerName, err)
+		}
+	}
 	if _, err := tx.Exec(`DELETE FROM github_principals WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete GitHub principals for token (%s): %w", lowerName, err)
 	}

@@ -18,6 +18,9 @@ import (
 // MavenMutationAuthorizer is wired by the Maven service to avoid a package cycle.
 var MavenMutationAuthorizer func(state *core.AppState, user *config.User, repo *config.Repository, path string, requiredLevel int) error
 
+// MavenPublicationQuotaOwner resolves the global-team quota owner for an authorized Maven path.
+var MavenPublicationQuotaOwner func(state *core.AppState, username string, repo *config.Repository, path string) (string, error)
+
 // MavenReadAuthorizer is wired by the Maven service for private-domain membership reads.
 var MavenReadAuthorizer func(state *core.AppState, user *config.User, repo *config.Repository, path string, isRoot bool) (bool, error)
 

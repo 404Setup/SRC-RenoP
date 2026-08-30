@@ -147,6 +147,49 @@ func initSuperTeamTables(db *sql.DB) error {
 	return nil
 }
 
+func initPublicationQuotaTables(db *sql.DB) error {
+	tables := [...]string{
+		`CREATE TABLE IF NOT EXISTS publication_quota_overrides (
+			owner_type VARCHAR(16) NOT NULL,
+			owner_key VARCHAR(64) NOT NULL,
+			file_limit BIGINT NOT NULL DEFAULT -1,
+			byte_limit BIGINT NOT NULL DEFAULT -1,
+			publication_limit BIGINT NOT NULL DEFAULT -1,
+			quota_period VARCHAR(8) NOT NULL DEFAULT '',
+			unlimited INT NOT NULL DEFAULT -1,
+			updated_at BIGINT NOT NULL,
+			PRIMARY KEY (owner_type, owner_key)
+		);`,
+		`CREATE TABLE IF NOT EXISTS publication_quota_usage (
+			owner_type VARCHAR(16) NOT NULL,
+			owner_key VARCHAR(64) NOT NULL,
+			period_start BIGINT NOT NULL,
+			files_used BIGINT NOT NULL DEFAULT 0,
+			bytes_used BIGINT NOT NULL DEFAULT 0,
+			publications_used BIGINT NOT NULL DEFAULT 0,
+			updated_at BIGINT NOT NULL,
+			PRIMARY KEY (owner_type, owner_key, period_start)
+		);`,
+		`CREATE TABLE IF NOT EXISTS publication_quota_reservations (
+			id CHAR(36) PRIMARY KEY,
+			owner_type VARCHAR(16) NOT NULL,
+			owner_key VARCHAR(64) NOT NULL,
+			period_start BIGINT NOT NULL,
+			files_reserved BIGINT NOT NULL,
+			bytes_reserved BIGINT NOT NULL,
+			publications_reserved BIGINT NOT NULL,
+			expires_at BIGINT NOT NULL,
+			created_at BIGINT NOT NULL
+		);`,
+	}
+	for _, table := range tables {
+		if _, err := db.Exec(table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func initNPMTables(db *sql.DB) error {
 	tables := [...]string{
 		`CREATE TABLE IF NOT EXISTS npm_packages (
@@ -362,6 +405,9 @@ var sharedIndexMigrations = []SchemaMigration{
 	{Name: "idx_review_tasks_team", Query: "CREATE INDEX IF NOT EXISTS idx_review_tasks_team ON review_tasks(review_team_prefix, status, kind, created_at);"},
 	{Name: "idx_review_tasks_requester", Query: "CREATE INDEX IF NOT EXISTS idx_review_tasks_requester ON review_tasks(requested_by_id, status, created_at);"},
 	{Name: "idx_review_task_files_task", Query: "CREATE INDEX IF NOT EXISTS idx_review_task_files_task ON review_task_files(task_id, added_at);"},
+	{Name: "idx_publication_quota_reservation_owner", Query: "CREATE INDEX IF NOT EXISTS idx_publication_quota_reservation_owner ON publication_quota_reservations(owner_type, owner_key, period_start, expires_at);"},
+	{Name: "idx_publication_quota_reservation_expiry", Query: "CREATE INDEX IF NOT EXISTS idx_publication_quota_reservation_expiry ON publication_quota_reservations(expires_at);"},
+	{Name: "idx_publication_quota_usage_window", Query: "CREATE INDEX IF NOT EXISTS idx_publication_quota_usage_window ON publication_quota_usage(period_start);"},
 }
 
 func applySharedIndexMigrations(db *sql.DB) error {

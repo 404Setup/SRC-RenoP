@@ -101,6 +101,7 @@ if (!customElements.get('renop-user-row')) {
  * @property {(token: object) => void} [onEdit] - Edit action handler
  * @property {(token: object) => void} [onDelete] - Delete action handler
  * @property {(token: object) => void} [onSessions] - Sessions action handler
+ * @property {(token: object) => void} [onQuota] - Publication quota action handler
  */
 
 /**
@@ -148,6 +149,15 @@ export function openUserActionsDialog(token, options = {}) {
             title: t('users.sessions') || 'Sessions',
             desc: t('users.sessionsDesc') || 'View and revoke active login sessions',
             handler: options.onSessions
+        },
+        {
+            id: 'quota',
+            icon: 'database',
+            iconColor: 'var(--text-color)',
+            iconBg: 'var(--item-hover-bg)',
+            title: t('publicationQuota.title'),
+            desc: t('publicationQuota.adminUserHint'),
+            handler: options.onQuota
         },
         {
             id: 'edit',

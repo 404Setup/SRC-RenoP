@@ -120,3 +120,32 @@ func TestGPGCleanupPreservesPendingPublicationReviewBlock(t *testing.T) {
 	unblockReleasePaths(state, &core.GPGRelease{Repository: "releases", ArtifactPath: relative})
 	assert.True(t, state.Inner.FileIndex.IsBlocked(absolute))
 }
+
+func TestMavenPublicationQuotaCountsFilesAndPOMPublicationsSeparately(t *testing.T) {
+	state, db, repo, storagePath := setupGPGUploadState(t)
+	next := state.Inner.Config.Load().DeepCopy()
+	next.PublicationQuota = config.PublicationQuotaConfig{
+		FileLimit: 10, ByteLimit: 1024, PublicationLimit: 10, Period: core.PublicationQuotaPeriodMonth,
+	}
+	state.Inner.Config.Store(next)
+	for _, filename := range []string{"demo-1.0.0.jar", "demo-1.0.0.pom"} {
+		reservation, err := reserveUploadedFileQuota(state, repo, &PreparedUpload{
+			LocalFilePath: filepath.Join(storagePath, "releases", "org", "example", "demo", "1.0.0", filename),
+			Username:      "alice", FileSize: 100,
+		})
+		require.NoError(t, err)
+		require.NoError(t, reservation.Commit())
+		reservation.Release()
+	}
+	quota := next.PublicationQuota
+	status, err := db.GetPublicationQuotaStatus(core.PublicationQuotaSubject{
+		OwnerType: core.PublicationQuotaOwnerUser, OwnerKey: "alice",
+	}, core.PublicationQuotaLimits{
+		FileLimit: quota.FileLimit, ByteLimit: quota.ByteLimit,
+		PublicationLimit: quota.PublicationLimit, Period: quota.Period,
+	}, time.Now().UnixMilli())
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, status.FilesUsed)
+	assert.EqualValues(t, 200, status.BytesUsed)
+	assert.EqualValues(t, 1, status.PublicationsUsed)
+}

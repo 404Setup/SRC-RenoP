@@ -368,6 +368,33 @@ func TestNPMRegistryPublishInstallTagsAndDeprecation(t *testing.T) {
 	store.mu.Unlock()
 }
 
+func TestNPMPublishEnforcesPublicationQuotaBeforeStorageCommit(t *testing.T) {
+	app, state, store := setupNPMTestApp(t)
+	next := state.Inner.Config.Load().DeepCopy()
+	next.PublicationQuota.FileLimit = 0
+	state.Inner.Config.Store(next)
+	tarball := npmTestTarball(t, "demo", "1.0.0")
+	document := map[string]any{
+		"_id": "demo", "name": "demo", "dist-tags": map[string]string{"latest": "1.0.0"},
+		"versions": map[string]any{"1.0.0": map[string]any{"name": "demo", "version": "1.0.0"}},
+		"_attachments": map[string]any{"demo-1.0.0.tgz": map[string]any{
+			"length": len(tarball), "data": base64.StdEncoding.EncodeToString(tarball),
+		}},
+	}
+	body, err := json.Marshal(document)
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodPut, "http://registry.example/npm/demo", bytes.NewReader(body))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, fiber.StatusTooManyRequests, response.StatusCode)
+	assert.Equal(t, "publication_file_quota", response.Header.Get("X-Renop-Error-Code"))
+	store.mu.Lock()
+	assert.Empty(t, store.files)
+	store.mu.Unlock()
+}
+
 func TestNPMPublicationReviewDefersVersionsAndNewPackagePolicy(t *testing.T) {
 	app, state, _ := setupNPMTestApp(t)
 	repo := state.Inner.Config.Load().Maven.Repositories["npm"]

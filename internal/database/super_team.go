@@ -525,6 +525,14 @@ func (db *DB) DeleteSuperTeam(prefix, actor string, administrator bool, actedAt 
 	if _, err := tx.Exec(`DELETE FROM super_team_members WHERE team_prefix = ?`, prefix); err != nil {
 		return fmt.Errorf("delete global team members: %w", err)
 	}
+	for _, table := range []string{
+		"publication_quota_reservations", "publication_quota_usage", "publication_quota_overrides",
+	} {
+		if _, err := tx.Exec(`DELETE FROM `+table+` WHERE owner_type = ? AND owner_key = ?`,
+			core.PublicationQuotaOwnerSuperTeam, prefix); err != nil {
+			return fmt.Errorf("delete global team publication quota state from %s: %w", table, err)
+		}
+	}
 	if _, err := tx.Exec(`DELETE FROM super_teams WHERE prefix = ?`, prefix); err != nil {
 		return fmt.Errorf("delete global team: %w", err)
 	}

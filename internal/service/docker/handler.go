@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ import (
 	"renop/internal/core"
 	"renop/internal/service/audit"
 	"renop/internal/service/auth"
+	"renop/internal/service/publicationquota"
 	"renop/internal/service/repositorygate"
 	"renop/internal/service/statistics"
 )
@@ -50,6 +52,32 @@ func referencedBlobDigests(manifest *ParsedManifest) []string {
 		}
 	}
 	return digests
+}
+
+func manifestPublicationQuotaDelta(manifest *ParsedManifest) (core.PublicationQuotaDelta, bool) {
+	if manifest == nil || manifest.Size <= 0 {
+		return core.PublicationQuotaDelta{}, false
+	}
+	delta := core.PublicationQuotaDelta{Files: 1, Bytes: manifest.Size, Publications: 1}
+	if manifest.IsIndex {
+		return delta, true
+	}
+	descriptors := manifest.Layers
+	if manifest.ConfigDigest != "" {
+		if manifest.ConfigSize < 0 || manifest.ConfigSize > math.MaxInt64-delta.Bytes {
+			return core.PublicationQuotaDelta{}, false
+		}
+		delta.Files++
+		delta.Bytes += manifest.ConfigSize
+	}
+	for _, descriptor := range descriptors {
+		if descriptor.Size < 0 || descriptor.Size > math.MaxInt64-delta.Bytes {
+			return core.PublicationQuotaDelta{}, false
+		}
+		delta.Files++
+		delta.Bytes += descriptor.Size
+	}
+	return delta, true
 }
 
 func getParam(c fiber.Ctx, key string) string {
@@ -444,6 +472,26 @@ func (h *Handler) HandlePutManifest(c fiber.Ctx, state *core.AppState) error {
 	db := state.GetDB()
 	if db == nil {
 		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
+	quotaImage, err := db.GetDockerImage(repoName, imageName)
+	if err != nil {
+		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "database unavailable", nil)
+	}
+	if quotaImage == nil {
+		return RespondError(c, fiber.StatusNotFound, ErrCodeNameUnknown, "image must be created before push", nil)
+	}
+	quotaDelta, validQuotaDelta := manifestPublicationQuotaDelta(parsed)
+	if !validQuotaDelta {
+		return RespondError(c, fiber.StatusBadRequest, ErrCodeManifestInvalid, "invalid manifest descriptor sizes", nil)
+	}
+	quota, quotaErr := publicationquota.Reserve(state, user.Username, quotaImage.SuperTeamPrefix, quotaDelta)
+	if quotaErr != nil {
+		c.Set("X-Renop-Error-Code", publicationquota.ErrorCode(quotaErr))
+		return RespondError(c, fiber.StatusTooManyRequests, ErrCodeDenied, "Docker publication quota exceeded", nil)
+	}
+	defer quota.Release()
+	if quotaErr := quota.Commit(); quotaErr != nil {
+		return RespondError(c, fiber.StatusServiceUnavailable, ErrCodeUnsupported, "Docker publication quota is unavailable", nil)
 	}
 
 	reviewPolicy := repo.PublicationReviewPolicy()

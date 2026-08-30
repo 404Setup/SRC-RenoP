@@ -53,7 +53,7 @@ const DOMAIN_MESSAGE_TYPES = {
     index: IndexDomainSettings,
 };
 
-const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'proxy', 'storage']);
+const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'publication_quota', 'proxy', 'storage']);
 const MERGED_SERVICE_DOMAINS = new Set(SERVICE_DOMAINS.filter(domain => domain !== 'server'));
 
 let currentDomain = null;
@@ -200,6 +200,15 @@ async function fetchSuperTeamSettings() {
 }
 
 /**
+ * Load global publication quota defaults from their JSON settings endpoint.
+ * @returns {Promise<{response: Response, data: object|null}>}
+ */
+async function fetchPublicationQuotaSettings() {
+    const response = await apiRequest('/api/settings/publication-quota');
+    return {response, data: response.ok ? await response.json() : null};
+}
+
+/**
  * Loads configuration for a settings domain and renders its form with transition animation.
  * Uses a fetch id so stale responses are ignored when the user switches tabs quickly.
  * @param {string} domain - Domain key to load.
@@ -239,9 +248,11 @@ async function loadDomainSettings(domain, direction = 'next') {
                 name,
                 result: name === 'github_oauth'
                     ? await fetchGitHubOAuthSettings()
+                    : (name === 'publication_quota'
+                        ? await fetchPublicationQuotaSettings()
                     : (name === 'super_teams'
                         ? await fetchSuperTeamSettings()
-                        : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name]))
+                        : await fetchProto(`/api/settings/domain/${name}`, DOMAIN_MESSAGE_TYPES[name])))
             })));
             const denied = results.find(({result}) => result.response.status === 401 || result.response.status === 403);
             if (denied) {
@@ -560,6 +571,7 @@ function renderServiceSettings(container, data) {
     if (data.server) renderServerSettings(stack, data.server);
     if (data.github_oauth) renderGitHubOAuthSettings(stack, data.github_oauth);
     if (data.super_teams) renderSuperTeamSettings(stack, data.super_teams);
+    if (data.publication_quota) renderPublicationQuotaSettings(stack, data.publication_quota);
     if (data.proxy) renderProxySettings(stack, data.proxy);
     if (data.storage) renderStorageSettings(stack, data.storage);
     container.appendChild(stack);
@@ -599,6 +611,63 @@ function renderSuperTeamSettings(container, data) {
     fields.append(
         createFieldRow(t('superTeam.createLimit'), t('superTeam.createLimitHint'), createLimit),
         createFieldRow(t('superTeam.joinLimit'), t('superTeam.joinLimitHint'), joinLimit)
+    );
+    wrap.appendChild(section);
+    container.appendChild(wrap);
+}
+
+/**
+ * Render global publication quota defaults inherited by accounts and global teams.
+ * @param {HTMLElement} container - Service settings stack.
+ * @param {{file_limit?: number, byte_limit?: number, publication_limit?: number, period?: string}} data - Mutable quota defaults.
+ * @returns {void}
+ */
+function renderPublicationQuotaSettings(container, data) {
+    const wrap = el('div', {class: 'cfg-layout'});
+    const section = createSection(
+        createIcon('database'),
+        t('publicationQuota.settingsTitle'),
+        t('publicationQuota.settingsSubtitle'),
+        {defaultCollapsed: true}
+    );
+    const fields = section.querySelector('.cfg-fields');
+    const fileLimit = buildInput('number', Number.isFinite(Number(data.file_limit)) ? Number(data.file_limit) : 600, '600', event => {
+        const value = Number(event.target.value);
+        if (!Number.isSafeInteger(value) || value < 1 || value > 10000000) return;
+        data.file_limit = value;
+        enableSave();
+    });
+    fileLimit.min = '1';
+    fileLimit.max = '10000000';
+    const byteLimit = buildInput('number', Math.round(Number(data.byte_limit || 0) / (1024 * 1024)), '40', event => {
+        const value = Number(event.target.value);
+        if (!Number.isSafeInteger(value) || value < 1 || value > 1073741824) return;
+        data.byte_limit = value * 1024 * 1024;
+        enableSave();
+    });
+    byteLimit.min = '1';
+    byteLimit.max = '1073741824';
+    const publicationLimit = buildInput('number', Number.isFinite(Number(data.publication_limit)) ? Number(data.publication_limit) : 20, '20', event => {
+        const value = Number(event.target.value);
+        if (!Number.isSafeInteger(value) || value < 1 || value > 1000000) return;
+        data.publication_limit = value;
+        enableSave();
+    });
+    publicationLimit.min = '1';
+    publicationLimit.max = '1000000';
+    const period = makeCustomSelect([
+        {value: 'day', label: t('publicationQuota.period.day')},
+        {value: 'week', label: t('publicationQuota.period.week')},
+        {value: 'month', label: t('publicationQuota.period.month')},
+    ], data.period || 'month', value => {
+        data.period = value;
+        enableSave();
+    });
+    fields.append(
+        createFieldRow(t('publicationQuota.filesLimit'), t('publicationQuota.filesLimitHint'), fileLimit),
+        createFieldRow(t('publicationQuota.storageLimitMiB'), t('publicationQuota.storageLimitHint'), byteLimit),
+        createFieldRow(t('publicationQuota.publicationLimit'), t('publicationQuota.publicationLimitHint'), publicationLimit),
+        createFieldRow(t('publicationQuota.period'), t('publicationQuota.periodHint'), period)
     );
     wrap.appendChild(section);
     container.appendChild(wrap);
@@ -1786,6 +1855,13 @@ export async function saveDomainSettings() {
                         body: JSON.stringify(currentConfig[domain]),
                     });
                     if (response.ok) savedData = await response.json();
+                } else if (domain === 'publication_quota') {
+                    response = await apiRequest('/api/settings/publication-quota', {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(currentConfig[domain]),
+                    });
+                    if (response.ok) savedData = await response.json();
                 } else {
                     ({response} = await putProto(
                         `/api/settings/domain/${domain}`,
@@ -1796,7 +1872,9 @@ export async function saveDomainSettings() {
                 if (!response.ok) {
                     const fallbackKey = domain === 'github_oauth'
                         ? 'settings.githubOAuthSaveFailed'
-                        : (domain === 'super_teams' ? 'superTeam.settingsSaveFailed' : 'settings.saveFailed');
+                        : (domain === 'super_teams'
+                            ? 'superTeam.settingsSaveFailed'
+                            : (domain === 'publication_quota' ? 'publicationQuota.saveFailed' : 'settings.saveFailed'));
                     throw new LocalizedResponseError(
                         await responseErrorMessage(response, fallbackKey),
                         response.status
@@ -1811,6 +1889,8 @@ export async function saveDomainSettings() {
                     const secretInput = document.getElementById('settings-github-oauth-secret');
                     if (secretInput) secretInput.value = '';
                 } else if (domain === 'super_teams' && savedData) {
+                    currentConfig[domain] = savedData;
+                } else if (domain === 'publication_quota' && savedData) {
                     currentConfig[domain] = savedData;
                 }
                 initialConfig[domain] = JSON.parse(JSON.stringify(currentConfig[domain]));

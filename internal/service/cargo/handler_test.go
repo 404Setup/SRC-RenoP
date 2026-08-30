@@ -278,6 +278,38 @@ func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
 	}
 }
 
+func TestCargoPublishEnforcesPublicationQuotaBeforeStorageCommit(t *testing.T) {
+	storagePath := t.TempDir()
+	store := newMemoryStore()
+	repo := &config.Repository{Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"}
+	state := core.NewAppState()
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-quota.db")})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	state.Inner.DB = db
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.PublicationQuota.FileLimit = 0
+	state.Inner.Config.Store(cfg)
+	app := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath,
+		&config.User{Username: "publisher", Roles: []string{"canupdate:cargo"}})
+	crate := makeCrateArchive(t, map[string]string{
+		"demo-1.0.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.0.0\"\n",
+	})
+	body := makePublishBody(t, PublishMetadata{
+		Name: "demo", Version: "1.0.0", Deps: []PublishDependency{}, Features: map[string][]string{},
+	}, crate)
+	request := httptest.NewRequest(http.MethodPut, "/cargo/api/v1/crates/new", bytes.NewReader(body))
+	response, err := app.Test(request)
+	require.NoError(t, err)
+	defer response.Body.Close()
+	assert.Equal(t, fiber.StatusTooManyRequests, response.StatusCode)
+	assert.Equal(t, "publication_file_quota", response.Header.Get("X-Renop-Error-Code"))
+	store.mu.Lock()
+	assert.Empty(t, store.files)
+	store.mu.Unlock()
+}
+
 func TestCargoPublicationReviewDefersSparseIndexAndCatalog(t *testing.T) {
 	storagePath := t.TempDir()
 	store := newMemoryStore()

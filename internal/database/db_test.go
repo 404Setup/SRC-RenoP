@@ -13,6 +13,7 @@ package database_test
 import (
 	"context"
 	"database/sql"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -394,6 +395,22 @@ func TestInitDB_SQLite(t *testing.T) {
 	})
 }
 
+func TestSQLiteCloseLeavesNoWALSidecars(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "close.db")
+	db, err := database.InitDB(config.DatabaseConfig{Driver: "sqlite", Dsn: path, MaxOpenConns: 2})
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO tokens
+		(name, type, type_value, encrypted_secret, password_hash, tokens_json, created_at, description, expires_at, permissions_json)
+		VALUES ('close-test', '', 0, '', '', '[]', '', '', NULL, '[]')`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+	for _, suffix := range []string{"-wal", "-shm"} {
+		_, statErr := os.Stat(path + suffix)
+		require.ErrorIs(t, statErr, os.ErrNotExist, "SQLite sidecar %s remained after close", suffix)
+	}
+}
+
 func TestSQLiteDriverContract(t *testing.T) {
 	db, err := database.InitDB(config.DatabaseConfig{
 		Driver: "sqlite3", Dsn: "file:driver-contract?mode=memory&cache=shared", MaxOpenConns: 2, MaxIdleConns: 1,
@@ -402,5 +419,5 @@ func TestSQLiteDriverContract(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	results, err := database.RunDriverCheck(context.Background(), db)
 	require.NoError(t, err)
-	require.Len(t, results, 7)
+	require.Len(t, results, 8)
 }
