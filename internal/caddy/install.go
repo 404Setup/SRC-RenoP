@@ -195,8 +195,8 @@ func resolveConfigPath(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve RenoP configuration path: %w", err)
 	}
-	if _, err := os.Lstat(absPath); err == nil {
-		resolved, resolveErr := filepath.EvalSymlinks(absPath)
+	if directInfo, err := os.Lstat(absPath); err == nil {
+		resolved, resolveErr := evalSymlinks(absPath, directInfo)
 		if resolveErr != nil {
 			return "", fmt.Errorf("resolve RenoP configuration path: %w", resolveErr)
 		}
@@ -204,7 +204,12 @@ func resolveConfigPath(path string) (string, error) {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", fmt.Errorf("inspect RenoP configuration path: %w", err)
 	} else {
-		parent, resolveErr := filepath.EvalSymlinks(filepath.Dir(absPath))
+		parentPath := filepath.Dir(absPath)
+		parentInfo, statErr := os.Lstat(parentPath)
+		if statErr != nil {
+			return "", fmt.Errorf("inspect RenoP configuration directory: %w", statErr)
+		}
+		parent, resolveErr := evalSymlinks(parentPath, parentInfo)
 		if resolveErr != nil {
 			return "", fmt.Errorf("resolve RenoP configuration directory: %w", resolveErr)
 		}

@@ -149,7 +149,11 @@ func resolveRegularFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	resolved, err := filepath.EvalSymlinks(absPath)
+	directInfo, err := os.Lstat(absPath)
+	if err != nil {
+		return "", err
+	}
+	resolved, err := evalSymlinks(absPath, directInfo)
 	if err != nil {
 		return "", err
 	}
@@ -161,4 +165,15 @@ func resolveRegularFile(path string) (string, error) {
 		return "", fmt.Errorf("%s is not a regular file", resolved)
 	}
 	return resolved, nil
+}
+
+func evalSymlinks(path string, directInfo os.FileInfo) (string, error) {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err == nil {
+		return resolved, nil
+	}
+	if runtime.GOOS == "windows" && errors.Is(err, os.ErrPermission) && directInfo.Mode()&os.ModeSymlink == 0 {
+		return path, nil
+	}
+	return "", err
 }
