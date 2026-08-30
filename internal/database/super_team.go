@@ -479,6 +479,15 @@ func (db *DB) DeleteSuperTeam(prefix, actor string, administrator bool, actedAt 
 			return core.ErrSuperTeamNotEmpty
 		}
 	}
+	var pendingReviews int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM review_tasks WHERE status = ?
+		AND (source_team_prefix = ? OR target_team_prefix = ? OR review_team_prefix = ?)`,
+		core.ReviewStatusPending, prefix, prefix, prefix).Scan(&pendingReviews); err != nil {
+		return fmt.Errorf("count global team transfer reviews: %w", err)
+	}
+	if pendingReviews > 0 {
+		return core.ErrSuperTeamNotEmpty
+	}
 	if err := cancelSuperTeamInvitations(tx, prefix, "", actedAt); err != nil {
 		return err
 	}

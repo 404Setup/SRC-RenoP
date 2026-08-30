@@ -394,7 +394,7 @@
     min-width: 0;
 }
 
-.super-team-member-controls .custom-select {
+.super-team-member-controls .custom-select-wrapper {
     min-width: min(12rem, 32vw);
 }
 
@@ -460,7 +460,7 @@
     min-width: 0;
 }
 
-.super-team-binding-select .custom-select {
+.super-team-binding-select .custom-select-wrapper {
     width: 100%;
     min-width: 0;
 }
@@ -536,7 +536,7 @@
         justify-content: stretch;
     }
 
-    .super-team-member-controls .custom-select {
+    .super-team-member-controls .custom-select-wrapper {
         flex: 1 1 auto;
         min-width: 0;
     }

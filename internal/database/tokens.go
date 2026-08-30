@@ -384,6 +384,10 @@ func (db *DB) DeleteToken(name string) error {
 	}
 
 	lowerName := strings.ToLower(name)
+	superTeamMutationLock.Lock()
+	defer superTeamMutationLock.Unlock()
+	reviewTaskMutationLock.Lock()
+	defer reviewTaskMutationLock.Unlock()
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin token deletion (%s): %w", lowerName, err)
@@ -486,6 +490,12 @@ func (db *DB) DeleteToken(name string) error {
 	}
 	if err := cancelSuperTeamInvitationsForUser(tx, userID, time.Now().UnixMilli()); err != nil {
 		return fmt.Errorf("failed to cancel global team invitations for token (%s): %w", lowerName, err)
+	}
+	if _, err := tx.Exec(`UPDATE review_tasks SET status = ?, decision_reason = 'requester_deleted',
+		decided_by_id = ?, decided_by_name = ?, decided_at = ?, active_key = NULL
+		WHERE requested_by_id = ? AND status = ?`, core.ReviewStatusCancelled, userID, lowerName,
+		time.Now().UnixMilli(), userID, core.ReviewStatusPending); err != nil {
+		return fmt.Errorf("failed to cancel review requests for token (%s): %w", lowerName, err)
 	}
 	if _, err := tx.Exec(`DELETE FROM super_team_members WHERE user_id = ?`, userID); err != nil {
 		return fmt.Errorf("failed to delete global team memberships for token (%s): %w", lowerName, err)
@@ -667,6 +677,8 @@ func (db *DB) renameTokenInTx(tx *Tx, oldName, newName string, token *core.Acces
 		{`UPDATE npm_packages SET publisher = ? WHERE publisher = ?`, "npm package publishers"},
 		{`UPDATE npm_invitations SET inviter = ? WHERE inviter = ?`, "npm invitation senders"},
 		{`UPDATE npm_invitations SET recipient = ? WHERE recipient = ?`, "npm invitation recipients"},
+		{`UPDATE review_tasks SET requested_by_name = ? WHERE requested_by_name = ?`, "review requesters"},
+		{`UPDATE review_tasks SET decided_by_name = ? WHERE decided_by_name = ?`, "review decision makers"},
 	}
 	if db.clickHouse != nil {
 		if err := renameClickHouseUserGPGKeys(tx, oldName, newName); err != nil {

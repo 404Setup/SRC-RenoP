@@ -62,6 +62,7 @@ Basic credentials cannot call management APIs. Query-string credentials and `Aut
 - [Docker / OCI Registry API](./docker.md)
 - [npm Registry API](./npm.md)
 - [Global Teams API](./global-teams.md)
+- [Review API](./reviews.md)
 - [Message Center API](./messages.md)
 - [Storage & Upload API](./storage.md)
 - [Settings API](./settings.md)

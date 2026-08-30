@@ -65,6 +65,8 @@ func initMySQLSuperTeamIndexes(db *sql.DB) error {
 		{Name: "idx_npm_packages_super_team", Query: "CREATE INDEX idx_npm_packages_super_team ON npm_packages(super_team_prefix, repository);"},
 		{Name: "idx_maven_domains_super_team", Query: "CREATE INDEX idx_maven_domains_super_team ON maven_domains(super_team_prefix, domain);"},
 		{Name: "idx_maven_artifacts_super_team", Query: "CREATE INDEX idx_maven_artifacts_super_team ON maven_artifacts(super_team_prefix, repository);"},
+		{Name: "idx_review_tasks_team", Query: "CREATE INDEX idx_review_tasks_team ON review_tasks(review_team_prefix, status, kind, created_at);"},
+		{Name: "idx_review_tasks_requester", Query: "CREATE INDEX idx_review_tasks_requester ON review_tasks(requested_by_id, status, created_at);"},
 	}
 	for _, migration := range migrations {
 		if _, err := db.Exec(migration.Query); err != nil {
@@ -506,6 +508,9 @@ func (d *MySQLDialect) InitTables(db *sql.DB) error {
 		return err
 	}
 	if err := initSuperTeamTables(db); err != nil {
+		return err
+	}
+	if err := initReviewTables(db, true); err != nil {
 		return err
 	}
 

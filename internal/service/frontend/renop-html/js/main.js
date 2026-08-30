@@ -25,6 +25,7 @@ import {setupProfile} from './profile.js';
 import {loadDirectory} from './browser.js';
 import {loadMavenDomainCenterPage, mavenDomainRouteFromPath, openMavenDomainCenter} from './browser/maven.js';
 import {loadSuperTeamCenterPage, openSuperTeamCenter, superTeamRouteFromPath} from './super-teams.js';
+import {loadReviewCenterPage, openReviewCenter, reviewRouteFromPath} from './reviews.js';
 import {initMessageCenter, openMessageCenter, openNotificationComposer} from './messages.js';
 import './cargo-messages.js';
 import './docker-messages.js';
@@ -52,6 +53,7 @@ const backendAvailability = installBackendAvailabilityMonitor();
 function accountTabFromPath(pathname = window.location.pathname) {
     if (mavenDomainRouteFromPath(pathname)) return 'maven-domains';
     if (superTeamRouteFromPath(pathname)) return 'super-teams';
+    if (reviewRouteFromPath(pathname)) return 'reviews';
     return '';
 }
 
@@ -61,7 +63,7 @@ function accountTabFromPath(pathname = window.location.pathname) {
  * @returns {boolean} Whether the tab owns an account route.
  */
 function isAccountTab(tabId) {
-    return tabId === 'maven-domains' || tabId === 'super-teams';
+    return tabId === 'maven-domains' || tabId === 'super-teams' || tabId === 'reviews';
 }
 
 $(window).on('languageChanged', async () => {
@@ -334,6 +336,9 @@ export async function switchTab(tabId) {
     if (tabId === 'super-teams') {
         await loadSuperTeamCenterPage();
     }
+    if (tabId === 'reviews') {
+        await loadReviewCenterPage();
+    }
     if (tabId === 'overview') {
         loadDirectory(window.location.pathname);
     }
@@ -504,6 +509,10 @@ async function initializeApplication() {
                     openSuperTeamCenter();
                     return;
                 }
+                if (accountAction === 'reviews') {
+                    openReviewCenter();
+                    return;
+                }
                 if (accountAction === 'messages') {
                     await openMessageCenter();
                     return;
@@ -577,6 +586,7 @@ async function initializeApplication() {
         }
 
         document.getElementById('super-team-home')?.addEventListener('click', () => void navigateHome());
+        document.getElementById('review-home')?.addEventListener('click', () => void navigateHome());
 
         const headerLogo = document.getElementById('header-logo');
         if (headerLogo) {

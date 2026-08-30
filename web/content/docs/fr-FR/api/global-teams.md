@@ -22,13 +22,15 @@ produit pas de message redondant.
 
 ## Liaisons de projets et de domaines
 
-GET /api/super-teams/eligible renvoie uniquement les équipes où l’appelant dispose au moins du niveau T3. Une image
-Docker avec une barre oblique doit sélectionner l’équipe correspondant au premier segment. Un paquet npm avec portée
-doit sélectionner l’équipe correspondant à la portée sans `@`. Les noms sans préfixe peuvent rester personnels.
+GET /api/super-teams/eligible renvoie par défaut les équipes où l’appelant est au moins T3 ; `minimum_role` accepte
+T1-T4 pour sélectionner une cible de transfert. Une image Docker avec une barre oblique doit sélectionner l’équipe du
+premier segment. Un paquet npm avec portée doit sélectionner l’équipe de la portée sans `@`. Les noms sans préfixe
+peuvent rester personnels.
 
 La même liaison s’applique aux crates Cargo, aux artefacts Maven et aux domaines de publication Maven. L’accès effectif
 est le niveau le plus élevé entre l’autorisation explicite et le rôle d’équipe mappé. Les membres ne sont jamais copiés
 dans les tables de membres des paquets. Une équipe liée ne peut être supprimée avant le transfert de toutes ses ressources.
+Un propriétaire L4 demande le transfert dans `/account/reviews` ; un gestionnaire T3/T4 ou administrateur système le décide une seule fois.
 
 ## Limites
 

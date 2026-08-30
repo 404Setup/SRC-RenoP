@@ -176,7 +176,7 @@ func listEligibleTeams(c fiber.Ctx, state *core.AppState) error {
 		return apiError(c, err)
 	}
 	minimumRole, err := strconv.Atoi(c.Query("minimum_role", strconv.Itoa(core.SuperTeamRoleManage)))
-	if err != nil || minimumRole < core.SuperTeamRoleManage || minimumRole > core.SuperTeamRoleOwner {
+	if err != nil || minimumRole < core.SuperTeamRoleRead || minimumRole > core.SuperTeamRoleOwner {
 		return apiError(c, fiber.ErrBadRequest)
 	}
 	teams, total, err := state.GetDB().ListManageableSuperTeams(

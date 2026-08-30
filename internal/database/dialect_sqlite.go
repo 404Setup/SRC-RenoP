@@ -425,6 +425,9 @@ func (d *SQLiteDialect) InitTables(db *sql.DB) error {
 	if err := initSuperTeamTables(db); err != nil {
 		return err
 	}
+	if err := initReviewTables(db, false); err != nil {
+		return err
+	}
 
 	for _, migration := range sharedColumnMigrations {
 		if err := execIgnoreDuplicateColumn(db, migration.Query); err != nil {

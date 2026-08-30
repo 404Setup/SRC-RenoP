@@ -24,6 +24,7 @@ import {
 } from '../components.js';
 import {t} from '../i18n.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
+import {openSuperTeamTransferDialog} from '../reviews.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
 import {copyWithFeedback} from './copy-feedback.js';
@@ -1120,6 +1121,17 @@ function buildCargoPackageHero() {
     updateDocsButtons(activeVersion);
 
     const canManagePackage = activeAdministrator || Number(packageRecord?.permission_level) >= 3;
+    const canOwnPackage = activeAdministrator || Number(packageRecord?.permission_level) >= 4;
+    if (canOwnPackage && !packageRecord?.mirrored) {
+        actions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+            onclick: () => openSuperTeamTransferDialog({
+                resourceType: 'cargo_package', repository: activeRepository,
+                resourceKey: normalizeCargoPackageName(packageName), resourceName: packageName,
+                currentTeamPrefix: packageRecord.super_team_prefix || ''
+            })
+        }, createIcon('refresh'), el('span', {}, t('review.transferOwnership'))));
+    }
     if (canManagePackage) {
         const restoreLocked = packageRecord.archived && packageRecord.admin_archived && !activeAdministrator;
         actions.appendChild(el('button', {

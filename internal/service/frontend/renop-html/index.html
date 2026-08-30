@@ -103,6 +103,10 @@
                             <renop-icon name="identity" aria-hidden="true"></renop-icon>
                             <span data-i18n="superTeam.nav">Global teams</span>
                         </button>
+                        <button type="button" class="nav-profile-menu-item" role="menuitem" data-account-action="reviews">
+                            <renop-icon name="refresh" aria-hidden="true"></renop-icon>
+                            <span data-i18n="review.nav">Reviews</span>
+                        </button>
                         <button id="message-center-btn" type="button" class="nav-profile-menu-item message-center-menu-item" role="menuitem" data-account-action="messages">
                             <renop-icon name="bell" aria-hidden="true"></renop-icon>
                             <span data-i18n="messages.title">Messages</span>
@@ -538,6 +542,22 @@
                     </div>
                 </header>
                 <div id="super-team-page-content" class="super-team-center"></div>
+            </section>
+        </div>
+
+        <div id="tab-content-reviews" class="tab-content" style="display: none;">
+            <section class="review-page" aria-labelledby="review-page-title">
+                <header class="review-page-header">
+                    <button id="review-home" type="button" class="super-team-back">
+                        <renop-icon name="chevronLeft" aria-hidden="true"></renop-icon>
+                        <span data-i18n="nav.backHome">Back to home</span>
+                    </button>
+                    <div>
+                        <h2 id="review-page-title" data-i18n="review.title">Reviews</h2>
+                        <p data-i18n="review.subtitle">Review team ownership transfers independently from notifications.</p>
+                    </div>
+                </header>
+                <div id="review-page-content" class="review-center"></div>
             </section>
         </div>
 

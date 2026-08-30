@@ -20,6 +20,7 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
+import {openSuperTeamTransferDialog} from '../reviews.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {decodePathSegment, encodePathSegment, encodeRelativePath, formatBytes} from './utils.js';
 import {resolveUserDisplayName} from '../user-profiles.js';
@@ -693,6 +694,17 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip is-private'},
                 createIcon('ssl', {class: 'icon-svg'}), el('span', {}, t('docker.private'))));
         }
+        let transferBtn = null;
+        if (canTransferOwnership && !image.mirrored) {
+            transferBtn = el('button', {
+                type: 'button', class: 'pill-btn pill-btn--soft pill-btn--sm',
+                onclick: () => openSuperTeamTransferDialog({
+                    resourceType: 'docker_image', repository: repoName, resourceKey: imageName,
+                    resourceName: imageName, currentTeamPrefix: image.super_team_prefix || ''
+                })
+            }, createIcon('refresh'), el('span', {}, t('review.transferOwnership')));
+        }
+        const headerActions = el('div', {class: 'docker-page-actions'}, transferBtn, deleteImgBtn);
         if (image.super_team_prefix) {
             metaRow.appendChild(el('div', {class: 'docker-meta-chip'},
                 createIcon('identity', {class: 'icon-svg'}),
@@ -767,7 +779,7 @@ async function renderImageDetailsView(container, repoName, imageName, seq) {
                     createIcon(dockerRepositoryIcon, {class: 'icon-svg'}),
                     el('span', {}, imageName)
                 ),
-                deleteImgBtn
+                headerActions.childElementCount > 0 ? headerActions : null
             ),
             metaRow,
             pullBox

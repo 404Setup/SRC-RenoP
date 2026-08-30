@@ -8,6 +8,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -24,7 +25,7 @@ type DriverCheckResult struct {
 }
 
 // RunDriverCheck exercises the cross-driver account, transaction, package,
-// and statistics contract against an isolated database.
+// review, and statistics contract against an isolated database.
 func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	if db == nil || db.Dialect == nil {
 		return nil, core.ErrDatabaseUnavailable
@@ -32,7 +33,7 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 	suffix := uuid.NewString()[:8]
 	username := "dbcheck-" + suffix
 	now := time.Now().UnixMilli()
-	results := make([]DriverCheckResult, 0, 6)
+	results := make([]DriverCheckResult, 0, 7)
 	run := func(name string, check func() error) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -109,8 +110,8 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		return results, err
 	}
 	globalTeamPrefix := "dbcheck-" + suffix
+	memberUsername := "dbmember-" + suffix
 	if err := run("global teams", func() error {
-		memberUsername := "dbmember-" + suffix
 		if err := db.SaveToken(&core.AccessToken{
 			Name: memberUsername, CreatedAt: time.Now().UTC().Format(time.RFC3339), Permissions: []string{"base"},
 		}); err != nil {
@@ -215,6 +216,51 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 			ManifestJSON: `{"name":"` + npmPackage + `","version":"1.0.0"}`, Publisher: username,
 			TarballPath: npmPackage + "/-/demo-1.0.0.tgz", CreatedAt: now,
 		}, map[string]string{"latest": "1.0.0"}, username)
+	}); err != nil {
+		return results, err
+	}
+	if err := run("ownership review", func() error {
+		if err := db.ForceAddSuperTeamMembers(globalTeamPrefix, username, []string{memberUsername},
+			core.SuperTeamRoleManage, 5, 20, now+3); err != nil {
+			return err
+		}
+		const reviewImage = "review-demo"
+		if _, err := db.CreateDockerImage(dockerRepository, reviewImage, memberUsername, false, now+4); err != nil {
+			return err
+		}
+		task, err := db.CreateSuperTeamTransferReview(core.SuperTeamTransferRequest{
+			ResourceType: core.ReviewResourceDockerImage, Repository: dockerRepository,
+			ResourceKey: reviewImage, TargetTeamPrefix: globalTeamPrefix,
+		}, memberUsername, false, now+5)
+		if err != nil {
+			return err
+		}
+		reviewerTasks, reviewerTotal, err := db.ListReviewTasks(core.ReviewTaskListOptions{
+			Username: username, ResourceTypes: []string{core.ReviewResourceDockerImage},
+			Status: core.ReviewStatusPending, Limit: 10,
+		})
+		if err != nil || reviewerTotal != 1 || len(reviewerTasks) != 1 || reviewerTasks[0].ID != task.ID {
+			return errorsOrMissing(err, "reviewer task listing")
+		}
+		requestedTasks, requestedTotal, err := db.ListReviewTasks(core.ReviewTaskListOptions{
+			Username: memberUsername, RequestedView: true, Status: "all", Limit: 10,
+		})
+		if err != nil || requestedTotal != 1 || len(requestedTasks) != 1 || requestedTasks[0].ID != task.ID {
+			return errorsOrMissing(err, "requester task listing")
+		}
+		if _, err := db.DecideReviewTask(task.ID, memberUsername,
+			core.ReviewStatusApproved, "", now+6); err != nil {
+			return err
+		}
+		if _, err := db.DecideReviewTask(task.ID, username,
+			core.ReviewStatusRejected, "already decided", now+7); !errors.Is(err, core.ErrReviewTaskConflict) {
+			return errorsOrMissing(err, "single review decision")
+		}
+		image, err := db.GetDockerImage(dockerRepository, reviewImage)
+		if err != nil || image == nil || image.SuperTeamPrefix != globalTeamPrefix {
+			return errorsOrMissing(err, "review ownership transfer")
+		}
+		return nil
 	}); err != nil {
 		return results, err
 	}

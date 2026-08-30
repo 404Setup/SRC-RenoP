@@ -22,13 +22,15 @@ member. Adding the administrator's own account does not generate a redundant mes
 
 ## Package and domain bindings
 
-GET /api/super-teams/eligible returns only teams where the caller has at least T3. Docker images whose names contain a
-slash must select the team matching the first path component. Scoped npm packages must select the team matching their
-scope without the leading `@`. Unprefixed Docker images and unscoped npm packages may remain personally owned.
+GET /api/super-teams/eligible defaults to teams where the caller has at least T3; `minimum_role` may request T1-T4 for
+transfer selection. Docker images whose names contain a slash must select the team matching the first path component.
+Scoped npm packages must select the team matching their scope without `@`. Unprefixed Docker images and unscoped npm
+packages may remain personally owned.
 
 The same binding is available to Cargo crates, Maven artifacts, and Maven publishing domains. Effective access is the
 higher of the explicit package permission and the mapped team role. Team members are never copied into package member
 tables. A bound team cannot be deleted until every project and publishing domain has been transferred or removed.
+An L4 owner requests transfer in `/account/reviews`; a T3/T4 team manager or system administrator decides it once.
 
 ## Limits
 

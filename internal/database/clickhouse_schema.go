@@ -215,6 +215,14 @@ func clickHouseSchemas() []clickHouseTableSchema {
 		{name: "user_super_team_limits", keyColumns: []string{"user_id"}, columns: []string{
 			"`user_id` String", "`create_limit` Int64 DEFAULT -1", "`join_limit` Int64 DEFAULT -1", "`updated_at` Int64",
 		}},
+		{name: "review_tasks", keyColumns: []string{"id"}, columns: []string{
+			"`id` String", "`kind` String", "`resource_type` String", "`repository` String DEFAULT ''",
+			"`resource_key` String", "`resource_name` String", "`source_team_prefix` String DEFAULT ''",
+			"`target_team_prefix` String DEFAULT ''", "`review_team_prefix` String", "`requested_by_id` String",
+			"`requested_by_name` String", "`status` String", "`decision_reason` String DEFAULT ''",
+			"`decided_by_id` String DEFAULT ''", "`decided_by_name` String DEFAULT ''", "`created_at` Int64",
+			"`decided_at` Int64 DEFAULT 0", "`active_key` Nullable(String)",
+		}},
 		{name: "npm_packages", keyColumns: []string{"repository", "package_name"}, columns: []string{
 			"`repository` String", "`package_name` String", "`description` String", "`publisher` String",
 			"`latest_version` String", "`super_team_prefix` String DEFAULT ''", "`private` Int64 DEFAULT 0",

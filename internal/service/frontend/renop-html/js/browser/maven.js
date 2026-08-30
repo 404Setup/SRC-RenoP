@@ -19,6 +19,7 @@ import {createIcon, createSkeleton, createUserIdentity, RenopDialog, runButtonAc
 import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {SUPER_TEAM_ERROR_KEYS} from '../super-team-errors.js';
+import {openSuperTeamTransferDialog} from '../reviews.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {caughtErrorMessage, localizedResponseError, responseErrorMessage} from '../response-errors.js';
@@ -920,6 +921,15 @@ async function renderManagedDomain(container, domainName) {
         const domain = details.domain;
         const canOwn = details.administrator || Number(domain.permission_level) === 4;
         const actions = el('div', {class: 'maven-domain-actions'});
+        if (canOwn) {
+            actions.appendChild(el('button', {
+                type: 'button', class: 'pill-btn pill-btn--soft',
+                onclick: () => openSuperTeamTransferDialog({
+                    resourceType: 'maven_domain', resourceKey: domain.domain, resourceName: domain.domain,
+                    currentTeamPrefix: domain.super_team_prefix || ''
+                })
+            }, createIcon('refresh'), el('span', {}, t('review.transferOwnership'))));
+        }
         if (!domain.verified && canOwn && domain.verification_code) {
             actions.appendChild(el('button', {
                 type: 'button', class: 'pill-btn pill-btn--primary', onclick: async event => {
@@ -1289,15 +1299,28 @@ async function renderArtifact(container, repository, groupID, artifactID, sequen
         const project = details.project || null;
         const versions = Array.isArray(details.versions) ? details.versions : [];
         const canManageVersions = details.administrator || Number(artifact.permission_level) >= 2;
+        const canOwnArtifact = details.administrator || Number(artifact.permission_level) >= 4;
+        const artifactActions = el('div', {class: 'maven-domain-actions'});
+        if (canManageVersions) artifactActions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft',
+            onclick: () => openDescriptionEditor(container, repository, artifact, sequence)
+        }, createIcon('edit'), el('span', {}, t('maven.editDescription'))));
+        if (canOwnArtifact && !artifact.mirrored) artifactActions.appendChild(el('button', {
+            type: 'button', class: 'pill-btn pill-btn--soft',
+            onclick: () => openSuperTeamTransferDialog({
+                resourceType: 'maven_artifact', repository,
+                resourceKey: `${artifact.group_id}:${artifact.artifact_id}`,
+                resourceName: `${artifact.group_id}:${artifact.artifact_id}`,
+                currentTeamPrefix: artifact.super_team_prefix || ''
+            })
+        }, createIcon('refresh'), el('span', {}, t('review.transferOwnership'))));
         const coordinate = `${artifact.group_id}:${artifact.artifact_id}:${artifact.latest_version || '<version>'}`;
         const hero = el('section', {class: 'maven-hero'},
             backButton(`/${encodePathSegment(repository)}`, t('maven.backToRepository')),
             el('div', {class: 'maven-hero-heading'},
                 el('div', {}, el('span', {class: 'maven-kicker'}, t('maven.artifactKicker')),
                     el('h2', {}, createIcon('filePackage'), el('span', {}, `${artifact.group_id}:${artifact.artifact_id}`))),
-                canManageVersions ? el('button', {
-                    type: 'button', class: 'pill-btn pill-btn--soft', onclick: () => openDescriptionEditor(container, repository, artifact, sequence)
-                }, createIcon('edit'), el('span', {}, t('maven.editDescription'))) : null
+                artifactActions.childElementCount > 0 ? artifactActions : null
             ),
             el('p', {}, artifact.description || project?.description || t('maven.noDescription')),
             el('div', {class: 'maven-coordinate-box'},

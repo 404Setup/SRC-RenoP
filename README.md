@@ -47,6 +47,7 @@ binary with an embedded web UI and supports multiple registry protocols out of t
 - **In-app message center** — Durable per-user inbox with admin broadcast notifications
 - **Activity audit log** — Immutable per-user action history with manager visibility
 - **Global teams** — Immutable shared prefixes, T1-T4 collaboration, invitations, and configurable account limits
+- **Independent review center** — Paginated, single-decision ownership transfers outside the notification inbox
 - **Javadoc and Cargo-doc preview** — In-browser viewing of extracted documentation jars and Cargo doc tarballs
 - **Embedded SVG badges** — Latest-version badges for Maven artifacts
 - **Online and offline updater** — One-click or automated binary updates without external tools
@@ -441,9 +442,16 @@ publication and version maintenance, T3 manages members, and T4 owns team config
 only T4 or a system administrator can grant or manage T3/T4.
 
 Docker images and npm packages may use the team's immutable prefix at creation. Maven publishing domains may also be
-created for a team. Cargo crates and Maven artifacts retain a compatible team binding for approved transfers. Effective
-package access is the higher of the user's explicit package permission and mapped team role; mapped members never appear
-as duplicated package members. A team cannot be deleted while it owns a project or publishing domain.
+created for a team. Cargo crates and Maven artifacts support the same ownership binding through an approved transfer.
+Effective package access is the higher of the user's explicit package permission and mapped team role; mapped members
+never appear as duplicated package members.
+
+An L4 owner or an authorized repository/system administrator can request a transfer to a team they belong to. A
+T3 or T4 manager of the target team, or a system administrator, must approve it in `/account/reviews`. Returning to
+personal ownership follows the same review through the current owner team. Namespaced Docker images and scoped npm
+packages cannot return to personal ownership because their names reserve the team's immutable prefix. Review tasks are
+not notifications, can be filtered and paginated, and use a single pending-state decision so competing managers cannot
+apply a second result. A team cannot be deleted while it owns a resource or participates in a pending transfer.
 
 The account menu opens `/account/teams`. Creation and membership limits default to `super_teams.create_limit` and
 `super_teams.join_limit`; managers can set account-specific overrides through
@@ -599,6 +607,7 @@ prefer the HTTP status code over the body for programmatic handling.
 | `updater`  | `POST /api/updater/check`, `/api/updater/install`, `/api/updater/restart`           | Update management                   |
 | `messages` | `GET/POST/DELETE /api/messages/...`                                                 | User inbox and admin broadcast      |
 | `super-teams` | `GET/POST/PUT/DELETE /api/super-teams/...`                                      | Global teams, roles, invites, limits |
+| `reviews`  | `GET/POST/DELETE /api/reviews/...`                                                  | Independent ownership reviews       |
 | `audit`    | `GET /api/profile/audit-logs`, `GET/DELETE /api/users/{username}/audit-logs`        | Activity log                        |
 | `debug`    | `GET /api/debug/memory/...`                                                         | pprof dumps (requires `debug_mode`) |
 

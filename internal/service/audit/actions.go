@@ -37,6 +37,9 @@ const (
 	ActionSuperTeamMemberRemove = "SUPER_TEAM_MEMBER_REMOVE"
 	ActionSuperTeamInvitation   = "SUPER_TEAM_INVITATION"
 	ActionSuperTeamLimit        = "SUPER_TEAM_LIMIT"
+	ActionReviewRequest         = "REVIEW_REQUEST"
+	ActionReviewDecision        = "REVIEW_DECISION"
+	ActionReviewCancel          = "REVIEW_CANCEL"
 
 	ActionCargoPublish        = "CARGO_PUBLISH"
 	ActionCargoDocsUpload     = "CARGO_DOCS_UPLOAD"
@@ -127,6 +130,9 @@ func KnownActions() []string {
 		ActionSuperTeamMemberRemove,
 		ActionSuperTeamInvitation,
 		ActionSuperTeamLimit,
+		ActionReviewRequest,
+		ActionReviewDecision,
+		ActionReviewCancel,
 		ActionCargoPublish,
 		ActionCargoDocsUpload,
 		ActionCargoDocsDelete,

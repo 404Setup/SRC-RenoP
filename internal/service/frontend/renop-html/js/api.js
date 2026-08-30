@@ -44,11 +44,11 @@ export function withCredentials(options = {}) {
 /**
  * Clear local session state and force logout on authentication failures.
  * @param {Response} response - Fetch response to inspect.
- * @param {{logoutOnForbidden?: boolean}} [policy={}] - Whether a 403 also proves the session is invalid.
+ * @param {{logoutOnForbidden?: boolean}} [policy={}] - Whether a 403 also proves the session is invalid; defaults to false.
  * @throws {Error} Always throws with message 'Unauthorized' on auth failure.
  */
 function handleAuthFailure(response, policy = {}) {
-    const {logoutOnForbidden = true} = policy;
+    const {logoutOnForbidden = false} = policy;
     if (response.status === 401 || (response.status === 403 && logoutOnForbidden)) {
         localStorage.removeItem('session-token');
         localStorage.removeItem('username');
@@ -64,7 +64,7 @@ function handleAuthFailure(response, policy = {}) {
  * @param {string} url - Request URL.
  * @param {RequestInit} [options={}] - Fetch options.
  * @param {{logoutOnForbidden?: boolean}} [authPolicy={}] - Authentication-failure handling policy.
- * @returns {Promise<Response>} The fetch response (throws on 401/403).
+ * @returns {Promise<Response>} The fetch response; throws on 401 and policy-gated 403 responses.
  */
 export async function apiRequest(url, options = {}, authPolicy = {}) {
     const response = await fetch(url, withCredentials(options));

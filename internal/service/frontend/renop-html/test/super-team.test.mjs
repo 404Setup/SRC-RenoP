@@ -46,6 +46,7 @@ test('global team controls share bounded dialogs, user suggestions, errors, and 
     assert.match(messages, /registerMessageActionHandler\('super_team_invite'/);
     assert.match(styles, /@media \(max-width: 560px\)/);
     assert.match(styles, /\.super-team-member-row\s*\{[\s\S]*?grid-template-columns/);
+    assert.match(styles, /\.super-team-member-controls \.custom-select-wrapper/);
     assert.match(styles, /\.super-team-member-controls \.icon-btn\.is-danger\s*\{[\s\S]*?width:\s*2rem[\s\S]*?border-radius:\s*50%/);
 });
 
@@ -68,7 +69,8 @@ test('package and domain creation use one T3 global-team binding selector', () =
     const maven = source('js', 'browser', 'maven.js');
     const schema = readFileSync(join(repoRoot, 'internal', 'database', 'dialect.go'), 'utf8');
     const sqliteSchema = readFileSync(join(repoRoot, 'internal', 'database', 'dialect_sqlite.go'), 'utf8');
-    assert.match(selector, /super-teams\/eligible\?minimum_role=3/);
+    assert.match(selector, /minimumRole = 3/);
+    assert.match(selector, /super-teams\/eligible\?minimum_role=\$\{boundedRole\}/);
     assert.match(selector, /makeCustomSelect/);
     for (const script of [docker, npm, maven]) {
         assert.match(script, /createSuperTeamBindingField/);
@@ -80,4 +82,14 @@ test('package and domain creation use one T3 global-team binding selector', () =
     for (const table of ['cargo_packages', 'docker_images']) {
         assert.match(sqliteSchema, new RegExp(`${table}[\\s\\S]*?super_team_prefix`));
     }
+});
+
+test('global team settings remain inside the merged service domain', () => {
+    const settings = source('js', 'settings.js');
+    assert.match(settings, /SERVICE_DOMAINS[\s\S]*?'super_teams'/);
+    assert.match(settings, /MERGED_SERVICE_DOMAINS/);
+    assert.match(settings, /!MERGED_SERVICE_DOMAINS\.has\(domain\)/);
+    assert.match(settings, /fetchSuperTeamSettings/);
+    assert.match(settings, /renderSuperTeamSettings/);
+    assert.doesNotMatch(settings, /DOMAIN_MESSAGE_TYPES[\s\S]*?super_teams:/);
 });

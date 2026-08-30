@@ -23,6 +23,7 @@ import {t} from '../i18n.js';
 import {createSuperTeamBindingField} from '../super-team-selector.js';
 import {safeMarkdownURL, setSafeMarkdown} from '../markdown.js';
 import {npmResponseError} from '../npm-errors.js';
+import {openSuperTeamTransferDialog} from '../reviews.js';
 import {getRepositoryFormat} from '../repository-formats.js';
 import {copyWithFeedback} from './copy-feedback.js';
 import {
@@ -460,6 +461,14 @@ function packageHero(pkg) {
         actions.appendChild(edit);
     }
     if (canOwn && !pkg.mirrored) {
+        const transfer = createButton(t('review.transferOwnership'), {
+            class: 'pill-btn pill-btn--soft pill-btn--sm', icon: 'refresh'
+        });
+        transfer.addEventListener('click', () => openSuperTeamTransferDialog({
+            resourceType: 'npm_package', repository: activeRepository, resourceKey: pkg.name,
+            resourceName: pkg.name, currentTeamPrefix: pkg.super_team_prefix || ''
+        }));
+        actions.appendChild(transfer);
         if (pkg.name.startsWith('@')) {
             const visibility = createButton(pkg.private ? t('npm.makePublic') : t('npm.makePrivate'), {
                 class: 'pill-btn pill-btn--soft pill-btn--sm', icon: 'eye'

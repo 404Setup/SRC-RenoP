@@ -145,6 +145,14 @@ func normalizeCrateName(name string) string {
 	return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(name)), "_", "-")
 }
 
+// NormalizeCrateName validates and canonicalizes a Cargo crate name for cross-service resource references.
+func NormalizeCrateName(name string) (string, bool) {
+	if validateCrateName(name) != nil {
+		return "", false
+	}
+	return normalizeCrateName(name), true
+}
+
 func validOptionalMetadataText(value *string, max int) bool {
 	return value == nil || validMetadataText(*value, max, true)
 }

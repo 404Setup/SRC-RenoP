@@ -94,6 +94,8 @@ tags:
     description: OCI Distribution Specification v1.1.0 and Docker Registry v2, mounted at `/v2/`; browser-management failures use `X-Renop-Error-Code` for localized presentation.
   - name: super-teams
     description: Engine-independent global teams, immutable namespace prefixes, T1-T4 membership, invitations, and account limits.
+  - name: reviews
+    description: Session-only, independently paginated review tasks with single-decision ownership transfers.
 
 # ---------------------------------------------------------------------------
 # Security
@@ -1492,6 +1494,67 @@ components:
       properties:
         create_limit: { type: integer, minimum: 1, maximum: 1000, default: 5 }
         join_limit: { type: integer, minimum: 1, maximum: 1000, default: 20 }
+
+    ReviewTask:
+      type: object
+      required: [id, kind, resource_type, resource_key, resource_name, review_team_prefix, requested_by, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [super_team_transfer] }
+        resource_type:
+          type: string
+          enum: [docker_image, npm_package, cargo_package, maven_artifact, maven_domain]
+        repository:
+          type: string
+          description: Empty for process-wide Maven publishing domains.
+        resource_key:
+          type: string
+          maxLength: 1024
+        resource_name:
+          type: string
+          maxLength: 512
+        source_team_prefix: { type: string, maxLength: 64 }
+        target_team_prefix: { type: string, maxLength: 64 }
+        review_team_prefix: { type: string, maxLength: 64 }
+        requested_by: { type: string }
+        status: { type: string, enum: [pending, approved, rejected, cancelled] }
+        decision_reason:
+          type: string
+          maxLength: 512
+          description: Present only for a user-entered rejection reason or an internal cancellation record.
+        decided_by: { type: string }
+        created_at: { type: integer, format: int64 }
+        decided_at: { type: integer, format: int64 }
+
+    ReviewTaskPage:
+      type: object
+      required: [tasks, total, limit, offset, view]
+      properties:
+        tasks:
+          type: array
+          items: { $ref: "#/components/schemas/ReviewTask" }
+        total: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
+        view: { type: string, enum: [reviewer, requested] }
+
+    SuperTeamTransferReviewRequest:
+      type: object
+      required: [resource_type, resource_key, target_team_prefix]
+      properties:
+        resource_type:
+          type: string
+          enum: [docker_image, npm_package, cargo_package, maven_artifact, maven_domain]
+        repository:
+          type: string
+          description: Required for package and image resources; omitted for Maven publishing domains.
+        resource_key:
+          type: string
+          description: Canonical package name, image name, domain, or `groupId:artifactId` coordinate.
+        target_team_prefix:
+          type: string
+          maxLength: 64
+          description: Target team for transfer-in; empty for a return to personal ownership.
 
     MavenDomain:
       type: object
@@ -3429,7 +3492,7 @@ paths:
         - sessionCookie: []
         - bearerAuth: []
       parameters:
-        - { name: minimum_role, in: query, schema: { type: integer, minimum: 3, maximum: 4, default: 3 } }
+        - { name: minimum_role, in: query, schema: { type: integer, minimum: 1, maximum: 4, default: 3 } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 12 } }
         - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
       responses:
@@ -3492,7 +3555,7 @@ paths:
     delete:
       tags: [super-teams]
       summary: Delete a global team
-      description: T4 owners and system administrators may delete a team. Pending invitations are cancelled atomically.
+      description: T4 owners and system administrators may delete a team only when it owns no resources and has no pending transfer. Pending invitations are cancelled atomically.
       operationId: deleteSuperTeam
       security:
         - sessionCookie: []
@@ -3670,6 +3733,133 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SuperTeamConfig" }
+
+  # ========== Independent reviews ==========
+  /api/reviews:
+    get:
+      tags: [reviews]
+      summary: List ownership review tasks
+      description: >
+        Returns a bounded reviewer or requester page. Reviewer pages contain only tasks for teams where the caller is
+        currently T3 or T4. This route accepts a browser session only; Basic credentials and Bearer API tokens are denied.
+      operationId: listReviewTasks
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: view
+          in: query
+          schema: { type: string, enum: [reviewer, requested], default: reviewer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, rejected, cancelled, all], default: pending }
+        - name: types
+          in: query
+          description: Optional comma-separated resource-type filter.
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 5
+            items:
+              type: string
+              enum: [docker_image, npm_package, cargo_package, maven_artifact, maven_domain]
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200":
+          description: Bounded review page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTaskPage" }
+        "400": { description: Invalid view, status, type, or page boundary. }
+        "401": { description: A browser session is required. }
+
+  /api/reviews/super-team-transfers:
+    post:
+      tags: [reviews]
+      summary: Request a global-team ownership transfer
+      description: >
+        The caller must own the project or domain at L4, or hold current repository/system administration authority.
+        Transfer-in also requires membership in the target team.
+        A T3 or T4 manager of the reviewing team or a system administrator must decide the request. Direct team-to-team transfers,
+        mirrored resources, and returns of namespaced Docker or scoped npm resources to personal ownership are rejected.
+      operationId: createSuperTeamTransferReview
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuperTeamTransferReviewRequest" }
+      responses:
+        "201":
+          description: Pending review created.
+          headers:
+            Location:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTask" }
+        "400": { description: Invalid resource identity or namespace/team mismatch. }
+        "403": { description: The caller does not own or administer the resource, or is not a member of the target team. }
+        "409": { description: This resource already has a pending transfer, ownership changed, or transfer-out is restricted. }
+
+  /api/reviews/{id}/decision:
+    post:
+      tags: [reviews]
+      summary: Decide one pending review
+      description: >
+        A T3 or T4 manager of the reviewing team or a system administrator may approve or reject. A requester who has
+        reviewer authority may decide their own task.
+        Rejection requires a reason. A pending-state compare-and-set guarantees that only one decision is applied.
+      operationId: decideReviewTask
+      security:
+        - sessionCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approved, rejected] }
+                reason:
+                  type: string
+                  maxLength: 512
+                  description: Required and non-empty when `decision` is `rejected`; ignored for approval.
+      responses:
+        "200":
+          description: Review decided and approved ownership applied atomically when requested.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTask" }
+        "400": { description: Invalid decision or missing rejection reason. }
+        "403": { description: The caller is not an eligible independent reviewer. }
+        "404": { description: Review task not found. }
+        "409": { description: Another manager decided the task or the resource changed. }
+
+  /api/reviews/{id}:
+    delete:
+      tags: [reviews]
+      summary: Cancel a pending review request
+      description: Only the original requester may cancel a task, and only while it remains pending.
+      operationId: cancelReviewTask
+      security:
+        - sessionCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Cancelled review record.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewTask" }
+        "403": { description: The caller did not request this task. }
+        "404": { description: Review task not found. }
+        "409": { description: The task is no longer pending. }
 
   # ========== Maven domain registry ==========
   /api/maven/domains:

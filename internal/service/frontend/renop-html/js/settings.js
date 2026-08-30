@@ -53,6 +53,7 @@ const DOMAIN_MESSAGE_TYPES = {
 };
 
 const SERVICE_DOMAINS = Object.freeze(['server', 'github_oauth', 'super_teams', 'proxy', 'storage']);
+const MERGED_SERVICE_DOMAINS = new Set(SERVICE_DOMAINS.filter(domain => domain !== 'server'));
 
 let currentDomain = null;
 let currentConfig = null;
@@ -97,9 +98,7 @@ export async function initSettings() {
         const {response, data} = await fetchProto('/api/settings/domains', SettingsDomainsResponse);
         if (response.ok && data) {
             availableDomains = Array.isArray(data.domains) ? data.domains : [];
-            domainsList = availableDomains.filter(domain =>
-                domain !== 'proxy' && domain !== 'storage' && domain !== 'github_oauth'
-            );
+            domainsList = availableDomains.filter(domain => !MERGED_SERVICE_DOMAINS.has(domain));
             const targetDomain = (currentDomain && domainsList.includes(currentDomain)) ? currentDomain : (domainsList[0] || null);
             renderDomainTabs(domainsList, targetDomain);
             if (targetDomain) {

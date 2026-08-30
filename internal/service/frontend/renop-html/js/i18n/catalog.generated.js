@@ -21,6 +21,7 @@ import de_DE_messages from './de-DE/messages.js';
 import de_DE_npm from './de-DE/npm.js';
 import de_DE_profile from './de-DE/profile.js';
 import de_DE_repository from './de-DE/repository.js';
+import de_DE_review from './de-DE/review.js';
 import de_DE_settings from './de-DE/settings.js';
 import de_DE_super_team from './de-DE/super-team.js';
 import en_US_auth from './en-US/auth.js';
@@ -34,6 +35,7 @@ import en_US_messages from './en-US/messages.js';
 import en_US_npm from './en-US/npm.js';
 import en_US_profile from './en-US/profile.js';
 import en_US_repository from './en-US/repository.js';
+import en_US_review from './en-US/review.js';
 import en_US_settings from './en-US/settings.js';
 import en_US_super_team from './en-US/super-team.js';
 import es_ES_auth from './es-ES/auth.js';
@@ -47,6 +49,7 @@ import es_ES_messages from './es-ES/messages.js';
 import es_ES_npm from './es-ES/npm.js';
 import es_ES_profile from './es-ES/profile.js';
 import es_ES_repository from './es-ES/repository.js';
+import es_ES_review from './es-ES/review.js';
 import es_ES_settings from './es-ES/settings.js';
 import es_ES_super_team from './es-ES/super-team.js';
 import fr_FR_auth from './fr-FR/auth.js';
@@ -60,6 +63,7 @@ import fr_FR_messages from './fr-FR/messages.js';
 import fr_FR_npm from './fr-FR/npm.js';
 import fr_FR_profile from './fr-FR/profile.js';
 import fr_FR_repository from './fr-FR/repository.js';
+import fr_FR_review from './fr-FR/review.js';
 import fr_FR_settings from './fr-FR/settings.js';
 import fr_FR_super_team from './fr-FR/super-team.js';
 import ja_JP_auth from './ja-JP/auth.js';
@@ -73,6 +77,7 @@ import ja_JP_messages from './ja-JP/messages.js';
 import ja_JP_npm from './ja-JP/npm.js';
 import ja_JP_profile from './ja-JP/profile.js';
 import ja_JP_repository from './ja-JP/repository.js';
+import ja_JP_review from './ja-JP/review.js';
 import ja_JP_settings from './ja-JP/settings.js';
 import ja_JP_super_team from './ja-JP/super-team.js';
 import ko_KR_auth from './ko-KR/auth.js';
@@ -86,6 +91,7 @@ import ko_KR_messages from './ko-KR/messages.js';
 import ko_KR_npm from './ko-KR/npm.js';
 import ko_KR_profile from './ko-KR/profile.js';
 import ko_KR_repository from './ko-KR/repository.js';
+import ko_KR_review from './ko-KR/review.js';
 import ko_KR_settings from './ko-KR/settings.js';
 import ko_KR_super_team from './ko-KR/super-team.js';
 import pt_PT_auth from './pt-PT/auth.js';
@@ -99,6 +105,7 @@ import pt_PT_messages from './pt-PT/messages.js';
 import pt_PT_npm from './pt-PT/npm.js';
 import pt_PT_profile from './pt-PT/profile.js';
 import pt_PT_repository from './pt-PT/repository.js';
+import pt_PT_review from './pt-PT/review.js';
 import pt_PT_settings from './pt-PT/settings.js';
 import pt_PT_super_team from './pt-PT/super-team.js';
 import ru_RU_auth from './ru-RU/auth.js';
@@ -112,6 +119,7 @@ import ru_RU_messages from './ru-RU/messages.js';
 import ru_RU_npm from './ru-RU/npm.js';
 import ru_RU_profile from './ru-RU/profile.js';
 import ru_RU_repository from './ru-RU/repository.js';
+import ru_RU_review from './ru-RU/review.js';
 import ru_RU_settings from './ru-RU/settings.js';
 import ru_RU_super_team from './ru-RU/super-team.js';
 import zh_CN_auth from './zh-CN/auth.js';
@@ -125,6 +133,7 @@ import zh_CN_messages from './zh-CN/messages.js';
 import zh_CN_npm from './zh-CN/npm.js';
 import zh_CN_profile from './zh-CN/profile.js';
 import zh_CN_repository from './zh-CN/repository.js';
+import zh_CN_review from './zh-CN/review.js';
 import zh_CN_settings from './zh-CN/settings.js';
 import zh_CN_super_team from './zh-CN/super-team.js';
 import zh_HK_auth from './zh-HK/auth.js';
@@ -138,6 +147,7 @@ import zh_HK_messages from './zh-HK/messages.js';
 import zh_HK_npm from './zh-HK/npm.js';
 import zh_HK_profile from './zh-HK/profile.js';
 import zh_HK_repository from './zh-HK/repository.js';
+import zh_HK_review from './zh-HK/review.js';
 import zh_HK_settings from './zh-HK/settings.js';
 import zh_HK_super_team from './zh-HK/super-team.js';
 import zh_TW_auth from './zh-TW/auth.js';
@@ -151,6 +161,7 @@ import zh_TW_messages from './zh-TW/messages.js';
 import zh_TW_npm from './zh-TW/npm.js';
 import zh_TW_profile from './zh-TW/profile.js';
 import zh_TW_repository from './zh-TW/repository.js';
+import zh_TW_review from './zh-TW/review.js';
 import zh_TW_settings from './zh-TW/settings.js';
 import zh_TW_super_team from './zh-TW/super-team.js';
 import zh_YUE_auth from './zh-YUE/auth.js';
@@ -164,22 +175,23 @@ import zh_YUE_messages from './zh-YUE/messages.js';
 import zh_YUE_npm from './zh-YUE/npm.js';
 import zh_YUE_profile from './zh-YUE/profile.js';
 import zh_YUE_repository from './zh-YUE/repository.js';
+import zh_YUE_review from './zh-YUE/review.js';
 import zh_YUE_settings from './zh-YUE/settings.js';
 import zh_YUE_super_team from './zh-YUE/super-team.js';
 
 const localeCatalog = Object.freeze({
-    'de-DE': Object.freeze(Object.assign({}, de_DE_auth, de_DE_browser, de_DE_cargo, de_DE_common, de_DE_docker, de_DE_management, de_DE_maven, de_DE_messages, de_DE_npm, de_DE_profile, de_DE_repository, de_DE_settings, de_DE_super_team)),
-    'en-US': Object.freeze(Object.assign({}, en_US_auth, en_US_browser, en_US_cargo, en_US_common, en_US_docker, en_US_management, en_US_maven, en_US_messages, en_US_npm, en_US_profile, en_US_repository, en_US_settings, en_US_super_team)),
-    'es-ES': Object.freeze(Object.assign({}, es_ES_auth, es_ES_browser, es_ES_cargo, es_ES_common, es_ES_docker, es_ES_management, es_ES_maven, es_ES_messages, es_ES_npm, es_ES_profile, es_ES_repository, es_ES_settings, es_ES_super_team)),
-    'fr-FR': Object.freeze(Object.assign({}, fr_FR_auth, fr_FR_browser, fr_FR_cargo, fr_FR_common, fr_FR_docker, fr_FR_management, fr_FR_maven, fr_FR_messages, fr_FR_npm, fr_FR_profile, fr_FR_repository, fr_FR_settings, fr_FR_super_team)),
-    'ja-JP': Object.freeze(Object.assign({}, ja_JP_auth, ja_JP_browser, ja_JP_cargo, ja_JP_common, ja_JP_docker, ja_JP_management, ja_JP_maven, ja_JP_messages, ja_JP_npm, ja_JP_profile, ja_JP_repository, ja_JP_settings, ja_JP_super_team)),
-    'ko-KR': Object.freeze(Object.assign({}, ko_KR_auth, ko_KR_browser, ko_KR_cargo, ko_KR_common, ko_KR_docker, ko_KR_management, ko_KR_maven, ko_KR_messages, ko_KR_npm, ko_KR_profile, ko_KR_repository, ko_KR_settings, ko_KR_super_team)),
-    'pt-PT': Object.freeze(Object.assign({}, pt_PT_auth, pt_PT_browser, pt_PT_cargo, pt_PT_common, pt_PT_docker, pt_PT_management, pt_PT_maven, pt_PT_messages, pt_PT_npm, pt_PT_profile, pt_PT_repository, pt_PT_settings, pt_PT_super_team)),
-    'ru-RU': Object.freeze(Object.assign({}, ru_RU_auth, ru_RU_browser, ru_RU_cargo, ru_RU_common, ru_RU_docker, ru_RU_management, ru_RU_maven, ru_RU_messages, ru_RU_npm, ru_RU_profile, ru_RU_repository, ru_RU_settings, ru_RU_super_team)),
-    'zh-CN': Object.freeze(Object.assign({}, zh_CN_auth, zh_CN_browser, zh_CN_cargo, zh_CN_common, zh_CN_docker, zh_CN_management, zh_CN_maven, zh_CN_messages, zh_CN_npm, zh_CN_profile, zh_CN_repository, zh_CN_settings, zh_CN_super_team)),
-    'zh-HK': Object.freeze(Object.assign({}, zh_HK_auth, zh_HK_browser, zh_HK_cargo, zh_HK_common, zh_HK_docker, zh_HK_management, zh_HK_maven, zh_HK_messages, zh_HK_npm, zh_HK_profile, zh_HK_repository, zh_HK_settings, zh_HK_super_team)),
-    'zh-TW': Object.freeze(Object.assign({}, zh_TW_auth, zh_TW_browser, zh_TW_cargo, zh_TW_common, zh_TW_docker, zh_TW_management, zh_TW_maven, zh_TW_messages, zh_TW_npm, zh_TW_profile, zh_TW_repository, zh_TW_settings, zh_TW_super_team)),
-    'zh-YUE': Object.freeze(Object.assign({}, zh_YUE_auth, zh_YUE_browser, zh_YUE_cargo, zh_YUE_common, zh_YUE_docker, zh_YUE_management, zh_YUE_maven, zh_YUE_messages, zh_YUE_npm, zh_YUE_profile, zh_YUE_repository, zh_YUE_settings, zh_YUE_super_team)),
+    'de-DE': Object.freeze(Object.assign({}, de_DE_auth, de_DE_browser, de_DE_cargo, de_DE_common, de_DE_docker, de_DE_management, de_DE_maven, de_DE_messages, de_DE_npm, de_DE_profile, de_DE_repository, de_DE_review, de_DE_settings, de_DE_super_team)),
+    'en-US': Object.freeze(Object.assign({}, en_US_auth, en_US_browser, en_US_cargo, en_US_common, en_US_docker, en_US_management, en_US_maven, en_US_messages, en_US_npm, en_US_profile, en_US_repository, en_US_review, en_US_settings, en_US_super_team)),
+    'es-ES': Object.freeze(Object.assign({}, es_ES_auth, es_ES_browser, es_ES_cargo, es_ES_common, es_ES_docker, es_ES_management, es_ES_maven, es_ES_messages, es_ES_npm, es_ES_profile, es_ES_repository, es_ES_review, es_ES_settings, es_ES_super_team)),
+    'fr-FR': Object.freeze(Object.assign({}, fr_FR_auth, fr_FR_browser, fr_FR_cargo, fr_FR_common, fr_FR_docker, fr_FR_management, fr_FR_maven, fr_FR_messages, fr_FR_npm, fr_FR_profile, fr_FR_repository, fr_FR_review, fr_FR_settings, fr_FR_super_team)),
+    'ja-JP': Object.freeze(Object.assign({}, ja_JP_auth, ja_JP_browser, ja_JP_cargo, ja_JP_common, ja_JP_docker, ja_JP_management, ja_JP_maven, ja_JP_messages, ja_JP_npm, ja_JP_profile, ja_JP_repository, ja_JP_review, ja_JP_settings, ja_JP_super_team)),
+    'ko-KR': Object.freeze(Object.assign({}, ko_KR_auth, ko_KR_browser, ko_KR_cargo, ko_KR_common, ko_KR_docker, ko_KR_management, ko_KR_maven, ko_KR_messages, ko_KR_npm, ko_KR_profile, ko_KR_repository, ko_KR_review, ko_KR_settings, ko_KR_super_team)),
+    'pt-PT': Object.freeze(Object.assign({}, pt_PT_auth, pt_PT_browser, pt_PT_cargo, pt_PT_common, pt_PT_docker, pt_PT_management, pt_PT_maven, pt_PT_messages, pt_PT_npm, pt_PT_profile, pt_PT_repository, pt_PT_review, pt_PT_settings, pt_PT_super_team)),
+    'ru-RU': Object.freeze(Object.assign({}, ru_RU_auth, ru_RU_browser, ru_RU_cargo, ru_RU_common, ru_RU_docker, ru_RU_management, ru_RU_maven, ru_RU_messages, ru_RU_npm, ru_RU_profile, ru_RU_repository, ru_RU_review, ru_RU_settings, ru_RU_super_team)),
+    'zh-CN': Object.freeze(Object.assign({}, zh_CN_auth, zh_CN_browser, zh_CN_cargo, zh_CN_common, zh_CN_docker, zh_CN_management, zh_CN_maven, zh_CN_messages, zh_CN_npm, zh_CN_profile, zh_CN_repository, zh_CN_review, zh_CN_settings, zh_CN_super_team)),
+    'zh-HK': Object.freeze(Object.assign({}, zh_HK_auth, zh_HK_browser, zh_HK_cargo, zh_HK_common, zh_HK_docker, zh_HK_management, zh_HK_maven, zh_HK_messages, zh_HK_npm, zh_HK_profile, zh_HK_repository, zh_HK_review, zh_HK_settings, zh_HK_super_team)),
+    'zh-TW': Object.freeze(Object.assign({}, zh_TW_auth, zh_TW_browser, zh_TW_cargo, zh_TW_common, zh_TW_docker, zh_TW_management, zh_TW_maven, zh_TW_messages, zh_TW_npm, zh_TW_profile, zh_TW_repository, zh_TW_review, zh_TW_settings, zh_TW_super_team)),
+    'zh-YUE': Object.freeze(Object.assign({}, zh_YUE_auth, zh_YUE_browser, zh_YUE_cargo, zh_YUE_common, zh_YUE_docker, zh_YUE_management, zh_YUE_maven, zh_YUE_messages, zh_YUE_npm, zh_YUE_profile, zh_YUE_repository, zh_YUE_review, zh_YUE_settings, zh_YUE_super_team)),
 });
 
 export default localeCatalog;

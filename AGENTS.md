@@ -50,7 +50,9 @@
   immutable user ID, preserve creator display after account deletion, and enforce global or per-account creation and
   membership limits on SQLite, PostgreSQL, MySQL, and native ClickHouse. Cargo crates, Docker images, npm packages,
   Maven artifacts, and Maven publishing domains use one optional indexed `super_team_prefix`; effective authorization
-  takes the higher of an explicit package permission and the live T1-T4 mapping without copying team members.
+  takes the higher of an explicit package permission and the live T1-T4 mapping without copying team members. Durable
+  `review_tasks` preserve immutable request identities, bounded filters, source/target bindings, and a pending-state
+  compare-and-set so ownership transfers and their decisions apply atomically across every database driver.
 - **`internal/service/auth/`**: Password, FIDO/Passkey, session, profile, and GitHub OAuth workflows. GitHub OAuth
   separates bounded single-use route state, constrained provider HTTP access, and collision-safe account linking into
   `github_routes.go`, `github_client.go`, and `github_account.go`; access tokens are never persisted. Account recovery
@@ -118,6 +120,13 @@
   T3 may manage T1/T2 members, while only T4 or system administrators may grant or manage T3/T4 roles; at least one
   T4 owner must remain. Administrators still enforce the target account's membership limit and receive no notification
   when adding themselves.
+- **`internal/service/review/`**: Session-only, notification-independent review APIs for bounded reviewer/requester
+  pages and global-team ownership transfers. Docker images, npm packages, Cargo crates, Maven artifacts, and Maven
+  publishing domains share one stable resource model. An L4 owner or authorized administrator submits a request, a
+  T3/T4 manager of the reviewing team or a system administrator decides it exactly once, and approval rechecks the
+  requester's current L4 or administrator authority, target-team membership, and resource binding in the decision
+  transaction.
+  Namespaced Docker images and scoped npm packages cannot return to personal ownership.
 - **`internal/service/audit/`**: Durable behavior logging with a central registry of stable action identifiers.
   Frontend tests require every registered action to have a translation in every locale before changes can ship.
 - **`internal/service/tasks/`**: Process-wide non-reentrant scheduler for coalescible periodic maintenance, including
@@ -158,9 +167,10 @@
   artifacts in that repository, while global Maven domain and team configuration lives in the signed-in account menu.
   The account menu opens the routed `/account/maven-domains` subpage, whose server-backed multi-select permission/source
   filters and pagination keep large domain registries bounded.
-  The signed-in account menu owns profile navigation, messages, logout, Maven domains, administrator pages, and the
-  standalone administrator notification composer; the settings UI groups the server, outbound-proxy, and storage APIs
-  under one Service domain. Administrators can configure a write-only GitHub OAuth secret there; GitHub login and
+  The signed-in account menu owns profile navigation, messages, logout, Maven domains, global teams, reviews,
+  administrator pages, and the standalone administrator notification composer; the settings UI groups the server,
+  outbound-proxy, and storage APIs under one Service domain. Administrators can configure a write-only GitHub OAuth
+  secret there; GitHub login and
   profile linking request account/organization read access, persist immutable provider IDs without access tokens, and
   allow recently authorized account or organization identities to verify matching `io.github` Maven domains.
   Database ownership uses immutable user IDs, which remain hidden from the visible interface.
@@ -185,12 +195,15 @@
   scrollable.
   `js/response-errors.js` is the shared boundary for user-facing HTTP failures: it reads only bounded error bodies,
   accepts registered stable codes or known localized messages, maps common statuses, and never exposes unknown backend
-  text or runtime exception strings in the UI.
+  text or runtime exception strings in the UI. `js/api.js` treats 401 as invalid authentication by default, while 403
+  remains an ordinary authorization result unless a caller explicitly opts into logout; concurrent permission failures
+  therefore cannot clear a valid browser session or start a route-reset loop.
   `js/main.js` is the single owner of browser `popstate` dispatch and home-route resets to prevent concurrent route
-  loads. Modular i18n
-  catalogs are split into common, auth/error, browser, management, messages/team, settings/updater, profile,
-  repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads fragments in
-  parallel and reports all missing/extra keys and placeholder drift against the English catalog during
+  loads. `js/reviews.js` owns the routed `/account/reviews` center, shared cross-engine transfer dialog, multi-type
+  filtering, requester/reviewer views, pagination, and responsive height animation without using the message center.
+  Modular i18n catalogs are split into common, auth/error, browser, management, messages/team, review, settings/updater,
+  profile, repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads
+  fragments in parallel and reports all missing/extra keys and placeholder drift against the English catalog during
   `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`.
   Entrance state is prepared before replacement nodes can paint, while Maven-domain filtering preserves its toolbar

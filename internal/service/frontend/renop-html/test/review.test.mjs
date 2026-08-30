@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ */
+
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {dirname, join, resolve} from 'node:path';
+import test from 'node:test';
+import {fileURLToPath} from 'node:url';
+
+const frontendRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = resolve(frontendRoot, '..', '..', '..', '..');
+
+/**
+ * Read one embedded frontend source file.
+ * @param {...string} parts - Path below the frontend root.
+ * @returns {string} UTF-8 source.
+ */
+function frontendSource(...parts) {
+    return readFileSync(join(frontendRoot, ...parts), 'utf8');
+}
+
+/**
+ * Read one repository source file.
+ * @param {...string} parts - Path below the repository root.
+ * @returns {string} UTF-8 source.
+ */
+function repositorySource(...parts) {
+    return readFileSync(join(repositoryRoot, ...parts), 'utf8');
+}
+
+test('ownership transfers use one routed review center outside the message system', () => {
+    const html = frontendSource('index.html');
+    const main = frontendSource('js', 'main.js');
+    const reviews = frontendSource('js', 'reviews.js');
+    assert.match(html, /data-account-action="reviews"/);
+    assert.match(html, /id="tab-content-reviews"/);
+    assert.match(main, /reviewRouteFromPath/);
+    assert.match(main, /loadReviewCenterPage/);
+    assert.match(reviews, /routeRoot = '\/account\/reviews'/);
+    assert.match(reviews, /morphElementHeight/);
+    assert.match(reviews, /ensureReviewShell\(refreshToolbar\)/);
+    assert.match(reviews, /replaceContent\(loadingState\(\)\)/);
+    assert.match(reviews, /nodes\.filter\(node => node !== null/);
+    assert.match(reviews, /requestReview[\s\S]*?logoutOnForbidden: false/);
+    assert.match(reviews, /view: activeView/);
+    assert.match(reviews, /types', \[\.\.\.activeTypes\]\.join\(','\)/);
+    assert.doesNotMatch(reviews, /messages\.js|registerMessage|notification/);
+});
+
+test('all package engines and Maven domains share the transfer request dialog', () => {
+    const reviews = frontendSource('js', 'reviews.js');
+    for (const file of ['docker.js', 'npm.js', 'cargo.js', 'maven.js']) {
+        const source = frontendSource('js', 'browser', file);
+        assert.match(source, /openSuperTeamTransferDialog/);
+        assert.match(source, /review\.transferOwnership/);
+    }
+    for (const type of ['docker_image', 'npm_package', 'cargo_package', 'maven_artifact', 'maven_domain']) {
+        assert.ok(reviews.includes(`'${type}'`), `missing frontend transfer type ${type}`);
+    }
+    assert.match(reviews, /minimumRole: 1, includePersonal: false/);
+    assert.match(reviews, /resourceType === 'docker_image'[\s\S]*?includes\('\/'\)/);
+    assert.match(reviews, /resourceType === 'npm_package'[\s\S]*?startsWith\('@'\)/);
+});
+
+test('review decisions are durable, administrator-aware, and compare-and-set', () => {
+    const schema = repositorySource('internal', 'database', 'review_schema.go');
+    const clickhouse = repositorySource('internal', 'database', 'clickhouse_schema.go');
+    const database = repositorySource('internal', 'database', 'review.go');
+    const routes = repositorySource('internal', 'service', 'review', 'routes.go');
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS review_tasks/);
+    assert.match(schema, /UNIQUE \(active_key\)/);
+    assert.match(clickhouse, /name: "review_tasks"/);
+    assert.doesNotMatch(database, /task\.RequestedByID == actorID/);
+    assert.match(database, /options\.Administrator/);
+    assert.match(database, /reviewerAdministrator/);
+    assert.match(database, /requireSuperTeamRoleTx\([\s\S]*?SuperTeamRoleManage/);
+    assert.match(database, /WHERE id = \? AND status = \?/);
+    assert.match(routes, /CurrentCredentialKind\(c\) != "session"/);
+    assert.doesNotMatch(routes, /service\/message|CreateMessage|SendMessage/);
+});
+
+test('review layouts remain bounded on narrow viewports', () => {
+    const styles = frontendSource('css', 'manager', 'reviews.css');
+    assert.match(styles, /\.review-card\s*\{[\s\S]*?grid-template-columns:\s*auto minmax\(0, 1fr\) auto/);
+    assert.match(styles, /@media \(max-width: 680px\)/);
+    assert.match(styles, /\.review-card\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
+    assert.match(styles, /\.review-toolbar-selects \.custom-select-wrapper/);
+    assert.match(styles, /\.review-transfer-resource[\s\S]*?min-width:\s*0/);
+    assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
+});

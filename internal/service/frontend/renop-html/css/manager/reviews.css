@@ -1,0 +1,286 @@
+/*
+ * Copyright (c) 2026 404Setup. All rights reserved.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+ */
+
+.review-page {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: clamp(1rem, 2vw, 1.6rem);
+    box-sizing: border-box;
+}
+
+.review-page-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.review-page-header h2,
+.review-page-header p {
+    margin: 0;
+}
+
+.review-page-header p {
+    margin-top: 0.28rem;
+    color: var(--muted-text);
+    font-size: 0.82rem;
+}
+
+.review-center {
+    display: grid;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.review-results {
+    display: grid;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.review-toolbar {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.85rem;
+    background: var(--card-bg);
+}
+
+.review-toolbar-selects,
+.review-type-filters,
+.review-card-actions,
+.review-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.review-toolbar-selects .custom-select-wrapper {
+    min-width: min(14rem, 44vw);
+}
+
+.review-filter-chip {
+    min-height: 2rem;
+    padding: 0.35rem 0.68rem;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.73rem;
+    transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease,
+        transform 0.16s ease;
+}
+
+.review-filter-chip:hover,
+.review-filter-chip:focus-visible,
+.review-filter-chip[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--link-hover-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--link-hover-color) 8%, transparent);
+    color: var(--text-color);
+    outline: none;
+}
+
+.review-filter-chip:active {
+    transform: scale(0.97);
+}
+
+.review-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.review-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.85rem;
+    background: var(--card-bg);
+}
+
+.review-card-icon {
+    display: grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    place-items: center;
+    border-radius: 0.68rem;
+    background: color-mix(in srgb, var(--link-hover-color) 9%, transparent);
+    color: var(--link-hover-color);
+}
+
+.review-card-icon svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.review-card-main {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.review-card-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.review-card-heading strong,
+.review-card-main p {
+    overflow-wrap: anywhere;
+}
+
+.review-card-main p {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.79rem;
+}
+
+.review-card-type,
+.review-card-meta {
+    color: var(--muted-text);
+    font-size: 0.7rem;
+}
+
+.review-status {
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--muted-text) 9%, transparent);
+    color: var(--muted-text);
+    font-size: 0.65rem;
+    font-weight: 650;
+}
+
+.review-status.is-approved {
+    background: color-mix(in srgb, #16a34a 10%, transparent);
+    color: #15803d;
+}
+
+.review-status.is-rejected {
+    background: color-mix(in srgb, #dc2626 9%, transparent);
+    color: #b91c1c;
+}
+
+.review-status.is-pending {
+    background: color-mix(in srgb, #d97706 10%, transparent);
+    color: #b45309;
+}
+
+html.dark .review-status.is-approved {
+    color: #86efac;
+}
+
+html.dark .review-status.is-rejected {
+    color: #fca5a5;
+}
+
+html.dark .review-status.is-pending {
+    color: #fcd34d;
+}
+
+.review-state {
+    display: grid;
+    min-height: 9rem;
+    place-items: center;
+    align-content: center;
+    gap: 0.45rem;
+    padding: 1rem;
+    color: var(--muted-text);
+    text-align: center;
+}
+
+.review-transfer-form,
+.review-reject-field {
+    display: grid;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.review-transfer-resource {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+    padding: 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--card-bg) 84%, var(--bg-color));
+}
+
+.review-transfer-resource > div {
+    display: grid;
+    gap: 0.16rem;
+    min-width: 0;
+}
+
+.review-transfer-resource strong,
+.review-transfer-resource span {
+    overflow-wrap: anywhere;
+}
+
+.review-transfer-resource span,
+.review-transfer-copy,
+.review-transfer-form small {
+    color: var(--muted-text);
+    font-size: 0.75rem;
+}
+
+.review-transfer-form label,
+.review-reject-field {
+    display: grid;
+    gap: 0.38rem;
+}
+
+.review-transfer-copy {
+    margin: 0;
+    line-height: 1.55;
+}
+
+.review-reject-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    resize: vertical;
+}
+
+@media (max-width: 680px) {
+    .review-page-header,
+    .review-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .review-card-icon {
+        display: none;
+    }
+
+    .review-card-actions,
+    .review-card-actions > button,
+    .review-toolbar-selects,
+    .review-toolbar-selects .custom-select-wrapper {
+        width: 100%;
+    }
+
+    .review-card-actions > button,
+    .review-toolbar-selects .custom-select-wrapper {
+        flex: 1 1 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .review-filter-chip {
+        transition: none;
+    }
+}

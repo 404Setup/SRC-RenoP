@@ -156,6 +156,10 @@ type StateDB interface {
 	SetSuperTeamMemberLevel(prefix, actor, target string, level int, administrator bool) error
 	RemoveSuperTeamMember(prefix, actor, target string, administrator bool, actedAt int64) error
 	CleanExpiredSuperTeamInvitations(now int64) error
+	CreateSuperTeamTransferReview(request SuperTeamTransferRequest, actor string, administrator bool, createdAt int64) (*ReviewTask, error)
+	ListReviewTasks(options ReviewTaskListOptions) ([]*ReviewTask, int, error)
+	DecideReviewTask(id, actor, decision, reason string, decidedAt int64) (*ReviewTask, error)
+	CancelReviewTask(id, actor string, cancelledAt int64) (*ReviewTask, error)
 	CreateMavenDomain(domain *MavenDomain, owner string) error
 	ListMavenDomains(username string, includeAll bool) ([]*MavenDomain, error)
 	ListManagedMavenDomains(options MavenDomainListOptions) ([]*MavenDomain, int, error)

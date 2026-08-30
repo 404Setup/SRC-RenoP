@@ -24,6 +24,7 @@ const userFacingModules = [
     'js/messages.js',
     'js/profile.js',
     'js/repositories.js',
+    'js/reviews.js',
     'js/sessions.js',
     'js/settings.js',
     'js/user-profiles.js',
@@ -57,4 +58,11 @@ test('shared response errors use bounded registered localization', () => {
     }
     assert.doesNotMatch(source, /response\.text\(\)/,
         'response error mapping can allocate an unbounded response body');
+});
+
+test('authorization denials do not invalidate a browser session by default', () => {
+    const source = readFileSync(join(frontendRoot, 'js/api.js'), 'utf8');
+    assert.match(source, /logoutOnForbidden = false/);
+    assert.match(source, /response\.status === 401/);
+    assert.match(source, /response\.status === 403 && logoutOnForbidden/);
 });

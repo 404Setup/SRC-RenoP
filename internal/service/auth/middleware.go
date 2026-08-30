@@ -604,6 +604,8 @@ func requiredAPITokenScope(c fiber.Ctx, state *core.AppState) apiTokenRequiremen
 		return requireAPITokenScope(APITokenScopeStatisticsRead)
 	case strings.HasPrefix(path, "/api/super-teams"):
 		return superTeamAPITokenRequirement(c)
+	case strings.HasPrefix(path, "/api/reviews"):
+		return requireAPITokenScope(APITokenScopeTeamManage)
 	case strings.HasPrefix(path, "/api/maven"):
 		return mavenAPITokenRequirement(c)
 	case strings.HasPrefix(path, "/api/cargo") || strings.HasPrefix(path, "/api/docker") ||
