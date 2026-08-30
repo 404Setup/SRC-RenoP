@@ -45,7 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` или `PRIVATE` |
 | `allow_redeployment` | `false` | Повтор Maven или замена files/Docker, если поддерживается |
 | `require_gpg_signature` | `false` | Проверка отделённой OpenPGP подписи для Maven |
-| `publication_review` | `off` | Режим проверки Maven/npm: `off`, `new_packages` или `every_version` |
+| `publication_review` | `off` | Режим проверки Maven/npm/Cargo: `off`, `new_packages` или `every_version` |
 | `download_statistics` | Зависит от движка | Включено для Maven/npm/Cargo/Docker; для `files` включается явно |
 | `mirrors` | `[]` | Упорядоченные upstream definitions |
 | `s3` | отсутствует | Отдельное S3-хранилище репозитория |

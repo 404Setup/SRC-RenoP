@@ -45,7 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN`、`PRIVATE` |
 | `allow_redeployment` | `false` | 対応形式で Maven 再公開または files/Docker 上書き |
 | `require_gpg_signature` | `false` | Maven 公開時の OpenPGP 分離署名検証 |
-| `publication_review` | `off` | Maven/npm 審査方針: `off`、`new_packages`、`every_version` |
+| `publication_review` | `off` | Maven/npm/Cargo 審査方針: `off`、`new_packages`、`every_version` |
 | `download_statistics` | エンジン既定 | Maven/npm/Cargo/Docker は有効、`files` は明示的に有効化 |
 | `mirrors` | `[]` | 順序付き上流定義 |
 | `s3` | 省略 | リポジトリ固有 S3 storage |

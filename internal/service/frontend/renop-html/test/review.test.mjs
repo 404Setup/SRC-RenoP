@@ -99,6 +99,12 @@ test('publication reviews use bounded parallel downloads and preset rejection re
     assert.match(storage, /ServePublicationReviewFile/);
     const npmReview = repositorySource('internal', 'service', 'npm', 'publication_review.go');
     assert.match(npmReview, /RollbackNPMPublicationReview/);
+    const cargoReview = repositorySource('internal', 'service', 'cargo', 'publication_review.go');
+    const cargoBrowser = frontendSource('js', 'browser', 'cargo.js');
+    assert.match(cargoReview, /RollbackCargoPublicationReview/);
+    assert.match(cargoReview, /rollbackCargoIndexVersion/);
+    assert.match(cargoBrowser, /version\.review_status === 'pending'/);
+    assert.match(cargoBrowser, /cargo\.reviewPending/);
     assert.match(chunked, /X-RenoP-Review-ID/);
     assert.match(upload, /browser\.uploadQueuedReview/);
 });

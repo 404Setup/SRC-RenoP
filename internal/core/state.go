@@ -198,11 +198,13 @@ type StateDB interface {
 	SetMavenMemberLevel(domain, actor, username string, level int) error
 	RemoveMavenMember(domain, actor, username string) error
 	GetCargoPackage(repository, normalizedName string) (*CargoPackage, error)
+	CargoHasPublishedVersions(repository, normalizedName string) (bool, error)
 	GetCargoPackageDetails(repository, normalizedName, username string) (*CargoPackageDetails, error)
 	ListCargoPackages(repository, username string, administrator bool) ([]*CargoPackage, error)
 	SearchCargoPackages(repository, query string, limit, offset int) ([]*CargoPackage, int, error)
 	HasCargoMembership(repository, username string) (bool, error)
 	RecordCargoPublication(pkg *CargoPackage, version *CargoVersion, username string) error
+	RollbackCargoPublicationReview(repository, normalizedName, version string, previous *CargoPackage) error
 	RecordCargoMirrorPublication(pkg *CargoPackage, version *CargoVersion) error
 	SetCargoVersionYanked(repository, normalizedName, version string, yanked, administrator bool) error
 	DeleteCargoVersion(repository, normalizedName, version string) error

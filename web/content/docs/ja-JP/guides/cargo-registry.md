@@ -65,6 +65,10 @@ cargo publish --registry renop
 上流確認が確定しない場合は `503` で安全に失敗し、package を予約しません。後続 version は team の公開 level
 が必要です。
 
+公開審査を有効にすると、archive の保存後に `cargo publish` は `202 Accepted` を返します。リポジトリの
+モデレーターまたはシステム管理者が承認するまで、crate は sparse index と公開 catalog に表示されません。
+`new_packages` では最初の公開 version が承認されるまで適用されます。mirror 由来の crate は審査対象外です。
+
 ### Search、yank、unyank
 
 ```bash

@@ -4915,7 +4915,7 @@ paths:
     get:
       tags: [settings, reviews]
       summary: Read repository publication-review policies
-      description: Maven and npm repositories return `off`, `new_packages`, or `every_version`; unsupported engines return `off`.
+      description: Maven, npm, and Cargo repositories return `off`, `new_packages`, or `every_version`; unsupported engines return `off`.
       operationId: getRepositoryPublicationReviewSettings
       security:
         - sessionCookie: []
@@ -4938,7 +4938,7 @@ paths:
     put:
       tags: [settings, reviews]
       summary: Configure repository publication review
-      description: Maven and npm are supported. Maven review disables redeployment. A pending task prevents policy changes.
+      description: Maven, npm, and Cargo are supported. Maven review disables redeployment. A pending task prevents policy changes.
       operationId: putRepositoryPublicationReviewSettings
       security:
         - sessionCookie: []
@@ -5972,7 +5972,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Crate metadata, versions, team state, and a bounded package README for local publications.
+          description: Crate metadata, versions, team state, and a bounded package README for local publications. Authorized collaborators and moderators also receive pending-review versions with `review_status` and `review_id`.
           content:
             application/json:
               schema:

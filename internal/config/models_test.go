@@ -304,6 +304,14 @@ func TestRepositoryPublicationReviewPolicyValidation(t *testing.T) {
 	if got := npmSettings.Repositories["npm"].PublicationReviewPolicy(); got != PublicationReviewEveryVersion {
 		t.Fatalf("npm publication-review policy = %q", got)
 	}
+	var cargoSettings MavenSettings
+	if err := json.Unmarshal([]byte(`{"repositories":{"cargo":{"name":"cargo","format":"cargo","publication_review":"new_packages"}}}`),
+		&cargoSettings); err != nil {
+		t.Fatalf("valid Cargo publication-review configuration was rejected: %v", err)
+	}
+	if got := cargoSettings.Repositories["cargo"].PublicationReviewPolicy(); got != PublicationReviewNewPackages {
+		t.Fatalf("Cargo publication-review policy = %q", got)
+	}
 }
 
 func TestMirrorCredentialsUnmarshaling(t *testing.T) {

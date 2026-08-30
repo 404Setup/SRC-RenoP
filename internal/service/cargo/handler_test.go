@@ -28,11 +28,14 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
 	"renop/internal/service/auth"
+	"renop/internal/service/index"
 )
 
 type memoryStore struct {
@@ -273,6 +276,114 @@ func TestHandlerPublishesCrateAndRejectsDuplicate(t *testing.T) {
 	if status != fiber.StatusConflict {
 		t.Fatalf("duplicate publish status = %d, want %d", status, fiber.StatusConflict)
 	}
+}
+
+func TestCargoPublicationReviewDefersSparseIndexAndCatalog(t *testing.T) {
+	storagePath := t.TempDir()
+	store := newMemoryStore()
+	repo := &config.Repository{
+		Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC",
+		PublicationReview: config.PublicationReviewEveryVersion,
+	}
+	state := core.NewAppState()
+	cfg := config.DefaultConfig()
+	cfg.StoragePath = storagePath
+	cfg.Maven.Repositories = map[string]*config.Repository{"cargo": repo}
+	state.Inner.Config.Store(cfg)
+	state.Inner.FileIndex = index.NewFileIndexCustom(true)
+	db, err := database.InitDB(config.DatabaseConfig{
+		Driver: "sqlite", Dsn: filepath.Join(t.TempDir(), "cargo-review.db"), MaxOpenConns: 1, MaxIdleConns: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	state.Inner.DB = db
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "publisher", Permissions: []string{"canupdate:cargo"}}))
+	user := &config.User{Username: "publisher", Roles: []string{"canupdate:cargo"}}
+	app := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, user)
+	publish := func(version string) *http.Response {
+		crate := makeCrateArchive(t, map[string]string{
+			"demo-" + version + "/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"" + version + "\"\n",
+		})
+		body := makePublishBody(t, PublishMetadata{
+			Name: "demo", Version: version, Deps: []PublishDependency{}, Features: map[string][]string{},
+		}, crate)
+		response, requestErr := app.Test(httptest.NewRequest(
+			http.MethodPut, "http://registry.example/cargo/api/v1/crates/new", bytes.NewReader(body)))
+		require.NoError(t, requestErr)
+		return response
+	}
+	response := publish("1.0.0")
+	require.Equal(t, http.StatusAccepted, response.StatusCode)
+	reviewID := response.Header.Get("X-RenoP-Review-ID")
+	require.NotEmpty(t, reviewID)
+	require.NoError(t, response.Body.Close())
+	indexFile := filepath.Join(storagePath, "cargo", "de", "mo", "demo")
+	indexExists, err := store.Exists(indexFile)
+	require.NoError(t, err)
+	assert.False(t, indexExists)
+	pkg, err := db.GetCargoPackage("cargo", "demo")
+	require.NoError(t, err)
+	assert.Nil(t, pkg)
+	requesterResponse, err := app.Test(httptest.NewRequest(
+		http.MethodGet, "http://registry.example/cargo/api/v1/crates/demo", nil))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, requesterResponse.StatusCode)
+	var pendingDetails packageInfoResponse
+	require.NoError(t, json.NewDecoder(requesterResponse.Body).Decode(&pendingDetails))
+	require.NoError(t, requesterResponse.Body.Close())
+	require.Len(t, pendingDetails.Versions, 1)
+	assert.Equal(t, core.ReviewStatusPending, pendingDetails.Versions[0].ReviewStatus)
+	assert.Equal(t, core.CargoPermissionOwner, pendingDetails.Package.PermissionLevel)
+	guestApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath)
+	guestResponse, err := guestApp.Test(httptest.NewRequest(
+		http.MethodGet, "http://registry.example/cargo/api/v1/crates/demo", nil))
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, guestResponse.StatusCode)
+	require.NoError(t, guestResponse.Body.Close())
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "other", Permissions: []string{"canupdate:cargo"}}))
+	other := &config.User{Username: "other", Roles: []string{"canupdate:cargo"}}
+	otherApp := cargoTestApp(t, Handler{Store: store}, state, repo, storagePath, other)
+	otherArchive := makeCrateArchive(t, map[string]string{
+		"demo-1.1.0/Cargo.toml": "[package]\nname = \"demo\"\nversion = \"1.1.0\"\n",
+	})
+	otherBody := makePublishBody(t, PublishMetadata{
+		Name: "demo", Version: "1.1.0", Deps: []PublishDependency{}, Features: map[string][]string{},
+	}, otherArchive)
+	otherResponse, err := otherApp.Test(httptest.NewRequest(
+		http.MethodPut, "http://registry.example/cargo/api/v1/crates/new", bytes.NewReader(otherBody)))
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, otherResponse.StatusCode)
+	require.NoError(t, otherResponse.Body.Close())
+
+	task, err := db.GetReviewTask(reviewID)
+	require.NoError(t, err)
+	rollback, err := ApprovePublicationReview(state, task, store)
+	require.NoError(t, err)
+	require.NoError(t, db.SaveToken(&core.AccessToken{
+		Name: "moderator", Permissions: []string{"base", "canmoderate:cargo"},
+	}))
+	_, err = db.DecideReviewTask(reviewID, "moderator", core.ReviewStatusApproved, "",
+		task.UpdatedAt+core.PublicationReviewSettleMillis+1)
+	if err != nil {
+		require.NoError(t, rollback())
+	}
+	require.NoError(t, err)
+	indexExists, err = store.Exists(indexFile)
+	require.NoError(t, err)
+	assert.True(t, indexExists)
+	details, err := db.GetCargoPackageDetails("cargo", "demo", "publisher")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "1.0.0", details.Versions[0].Version)
+
+	repo.PublicationReview = config.PublicationReviewNewPackages
+	response = publish("2.0.0")
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.Empty(t, response.Header.Get("X-RenoP-Review-ID"))
+	require.NoError(t, response.Body.Close())
+	details, err = db.GetCargoPackageDetails("cargo", "demo", "publisher")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 2)
 }
 
 func TestNewCargoPackageRequiresCreateScope(t *testing.T) {

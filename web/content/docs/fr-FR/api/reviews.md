@@ -50,6 +50,11 @@ que des dist-tags bornés jusqu’à l’approbation, puis enregistre ensemble l
 `new_packages`, une réservation reste nouvelle jusqu’à l’approbation de sa première version visible. Les packuments et
 tarballs provenant d’un miroir ne créent jamais de tâche.
 
+Une publication Cargo stocke et masque l’archive du crate sans modifier l’index sparse ni le catalogue public.
+L’approbation ajoute la version immuable aux deux ensembles de métadonnées avant de rendre l’archive accessible ; le
+rejet supprime l’archive masquée. Avec `new_packages`, le crate reste nouveau jusqu’à l’approbation de sa première
+version visible. Les crates issus d’un miroir ne sont pas examinés.
+
 ## Lister les tâches
 
 GET /api/reviews renvoie une page bornée. `view` accepte `reviewer` ou `requested` ; `status` accepte `pending`,

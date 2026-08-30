@@ -42,6 +42,10 @@ npm publish 本身就是一项完整事务。RenoP 会隐藏 tarball，并在批
 批准后再一并写入不可变版本和标签。在 `new_packages` 模式下，预留的软件包在第一个可见版本获批前仍视为新包。
 镜像 packument 和 tarball 不会创建审核任务。
 
+Cargo 发布会先保存并隐藏 crate 归档，不修改 sparse index 与公共目录。批准时先向两处元数据写入不可变版本，
+再开放归档；拒绝时删除隐藏归档。`new_packages` 策略下，首个可见版本获批前，该 crate 仍视为新包。镜像获取的
+crate 不进入审核流程。
+
 ## 查询任务
 
 GET /api/reviews 返回有界分页结果。`view` 可为 `reviewer` 或 `requested`；`status` 可为 `pending`、

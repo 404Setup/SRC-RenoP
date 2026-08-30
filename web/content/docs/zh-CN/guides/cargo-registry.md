@@ -63,6 +63,10 @@ cargo publish --registry renop
 首次成功发布会占用规范化名称，并授予发布者 L4。本地或适用的已启用上游镜像中已存在同名包时会被拒绝；
 上游检查无法确定时安全返回 `503`，且不会占用名称。后续版本要求包团队具有发布权限。
 
+启用发布审核后，归档保存成功时 `cargo publish` 返回 `202 Accepted`。存储库版主或系统管理员批准前，crate 不会
+写入 sparse index，也不会出现在公共目录中。`new_packages` 策略会持续生效，直到该 crate 拥有首个可见版本。
+镜像获取的 crate 不进入发布审核。
+
 ### 搜索、yank 与 unyank
 
 ```bash

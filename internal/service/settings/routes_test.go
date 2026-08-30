@@ -1129,7 +1129,7 @@ func TestRepositoryDownloadStatisticsSettingsAndReset(t *testing.T) {
 	assert.Zero(t, count)
 }
 
-func TestMavenPublicationReviewSettingsDisableRedeployment(t *testing.T) {
+func TestRepositoryPublicationReviewSettingsSupportPackageEngines(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.StoragePath = t.TempDir()
 	cfg.Maven.Repositories = map[string]*config.Repository{
@@ -1138,6 +1138,7 @@ func TestMavenPublicationReviewSettingsDisableRedeployment(t *testing.T) {
 		},
 		"files": {Name: "files", Format: config.RepositoryFormatFiles, Visibility: "PUBLIC"},
 		"npm":   {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
+		"cargo": {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
 	}
 	app, state := setupSettingsTestApp(t, cfg)
 
@@ -1200,6 +1201,15 @@ func TestMavenPublicationReviewSettingsDisableRedeployment(t *testing.T) {
 	require.NoError(t, response.Body.Close())
 	assert.Equal(t, config.PublicationReviewNewPackages,
 		state.Inner.Config.Load().Maven.Repositories["npm"].PublicationReviewPolicy())
+	request = httptest.NewRequest(http.MethodPut, "/repositories/cargo/publication-review",
+		strings.NewReader(`{"policy":"every_version"}`))
+	request.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	response, err = app.Test(request)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	assert.Equal(t, config.PublicationReviewEveryVersion,
+		state.Inner.Config.Load().Maven.Repositories["cargo"].PublicationReviewPolicy())
 
 	request = httptest.NewRequest(http.MethodPut, "/repositories/files/publication-review",
 		strings.NewReader(`{"policy":"new_packages"}`))

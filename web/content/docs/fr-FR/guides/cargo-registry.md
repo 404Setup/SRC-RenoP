@@ -65,6 +65,11 @@ La première publication réserve le nom normalisé et donne L4 à l’éditeur.
 applicable est refusé. Une vérification amont indéterminée renvoie `503` sans réserver le paquet. Les versions suivantes
 exigent le niveau de publication de l’équipe.
 
+Lorsque l’examen des publications est activé, `cargo publish` renvoie `202 Accepted` après le stockage de l’archive.
+Le crate reste absent de l’index sparse et du catalogue public jusqu’à son approbation par un modérateur du dépôt ou un
+administrateur système. Avec `new_packages`, cette règle s’applique jusqu’à la première version visible. Les crates issus
+d’un miroir ne sont pas soumis à cet examen.
+
 ### Rechercher, yank et unyank
 
 ```bash

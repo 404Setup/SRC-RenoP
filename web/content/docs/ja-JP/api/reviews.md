@@ -47,6 +47,11 @@ npm publish は最初から一つの完全なトランザクションです。Re
 dist-tag を承認まで保持してから、不変バージョンとタグをまとめて記録します。`new_packages` では最初の公開
 バージョンが承認されるまで予約を新規パッケージとして扱います。ミラーの packument と tarball は審査されません。
 
+Cargo 公開では crate archive を保存して非公開にし、sparse index と公開 catalog は変更しません。承認時は
+archive を公開する前に、不変 version を両方の metadata に追加します。拒否時は非公開 archive を削除します。
+`new_packages` では最初の公開 version が承認されるまで新規 crate として扱います。mirror 由来の crate は
+審査対象外です。
+
 ## タスク一覧
 
 GET /api/reviews は上限付きページを返します。`view` は `reviewer` または `requested`、`status` は

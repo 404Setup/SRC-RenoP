@@ -9,6 +9,7 @@
 package cargo
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -81,6 +82,13 @@ func (h Handler) packageInfo(c fiber.Ctx, state *core.AppState, repo *config.Rep
 		administrator = user.IsManager()
 	}
 	details, err := packageDetails(state, repo.Name, crateName, username)
+	if errors.Is(err, core.ErrCargoPackageNotFound) && username != "" {
+		normalizedName, valid := NormalizeCrateName(crateName)
+		if valid {
+			details, err = PendingPublicationPackageDetails(state, repo.Name, normalizedName,
+				username, administrator || user.CheckModeratePermission(repo.Name))
+		}
+	}
 	if err != nil {
 		return cargoError(c, err)
 	}
@@ -88,6 +96,12 @@ func (h Handler) packageInfo(c fiber.Ctx, state *core.AppState, repo *config.Rep
 		// Package metadata and versions are registry-readable. Team membership is
 		// reserved for collaborators and administrators.
 		details.Members = []*core.CargoMember{}
+	}
+	if administrator || user != nil && (user.CheckModeratePermission(repo.Name) ||
+		details.Package.PermissionLevel >= core.CargoPermissionPublish) {
+		if err := AddPendingPublicationVersions(state, details); err != nil {
+			return cargoError(c, err)
+		}
 	}
 
 	h.enrichPackageVersionsFromIndex(state, repo, storagePath, details)

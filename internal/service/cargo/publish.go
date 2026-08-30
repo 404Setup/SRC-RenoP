@@ -18,7 +18,6 @@ import (
 	"hash"
 	"io"
 	"log"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -103,6 +102,17 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 	}
 	packageName := metadata.Name
 	if packageRecord == nil {
+		reservedName, reserved, reservationErr := pendingPublicationReservation(
+			state, repo.Name, normalizedName, user.Username)
+		if reservationErr != nil {
+			return cargoError(c, reservationErr)
+		}
+		if reserved {
+			if reservedName != metadata.Name {
+				return errorResponse(c, fiber.StatusConflict, "Cargo crate name collides with a pending package")
+			}
+			packageName = reservedName
+		}
 		if !auth.CurrentCredentialHasScopeTarget(c, core.APITokenScopePackageCreate, repo.Name) &&
 			!auth.CurrentCredentialHasScope(c, core.APITokenScopePackageManage) {
 			return cargoError(c, core.ErrCargoPermissionDenied)
@@ -150,8 +160,9 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 			}
 		}
 	}
-	cratePath := filepath.Join(storagePath, repo.Name, "api", "v1", "crates", packageName, metadata.Version, "download")
-	if !utils.IsSubPath(storagePath, indexFilePath) || !utils.IsSubPath(storagePath, cratePath) {
+	cratePath, crateRelativePath, validCratePath := cargoReviewCratePath(
+		storagePath, repo, packageName, metadata.Version)
+	if !validCratePath || !utils.IsSubPath(storagePath, indexFilePath) {
 		return errorResponse(c, fiber.StatusBadRequest, "Invalid Cargo package path")
 	}
 
@@ -278,8 +289,60 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to stage Cargo index")
 	}
 
+	now := time.Now().UnixMilli()
+	packageMetadata := &core.CargoPackage{
+		Repository: repo.Name, Name: packageName, NormalizedName: normalizedName,
+		Description: metadata.Description, Readme: readme, RepositoryURL: repoURL, Homepage: homepageURL,
+		Documentation: docURL, CreatedAt: now, UpdatedAt: now,
+	}
+	versionMetadata := &core.CargoVersion{
+		Repository: repo.Name, Package: normalizedName, Version: metadata.Version,
+		Description: metadata.Description, Publisher: user.Username, Size: crateLength,
+		Checksum: entry.Checksum, RustVersion: rustVersion, License: license,
+		Documentation: docURL, Homepage: homepageURL, RepositoryURL: repoURL,
+		CreatedAt: now,
+	}
+	reviewPolicy := repo.PublicationReviewPolicy()
+	publishedVersions := false
+	reviewRequired := reviewPolicy == config.PublicationReviewEveryVersion
+	if reviewPolicy == config.PublicationReviewNewPackages {
+		publishedVersions, err = db.CargoHasPublishedVersions(repo.Name, normalizedName)
+		if err != nil {
+			return cargoError(c, err)
+		}
+		reviewRequired = !publishedVersions
+	}
+	if reviewRequired {
+		state.Inner.FileIndex.BlockFile(cratePath)
+		state.InvalidateFileCache(cratePath)
+	}
+
 	if err := crateStage.Commit(state); err != nil {
+		if reviewRequired {
+			state.Inner.FileIndex.UnblockFile(cratePath)
+			state.InvalidateFileCache(cratePath)
+		}
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to store crate")
+	}
+	if reviewRequired {
+		review, reviewErr := QueuePublicationReview(state, repo, packageMetadata, versionMetadata,
+			entry, crateRelativePath, publishedVersions)
+		if reviewErr != nil || review == nil || !review.Pending {
+			if cleanupErr := h.Store.Delete(state, cratePath); cleanupErr != nil {
+				state.Inner.FailuresCount.Add(1)
+			}
+			state.Inner.FileIndex.UnblockFile(cratePath)
+			state.InvalidateFileCache(cratePath)
+			return errorResponse(c, fiber.StatusInternalServerError, "Failed to create Cargo publication review")
+		}
+		succeeded = true
+		c.Set("X-RenoP-Review-ID", review.TaskID)
+		logCargoAudit(c, state, audit.ActionUploadQueuedReview,
+			"Repository: "+repo.Name+", crate: "+packageName+", version: "+metadata.Version)
+		c.Set(fiber.HeaderContentType, "application/json; charset=utf-8")
+		return c.Status(fiber.StatusAccepted).JSON(PublishResponse{
+			Warnings: Warnings{InvalidCategories: []string{}, InvalidBadges: []string{}, Other: []string{}},
+		})
 	}
 	if err := indexStage.Commit(state); err != nil {
 		if cleanupErr := h.Store.Delete(state, cratePath); cleanupErr != nil {
@@ -287,18 +350,7 @@ func (h Handler) publish(c fiber.Ctx, state *core.AppState, repo *config.Reposit
 		}
 		return errorResponse(c, fiber.StatusInternalServerError, "Failed to store Cargo index")
 	}
-	now := time.Now().UnixMilli()
-	if err := db.RecordCargoPublication(&core.CargoPackage{
-		Repository: repo.Name, Name: packageName, NormalizedName: normalizedName,
-		Description: metadata.Description, Readme: readme, RepositoryURL: repoURL, Homepage: homepageURL,
-		Documentation: docURL, CreatedAt: now, UpdatedAt: now,
-	}, &core.CargoVersion{
-		Repository: repo.Name, Package: normalizedName, Version: metadata.Version,
-		Description: metadata.Description, Publisher: user.Username, Size: crateLength,
-		Checksum: entry.Checksum, RustVersion: rustVersion, License: license,
-		Documentation: docURL, Homepage: homepageURL, RepositoryURL: repoURL,
-		CreatedAt: now,
-	}, user.Username); err != nil {
+	if err := db.RecordCargoPublication(packageMetadata, versionMetadata, user.Username); err != nil {
 		if rollbackErr := h.rollbackPublication(state, indexFilePath, cratePath, metadata.Version, indexExisted); rollbackErr != nil {
 			log.Printf("failed to roll back Cargo publication %s/%s@%s: %v", repo.Name, packageName, metadata.Version, rollbackErr)
 		}
@@ -317,31 +369,38 @@ func (h Handler) rollbackPublication(state *core.AppState, indexPath, cratePath,
 	if err := h.Store.Delete(state, cratePath); err != nil {
 		rollbackErr = errors.Join(rollbackErr, err)
 	}
+	return errors.Join(rollbackErr, rollbackCargoIndexVersion(state, h.Store, indexPath, version, indexExisted))
+}
+
+func rollbackCargoIndexVersion(state *core.AppState, store Store, indexPath, version string, indexExisted bool) error {
 	if !indexExisted {
-		if err := h.Store.Delete(state, indexPath); err != nil {
-			rollbackErr = errors.Join(rollbackErr, err)
-		}
-		return rollbackErr
+		return store.Delete(state, indexPath)
 	}
-	reader, found, err := h.Store.Open(indexPath)
-	if err != nil || !found {
-		return errors.Join(rollbackErr, err)
-	}
-	defer reader.Close()
-	stage, err := h.Store.Stage(indexPath)
+	reader, found, err := store.Open(indexPath)
 	if err != nil {
-		return errors.Join(rollbackErr, err)
+		return err
+	}
+	if !found {
+		return errors.New("Cargo index is missing during publication rollback")
+	}
+	stage, err := store.Stage(indexPath)
+	if err != nil {
+		_ = reader.Close()
+		return err
 	}
 	defer stage.Discard()
 	removed, _, rewriteErr := rewriteRemoveVersion(reader, stage, version)
 	closeErr := reader.Close()
-	if rewriteErr != nil || closeErr != nil || !removed {
-		return errors.Join(rollbackErr, rewriteErr, closeErr)
+	if rewriteErr != nil || closeErr != nil {
+		return errors.Join(rewriteErr, closeErr)
+	}
+	if !removed {
+		return errors.New("Cargo version is missing during publication rollback")
 	}
 	if err := stage.Close(); err != nil {
-		return errors.Join(rollbackErr, err)
+		return err
 	}
-	return errors.Join(rollbackErr, stage.Commit(state))
+	return stage.Commit(state)
 }
 
 func publishBodyReader(c fiber.Ctx) io.Reader {

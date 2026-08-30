@@ -79,7 +79,9 @@
 - **`internal/service/cargo/` & `internal/service/cargodocs/`**: Sparse Cargo registry implementation, crate lifecycle,
   authoritative upstream name-conflict checks, mirrored-crate provenance, upstream proxying, and sandboxed documentation
   extraction/viewer (`/cargodoc/...`). Local publication streams a bounded Markdown README selected by the validated
-  `Cargo.toml` declaration into package metadata without loading the crate archive into memory.
+  `Cargo.toml` declaration into package metadata without loading the crate archive into memory. Optional new-package or
+  every-version publication review commits and hides the crate archive first, then atomically writes the sparse index
+  and catalog metadata before approval exposes it; rejection removes the hidden archive and mirrors bypass review.
 - **`internal/service/maven/`**: Process-wide Maven domain registry with DNS/GitHub/GitLab ownership verification,
   global L0-L4 domain teams shared by every Maven repository, invitation workflows, catalog/version management, and
   automatic migration of repository-scoped legacy domains. Upstream mirror discovery persists unverified global
@@ -246,6 +248,8 @@
   Maven artifact versions, npm package versions, and Docker image tags use `@renop/ui/pagination` for bounded
   previous/next pages, responsive summaries, height-morphed page changes, and page clamping after deletions; the
   shared pager intentionally avoids dense numbered-button rows on mobile.
+  Cargo package collaborators and repository moderators can see pending versions in the package page, while public
+  sparse-index and catalog responses remain unchanged until approval.
   npm repositories use `js/browser/npm.js` for bounded catalog, package, integrity, immutable-version, dist-tag,
   visibility, provenance, published README/project metadata, and responsive L0-L4 team management while protocol
   failures are localized through stable codes in `js/npm-errors.js`. npm integrity/action panels and Maven version-file

@@ -90,5 +90,6 @@ export default Object.freeze({
     "audit.action.CARGO_TEAM_REMOVE": "Участник команды Cargo удалён",
     "audit.action.CARGO_TEAM_LEVEL": "Права команды Cargo обновлены",
     "audit.action.CARGO_INVITE_ACCEPT": "Приглашение Cargo принято",
-    "audit.action.CARGO_INVITE_REJECT": "Приглашение Cargo отклонено"
+    "audit.action.CARGO_INVITE_REJECT": "Приглашение Cargo отклонено",
+    "cargo.reviewPending": "Ожидает проверки"
 });

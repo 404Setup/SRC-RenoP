@@ -90,5 +90,6 @@ export default Object.freeze({
     "audit.action.CARGO_TEAM_REMOVE": "Membro da equipa Cargo removido",
     "audit.action.CARGO_TEAM_LEVEL": "Permissão da equipa Cargo atualizada",
     "audit.action.CARGO_INVITE_ACCEPT": "Convite Cargo aceite",
-    "audit.action.CARGO_INVITE_REJECT": "Convite Cargo recusado"
+    "audit.action.CARGO_INVITE_REJECT": "Convite Cargo recusado",
+    "cargo.reviewPending": "Revisão pendente"
 });

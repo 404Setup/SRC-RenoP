@@ -580,7 +580,7 @@ function buildRepoSection(container, data, repoKey, repo) {
     );
     fields.appendChild(makeFieldRow(t('repos.visibility'), t('repos.visibilityDesc'), visSelect));
 
-    if (format.protocol === 'maven' || format.protocol === 'npm') {
+    if (format.protocol === 'maven') {
         const layoutSelect = makeCustomSelect([
             {value: 'modern', label: t('repos.mavenLayoutModern')},
             {value: 'classic', label: t('repos.mavenLayoutClassic')}
@@ -610,7 +610,7 @@ function buildRepoSection(container, data, repoKey, repo) {
             handleGpgRequirementChange
         ));
     }
-    if (format.protocol === 'maven') {
+    if (format.protocol === 'maven' || format.protocol === 'npm' || format.protocol === 'cargo') {
         let reviewSelect = null;
         reviewSelect = makeCustomSelect([
             {value: 'off', label: t('repos.publicationReviewOff')},

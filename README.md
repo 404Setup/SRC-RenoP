@@ -433,15 +433,16 @@ paths, credentials, query strings, or fragments in key server URLs are rejected 
 
 ## Publication Review
 
-Maven and npm repositories can set `publication_review` to `off`, `new_packages`, or `every_version`. Review is
+Maven, npm, and Cargo repositories can set `publication_review` to `off`, `new_packages`, or `every_version`. Review is
 disabled by default and keeps local files outside the public index until a repository-scoped moderator or system
 administrator approves them. Mirror downloads are never reviewed. Maven review disables redeployment and runs only
-after any required GPG signature verification; npm review preserves its immutable publish transaction and dist-tags.
+after any required GPG signature verification; npm review preserves its immutable publish transaction and dist-tags;
+Cargo review withholds both the crate archive and sparse-index entry.
 
 One durable task collects at most 256 files for a version, including checksum, signature, and Maven metadata companions.
 Reviewers wait for a five-second upload-settling interval, can download the complete file set from `/account/reviews`,
-and must select a preset or bounded custom reason when rejecting. Approval records the Maven catalog version and exposes
-the files; rejection deletes the hidden files. Pending review state is restored before file watchers start after a
+and must select a preset or bounded custom reason when rejecting. Approval records the engine catalog metadata and
+exposes the files; rejection deletes the hidden files. Pending review state is restored before file watchers start after a
 restart, and repositories with pending publications cannot be reconfigured, migrated, or deleted.
 
 ---

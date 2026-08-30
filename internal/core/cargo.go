@@ -92,6 +92,8 @@ type CargoVersion struct {
 	ArchiveYanked bool                `json:"-"`
 	HasDocs       bool                `json:"has_docs,omitempty"`
 	Mirrored      bool                `json:"mirrored"`
+	ReviewStatus  string              `json:"review_status,omitempty"`
+	ReviewID      string              `json:"review_id,omitempty"`
 }
 
 // CargoMember is one package-team membership.

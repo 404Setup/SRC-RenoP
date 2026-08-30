@@ -45,7 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`, `HIDDEN` ou `PRIVATE` |
 | `allow_redeployment` | `false` | Redéploiement Maven ou remplacement files/Docker si pris en charge |
 | `require_gpg_signature` | `false` | Validation OpenPGP détachée obligatoire pour Maven |
-| `publication_review` | `off` | Examen Maven/npm : `off`, `new_packages` ou `every_version` |
+| `publication_review` | `off` | Examen Maven/npm/Cargo : `off`, `new_packages` ou `every_version` |
 | `download_statistics` | Selon le moteur | Activé pour Maven/npm/Cargo/Docker ; `files` doit être activé explicitement |
 | `mirrors` | `[]` | Miroirs ordonnés |
 | `s3` | absent | Stockage S3 propre au dépôt |

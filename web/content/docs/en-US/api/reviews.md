@@ -48,6 +48,10 @@ An npm publish is already one complete transaction. RenoP hides its tarball and 
 payload until approval, then records the immutable version and tags together. For `new_packages`, a reservation remains
 new until its first visible version is approved. Upstream packuments and tarballs never create review tasks.
 
+A Cargo publication stores and hides the crate archive without changing the sparse index or public catalog. Approval
+adds the immutable version to both metadata stores before exposing the archive. Rejection removes the hidden archive.
+With `new_packages`, the crate remains new until its first visible version is approved. Mirrored crates bypass review.
+
 ## List tasks
 
 GET /api/reviews returns a bounded page. `view` accepts `reviewer` or `requested`; `status` accepts `pending`,

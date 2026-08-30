@@ -120,6 +120,27 @@ func (db *DB) GetCargoPackage(repository, normalizedName string) (*core.CargoPac
 	return result, nil
 }
 
+// CargoHasPublishedVersions reports whether a package has any local or mirrored catalog version.
+func (db *DB) CargoHasPublishedVersions(repository, normalizedName string) (bool, error) {
+	if db == nil || db.SQLDB == nil {
+		return false, core.ErrDatabaseUnavailable
+	}
+	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
+	if repository == "" || normalizedName == "" {
+		return false, core.ErrCargoPackageNotFound
+	}
+	var exists int
+	err := db.QueryRow(`SELECT 1 FROM cargo_versions WHERE repository = ? AND normalized_name = ? LIMIT 1`,
+		repository, normalizedName).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("inspect Cargo package versions: %w", err)
+	}
+	return exists != 0, nil
+}
+
 func (db *DB) GetCargoPackageDetails(repository, normalizedName, username string) (*core.CargoPackageDetails, error) {
 	pkg, err := db.GetCargoPackage(repository, normalizedName)
 	if err != nil || pkg == nil {
@@ -460,6 +481,67 @@ func (db *DB) RecordCargoPublication(pkg *core.CargoPackage, version *core.Cargo
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit Cargo publication: %w", err)
+	}
+	return nil
+}
+
+// RollbackCargoPublicationReview removes metadata inserted before a failed review decision.
+func (db *DB) RollbackCargoPublicationReview(repository, normalizedName, version string,
+	previous *core.CargoPackage,
+) error {
+	if db == nil || db.SQLDB == nil {
+		return core.ErrDatabaseUnavailable
+	}
+	repository, normalizedName = sanitizeCargoKey(repository, normalizedName)
+	version = SanitizeInputString(strings.TrimSpace(version), 128)
+	if repository == "" || normalizedName == "" || version == "" ||
+		previous != nil && (previous.Repository != repository || previous.NormalizedName != normalizedName) {
+		return core.ErrReviewInvalidRequest
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin Cargo review rollback: %w", err)
+	}
+	defer tx.Rollback()
+	result, err := tx.Exec(`DELETE FROM cargo_versions WHERE repository = ? AND normalized_name = ? AND version = ?`,
+		repository, normalizedName, version)
+	if err != nil {
+		return fmt.Errorf("delete reviewed Cargo version: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count reviewed Cargo version rollback: %w", err)
+	}
+	if changed != 1 {
+		return core.ErrCargoVersionNotFound
+	}
+	if previous == nil {
+		var remaining int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM cargo_versions WHERE repository = ? AND normalized_name = ?`,
+			repository, normalizedName).Scan(&remaining); err != nil {
+			return fmt.Errorf("count Cargo versions after review rollback: %w", err)
+		}
+		if remaining != 0 {
+			return core.ErrReviewResourceConflict
+		}
+		if _, err := tx.Exec(`DELETE FROM cargo_members WHERE repository = ? AND normalized_name = ?`,
+			repository, normalizedName); err != nil {
+			return fmt.Errorf("delete reviewed Cargo owner: %w", err)
+		}
+		if _, err := tx.Exec(`DELETE FROM cargo_packages WHERE repository = ? AND normalized_name = ?`,
+			repository, normalizedName); err != nil {
+			return fmt.Errorf("delete reviewed Cargo package: %w", err)
+		}
+	} else if _, err := tx.Exec(`UPDATE cargo_packages SET package_name = ?, description = ?, readme = ?,
+		repository_url = ?, homepage = ?, documentation = ?, archived = ?, admin_archived = ?, mirrored = ?,
+		super_team_prefix = ?, created_at = ?, updated_at = ? WHERE repository = ? AND normalized_name = ?`,
+		previous.Name, previous.Description, previous.Readme, previous.RepositoryURL, previous.Homepage,
+		previous.Documentation, boolInt(previous.Archived), boolInt(previous.AdminArchived), boolInt(previous.Mirrored),
+		previous.SuperTeamPrefix, previous.CreatedAt, previous.UpdatedAt, repository, normalizedName); err != nil {
+		return fmt.Errorf("restore Cargo package after review: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Cargo review rollback: %w", err)
 	}
 	return nil
 }

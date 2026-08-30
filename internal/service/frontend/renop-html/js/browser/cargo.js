@@ -275,9 +275,10 @@ function getSelectedVersion() {
     if (!versions.length) return null;
     if (activeSelectedVersion) {
         const found = versions.find(v => v.version === activeSelectedVersion);
-        if (found) return found;
+        if (found && found.review_status !== 'pending') return found;
     }
-    const defaultVer = versions.find(v => !v.yanked) || versions[0];
+    const defaultVer = versions.find(v => v.review_status !== 'pending' && !v.yanked) ||
+        versions.find(v => v.review_status !== 'pending') || null;
     activeSelectedVersion = defaultVer?.version || '';
     return defaultVer;
 }
@@ -732,12 +733,14 @@ function buildCargoVersionsSection() {
         const nextRows = [];
 
         for (const version of pageVersions) {
+            const pendingReview = version.review_status === 'pending';
             const row = el('div', {class: 'cargo-version-row'});
             const badge = el('span', {class: 'cargo-version-badge is-active-badge'}, t('cargo.activeVersionBadge'));
             badge.hidden = true;
 
             row.addEventListener('click', (event) => {
                 if (event.target.closest('button, a')) return;
+                if (pendingReview) return;
                 if (activeSelectedVersion === version.version) return;
                 activeSelectedVersion = version.version;
                 updateVersionSelection(true);
@@ -757,6 +760,9 @@ function buildCargoVersionsSection() {
             if (version.mirrored) {
                 titleLine.appendChild(createRepositoryMirrorBadge(t('common.fromMirror')));
             }
+            if (pendingReview) {
+                titleLine.appendChild(el('span', {class: 'cargo-state-badge is-pending'}, t('cargo.reviewPending')));
+            }
             const meta = el('div', {class: 'cargo-version-meta'},
                 titleLine,
                 el('span', {class: 'cargo-version-publisher'},
@@ -775,7 +781,7 @@ function buildCargoVersionsSection() {
                 actions.appendChild(docLink);
             }
 
-            if (canManageVersions) {
+            if (canManageVersions && !pendingReview) {
                 const restoreLocked = version.yanked && (
                     (version.admin_yanked && !activeAdministrator) || packageRecord.archived
                 );

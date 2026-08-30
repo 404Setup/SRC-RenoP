@@ -90,5 +90,6 @@ export default Object.freeze({
     "audit.action.CARGO_TEAM_REMOVE": "Cargo チームメンバーを削除",
     "audit.action.CARGO_TEAM_LEVEL": "Cargo チーム権限を更新",
     "audit.action.CARGO_INVITE_ACCEPT": "Cargo への招待を承認",
-    "audit.action.CARGO_INVITE_REJECT": "Cargo への招待を拒否"
+    "audit.action.CARGO_INVITE_REJECT": "Cargo への招待を拒否",
+    "cargo.reviewPending": "審査待ち"
 });

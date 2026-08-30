@@ -90,5 +90,6 @@ export default Object.freeze({
     "audit.action.CARGO_TEAM_REMOVE": "Cargo 팀 구성원 제거",
     "audit.action.CARGO_TEAM_LEVEL": "Cargo 팀 권한 변경",
     "audit.action.CARGO_INVITE_ACCEPT": "Cargo 초대 수락",
-    "audit.action.CARGO_INVITE_REJECT": "Cargo 초대 거절"
+    "audit.action.CARGO_INVITE_REJECT": "Cargo 초대 거절",
+    "cargo.reviewPending": "검토 대기 중"
 });

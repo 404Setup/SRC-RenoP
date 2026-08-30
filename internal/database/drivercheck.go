@@ -181,6 +181,30 @@ func RunDriverCheck(ctx context.Context, db *DB) ([]DriverCheckResult, error) {
 		}, username); err != nil {
 			return err
 		}
+		previousCargo, err := db.GetCargoPackage(cargoRepository, "demo")
+		if err != nil || previousCargo == nil {
+			return errorsOrMissing(err, "Cargo package snapshot")
+		}
+		if err := db.RecordCargoPublication(&core.CargoPackage{
+			Repository: cargoRepository, Name: "demo", NormalizedName: "demo", Description: "Pending review",
+			CreatedAt: now, UpdatedAt: now + 1,
+		}, &core.CargoVersion{
+			Repository: cargoRepository, Package: "demo", Version: "1.1.0", Publisher: username, CreatedAt: now + 1,
+		}, username); err != nil {
+			return err
+		}
+		if err := db.RollbackCargoPublicationReview(cargoRepository, "demo", "1.1.0", previousCargo); err != nil {
+			return err
+		}
+		published, err := db.CargoHasPublishedVersions(cargoRepository, "demo")
+		if err != nil || !published {
+			return errorsOrMissing(err, "Cargo publication review rollback")
+		}
+		cargoDetails, err := db.GetCargoPackageDetails(cargoRepository, "demo", username)
+		if err != nil || cargoDetails == nil || cargoDetails.Package == nil || len(cargoDetails.Versions) != 1 ||
+			cargoDetails.Package.Description != previousCargo.Description {
+			return errorsOrMissing(err, "Cargo publication review metadata restoration")
+		}
 		dockerImage := globalTeamPrefix + "/demo"
 		if _, err := db.CreateDockerImageForTeam(
 			dockerRepository, dockerImage, username, globalTeamPrefix, false, now); err != nil {

@@ -196,6 +196,54 @@ func TestExpiredCargoInvitationCanBeReissued(t *testing.T) {
 	require.Equal(t, core.CargoPermissionPublish, details.Package.PermissionLevel)
 }
 
+func TestRollbackCargoPublicationReviewRestoresPackageMetadata(t *testing.T) {
+	db := newCargoDB(t)
+	const now int64 = 4000
+	require.NoError(t, db.SaveToken(&core.AccessToken{Name: "review-owner", Permissions: []string{"base"}}))
+	stablePackage := &core.CargoPackage{
+		Repository: "cargo", Name: "review-demo", NormalizedName: "review-demo",
+		Description: "Stable description", Readme: "# Stable", RepositoryURL: "https://example.com/stable",
+		CreatedAt: now, UpdatedAt: now,
+	}
+	require.NoError(t, db.RecordCargoPublication(stablePackage, &core.CargoVersion{
+		Repository: "cargo", Package: "review-demo", Version: "0.9.0",
+		Publisher: "review-owner", CreatedAt: now,
+	}, "review-owner"))
+	previous, err := db.GetCargoPackage("cargo", "review-demo")
+	require.NoError(t, err)
+	require.NotNil(t, previous)
+	require.NoError(t, db.RecordCargoPublication(&core.CargoPackage{
+		Repository: "cargo", Name: "review-demo", NormalizedName: "review-demo",
+		Description: "Pending description", Readme: "# Pending", RepositoryURL: "https://example.com/pending",
+		CreatedAt: now, UpdatedAt: now + 1,
+	}, &core.CargoVersion{
+		Repository: "cargo", Package: "review-demo", Version: "1.0.0",
+		Publisher: "review-owner", CreatedAt: now + 1,
+	}, "review-owner"))
+	require.NoError(t, db.RollbackCargoPublicationReview("cargo", "review-demo", "1.0.0", previous))
+	details, err := db.GetCargoPackageDetails("cargo", "review-demo", "review-owner")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "0.9.0", details.Versions[0].Version)
+	assert.Equal(t, previous.Description, details.Package.Description)
+	assert.Equal(t, previous.Readme, details.Package.Readme)
+	assert.Equal(t, previous.RepositoryURL, details.Package.RepositoryURL)
+	assert.Equal(t, previous.UpdatedAt, details.Package.UpdatedAt)
+
+	newPackage := &core.CargoPackage{
+		Repository: "cargo", Name: "new-review", NormalizedName: "new-review",
+		Description: "Pending package", CreatedAt: now + 2, UpdatedAt: now + 2,
+	}
+	require.NoError(t, db.RecordCargoPublication(newPackage, &core.CargoVersion{
+		Repository: "cargo", Package: "new-review", Version: "1.0.0",
+		Publisher: "review-owner", CreatedAt: now + 2,
+	}, "review-owner"))
+	require.NoError(t, db.RollbackCargoPublicationReview("cargo", "new-review", "1.0.0", nil))
+	restored, err := db.GetCargoPackage("cargo", "new-review")
+	require.NoError(t, err)
+	assert.Nil(t, restored)
+}
+
 func TestCargoMirrorPublicationHasNoOwnerAndRetainsProvenance(t *testing.T) {
 	db := newCargoDB(t)
 	const now int64 = 3000

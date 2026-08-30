@@ -385,6 +385,12 @@ func decidePublicationTask(c fiber.Ctx, state *core.AppState, username string,
 		rollback = func() error {
 			return npm.RemoveApprovedPublicationMetadata(state, current, previousDetails.Package, previousTags)
 		}
+	case core.ReviewResourceCargoPackage:
+		cargoRollback, err := cargo.ApprovePublicationReview(state, current, storage.NewPackageStore())
+		if err != nil {
+			return nil, err
+		}
+		rollback = cargoRollback
 	default:
 		return nil, core.ErrReviewInvalidRequest
 	}

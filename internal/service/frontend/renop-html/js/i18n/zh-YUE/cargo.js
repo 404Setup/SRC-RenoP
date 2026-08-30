@@ -90,5 +90,6 @@ export default Object.freeze({
     "audit.action.CARGO_TEAM_REMOVE": "移除 Cargo 團隊成員",
     "audit.action.CARGO_TEAM_LEVEL": "更新 Cargo 團隊權限",
     "audit.action.CARGO_INVITE_ACCEPT": "接受 Cargo 協作邀請",
-    "audit.action.CARGO_INVITE_REJECT": "拒絕 Cargo 協作邀請"
+    "audit.action.CARGO_INVITE_REJECT": "拒絕 Cargo 協作邀請",
+    "cargo.reviewPending": "審核中"
 });

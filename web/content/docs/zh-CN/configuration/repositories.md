@@ -45,7 +45,7 @@ repositories:
 | `visibility` | `PUBLIC` | `PUBLIC`、`HIDDEN` 或 `PRIVATE` |
 | `allow_redeployment` | `false` | 在支持的引擎中允许 Maven 版本重发或 files/Docker 覆盖 |
 | `require_gpg_signature` | `false` | Maven 发布要求通过 OpenPGP 分离签名校验 |
-| `publication_review` | `off` | Maven/npm 审核策略：`off`、`new_packages` 或 `every_version` |
+| `publication_review` | `off` | Maven/npm/Cargo 审核策略：`off`、`new_packages` 或 `every_version` |
 | `download_statistics` | 引擎默认值 | Maven/npm/Cargo/Docker 默认启用；`files` 需手动启用 |
 | `mirrors` | `[]` | 按顺序执行的上游镜像定义 |
 | `s3` | 省略 | 当前仓库独立的 S3 兼容存储 |

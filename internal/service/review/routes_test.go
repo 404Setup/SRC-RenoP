@@ -24,6 +24,7 @@ import (
 	"renop/internal/config"
 	"renop/internal/core"
 	"renop/internal/database"
+	cargoservice "renop/internal/service/cargo"
 	"renop/internal/service/index"
 	npmservice "renop/internal/service/npm"
 )
@@ -58,6 +59,7 @@ func setupReviewApp(t *testing.T) (*fiber.App, *core.AppState, *config.User, *st
 	cfg.Maven.Repositories = map[string]*config.Repository{
 		"releases": {Name: "releases", Format: config.RepositoryFormatMaven, Visibility: "PUBLIC"},
 		"npm":      {Name: "npm", Format: config.RepositoryFormatNPM, Visibility: "PUBLIC"},
+		"cargo":    {Name: "cargo", Format: config.RepositoryFormatCargo, Visibility: "PUBLIC"},
 	}
 	state.Inner.Config.Store(cfg)
 	state.Inner.FileIndex = index.NewFileIndexCustom(true)
@@ -321,6 +323,49 @@ func TestRepositoryModeratorApprovalPublishesNPMVersionBeforeTarball(t *testing.
 	require.NoError(t, err)
 	require.Len(t, details.Versions, 1)
 	assert.Equal(t, "1.0.0", details.Versions[0].Version)
+	assert.False(t, state.Inner.FileIndex.IsBlocked(absolute))
+	assert.True(t, state.Inner.FileIndex.HasFile(absolute))
+}
+
+func TestRepositoryModeratorApprovalPublishesCargoIndexBeforeCrate(t *testing.T) {
+	app, state, current, _ := setupReviewApp(t)
+	require.NoError(t, state.GetDB().SaveToken(&core.AccessToken{
+		Name: "bob", CreatedAt: time.Now().Format(time.RFC3339),
+		Permissions: []string{"base", "canmoderate:cargo"},
+	}))
+	now := time.Now().UnixMilli() - core.PublicationReviewSettleMillis - 1000
+	repo := state.Inner.Config.Load().Maven.Repositories["cargo"]
+	repo.PublicationReview = config.PublicationReviewEveryVersion
+	cratePath := "api/v1/crates/reviewed/1.0.0/download"
+	absolute := filepath.Join(state.Inner.Config.Load().StoragePath, "cargo", filepath.FromSlash(cratePath))
+	require.NoError(t, os.MkdirAll(filepath.Dir(absolute), 0755))
+	require.NoError(t, os.WriteFile(absolute, []byte("Cargo archive"), 0644))
+	state.Inner.FileIndex.InsertFile(absolute, index.FileInfo{Size: 13, ModTime: time.Now().UnixNano()})
+	result, err := cargoservice.QueuePublicationReview(state, repo, &core.CargoPackage{
+		Repository: "cargo", Name: "reviewed", NormalizedName: "reviewed",
+		Description: "Reviewed Cargo package", CreatedAt: now, UpdatedAt: now,
+	}, &core.CargoVersion{
+		Repository: "cargo", Package: "reviewed", Version: "1.0.0", Publisher: "charlie",
+		Checksum: "0123456789abcdef", Size: 13, CreatedAt: now,
+	}, cargoservice.IndexEntry{
+		Name: "reviewed", Version: "1.0.0", Checksum: "0123456789abcdef",
+		Deps: []cargoservice.IndexDependency{}, Features: map[string][]string{},
+	}, cratePath, false)
+	require.NoError(t, err)
+	state.Inner.FileIndex.BlockFile(absolute)
+	*current = config.User{Username: "bob", Roles: []string{"base", "canmoderate:cargo"}}
+	response := reviewRequest(t, app, http.MethodPost, "/api/reviews/"+result.TaskID+"/decision",
+		decisionRequest{Decision: core.ReviewStatusApproved})
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, response.Body.Close())
+	details, err := state.GetDB().GetCargoPackageDetails("cargo", "reviewed", "charlie")
+	require.NoError(t, err)
+	require.Len(t, details.Versions, 1)
+	assert.Equal(t, "1.0.0", details.Versions[0].Version)
+	indexPath := filepath.Join(state.Inner.Config.Load().StoragePath, "cargo", "re", "vi", "reviewed")
+	indexContents, err := os.ReadFile(indexPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(indexContents), `"vers":"1.0.0"`)
 	assert.False(t, state.Inner.FileIndex.IsBlocked(absolute))
 	assert.True(t, state.Inner.FileIndex.HasFile(absolute))
 }

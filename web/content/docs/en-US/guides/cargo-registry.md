@@ -65,6 +65,10 @@ The first successful publication reserves the normalized name and grants the pub
 exists locally or on an applicable enabled mirror. If the upstream check is inconclusive, publication fails safely with
 `503` and does not reserve the package. Later versions require the package team's publication level.
 
+When publication review is enabled, `cargo publish` returns `202 Accepted` after storing the archive. The crate remains
+absent from the sparse index and public catalog until a repository moderator or system administrator approves it. With
+`new_packages`, this applies until the crate has a visible version. Mirrored crates bypass publication review.
+
 ### Search, yank, and unyank
 
 ```bash

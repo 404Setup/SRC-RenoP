@@ -308,14 +308,16 @@
 }
 
 .cargo-state-badge.is-archived,
-.cargo-state-badge.is-yanked {
+.cargo-state-badge.is-yanked,
+.cargo-state-badge.is-pending {
     border-color: color-mix(in srgb, #f59e0b 28%, transparent);
     background: color-mix(in srgb, #f59e0b 11%, transparent);
     color: #b45309;
 }
 
 html.dark .cargo-state-badge.is-archived,
-html.dark .cargo-state-badge.is-yanked {
+html.dark .cargo-state-badge.is-yanked,
+html.dark .cargo-state-badge.is-pending {
     color: #fbbf24;
 }
 
