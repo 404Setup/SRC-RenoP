@@ -8,7 +8,7 @@
  * This Source Code Form is "Incompatible With Secondary Licenses", as defined by the Mozilla Public License, v. 2.0.
  */
 
-import localeCatalog from './i18n/catalog.generated.js';
+import defaultLocale, {loadLocale} from './i18n/catalog.generated.js';
 import {createLangCard} from '@renop/ui/lang-card';
 import {bindModalChrome} from '@renop/ui/modal';
 import {
@@ -21,63 +21,54 @@ import {
 
 const STORAGE_KEY = 'renop_language';
 const DEFAULT_LANG = 'en-US';
-const enUS = localeCatalog['en-US'];
-const deDE = localeCatalog['de-DE'];
-const frFR = localeCatalog['fr-FR'];
-const jaJP = localeCatalog['ja-JP'];
-const zhCN = localeCatalog['zh-CN'];
-const zhHK = localeCatalog['zh-HK'];
-const zhTW = localeCatalog['zh-TW'];
-const zhYUE = localeCatalog['zh-YUE'];
-const koKR = localeCatalog['ko-KR'];
-const ruRU = localeCatalog['ru-RU'];
-const esES = localeCatalog['es-ES'];
-const ptPT = localeCatalog['pt-PT'];
-
 const languages = {
-    'en-US': enUS,
-    'en': enUS,
-    'zh-CN': zhCN,
-    'zh-cn': zhCN,
-    'zh-Hans': zhCN,
-    'zh-hans': zhCN,
-    'zh': zhCN,
-    'zh-HK': zhHK,
-    'zh-hk': zhHK,
-    'zh-Hant-HK': zhHK,
-    'zh-hant-hk': zhHK,
-    'zh-TW': zhTW,
-    'zh-tw': zhTW,
-    'zh-Hant': zhTW,
-    'zh-hant': zhTW,
-    'zh-Hant-TW': zhTW,
-    'zh-hant-tw': zhTW,
-    'zh-YUE': zhYUE,
-    'zh-yue': zhYUE,
-    'yue': zhYUE,
-    'yue-HK': zhYUE,
-    'yue-hk': zhYUE,
-    'zh-Hant-HK-yue': zhYUE,
-    'ko-KR': koKR,
-    'ko-kr': koKR,
-    'ko': koKR,
-    'ja-JP': jaJP,
-    'ja': jaJP,
-    'de-DE': deDE,
-    'de': deDE,
-    'fr-FR': frFR,
-    'fr': frFR,
-    'ru-RU': ruRU,
-    'ru-ru': ruRU,
-    'ru': ruRU,
-    'es-ES': esES,
-    'es-es': esES,
-    'es': esES,
-    'pt-PT': ptPT,
-    'pt-pt': ptPT,
-    'pt-BR': ptPT,
-    'pt-br': ptPT,
-    'pt': ptPT
+    [DEFAULT_LANG]: defaultLocale,
+};
+
+const languageAliases = {
+    'en-US': 'en-US',
+    'en': 'en-US',
+    'zh-CN': 'zh-CN',
+    'zh-cn': 'zh-CN',
+    'zh-Hans': 'zh-CN',
+    'zh-hans': 'zh-CN',
+    'zh': 'zh-CN',
+    'zh-HK': 'zh-HK',
+    'zh-hk': 'zh-HK',
+    'zh-Hant-HK': 'zh-HK',
+    'zh-hant-hk': 'zh-HK',
+    'zh-TW': 'zh-TW',
+    'zh-tw': 'zh-TW',
+    'zh-Hant': 'zh-TW',
+    'zh-hant': 'zh-TW',
+    'zh-Hant-TW': 'zh-TW',
+    'zh-hant-tw': 'zh-TW',
+    'zh-YUE': 'zh-YUE',
+    'zh-yue': 'zh-YUE',
+    'yue': 'zh-YUE',
+    'yue-HK': 'zh-YUE',
+    'yue-hk': 'zh-YUE',
+    'zh-Hant-HK-yue': 'zh-YUE',
+    'ko-KR': 'ko-KR',
+    'ko-kr': 'ko-KR',
+    'ko': 'ko-KR',
+    'ja-JP': 'ja-JP',
+    'ja': 'ja-JP',
+    'de-DE': 'de-DE',
+    'de': 'de-DE',
+    'fr-FR': 'fr-FR',
+    'fr': 'fr-FR',
+    'ru-RU': 'ru-RU',
+    'ru-ru': 'ru-RU',
+    'ru': 'ru-RU',
+    'es-ES': 'es-ES',
+    'es-es': 'es-ES',
+    'es': 'es-ES',
+    'pt-PT': 'pt-PT',
+    'pt-pt': 'pt-PT',
+    'pt-BR': 'pt-PT',
+    'pt-br': 'pt-PT',
+    'pt': 'pt-PT'
 };
 
 const languageDetails = {
@@ -99,6 +90,7 @@ let currentLang = DEFAULT_LANG;
 let currentSource = 'default';
 let translationObserver = null;
 let translationFlushScheduled = false;
+let languageRequestID = 0;
 const pendingTranslationRoots = new Set();
 const translationBindings = Object.freeze([
     {attribute: 'data-i18n', target: 'text'},
@@ -166,7 +158,18 @@ function updateLanguageUI() {
  * @returns {string|null} Matched registry key, or null if unsupported.
  */
 function resolveLanguage(lang) {
-    return matchLocaleKey(lang, languages);
+    const matched = matchLocaleKey(lang, languageAliases);
+    return matched ? languageAliases[matched] : null;
+}
+
+/**
+ * Ensure one canonical language dictionary is available.
+ * @param {string} lang - Canonical language identifier.
+ * @returns {Promise<void>}
+ */
+async function ensureLanguage(lang) {
+    if (languages[lang]) return;
+    languages[lang] = await loadLocale(lang);
 }
 
 /**
@@ -281,39 +284,39 @@ const ERROR_KEY_MAP = {
     'An error occurred during login': 'login.loginError',
     'An unexpected error occurred while attempting to encode a Protobuf message': 'error.internalServerError',
     'Authentication failed': 'login.loginError',
-	'Artifact or directory was deleted before publication': 'profile.gpgFailure.deletedBeforePublication',
-	'Artifact redeployment is not allowed': 'profile.gpgFailure.redeploymentDenied',
-	'Detached GPG signature was not uploaded before the publication deadline': 'profile.gpgFailure.signatureDeadline',
-	'Failed to register GPG key': 'profile.gpgAddFailed',
-	'GPG key could not be resolved by configured key servers': 'profile.gpgResolveFailed',
-	'GPG key ID is ambiguous; use the full fingerprint': 'profile.gpgAmbiguousKey',
-	'GPG key server URLs must contain only an HTTPS origin': 'settings.gpgOriginOnly',
-	'GPG key server URLs must use HTTPS': 'settings.gpgHttpsOnly',
-	'GPG validation timed out': 'profile.gpgFailure.validationTimedOut',
-	'Invalid GPG key ID or fingerprint': 'profile.gpgInvalidKey',
-	'Maven artifact was not uploaded before the publication deadline': 'profile.gpgFailure.artifactDeadline',
-	'Publication failed during GPG validation or storage commit': 'profile.gpgFailure.generic',
-	'Repository was deleted before publication': 'profile.gpgFailure.repositoryDeleted',
-	'The detached GPG signature is invalid': 'profile.gpgFailure.invalidSignature',
-	'The quarantined artifact or signature is no longer available': 'profile.gpgFailure.quarantineMissing',
-	'The signing key is not registered for the uploader': 'profile.gpgFailure.keyUnregistered',
-	'The target repository no longer exists': 'profile.gpgFailure.repositoryMissing',
-	'Uploader account was deleted': 'profile.gpgFailure.uploaderDeleted',
-	'at least one GPG key server is required': 'settings.gpgAtLeastOne',
-	'at most 8 GPG key servers are allowed': 'settings.gpgAtMostEight',
-	'at most 16 global proxies are allowed': 'settings.proxyAtMostSixteen',
-	'global proxy configuration is too long': 'settings.proxyInvalidConfig',
-	'global proxy credentials must use the username and password fields': 'settings.proxyInvalidUrl',
-	'global proxy name is invalid': 'settings.proxyInvalidConfig',
-	'global proxy name is required': 'settings.proxyNameRequired',
-	'global proxy names must be unique': 'settings.proxyNamesUnique',
-	'global proxy URL is invalid': 'settings.proxyInvalidUrl',
-	'global proxy URL must not contain a path, query, or fragment': 'settings.proxyInvalidUrl',
-	'global proxy URL must use http, https, or socks5': 'settings.proxyInvalidUrl',
-	'invalid GPG key server URL': 'settings.gpgInvalidServer',
-	'selected global proxy does not exist': 'settings.proxySelectedMissing',
-	'SOCKS5 global proxy URL must include a port': 'settings.proxyInvalidUrl',
-	'storage path cannot be changed while GPG publications are pending': 'settings.gpgPendingStorageChange',
+    'Artifact or directory was deleted before publication': 'profile.gpgFailure.deletedBeforePublication',
+    'Artifact redeployment is not allowed': 'profile.gpgFailure.redeploymentDenied',
+    'Detached GPG signature was not uploaded before the publication deadline': 'profile.gpgFailure.signatureDeadline',
+    'Failed to register GPG key': 'profile.gpgAddFailed',
+    'GPG key could not be resolved by configured key servers': 'profile.gpgResolveFailed',
+    'GPG key ID is ambiguous; use the full fingerprint': 'profile.gpgAmbiguousKey',
+    'GPG key server URLs must contain only an HTTPS origin': 'settings.gpgOriginOnly',
+    'GPG key server URLs must use HTTPS': 'settings.gpgHttpsOnly',
+    'GPG validation timed out': 'profile.gpgFailure.validationTimedOut',
+    'Invalid GPG key ID or fingerprint': 'profile.gpgInvalidKey',
+    'Maven artifact was not uploaded before the publication deadline': 'profile.gpgFailure.artifactDeadline',
+    'Publication failed during GPG validation or storage commit': 'profile.gpgFailure.generic',
+    'Repository was deleted before publication': 'profile.gpgFailure.repositoryDeleted',
+    'The detached GPG signature is invalid': 'profile.gpgFailure.invalidSignature',
+    'The quarantined artifact or signature is no longer available': 'profile.gpgFailure.quarantineMissing',
+    'The signing key is not registered for the uploader': 'profile.gpgFailure.keyUnregistered',
+    'The target repository no longer exists': 'profile.gpgFailure.repositoryMissing',
+    'Uploader account was deleted': 'profile.gpgFailure.uploaderDeleted',
+    'at least one GPG key server is required': 'settings.gpgAtLeastOne',
+    'at most 8 GPG key servers are allowed': 'settings.gpgAtMostEight',
+    'at most 16 global proxies are allowed': 'settings.proxyAtMostSixteen',
+    'global proxy configuration is too long': 'settings.proxyInvalidConfig',
+    'global proxy credentials must use the username and password fields': 'settings.proxyInvalidUrl',
+    'global proxy name is invalid': 'settings.proxyInvalidConfig',
+    'global proxy name is required': 'settings.proxyNameRequired',
+    'global proxy names must be unique': 'settings.proxyNamesUnique',
+    'global proxy URL is invalid': 'settings.proxyInvalidUrl',
+    'global proxy URL must not contain a path, query, or fragment': 'settings.proxyInvalidUrl',
+    'global proxy URL must use http, https, or socks5': 'settings.proxyInvalidUrl',
+    'invalid GPG key server URL': 'settings.gpgInvalidServer',
+    'selected global proxy does not exist': 'settings.proxySelectedMissing',
+    'SOCKS5 global proxy URL must include a port': 'settings.proxyInvalidUrl',
+    'storage path cannot be changed while GPG publications are pending': 'settings.gpgPendingStorageChange',
     'Background image exceeds 5 MiB': 'error.bgExceedsSize',
     'Background URL must be a valid WebP image': 'error.bgMustBeWebp',
     'Bad path': 'error.badPath',
@@ -526,11 +529,13 @@ export function updatePageTranslations() {
  * Set the active language, persist it, update the page, and emit `languageChanged`.
  * Falls back to the default language when the code is unsupported.
  * @param {string} lang - Language code or alias to activate.
- * @returns {string} Resolved language code that is now active.
+ * @returns {Promise<string>} Resolved language code that is now active.
  */
-export function setLanguage(lang) {
-    const resolved = resolveLanguage(lang);
+export async function setLanguage(lang) {
+    let resolved = resolveLanguage(lang);
+    let source = 'user-set';
     const available = getAvailableLanguages();
+    const requestID = ++languageRequestID;
 
     if (!resolved) {
         console.warn(`[i18n] Language '${lang}' is not supported. Defaulting to '${DEFAULT_LANG}'. Available languages: ${available.join(', ')}`);
@@ -545,8 +550,17 @@ export function setLanguage(lang) {
         return DEFAULT_LANG;
     }
 
+    try {
+        await ensureLanguage(resolved);
+    } catch (error) {
+        console.error(`[i18n] Failed to load language '${resolved}'.`, error);
+        resolved = DEFAULT_LANG;
+        source = 'fallback';
+    }
+    if (requestID !== languageRequestID) return currentLang;
+
     currentLang = resolved;
-    currentSource = 'user-set';
+    currentSource = source;
     localStorage.setItem(STORAGE_KEY, resolved);
     const langSelect = document.getElementById('lang-select');
     if (langSelect && langSelect.value !== resolved) {
@@ -574,12 +588,19 @@ export function getLanguage() {
 
 /**
  * Initialize the i18n subsystem: detect language, expose window helpers, wire the language modal.
- * @returns {string} Active language code after initialization.
+ * @returns {Promise<string>} Active language code after initialization.
  */
-export function initI18n() {
+export async function initI18n() {
     const detected = detectLanguage();
     currentLang = detected.lang;
     currentSource = detected.source;
+    try {
+        await ensureLanguage(currentLang);
+    } catch (error) {
+        console.error(`[i18n] Failed to load detected language '${currentLang}'.`, error);
+        currentLang = DEFAULT_LANG;
+        currentSource = 'fallback';
+    }
 
     window.setLanguage = setLanguage;
     window.getLanguage = getLanguage;
@@ -611,8 +632,8 @@ export function initI18n() {
                     name: info.name,
                     sub: info.sub,
                     active: code === currentLang,
-                    onClick: () => {
-                        setLanguage(code);
+                    onClick: async () => {
+                        await setLanguage(code);
                         closeModal();
                     }
                 });
@@ -635,7 +656,7 @@ export function initI18n() {
         if (langSelect) {
             langSelect.value = currentLang;
             langSelect.addEventListener('change', (e) => {
-                setLanguage(e.target.value);
+                void setLanguage(e.target.value);
             });
         }
         startTranslationObserver();

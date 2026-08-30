@@ -108,7 +108,7 @@ export async function fetchProto(url, MessageType, options = {}) {
  *
  * @param {string} url
  * @param {string} method
- * @param {{create: Function, encode: Function}|null} [RequestType]
+ * @param {{encode: Function}|null} [RequestType]
  * @param {object} [requestPayload] plain object matching proto fields
  * @param {{decode: Function, toObject: Function}|null} [ResponseType]
  * @param {RequestInit} [options]
@@ -120,7 +120,7 @@ export async function sendProto(url, method, RequestType = null, requestPayload 
     };
     let body;
     if (RequestType) {
-        body = RequestType.encode(RequestType.create(requestPayload || {})).finish();
+        body = RequestType.encode(requestPayload || {}).finish();
         headers['Content-Type'] = PROTO_CONTENT_TYPE;
     }
     const response = await fetch(url, withCredentials({
@@ -140,7 +140,7 @@ export async function sendProto(url, method, RequestType = null, requestPayload 
  * POST a protobuf request body and optionally decode a protobuf response.
  *
  * @param {string} url
- * @param {{create: Function, encode: Function}|null} [RequestType]
+ * @param {{encode: Function}|null} [RequestType]
  * @param {object} [requestPayload] plain object matching proto fields
  * @param {{decode: Function, toObject: Function}|null} [ResponseType]
  * @param {RequestInit} [options]
@@ -153,7 +153,7 @@ export async function postProto(url, RequestType = null, requestPayload = null, 
  * PUT a protobuf request body and optionally decode a protobuf response.
  *
  * @param {string} url
- * @param {{create: Function, encode: Function}|null} [RequestType]
+ * @param {{encode: Function}|null} [RequestType]
  * @param {object} [requestPayload] plain object matching proto fields
  * @param {{decode: Function, toObject: Function}|null} [ResponseType]
  * @param {RequestInit} [options]

@@ -33,6 +33,8 @@ const i18nDir = join(root, 'js', 'i18n');
 const i18nCatalogName = 'catalog.generated.js';
 const i18nCatalogFile = join(i18nDir, i18nCatalogName);
 const i18nReferenceLocale = 'en-US';
+const maxInitialJavaScriptBytes = 1280 * 1024;
+const maxAsyncJavaScriptBytes = 256 * 1024;
 
 /**
  * Recursively collects file paths below a directory.
@@ -75,6 +77,12 @@ function generateProtobuf() {
       '-t', 'static-module',
       '-w', 'es6',
       '--keep-case',
+      '--no-create',
+      '--no-verify',
+      '--no-delimited',
+      '--no-typeurl',
+      '--no-comments',
+      '--no-service',
       '-o', protoOutFile,
       protoFile,
     ],
@@ -126,6 +134,17 @@ const mainJs = join(outDir, 'js', 'main.js');
 if (!existsSync(mainJs)) {
   console.error('missing dist/js/main.js after Rolldown build');
   process.exit(1);
+}
+const mainJsBytes = statSync(mainJs).size;
+if (mainJsBytes > maxInitialJavaScriptBytes) {
+  throw new Error(`dist/js/main.js exceeds ${maxInitialJavaScriptBytes} bytes: ${mainJsBytes}`);
+}
+for (const file of walk(join(outDir, 'js', 'chunks'))) {
+  if (!file.endsWith('.js')) continue;
+  const bytes = statSync(file).size;
+  if (bytes > maxAsyncJavaScriptBytes) {
+    throw new Error(`${file.slice(outDir.length + 1)} exceeds ${maxAsyncJavaScriptBytes} bytes: ${bytes}`);
+  }
 }
 
 const styleEntry = join(root, 'css', 'style.css');

@@ -284,7 +284,10 @@
   profile, repository, and package-format fragments under `js/i18n/<locale>/`. `scripts/i18n-catalog.mjs` loads
   fragments in parallel, reports all missing/extra keys and placeholder drift against the English catalog, and linearly
   scans every handwritten JS/HTML static translation reference with file/line diagnostics for missing English keys
-  during `pnpm run build:frontend`. Cargo, Docker, and Maven repository subpages share persistent view lookup, busy state,
+  during `pnpm run build:frontend`. The validated English catalog remains in the initial bundle while each other locale
+  is emitted as one independently cached chunk and loaded before its language switch is rendered. The production build
+  rejects an initial JavaScript bundle above 1.25 MiB or an asynchronous chunk above 256 KiB. Cargo, Docker, and Maven
+  repository subpages share persistent view lookup, busy state,
   route-height/entrance animation, back navigation, and timestamp adaptation through `js/browser/repository-view.js`.
   Entrance state is prepared before replacement nodes can paint, while Maven-domain filtering preserves its toolbar
   and filter shell and morphs only the bounded results/pagination region;
@@ -333,7 +336,9 @@
   and emits `jqueryReady` without a Migrate shim. jQuery owns document-ready/delegated event wiring plus the shared
   DOM, modal, theme, tabs, language-card, toggle, custom-select, and website-router layers; streaming fetches,
   observers, pointer-capture details, and Web Animations remain native where jQuery would weaken security or
-  performance. `@renop/ui/disclosure` composes the height-animation layer with accessible details/summary semantics
+  performance. The production protobuf generator retains only the encode, decode, and object-conversion surfaces used
+  by the browser; request payloads are encoded directly without reflection-only constructors, verification helpers,
+  delimited codecs, service classes, or type-URL helpers. `@renop/ui/disclosure` composes the height-animation layer with accessible details/summary semantics
   and supports rapid direction reversal. Unstructured files repositories suppress the protocol-specific repository
   snippet card while retaining storage and mirror statistics. Shared
   select controls pair `@renop/ui/custom-select` with its canonical package stylesheet; native

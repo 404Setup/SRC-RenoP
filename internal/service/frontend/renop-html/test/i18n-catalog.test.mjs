@@ -10,9 +10,10 @@ import assert from 'node:assert/strict';
 import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 
-import {scanI18nCatalog} from '../scripts/i18n-catalog.mjs';
+import {generateI18nCatalog, scanI18nCatalog} from '../scripts/i18n-catalog.mjs';
 
 /**
  * Write a minimal locale fragment fixture.
@@ -91,6 +92,27 @@ test('i18n scan reports all missing keys, fragments, extras, and placeholder dri
                 return true;
             }
         );
+    } finally {
+        rmSync(root, {recursive: true, force: true});
+    }
+});
+
+test('generated catalog keeps English eager and loads other locales on demand', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'renop-i18n-lazy-'));
+    try {
+        writeFragment(root, 'en-US', 'common.js', {alpha: 'Ready'});
+        writeFragment(root, 'fr-FR', 'common.js', {alpha: 'Prêt'});
+        const catalogFile = join(root, 'catalog.generated.js');
+        await generateI18nCatalog({i18nDir: root, catalogFile});
+
+        const catalog = await import(`${pathToFileURL(catalogFile).href}?test=${Date.now()}`);
+        assert.deepEqual(catalog.availableLocales, ['en-US', 'fr-FR']);
+        assert.equal(catalog.default.alpha, 'Ready');
+        const first = await catalog.loadLocale('fr-FR');
+        const second = await catalog.loadLocale('fr-FR');
+        assert.equal(first.alpha, 'Prêt');
+        assert.equal(first, second);
+        await assert.rejects(catalog.loadLocale('invalid'), /unsupported locale: invalid/);
     } finally {
         rmSync(root, {recursive: true, force: true});
     }

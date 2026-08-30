@@ -121,9 +121,7 @@ export async function uploadFileChunked(file, options = {}) {
 		initPayload.gpg_signature_expected = !!options.gpgSignatureExpected;
     }
 
-    const initBody = ChunkedUploadInitRequest.encode(
-        ChunkedUploadInitRequest.create(initPayload),
-    ).finish();
+    const initBody = ChunkedUploadInitRequest.encode(initPayload).finish();
 
     const initResp = await fetch('/api/upload/chunked/', {
         method: 'POST',

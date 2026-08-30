@@ -45,7 +45,7 @@ import {initConfiguredFont} from './font.js';
 import {$} from '@renop/ui/jquery';
 import {protectedRouteDeniedEvent} from './protected-route.js';
 
-initI18n();
+await initI18n();
 initConfiguredFont();
 const backendAvailability = installBackendAvailabilityMonitor();
 
